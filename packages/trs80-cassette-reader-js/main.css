@@ -1,0 +1,15 @@
+
+#drop_screen {
+        display: block;
+}
+#data_screen {
+        display: none;
+}
+#drop_zone {
+        padding: 2em 3em;
+        border: 2px solid red;
+        font-size: 24pt;
+}
+.hover {
+        background-color: #fee;
+}
