@@ -10,6 +10,7 @@ define(["Tape"], function (Tape) {
          * @param {Array<HTMLCanvasElement>} canvases
          */
         constructor(tape, canvases) {
+            var self = this;
             this.tape = tape;
             this.canvases = canvases;
 
@@ -18,10 +19,25 @@ define(["Tape"], function (Tape) {
             }
 
             // Display level in the tape's samplesList.
-            this.displayLevel = 0;
+            this.displayLevel = this.computeFitLevel(canvases[0].width);
 
             // Visually centered sample (in level 0).
             this.centerSample = Math.floor(tape.samplesList[0].length / 2);
+
+            // Configure zoom keys.
+            document.onkeydown = function (event) {
+                // XXX should pick meta vs. ctrl based on platform (mac vs. pc).
+                if (event.metaKey || event.ctrlKey) {
+                    if (event.keyCode == 187) {
+                        self.zoomIn();
+                        event.preventDefault();
+                    }
+                    if (event.keyCode == 189) {
+                        self.zoomOut();
+                        event.preventDefault();
+                    }
+                }
+            };    
         }
 
         /**
@@ -59,12 +75,12 @@ define(["Tape"], function (Tape) {
         /**
          * @param {number} width the width of the canvas we'll initially display in.
          */
-        fitIn(width) {
+        computeFitLevel(width) {
             const sampleCount = this.tape.samplesList.length;
             var displayLevel = Math.ceil(Math.log2(width / sampleCount));
             displayLevel = Math.max(displayLevel, 0);
             displayLevel = Math.min(displayLevel, this.tape.samplesList.length - 1);
-            this.displayLevel = displayLevel;
+            return displayLevel;
         }
 
         draw() {
