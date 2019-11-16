@@ -7,15 +7,14 @@
 
 <body>
   <div id="drop_screen">
-    <div id="drop_zone" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);"
-      ondragleave="dragLeaveHandler(event);">
+    <div id="drop_zone">
       <p>Drag a 48 kHz mono 16-bit WAV file here . . .</p>
     </div>
   </div>
   <div id="data_screen">
     <canvas id="data_canvas" width="800" height="400"></canvas>
   </div>
-  <script src="main.js"></script>
+  <script data-main="js/main" src="js/require-2.3.6.js"></script>
 </body>
 
 </html>
