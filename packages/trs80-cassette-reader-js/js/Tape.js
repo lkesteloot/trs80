@@ -4,28 +4,38 @@
 
 "use strict";
 
-define(function () {
+define(["DisplaySamples"], function (DisplaySamples) {
     /**
-     * 
      * @param {Float32Array} samples original samples from the tape.
      */
-    var Tape = function (samples) {
-        this.samplesList = [samples];
-
-        while (this.samplesList[this.samplesList.length - 1].length > 1) {
-            var samples = this.samplesList[this.samplesList.length - 1];
-            var half = Math.ceil(samples.length / 2);
-            var down = new Float32Array(half);
-
-            for (var i = 0; i < half; i++) {
-                var j = i * 2;
-                var value = j == samples.length - 1 ? samples[j] : Math.max(samples[j], samples[j + 1]);
-                down[i] = value;
-            }
-            this.samplesList.push(down);
+    class Tape {
+        constructor(samples) {
+            this.originalSamples = new DisplaySamples(samples);
+            this.filteredSamples = new DisplaySamples(this.filterSamples(samples, 500));
         }
-    };
 
+        /**
+         * @param {Float32Array} samples samples to filter.
+         * @param {number} size size of filter
+         * @returns {Float32Array} filtered samples.
+         */
+        filterSamples(samples, size) {
+            var out = new Float32Array(samples.length);
+            var sum = 0;
+    
+            for (var i = 0; i < samples.length; i++) {
+                sum += samples[i];
+                if (i >= size) {
+                    sum -= samples[i - size];
+                }
+    
+                // Subtract out the average of the last "size" samples (to estimate local DC component).
+                out[i] = samples[i] - sum/size;
+            }
+    
+            return out;
+        }
+    }
 
     return Tape;
 });

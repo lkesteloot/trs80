@@ -8,16 +8,17 @@ requirejs.config({
 
 requirejs(["Tape", "TapeBrowser", "Uploader"], function (Tape, TapeBrowser, Uploader) {
     /**
-s     * @param {AudioBuffer} audioBuffer 
+     * @param {AudioBuffer} audioBuffer 
      */
     function handleAudioBuffer(audioBuffer) {
         var dropScreen = document.getElementById("drop_screen");
         var dataScreen = document.getElementById("data_screen");
-        var dataCanvas = document.getElementById("data_canvas");
+        var originalCanvas = document.getElementById("original_canvas");
+        var filteredCanvas = document.getElementById("filtered_canvas");
     
         const samples = audioBuffer.getChannelData(0);
         const tape = new Tape(samples);
-        var tapeBrowser = new TapeBrowser(tape, [dataCanvas]);
+        var tapeBrowser = new TapeBrowser(tape, [originalCanvas, filteredCanvas]);
         tapeBrowser.draw();
         dropScreen.style.display = "none";
         dataScreen.style.display = "block";

@@ -22,7 +22,7 @@ define(["Tape"], function (Tape) {
             this.displayLevel = this.computeFitLevel(canvases[0].width);
 
             // Visually centered sample (in level 0).
-            this.centerSample = Math.floor(tape.samplesList[0].length / 2);
+            this.centerSample = Math.floor(tape.originalSamples.samplesList[0].length / 2);
 
             // Configure zoom keys.
             document.onkeydown = function (event) {
@@ -37,7 +37,7 @@ define(["Tape"], function (Tape) {
                         event.preventDefault();
                     }
                 }
-            };    
+            };
         }
 
         /**
@@ -76,26 +76,27 @@ define(["Tape"], function (Tape) {
          * @param {number} width the width of the canvas we'll initially display in.
          */
         computeFitLevel(width) {
-            const sampleCount = this.tape.samplesList.length;
+            const sampleCount = this.tape.originalSamples.samplesList.length;
             var displayLevel = Math.ceil(Math.log2(width / sampleCount));
             displayLevel = Math.max(displayLevel, 0);
-            displayLevel = Math.min(displayLevel, this.tape.samplesList.length - 1);
+            displayLevel = Math.min(displayLevel, sampleCount - 1);
             return displayLevel;
         }
 
         draw() {
-            for (var canvas of this.canvases) {
-                this.drawInCanvas(canvas);
+            this.drawInCanvas(this.canvases[0], this.tape.originalSamples);
+            if (this.canvases.length > 1) {
+                this.drawInCanvas(this.canvases[1], this.tape.filteredSamples);
             }
         }
 
         /**
-         * 
          * @param {HTMLCanvasElement} canvas 
+         * @param {DisplaySamples} displaySamples
          */
-        drawInCanvas(canvas) {
+        drawInCanvas(canvas, displaySamples) {
             const ctx = canvas.getContext('2d');
-            const samplesList = this.tape.samplesList;
+            const samplesList = displaySamples.samplesList;
             const width = canvas.width;
             const height = canvas.height;
             const samples = samplesList[this.displayLevel];
@@ -144,7 +145,7 @@ define(["Tape"], function (Tape) {
         }
 
         zoomOut() {
-            if (this.displayLevel < this.tape.samplesList.length - 1) {
+            if (this.displayLevel < this.tape.originalSamples.samplesList.length - 1) {
                 this.displayLevel += 1;
                 this.draw();
             }
