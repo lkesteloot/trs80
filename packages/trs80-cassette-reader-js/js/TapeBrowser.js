@@ -7,19 +7,22 @@ define(["Tape"], function (Tape) {
     class TapeBrowser {
         /**
          * @param {Tape} tape
-         * @param {Array<HTMLCanvasElement>} canvases
+         * @param {HTMLCanvasElement} originalCanvas
+         * @param {HTMLCanvasElement} filteredCanvas
+         * @param {HTMLElement} tapeContents
          */
-        constructor(tape, canvases) {
+        constructor(tape, originalCanvas, filteredCanvas, tapeContents) {
             var self = this;
             this.tape = tape;
-            this.canvases = canvases;
+            this.originalCanvas = originalCanvas;
+            this.filteredCanvas = filteredCanvas;
+            this.tapeContents = tapeContents;
 
-            for (var canvas of canvases) {
-                this.configureCanvas(canvas);
-            }
+            this.configureCanvas(originalCanvas);
+            this.configureCanvas(filteredCanvas);
 
             // Display level in the tape's samplesList.
-            this.displayLevel = this.computeFitLevel(canvases[0].width);
+            this.displayLevel = this.computeFitLevel(originalCanvas.width);
 
             // Visually centered sample (in level 0).
             this.centerSample = Math.floor(tape.originalSamples.samplesList[0].length / 2);
@@ -38,11 +41,14 @@ define(["Tape"], function (Tape) {
                     }
                 }
             };
+
+            // Update tape contents.
+            this.updateTapeContents();
         }
 
         /**
-         * 
-         * @param {HTMLCanvasElement} canvas 
+         *
+         * @param {HTMLCanvasElement} canvas
          */
         configureCanvas(canvas) {
             var self = this;
@@ -84,14 +90,12 @@ define(["Tape"], function (Tape) {
         }
 
         draw() {
-            this.drawInCanvas(this.canvases[0], this.tape.originalSamples);
-            if (this.canvases.length > 1) {
-                this.drawInCanvas(this.canvases[1], this.tape.filteredSamples);
-            }
+            this.drawInCanvas(this.originalCanvas, this.tape.originalSamples);
+            this.drawInCanvas(this.filteredCanvas, this.tape.filteredSamples);
         }
 
         /**
-         * @param {HTMLCanvasElement} canvas 
+         * @param {HTMLCanvasElement} canvas
          * @param {DisplaySamples} displaySamples
          */
         drawInCanvas(canvas, displaySamples) {
@@ -161,6 +165,27 @@ define(["Tape"], function (Tape) {
             if (this.displayLevel < this.tape.originalSamples.samplesList.length - 1) {
                 this.displayLevel += 1;
                 this.draw();
+            }
+        }
+
+        updateTapeContents() {
+            let self = this;
+            let addRow = function (text) {
+                let div = document.createElement("div");
+                div.classList.add("tape_contents_row");
+                div.innerText = text;
+                self.tapeContents.appendChild(div);
+            };
+            while (this.tapeContents.firstChild) {
+                this.tapeContents.removeChild(this.tapeContents.firstChild);
+            }
+            for (let program of this.tape.programs) {
+                addRow("Track " + program.trackNumber + ", copy " + program.copyNumber);
+                addRow("    Binary");
+
+                if (program.isProgram()) {
+                    addRow("    Basic");
+                }
             }
         }
     }

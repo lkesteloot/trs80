@@ -1,15 +1,37 @@
 
+body {
+    font-family: sans-serif;
+}
 #drop_screen {
-        display: block;
+    display: block;
 }
 #data_screen {
-        display: none;
+    display: none;
+}
+.data_container {
+    display: grid;
+    grid-template-areas: "nav main";
+    grid-template-columns: 200px 1fr;
+    grid-gap: 10px;
+}
+.data_container nav {
+    grid-area: nav;
+}
+.tape_contents_row {
+    cursor: default;
+    white-space: pre;
+}
+.tape_contents_row:hover {
+    background-color: #eee;
+}
+.data_container main {
+    grid-area: main;
 }
 #drop_zone {
-        padding: 2em 3em;
-        border: 2px solid red;
-        font-size: 24pt;
+    padding: 2em 3em;
+    border: 2px solid red;
+    font-size: 24pt;
 }
 .hover {
-        background-color: #fee;
+    background-color: #fee;
 }

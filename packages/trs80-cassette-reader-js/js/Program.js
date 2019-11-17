@@ -17,6 +17,19 @@ define(function () {
             this.endFrame = endFrame;
             this.binary = binary;
         }
+
+        /**
+         * Whether the binary represents a Basic program.
+         * 
+         * @returns {boolean}
+         */
+        isProgram() {
+            return this.binary != null &&
+                this.binary.length >= 3 &&
+                this.binary[0] == 0xD3 &&
+                this.binary[1] == 0xD3 &&
+                this.binary[2] == 0xD3;
+        }
     }
 
     return Program;

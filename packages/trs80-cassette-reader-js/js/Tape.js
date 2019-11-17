@@ -16,7 +16,6 @@ define(["DisplaySamples", "AudioUtils", "Program"], function (DisplaySamples, Au
         }
 
         /**
-         * 
          * @param {Program} program 
          */
         addProgram(program) {
