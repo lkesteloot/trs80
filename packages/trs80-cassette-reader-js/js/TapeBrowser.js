@@ -2,7 +2,7 @@
 
 "use strict";
 
-define(["Tape", "Utils"], function (Tape, Utils) {
+define(["Tape", "Utils", "Basic"], function (Tape, Utils, Basic) {
 
     class TapeBrowser {
         /**
@@ -219,6 +219,21 @@ define(["Tape", "Utils"], function (Tape, Utils) {
                 }
                 div.appendChild(line);
             }
+        }
+
+        /**
+         * 
+         * @param {Program} program 
+         */
+        showBasic(program) {
+            this.showProgramText();
+
+            const div = this.programText;
+            this.clearElement(div);
+            div.classList.add("basic");
+            div.classList.remove("binary");
+
+            Basic.fromTokenized(program.binary, div);
         }
 
         showProgramText() {

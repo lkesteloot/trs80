@@ -37,20 +37,45 @@ body {
 }
 #program_text {
     font-family: monospace;
-    background-color: black;
+    background-color: #1E1E1E;
+    color: #D4D4D4;
     white-space: pre;
     display: none;
     padding: 10px 20px;
 }
-#program_text .address {
-    color: #aaa;
+#program_text.binary .address {
+    color: #858585;
 }
-#program_text .hex {
-    color: #eee;
+#program_text.binary .hex {
+    color: #D4D4D4;
 }
-#program_text .ascii {
-    color: #eee;
+#program_text.binary .ascii {
+    color: #D4D4D4;
 }
-#program_text .ascii-unprintable {
-    color: #666;
+#program_text.binary .ascii-unprintable {
+    color: #858585;
+}
+#program_text.basic {
+    display: pre;
+}
+#program_text.basic .error {
+    color: #aa0000;
+}
+#program_text.basic .line_number {
+    color: #858585;
+}
+#program_text.basic .punctuation {
+    color: #D4D4D4;
+}
+#program_text.basic .keyword {
+    color: #C586C0;
+}
+#program_text.basic .regular {
+    color: #9CDCFE;
+}
+#program_text.basic .string {
+    color: #CE9178;
+}
+#program_text.basic .comment {
+    color: #6A9955;
 }

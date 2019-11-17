@@ -71,7 +71,7 @@ define(["AudioUtils", "TapeDecoderState"], function (AudioUtils, TapeDecoderStat
                 var bit = timeDiff < BIT_DETERMINATOR;
                 if (this.eatNextPulse) {
                     if (this.state == TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
-                        results.mLog.println("Warning: At bit of wrong value at " +
+                        console.log("Warning: At bit of wrong value at " +
                             AudioUtils.frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
                             AudioUtils.frameToTimestamp(this.lastPulseFrame));
                         //mHistory.add(new BitData(this.lastPulseFrame, frame, BitType.BAD));
