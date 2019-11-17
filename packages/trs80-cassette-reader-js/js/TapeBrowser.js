@@ -76,8 +76,8 @@ define(["Tape"], function (Tape) {
          * @param {number} width the width of the canvas we'll initially display in.
          */
         computeFitLevel(width) {
-            const sampleCount = this.tape.originalSamples.samplesList.length;
-            var displayLevel = Math.ceil(Math.log2(width / sampleCount));
+            const sampleCount = this.tape.originalSamples.samplesList[0].length;
+            var displayLevel = Math.ceil(Math.log2(sampleCount/width));
             displayLevel = Math.max(displayLevel, 0);
             displayLevel = Math.min(displayLevel, sampleCount - 1);
             return displayLevel;
@@ -103,8 +103,21 @@ define(["Tape"], function (Tape) {
             const mag = Math.pow(2, this.displayLevel);
             const centerSample = Math.floor(this.centerSample / mag);
 
+            var frameToX = function (i) {
+                return Math.floor(width / 2) + (i - centerSample);
+            };
+
+            // Background.
             ctx.fillStyle = 'rgb(0, 0, 0)';
             ctx.fillRect(0, 0, width, height);
+
+            // Programs.
+            ctx.fillStyle = 'rgb(50, 50, 50)';
+            for (let program of this.tape.programs) {
+                let x1 = frameToX(program.startFrame/mag);
+                let x2 = frameToX(program.endFrame/mag);
+                ctx.fillRect(x1, 0, x2 - x1, height);
+            }
 
             ctx.strokeStyle = "rgb(255, 255, 255)";
             const firstSample = Math.max(centerSample - Math.floor(width / 2), 0);
@@ -116,7 +129,7 @@ define(["Tape"], function (Tape) {
             }
             for (var i = firstSample; i <= lastSample; i++) {
                 var value = samples[i];
-                var x = Math.floor(width / 2) + (i - centerSample);
+                var x = frameToX(i);
                 var y = value * height / 2;
 
                 if (drawingLine) {

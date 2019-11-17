@@ -13,7 +13,7 @@ define(["Tape", "LowSpeedTapeDecoder", "TapeDecoderState", "AudioUtils", "Progra
         }
 
         decode() {
-            var samples = this.tape.originalSamples.samplesList[0];
+            var samples = this.tape.filteredSamples.samplesList[0];
             var instanceNumber = 1;
             var trackNumber = 0;
             var copyNumber = 1;
@@ -83,13 +83,13 @@ define(["Tape", "LowSpeedTapeDecoder", "TapeDecoderState", "AudioUtils", "Progra
 
                     case TapeDecoderState.ERROR:
                         console.log("Decoder detected an error; skipping program.");
-                        var program = new Program(trackNumber, copyNumber, programStartFrame, tapeDecoders[0].getProgram());
+                        var program = new Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
                         this.tape.addProgram(program);
                         break;
 
                     case TapeDecoderState.FINISHED:
                         console.log("Found end of program at " + AudioUtils.frameToTimestamp(frame) + ".");
-                        program = new Program(trackNumber, copyNumber, programStartFrame, tapeDecoders[0].getProgram());
+                        program = new Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
                         this.tape.addProgram(program);
                         break;
                 }

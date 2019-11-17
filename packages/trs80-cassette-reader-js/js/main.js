@@ -11,19 +11,19 @@ requirejs(["Tape", "TapeBrowser", "Uploader", "Decoder"], function (Tape, TapeBr
      * @param {AudioBuffer} audioBuffer 
      */
     function handleAudioBuffer(audioBuffer) {
-        var dropScreen = document.getElementById("drop_screen");
-        var dataScreen = document.getElementById("data_screen");
         var originalCanvas = document.getElementById("original_canvas");
         var filteredCanvas = document.getElementById("filtered_canvas");
     
         const samples = audioBuffer.getChannelData(0);
         const tape = new Tape(samples);
         var tapeBrowser = new TapeBrowser(tape, [originalCanvas, filteredCanvas]);
-        tapeBrowser.draw();
         var decoder = new Decoder(tape);
         decoder.decode();
+        tapeBrowser.draw();
 
         // Switch screens.
+        var dropScreen = document.getElementById("drop_screen");
+        var dataScreen = document.getElementById("data_screen");
         dropScreen.style.display = "none";
         dataScreen.style.display = "block";
     }
