@@ -1,16 +1,6 @@
 "use strict";
 
-define(function () {
-    function pad(n, size) {
-        var s = n.toString();
-
-        while (s.length < size) {
-            s = "0" + s;
-        }
-
-        return s;
-    }
-
+define(["Utils"], function (Utils) {
     return {
         // Expected HZ on tape.
         HZ: 48000,
@@ -48,7 +38,7 @@ define(function () {
             var hour = Math.floor(min / 60);
             min -= hour * 60;
 
-            return hour + ":" + pad(min, 2) + ":" + pad(sec, 2) + "." + pad(ms, 3) + " (frame " + frame + ")";
+            return hour + ":" + Utils.pad(min, 2) + ":" + Utils.pad(sec, 2) + "." + Utils.pad(ms, 3) + " (frame " + frame + ")";
         }
     };
 });

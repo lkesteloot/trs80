@@ -2,20 +2,22 @@
 
 "use strict";
 
-define(["Tape"], function (Tape) {
+define(["Tape", "Utils"], function (Tape, Utils) {
 
     class TapeBrowser {
         /**
          * @param {Tape} tape
          * @param {HTMLCanvasElement} originalCanvas
          * @param {HTMLCanvasElement} filteredCanvas
+         * @param {HTMLElement} programText
          * @param {HTMLElement} tapeContents
          */
-        constructor(tape, originalCanvas, filteredCanvas, tapeContents) {
+        constructor(tape, originalCanvas, filteredCanvas, programText, tapeContents) {
             var self = this;
             this.tape = tape;
             this.originalCanvas = originalCanvas;
             this.filteredCanvas = filteredCanvas;
+            this.programText = programText;
             this.tapeContents = tapeContents;
 
             this.configureCanvas(originalCanvas);
@@ -83,7 +85,7 @@ define(["Tape"], function (Tape) {
          */
         computeFitLevel(width) {
             const sampleCount = this.tape.originalSamples.samplesList[0].length;
-            var displayLevel = Math.ceil(Math.log2(sampleCount/width));
+            var displayLevel = Math.ceil(Math.log2(sampleCount / width));
             displayLevel = Math.max(displayLevel, 0);
             displayLevel = Math.min(displayLevel, sampleCount - 1);
             return displayLevel;
@@ -118,8 +120,8 @@ define(["Tape"], function (Tape) {
             // Programs.
             ctx.fillStyle = 'rgb(50, 50, 50)';
             for (let program of this.tape.programs) {
-                let x1 = frameToX(program.startFrame/mag);
-                let x2 = frameToX(program.endFrame/mag);
+                let x1 = frameToX(program.startFrame / mag);
+                let x2 = frameToX(program.endFrame / mag);
                 ctx.fillRect(x1, 0, x2 - x1, height);
             }
 
@@ -168,24 +170,104 @@ define(["Tape"], function (Tape) {
             }
         }
 
+        /**
+         * 
+         * @param {Program} program 
+         */
+        showBinary(program) {
+            this.showProgramText();
+
+            const div = this.programText;
+            this.clearElement(div);
+            div.classList.add("binary");
+            div.classList.remove("basic");
+
+            const binary = program.binary;
+            for (let addr = 0; addr < binary.length; addr += 16) {
+                let line = document.createElement("div");
+
+                let e = document.createElement("span");
+                e.classList.add("address");
+                e.innerText = Utils.pad(addr, 16, 4) + "  ";
+                line.appendChild(e);
+
+                // Hex.
+                let subAddr;
+                e = document.createElement("span");
+                e.classList.add("hex");
+                for (subAddr = addr; subAddr < binary.length && subAddr < addr + 16; subAddr++) {
+                    e.innerText += Utils.pad(binary[subAddr], 16, 2) + " ";
+                }
+                for (; subAddr < addr + 16; subAddr++) {
+                    e.innerText += "   ";
+                }
+                e.innerText += "  ";
+                line.appendChild(e);
+
+                // ASCII.
+                for (subAddr = addr; subAddr < binary.length && subAddr < addr + 16; subAddr++) {
+                    let c = binary[subAddr];
+                    e = document.createElement("span");
+                    if (c >= 32 && c < 127) {
+                        e.classList.add("ascii");
+                        e.innerText += String.fromCharCode(c);
+                    } else {
+                        e.classList.add("ascii-unprintable");
+                        e.innerText += '.';
+                    }
+                    line.appendChild(e);
+                }
+                div.appendChild(line);
+            }
+        }
+
+        showProgramText() {
+            this.originalCanvas.style.display = "none";
+            this.filteredCanvas.style.display = "none";
+            this.programText.style.display = "block";
+        }
+
+        showCanvases() {
+            this.originalCanvas.style.display = "block";
+            this.filteredCanvas.style.display = "block";
+            this.programText.style.display = "none";
+        }
+
         updateTapeContents() {
             let self = this;
-            let addRow = function (text) {
+            let addRow = function (text, onClick) {
                 let div = document.createElement("div");
                 div.classList.add("tape_contents_row");
                 div.innerText = text;
+                if (onClick) {
+                    div.onclick = onClick;
+                }
                 self.tapeContents.appendChild(div);
             };
-            while (this.tapeContents.firstChild) {
-                this.tapeContents.removeChild(this.tapeContents.firstChild);
-            }
+            this.clearElement(this.tapeContents);
             for (let program of this.tape.programs) {
-                addRow("Track " + program.trackNumber + ", copy " + program.copyNumber);
-                addRow("    Binary");
-
+                addRow("Track " + program.trackNumber + ", copy " + program.copyNumber, function () {
+                    self.showCanvases();
+                });
+                addRow("    Binary", function () {
+                    self.showBinary(program);
+                });
                 if (program.isProgram()) {
-                    addRow("    Basic");
+                    addRow("    Basic", function () {
+                        self.showBasic(program);
+                    });
                 }
+            }
+        }
+
+        /**
+         * Remove all children from element.
+         * 
+         * @param {HTMLElement} e
+         */
+        clearElement(e) {
+            while (e.firstChild) {
+                e.removeChild(e.firstChild);
             }
         }
     }

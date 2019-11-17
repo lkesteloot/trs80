@@ -35,3 +35,22 @@ body {
 .hover {
     background-color: #fee;
 }
+#program_text {
+    font-family: monospace;
+    background-color: black;
+    white-space: pre;
+    display: none;
+    padding: 10px 20px;
+}
+#program_text .address {
+    color: #aaa;
+}
+#program_text .hex {
+    color: #eee;
+}
+#program_text .ascii {
+    color: #eee;
+}
+#program_text .ascii-unprintable {
+    color: #666;
+}

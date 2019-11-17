@@ -13,13 +13,14 @@ requirejs(["Tape", "TapeBrowser", "Uploader", "Decoder"], function (Tape, TapeBr
     function handleAudioBuffer(audioBuffer) {
         var originalCanvas = document.getElementById("original_canvas");
         var filteredCanvas = document.getElementById("filtered_canvas");
+        var programText = document.getElementById("program_text");
         var tapeContents = document.getElementById("tape_contents");
     
         const samples = audioBuffer.getChannelData(0);
         const tape = new Tape(samples);
         var decoder = new Decoder(tape);
         decoder.decode();
-        var tapeBrowser = new TapeBrowser(tape, originalCanvas, filteredCanvas, tapeContents);
+        var tapeBrowser = new TapeBrowser(tape, originalCanvas, filteredCanvas, programText, tapeContents);
         tapeBrowser.draw();
 
         // Switch screens.
