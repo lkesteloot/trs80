@@ -6,7 +6,7 @@ requirejs.config({
     urlArgs: "bust=" + (new Date()).getTime()
 });
 
-requirejs(["Tape", "TapeBrowser", "Uploader"], function (Tape, TapeBrowser, Uploader) {
+requirejs(["Tape", "TapeBrowser", "Uploader", "Decoder"], function (Tape, TapeBrowser, Uploader, Decoder) {
     /**
      * @param {AudioBuffer} audioBuffer 
      */
@@ -20,6 +20,10 @@ requirejs(["Tape", "TapeBrowser", "Uploader"], function (Tape, TapeBrowser, Uplo
         const tape = new Tape(samples);
         var tapeBrowser = new TapeBrowser(tape, [originalCanvas, filteredCanvas]);
         tapeBrowser.draw();
+        var decoder = new Decoder(tape);
+        decoder.decode();
+
+        // Switch screens.
         dropScreen.style.display = "none";
         dataScreen.style.display = "block";
     }
