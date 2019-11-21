@@ -11,6 +11,11 @@ requirejs(["Tape", "TapeBrowser", "Uploader", "Decoder"], function (Tape, TapeBr
      * @param {AudioBuffer} audioBuffer 
      */
     function handleAudioBuffer(audioBuffer) {
+        console.log("Audio is " + audioBuffer.duration + " seconds, " +
+                    audioBuffer.numberOfChannels + " channels, " +
+                        audioBuffer.sampleRate + " Hz");
+        // XXX check that there's 1 channel and it's 48 kHz.
+
         var originalCanvas = document.getElementById("original_canvas");
         var filteredCanvas = document.getElementById("filtered_canvas");
         var programText = document.getElementById("program_text");

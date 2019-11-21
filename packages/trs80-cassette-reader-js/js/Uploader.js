@@ -29,18 +29,16 @@ define(function () {
         }
 
         handleDroppedFile(file) {
-            var audioCtx = new window.AudioContext();
+            let self = this;
+            let audioCtx = new window.AudioContext();
             console.log("File " + file.name + " has size " + file.size);
-            var x = file.arrayBuffer();
-            x.then(audioData => {
-                console.log("Downloaded size is " + audioData.byteLength + " bytes");
-                var y = audioCtx.decodeAudioData(audioData);
-                y.then(audioBuffer => {
-                    console.log("Audio is " + audioBuffer.duration + " seconds, " + audioBuffer.numberOfChannels + " channels, " + audioBuffer.sampleRate + " Hz");
-                    // XXX check that there's 1 channel and it's 48 kHz.
-                    this.handleAudioBuffer(audioBuffer);
-                });
+            // We could use file.arrayBuffer() here, but as of writing it's buggy
+            // in Firefox 70. https://bugzilla.mozilla.org/show_bug.cgi?id=1585284
+            let fileReader = new FileReader();
+            fileReader.addEventListener("loadend", function () {
+                audioCtx.decodeAudioData(fileReader.result).then(self.handleAudioBuffer);
             });
+            fileReader.readAsArrayBuffer(file);
         }
 
         dropHandler(ev) {
