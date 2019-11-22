@@ -30,17 +30,14 @@ define(["Tape", "Utils", "Basic"], function (Tape, Utils, Basic) {
             this.centerSample = Math.floor(tape.originalSamples.samplesList[0].length / 2);
 
             // Configure zoom keys.
-            document.onkeydown = function (event) {
-                // XXX should pick meta vs. ctrl based on platform (mac vs. pc).
-                if (event.metaKey || event.ctrlKey) {
-                    if (event.keyCode == 187) {
-                        self.zoomIn();
-                        event.preventDefault();
-                    }
-                    if (event.keyCode == 189) {
-                        self.zoomOut();
-                        event.preventDefault();
-                    }
+            document.onkeypress = function (event) {
+                if (event.keyCode == 61) {
+                    self.zoomIn();
+                    event.preventDefault();
+                }
+                if (event.keyCode == 45) {
+                    self.zoomOut();
+                    event.preventDefault();
                 }
             };
 
