@@ -5,11 +5,11 @@ import { pad } from "Utils";
 export const HZ = 48000;
 
 /**
- * @param {Float32Array} samples samples to filter.
- * @param {number} size size of filter
- * @returns {Float32Array} filtered samples.
+ * @param samples samples to filter.
+ * @param size size of filter
+ * @returns filtered samples.
  */
-export function filterSamples(samples, size) {
+export function filterSamples(samples : Float32Array, size: number): Float32Array {
     var out = new Float32Array(samples.length);
     var sum = 0;
 
@@ -26,8 +26,8 @@ export function filterSamples(samples, size) {
     return out;
 }
 
-export function frameToTimestamp(frame) {
-    var time = frame / this.HZ;
+export function frameToTimestamp(frame: number) {
+    var time = frame / HZ;
 
     var ms = Math.floor(time * 1000);
     var sec = Math.floor(ms / 1000);

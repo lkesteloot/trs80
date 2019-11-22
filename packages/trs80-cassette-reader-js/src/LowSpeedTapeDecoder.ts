@@ -1,6 +1,7 @@
 
 import { HZ, frameToTimestamp } from "AudioUtils";
 import { TapeDecoderState } from "TapeDecoderState";
+import { Tape } from "Tape";
 
 /**
  * Number of samples between the top of the pulse and the bottom of it.
@@ -59,7 +60,7 @@ export class LowSpeedTapeDecoder {
     }
 
     // For TapeDecoder interface:
-    handleSample(tape, frame) {
+    handleSample(tape: Tape, frame: number) {
         var samples = tape.filteredSamples.samplesList[0];
 
         // Differentiate to accentuate a pulse. Pulse go positive, then negative,

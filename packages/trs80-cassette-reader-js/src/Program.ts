@@ -6,7 +6,7 @@ export class Program {
     endFrame: number;
     binary: Uint8Array;
 
-    constructor(trackNumber, copyNumber, startFrame, endFrame, binary) {
+    constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number, binary: Uint8Array) {
         this.trackNumber = trackNumber;
         this.copyNumber = copyNumber;
         this.startFrame = startFrame;
@@ -16,10 +16,8 @@ export class Program {
 
     /**
      * Whether the binary represents a Basic program.
-     * 
-     * @returns {boolean}
      */
-    isProgram() {
+    isProgram(): boolean {
         return this.binary != null &&
             this.binary.length >= 3 &&
             this.binary[0] == 0xD3 &&

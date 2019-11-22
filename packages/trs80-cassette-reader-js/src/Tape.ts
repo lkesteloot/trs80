@@ -12,18 +12,15 @@ export class Tape {
     programs: Program[];
 
     /**
-     * @param {Float32Array} samples original samples from the tape.
+     * @param samples original samples from the tape.
      */
-    constructor(samples) {
+    constructor(samples: Float32Array) {
         this.originalSamples = new DisplaySamples(samples);
         this.filteredSamples = new DisplaySamples(filterSamples(samples, 500));
         this.programs = [];
     }
 
-    /**
-     * @param {Program} program 
-     */
-    addProgram(program) {
+    addProgram(program: Program) {
         this.programs.push(program);
     }
 }

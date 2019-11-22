@@ -4,11 +4,11 @@ export class Uploader {
     handleAudioBuffer: (audioBuffer: AudioBuffer) => void;
 
     /**
-     * @param {HTMLElement} dropZone any element where files can be dropped.
-     * @param {HTMLInputElement} dropUpload file type input element.
-     * @param {*} handleAudioBuffer callback with AudioBuffer parameter.
+     * @param dropZone any element where files can be dropped.
+     * @param dropUpload file type input element.
+     * @param handleAudioBuffer callback with AudioBuffer parameter.
      */
-    constructor(dropZone, dropUpload, handleAudioBuffer) {
+    constructor(dropZone: HTMLElement, dropUpload: HTMLInputElement, handleAudioBuffer: (audioBuffer: AudioBuffer) => void) {
         var self = this;
 
         this.handleAudioBuffer = handleAudioBuffer;
@@ -26,14 +26,16 @@ export class Uploader {
             dropZone.classList.remove("hover");
         };
         dropUpload.onchange = function (ev) {
-            const file = dropUpload.files[0];
-            if (file) {
-                self.handleDroppedFile(file);
+            if (dropUpload.files) {
+                const file = dropUpload.files[0];
+                if (file) {
+                    self.handleDroppedFile(file);
+                }
             }
         };
     }
 
-    handleDroppedFile(file) {
+    handleDroppedFile(file: File) {
         let self = this;
         let audioCtx = new window.AudioContext();
         console.log("File " + file.name + " has size " + file.size);
@@ -51,25 +53,29 @@ export class Uploader {
         fileReader.readAsArrayBuffer(file);
     }
 
-    dropHandler(ev) {
+    dropHandler(ev: DragEvent) {
         var self = this;
 
         // Prevent default behavior (Prevent file from being opened)
         ev.preventDefault();
 
-        if (ev.dataTransfer.items) {
-            // Use DataTransferItemList interface to access the files.
-            for (var i = 0; i < ev.dataTransfer.items.length; i++) {
-                // If dropped items aren't files, reject them
-                if (ev.dataTransfer.items[i].kind === 'file') {
-                    var file = ev.dataTransfer.items[i].getAsFile();
-                    self.handleDroppedFile(file);
+        if (ev.dataTransfer) {
+            if (ev.dataTransfer.items) {
+                // Use DataTransferItemList interface to access the files.
+                for (var i = 0; i < ev.dataTransfer.items.length; i++) {
+                    // If dropped items aren't files, reject them
+                    if (ev.dataTransfer.items[i].kind === 'file') {
+                        var file = ev.dataTransfer.items[i].getAsFile();
+                        if (file) {
+                            self.handleDroppedFile(file);
+                        }
+                    }
                 }
-            }
-        } else {
-            // Use DataTransfer interface to access the files.
-            for (var i = 0; i < ev.dataTransfer.files.length; i++) {
-                self.handleDroppedFile(ev.dataTransfer.files[i]);
+            } else {
+                // Use DataTransfer interface to access the files.
+                for (var i = 0; i < ev.dataTransfer.files.length; i++) {
+                    self.handleDroppedFile(ev.dataTransfer.files[i]);
+                }
             }
         }
     }

@@ -3,6 +3,8 @@
 import { Tape } from "Tape";
 import { pad } from "Utils";
 import { fromTokenized } from "Basic";
+import { DisplaySamples } from "DisplaySamples";
+import { Program } from "./Program";
 
 export class TapeBrowser {
     tape: Tape;
@@ -13,14 +15,7 @@ export class TapeBrowser {
     displayLevel: number;
     centerSample: number;
 
-    /**
-     * @param {Tape} tape
-     * @param {HTMLCanvasElement} originalCanvas
-     * @param {HTMLCanvasElement} filteredCanvas
-     * @param {HTMLElement} programText
-     * @param {HTMLElement} tapeContents
-     */
-    constructor(tape, originalCanvas, filteredCanvas, programText, tapeContents) {
+    constructor(tape: Tape, originalCanvas: HTMLCanvasElement, filteredCanvas: HTMLCanvasElement, programText: HTMLElement, tapeContents: HTMLElement) {
         var self = this;
         this.tape = tape;
         this.originalCanvas = originalCanvas;
@@ -57,7 +52,7 @@ export class TapeBrowser {
      *
      * @param {HTMLCanvasElement} canvas
      */
-    configureCanvas(canvas) {
+    configureCanvas(canvas: HTMLCanvasElement) {
         var self = this;
         var dragging = false;
         var dragInitialX = 0;
@@ -88,7 +83,7 @@ export class TapeBrowser {
     /**
      * @param {number} width the width of the canvas we'll initially display in.
      */
-    computeFitLevel(width) {
+    computeFitLevel(width: number) {
         const sampleCount = this.tape.originalSamples.samplesList[0].length;
         var displayLevel = Math.ceil(Math.log2(sampleCount / width));
         displayLevel = Math.max(displayLevel, 0);
@@ -105,8 +100,11 @@ export class TapeBrowser {
      * @param {HTMLCanvasElement} canvas
      * @param {DisplaySamples} displaySamples
      */
-    drawInCanvas(canvas, displaySamples) {
+    drawInCanvas(canvas: HTMLCanvasElement, displaySamples: DisplaySamples) {
         const ctx = canvas.getContext('2d');
+        if (ctx === null) {
+            return;
+        }
         const samplesList = displaySamples.samplesList;
         const width = canvas.width;
         const height = canvas.height;
@@ -114,7 +112,7 @@ export class TapeBrowser {
         const mag = Math.pow(2, this.displayLevel);
         const centerSample = Math.floor(this.centerSample / mag);
 
-        var frameToX = function (i) {
+        var frameToX = function (i: number) {
             return Math.floor(width / 2) + (i - centerSample);
         };
 
@@ -175,11 +173,7 @@ export class TapeBrowser {
         }
     }
 
-    /**
-     * 
-     * @param {Program} program 
-     */
-    showBinary(program) {
+    showBinary(program: Program) {
         this.showProgramText();
 
         const div = this.programText;
@@ -230,7 +224,7 @@ export class TapeBrowser {
      * 
      * @param {Program} program 
      */
-    showBasic(program) {
+    showBasic(program: Program) {
         this.showProgramText();
 
         const div = this.programText;
@@ -255,7 +249,7 @@ export class TapeBrowser {
 
     updateTapeContents() {
         let self = this;
-        let addRow = function (text, onClick) {
+        let addRow = function (text: string, onClick: ((this: GlobalEventHandlers, ev: MouseEvent) => any) | null) {
             let div = document.createElement("div");
             div.classList.add("tape_contents_row");
             div.innerText = text;
@@ -285,7 +279,7 @@ export class TapeBrowser {
      * 
      * @param {HTMLElement} e
      */
-    clearElement(e) {
+    clearElement(e: HTMLElement) {
         while (e.firstChild) {
             e.removeChild(e.firstChild);
         }

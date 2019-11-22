@@ -2,10 +2,7 @@
 export class DisplaySamples {
     samplesList: Float32Array[];
 
-    /**
-     * @param {Float32Array} samples
-     */
-    constructor(samples) {
+    constructor(samples: Float32Array) {
         this.samplesList = [samples];
         this.filterDown();
     }

@@ -7,16 +7,16 @@ import { Decoder } from "Decoder";
 /**
  * @param {AudioBuffer} audioBuffer 
  */
-function handleAudioBuffer(audioBuffer) {
+function handleAudioBuffer(audioBuffer: AudioBuffer) {
     console.log("Audio is " + audioBuffer.duration + " seconds, " +
                 audioBuffer.numberOfChannels + " channels, " +
                     audioBuffer.sampleRate + " Hz");
     // XXX check that there's 1 channel and it's 48 kHz.
 
-    var originalCanvas = document.getElementById("original_canvas");
-    var filteredCanvas = document.getElementById("filtered_canvas");
-    var programText = document.getElementById("program_text");
-    var tapeContents = document.getElementById("tape_contents");
+    var originalCanvas = <HTMLCanvasElement> document.getElementById("original_canvas");
+    var filteredCanvas = <HTMLCanvasElement> document.getElementById("filtered_canvas");
+    var programText = <HTMLElement> document.getElementById("program_text");
+    var tapeContents = <HTMLElement> document.getElementById("tape_contents");
 
     const samples = audioBuffer.getChannelData(0);
     const tape = new Tape(samples);
@@ -28,12 +28,16 @@ function handleAudioBuffer(audioBuffer) {
     // Switch screens.
     var dropScreen = document.getElementById("drop_screen");
     var dataScreen = document.getElementById("data_screen");
-    dropScreen.style.display = "none";
-    dataScreen.style.display = "block";
+    if (dropScreen) {
+        dropScreen.style.display = "none";
+    }
+    if (dataScreen) {
+        dataScreen.style.display = "block";
+    }
 }
 
 export function main() {
-    var dropZone = document.getElementById("drop_zone");
-    var dropUpload = document.getElementById("drop_upload");
+    var dropZone = <HTMLElement> document.getElementById("drop_zone");
+    var dropUpload = <HTMLInputElement> document.getElementById("drop_upload");
     new Uploader(dropZone, dropUpload, handleAudioBuffer);
 }

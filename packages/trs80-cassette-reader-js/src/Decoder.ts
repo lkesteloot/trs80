@@ -9,11 +9,7 @@ import { HZ, frameToTimestamp } from "AudioUtils";
 export class Decoder {
     tape: Tape;
 
-    /**
-     * 
-     * @param {Tape} tape 
-     */
-    constructor(tape) {
+    constructor(tape: Tape) {
         this.tape = tape;
     }
 

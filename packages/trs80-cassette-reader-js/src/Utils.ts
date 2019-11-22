@@ -1,11 +1,11 @@
 /**
  * Convert a number to a string.
  * 
- * @param {number} n number to convert
- * @param {number} base base of the number
- * @param {number} size zero-pad to this many digits
+ * @param n number to convert
+ * @param base base of the number
+ * @param size zero-pad to this many digits
  */
-export function pad(n, base, size) {
+export function pad(n: number, base: number, size: number) {
     var s = n.toString(base);
 
     if (base === 16) {

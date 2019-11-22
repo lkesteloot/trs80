@@ -4,9 +4,9 @@ define("Utils", ["require", "exports"], function (require, exports) {
     /**
      * Convert a number to a string.
      *
-     * @param {number} n number to convert
-     * @param {number} base base of the number
-     * @param {number} size zero-pad to this many digits
+     * @param n number to convert
+     * @param base base of the number
+     * @param size zero-pad to this many digits
      */
     function pad(n, base, size) {
         var s = n.toString(base);
@@ -27,9 +27,9 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
     // Expected HZ on tape.
     exports.HZ = 48000;
     /**
-     * @param {Float32Array} samples samples to filter.
-     * @param {number} size size of filter
-     * @returns {Float32Array} filtered samples.
+     * @param samples samples to filter.
+     * @param size size of filter
+     * @returns filtered samples.
      */
     function filterSamples(samples, size) {
         var out = new Float32Array(samples.length);
@@ -46,7 +46,7 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
     }
     exports.filterSamples = filterSamples;
     function frameToTimestamp(frame) {
-        var time = frame / this.HZ;
+        var time = frame / exports.HZ;
         var ms = Math.floor(time * 1000);
         var sec = Math.floor(ms / 1000);
         ms -= sec * 1000;
@@ -100,10 +100,6 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
     // Just ate a colon and a REM.
     const COLON_REM = 4;
     class ByteReader {
-        /**
-         *
-         * @param {Uint8Array} b
-         */
         constructor(b) {
             this.b = b;
             this.pos = 0;
@@ -117,11 +113,11 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
             return this.pos < this.b.length ? this.b[this.pos++] : EOF;
         }
         /**
-    * Reads a little-endian short (two-byte) integer.
-    *
-    * @param {boolean} allowEofAfterFirstByte
-    * @returns {number} the integer, or EOF on end of file.
-    */
+         * Reads a little-endian short (two-byte) integer.
+         *
+         * @param allowEofAfterFirstByte
+         * @returns the integer, or EOF on end of file.
+         */
         readShort(allowEofAfterFirstByte) {
             let low = this.read();
             if (low === EOF) {
@@ -136,9 +132,9 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
     }
     /**
      *
-     * @param {HTMLElement} out the enclosing element to add to.
-     * @param {string} text the text to add.
-     * @param {string} className the name of the class for the item.
+     * @param out the enclosing element to add to.
+     * @param text the text to add.
+     * @param className the name of the class for the item.
      */
     function add(out, text, className) {
         let e = document.createElement("span");
@@ -148,9 +144,8 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
     }
     /**
      * Decode a tokenized Basic program.
-    
-     * @param {Uint8Array} bytes tokenized program.
-     * @param {HTMLElement} out div to write result into.
+     * @param bytes tokenized program.
+     * @param out div to write result into.
      */
     function fromTokenized(bytes, out) {
         let b = new ByteReader(bytes);
@@ -261,7 +256,7 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
                     }
                 }
             }
-            if (ch === EOF) {
+            if (c === EOF) {
                 add(line, "[EOF in line]", "error");
                 break;
             }
@@ -282,9 +277,6 @@ define("DisplaySamples", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class DisplaySamples {
-        /**
-         * @param {Float32Array} samples
-         */
         constructor(samples) {
             this.samplesList = [samples];
             this.filterDown();
@@ -319,8 +311,6 @@ define("Program", ["require", "exports"], function (require, exports) {
         }
         /**
          * Whether the binary represents a Basic program.
-         *
-         * @returns {boolean}
          */
         isProgram() {
             return this.binary != null &&
@@ -340,16 +330,13 @@ define("Tape", ["require", "exports", "DisplaySamples", "AudioUtils"], function 
     Object.defineProperty(exports, "__esModule", { value: true });
     class Tape {
         /**
-         * @param {Float32Array} samples original samples from the tape.
+         * @param samples original samples from the tape.
          */
         constructor(samples) {
             this.originalSamples = new DisplaySamples_1.DisplaySamples(samples);
             this.filteredSamples = new DisplaySamples_1.DisplaySamples(AudioUtils_1.filterSamples(samples, 500));
             this.programs = [];
         }
-        /**
-         * @param {Program} program
-         */
         addProgram(program) {
             this.programs.push(program);
         }
@@ -516,10 +503,6 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Decoder {
-        /**
-         *
-         * @param {Tape} tape
-         */
         constructor(tape) {
             this.tape = tape;
         }
@@ -603,13 +586,6 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class TapeBrowser {
-        /**
-         * @param {Tape} tape
-         * @param {HTMLCanvasElement} originalCanvas
-         * @param {HTMLCanvasElement} filteredCanvas
-         * @param {HTMLElement} programText
-         * @param {HTMLElement} tapeContents
-         */
         constructor(tape, originalCanvas, filteredCanvas, programText, tapeContents) {
             var self = this;
             this.tape = tape;
@@ -685,6 +661,9 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
          */
         drawInCanvas(canvas, displaySamples) {
             const ctx = canvas.getContext('2d');
+            if (ctx === null) {
+                return;
+            }
             const samplesList = displaySamples.samplesList;
             const width = canvas.width;
             const height = canvas.height;
@@ -746,10 +725,6 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
                 this.draw();
             }
         }
-        /**
-         *
-         * @param {Program} program
-         */
         showBinary(program) {
             this.showProgramText();
             const div = this.programText;
@@ -859,9 +834,9 @@ define("Uploader", ["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     class Uploader {
         /**
-         * @param {HTMLElement} dropZone any element where files can be dropped.
-         * @param {HTMLInputElement} dropUpload file type input element.
-         * @param {*} handleAudioBuffer callback with AudioBuffer parameter.
+         * @param dropZone any element where files can be dropped.
+         * @param dropUpload file type input element.
+         * @param handleAudioBuffer callback with AudioBuffer parameter.
          */
         constructor(dropZone, dropUpload, handleAudioBuffer) {
             var self = this;
@@ -878,9 +853,11 @@ define("Uploader", ["require", "exports"], function (require, exports) {
                 dropZone.classList.remove("hover");
             };
             dropUpload.onchange = function (ev) {
-                const file = dropUpload.files[0];
-                if (file) {
-                    self.handleDroppedFile(file);
+                if (dropUpload.files) {
+                    const file = dropUpload.files[0];
+                    if (file) {
+                        self.handleDroppedFile(file);
+                    }
                 }
             };
         }
@@ -906,20 +883,24 @@ define("Uploader", ["require", "exports"], function (require, exports) {
             var self = this;
             // Prevent default behavior (Prevent file from being opened)
             ev.preventDefault();
-            if (ev.dataTransfer.items) {
-                // Use DataTransferItemList interface to access the files.
-                for (var i = 0; i < ev.dataTransfer.items.length; i++) {
-                    // If dropped items aren't files, reject them
-                    if (ev.dataTransfer.items[i].kind === 'file') {
-                        var file = ev.dataTransfer.items[i].getAsFile();
-                        self.handleDroppedFile(file);
+            if (ev.dataTransfer) {
+                if (ev.dataTransfer.items) {
+                    // Use DataTransferItemList interface to access the files.
+                    for (var i = 0; i < ev.dataTransfer.items.length; i++) {
+                        // If dropped items aren't files, reject them
+                        if (ev.dataTransfer.items[i].kind === 'file') {
+                            var file = ev.dataTransfer.items[i].getAsFile();
+                            if (file) {
+                                self.handleDroppedFile(file);
+                            }
+                        }
                     }
                 }
-            }
-            else {
-                // Use DataTransfer interface to access the files.
-                for (var i = 0; i < ev.dataTransfer.files.length; i++) {
-                    self.handleDroppedFile(ev.dataTransfer.files[i]);
+                else {
+                    // Use DataTransfer interface to access the files.
+                    for (var i = 0; i < ev.dataTransfer.files.length; i++) {
+                        self.handleDroppedFile(ev.dataTransfer.files[i]);
+                    }
                 }
             }
         }
@@ -950,8 +931,12 @@ define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decode
         // Switch screens.
         var dropScreen = document.getElementById("drop_screen");
         var dataScreen = document.getElementById("data_screen");
-        dropScreen.style.display = "none";
-        dataScreen.style.display = "block";
+        if (dropScreen) {
+            dropScreen.style.display = "none";
+        }
+        if (dataScreen) {
+            dataScreen.style.display = "block";
+        }
     }
     function main() {
         var dropZone = document.getElementById("drop_zone");

@@ -45,11 +45,7 @@ class ByteReader {
     b: Uint8Array;
     pos: number;
 
-    /**
-     * 
-     * @param {Uint8Array} b
-     */
-    constructor(b) {
+    constructor(b: Uint8Array) {
         this.b = b;
         this.pos = 0;
     }
@@ -64,12 +60,12 @@ class ByteReader {
     }
 
     /**
-* Reads a little-endian short (two-byte) integer.
-* 
-* @param {boolean} allowEofAfterFirstByte
-* @returns {number} the integer, or EOF on end of file.
-*/
-    readShort(allowEofAfterFirstByte) {
+     * Reads a little-endian short (two-byte) integer.
+     * 
+     * @param allowEofAfterFirstByte
+     * @returns the integer, or EOF on end of file.
+     */
+    readShort(allowEofAfterFirstByte: boolean): number {
         let low = this.read();
         if (low === EOF) {
             return EOF;
@@ -86,11 +82,11 @@ class ByteReader {
 
 /**
  * 
- * @param {HTMLElement} out the enclosing element to add to.
- * @param {string} text the text to add.
- * @param {string} className the name of the class for the item.
+ * @param out the enclosing element to add to.
+ * @param text the text to add.
+ * @param className the name of the class for the item.
  */
-function add(out, text, className) {
+function add(out: HTMLElement, text: string, className: string) {
     let e = document.createElement("span");
     e.innerText = text;
     e.classList.add(className);
@@ -99,11 +95,10 @@ function add(out, text, className) {
 
 /**
  * Decode a tokenized Basic program.
-
- * @param {Uint8Array} bytes tokenized program.
- * @param {HTMLElement} out div to write result into.
+ * @param bytes tokenized program.
+ * @param out div to write result into.
  */
-export function fromTokenized(bytes, out) {
+export function fromTokenized(bytes: Uint8Array, out: HTMLElement) {
     let b = new ByteReader(bytes);
     let state;
 
@@ -213,7 +208,7 @@ export function fromTokenized(bytes, out) {
                 }
             }
         }
-        if (ch === EOF) {
+        if (c === EOF) {
             add(line, "[EOF in line]", "error");
             break;
         }
