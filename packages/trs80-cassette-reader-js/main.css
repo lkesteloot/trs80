@@ -47,7 +47,7 @@ body {
     cursor: pointer;
 }
 #drop_upload {
-    display: none;
+    /* display: none; */
 }
 .hover {
     background-color: #fee;
