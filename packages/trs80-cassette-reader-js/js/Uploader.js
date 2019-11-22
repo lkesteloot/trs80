@@ -7,9 +7,10 @@ define(function () {
     class Uploader {
         /**
          * @param {HTMLElement} dropZone any element where files can be dropped.
+         * @param {HTMLInputElement} dropUpload file type input element.
          * @param {*} handleAudioBuffer callback with AudioBuffer parameter.
          */
-        constructor(dropZone, handleAudioBuffer) {
+        constructor(dropZone, dropUpload, handleAudioBuffer) {
             var self = this;
 
             this.handleAudioBuffer = handleAudioBuffer;
@@ -25,6 +26,12 @@ define(function () {
             };
             dropZone.ondragleave = function (ev) {
                 dropZone.classList.remove("hover");
+            };
+            dropUpload.onchange = function (ev) {
+                const file = dropUpload.files[0];
+                if (file) {
+                    self.handleDroppedFile(file);
+                }
             };
         }
 

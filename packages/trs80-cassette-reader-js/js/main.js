@@ -37,6 +37,7 @@ requirejs(["Tape", "TapeBrowser", "Uploader", "Decoder"], function (Tape, TapeBr
 
     (function () {
         var dropZone = document.getElementById("drop_zone");
-        new Uploader(dropZone, handleAudioBuffer);
+        var dropUpload = document.getElementById("drop_upload");
+        new Uploader(dropZone, dropUpload, handleAudioBuffer);
     })();
 });
