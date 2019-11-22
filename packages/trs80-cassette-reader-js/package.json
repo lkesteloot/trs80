@@ -1,0 +1,22 @@
+{
+  "name": "trs80-cassette-reader",
+  "version": "1.0.0",
+  "description": "Processes TRS-80 cassettes and cleans them up.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lkesteloot/trs80-cassette-reader-js.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lkesteloot/trs80-cassette-reader-js/issues"
+  },
+  "homepage": "https://github.com/lkesteloot/trs80-cassette-reader-js#readme",
+  "devDependencies": {
+    "typescript": "^3.7.2"
+  }
+}

@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "outFile": "build/compiled.js",
+        "module": "amd",
+        "target": "ES2015",
+        "sourceMap": true
+    },
+    "include": [
+        "src/**/*"
+    ]
+}
