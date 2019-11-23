@@ -5,6 +5,7 @@ import { LowSpeedTapeDecoder } from "LowSpeedTapeDecoder";
 import { TapeDecoderState } from "TapeDecoderState";
 import { Program } from "Program";
 import { HZ, frameToTimestamp } from "AudioUtils";
+import {TapeDecoder} from "./TapeDecoder";
 
 export class Decoder {
     tape: Tape;
@@ -14,28 +15,28 @@ export class Decoder {
     }
 
     decode() {
-        var samples = this.tape.filteredSamples.samplesList[0];
-        var instanceNumber = 1;
-        var trackNumber = 0;
-        var copyNumber = 1;
-        var frame = 0;
-        var programStartFrame = -1;
+        const samples = this.tape.filteredSamples.samplesList[0];
+        let instanceNumber = 1;
+        let trackNumber = 0;
+        let copyNumber = 1;
+        let frame = 0;
+        let programStartFrame = -1;
         while (frame < samples.length) {
             console.log("--------------------------------------- " + instanceNumber);
 
             // Start out trying all decoders.
-            var tapeDecoders = [
+            let tapeDecoders: TapeDecoder[] = [
                 new LowSpeedTapeDecoder(),
                 //       new HighSpeedTapeDecoder()
             ];
 
-            var searchFrameStart = frame;
-            var state = TapeDecoderState.UNDECIDED;
+            const searchFrameStart = frame;
+            let state = TapeDecoderState.UNDECIDED;
             for (; frame < samples.length && (state == TapeDecoderState.UNDECIDED || state == TapeDecoderState.DETECTED); frame++) {
                 // Give the sample to all decoders in parallel.
-                var detectedIndex = -1;
-                for (var i = 0; i < tapeDecoders.length; i++) {
-                    var tapeDecoder = tapeDecoders[i];
+                let detectedIndex = -1;
+                for (let i = 0; i < tapeDecoders.length; i++) {
+                    const tapeDecoder = tapeDecoders[i];
 
                     tapeDecoder.handleSample(this.tape, frame);
 
@@ -48,10 +49,10 @@ export class Decoder {
                 // If any has detected, keep only that one and kill the rest.
                 if (state == TapeDecoderState.UNDECIDED) {
                     if (detectedIndex != -1) {
-                        var tapeDecoder = tapeDecoders[detectedIndex];
+                        const tapeDecoder = tapeDecoders[detectedIndex];
 
                         // See how long it took to find it. A large gap means a new track.
-                        var leadTime = (frame - searchFrameStart) / HZ;
+                        const leadTime = (frame - searchFrameStart) / HZ;
                         if (leadTime > 10 || programStartFrame == -1) {
                             trackNumber += 1;
                             copyNumber = 1;
@@ -83,14 +84,13 @@ export class Decoder {
                     break;
 
                 case TapeDecoderState.ERROR:
-                    console.log("Decoder detected an error; skipping program.");
-                    var program = new Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
-                    this.tape.addProgram(program);
-                    break;
-
                 case TapeDecoderState.FINISHED:
-                    console.log("Found end of program at " + frameToTimestamp(frame) + ".");
-                    program = new Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
+                    if (state === TapeDecoderState.ERROR) {
+                        console.log("Decoder detected an error; skipping program.");
+                    } else {
+                        console.log("Found end of program at " + frameToTimestamp(frame) + ".");
+                    }
+                    const program = new Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
                     this.tape.addProgram(program);
                     break;
             }

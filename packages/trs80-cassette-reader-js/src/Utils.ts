@@ -6,7 +6,7 @@
  * @param size zero-pad to this many digits
  */
 export function pad(n: number, base: number, size: number) {
-    var s = n.toString(base);
+    let s = n.toString(base);
 
     if (base === 16) {
         // I prefer upper case hex.

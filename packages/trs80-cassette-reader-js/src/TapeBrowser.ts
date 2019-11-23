@@ -16,7 +16,7 @@ export class TapeBrowser {
     centerSample: number;
 
     constructor(tape: Tape, originalCanvas: HTMLCanvasElement, filteredCanvas: HTMLCanvasElement, programText: HTMLElement, tapeContents: HTMLElement) {
-        var self = this;
+        const self = this;
         this.tape = tape;
         this.originalCanvas = originalCanvas;
         this.filteredCanvas = filteredCanvas;
@@ -34,11 +34,11 @@ export class TapeBrowser {
 
         // Configure zoom keys.
         document.onkeypress = function (event) {
-            if (event.keyCode == 61) {
+            if (event.key === '=') {
                 self.zoomIn();
                 event.preventDefault();
             }
-            if (event.keyCode == 45) {
+            if (event.key === '-') {
                 self.zoomOut();
                 event.preventDefault();
             }
@@ -53,10 +53,10 @@ export class TapeBrowser {
      * @param {HTMLCanvasElement} canvas
      */
     configureCanvas(canvas: HTMLCanvasElement) {
-        var self = this;
-        var dragging = false;
-        var dragInitialX = 0;
-        var dragInitialCenterSample = 0;
+        const self = this;
+        let dragging = false;
+        let dragInitialX = 0;
+        let dragInitialCenterSample = 0;
 
         canvas.onmousedown = function (event) {
             dragging = true;
@@ -65,14 +65,14 @@ export class TapeBrowser {
             canvas.style.cursor = "grab";
         };
 
-        canvas.onmouseup = function (event) {
+        canvas.onmouseup = function () {
             dragging = false;
             canvas.style.cursor = "auto";
         };
 
         canvas.onmousemove = function (event) {
             if (dragging) {
-                var dx = event.x - dragInitialX;
+                const dx = event.x - dragInitialX;
                 const mag = Math.pow(2, self.displayLevel);
                 self.centerSample = Math.round(dragInitialCenterSample - dx * mag);
                 self.draw();
@@ -85,7 +85,7 @@ export class TapeBrowser {
      */
     computeFitLevel(width: number) {
         const sampleCount = this.tape.originalSamples.samplesList[0].length;
-        var displayLevel = Math.ceil(Math.log2(sampleCount / width));
+        let displayLevel = Math.ceil(Math.log2(sampleCount / width));
         displayLevel = Math.max(displayLevel, 0);
         displayLevel = Math.min(displayLevel, sampleCount - 1);
         return displayLevel;
@@ -101,10 +101,7 @@ export class TapeBrowser {
      * @param {DisplaySamples} displaySamples
      */
     drawInCanvas(canvas: HTMLCanvasElement, displaySamples: DisplaySamples) {
-        const ctx = canvas.getContext('2d');
-        if (ctx === null) {
-            return;
-        }
+        const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
         const samplesList = displaySamples.samplesList;
         const width = canvas.width;
         const height = canvas.height;
@@ -112,7 +109,7 @@ export class TapeBrowser {
         const mag = Math.pow(2, this.displayLevel);
         const centerSample = Math.floor(this.centerSample / mag);
 
-        var frameToX = function (i: number) {
+        const frameToX = function (i: number) {
             return Math.floor(width / 2) + (i - centerSample);
         };
 
@@ -132,14 +129,14 @@ export class TapeBrowser {
         const firstSample = Math.max(centerSample - Math.floor(width / 2), 0);
         const lastSample = Math.min(centerSample + width - 1, samples.length - 1);
 
-        const drawingLine = this.displayLevel < 3;
+        const drawingLine: boolean = this.displayLevel < 3;
         if (drawingLine) {
             ctx.beginPath();
         }
-        for (var i = firstSample; i <= lastSample; i++) {
-            var value = samples[i];
-            var x = frameToX(i);
-            var y = value * height / 2;
+        for (let i = firstSample; i <= lastSample; i++) {
+            const value = samples[i];
+            const x = frameToX(i);
+            const y = value * height / 2;
 
             if (drawingLine) {
                 if (i == firstSample) {

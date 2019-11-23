@@ -9,7 +9,7 @@ define("Utils", ["require", "exports"], function (require, exports) {
      * @param size zero-pad to this many digits
      */
     function pad(n, base, size) {
-        var s = n.toString(base);
+        let s = n.toString(base);
         if (base === 16) {
             // I prefer upper case hex.
             s = s.toUpperCase();
@@ -32,9 +32,9 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
      * @returns filtered samples.
      */
     function filterSamples(samples, size) {
-        var out = new Float32Array(samples.length);
-        var sum = 0;
-        for (var i = 0; i < samples.length; i++) {
+        const out = new Float32Array(samples.length);
+        let sum = 0;
+        for (let i = 0; i < samples.length; i++) {
             sum += samples[i];
             if (i >= size) {
                 sum -= samples[i - size];
@@ -46,13 +46,13 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
     }
     exports.filterSamples = filterSamples;
     function frameToTimestamp(frame) {
-        var time = frame / exports.HZ;
-        var ms = Math.floor(time * 1000);
-        var sec = Math.floor(ms / 1000);
+        const time = frame / exports.HZ;
+        let ms = Math.floor(time * 1000);
+        let sec = Math.floor(ms / 1000);
         ms -= sec * 1000;
-        var min = Math.floor(sec / 60);
+        let min = Math.floor(sec / 60);
         sec -= min * 60;
-        var hour = Math.floor(min / 60);
+        const hour = Math.floor(min / 60);
         min -= hour * 60;
         return hour + ":" + Utils_1.pad(min, 10, 2) + ":" + Utils_1.pad(sec, 10, 2) + "." + Utils_1.pad(ms, 10, 3) + " (frame " + frame + ")";
     }
@@ -284,13 +284,12 @@ define("DisplaySamples", ["require", "exports"], function (require, exports) {
         filterDown() {
             // Sample down for quick display.
             while (this.samplesList[this.samplesList.length - 1].length > 1) {
-                var samples = this.samplesList[this.samplesList.length - 1];
-                var half = Math.ceil(samples.length / 2);
-                var down = new Float32Array(half);
-                for (var i = 0; i < half; i++) {
-                    var j = i * 2;
-                    var value = j == samples.length - 1 ? samples[j] : Math.max(samples[j], samples[j + 1]);
-                    down[i] = value;
+                const samples = this.samplesList[this.samplesList.length - 1];
+                const half = Math.ceil(samples.length / 2);
+                const down = new Float32Array(half);
+                for (let i = 0; i < half; i++) {
+                    const j = i * 2;
+                    down[i] = j == samples.length - 1 ? samples[j] : Math.max(samples[j], samples[j + 1]);
                 }
                 this.samplesList.push(down);
             }
@@ -418,13 +417,13 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
         }
         // For TapeDecoder interface:
         handleSample(tape, frame) {
-            var samples = tape.filteredSamples.samplesList[0];
+            const samples = tape.filteredSamples.samplesList[0];
             // Differentiate to accentuate a pulse. Pulse go positive, then negative,
             // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
             // positive value at the bottom of the pulse.
-            var pulse = frame >= PULSE_PEAK_DISTANCE ? samples[frame - PULSE_PEAK_DISTANCE] - samples[frame] : 0;
-            var timeDiff = frame - this.lastPulseFrame;
-            var pulsing = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
+            const pulse = frame >= PULSE_PEAK_DISTANCE ? samples[frame - PULSE_PEAK_DISTANCE] - samples[frame] : 0;
+            const timeDiff = frame - this.lastPulseFrame;
+            const pulsing = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
             // Keep track of the height of this pulse, to calibrate for the next one.
             if (timeDiff < PULSE_WIDTH) {
                 this.pulseHeight = Math.max(this.pulseHeight, pulse);
@@ -434,7 +433,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                 this.state = TapeDecoderState_1.TapeDecoderState.FINISHED;
             }
             else if (pulsing) {
-                var bit = timeDiff < BIT_DETERMINATOR;
+                const bit = timeDiff < BIT_DETERMINATOR;
                 if (this.eatNextPulse) {
                     if (this.state == TapeDecoderState_1.TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
                         console.log("Warning: At bit of wrong value at " +
@@ -489,14 +488,19 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
         }
         // For TapeDecoder interface:
         getProgram() {
-            var bytes = new Uint8Array(this.programBytes.length);
-            for (var i = 0; i < bytes.length; i++) {
+            const bytes = new Uint8Array(this.programBytes.length);
+            for (let i = 0; i < bytes.length; i++) {
                 bytes[i] = this.programBytes[i];
             }
             return bytes;
         }
     }
     exports.LowSpeedTapeDecoder = LowSpeedTapeDecoder;
+});
+// Interface for tape decoders.
+define("TapeDecoder", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
 });
 // Uses tape decoders to work through the tape, finding programs and decoding them.
 define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderState", "Program", "AudioUtils"], function (require, exports, LowSpeedTapeDecoder_1, TapeDecoderState_2, Program_1, AudioUtils_3) {
@@ -507,25 +511,25 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
             this.tape = tape;
         }
         decode() {
-            var samples = this.tape.filteredSamples.samplesList[0];
-            var instanceNumber = 1;
-            var trackNumber = 0;
-            var copyNumber = 1;
-            var frame = 0;
-            var programStartFrame = -1;
+            const samples = this.tape.filteredSamples.samplesList[0];
+            let instanceNumber = 1;
+            let trackNumber = 0;
+            let copyNumber = 1;
+            let frame = 0;
+            let programStartFrame = -1;
             while (frame < samples.length) {
                 console.log("--------------------------------------- " + instanceNumber);
                 // Start out trying all decoders.
-                var tapeDecoders = [
+                let tapeDecoders = [
                     new LowSpeedTapeDecoder_1.LowSpeedTapeDecoder(),
                 ];
-                var searchFrameStart = frame;
-                var state = TapeDecoderState_2.TapeDecoderState.UNDECIDED;
+                const searchFrameStart = frame;
+                let state = TapeDecoderState_2.TapeDecoderState.UNDECIDED;
                 for (; frame < samples.length && (state == TapeDecoderState_2.TapeDecoderState.UNDECIDED || state == TapeDecoderState_2.TapeDecoderState.DETECTED); frame++) {
                     // Give the sample to all decoders in parallel.
-                    var detectedIndex = -1;
-                    for (var i = 0; i < tapeDecoders.length; i++) {
-                        var tapeDecoder = tapeDecoders[i];
+                    let detectedIndex = -1;
+                    for (let i = 0; i < tapeDecoders.length; i++) {
+                        const tapeDecoder = tapeDecoders[i];
                         tapeDecoder.handleSample(this.tape, frame);
                         // See if it detected its encoding.
                         if (tapeDecoder.getState() != TapeDecoderState_2.TapeDecoderState.UNDECIDED) {
@@ -535,9 +539,9 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
                     // If any has detected, keep only that one and kill the rest.
                     if (state == TapeDecoderState_2.TapeDecoderState.UNDECIDED) {
                         if (detectedIndex != -1) {
-                            var tapeDecoder = tapeDecoders[detectedIndex];
+                            const tapeDecoder = tapeDecoders[detectedIndex];
                             // See how long it took to find it. A large gap means a new track.
-                            var leadTime = (frame - searchFrameStart) / AudioUtils_3.HZ;
+                            const leadTime = (frame - searchFrameStart) / AudioUtils_3.HZ;
                             if (leadTime > 10 || programStartFrame == -1) {
                                 trackNumber += 1;
                                 copyNumber = 1;
@@ -564,13 +568,14 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
                         console.log("Reached end of tape while still reading track.");
                         break;
                     case TapeDecoderState_2.TapeDecoderState.ERROR:
-                        console.log("Decoder detected an error; skipping program.");
-                        var program = new Program_1.Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
-                        this.tape.addProgram(program);
-                        break;
                     case TapeDecoderState_2.TapeDecoderState.FINISHED:
-                        console.log("Found end of program at " + AudioUtils_3.frameToTimestamp(frame) + ".");
-                        program = new Program_1.Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
+                        if (state === TapeDecoderState_2.TapeDecoderState.ERROR) {
+                            console.log("Decoder detected an error; skipping program.");
+                        }
+                        else {
+                            console.log("Found end of program at " + AudioUtils_3.frameToTimestamp(frame) + ".");
+                        }
+                        const program = new Program_1.Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
                         this.tape.addProgram(program);
                         break;
                 }
@@ -587,7 +592,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
     Object.defineProperty(exports, "__esModule", { value: true });
     class TapeBrowser {
         constructor(tape, originalCanvas, filteredCanvas, programText, tapeContents) {
-            var self = this;
+            const self = this;
             this.tape = tape;
             this.originalCanvas = originalCanvas;
             this.filteredCanvas = filteredCanvas;
@@ -601,11 +606,11 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
             this.centerSample = Math.floor(tape.originalSamples.samplesList[0].length / 2);
             // Configure zoom keys.
             document.onkeypress = function (event) {
-                if (event.keyCode == 61) {
+                if (event.key === '=') {
                     self.zoomIn();
                     event.preventDefault();
                 }
-                if (event.keyCode == 45) {
+                if (event.key === '-') {
                     self.zoomOut();
                     event.preventDefault();
                 }
@@ -618,23 +623,23 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
          * @param {HTMLCanvasElement} canvas
          */
         configureCanvas(canvas) {
-            var self = this;
-            var dragging = false;
-            var dragInitialX = 0;
-            var dragInitialCenterSample = 0;
+            const self = this;
+            let dragging = false;
+            let dragInitialX = 0;
+            let dragInitialCenterSample = 0;
             canvas.onmousedown = function (event) {
                 dragging = true;
                 dragInitialX = event.x;
                 dragInitialCenterSample = self.centerSample;
                 canvas.style.cursor = "grab";
             };
-            canvas.onmouseup = function (event) {
+            canvas.onmouseup = function () {
                 dragging = false;
                 canvas.style.cursor = "auto";
             };
             canvas.onmousemove = function (event) {
                 if (dragging) {
-                    var dx = event.x - dragInitialX;
+                    const dx = event.x - dragInitialX;
                     const mag = Math.pow(2, self.displayLevel);
                     self.centerSample = Math.round(dragInitialCenterSample - dx * mag);
                     self.draw();
@@ -646,7 +651,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
          */
         computeFitLevel(width) {
             const sampleCount = this.tape.originalSamples.samplesList[0].length;
-            var displayLevel = Math.ceil(Math.log2(sampleCount / width));
+            let displayLevel = Math.ceil(Math.log2(sampleCount / width));
             displayLevel = Math.max(displayLevel, 0);
             displayLevel = Math.min(displayLevel, sampleCount - 1);
             return displayLevel;
@@ -661,16 +666,13 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
          */
         drawInCanvas(canvas, displaySamples) {
             const ctx = canvas.getContext('2d');
-            if (ctx === null) {
-                return;
-            }
             const samplesList = displaySamples.samplesList;
             const width = canvas.width;
             const height = canvas.height;
             const samples = samplesList[this.displayLevel];
             const mag = Math.pow(2, this.displayLevel);
             const centerSample = Math.floor(this.centerSample / mag);
-            var frameToX = function (i) {
+            const frameToX = function (i) {
                 return Math.floor(width / 2) + (i - centerSample);
             };
             // Background.
@@ -690,10 +692,10 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
             if (drawingLine) {
                 ctx.beginPath();
             }
-            for (var i = firstSample; i <= lastSample; i++) {
-                var value = samples[i];
-                var x = frameToX(i);
-                var y = value * height / 2;
+            for (let i = firstSample; i <= lastSample; i++) {
+                const value = samples[i];
+                const x = frameToX(i);
+                const y = value * height / 2;
                 if (drawingLine) {
                     if (i == firstSample) {
                         ctx.moveTo(x, height / 2 - y);
@@ -839,7 +841,7 @@ define("Uploader", ["require", "exports"], function (require, exports) {
          * @param handleAudioBuffer callback with AudioBuffer parameter.
          */
         constructor(dropZone, dropUpload, handleAudioBuffer) {
-            var self = this;
+            const self = this;
             this.handleAudioBuffer = handleAudioBuffer;
             dropZone.ondrop = function (ev) {
                 self.dropHandler(ev);
@@ -849,10 +851,10 @@ define("Uploader", ["require", "exports"], function (require, exports) {
                 // Prevent default behavior (prevent file from being opened).
                 ev.preventDefault();
             };
-            dropZone.ondragleave = function (ev) {
+            dropZone.ondragleave = function () {
                 dropZone.classList.remove("hover");
             };
-            dropUpload.onchange = function (ev) {
+            dropUpload.onchange = function () {
                 if (dropUpload.files) {
                     const file = dropUpload.files[0];
                     if (file) {
@@ -880,16 +882,16 @@ define("Uploader", ["require", "exports"], function (require, exports) {
             fileReader.readAsArrayBuffer(file);
         }
         dropHandler(ev) {
-            var self = this;
+            const self = this;
             // Prevent default behavior (Prevent file from being opened)
             ev.preventDefault();
             if (ev.dataTransfer) {
                 if (ev.dataTransfer.items) {
                     // Use DataTransferItemList interface to access the files.
-                    for (var i = 0; i < ev.dataTransfer.items.length; i++) {
+                    for (let i = 0; i < ev.dataTransfer.items.length; i++) {
                         // If dropped items aren't files, reject them
                         if (ev.dataTransfer.items[i].kind === 'file') {
-                            var file = ev.dataTransfer.items[i].getAsFile();
+                            const file = ev.dataTransfer.items[i].getAsFile();
                             if (file) {
                                 self.handleDroppedFile(file);
                             }
@@ -898,7 +900,7 @@ define("Uploader", ["require", "exports"], function (require, exports) {
                 }
                 else {
                     // Use DataTransfer interface to access the files.
-                    for (var i = 0; i < ev.dataTransfer.files.length; i++) {
+                    for (let i = 0; i < ev.dataTransfer.files.length; i++) {
                         self.handleDroppedFile(ev.dataTransfer.files[i]);
                     }
                 }
@@ -910,44 +912,32 @@ define("Uploader", ["require", "exports"], function (require, exports) {
 define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decoder"], function (require, exports, Tape_1, TapeBrowser_1, Uploader_1, Decoder_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    /**
-     * @param {AudioBuffer} audioBuffer
-     */
     function handleAudioBuffer(audioBuffer) {
         console.log("Audio is " + audioBuffer.duration + " seconds, " +
             audioBuffer.numberOfChannels + " channels, " +
             audioBuffer.sampleRate + " Hz");
-        // XXX check that there's 1 channel and it's 48 kHz.
-        var originalCanvas = document.getElementById("original_canvas");
-        var filteredCanvas = document.getElementById("filtered_canvas");
-        var programText = document.getElementById("program_text");
-        var tapeContents = document.getElementById("tape_contents");
+        // TODO check that there's 1 channel and it's 48 kHz.
+        const originalCanvas = document.getElementById("original_canvas");
+        const filteredCanvas = document.getElementById("filtered_canvas");
+        const programText = document.getElementById("program_text");
+        const tapeContents = document.getElementById("tape_contents");
         const samples = audioBuffer.getChannelData(0);
         const tape = new Tape_1.Tape(samples);
-        var decoder = new Decoder_1.Decoder(tape);
+        const decoder = new Decoder_1.Decoder(tape);
         decoder.decode();
-        var tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, originalCanvas, filteredCanvas, programText, tapeContents);
+        const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, originalCanvas, filteredCanvas, programText, tapeContents);
         tapeBrowser.draw();
         // Switch screens.
-        var dropScreen = document.getElementById("drop_screen");
-        var dataScreen = document.getElementById("data_screen");
-        if (dropScreen) {
-            dropScreen.style.display = "none";
-        }
-        if (dataScreen) {
-            dataScreen.style.display = "block";
-        }
+        const dropScreen = document.getElementById("drop_screen");
+        const dataScreen = document.getElementById("data_screen");
+        dropScreen.style.display = "none";
+        dataScreen.style.display = "block";
     }
     function main() {
-        var dropZone = document.getElementById("drop_zone");
-        var dropUpload = document.getElementById("drop_upload");
+        const dropZone = document.getElementById("drop_zone");
+        const dropUpload = document.getElementById("drop_upload");
         new Uploader_1.Uploader(dropZone, dropUpload, handleAudioBuffer);
     }
     exports.main = main;
-});
-// Interface for tape decoders.
-define("TapeDecoder", ["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
 });
 //# sourceMappingURL=compiled.js.map

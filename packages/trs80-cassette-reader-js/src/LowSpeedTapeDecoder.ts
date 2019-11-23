@@ -55,21 +55,21 @@ export class LowSpeedTapeDecoder {
     }
 
     // For TapeDecoder interface:
-    getName() {
+    getName(): string {
         return "low speed";
     }
 
     // For TapeDecoder interface:
     handleSample(tape: Tape, frame: number) {
-        var samples = tape.filteredSamples.samplesList[0];
+        const samples = tape.filteredSamples.samplesList[0];
 
         // Differentiate to accentuate a pulse. Pulse go positive, then negative,
         // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
         // positive value at the bottom of the pulse.
-        var pulse = frame >= PULSE_PEAK_DISTANCE ? samples[frame - PULSE_PEAK_DISTANCE] - samples[frame] : 0;
+        const pulse = frame >= PULSE_PEAK_DISTANCE ? samples[frame - PULSE_PEAK_DISTANCE] - samples[frame] : 0;
 
-        var timeDiff = frame - this.lastPulseFrame;
-        var pulsing = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
+        const timeDiff = frame - this.lastPulseFrame;
+        const pulsing = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
 
         // Keep track of the height of this pulse, to calibrate for the next one.
         if (timeDiff < PULSE_WIDTH) {
@@ -80,7 +80,7 @@ export class LowSpeedTapeDecoder {
             // End of program.
             this.state = TapeDecoderState.FINISHED;
         } else if (pulsing) {
-            var bit = timeDiff < BIT_DETERMINATOR;
+            const bit = timeDiff < BIT_DETERMINATOR;
             if (this.eatNextPulse) {
                 if (this.state == TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
                     console.log("Warning: At bit of wrong value at " +
@@ -133,8 +133,8 @@ export class LowSpeedTapeDecoder {
 
     // For TapeDecoder interface:
     getProgram() {
-        var bytes = new Uint8Array(this.programBytes.length);
-        for (var i = 0; i < bytes.length; i++) {
+        const bytes = new Uint8Array(this.programBytes.length);
+        for (let i = 0; i < bytes.length; i++) {
             bytes[i] = this.programBytes[i];
         }
         return bytes;
