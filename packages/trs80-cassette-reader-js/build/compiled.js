@@ -474,7 +474,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
             // to 1/3 of the previous pulse's height.
             this.pulseHeight = 0;
             this.bits = [];
-            this.xxx = 0;
+            this.pulseCount = 0;
         }
         // For TapeDecoder interface:
         getName() {
@@ -483,7 +483,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
         // For TapeDecoder interface:
         handleSample(tape, frame) {
             const samples = tape.lowSpeedSamples.samplesList[0];
-            const pulse = samples[frame];
+            const pulse = -samples[frame];
             const timeDiff = frame - this.lastPulseFrame;
             const pulsing = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
             // Keep track of the height of this pulse, to calibrate for the next one.
@@ -496,8 +496,9 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
             }
             else if (pulsing) {
                 const bit = timeDiff < BIT_DETERMINATOR;
-                if (this.xxx++ === 1000) { // TODO remove.
-                    // this.state = TapeDecoderState.DETECTED;
+                if (this.pulseCount++ === 1000) {
+                    // For debugging, forces a detection so we can inspect the bits.
+                    /// this.state = TapeDecoderState.DETECTED;
                 }
                 if (this.eatNextPulse) {
                     if (this.state == TapeDecoderState_1.TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {

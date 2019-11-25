@@ -39,7 +39,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     detectedZeros: number;
     pulseHeight: number;
     bits: BitData[];
-    xxx: number;
+    pulseCount: number;
 
     constructor() {
         this.state = TapeDecoderState.UNDECIDED;
@@ -55,7 +55,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         // to 1/3 of the previous pulse's height.
         this.pulseHeight = 0;
         this.bits = [];
-        this.xxx = 0;
+        this.pulseCount = 0;
     }
 
     // For TapeDecoder interface:
@@ -66,7 +66,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     // For TapeDecoder interface:
     handleSample(tape: Tape, frame: number) {
         const samples = tape.lowSpeedSamples.samplesList[0];
-        const pulse = samples[frame];
+        const pulse = -samples[frame];
 
         const timeDiff = frame - this.lastPulseFrame;
         const pulsing: boolean = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
@@ -81,8 +81,9 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
             this.state = TapeDecoderState.FINISHED;
         } else if (pulsing) {
             const bit: boolean = timeDiff < BIT_DETERMINATOR;
-            if (this.xxx++ === 1000) { // TODO remove.
-               // this.state = TapeDecoderState.DETECTED;
+            if (this.pulseCount++ === 1000) {
+                // For debugging, forces a detection so we can inspect the bits.
+                /// this.state = TapeDecoderState.DETECTED;
             }
             if (this.eatNextPulse) {
                 if (this.state == TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
