@@ -5,11 +5,13 @@ import { pad } from "Utils";
 export const HZ = 48000;
 
 /**
+ * Simple high-pass filter.
+ *
  * @param samples samples to filter.
  * @param size size of filter
  * @returns filtered samples.
  */
-export function filterSamples(samples : Float32Array, size: number): Float32Array {
+export function highPassFilter(samples : Float32Array, size: number): Float32Array {
     const out = new Float32Array(samples.length);
     let sum = 0;
 

@@ -27,11 +27,13 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
     // Expected HZ on tape.
     exports.HZ = 48000;
     /**
+     * Simple high-pass filter.
+     *
      * @param samples samples to filter.
      * @param size size of filter
      * @returns filtered samples.
      */
-    function filterSamples(samples, size) {
+    function highPassFilter(samples, size) {
         const out = new Float32Array(samples.length);
         let sum = 0;
         for (let i = 0; i < samples.length; i++) {
@@ -44,7 +46,7 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
         }
         return out;
     }
-    exports.filterSamples = filterSamples;
+    exports.highPassFilter = highPassFilter;
     function frameToTimestamp(frame) {
         const time = frame / exports.HZ;
         let ms = Math.floor(time * 1000);
@@ -400,27 +402,6 @@ define("Program", ["require", "exports"], function (require, exports) {
     }
     exports.Program = Program;
 });
-// Represents a recorded tape, with its audio samples,
-// filtered-down samples for display, and other information
-// we got from it.
-define("Tape", ["require", "exports", "DisplaySamples", "AudioUtils"], function (require, exports, DisplaySamples_1, AudioUtils_1) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    class Tape {
-        /**
-         * @param samples original samples from the tape.
-         */
-        constructor(samples) {
-            this.originalSamples = new DisplaySamples_1.DisplaySamples(samples);
-            this.filteredSamples = new DisplaySamples_1.DisplaySamples(AudioUtils_1.filterSamples(samples, 500));
-            this.programs = [];
-        }
-        addProgram(program) {
-            this.programs.push(program);
-        }
-    }
-    exports.Tape = Tape;
-});
 // Enum for the state of a tape decoder.
 define("TapeDecoderState", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -453,7 +434,7 @@ define("TapeDecoder", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
 });
-define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderState", "BitData", "BitType"], function (require, exports, AudioUtils_2, TapeDecoderState_1, BitData_1, BitType_1) {
+define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderState", "BitData", "BitType"], function (require, exports, AudioUtils_1, TapeDecoderState_1, BitData_1, BitType_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     /**
@@ -472,7 +453,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
     /**
      * Number of quiet samples that would indicate the end of the program.
      */
-    const END_OF_PROGRAM_SILENCE = AudioUtils_2.HZ / 10;
+    const END_OF_PROGRAM_SILENCE = AudioUtils_1.HZ / 10;
     /**
      * Number of consecutive zero bits we require in the header before we're pretty
      * sure this is a low speed program.
@@ -493,6 +474,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
             // to 1/3 of the previous pulse's height.
             this.pulseHeight = 0;
             this.bits = [];
+            this.xxx = 0;
         }
         // For TapeDecoder interface:
         getName() {
@@ -500,11 +482,8 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
         }
         // For TapeDecoder interface:
         handleSample(tape, frame) {
-            const samples = tape.filteredSamples.samplesList[0];
-            // Differentiate to accentuate a pulse. Pulse go positive, then negative,
-            // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
-            // positive value at the bottom of the pulse.
-            const pulse = frame >= PULSE_PEAK_DISTANCE ? samples[frame - PULSE_PEAK_DISTANCE] - samples[frame] : 0;
+            const samples = tape.lowSpeedSamples.samplesList[0];
+            const pulse = samples[frame];
             const timeDiff = frame - this.lastPulseFrame;
             const pulsing = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
             // Keep track of the height of this pulse, to calibrate for the next one.
@@ -517,16 +496,20 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
             }
             else if (pulsing) {
                 const bit = timeDiff < BIT_DETERMINATOR;
+                if (this.xxx++ === 1000) { // TODO remove.
+                    // this.state = TapeDecoderState.DETECTED;
+                }
                 if (this.eatNextPulse) {
                     if (this.state == TapeDecoderState_1.TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
                         console.log("Warning: At bit of wrong value at " +
-                            AudioUtils_2.frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
-                            AudioUtils_2.frameToTimestamp(this.lastPulseFrame));
+                            AudioUtils_1.frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
+                            AudioUtils_1.frameToTimestamp(this.lastPulseFrame));
                         this.bits.push(new BitData_1.BitData(this.lastPulseFrame, frame, BitType_1.BitType.BAD));
                     }
                     else {
                         const lastBit = this.bits[this.bits.length - 1];
                         if (lastBit && lastBit.bitType === BitType_1.BitType.ONE && lastBit.endFrame === this.lastPulseFrame) {
+                            // Merge with previous 1 bit.
                             lastBit.endFrame = frame;
                         }
                     }
@@ -587,11 +570,49 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
         getBits() {
             return this.bits;
         }
+        /**
+         * Differentiating filter to accentuate pulses.
+         *
+         * @param samples samples to filter.
+         * @returns filtered samples.
+         */
+        static filterSamples(samples) {
+            const out = new Float32Array(samples.length);
+            for (let i = 0; i < samples.length; i++) {
+                // Differentiate to accentuate a pulse. Pulse go positive, then negative,
+                // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
+                // positive value at the bottom of the pulse.
+                out[i] = i >= PULSE_PEAK_DISTANCE ? samples[i - PULSE_PEAK_DISTANCE] - samples[i] : 0;
+            }
+            return out;
+        }
     }
     exports.LowSpeedTapeDecoder = LowSpeedTapeDecoder;
 });
+// Represents a recorded tape, with its audio samples,
+// filtered-down samples for display, and other information
+// we got from it.
+define("Tape", ["require", "exports", "DisplaySamples", "AudioUtils", "LowSpeedTapeDecoder"], function (require, exports, DisplaySamples_1, AudioUtils_2, LowSpeedTapeDecoder_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class Tape {
+        /**
+         * @param samples original samples from the tape.
+         */
+        constructor(samples) {
+            this.originalSamples = new DisplaySamples_1.DisplaySamples(samples);
+            this.filteredSamples = new DisplaySamples_1.DisplaySamples(AudioUtils_2.highPassFilter(samples, 500));
+            this.lowSpeedSamples = new DisplaySamples_1.DisplaySamples(LowSpeedTapeDecoder_1.LowSpeedTapeDecoder.filterSamples(this.filteredSamples.samplesList[0]));
+            this.programs = [];
+        }
+        addProgram(program) {
+            this.programs.push(program);
+        }
+    }
+    exports.Tape = Tape;
+});
 // Uses tape decoders to work through the tape, finding programs and decoding them.
-define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderState", "Program", "AudioUtils"], function (require, exports, LowSpeedTapeDecoder_1, TapeDecoderState_2, Program_1, AudioUtils_3) {
+define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderState", "Program", "AudioUtils"], function (require, exports, LowSpeedTapeDecoder_2, TapeDecoderState_2, Program_1, AudioUtils_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Decoder {
@@ -609,7 +630,7 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
                 console.log("--------------------------------------- " + instanceNumber);
                 // Start out trying all decoders.
                 let tapeDecoders = [
-                    new LowSpeedTapeDecoder_1.LowSpeedTapeDecoder(),
+                    new LowSpeedTapeDecoder_2.LowSpeedTapeDecoder(),
                 ];
                 const searchFrameStart = frame;
                 let state = TapeDecoderState_2.TapeDecoderState.UNDECIDED;
@@ -679,16 +700,19 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class TapeBrowser {
-        constructor(tape, originalCanvas, filteredCanvas, programText, tapeContents) {
+        constructor(tape, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents) {
             const self = this;
             this.tape = tape;
+            this.waveforms = waveforms;
             this.originalCanvas = originalCanvas;
             this.filteredCanvas = filteredCanvas;
+            this.lowSpeedCanvas = lowSpeedCanvas;
             this.programText = programText;
             this.tapeContents = tapeContents;
             this.displayWidth = originalCanvas.width;
             this.configureCanvas(originalCanvas);
             this.configureCanvas(filteredCanvas);
+            this.configureCanvas(lowSpeedCanvas);
             // Display level in the tape's samplesList.
             this.displayLevel = this.computeFullFitLevel();
             // Visually centered sample (in level 0).
@@ -704,7 +728,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                     event.preventDefault();
                 }
             };
-            // Update tape contents.
+            // Update left-side panel.
             this.updateTapeContents();
         }
         /**
@@ -755,6 +779,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
         draw() {
             this.drawInCanvas(this.originalCanvas, this.tape.originalSamples);
             this.drawInCanvas(this.filteredCanvas, this.tape.filteredSamples);
+            this.drawInCanvas(this.lowSpeedCanvas, this.tape.lowSpeedSamples);
         }
         /**
          * @param {HTMLCanvasElement} canvas
@@ -920,13 +945,11 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
             Basic_1.fromTokenized(program.binary, div);
         }
         showProgramText() {
-            this.originalCanvas.style.display = "none";
-            this.filteredCanvas.style.display = "none";
+            this.waveforms.style.display = "none";
             this.programText.style.display = "block";
         }
         showCanvases() {
-            this.originalCanvas.style.display = "block";
-            this.filteredCanvas.style.display = "block";
+            this.waveforms.style.display = "block";
             this.programText.style.display = "none";
         }
         updateTapeContents() {
@@ -935,9 +958,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                 let div = document.createElement("div");
                 div.classList.add("tape_contents_row");
                 div.innerText = text;
-                if (onClick) {
-                    div.onclick = onClick;
-                }
+                div.onclick = onClick;
                 self.tapeContents.appendChild(div);
             };
             this.clearElement(this.tapeContents);
@@ -1099,15 +1120,17 @@ define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decode
             audioBuffer.numberOfChannels + " channels, " +
             audioBuffer.sampleRate + " Hz");
         // TODO check that there's 1 channel and it's 48 kHz.
+        const waveforms = document.getElementById("waveforms");
         const originalCanvas = document.getElementById("original_canvas");
         const filteredCanvas = document.getElementById("filtered_canvas");
+        const lowSpeedCanvas = document.getElementById("low_speed_canvas");
         const programText = document.getElementById("program_text");
         const tapeContents = document.getElementById("tape_contents");
         const samples = audioBuffer.getChannelData(0);
         const tape = new Tape_1.Tape(samples);
         const decoder = new Decoder_1.Decoder(tape);
         decoder.decode();
-        const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, originalCanvas, filteredCanvas, programText, tapeContents);
+        const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents);
         tapeBrowser.draw();
         // Switch screens.
         const dropScreen = document.getElementById("drop_screen");

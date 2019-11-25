@@ -3,12 +3,14 @@
 // we got from it.
 
 import { DisplaySamples } from "DisplaySamples";
-import { filterSamples } from "AudioUtils";
+import { highPassFilter } from "AudioUtils";
 import { Program } from "Program";
+import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
 
 export class Tape {
     originalSamples: DisplaySamples;
     filteredSamples: DisplaySamples;
+    lowSpeedSamples: DisplaySamples;
     programs: Program[];
 
     /**
@@ -16,7 +18,8 @@ export class Tape {
      */
     constructor(samples: Float32Array) {
         this.originalSamples = new DisplaySamples(samples);
-        this.filteredSamples = new DisplaySamples(filterSamples(samples, 500));
+        this.filteredSamples = new DisplaySamples(highPassFilter(samples, 500));
+        this.lowSpeedSamples = new DisplaySamples(LowSpeedTapeDecoder.filterSamples(this.filteredSamples.samplesList[0]));
         this.programs = [];
     }
 

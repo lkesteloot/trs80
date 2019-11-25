@@ -27,8 +27,14 @@
                 Nav here!
             </nav>
             <main>
-                <canvas id="original_canvas" width="800" height="400"></canvas>
-                <canvas id="filtered_canvas" width="800" height="400"></canvas>
+                <div id="waveforms">
+                    <p>Original waveform:</p>
+                    <canvas id="original_canvas" width="800" height="400"></canvas>
+                    <p>High-pass filtered to get rid of DC:</p>
+                    <canvas id="filtered_canvas" width="800" height="400"></canvas>
+                    <p>Differentiated for low-speed decoding:</p>
+                    <canvas id="low_speed_canvas" width="800" height="400"></canvas>
+                </div>
                 <div id="program_text"></div>
             </main>
         </div>

@@ -10,25 +10,35 @@ import {BitData} from "./BitData";
 
 export class TapeBrowser {
     tape: Tape;
+    waveforms: HTMLElement;
     originalCanvas: HTMLCanvasElement;
     filteredCanvas: HTMLCanvasElement;
+    lowSpeedCanvas: HTMLCanvasElement;
     programText: HTMLElement;
     tapeContents: HTMLElement;
     displayWidth: number;
     displayLevel: number;
     centerSample: number;
 
-    constructor(tape: Tape, originalCanvas: HTMLCanvasElement, filteredCanvas: HTMLCanvasElement, programText: HTMLElement, tapeContents: HTMLElement) {
+    constructor(tape: Tape, waveforms: HTMLElement,
+                originalCanvas: HTMLCanvasElement,
+                filteredCanvas: HTMLCanvasElement,
+                lowSpeedCanvas: HTMLCanvasElement,
+                programText: HTMLElement, tapeContents: HTMLElement) {
+
         const self = this;
         this.tape = tape;
+        this.waveforms = waveforms;
         this.originalCanvas = originalCanvas;
         this.filteredCanvas = filteredCanvas;
+        this.lowSpeedCanvas = lowSpeedCanvas;
         this.programText = programText;
         this.tapeContents = tapeContents;
         this.displayWidth = originalCanvas.width;
 
         this.configureCanvas(originalCanvas);
         this.configureCanvas(filteredCanvas);
+        this.configureCanvas(lowSpeedCanvas);
 
         // Display level in the tape's samplesList.
         this.displayLevel = this.computeFullFitLevel();
@@ -48,7 +58,7 @@ export class TapeBrowser {
             }
         };
 
-        // Update tape contents.
+        // Update left-side panel.
         this.updateTapeContents();
     }
 
@@ -106,6 +116,7 @@ export class TapeBrowser {
     draw() {
         this.drawInCanvas(this.originalCanvas, this.tape.originalSamples);
         this.drawInCanvas(this.filteredCanvas, this.tape.filteredSamples);
+        this.drawInCanvas(this.lowSpeedCanvas, this.tape.lowSpeedSamples);
     }
 
     /**
@@ -292,26 +303,22 @@ export class TapeBrowser {
     }
 
     showProgramText() {
-        this.originalCanvas.style.display = "none";
-        this.filteredCanvas.style.display = "none";
+        this.waveforms.style.display = "none";
         this.programText.style.display = "block";
     }
 
     showCanvases() {
-        this.originalCanvas.style.display = "block";
-        this.filteredCanvas.style.display = "block";
+        this.waveforms.style.display = "block";
         this.programText.style.display = "none";
     }
 
     updateTapeContents() {
         let self = this;
-        let addRow = function (text: string, onClick: ((this: GlobalEventHandlers, ev: MouseEvent) => any) | null) {
+        let addRow = function (text: string, onClick: ((this: GlobalEventHandlers, ev: MouseEvent) => any)) {
             let div = document.createElement("div");
             div.classList.add("tape_contents_row");
             div.innerText = text;
-            if (onClick) {
-                div.onclick = onClick;
-            }
+            div.onclick = onClick;
             self.tapeContents.appendChild(div);
         };
         this.clearElement(this.tapeContents);
