@@ -524,6 +524,12 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                             AudioUtils_2.frameToTimestamp(this.lastPulseFrame));
                         this.bits.push(new BitData_1.BitData(this.lastPulseFrame, frame, BitType_1.BitType.BAD));
                     }
+                    else {
+                        const lastBit = this.bits[this.bits.length - 1];
+                        if (lastBit && lastBit.bitType === BitType_1.BitType.ONE && lastBit.endFrame === this.lastPulseFrame) {
+                            lastBit.endFrame = frame;
+                        }
+                    }
                     this.eatNextPulse = false;
                     this.lenientFirstBit = false;
                 }
@@ -541,7 +547,9 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                             this.detectedZeros += 1;
                         }
                         this.recentBits = (this.recentBits << 1) | (bit ? 1 : 0);
-                        this.bits.push(new BitData_1.BitData(this.lastPulseFrame, frame, bit ? BitType_1.BitType.ONE : BitType_1.BitType.ZERO));
+                        if (this.lastPulseFrame !== 0) {
+                            this.bits.push(new BitData_1.BitData(this.lastPulseFrame, frame, bit ? BitType_1.BitType.ONE : BitType_1.BitType.ZERO));
+                        }
                         if (this.state == TapeDecoderState_1.TapeDecoderState.UNDECIDED) {
                             // Haven't found end of header yet. Look for it, preceded by zeros.
                             if (this.recentBits == 0x000000A5) {
@@ -667,7 +675,7 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
     exports.Decoder = Decoder;
 });
 // UI for browsing a tape interactively.
-define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (require, exports, Utils_3, Basic_1) {
+define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], function (require, exports, Utils_3, Basic_1, BitType_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class TapeBrowser {
@@ -678,10 +686,11 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
             this.filteredCanvas = filteredCanvas;
             this.programText = programText;
             this.tapeContents = tapeContents;
+            this.displayWidth = originalCanvas.width;
             this.configureCanvas(originalCanvas);
             this.configureCanvas(filteredCanvas);
             // Display level in the tape's samplesList.
-            this.displayLevel = this.computeFitLevel(originalCanvas.width);
+            this.displayLevel = this.computeFullFitLevel();
             // Visually centered sample (in level 0).
             this.centerSample = Math.floor(tape.originalSamples.samplesList[0].length / 2);
             // Configure zoom keys.
@@ -727,11 +736,18 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
             };
         }
         /**
-         * @param {number} width the width of the canvas we'll initially display in.
+         * Compute level to fit all the data.
          */
-        computeFitLevel(width) {
-            const sampleCount = this.tape.originalSamples.samplesList[0].length;
-            let displayLevel = Math.ceil(Math.log2(sampleCount / width));
+        computeFullFitLevel() {
+            return this.computeFitLevel(this.tape.originalSamples.samplesList[0].length);
+        }
+        /**
+         * Compute fit level to fit the specified number of samples.
+         *
+         * @param sampleCount number of samples we want to display.
+         */
+        computeFitLevel(sampleCount) {
+            let displayLevel = Math.ceil(Math.log2(sampleCount / this.displayWidth));
             displayLevel = Math.max(displayLevel, 0);
             displayLevel = Math.min(displayLevel, sampleCount - 1);
             return displayLevel;
@@ -758,17 +774,48 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
             // Background.
             ctx.fillStyle = 'rgb(0, 0, 0)';
             ctx.fillRect(0, 0, width, height);
-            // Programs.
-            ctx.fillStyle = 'rgb(50, 50, 50)';
-            for (let program of this.tape.programs) {
-                let x1 = frameToX(program.startFrame / mag);
-                let x2 = frameToX(program.endFrame / mag);
-                ctx.fillRect(x1, 0, x2 - x1, height);
-            }
-            ctx.strokeStyle = "rgb(255, 255, 255)";
+            // Compute viewing window in zoom space.
             const firstSample = Math.max(centerSample - Math.floor(width / 2), 0);
             const lastSample = Math.min(centerSample + width - 1, samples.length - 1);
+            // Compute viewing window in original space.
+            const firstOrigSample = Math.floor(firstSample * mag);
+            const lastOrigSample = Math.ceil(lastSample * mag);
+            // Whether we're zoomed in enough to draw and line and individual bits.
             const drawingLine = this.displayLevel < 3;
+            // Programs.
+            for (let program of this.tape.programs) {
+                if (drawingLine) {
+                    for (let bitInfo of program.bits) {
+                        if (bitInfo.endFrame >= firstOrigSample && bitInfo.startFrame <= lastOrigSample) {
+                            let x1 = frameToX(bitInfo.startFrame / mag);
+                            let x2 = frameToX(bitInfo.endFrame / mag);
+                            // console.log(bitInfo, x1, x2);
+                            switch (bitInfo.bitType) {
+                                case BitType_2.BitType.ZERO:
+                                    ctx.fillStyle = 'rgb(50, 50, 50)';
+                                    break;
+                                case BitType_2.BitType.ONE:
+                                    ctx.fillStyle = 'rgb(100, 100, 100)';
+                                    break;
+                                case BitType_2.BitType.START:
+                                    ctx.fillStyle = 'rgb(20, 150, 20)';
+                                    break;
+                                case BitType_2.BitType.BAD:
+                                    ctx.fillStyle = 'rgb(150, 20, 20)';
+                                    break;
+                            }
+                            ctx.fillRect(x1, 0, x2 - x1 - 1, height);
+                        }
+                    }
+                }
+                else {
+                    ctx.fillStyle = 'rgb(50, 50, 50)';
+                    let x1 = frameToX(program.startFrame / mag);
+                    let x2 = frameToX(program.endFrame / mag);
+                    ctx.fillRect(x1, 0, x2 - x1, height);
+                }
+            }
+            ctx.strokeStyle = "rgb(255, 255, 255)";
             if (drawingLine) {
                 ctx.beginPath();
             }
@@ -806,6 +853,17 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
                 this.displayLevel += 1;
                 this.draw();
             }
+        }
+        zoomToBitData(bitData) {
+            // Show a bit after a many bits before.
+            const startFrame = bitData.startFrame - 1500;
+            const endFrame = bitData.endFrame + 300;
+            const sampleCount = endFrame - startFrame;
+            // Find appropriate zoom.
+            this.displayLevel = this.computeFitLevel(sampleCount);
+            // Visually centered sample (in level 0).
+            this.centerSample = Math.floor((startFrame + endFrame) / 2);
+            this.draw();
         }
         showBinary(program) {
             this.showProgramText();
@@ -894,6 +952,15 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic"], function (requir
                     addRow("    Basic", function () {
                         self.showBasic(program);
                     });
+                }
+                let count = 1;
+                for (let bitData of program.bits) {
+                    if (bitData.bitType == BitType_2.BitType.BAD) {
+                        addRow("    Bit error " + count++, function () {
+                            self.showCanvases();
+                            self.zoomToBitData(bitData);
+                        });
+                    }
                 }
             }
         }

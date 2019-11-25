@@ -2,6 +2,9 @@
 body {
     font-family: sans-serif;
 }
+canvas {
+    margin: 10px;
+}
 #drop_screen {
     display: block;
 }

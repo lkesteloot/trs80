@@ -90,6 +90,11 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                         frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
                         frameToTimestamp(this.lastPulseFrame));
                     this.bits.push(new BitData(this.lastPulseFrame, frame, BitType.BAD));
+                } else {
+                    const lastBit = this.bits[this.bits.length - 1];
+                    if (lastBit && lastBit.bitType === BitType.ONE && lastBit.endFrame === this.lastPulseFrame) {
+                        lastBit.endFrame = frame;
+                    }
                 }
                 this.eatNextPulse = false;
                 this.lenientFirstBit = false;
@@ -105,7 +110,9 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                         this.detectedZeros += 1;
                     }
                     this.recentBits = (this.recentBits << 1) | (bit ? 1 : 0);
-                    this.bits.push(new BitData(this.lastPulseFrame, frame, bit ? BitType.ONE : BitType.ZERO));
+                    if (this.lastPulseFrame !== 0) {
+                        this.bits.push(new BitData(this.lastPulseFrame, frame, bit ? BitType.ONE : BitType.ZERO));
+                    }
                     if (this.state == TapeDecoderState.UNDECIDED) {
                         // Haven't found end of header yet. Look for it, preceded by zeros.
                         if (this.recentBits == 0x000000A5) {
