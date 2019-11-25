@@ -90,7 +90,8 @@ export class Decoder {
                     } else {
                         console.log("Found end of program at " + frameToTimestamp(frame) + ".");
                     }
-                    const program = new Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
+                    const program = new Program(trackNumber, copyNumber, programStartFrame, frame,
+                        tapeDecoders[0].getProgram(), tapeDecoders[0].getBits());
                     this.tape.addProgram(program);
                     break;
             }

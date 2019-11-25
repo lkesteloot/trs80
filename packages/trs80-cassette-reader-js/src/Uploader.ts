@@ -7,13 +7,13 @@ export class Uploader {
     /**
      * @param dropZone any element where files can be dropped.
      * @param dropUpload file type input element.
-     * @param dropS3 button to upload from S3.
+     * @param dropS3 buttons to upload from S3.
      * @param dropProgress progress bar for loading large files.
      * @param handleAudioBuffer callback with AudioBuffer parameter.
      */
     constructor(dropZone: HTMLElement,
                 dropUpload: HTMLInputElement,
-                dropS3: HTMLButtonElement,
+                dropS3: NodeList,
                 dropProgress: HTMLProgressElement,
                 handleAudioBuffer: (audioBuffer: AudioBuffer) => void) {
         const self = this;
@@ -44,20 +44,24 @@ export class Uploader {
         dropUpload.onprogress = function (event) {
             self.showProgress(event);
         };
-        dropS3.onclick = function () {
-            const request = new XMLHttpRequest();
-            request.open('GET', "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav", true);
-            request.responseType = "arraybuffer";
-            request.onload = function () {
-                self.handleArrayBuffer(request.response);
+        dropS3.forEach(node => {
+            const button = node as HTMLButtonElement;
+            button.onclick = function () {
+                const url = button.getAttribute("data-src") as string;
+                const request = new XMLHttpRequest();
+                request.open('GET', url, true);
+                request.responseType = "arraybuffer";
+                request.onload = function () {
+                    self.handleArrayBuffer(request.response);
+                };
+                request.onprogress = function (event) {
+                    self.showProgress(event);
+                };
+                // For testing progress bar only:
+                /// request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+                request.send();
             };
-            request.onprogress = function (event) {
-                self.showProgress(event);
-            };
-            // For testing progress bar only:
-            request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-            request.send();
-        };
+        });
     }
 
     handleDroppedFile(file: File) {

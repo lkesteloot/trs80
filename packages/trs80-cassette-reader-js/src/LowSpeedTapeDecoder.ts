@@ -2,6 +2,9 @@
 import { HZ, frameToTimestamp } from "AudioUtils";
 import { TapeDecoderState } from "TapeDecoderState";
 import { Tape } from "Tape";
+import {TapeDecoder} from "./TapeDecoder";
+import {BitData} from "./BitData";
+import {BitType} from "./BitType";
 
 /**
  * Number of samples between the top of the pulse and the bottom of it.
@@ -26,7 +29,7 @@ const END_OF_PROGRAM_SILENCE = HZ / 10;
  */
 const MIN_HEADER_ZEROS = 6;
 
-export class LowSpeedTapeDecoder {
+export class LowSpeedTapeDecoder implements TapeDecoder {
     state: TapeDecoderState;
     programBytes: number[];
     lastPulseFrame: number;
@@ -36,6 +39,7 @@ export class LowSpeedTapeDecoder {
     lenientFirstBit: boolean;
     detectedZeros: number;
     pulseHeight: number;
+    bits: BitData[];
 
     constructor() {
         this.state = TapeDecoderState.UNDECIDED;
@@ -50,8 +54,7 @@ export class LowSpeedTapeDecoder {
         // Height of the previous pulse. We set each pulse's threshold
         // to 1/3 of the previous pulse's height.
         this.pulseHeight = 0;
-        // Recent history of bits, for debugging.
-        /// private final BitHistory mHistory = new BitHistory(10);
+        this.bits = [];
     }
 
     // For TapeDecoder interface:
@@ -69,7 +72,7 @@ export class LowSpeedTapeDecoder {
         const pulse = frame >= PULSE_PEAK_DISTANCE ? samples[frame - PULSE_PEAK_DISTANCE] - samples[frame] : 0;
 
         const timeDiff = frame - this.lastPulseFrame;
-        const pulsing = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
+        const pulsing: boolean = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
 
         // Keep track of the height of this pulse, to calibrate for the next one.
         if (timeDiff < PULSE_WIDTH) {
@@ -80,14 +83,13 @@ export class LowSpeedTapeDecoder {
             // End of program.
             this.state = TapeDecoderState.FINISHED;
         } else if (pulsing) {
-            const bit = timeDiff < BIT_DETERMINATOR;
+            const bit: boolean = timeDiff < BIT_DETERMINATOR;
             if (this.eatNextPulse) {
                 if (this.state == TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
                     console.log("Warning: At bit of wrong value at " +
                         frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
                         frameToTimestamp(this.lastPulseFrame));
-                    //mHistory.add(new BitData(this.lastPulseFrame, frame, BitType.BAD));
-                    //results.addBadSection(mHistory);
+                    this.bits.push(new BitData(this.lastPulseFrame, frame, BitType.BAD));
                 }
                 this.eatNextPulse = false;
                 this.lenientFirstBit = false;
@@ -103,7 +105,7 @@ export class LowSpeedTapeDecoder {
                         this.detectedZeros += 1;
                     }
                     this.recentBits = (this.recentBits << 1) | (bit ? 1 : 0);
-                    //mHistory.add(new BitData(this.lastPulseFrame, frame, bit ? BitType.ONE : BitType.ZERO));
+                    this.bits.push(new BitData(this.lastPulseFrame, frame, bit ? BitType.ONE : BitType.ZERO));
                     if (this.state == TapeDecoderState.UNDECIDED) {
                         // Haven't found end of header yet. Look for it, preceded by zeros.
                         if (this.recentBits == 0x000000A5) {
@@ -138,5 +140,9 @@ export class LowSpeedTapeDecoder {
             bytes[i] = this.programBytes[i];
         }
         return bytes;
+    }
+
+    getBits(): BitData[] {
+        return this.bits;
     }
 }

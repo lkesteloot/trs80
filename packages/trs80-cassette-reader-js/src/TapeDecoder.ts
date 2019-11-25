@@ -1,7 +1,8 @@
 // Interface for tape decoders.
 
-import { TapeDecoderState } from "./TapeDecoderState";
-import { Tape } from "./Tape";
+import {TapeDecoderState} from "./TapeDecoderState";
+import {Tape} from "./Tape";
+import {BitData} from "./BitData";
 
 export interface TapeDecoder {
     /**
@@ -20,7 +21,12 @@ export interface TapeDecoder {
     getState(): TapeDecoderState;
 
     /**
-     * Get the bytes of the decoded program. Only called if the state is FINISHED.
+     * Get the bytes of the decoded program. Only called if the state is FINISHED or ERROR.
      */
     getProgram(): Uint8Array;
+
+    /**
+     * Get the bits for the decoded program. Only called if the state is FINISHED or ERROR.
+     */
+    getBits(): BitData[];
 }

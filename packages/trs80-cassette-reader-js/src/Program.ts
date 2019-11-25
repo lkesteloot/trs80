@@ -1,3 +1,4 @@
+import {BitData} from "./BitData";
 
 export class Program {
     trackNumber: number;
@@ -5,13 +6,17 @@ export class Program {
     startFrame: number;
     endFrame: number;
     binary: Uint8Array;
+    bits: BitData[];
 
-    constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number, binary: Uint8Array) {
+    constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
+                binary: Uint8Array, bits: BitData[]) {
+
         this.trackNumber = trackNumber;
         this.copyNumber = copyNumber;
         this.startFrame = startFrame;
         this.endFrame = endFrame;
         this.binary = binary;
+        this.bits = bits;
     }
 
     /**

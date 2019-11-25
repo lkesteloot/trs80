@@ -297,16 +297,95 @@ define("DisplaySamples", ["require", "exports"], function (require, exports) {
     }
     exports.DisplaySamples = DisplaySamples;
 });
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+define("BitType", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    /**
+     * Information about a particular bit.
+     */
+    var BitType;
+    (function (BitType) {
+        /**
+         * Represents a numerical zero (0).
+         */
+        BitType[BitType["ZERO"] = 0] = "ZERO";
+        /**
+         * Represents a numerical one (1).
+         */
+        BitType[BitType["ONE"] = 1] = "ONE";
+        /**
+         * Represents a start bit in a byte.
+         */
+        BitType[BitType["START"] = 2] = "START";
+        /**
+         * Represents an undecoded bit.
+         */
+        BitType[BitType["BAD"] = 3] = "BAD";
+    })(BitType = exports.BitType || (exports.BitType = {}));
+});
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+define("BitData", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    /**
+     * Information about one particular bit (its position and status).
+     */
+    class BitData {
+        /**
+         * Create an object representing a bit.
+         *
+         * @param startFrame the first frame, inclusive.
+         * @param endFrame the last frame, inclusive.
+         * @param bitType what kind of bit it is.
+         */
+        constructor(startFrame, endFrame, bitType) {
+            this.startFrame = startFrame;
+            this.endFrame = endFrame;
+            this.bitType = bitType;
+        }
+    }
+    exports.BitData = BitData;
+});
 define("Program", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Program {
-        constructor(trackNumber, copyNumber, startFrame, endFrame, binary) {
+        constructor(trackNumber, copyNumber, startFrame, endFrame, binary, bits) {
             this.trackNumber = trackNumber;
             this.copyNumber = copyNumber;
             this.startFrame = startFrame;
             this.endFrame = endFrame;
             this.binary = binary;
+            this.bits = bits;
         }
         /**
          * Whether the binary represents a Basic program.
@@ -369,7 +448,12 @@ define("TapeDecoderState", ["require", "exports"], function (require, exports) {
         TapeDecoderState[TapeDecoderState["FINISHED"] = 3] = "FINISHED";
     })(TapeDecoderState = exports.TapeDecoderState || (exports.TapeDecoderState = {}));
 });
-define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderState"], function (require, exports, AudioUtils_2, TapeDecoderState_1) {
+// Interface for tape decoders.
+define("TapeDecoder", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+});
+define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderState", "BitData", "BitType"], function (require, exports, AudioUtils_2, TapeDecoderState_1, BitData_1, BitType_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     /**
@@ -408,8 +492,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
             // Height of the previous pulse. We set each pulse's threshold
             // to 1/3 of the previous pulse's height.
             this.pulseHeight = 0;
-            // Recent history of bits, for debugging.
-            /// private final BitHistory mHistory = new BitHistory(10);
+            this.bits = [];
         }
         // For TapeDecoder interface:
         getName() {
@@ -439,8 +522,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                         console.log("Warning: At bit of wrong value at " +
                             AudioUtils_2.frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
                             AudioUtils_2.frameToTimestamp(this.lastPulseFrame));
-                        //mHistory.add(new BitData(this.lastPulseFrame, frame, BitType.BAD));
-                        //results.addBadSection(mHistory);
+                        this.bits.push(new BitData_1.BitData(this.lastPulseFrame, frame, BitType_1.BitType.BAD));
                     }
                     this.eatNextPulse = false;
                     this.lenientFirstBit = false;
@@ -459,7 +541,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                             this.detectedZeros += 1;
                         }
                         this.recentBits = (this.recentBits << 1) | (bit ? 1 : 0);
-                        //mHistory.add(new BitData(this.lastPulseFrame, frame, bit ? BitType.ONE : BitType.ZERO));
+                        this.bits.push(new BitData_1.BitData(this.lastPulseFrame, frame, bit ? BitType_1.BitType.ONE : BitType_1.BitType.ZERO));
                         if (this.state == TapeDecoderState_1.TapeDecoderState.UNDECIDED) {
                             // Haven't found end of header yet. Look for it, preceded by zeros.
                             if (this.recentBits == 0x000000A5) {
@@ -494,13 +576,11 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
             }
             return bytes;
         }
+        getBits() {
+            return this.bits;
+        }
     }
     exports.LowSpeedTapeDecoder = LowSpeedTapeDecoder;
-});
-// Interface for tape decoders.
-define("TapeDecoder", ["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
 });
 // Uses tape decoders to work through the tape, finding programs and decoding them.
 define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderState", "Program", "AudioUtils"], function (require, exports, LowSpeedTapeDecoder_1, TapeDecoderState_2, Program_1, AudioUtils_3) {
@@ -575,7 +655,7 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
                         else {
                             console.log("Found end of program at " + AudioUtils_3.frameToTimestamp(frame) + ".");
                         }
-                        const program = new Program_1.Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram());
+                        const program = new Program_1.Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram(), tapeDecoders[0].getBits());
                         this.tape.addProgram(program);
                         break;
                 }
@@ -838,7 +918,7 @@ define("Uploader", ["require", "exports"], function (require, exports) {
         /**
          * @param dropZone any element where files can be dropped.
          * @param dropUpload file type input element.
-         * @param dropS3 button to upload from S3.
+         * @param dropS3 buttons to upload from S3.
          * @param dropProgress progress bar for loading large files.
          * @param handleAudioBuffer callback with AudioBuffer parameter.
          */
@@ -868,20 +948,24 @@ define("Uploader", ["require", "exports"], function (require, exports) {
             dropUpload.onprogress = function (event) {
                 self.showProgress(event);
             };
-            dropS3.onclick = function () {
-                const request = new XMLHttpRequest();
-                request.open('GET', "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav", true);
-                request.responseType = "arraybuffer";
-                request.onload = function () {
-                    self.handleArrayBuffer(request.response);
+            dropS3.forEach(node => {
+                const button = node;
+                button.onclick = function () {
+                    const url = button.getAttribute("data-src");
+                    const request = new XMLHttpRequest();
+                    request.open('GET', url, true);
+                    request.responseType = "arraybuffer";
+                    request.onload = function () {
+                        self.handleArrayBuffer(request.response);
+                    };
+                    request.onprogress = function (event) {
+                        self.showProgress(event);
+                    };
+                    // For testing progress bar only:
+                    /// request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+                    request.send();
                 };
-                request.onprogress = function (event) {
-                    self.showProgress(event);
-                };
-                // For testing progress bar only:
-                request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-                request.send();
-            };
+            });
         }
         handleDroppedFile(file) {
             let self = this;
@@ -967,10 +1051,9 @@ define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decode
     function main() {
         const dropZone = document.getElementById("drop_zone");
         const dropUpload = document.getElementById("drop_upload");
-        const dropS3 = document.getElementById("drop_s3");
+        const dropS3 = document.querySelectorAll("#test_files button");
         const dropProgress = document.getElementById("drop_progress");
         new Uploader_1.Uploader(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer);
     }
     exports.main = main;
 });
-//# sourceMappingURL=compiled.js.map
