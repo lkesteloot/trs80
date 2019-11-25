@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <link href="main.css?v=2" rel="stylesheet" type="text/css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 
 <body>
@@ -11,6 +12,11 @@
         <div id="drop_zone">
             <p>Drop a 48 kHz mono 16-bit WAV file here, or select a file.</p>
             <input id="drop_upload" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav">
+            <div id="test_files">
+                Test files
+                <button id="drop_s3">C-1-1</button>
+            </div>
+            <progress id="drop_progress"></progress>
         </div>
     </div>
     <div id="data_screen">

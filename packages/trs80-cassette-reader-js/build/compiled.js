@@ -838,11 +838,14 @@ define("Uploader", ["require", "exports"], function (require, exports) {
         /**
          * @param dropZone any element where files can be dropped.
          * @param dropUpload file type input element.
+         * @param dropS3 button to upload from S3.
+         * @param dropProgress progress bar for loading large files.
          * @param handleAudioBuffer callback with AudioBuffer parameter.
          */
-        constructor(dropZone, dropUpload, handleAudioBuffer) {
+        constructor(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer) {
             const self = this;
             this.handleAudioBuffer = handleAudioBuffer;
+            this.progressBar = dropProgress;
             dropZone.ondrop = function (ev) {
                 self.dropHandler(ev);
             };
@@ -862,24 +865,52 @@ define("Uploader", ["require", "exports"], function (require, exports) {
                     }
                 }
             };
+            dropUpload.onprogress = function (event) {
+                self.showProgress(event);
+            };
+            dropS3.onclick = function () {
+                const request = new XMLHttpRequest();
+                request.open('GET', "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav", true);
+                request.responseType = "arraybuffer";
+                request.onload = function () {
+                    self.handleArrayBuffer(request.response);
+                };
+                request.onprogress = function (event) {
+                    self.showProgress(event);
+                };
+                // For testing progress bar only:
+                request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+                request.send();
+            };
         }
         handleDroppedFile(file) {
             let self = this;
-            let audioCtx = new window.AudioContext();
             console.log("File " + file.name + " has size " + file.size);
             // We could use file.arrayBuffer() here, but as of writing it's buggy
             // in Firefox 70. https://bugzilla.mozilla.org/show_bug.cgi?id=1585284
             let fileReader = new FileReader();
             fileReader.addEventListener("loadend", function () {
                 if (fileReader.result instanceof ArrayBuffer) {
-                    audioCtx.decodeAudioData(fileReader.result).then(self.handleAudioBuffer);
+                    self.handleArrayBuffer(fileReader.result);
                 }
                 else {
                     console.log("Error: Unexpected type for fileReader.result: " +
                         fileReader.result);
                 }
             });
+            fileReader.addEventListener("progress", function (event) {
+                self.showProgress(event);
+            });
             fileReader.readAsArrayBuffer(file);
+        }
+        showProgress(event) {
+            this.progressBar.style.display = "block";
+            this.progressBar.value = event.loaded;
+            this.progressBar.max = event.total;
+        }
+        handleArrayBuffer(arrayBuffer) {
+            let audioCtx = new window.AudioContext();
+            audioCtx.decodeAudioData(arrayBuffer).then(this.handleAudioBuffer);
         }
         dropHandler(ev) {
             const self = this;
@@ -936,7 +967,9 @@ define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decode
     function main() {
         const dropZone = document.getElementById("drop_zone");
         const dropUpload = document.getElementById("drop_upload");
-        new Uploader_1.Uploader(dropZone, dropUpload, handleAudioBuffer);
+        const dropS3 = document.getElementById("drop_s3");
+        const dropProgress = document.getElementById("drop_progress");
+        new Uploader_1.Uploader(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer);
     }
     exports.main = main;
 });

@@ -47,6 +47,18 @@ body {
         rgba(0, 0, 0, 0.20) 0px 5px 5px -3px;
     cursor: pointer;
 }
+#drop_progress {
+    display: none;
+    margin: 1em auto;
+}
+#test_files {
+    margin-top: 2em;
+    font-size: 18px;
+}
+#test_files button {
+    display: block;
+    margin: 10px auto;
+}
 .hover {
     background-color: #fee;
 }
