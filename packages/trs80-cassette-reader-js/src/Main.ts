@@ -33,6 +33,6 @@ export function main() {
     const dropZone = document.getElementById("drop_zone") as HTMLElement;
     const dropUpload = document.getElementById("drop_upload") as HTMLInputElement;
     const dropS3 = document.getElementById("drop_s3") as HTMLButtonElement;
-    const dropProgress = document.getElementById("drop_progress") as HTMLButtonElement;
+    const dropProgress = document.getElementById("drop_progress") as HTMLProgressElement;
     new Uploader(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer);
 }
