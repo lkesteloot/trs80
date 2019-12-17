@@ -354,7 +354,7 @@ export class TapeBrowser {
             self.zoomToFitAll();
         });
         for (let program of this.tape.programs) {
-            addRow("Track " + program.trackNumber + ", copy " + program.copyNumber, null);
+            addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName, null);
             addRow("    Waveform", function () {
                 self.showCanvases();
                 self.zoomToFit(program.startFrame, program.endFrame);
@@ -362,7 +362,7 @@ export class TapeBrowser {
             addRow("    Binary", function () {
                 self.showBinary(program);
             });
-            if (program.isProgram()) {
+            if (program.isBasicProgram()) {
                 addRow("    Basic", function () {
                     self.showBasic(program);
                 });

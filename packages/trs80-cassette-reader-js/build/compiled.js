@@ -1,10 +1,3 @@
-"use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 /*
  * Copyright 2019 Lawrence Kesteloot
  *
@@ -462,18 +455,19 @@ define("Program", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Program {
-        constructor(trackNumber, copyNumber, startFrame, endFrame, binary, bits) {
+        constructor(trackNumber, copyNumber, startFrame, endFrame, decoderName, binary, bits) {
             this.trackNumber = trackNumber;
             this.copyNumber = copyNumber;
             this.startFrame = startFrame;
             this.endFrame = endFrame;
+            this.decoderName = decoderName;
             this.binary = binary;
             this.bits = bits;
         }
         /**
          * Whether the binary represents a Basic program.
          */
-        isProgram() {
+        isBasicProgram() {
             return this.binary != null &&
                 this.binary.length >= 3 &&
                 this.binary[0] == 0xD3 &&
@@ -601,11 +595,9 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
             this.bits = [];
             this.pulseCount = 0;
         }
-        // For TapeDecoder interface:
         getName() {
             return "low speed";
         }
-        // For TapeDecoder interface:
         handleSample(tape, frame) {
             const samples = tape.lowSpeedSamples.samplesList[0];
             const pulse = -samples[frame];
@@ -681,11 +673,9 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                 this.pulseHeight = 0;
             }
         }
-        // For TapeDecoder interface:
         getState() {
             return this.state;
         }
-        // For TapeDecoder interface:
         getProgram() {
             const bytes = new Uint8Array(this.programBytes.length);
             for (let i = 0; i < bytes.length; i++) {
@@ -764,7 +754,134 @@ define("Tape", ["require", "exports", "DisplaySamples", "AudioUtils", "LowSpeedT
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderState", "Program", "AudioUtils"], function (require, exports, LowSpeedTapeDecoder_2, TapeDecoderState_2, Program_1, AudioUtils_3) {
+define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderState", "BitData", "BitType"], function (require, exports, AudioUtils_3, TapeDecoderState_2, BitData_2, BitType_2) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    // What distance away from 0 counts as "positive" (or, when negative, "negative").
+    const THRESHOLD = 500 / 32768.0;
+    // If we go this many frames without any crossing, then we can assume we're done.
+    const MIN_SILENCE_FRAMES = 1000;
+    /**
+     * Decodes high-speed (1500 baud) cassettes.
+     */
+    class HighSpeedTapeDecoder {
+        constructor() {
+            this.state = TapeDecoderState_2.TapeDecoderState.UNDECIDED;
+            this.programBytes = [];
+            this.oldSign = 0;
+            this.cycleSize = 0;
+            this.recentBits = 0;
+            this.bitCount = 0;
+            this.lastCrossingFrame = 0;
+            this.bits = [];
+        }
+        // For TapeDecoder interface:
+        getName() {
+            return "high speed";
+        }
+        handleSample(tape, frame) {
+            const samples = tape.lowSpeedSamples.samplesList[0];
+            const sample = samples[frame];
+            const newSign = sample > THRESHOLD ? 1 : sample < -THRESHOLD ? -1 : 0;
+            // Detect zero-crossing.
+            if (this.oldSign != 0 && newSign != 0 && this.oldSign != newSign) {
+                this.lastCrossingFrame = frame;
+                // Detect positive edge. That's the end of the cycle.
+                if (this.oldSign == -1) {
+                    // Only consider cycles in the right range of periods.
+                    if (this.cycleSize > 7 && this.cycleSize < 44) {
+                        // Long cycle is "0", short cycle is "1".
+                        let bit = this.cycleSize < 22;
+                        // Bits are MSb to LSb.
+                        this.recentBits = (this.recentBits << 1) | (bit ? 1 : 0);
+                        // If we're in the program, add the bit to our stream.
+                        if (this.state == TapeDecoderState_2.TapeDecoderState.DETECTED) {
+                            this.bitCount += 1;
+                            // Just got a start bit. Must be zero.
+                            let bitType;
+                            if (this.bitCount == 1) {
+                                if (bit) {
+                                    console.log("Bad start bit at byte " + this.programBytes.length + ", " +
+                                        AudioUtils_3.frameToTimestamp(frame) + ", cycle size " + this.cycleSize + ".");
+                                    this.state = TapeDecoderState_2.TapeDecoderState.ERROR;
+                                    bitType = BitType_2.BitType.BAD;
+                                }
+                                else {
+                                    bitType = BitType_2.BitType.START;
+                                }
+                            }
+                            else {
+                                bitType = bit ? BitType_2.BitType.ONE : BitType_2.BitType.ZERO;
+                            }
+                            this.bits.push(new BitData_2.BitData(frame - this.cycleSize, frame, bitType));
+                            // Got enough bits for a byte (including the start bit).
+                            if (this.bitCount == 9) {
+                                this.programBytes.push(this.recentBits & 0xFF);
+                                this.bitCount = 0;
+                            }
+                        }
+                        else {
+                            // Detect end of header.
+                            if ((this.recentBits & 0xFFFF) == 0x557F) {
+                                this.state = TapeDecoderState_2.TapeDecoderState.DETECTED;
+                                // No start bit on first byte.
+                                this.bitCount = 1;
+                                this.recentBits = 0;
+                            }
+                        }
+                    }
+                    else if (this.state == TapeDecoderState_2.TapeDecoderState.DETECTED && this.programBytes.length > 0 && this.cycleSize > 66) {
+                        // 1.5 ms gap, end of recording.
+                        // TODO pull this out of zero crossing.
+                        this.state = TapeDecoderState_2.TapeDecoderState.FINISHED;
+                    }
+                    // End of cycle, start a new one.
+                    this.cycleSize = 0;
+                }
+            }
+            else {
+                // Continue current cycle.
+                this.cycleSize += 1;
+            }
+            if (newSign != 0) {
+                this.oldSign = newSign;
+            }
+            if (this.state == TapeDecoderState_2.TapeDecoderState.DETECTED && frame - this.lastCrossingFrame > MIN_SILENCE_FRAMES) {
+                this.state = TapeDecoderState_2.TapeDecoderState.FINISHED;
+            }
+        }
+        getState() {
+            return this.state;
+        }
+        getProgram() {
+            const bytes = new Uint8Array(this.programBytes.length);
+            for (let i = 0; i < bytes.length; i++) {
+                bytes[i] = this.programBytes[i];
+            }
+            return bytes;
+        }
+        getBits() {
+            return this.bits;
+        }
+    }
+    exports.HighSpeedTapeDecoder = HighSpeedTapeDecoder;
+});
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderState", "Program", "AudioUtils", "HighSpeedTapeDecoder"], function (require, exports, LowSpeedTapeDecoder_2, TapeDecoderState_3, Program_1, AudioUtils_4, HighSpeedTapeDecoder_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Decoder {
@@ -783,32 +900,33 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
                 // Start out trying all decoders.
                 let tapeDecoders = [
                     new LowSpeedTapeDecoder_2.LowSpeedTapeDecoder(),
+                    new HighSpeedTapeDecoder_1.HighSpeedTapeDecoder(),
                 ];
                 const searchFrameStart = frame;
-                let state = TapeDecoderState_2.TapeDecoderState.UNDECIDED;
-                for (; frame < samples.length && (state == TapeDecoderState_2.TapeDecoderState.UNDECIDED || state == TapeDecoderState_2.TapeDecoderState.DETECTED); frame++) {
+                let state = TapeDecoderState_3.TapeDecoderState.UNDECIDED;
+                for (; frame < samples.length && (state == TapeDecoderState_3.TapeDecoderState.UNDECIDED || state == TapeDecoderState_3.TapeDecoderState.DETECTED); frame++) {
                     // Give the sample to all decoders in parallel.
                     let detectedIndex = -1;
                     for (let i = 0; i < tapeDecoders.length; i++) {
                         const tapeDecoder = tapeDecoders[i];
                         tapeDecoder.handleSample(this.tape, frame);
                         // See if it detected its encoding.
-                        if (tapeDecoder.getState() != TapeDecoderState_2.TapeDecoderState.UNDECIDED) {
+                        if (tapeDecoder.getState() != TapeDecoderState_3.TapeDecoderState.UNDECIDED) {
                             detectedIndex = i;
                         }
                     }
                     // If any has detected, keep only that one and kill the rest.
-                    if (state == TapeDecoderState_2.TapeDecoderState.UNDECIDED) {
+                    if (state == TapeDecoderState_3.TapeDecoderState.UNDECIDED) {
                         if (detectedIndex != -1) {
                             const tapeDecoder = tapeDecoders[detectedIndex];
                             // See how long it took to find it. A large gap means a new track.
-                            const leadTime = (frame - searchFrameStart) / AudioUtils_3.HZ;
+                            const leadTime = (frame - searchFrameStart) / AudioUtils_4.HZ;
                             if (leadTime > 10 || programStartFrame == -1) {
                                 trackNumber += 1;
                                 copyNumber = 1;
                             }
                             programStartFrame = frame;
-                            console.log("Decoder \"" + tapeDecoder.getName() + "\" detected " + trackNumber + "-" + copyNumber + " at " + AudioUtils_3.frameToTimestamp(frame) + " after " + leadTime.toFixed(3) + " seconds.");
+                            console.log("Decoder \"" + tapeDecoder.getName() + "\" detected " + trackNumber + "-" + copyNumber + " at " + AudioUtils_4.frameToTimestamp(frame) + " after " + leadTime.toFixed(3) + " seconds.");
                             // Throw away the other decoders.
                             tapeDecoders = [
                                 tapeDecoder
@@ -822,21 +940,21 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
                     }
                 }
                 switch (state) {
-                    case TapeDecoderState_2.TapeDecoderState.UNDECIDED:
+                    case TapeDecoderState_3.TapeDecoderState.UNDECIDED:
                         console.log("Reached end of tape without finding track.");
                         break;
-                    case TapeDecoderState_2.TapeDecoderState.DETECTED:
+                    case TapeDecoderState_3.TapeDecoderState.DETECTED:
                         console.log("Reached end of tape while still reading track.");
                         break;
-                    case TapeDecoderState_2.TapeDecoderState.ERROR:
-                    case TapeDecoderState_2.TapeDecoderState.FINISHED:
-                        if (state === TapeDecoderState_2.TapeDecoderState.ERROR) {
+                    case TapeDecoderState_3.TapeDecoderState.ERROR:
+                    case TapeDecoderState_3.TapeDecoderState.FINISHED:
+                        if (state === TapeDecoderState_3.TapeDecoderState.ERROR) {
                             console.log("Decoder detected an error; skipping program.");
                         }
                         else {
-                            console.log("Found end of program at " + AudioUtils_3.frameToTimestamp(frame) + ".");
+                            console.log("Found end of program at " + AudioUtils_4.frameToTimestamp(frame) + ".");
                         }
-                        const program = new Program_1.Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getProgram(), tapeDecoders[0].getBits());
+                        const program = new Program_1.Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getName(), tapeDecoders[0].getProgram(), tapeDecoders[0].getBits());
                         this.tape.addProgram(program);
                         break;
                 }
@@ -862,7 +980,7 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], function (require, exports, Utils_3, Basic_1, BitType_2) {
+define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], function (require, exports, Utils_3, Basic_1, BitType_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class TapeBrowser {
@@ -981,16 +1099,16 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                             let x2 = frameToX(bitInfo.endFrame / mag);
                             // console.log(bitInfo, x1, x2);
                             switch (bitInfo.bitType) {
-                                case BitType_2.BitType.ZERO:
+                                case BitType_3.BitType.ZERO:
                                     ctx.fillStyle = 'rgb(50, 50, 50)';
                                     break;
-                                case BitType_2.BitType.ONE:
+                                case BitType_3.BitType.ONE:
                                     ctx.fillStyle = 'rgb(100, 100, 100)';
                                     break;
-                                case BitType_2.BitType.START:
+                                case BitType_3.BitType.START:
                                     ctx.fillStyle = 'rgb(20, 150, 20)';
                                     break;
-                                case BitType_2.BitType.BAD:
+                                case BitType_3.BitType.BAD:
                                     ctx.fillStyle = 'rgb(150, 20, 20)';
                                     break;
                             }
@@ -1141,7 +1259,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                 self.zoomToFitAll();
             });
             for (let program of this.tape.programs) {
-                addRow("Track " + program.trackNumber + ", copy " + program.copyNumber, null);
+                addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName, null);
                 addRow("    Waveform", function () {
                     self.showCanvases();
                     self.zoomToFit(program.startFrame, program.endFrame);
@@ -1149,14 +1267,14 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                 addRow("    Binary", function () {
                     self.showBinary(program);
                 });
-                if (program.isProgram()) {
+                if (program.isBasicProgram()) {
                     addRow("    Basic", function () {
                         self.showBasic(program);
                     });
                 }
                 let count = 1;
                 for (let bitData of program.bits) {
-                    if (bitData.bitType == BitType_2.BitType.BAD) {
+                    if (bitData.bitType == BitType_3.BitType.BAD) {
                         addRow("    Bit error " + count++, function () {
                             self.showCanvases();
                             self.zoomToBitData(bitData);
@@ -1359,132 +1477,3 @@ define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decode
     }
     exports.main = main;
 });
-/*
- * Copyright 2019 Lawrence Kesteloot
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-var java = .io.ByteArrayOutputStream;
-/**
- * Decodes high-speed (1500 baud) cassettes.
- */
-class HighSpeedTapeDecoder {
-    constructor() {
-        this.THRESHOLD = 500;
-        this.MIN_SILENCE_FRAMES = 1000;
-        this.mProgramBytes = new ByteArrayOutputStream();
-        this.mOldSign = 0;
-        this.mCycleSize = 0;
-        this.mRecentBits = 0;
-        this.mBitCount = 0;
-        this.mLastCrossingFrame = 0;
-        this.mHistory = new BitHistory(20);
-    }
-    HighSpeedTapeDecoder() {
-        mState = TapeDecoderState.UNDECIDED;
-    }
-    getName() {
-        return "high speed";
-    }
-    handleSample(Results, results, short, [], samples, int, frame) {
-        short;
-        sample = samples[frame];
-        int;
-        newSign = sample > THRESHOLD ? 1
-            : sample < -THRESHOLD ? -1
-                : 0;
-        // Detect zero-crossing.
-        if (mOldSign != 0 && newSign != 0 && mOldSign != newSign) {
-            mLastCrossingFrame = frame;
-            // Detect positive edge. That's the end of the cycle.
-            if (mOldSign == -1) {
-                // Only consider cycles in the right range of periods.
-                if (mCycleSize > 7 && mCycleSize < 44) {
-                    // Long cycle is "0", short cycle is "1".
-                    boolean;
-                    bit = mCycleSize < 22;
-                    // Bits are MSb to LSb.
-                    mRecentBits = (mRecentBits << 1) | (bit ? 1 : 0);
-                    // If we're in the program, add the bit to our stream.
-                    if (mState == TapeDecoderState.DETECTED) {
-                        mBitCount += 1;
-                        // Just got a start bit. Must be zero.
-                        if (mBitCount == 1) {
-                            if (bit) {
-                                results.mLog.printf("Bad start bit at byte %d, %s, cycle size %d.\n", mProgramBytes.size(), AudioUtils.frameToTimestamp(frame), mCycleSize);
-                                mState = TapeDecoderState.ERROR;
-                                mHistory.add(new BitData(frame - mCycleSize, frame, BitType.BAD));
-                                results.addBadSection(mHistory);
-                            }
-                            else {
-                                mHistory.add(new BitData(frame - mCycleSize, frame, BitType.START));
-                            }
-                        }
-                        else {
-                            mHistory.add(new BitData(frame - mCycleSize, frame, bit ? BitType.ONE : BitType.ZERO));
-                        }
-                        // Got enough bits for a byte (including the start bit).
-                        if (mBitCount == 9) {
-                            mProgramBytes.write(mRecentBits & 0xFF);
-                            mBitCount = 0;
-                        }
-                    }
-                    else {
-                        // Detect end of header.
-                        if ((mRecentBits & 0xFFFF) == 0x557F) {
-                            mState = TapeDecoderState.DETECTED;
-                            // No start bit on first byte.
-                            mBitCount = 1;
-                            mRecentBits = 0;
-                        }
-                    }
-                }
-                else if (mState == TapeDecoderState.DETECTED && mProgramBytes.size() > 0 && mCycleSize > 66) {
-                    // 1.5 ms gap, end of recording.
-                    // TODO pull this out of zero crossing.
-                    mState = TapeDecoderState.FINISHED;
-                }
-                // End of cycle, start a new one.
-                mCycleSize = 0;
-            }
-        }
-        else {
-            // Continue current cycle.
-            mCycleSize += 1;
-        }
-        if (newSign != 0) {
-            mOldSign = newSign;
-        }
-        if (mState == TapeDecoderState.DETECTED && frame - mLastCrossingFrame > MIN_SILENCE_FRAMES) {
-            mState = TapeDecoderState.FINISHED;
-        }
-    }
-    getState() {
-        return mState;
-    }
-    getProgram() {
-        return mProgramBytes.toByteArray();
-    }
-}
-__decorate([
-    Override
-], HighSpeedTapeDecoder.prototype, "String", void 0);
-__decorate([
-    Override
-], HighSpeedTapeDecoder.prototype, "void", void 0);
-__decorate([
-    Override
-], HighSpeedTapeDecoder.prototype, "TapeDecoderState", void 0);
-__decorate([
-    Override
-], HighSpeedTapeDecoder.prototype, "byte", void 0);

@@ -21,16 +21,18 @@ export class Program {
     copyNumber: number;
     startFrame: number;
     endFrame: number;
+    decoderName: string;
     binary: Uint8Array;
     bits: BitData[];
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
-                binary: Uint8Array, bits: BitData[]) {
+                decoderName: string, binary: Uint8Array, bits: BitData[]) {
 
         this.trackNumber = trackNumber;
         this.copyNumber = copyNumber;
         this.startFrame = startFrame;
         this.endFrame = endFrame;
+        this.decoderName = decoderName;
         this.binary = binary;
         this.bits = bits;
     }
@@ -38,7 +40,7 @@ export class Program {
     /**
      * Whether the binary represents a Basic program.
      */
-    isProgram(): boolean {
+    isBasicProgram(): boolean {
         return this.binary != null &&
             this.binary.length >= 3 &&
             this.binary[0] == 0xD3 &&

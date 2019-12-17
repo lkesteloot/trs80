@@ -74,12 +74,10 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         this.pulseCount = 0;
     }
 
-    // For TapeDecoder interface:
     getName(): string {
         return "low speed";
     }
 
-    // For TapeDecoder interface:
     handleSample(tape: Tape, frame: number) {
         const samples = tape.lowSpeedSamples.samplesList[0];
         const pulse = -samples[frame];
@@ -153,12 +151,10 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         }
     }
 
-    // For TapeDecoder interface:
     getState() {
         return this.state;
     }
 
-    // For TapeDecoder interface:
     getProgram() {
         const bytes = new Uint8Array(this.programBytes.length);
         for (let i = 0; i < bytes.length; i++) {

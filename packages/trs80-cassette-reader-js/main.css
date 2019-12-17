@@ -27,7 +27,7 @@ body {
 .data_container {
     display: grid;
     grid-template-areas: "nav main";
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 220px 1fr;
     grid-gap: 10px;
 }
 .data_container nav {

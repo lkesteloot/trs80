@@ -22,6 +22,7 @@ import { TapeDecoderState } from "TapeDecoderState";
 import { Program } from "Program";
 import { HZ, frameToTimestamp } from "AudioUtils";
 import {TapeDecoder} from "./TapeDecoder";
+import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder";
 
 export class Decoder {
     tape: Tape;
@@ -43,7 +44,7 @@ export class Decoder {
             // Start out trying all decoders.
             let tapeDecoders: TapeDecoder[] = [
                 new LowSpeedTapeDecoder(),
-                //       new HighSpeedTapeDecoder()
+                new HighSpeedTapeDecoder(),
             ];
 
             const searchFrameStart = frame;
@@ -107,7 +108,7 @@ export class Decoder {
                         console.log("Found end of program at " + frameToTimestamp(frame) + ".");
                     }
                     const program = new Program(trackNumber, copyNumber, programStartFrame, frame,
-                        tapeDecoders[0].getProgram(), tapeDecoders[0].getBits());
+                        tapeDecoders[0].getName(), tapeDecoders[0].getProgram(), tapeDecoders[0].getBits());
                     this.tape.addProgram(program);
                     break;
             }
