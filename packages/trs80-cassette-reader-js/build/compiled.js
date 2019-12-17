@@ -1,3 +1,25 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("Utils", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21,6 +43,21 @@ define("Utils", ["require", "exports"], function (require, exports) {
     }
     exports.pad = pad;
 });
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("AudioUtils", ["require", "exports", "Utils"], function (require, exports, Utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -60,7 +97,21 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
     }
     exports.frameToTimestamp = frameToTimestamp;
 });
-// Tools for decoding Basic programs.
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("Basic", ["require", "exports", "Utils"], function (require, exports, Utils_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -353,6 +404,21 @@ define("BitData", ["require", "exports"], function (require, exports) {
     }
     exports.BitData = BitData;
 });
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("DisplaySamples", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -377,6 +443,21 @@ define("DisplaySamples", ["require", "exports"], function (require, exports) {
     }
     exports.DisplaySamples = DisplaySamples;
 });
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("Program", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -402,10 +483,25 @@ define("Program", ["require", "exports"], function (require, exports) {
     }
     exports.Program = Program;
 });
-// Enum for the state of a tape decoder.
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("TapeDecoderState", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    // Enum for the state of a tape decoder.
     var TapeDecoderState;
     (function (TapeDecoderState) {
         /**
@@ -429,11 +525,40 @@ define("TapeDecoderState", ["require", "exports"], function (require, exports) {
         TapeDecoderState[TapeDecoderState["FINISHED"] = 3] = "FINISHED";
     })(TapeDecoderState = exports.TapeDecoderState || (exports.TapeDecoderState = {}));
 });
-// Interface for tape decoders.
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("TapeDecoder", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
 });
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderState", "BitData", "BitType"], function (require, exports, AudioUtils_1, TapeDecoderState_1, BitData_1, BitType_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -590,9 +715,21 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
     }
     exports.LowSpeedTapeDecoder = LowSpeedTapeDecoder;
 });
-// Represents a recorded tape, with its audio samples,
-// filtered-down samples for display, and other information
-// we got from it.
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("Tape", ["require", "exports", "DisplaySamples", "AudioUtils", "LowSpeedTapeDecoder"], function (require, exports, DisplaySamples_1, AudioUtils_2, LowSpeedTapeDecoder_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -612,7 +749,21 @@ define("Tape", ["require", "exports", "DisplaySamples", "AudioUtils", "LowSpeedT
     }
     exports.Tape = Tape;
 });
-// Uses tape decoders to work through the tape, finding programs and decoding them.
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderState", "Program", "AudioUtils"], function (require, exports, LowSpeedTapeDecoder_2, TapeDecoderState_2, Program_1, AudioUtils_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -696,7 +847,21 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
     }
     exports.Decoder = Decoder;
 });
-// UI for browsing a tape interactively.
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], function (require, exports, Utils_3, Basic_1, BitType_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -1013,10 +1178,25 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
     }
     exports.TapeBrowser = TapeBrowser;
 });
-// Handles uploading WAV files and decoding them.
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("Uploader", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    // Handles uploading WAV files and decoding them.
     class Uploader {
         /**
          * @param dropZone any element where files can be dropped.
@@ -1127,6 +1307,21 @@ define("Uploader", ["require", "exports"], function (require, exports) {
     }
     exports.Uploader = Uploader;
 });
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decoder"], function (require, exports, Tape_1, TapeBrowser_1, Uploader_1, Decoder_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -1164,3 +1359,132 @@ define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decode
     }
     exports.main = main;
 });
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var java = .io.ByteArrayOutputStream;
+/**
+ * Decodes high-speed (1500 baud) cassettes.
+ */
+class HighSpeedTapeDecoder {
+    constructor() {
+        this.THRESHOLD = 500;
+        this.MIN_SILENCE_FRAMES = 1000;
+        this.mProgramBytes = new ByteArrayOutputStream();
+        this.mOldSign = 0;
+        this.mCycleSize = 0;
+        this.mRecentBits = 0;
+        this.mBitCount = 0;
+        this.mLastCrossingFrame = 0;
+        this.mHistory = new BitHistory(20);
+    }
+    HighSpeedTapeDecoder() {
+        mState = TapeDecoderState.UNDECIDED;
+    }
+    getName() {
+        return "high speed";
+    }
+    handleSample(Results, results, short, [], samples, int, frame) {
+        short;
+        sample = samples[frame];
+        int;
+        newSign = sample > THRESHOLD ? 1
+            : sample < -THRESHOLD ? -1
+                : 0;
+        // Detect zero-crossing.
+        if (mOldSign != 0 && newSign != 0 && mOldSign != newSign) {
+            mLastCrossingFrame = frame;
+            // Detect positive edge. That's the end of the cycle.
+            if (mOldSign == -1) {
+                // Only consider cycles in the right range of periods.
+                if (mCycleSize > 7 && mCycleSize < 44) {
+                    // Long cycle is "0", short cycle is "1".
+                    boolean;
+                    bit = mCycleSize < 22;
+                    // Bits are MSb to LSb.
+                    mRecentBits = (mRecentBits << 1) | (bit ? 1 : 0);
+                    // If we're in the program, add the bit to our stream.
+                    if (mState == TapeDecoderState.DETECTED) {
+                        mBitCount += 1;
+                        // Just got a start bit. Must be zero.
+                        if (mBitCount == 1) {
+                            if (bit) {
+                                results.mLog.printf("Bad start bit at byte %d, %s, cycle size %d.\n", mProgramBytes.size(), AudioUtils.frameToTimestamp(frame), mCycleSize);
+                                mState = TapeDecoderState.ERROR;
+                                mHistory.add(new BitData(frame - mCycleSize, frame, BitType.BAD));
+                                results.addBadSection(mHistory);
+                            }
+                            else {
+                                mHistory.add(new BitData(frame - mCycleSize, frame, BitType.START));
+                            }
+                        }
+                        else {
+                            mHistory.add(new BitData(frame - mCycleSize, frame, bit ? BitType.ONE : BitType.ZERO));
+                        }
+                        // Got enough bits for a byte (including the start bit).
+                        if (mBitCount == 9) {
+                            mProgramBytes.write(mRecentBits & 0xFF);
+                            mBitCount = 0;
+                        }
+                    }
+                    else {
+                        // Detect end of header.
+                        if ((mRecentBits & 0xFFFF) == 0x557F) {
+                            mState = TapeDecoderState.DETECTED;
+                            // No start bit on first byte.
+                            mBitCount = 1;
+                            mRecentBits = 0;
+                        }
+                    }
+                }
+                else if (mState == TapeDecoderState.DETECTED && mProgramBytes.size() > 0 && mCycleSize > 66) {
+                    // 1.5 ms gap, end of recording.
+                    // TODO pull this out of zero crossing.
+                    mState = TapeDecoderState.FINISHED;
+                }
+                // End of cycle, start a new one.
+                mCycleSize = 0;
+            }
+        }
+        else {
+            // Continue current cycle.
+            mCycleSize += 1;
+        }
+        if (newSign != 0) {
+            mOldSign = newSign;
+        }
+        if (mState == TapeDecoderState.DETECTED && frame - mLastCrossingFrame > MIN_SILENCE_FRAMES) {
+            mState = TapeDecoderState.FINISHED;
+        }
+    }
+    getState() {
+        return mState;
+    }
+    getProgram() {
+        return mProgramBytes.toByteArray();
+    }
+}
+__decorate([
+    Override
+], HighSpeedTapeDecoder.prototype, "String", void 0);
+__decorate([
+    Override
+], HighSpeedTapeDecoder.prototype, "void", void 0);
+__decorate([
+    Override
+], HighSpeedTapeDecoder.prototype, "TapeDecoderState", void 0);
+__decorate([
+    Override
+], HighSpeedTapeDecoder.prototype, "byte", void 0);
