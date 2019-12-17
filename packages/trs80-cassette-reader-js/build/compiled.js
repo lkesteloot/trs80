@@ -275,30 +275,6 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
     }
     exports.fromTokenized = fromTokenized;
 });
-define("DisplaySamples", ["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    class DisplaySamples {
-        constructor(samples) {
-            this.samplesList = [samples];
-            this.filterDown();
-        }
-        filterDown() {
-            // Sample down for quick display.
-            while (this.samplesList[this.samplesList.length - 1].length > 1) {
-                const samples = this.samplesList[this.samplesList.length - 1];
-                const half = Math.ceil(samples.length / 2);
-                const down = new Float32Array(half);
-                for (let i = 0; i < half; i++) {
-                    const j = i * 2;
-                    down[i] = j == samples.length - 1 ? samples[j] : Math.max(samples[j], samples[j + 1]);
-                }
-                this.samplesList.push(down);
-            }
-        }
-    }
-    exports.DisplaySamples = DisplaySamples;
-});
 /*
  * Copyright 2019 Lawrence Kesteloot
  *
@@ -376,6 +352,30 @@ define("BitData", ["require", "exports"], function (require, exports) {
         }
     }
     exports.BitData = BitData;
+});
+define("DisplaySamples", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class DisplaySamples {
+        constructor(samples) {
+            this.samplesList = [samples];
+            this.filterDown();
+        }
+        filterDown() {
+            // Sample down for quick display.
+            while (this.samplesList[this.samplesList.length - 1].length > 1) {
+                const samples = this.samplesList[this.samplesList.length - 1];
+                const half = Math.ceil(samples.length / 2);
+                const down = new Float32Array(half);
+                for (let i = 0; i < half; i++) {
+                    const j = i * 2;
+                    down[i] = j == samples.length - 1 ? samples[j] : Math.max(samples[j], samples[j + 1]);
+                }
+                this.samplesList.push(down);
+            }
+        }
+    }
+    exports.DisplaySamples = DisplaySamples;
 });
 define("Program", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -714,10 +714,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
             this.configureCanvas(originalCanvas);
             this.configureCanvas(filteredCanvas);
             this.configureCanvas(lowSpeedCanvas);
-            // Display level in the tape's samplesList.
-            this.displayLevel = this.computeFullFitLevel();
-            // Visually centered sample (in level 0).
-            this.centerSample = Math.floor(tape.originalSamples.samplesList[0].length / 2);
+            this.zoomToFitAll();
             // Configure zoom keys.
             document.onkeypress = function (event) {
                 if (event.key === '=') {
@@ -759,12 +756,6 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                     self.draw();
                 }
             };
-        }
-        /**
-         * Compute level to fit all the data.
-         */
-        computeFullFitLevel() {
-            return this.computeFitLevel(this.tape.originalSamples.samplesList[0].length);
         }
         /**
          * Compute fit level to fit the specified number of samples.
@@ -884,12 +875,18 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
             // Show a bit after a many bits before.
             const startFrame = bitData.startFrame - 1500;
             const endFrame = bitData.endFrame + 300;
+            this.zoomToFit(startFrame, endFrame);
+        }
+        zoomToFit(startFrame, endFrame) {
             const sampleCount = endFrame - startFrame;
             // Find appropriate zoom.
             this.displayLevel = this.computeFitLevel(sampleCount);
             // Visually centered sample (in level 0).
             this.centerSample = Math.floor((startFrame + endFrame) / 2);
             this.draw();
+        }
+        zoomToFitAll() {
+            this.zoomToFit(0, this.tape.originalSamples.samplesList[0].length);
         }
         showBinary(program) {
             this.showProgramText();
@@ -959,13 +956,22 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                 let div = document.createElement("div");
                 div.classList.add("tape_contents_row");
                 div.innerText = text;
-                div.onclick = onClick;
+                if (onClick != null) {
+                    div.classList.add("selectable_row");
+                    div.onclick = onClick;
+                }
                 self.tapeContents.appendChild(div);
             };
             this.clearElement(this.tapeContents);
+            addRow("Entire recording", function () {
+                self.showCanvases();
+                self.zoomToFitAll();
+            });
             for (let program of this.tape.programs) {
-                addRow("Track " + program.trackNumber + ", copy " + program.copyNumber, function () {
+                addRow("Track " + program.trackNumber + ", copy " + program.copyNumber, null);
+                addRow("    Waveform", function () {
                     self.showCanvases();
+                    self.zoomToFit(program.startFrame, program.endFrame);
                 });
                 addRow("    Binary", function () {
                     self.showBinary(program);

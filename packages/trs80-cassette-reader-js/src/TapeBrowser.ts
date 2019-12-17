@@ -40,11 +40,7 @@ export class TapeBrowser {
         this.configureCanvas(filteredCanvas);
         this.configureCanvas(lowSpeedCanvas);
 
-        // Display level in the tape's samplesList.
-        this.displayLevel = this.computeFullFitLevel();
-
-        // Visually centered sample (in level 0).
-        this.centerSample = Math.floor(tape.originalSamples.samplesList[0].length / 2);
+        this.zoomToFitAll();
 
         // Configure zoom keys.
         document.onkeypress = function (event) {
@@ -92,13 +88,6 @@ export class TapeBrowser {
                 self.draw();
             }
         }
-    }
-
-    /**
-     * Compute level to fit all the data.
-     */
-    computeFullFitLevel(): number {
-        return this.computeFitLevel(this.tape.originalSamples.samplesList[0].length);
     }
 
     /**
@@ -229,6 +218,11 @@ export class TapeBrowser {
         // Show a bit after a many bits before.
         const startFrame = bitData.startFrame - 1500;
         const endFrame = bitData.endFrame + 300;
+
+        this.zoomToFit(startFrame, endFrame);
+    }
+
+    zoomToFit(startFrame: number, endFrame: number) {
         const sampleCount = endFrame - startFrame;
 
         // Find appropriate zoom.
@@ -238,6 +232,10 @@ export class TapeBrowser {
         this.centerSample = Math.floor((startFrame + endFrame)/2);
 
         this.draw();
+    }
+
+    zoomToFitAll() {
+        this.zoomToFit(0, this.tape.originalSamples.samplesList[0].length);
     }
 
     showBinary(program: Program) {
@@ -314,17 +312,26 @@ export class TapeBrowser {
 
     updateTapeContents() {
         let self = this;
-        let addRow = function (text: string, onClick: ((this: GlobalEventHandlers, ev: MouseEvent) => any)) {
+        let addRow = function (text: string, onClick: ((this: GlobalEventHandlers, ev: MouseEvent) => any) | null) {
             let div = document.createElement("div");
             div.classList.add("tape_contents_row");
             div.innerText = text;
-            div.onclick = onClick;
+            if (onClick != null) {
+                div.classList.add("selectable_row");
+                div.onclick = onClick;
+            }
             self.tapeContents.appendChild(div);
         };
         this.clearElement(this.tapeContents);
+        addRow("Entire recording", function () {
+            self.showCanvases();
+            self.zoomToFitAll();
+        });
         for (let program of this.tape.programs) {
-            addRow("Track " + program.trackNumber + ", copy " + program.copyNumber, function () {
+            addRow("Track " + program.trackNumber + ", copy " + program.copyNumber, null);
+            addRow("    Waveform", function () {
                 self.showCanvases();
+                self.zoomToFit(program.startFrame, program.endFrame);
             });
             addRow("    Binary", function () {
                 self.showBinary(program);

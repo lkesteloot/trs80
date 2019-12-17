@@ -21,7 +21,7 @@ body {
     cursor: default;
     white-space: pre;
 }
-.tape_contents_row:hover {
+.tape_contents_row.selectable_row:hover {
     background-color: #eee;
 }
 .data_container main {
