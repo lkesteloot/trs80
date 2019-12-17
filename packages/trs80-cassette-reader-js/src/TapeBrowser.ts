@@ -17,10 +17,13 @@ export class TapeBrowser {
     programText: HTMLElement;
     tapeContents: HTMLElement;
     displayWidth: number;
-    displayLevel: number;
-    centerSample: number;
+    displayLevel: number = 0; // Initialized in zoomToFitAll()
+    centerSample: number = 0; // Initialized in zoomToFitAll()
 
-    constructor(tape: Tape, waveforms: HTMLElement,
+    constructor(tape: Tape,
+                zoomInButton: HTMLButtonElement,
+                zoomOutButton: HTMLButtonElement,
+                waveforms: HTMLElement,
                 originalCanvas: HTMLCanvasElement,
                 filteredCanvas: HTMLCanvasElement,
                 lowSpeedCanvas: HTMLCanvasElement,
@@ -41,6 +44,13 @@ export class TapeBrowser {
         this.configureCanvas(lowSpeedCanvas);
 
         this.zoomToFitAll();
+
+        zoomInButton.onclick = function () {
+            self.zoomIn();
+        };
+        zoomOutButton.onclick = function () {
+            self.zoomOut();
+        };
 
         // Configure zoom keys.
         document.onkeypress = function (event) {

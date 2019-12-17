@@ -10,6 +10,8 @@ function handleAudioBuffer(audioBuffer: AudioBuffer) {
                     audioBuffer.sampleRate + " Hz");
     // TODO check that there's 1 channel and it's 48 kHz.
 
+    const zoomInButton = document.getElementById("zoom_in_button") as HTMLButtonElement;
+    const zoomOutButton = document.getElementById("zoom_out_button") as HTMLButtonElement;
     const waveforms = document.getElementById("waveforms") as HTMLElement;
     const originalCanvas = document.getElementById("original_canvas") as HTMLCanvasElement;
     const filteredCanvas = document.getElementById("filtered_canvas") as HTMLCanvasElement;
@@ -21,8 +23,8 @@ function handleAudioBuffer(audioBuffer: AudioBuffer) {
     const tape = new Tape(samples);
     const decoder = new Decoder(tape);
     decoder.decode();
-    const tapeBrowser = new TapeBrowser(tape, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas,
-        programText, tapeContents);
+    const tapeBrowser = new TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms,
+        originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents);
     tapeBrowser.draw();
 
     // Switch screens.

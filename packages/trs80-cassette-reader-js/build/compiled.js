@@ -701,7 +701,9 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class TapeBrowser {
-        constructor(tape, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents) {
+        constructor(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents) {
+            this.displayLevel = 0; // Initialized in zoomToFitAll()
+            this.centerSample = 0; // Initialized in zoomToFitAll()
             const self = this;
             this.tape = tape;
             this.waveforms = waveforms;
@@ -715,6 +717,12 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
             this.configureCanvas(filteredCanvas);
             this.configureCanvas(lowSpeedCanvas);
             this.zoomToFitAll();
+            zoomInButton.onclick = function () {
+                self.zoomIn();
+            };
+            zoomOutButton.onclick = function () {
+                self.zoomOut();
+            };
             // Configure zoom keys.
             document.onkeypress = function (event) {
                 if (event.key === '=') {
@@ -1127,6 +1135,8 @@ define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decode
             audioBuffer.numberOfChannels + " channels, " +
             audioBuffer.sampleRate + " Hz");
         // TODO check that there's 1 channel and it's 48 kHz.
+        const zoomInButton = document.getElementById("zoom_in_button");
+        const zoomOutButton = document.getElementById("zoom_out_button");
         const waveforms = document.getElementById("waveforms");
         const originalCanvas = document.getElementById("original_canvas");
         const filteredCanvas = document.getElementById("filtered_canvas");
@@ -1137,7 +1147,7 @@ define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decode
         const tape = new Tape_1.Tape(samples);
         const decoder = new Decoder_1.Decoder(tape);
         decoder.decode();
-        const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents);
+        const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents);
         tapeBrowser.draw();
         // Switch screens.
         const dropScreen = document.getElementById("drop_screen");
