@@ -17,8 +17,8 @@
 // Handles uploading WAV files and decoding them.
 
 export class Uploader {
-    handleAudioBuffer: (audioBuffer: AudioBuffer) => void;
-    progressBar: HTMLProgressElement;
+    private handleAudioBuffer: (audioBuffer: AudioBuffer) => void;
+    private progressBar: HTMLProgressElement;
 
     /**
      * @param dropZone any element where files can be dropped.
@@ -32,47 +32,36 @@ export class Uploader {
                 dropS3: NodeList,
                 dropProgress: HTMLProgressElement,
                 handleAudioBuffer: (audioBuffer: AudioBuffer) => void) {
-        const self = this;
 
         this.handleAudioBuffer = handleAudioBuffer;
         this.progressBar = dropProgress;
 
-        dropZone.ondrop = function (ev) {
-            self.dropHandler(ev);
-        };
-        dropZone.ondragover = function (ev) {
+        dropZone.ondrop = (ev) => this.dropHandler(ev);
+        dropZone.ondragover = (ev) => {
             dropZone.classList.add("hover");
 
             // Prevent default behavior (prevent file from being opened).
             ev.preventDefault();
         };
-        dropZone.ondragleave = function () {
-            dropZone.classList.remove("hover");
-        };
-        dropUpload.onchange = function () {
+        dropZone.ondragleave = () => dropZone.classList.remove("hover");
+        dropUpload.onchange = () => {
             if (dropUpload.files) {
                 const file = dropUpload.files[0];
                 if (file) {
-                    self.handleDroppedFile(file);
+                    this.handleDroppedFile(file);
                 }
             }
         };
-        dropUpload.onprogress = function (event) {
-            self.showProgress(event);
-        };
-        dropS3.forEach(node => {
+        dropUpload.onprogress = (event) => this.showProgress(event);
+        dropS3.forEach((node) => {
             const button = node as HTMLButtonElement;
-            button.onclick = function () {
+            button.onclick = () => {
                 const url = button.getAttribute("data-src") as string;
                 const request = new XMLHttpRequest();
-                request.open('GET', url, true);
+                request.open("GET", url, true);
                 request.responseType = "arraybuffer";
-                request.onload = function () {
-                    self.handleArrayBuffer(request.response);
-                };
-                request.onprogress = function (event) {
-                    self.showProgress(event);
-                };
+                request.onload = () => this.handleArrayBuffer(request.response);
+                request.onprogress = (event) => this.showProgress(event);
                 // For testing progress bar only:
                 /// request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
                 request.send();
@@ -80,59 +69,54 @@ export class Uploader {
         });
     }
 
-    handleDroppedFile(file: File) {
-        let self = this;
+    private handleDroppedFile(file: File) {
         console.log("File " + file.name + " has size " + file.size);
         // We could use file.arrayBuffer() here, but as of writing it's buggy
         // in Firefox 70. https://bugzilla.mozilla.org/show_bug.cgi?id=1585284
-        let fileReader = new FileReader();
-        fileReader.addEventListener("loadend", function () {
+        const fileReader = new FileReader();
+        fileReader.addEventListener("loadend", () => {
             if (fileReader.result instanceof ArrayBuffer) {
-                self.handleArrayBuffer(fileReader.result);
+                this.handleArrayBuffer(fileReader.result);
             } else {
                 console.log("Error: Unexpected type for fileReader.result: " +
                             fileReader.result);
             }
         });
-        fileReader.addEventListener("progress", function (event) {
-            self.showProgress(event);
-        });
+        fileReader.addEventListener("progress", (event) => this.showProgress(event));
         fileReader.readAsArrayBuffer(file);
     }
 
-    showProgress(event: ProgressEvent) {
+    private showProgress(event: ProgressEvent) {
         this.progressBar.style.display = "block";
         this.progressBar.value = event.loaded;
         this.progressBar.max = event.total;
     }
 
-    handleArrayBuffer(arrayBuffer: ArrayBuffer) {
-        let audioCtx = new window.AudioContext();
+    private handleArrayBuffer(arrayBuffer: ArrayBuffer) {
+        const audioCtx = new window.AudioContext();
         audioCtx.decodeAudioData(arrayBuffer).then(this.handleAudioBuffer);
     }
 
-    dropHandler(ev: DragEvent) {
-        const self = this;
-
+    private dropHandler(ev: DragEvent) {
         // Prevent default behavior (Prevent file from being opened)
         ev.preventDefault();
 
         if (ev.dataTransfer) {
             if (ev.dataTransfer.items) {
                 // Use DataTransferItemList interface to access the files.
-                for (let i = 0; i < ev.dataTransfer.items.length; i++) {
+                for (const item of ev.dataTransfer.items) {
                     // If dropped items aren't files, reject them
-                    if (ev.dataTransfer.items[i].kind === 'file') {
-                        const file = ev.dataTransfer.items[i].getAsFile();
+                    if (item.kind === "file") {
+                        const file = item.getAsFile();
                         if (file) {
-                            self.handleDroppedFile(file);
+                            this.handleDroppedFile(file);
                         }
                     }
                 }
             } else {
                 // Use DataTransfer interface to access the files.
-                for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-                    self.handleDroppedFile(ev.dataTransfer.files[i]);
+                for (const file of ev.dataTransfer.files) {
+                    this.handleDroppedFile(file);
                 }
             }
         }

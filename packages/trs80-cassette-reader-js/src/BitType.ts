@@ -33,5 +33,5 @@ export enum BitType {
     /**
      * Represents an undecoded bit.
      */
-    BAD
+    BAD,
 }

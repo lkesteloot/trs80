@@ -16,9 +16,9 @@
 
 // Interface for tape decoders.
 
-import {TapeDecoderState} from "./TapeDecoderState";
-import {Tape} from "./Tape";
 import {BitData} from "./BitData";
+import {Tape} from "./Tape";
+import {TapeDecoderState} from "./TapeDecoderState";
 
 export interface TapeDecoder {
     /**

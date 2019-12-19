@@ -26,7 +26,7 @@ export const HZ = 48000;
  * @param size size of filter
  * @returns filtered samples.
  */
-export function highPassFilter(samples : Float32Array, size: number): Float32Array {
+export function highPassFilter(samples: Float32Array, size: number): Float32Array {
     const out = new Float32Array(samples.length);
     let sum = 0;
 

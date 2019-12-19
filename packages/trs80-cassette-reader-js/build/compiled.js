@@ -125,7 +125,7 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
         "EXP", "COS", "SIN", "TAN", "ATN", "PEEK", "CVI", "CVS",
         "CVD", "EOF", "LOC", "LOF", "MKI", "MKS$", "MKD$", "CINT",
         "CSNG", "CDBL", "FIX", "LEN", "STR$", "VAL", "ASC", "CHR$",
-        "LEFT$", "RIGHT$", "MID$" // 0xF8
+        "LEFT$", "RIGHT$", "MID$",
     ];
     const REM = 0x93;
     const DATA = 0x88;
@@ -165,11 +165,11 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
          * @returns the integer, or EOF on end of file.
          */
         readShort(allowEofAfterFirstByte) {
-            let low = this.read();
+            const low = this.read();
             if (low === EOF) {
                 return EOF;
             }
-            let high = this.read();
+            const high = this.read();
             if (high === EOF) {
                 return allowEofAfterFirstByte ? low : EOF;
             }
@@ -183,7 +183,7 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
      * @param className the name of the class for the item.
      */
     function add(out, text, className) {
-        let e = document.createElement("span");
+        const e = document.createElement("span");
         e.innerText = text;
         e.classList.add(className);
         out.appendChild(e);
@@ -194,30 +194,30 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
      * @param out div to write result into.
      */
     function fromTokenized(bytes, out) {
-        let b = new ByteReader(bytes);
+        const b = new ByteReader(bytes);
         let state;
-        if (b.read() != 0xD3 || b.read() != 0xD3 || b.read() != 0xD3) {
+        if (b.read() !== 0xD3 || b.read() !== 0xD3 || b.read() !== 0xD3) {
             add(out, "Basic: missing magic -- not a BASIC file.", "error");
             return;
         }
         // One-byte ASCII program name. This is nearly always meaningless, so we do nothing with it.
         b.read();
         while (true) {
-            let line = document.createElement("div");
+            const line = document.createElement("div");
             // Read the address of the next line. We ignore this (as does Basic when
             // loading programs), only using it to detect end of program. (In the real
             // Basic these are regenerated after loading.)
-            let address = b.readShort(true);
+            const address = b.readShort(true);
             if (address === EOF) {
                 add(line, "[EOF in next line's address]", "error");
                 break;
             }
             // Zero address indicates end of program.
-            if (address == 0) {
+            if (address === 0) {
                 break;
             }
             // Read current line number.
-            let lineNumber = b.readShort(false);
+            const lineNumber = b.readShort(false);
             if (lineNumber === EOF) {
                 add(line, "[EOF in line number]", "error");
                 break;
@@ -227,15 +227,19 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
             let c; // Uint8 value.
             let ch; // String value.
             state = NORMAL;
-            while ((c = b.read()) !== EOF && c !== 0) {
+            while (true) {
+                c = b.read();
+                if (c === EOF || c === 0) {
+                    break;
+                }
                 ch = String.fromCharCode(c);
                 // Detect the ":REM'" sequence (colon, REM, single quote), because
                 // that translates to a single quote. Must be a backward-compatible
                 // way to add a single quote as a comment.
-                if (ch === ':' && state === NORMAL) {
+                if (ch === ":" && state === NORMAL) {
                     state = COLON;
                 }
-                else if (ch === ':' && state === COLON) {
+                else if (ch === ":" && state === COLON) {
                     add(line, ":", "punctuation");
                 }
                 else if (c === REM && state === COLON) {
@@ -250,9 +254,9 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
                     state = NORMAL;
                 }
                 else {
-                    if (state == COLON || state == COLON_REM) {
+                    if (state === COLON || state === COLON_REM) {
                         add(line, ":", "punctuation");
-                        if (state == COLON_REM) {
+                        if (state === COLON_REM) {
                             add(line, "REM", "comment");
                             state = RAW;
                         }
@@ -263,13 +267,13 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
                     switch (state) {
                         case NORMAL:
                             if (c >= 128 && c < 128 + TOKENS.length) {
-                                let token = TOKENS[c - 128];
+                                const token = TOKENS[c - 128];
                                 add(line, token, c === DATA || c === REM ? "comment"
                                     : token.length === 1 ? "punctuation"
                                         : "keyword");
                             }
                             else {
-                                add(line, ch, ch == '"' ? "string" : "regular");
+                                add(line, ch, ch === '"' ? "string" : "regular");
                             }
                             if (c === DATA || c === REM) {
                                 state = RAW;
@@ -279,10 +283,10 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
                             }
                             break;
                         case STRING_LITERAL:
-                            if (ch === '\r') {
+                            if (ch === "\r") {
                                 add(line, "\\n", "punctuation");
                             }
-                            else if (ch === '\\') {
+                            else if (ch === "\\") {
                                 add(line, "\\" + Utils_2.pad(c, 8, 3), "punctuation");
                             }
                             else if (c >= 32 && c < 128) {
@@ -291,7 +295,7 @@ define("Basic", ["require", "exports", "Utils"], function (require, exports, Uti
                             else {
                                 add(line, "\\" + Utils_2.pad(c, 8, 3), "punctuation");
                             }
-                            if (ch == '"') {
+                            if (ch === '"') {
                                 // End of string.
                                 state = NORMAL;
                             }
@@ -428,54 +432,13 @@ define("DisplaySamples", ["require", "exports"], function (require, exports) {
                 const down = new Float32Array(half);
                 for (let i = 0; i < half; i++) {
                     const j = i * 2;
-                    down[i] = j == samples.length - 1 ? samples[j] : Math.max(samples[j], samples[j + 1]);
+                    down[i] = j === samples.length - 1 ? samples[j] : Math.max(samples[j], samples[j + 1]);
                 }
                 this.samplesList.push(down);
             }
         }
     }
     exports.DisplaySamples = DisplaySamples;
-});
-/*
- * Copyright 2019 Lawrence Kesteloot
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-define("Program", ["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    class Program {
-        constructor(trackNumber, copyNumber, startFrame, endFrame, decoderName, binary, bits) {
-            this.trackNumber = trackNumber;
-            this.copyNumber = copyNumber;
-            this.startFrame = startFrame;
-            this.endFrame = endFrame;
-            this.decoderName = decoderName;
-            this.binary = binary;
-            this.bits = bits;
-        }
-        /**
-         * Whether the binary represents a Basic program.
-         */
-        isBasicProgram() {
-            return this.binary != null &&
-                this.binary.length >= 3 &&
-                this.binary[0] == 0xD3 &&
-                this.binary[1] == 0xD3 &&
-                this.binary[2] == 0xD3;
-        }
-    }
-    exports.Program = Program;
 });
 /*
  * Copyright 2019 Lawrence Kesteloot
@@ -553,7 +516,7 @@ define("TapeDecoder", ["require", "exports"], function (require, exports) {
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderState", "BitData", "BitType"], function (require, exports, AudioUtils_1, TapeDecoderState_1, BitData_1, BitType_1) {
+define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "BitData", "BitType", "TapeDecoderState"], function (require, exports, AudioUtils_1, BitData_1, BitType_1, TapeDecoderState_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     /**
@@ -595,6 +558,22 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
             this.bits = [];
             this.pulseCount = 0;
         }
+        /**
+         * Differentiating filter to accentuate pulses.
+         *
+         * @param samples samples to filter.
+         * @returns filtered samples.
+         */
+        static filterSamples(samples) {
+            const out = new Float32Array(samples.length);
+            for (let i = 0; i < samples.length; i++) {
+                // Differentiate to accentuate a pulse. Pulse go positive, then negative,
+                // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
+                // positive value at the bottom of the pulse.
+                out[i] = i >= PULSE_PEAK_DISTANCE ? samples[i - PULSE_PEAK_DISTANCE] - samples[i] : 0;
+            }
+            return out;
+        }
         getName() {
             return "low speed";
         }
@@ -607,7 +586,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
             if (timeDiff < PULSE_WIDTH) {
                 this.pulseHeight = Math.max(this.pulseHeight, pulse);
             }
-            if (this.state == TapeDecoderState_1.TapeDecoderState.DETECTED && timeDiff > END_OF_PROGRAM_SILENCE) {
+            if (this.state === TapeDecoderState_1.TapeDecoderState.DETECTED && timeDiff > END_OF_PROGRAM_SILENCE) {
                 // End of program.
                 this.state = TapeDecoderState_1.TapeDecoderState.FINISHED;
             }
@@ -618,7 +597,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                     /// this.state = TapeDecoderState.DETECTED;
                 }
                 if (this.eatNextPulse) {
-                    if (this.state == TapeDecoderState_1.TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
+                    if (this.state === TapeDecoderState_1.TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
                         console.log("Warning: At bit of wrong value at " +
                             AudioUtils_1.frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
                             AudioUtils_1.frameToTimestamp(this.lastPulseFrame));
@@ -636,7 +615,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                 }
                 else {
                     // If we see a 1 in the header, reset the count. We want a bunch of consecutive zeros.
-                    if (bit && this.state == TapeDecoderState_1.TapeDecoderState.UNDECIDED && this.detectedZeros < MIN_HEADER_ZEROS) {
+                    if (bit && this.state === TapeDecoderState_1.TapeDecoderState.UNDECIDED && this.detectedZeros < MIN_HEADER_ZEROS) {
                         // Still not in header. Reset count.
                         this.detectedZeros = 0;
                     }
@@ -651,9 +630,9 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                         if (this.lastPulseFrame !== 0) {
                             this.bits.push(new BitData_1.BitData(this.lastPulseFrame, frame, bit ? BitType_1.BitType.ONE : BitType_1.BitType.ZERO));
                         }
-                        if (this.state == TapeDecoderState_1.TapeDecoderState.UNDECIDED) {
+                        if (this.state === TapeDecoderState_1.TapeDecoderState.UNDECIDED) {
                             // Haven't found end of header yet. Look for it, preceded by zeros.
-                            if (this.recentBits == 0x000000A5) {
+                            if (this.recentBits === 0x000000A5) {
                                 this.bitCount = 0;
                                 // For some reason we don't get a clock after this last 1.
                                 this.lenientFirstBit = true;
@@ -662,7 +641,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
                         }
                         else {
                             this.bitCount += 1;
-                            if (this.bitCount == 8) {
+                            if (this.bitCount === 8) {
                                 this.programBytes.push(this.recentBits & 0xFF);
                                 this.bitCount = 0;
                             }
@@ -686,22 +665,6 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
         getBits() {
             return this.bits;
         }
-        /**
-         * Differentiating filter to accentuate pulses.
-         *
-         * @param samples samples to filter.
-         * @returns filtered samples.
-         */
-        static filterSamples(samples) {
-            const out = new Float32Array(samples.length);
-            for (let i = 0; i < samples.length; i++) {
-                // Differentiate to accentuate a pulse. Pulse go positive, then negative,
-                // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
-                // positive value at the bottom of the pulse.
-                out[i] = i >= PULSE_PEAK_DISTANCE ? samples[i - PULSE_PEAK_DISTANCE] - samples[i] : 0;
-            }
-            return out;
-        }
     }
     exports.LowSpeedTapeDecoder = LowSpeedTapeDecoder;
 });
@@ -720,7 +683,48 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderS
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-define("Tape", ["require", "exports", "DisplaySamples", "AudioUtils", "LowSpeedTapeDecoder"], function (require, exports, DisplaySamples_1, AudioUtils_2, LowSpeedTapeDecoder_1) {
+define("Program", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class Program {
+        constructor(trackNumber, copyNumber, startFrame, endFrame, decoderName, binary, bits) {
+            this.trackNumber = trackNumber;
+            this.copyNumber = copyNumber;
+            this.startFrame = startFrame;
+            this.endFrame = endFrame;
+            this.decoderName = decoderName;
+            this.binary = binary;
+            this.bits = bits;
+        }
+        /**
+         * Whether the binary represents a Basic program.
+         */
+        isBasicProgram() {
+            return this.binary != null &&
+                this.binary.length >= 3 &&
+                this.binary[0] === 0xD3 &&
+                this.binary[1] === 0xD3 &&
+                this.binary[2] === 0xD3;
+        }
+    }
+    exports.Program = Program;
+});
+/*
+ * Copyright 2019 Lawrence Kesteloot
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+define("Tape", ["require", "exports", "AudioUtils", "DisplaySamples", "LowSpeedTapeDecoder"], function (require, exports, AudioUtils_2, DisplaySamples_1, LowSpeedTapeDecoder_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Tape {
@@ -754,7 +758,7 @@ define("Tape", ["require", "exports", "DisplaySamples", "AudioUtils", "LowSpeedT
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoderState", "BitData", "BitType"], function (require, exports, AudioUtils_3, TapeDecoderState_2, BitData_2, BitType_2) {
+define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "BitData", "BitType", "TapeDecoderState"], function (require, exports, AudioUtils_3, BitData_2, BitType_2, TapeDecoderState_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     // What distance away from 0 counts as "positive" (or, when negative, "negative").
@@ -775,7 +779,6 @@ define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoder
             this.lastCrossingFrame = 0;
             this.bits = [];
         }
-        // For TapeDecoder interface:
         getName() {
             return "high speed";
         }
@@ -784,22 +787,22 @@ define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoder
             const sample = samples[frame];
             const newSign = sample > THRESHOLD ? 1 : sample < -THRESHOLD ? -1 : 0;
             // Detect zero-crossing.
-            if (this.oldSign != 0 && newSign != 0 && this.oldSign != newSign) {
+            if (this.oldSign !== 0 && newSign !== 0 && this.oldSign !== newSign) {
                 this.lastCrossingFrame = frame;
                 // Detect positive edge. That's the end of the cycle.
-                if (this.oldSign == -1) {
+                if (this.oldSign === -1) {
                     // Only consider cycles in the right range of periods.
                     if (this.cycleSize > 7 && this.cycleSize < 44) {
                         // Long cycle is "0", short cycle is "1".
-                        let bit = this.cycleSize < 22;
+                        const bit = this.cycleSize < 22;
                         // Bits are MSb to LSb.
                         this.recentBits = (this.recentBits << 1) | (bit ? 1 : 0);
                         // If we're in the program, add the bit to our stream.
-                        if (this.state == TapeDecoderState_2.TapeDecoderState.DETECTED) {
+                        if (this.state === TapeDecoderState_2.TapeDecoderState.DETECTED) {
                             this.bitCount += 1;
                             // Just got a start bit. Must be zero.
                             let bitType;
-                            if (this.bitCount == 1) {
+                            if (this.bitCount === 1) {
                                 if (bit) {
                                     console.log("Bad start bit at byte " + this.programBytes.length + ", " +
                                         AudioUtils_3.frameToTimestamp(frame) + ", cycle size " + this.cycleSize + ".");
@@ -815,14 +818,14 @@ define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoder
                             }
                             this.bits.push(new BitData_2.BitData(frame - this.cycleSize, frame, bitType));
                             // Got enough bits for a byte (including the start bit).
-                            if (this.bitCount == 9) {
+                            if (this.bitCount === 9) {
                                 this.programBytes.push(this.recentBits & 0xFF);
                                 this.bitCount = 0;
                             }
                         }
                         else {
                             // Detect end of header.
-                            if ((this.recentBits & 0xFFFF) == 0x557F) {
+                            if ((this.recentBits & 0xFFFF) === 0x557F) {
                                 this.state = TapeDecoderState_2.TapeDecoderState.DETECTED;
                                 // No start bit on first byte.
                                 this.bitCount = 1;
@@ -830,7 +833,8 @@ define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoder
                             }
                         }
                     }
-                    else if (this.state == TapeDecoderState_2.TapeDecoderState.DETECTED && this.programBytes.length > 0 && this.cycleSize > 66) {
+                    else if (this.state === TapeDecoderState_2.TapeDecoderState.DETECTED &&
+                        this.programBytes.length > 0 && this.cycleSize > 66) {
                         // 1.5 ms gap, end of recording.
                         // TODO pull this out of zero crossing.
                         this.state = TapeDecoderState_2.TapeDecoderState.FINISHED;
@@ -843,10 +847,10 @@ define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoder
                 // Continue current cycle.
                 this.cycleSize += 1;
             }
-            if (newSign != 0) {
+            if (newSign !== 0) {
                 this.oldSign = newSign;
             }
-            if (this.state == TapeDecoderState_2.TapeDecoderState.DETECTED && frame - this.lastCrossingFrame > MIN_SILENCE_FRAMES) {
+            if (this.state === TapeDecoderState_2.TapeDecoderState.DETECTED && frame - this.lastCrossingFrame > MIN_SILENCE_FRAMES) {
                 this.state = TapeDecoderState_2.TapeDecoderState.FINISHED;
             }
         }
@@ -881,7 +885,7 @@ define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "TapeDecoder
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderState", "Program", "AudioUtils", "HighSpeedTapeDecoder"], function (require, exports, LowSpeedTapeDecoder_2, TapeDecoderState_3, Program_1, AudioUtils_4, HighSpeedTapeDecoder_1) {
+define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "LowSpeedTapeDecoder", "Program", "TapeDecoderState"], function (require, exports, AudioUtils_4, HighSpeedTapeDecoder_1, LowSpeedTapeDecoder_2, Program_1, TapeDecoderState_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Decoder {
@@ -904,32 +908,36 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
                 ];
                 const searchFrameStart = frame;
                 let state = TapeDecoderState_3.TapeDecoderState.UNDECIDED;
-                for (; frame < samples.length && (state == TapeDecoderState_3.TapeDecoderState.UNDECIDED || state == TapeDecoderState_3.TapeDecoderState.DETECTED); frame++) {
+                for (; frame < samples.length &&
+                    (state === TapeDecoderState_3.TapeDecoderState.UNDECIDED || state === TapeDecoderState_3.TapeDecoderState.DETECTED); frame++) {
                     // Give the sample to all decoders in parallel.
                     let detectedIndex = -1;
                     for (let i = 0; i < tapeDecoders.length; i++) {
                         const tapeDecoder = tapeDecoders[i];
                         tapeDecoder.handleSample(this.tape, frame);
                         // See if it detected its encoding.
-                        if (tapeDecoder.getState() != TapeDecoderState_3.TapeDecoderState.UNDECIDED) {
+                        if (tapeDecoder.getState() !== TapeDecoderState_3.TapeDecoderState.UNDECIDED) {
                             detectedIndex = i;
                         }
                     }
                     // If any has detected, keep only that one and kill the rest.
-                    if (state == TapeDecoderState_3.TapeDecoderState.UNDECIDED) {
-                        if (detectedIndex != -1) {
+                    if (state === TapeDecoderState_3.TapeDecoderState.UNDECIDED) {
+                        if (detectedIndex !== -1) {
                             const tapeDecoder = tapeDecoders[detectedIndex];
                             // See how long it took to find it. A large gap means a new track.
                             const leadTime = (frame - searchFrameStart) / AudioUtils_4.HZ;
-                            if (leadTime > 10 || programStartFrame == -1) {
+                            if (leadTime > 10 || programStartFrame === -1) {
                                 trackNumber += 1;
                                 copyNumber = 1;
                             }
                             programStartFrame = frame;
-                            console.log("Decoder \"" + tapeDecoder.getName() + "\" detected " + trackNumber + "-" + copyNumber + " at " + AudioUtils_4.frameToTimestamp(frame) + " after " + leadTime.toFixed(3) + " seconds.");
+                            console.log("Decoder \"" + tapeDecoder.getName() + "\" detected " +
+                                trackNumber + "-" + copyNumber + " at " +
+                                AudioUtils_4.frameToTimestamp(frame) + " after " +
+                                leadTime.toFixed(3) + " seconds.");
                             // Throw away the other decoders.
                             tapeDecoders = [
-                                tapeDecoder
+                                tapeDecoder,
                             ];
                             state = tapeDecoder.getState();
                         }
@@ -980,14 +988,13 @@ define("Decoder", ["require", "exports", "LowSpeedTapeDecoder", "TapeDecoderStat
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], function (require, exports, Utils_3, Basic_1, BitType_3) {
+define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils"], function (require, exports, Basic_1, BitType_3, Utils_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class TapeBrowser {
         constructor(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents) {
             this.displayLevel = 0; // Initialized in zoomToFitAll()
             this.centerSample = 0; // Initialized in zoomToFitAll()
-            const self = this;
             this.tape = tape;
             this.waveforms = waveforms;
             this.originalCanvas = originalCanvas;
@@ -1000,51 +1007,51 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
             this.configureCanvas(filteredCanvas);
             this.configureCanvas(lowSpeedCanvas);
             this.zoomToFitAll();
-            zoomInButton.onclick = function () {
-                self.zoomIn();
-            };
-            zoomOutButton.onclick = function () {
-                self.zoomOut();
-            };
+            zoomInButton.onclick = () => this.zoomIn();
+            zoomOutButton.onclick = () => this.zoomOut();
             // Configure zoom keys.
-            document.onkeypress = function (event) {
-                if (event.key === '=') {
-                    self.zoomIn();
+            document.onkeypress = (event) => {
+                if (event.key === "=") {
+                    this.zoomIn();
                     event.preventDefault();
                 }
-                if (event.key === '-') {
-                    self.zoomOut();
+                if (event.key === "-") {
+                    this.zoomOut();
                     event.preventDefault();
                 }
             };
             // Update left-side panel.
             this.updateTapeContents();
         }
+        draw() {
+            this.drawInCanvas(this.originalCanvas, this.tape.originalSamples);
+            this.drawInCanvas(this.filteredCanvas, this.tape.filteredSamples);
+            this.drawInCanvas(this.lowSpeedCanvas, this.tape.lowSpeedSamples);
+        }
         /**
          *
          * @param {HTMLCanvasElement} canvas
          */
         configureCanvas(canvas) {
-            const self = this;
             let dragging = false;
             let dragInitialX = 0;
             let dragInitialCenterSample = 0;
-            canvas.onmousedown = function (event) {
+            canvas.onmousedown = (event) => {
                 dragging = true;
                 dragInitialX = event.x;
-                dragInitialCenterSample = self.centerSample;
+                dragInitialCenterSample = this.centerSample;
                 canvas.style.cursor = "grab";
             };
-            canvas.onmouseup = function () {
+            canvas.onmouseup = () => {
                 dragging = false;
                 canvas.style.cursor = "auto";
             };
-            canvas.onmousemove = function (event) {
+            canvas.onmousemove = (event) => {
                 if (dragging) {
                     const dx = event.x - dragInitialX;
-                    const mag = Math.pow(2, self.displayLevel);
-                    self.centerSample = Math.round(dragInitialCenterSample - dx * mag);
-                    self.draw();
+                    const mag = Math.pow(2, this.displayLevel);
+                    this.centerSample = Math.round(dragInitialCenterSample - dx * mag);
+                    this.draw();
                 }
             };
         }
@@ -1059,28 +1066,21 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
             displayLevel = Math.min(displayLevel, sampleCount - 1);
             return displayLevel;
         }
-        draw() {
-            this.drawInCanvas(this.originalCanvas, this.tape.originalSamples);
-            this.drawInCanvas(this.filteredCanvas, this.tape.filteredSamples);
-            this.drawInCanvas(this.lowSpeedCanvas, this.tape.lowSpeedSamples);
-        }
         /**
          * @param {HTMLCanvasElement} canvas
          * @param {DisplaySamples} displaySamples
          */
         drawInCanvas(canvas, displaySamples) {
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext("2d");
             const samplesList = displaySamples.samplesList;
             const width = canvas.width;
             const height = canvas.height;
             const samples = samplesList[this.displayLevel];
             const mag = Math.pow(2, this.displayLevel);
             const centerSample = Math.floor(this.centerSample / mag);
-            const frameToX = function (i) {
-                return Math.floor(width / 2) + (i - centerSample);
-            };
+            const frameToX = (i) => Math.floor(width / 2) + (i - centerSample);
             // Background.
-            ctx.fillStyle = 'rgb(0, 0, 0)';
+            ctx.fillStyle = "rgb(0, 0, 0)";
             ctx.fillRect(0, 0, width, height);
             // Compute viewing window in zoom space.
             const firstSample = Math.max(centerSample - Math.floor(width / 2), 0);
@@ -1091,25 +1091,25 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
             // Whether we're zoomed in enough to draw and line and individual bits.
             const drawingLine = this.displayLevel < 3;
             // Programs.
-            for (let program of this.tape.programs) {
+            for (const program of this.tape.programs) {
                 if (drawingLine) {
-                    for (let bitInfo of program.bits) {
+                    for (const bitInfo of program.bits) {
                         if (bitInfo.endFrame >= firstOrigSample && bitInfo.startFrame <= lastOrigSample) {
-                            let x1 = frameToX(bitInfo.startFrame / mag);
-                            let x2 = frameToX(bitInfo.endFrame / mag);
+                            const x1 = frameToX(bitInfo.startFrame / mag);
+                            const x2 = frameToX(bitInfo.endFrame / mag);
                             // console.log(bitInfo, x1, x2);
                             switch (bitInfo.bitType) {
                                 case BitType_3.BitType.ZERO:
-                                    ctx.fillStyle = 'rgb(50, 50, 50)';
+                                    ctx.fillStyle = "rgb(50, 50, 50)";
                                     break;
                                 case BitType_3.BitType.ONE:
-                                    ctx.fillStyle = 'rgb(100, 100, 100)';
+                                    ctx.fillStyle = "rgb(100, 100, 100)";
                                     break;
                                 case BitType_3.BitType.START:
-                                    ctx.fillStyle = 'rgb(20, 150, 20)';
+                                    ctx.fillStyle = "rgb(20, 150, 20)";
                                     break;
                                 case BitType_3.BitType.BAD:
-                                    ctx.fillStyle = 'rgb(150, 20, 20)';
+                                    ctx.fillStyle = "rgb(150, 20, 20)";
                                     break;
                             }
                             ctx.fillRect(x1, 0, x2 - x1 - 1, height);
@@ -1117,9 +1117,9 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                     }
                 }
                 else {
-                    ctx.fillStyle = 'rgb(50, 50, 50)';
-                    let x1 = frameToX(program.startFrame / mag);
-                    let x2 = frameToX(program.endFrame / mag);
+                    ctx.fillStyle = "rgb(50, 50, 50)";
+                    const x1 = frameToX(program.startFrame / mag);
+                    const x2 = frameToX(program.endFrame / mag);
                     ctx.fillRect(x1, 0, x2 - x1, height);
                 }
             }
@@ -1132,7 +1132,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                 const x = frameToX(i);
                 const y = value * height / 2;
                 if (drawingLine) {
-                    if (i == firstSample) {
+                    if (i === firstSample) {
                         ctx.moveTo(x, height / 2 - y);
                     }
                     else {
@@ -1187,7 +1187,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
             div.classList.remove("basic");
             const binary = program.binary;
             for (let addr = 0; addr < binary.length; addr += 16) {
-                let line = document.createElement("div");
+                const line = document.createElement("div");
                 let e = document.createElement("span");
                 e.classList.add("address");
                 e.innerText = Utils_3.pad(addr, 16, 4) + "  ";
@@ -1206,7 +1206,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                 line.appendChild(e);
                 // ASCII.
                 for (subAddr = addr; subAddr < binary.length && subAddr < addr + 16; subAddr++) {
-                    let c = binary[subAddr];
+                    const c = binary[subAddr];
                     e = document.createElement("span");
                     if (c >= 32 && c < 127) {
                         e.classList.add("ascii");
@@ -1214,7 +1214,7 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
                     }
                     else {
                         e.classList.add("ascii-unprintable");
-                        e.innerText += '.';
+                        e.innerText += ".";
                     }
                     line.appendChild(e);
                 }
@@ -1242,42 +1242,41 @@ define("TapeBrowser", ["require", "exports", "Utils", "Basic", "BitType"], funct
             this.programText.style.display = "none";
         }
         updateTapeContents() {
-            let self = this;
-            let addRow = function (text, onClick) {
-                let div = document.createElement("div");
+            const addRow = (text, onClick) => {
+                const div = document.createElement("div");
                 div.classList.add("tape_contents_row");
                 div.innerText = text;
                 if (onClick != null) {
                     div.classList.add("selectable_row");
                     div.onclick = onClick;
                 }
-                self.tapeContents.appendChild(div);
+                this.tapeContents.appendChild(div);
             };
             this.clearElement(this.tapeContents);
-            addRow("Entire recording", function () {
-                self.showCanvases();
-                self.zoomToFitAll();
+            addRow("Entire recording", () => {
+                this.showCanvases();
+                this.zoomToFitAll();
             });
-            for (let program of this.tape.programs) {
+            for (const program of this.tape.programs) {
                 addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName, null);
-                addRow("    Waveform", function () {
-                    self.showCanvases();
-                    self.zoomToFit(program.startFrame, program.endFrame);
+                addRow("    Waveform", () => {
+                    this.showCanvases();
+                    this.zoomToFit(program.startFrame, program.endFrame);
                 });
-                addRow("    Binary", function () {
-                    self.showBinary(program);
+                addRow("    Binary", () => {
+                    this.showBinary(program);
                 });
                 if (program.isBasicProgram()) {
-                    addRow("    Basic", function () {
-                        self.showBasic(program);
+                    addRow("    Basic", () => {
+                        this.showBasic(program);
                     });
                 }
                 let count = 1;
-                for (let bitData of program.bits) {
-                    if (bitData.bitType == BitType_3.BitType.BAD) {
-                        addRow("    Bit error " + count++, function () {
-                            self.showCanvases();
-                            self.zoomToBitData(bitData);
+                for (const bitData of program.bits) {
+                    if (bitData.bitType === BitType_3.BitType.BAD) {
+                        addRow("    Bit error " + count++, () => {
+                            this.showCanvases();
+                            this.zoomToBitData(bitData);
                         });
                     }
                 }
@@ -1324,44 +1323,33 @@ define("Uploader", ["require", "exports"], function (require, exports) {
          * @param handleAudioBuffer callback with AudioBuffer parameter.
          */
         constructor(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer) {
-            const self = this;
             this.handleAudioBuffer = handleAudioBuffer;
             this.progressBar = dropProgress;
-            dropZone.ondrop = function (ev) {
-                self.dropHandler(ev);
-            };
-            dropZone.ondragover = function (ev) {
+            dropZone.ondrop = (ev) => this.dropHandler(ev);
+            dropZone.ondragover = (ev) => {
                 dropZone.classList.add("hover");
                 // Prevent default behavior (prevent file from being opened).
                 ev.preventDefault();
             };
-            dropZone.ondragleave = function () {
-                dropZone.classList.remove("hover");
-            };
-            dropUpload.onchange = function () {
+            dropZone.ondragleave = () => dropZone.classList.remove("hover");
+            dropUpload.onchange = () => {
                 if (dropUpload.files) {
                     const file = dropUpload.files[0];
                     if (file) {
-                        self.handleDroppedFile(file);
+                        this.handleDroppedFile(file);
                     }
                 }
             };
-            dropUpload.onprogress = function (event) {
-                self.showProgress(event);
-            };
-            dropS3.forEach(node => {
+            dropUpload.onprogress = (event) => this.showProgress(event);
+            dropS3.forEach((node) => {
                 const button = node;
-                button.onclick = function () {
+                button.onclick = () => {
                     const url = button.getAttribute("data-src");
                     const request = new XMLHttpRequest();
-                    request.open('GET', url, true);
+                    request.open("GET", url, true);
                     request.responseType = "arraybuffer";
-                    request.onload = function () {
-                        self.handleArrayBuffer(request.response);
-                    };
-                    request.onprogress = function (event) {
-                        self.showProgress(event);
-                    };
+                    request.onload = () => this.handleArrayBuffer(request.response);
+                    request.onprogress = (event) => this.showProgress(event);
                     // For testing progress bar only:
                     /// request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
                     request.send();
@@ -1369,23 +1357,20 @@ define("Uploader", ["require", "exports"], function (require, exports) {
             });
         }
         handleDroppedFile(file) {
-            let self = this;
             console.log("File " + file.name + " has size " + file.size);
             // We could use file.arrayBuffer() here, but as of writing it's buggy
             // in Firefox 70. https://bugzilla.mozilla.org/show_bug.cgi?id=1585284
-            let fileReader = new FileReader();
-            fileReader.addEventListener("loadend", function () {
+            const fileReader = new FileReader();
+            fileReader.addEventListener("loadend", () => {
                 if (fileReader.result instanceof ArrayBuffer) {
-                    self.handleArrayBuffer(fileReader.result);
+                    this.handleArrayBuffer(fileReader.result);
                 }
                 else {
                     console.log("Error: Unexpected type for fileReader.result: " +
                         fileReader.result);
                 }
             });
-            fileReader.addEventListener("progress", function (event) {
-                self.showProgress(event);
-            });
+            fileReader.addEventListener("progress", (event) => this.showProgress(event));
             fileReader.readAsArrayBuffer(file);
         }
         showProgress(event) {
@@ -1394,30 +1379,29 @@ define("Uploader", ["require", "exports"], function (require, exports) {
             this.progressBar.max = event.total;
         }
         handleArrayBuffer(arrayBuffer) {
-            let audioCtx = new window.AudioContext();
+            const audioCtx = new window.AudioContext();
             audioCtx.decodeAudioData(arrayBuffer).then(this.handleAudioBuffer);
         }
         dropHandler(ev) {
-            const self = this;
             // Prevent default behavior (Prevent file from being opened)
             ev.preventDefault();
             if (ev.dataTransfer) {
                 if (ev.dataTransfer.items) {
                     // Use DataTransferItemList interface to access the files.
-                    for (let i = 0; i < ev.dataTransfer.items.length; i++) {
+                    for (const item of ev.dataTransfer.items) {
                         // If dropped items aren't files, reject them
-                        if (ev.dataTransfer.items[i].kind === 'file') {
-                            const file = ev.dataTransfer.items[i].getAsFile();
+                        if (item.kind === "file") {
+                            const file = item.getAsFile();
                             if (file) {
-                                self.handleDroppedFile(file);
+                                this.handleDroppedFile(file);
                             }
                         }
                     }
                 }
                 else {
                     // Use DataTransfer interface to access the files.
-                    for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-                        self.handleDroppedFile(ev.dataTransfer.files[i]);
+                    for (const file of ev.dataTransfer.files) {
+                        this.handleDroppedFile(file);
                     }
                 }
             }
@@ -1440,7 +1424,7 @@ define("Uploader", ["require", "exports"], function (require, exports) {
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decoder"], function (require, exports, Tape_1, TapeBrowser_1, Uploader_1, Decoder_1) {
+define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploader"], function (require, exports, Decoder_1, Tape_1, TapeBrowser_1, Uploader_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     function handleAudioBuffer(audioBuffer) {
@@ -1473,7 +1457,7 @@ define("Main", ["require", "exports", "Tape", "TapeBrowser", "Uploader", "Decode
         const dropUpload = document.getElementById("drop_upload");
         const dropS3 = document.querySelectorAll("#test_files button");
         const dropProgress = document.getElementById("drop_progress");
-        new Uploader_1.Uploader(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer);
+        const uploader = new Uploader_1.Uploader(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer);
     }
     exports.main = main;
 });

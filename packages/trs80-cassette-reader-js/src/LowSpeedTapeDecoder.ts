@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import {frameToTimestamp, HZ} from "AudioUtils";
-import {TapeDecoderState} from "TapeDecoderState";
-import {Tape} from "Tape";
-import {TapeDecoder} from "./TapeDecoder";
+import {frameToTimestamp, HZ} from "./AudioUtils";
 import {BitData} from "./BitData";
 import {BitType} from "./BitType";
+import {Tape} from "./Tape";
+import {TapeDecoder} from "./TapeDecoder";
+import {TapeDecoderState} from "./TapeDecoderState";
 
 /**
  * Number of samples between the top of the pulse and the bottom of it.
@@ -45,17 +45,36 @@ const END_OF_PROGRAM_SILENCE = HZ / 10;
 const MIN_HEADER_ZEROS = 6;
 
 export class LowSpeedTapeDecoder implements TapeDecoder {
-    state: TapeDecoderState;
-    programBytes: number[];
-    lastPulseFrame: number;
-    eatNextPulse: boolean;
-    bitCount: number;
-    recentBits: number;
-    lenientFirstBit: boolean;
-    detectedZeros: number;
-    pulseHeight: number;
-    bits: BitData[];
-    pulseCount: number;
+    /**
+     * Differentiating filter to accentuate pulses.
+     *
+     * @param samples samples to filter.
+     * @returns filtered samples.
+     */
+    public static filterSamples(samples: Float32Array): Float32Array {
+        const out = new Float32Array(samples.length);
+
+        for (let i = 0; i < samples.length; i++) {
+            // Differentiate to accentuate a pulse. Pulse go positive, then negative,
+            // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
+            // positive value at the bottom of the pulse.
+            out[i] = i >= PULSE_PEAK_DISTANCE ? samples[i - PULSE_PEAK_DISTANCE] - samples[i] : 0;
+        }
+
+        return out;
+    }
+
+    private state: TapeDecoderState;
+    private programBytes: number[];
+    private lastPulseFrame: number;
+    private eatNextPulse: boolean;
+    private bitCount: number;
+    private recentBits: number;
+    private lenientFirstBit: boolean;
+    private detectedZeros: number;
+    private pulseHeight: number;
+    private bits: BitData[];
+    private pulseCount: number;
 
     constructor() {
         this.state = TapeDecoderState.UNDECIDED;
@@ -74,11 +93,11 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         this.pulseCount = 0;
     }
 
-    getName(): string {
+    public getName(): string {
         return "low speed";
     }
 
-    handleSample(tape: Tape, frame: number) {
+    public handleSample(tape: Tape, frame: number) {
         const samples = tape.lowSpeedSamples.samplesList[0];
         const pulse = -samples[frame];
 
@@ -90,7 +109,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
             this.pulseHeight = Math.max(this.pulseHeight, pulse);
         }
 
-        if (this.state == TapeDecoderState.DETECTED && timeDiff > END_OF_PROGRAM_SILENCE) {
+        if (this.state === TapeDecoderState.DETECTED && timeDiff > END_OF_PROGRAM_SILENCE) {
             // End of program.
             this.state = TapeDecoderState.FINISHED;
         } else if (pulsing) {
@@ -100,7 +119,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                 /// this.state = TapeDecoderState.DETECTED;
             }
             if (this.eatNextPulse) {
-                if (this.state == TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
+                if (this.state === TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
                     console.log("Warning: At bit of wrong value at " +
                         frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
                         frameToTimestamp(this.lastPulseFrame));
@@ -116,7 +135,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                 this.lenientFirstBit = false;
             } else {
                 // If we see a 1 in the header, reset the count. We want a bunch of consecutive zeros.
-                if (bit && this.state == TapeDecoderState.UNDECIDED && this.detectedZeros < MIN_HEADER_ZEROS) {
+                if (bit && this.state === TapeDecoderState.UNDECIDED && this.detectedZeros < MIN_HEADER_ZEROS) {
                     // Still not in header. Reset count.
                     this.detectedZeros = 0;
                 } else {
@@ -129,9 +148,9 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                     if (this.lastPulseFrame !== 0) {
                         this.bits.push(new BitData(this.lastPulseFrame, frame, bit ? BitType.ONE : BitType.ZERO));
                     }
-                    if (this.state == TapeDecoderState.UNDECIDED) {
+                    if (this.state === TapeDecoderState.UNDECIDED) {
                         // Haven't found end of header yet. Look for it, preceded by zeros.
-                        if (this.recentBits == 0x000000A5) {
+                        if (this.recentBits === 0x000000A5) {
                             this.bitCount = 0;
                             // For some reason we don't get a clock after this last 1.
                             this.lenientFirstBit = true;
@@ -139,7 +158,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                         }
                     } else {
                         this.bitCount += 1;
-                        if (this.bitCount == 8) {
+                        if (this.bitCount === 8) {
                             this.programBytes.push(this.recentBits & 0xFF);
                             this.bitCount = 0;
                         }
@@ -151,11 +170,11 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         }
     }
 
-    getState() {
+    public getState() {
         return this.state;
     }
 
-    getProgram() {
+    public getProgram() {
         const bytes = new Uint8Array(this.programBytes.length);
         for (let i = 0; i < bytes.length; i++) {
             bytes[i] = this.programBytes[i];
@@ -163,26 +182,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         return bytes;
     }
 
-    getBits(): BitData[] {
+    public getBits(): BitData[] {
         return this.bits;
-    }
-
-    /**
-     * Differentiating filter to accentuate pulses.
-     *
-     * @param samples samples to filter.
-     * @returns filtered samples.
-     */
-    static filterSamples(samples: Float32Array): Float32Array {
-        const out = new Float32Array(samples.length);
-
-        for (let i = 0; i < samples.length; i++) {
-            // Differentiate to accentuate a pulse. Pulse go positive, then negative,
-            // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
-            // positive value at the bottom of the pulse.
-            out[i] = i >= PULSE_PEAK_DISTANCE ? samples[i - PULSE_PEAK_DISTANCE] - samples[i] : 0;
-        }
-
-        return out;
     }
 }

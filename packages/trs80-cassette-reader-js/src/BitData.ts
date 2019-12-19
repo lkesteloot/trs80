@@ -20,9 +20,9 @@ import {BitType} from "./BitType";
  * Information about one particular bit (its position and status).
  */
 export class BitData {
-    startFrame: number;
-    endFrame: number;
-    bitType: BitType;
+    public startFrame: number;
+    public endFrame: number;
+    public bitType: BitType;
 
     /**
      * Create an object representing a bit.

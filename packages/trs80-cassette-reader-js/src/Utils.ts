@@ -16,7 +16,7 @@
 
 /**
  * Convert a number to a string.
- * 
+ *
  * @param n number to convert
  * @param base base of the number
  * @param size zero-pad to this many digits

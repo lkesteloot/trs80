@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-import { Tape } from "Tape";
-import { TapeBrowser } from "TapeBrowser";
-import { Uploader } from "Uploader";
-import { Decoder } from "Decoder";
+import {Decoder} from "./Decoder";
+import {Tape} from "./Tape";
+import {TapeBrowser} from "./TapeBrowser";
+import {Uploader} from "./Uploader";
 
 function handleAudioBuffer(audioBuffer: AudioBuffer) {
     console.log("Audio is " + audioBuffer.duration + " seconds, " +
@@ -55,5 +55,5 @@ export function main() {
     const dropUpload = document.getElementById("drop_upload") as HTMLInputElement;
     const dropS3 = document.querySelectorAll("#test_files button");
     const dropProgress = document.getElementById("drop_progress") as HTMLProgressElement;
-    new Uploader(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer);
+    const uploader = new Uploader(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer);
 }

@@ -17,13 +17,13 @@
 import {BitData} from "./BitData";
 
 export class Program {
-    trackNumber: number;
-    copyNumber: number;
-    startFrame: number;
-    endFrame: number;
-    decoderName: string;
-    binary: Uint8Array;
-    bits: BitData[];
+    public trackNumber: number;
+    public copyNumber: number;
+    public startFrame: number;
+    public endFrame: number;
+    public decoderName: string;
+    public binary: Uint8Array;
+    public bits: BitData[];
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
                 decoderName: string, binary: Uint8Array, bits: BitData[]) {
@@ -40,11 +40,11 @@ export class Program {
     /**
      * Whether the binary represents a Basic program.
      */
-    isBasicProgram(): boolean {
+    public isBasicProgram(): boolean {
         return this.binary != null &&
             this.binary.length >= 3 &&
-            this.binary[0] == 0xD3 &&
-            this.binary[1] == 0xD3 &&
-            this.binary[2] == 0xD3;
+            this.binary[0] === 0xD3 &&
+            this.binary[1] === 0xD3 &&
+            this.binary[2] === 0xD3;
     }
 }

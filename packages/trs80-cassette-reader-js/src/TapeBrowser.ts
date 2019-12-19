@@ -16,25 +16,25 @@
 
 // UI for browsing a tape interactively.
 
-import {Tape} from "Tape";
-import {pad} from "Utils";
-import {fromTokenized} from "Basic";
-import {DisplaySamples} from "DisplaySamples";
-import {Program} from "./Program";
-import {BitType} from "./BitType";
+import {fromTokenized} from "./Basic";
 import {BitData} from "./BitData";
+import {BitType} from "./BitType";
+import {DisplaySamples} from "./DisplaySamples";
+import {Program} from "./Program";
+import {Tape} from "./Tape";
+import {pad} from "./Utils";
 
 export class TapeBrowser {
-    tape: Tape;
-    waveforms: HTMLElement;
-    originalCanvas: HTMLCanvasElement;
-    filteredCanvas: HTMLCanvasElement;
-    lowSpeedCanvas: HTMLCanvasElement;
-    programText: HTMLElement;
-    tapeContents: HTMLElement;
-    displayWidth: number;
-    displayLevel: number = 0; // Initialized in zoomToFitAll()
-    centerSample: number = 0; // Initialized in zoomToFitAll()
+    private tape: Tape;
+    private waveforms: HTMLElement;
+    private originalCanvas: HTMLCanvasElement;
+    private filteredCanvas: HTMLCanvasElement;
+    private lowSpeedCanvas: HTMLCanvasElement;
+    private programText: HTMLElement;
+    private tapeContents: HTMLElement;
+    private displayWidth: number;
+    private displayLevel: number = 0; // Initialized in zoomToFitAll()
+    private centerSample: number = 0; // Initialized in zoomToFitAll()
 
     constructor(tape: Tape,
                 zoomInButton: HTMLButtonElement,
@@ -45,7 +45,6 @@ export class TapeBrowser {
                 lowSpeedCanvas: HTMLCanvasElement,
                 programText: HTMLElement, tapeContents: HTMLElement) {
 
-        const self = this;
         this.tape = tape;
         this.waveforms = waveforms;
         this.originalCanvas = originalCanvas;
@@ -61,21 +60,17 @@ export class TapeBrowser {
 
         this.zoomToFitAll();
 
-        zoomInButton.onclick = function () {
-            self.zoomIn();
-        };
-        zoomOutButton.onclick = function () {
-            self.zoomOut();
-        };
+        zoomInButton.onclick = () => this.zoomIn();
+        zoomOutButton.onclick = () => this.zoomOut();
 
         // Configure zoom keys.
-        document.onkeypress = function (event) {
-            if (event.key === '=') {
-                self.zoomIn();
+        document.onkeypress = (event) => {
+            if (event.key === "=") {
+                this.zoomIn();
                 event.preventDefault();
             }
-            if (event.key === '-') {
-                self.zoomOut();
+            if (event.key === "-") {
+                this.zoomOut();
                 event.preventDefault();
             }
         };
@@ -84,36 +79,41 @@ export class TapeBrowser {
         this.updateTapeContents();
     }
 
+    public draw() {
+        this.drawInCanvas(this.originalCanvas, this.tape.originalSamples);
+        this.drawInCanvas(this.filteredCanvas, this.tape.filteredSamples);
+        this.drawInCanvas(this.lowSpeedCanvas, this.tape.lowSpeedSamples);
+    }
+
     /**
      *
      * @param {HTMLCanvasElement} canvas
      */
-    configureCanvas(canvas: HTMLCanvasElement) {
-        const self = this;
+    private configureCanvas(canvas: HTMLCanvasElement) {
         let dragging = false;
         let dragInitialX = 0;
         let dragInitialCenterSample = 0;
 
-        canvas.onmousedown = function (event) {
+        canvas.onmousedown = (event) => {
             dragging = true;
             dragInitialX = event.x;
-            dragInitialCenterSample = self.centerSample;
+            dragInitialCenterSample = this.centerSample;
             canvas.style.cursor = "grab";
         };
 
-        canvas.onmouseup = function () {
+        canvas.onmouseup = () => {
             dragging = false;
             canvas.style.cursor = "auto";
         };
 
-        canvas.onmousemove = function (event) {
+        canvas.onmousemove = (event) => {
             if (dragging) {
                 const dx = event.x - dragInitialX;
-                const mag = Math.pow(2, self.displayLevel);
-                self.centerSample = Math.round(dragInitialCenterSample - dx * mag);
-                self.draw();
+                const mag = Math.pow(2, this.displayLevel);
+                this.centerSample = Math.round(dragInitialCenterSample - dx * mag);
+                this.draw();
             }
-        }
+        };
     }
 
     /**
@@ -121,25 +121,19 @@ export class TapeBrowser {
      *
      * @param sampleCount number of samples we want to display.
      */
-    computeFitLevel(sampleCount: number): number {
+    private computeFitLevel(sampleCount: number): number {
         let displayLevel = Math.ceil(Math.log2(sampleCount / this.displayWidth));
         displayLevel = Math.max(displayLevel, 0);
         displayLevel = Math.min(displayLevel, sampleCount - 1);
         return displayLevel;
     }
 
-    draw() {
-        this.drawInCanvas(this.originalCanvas, this.tape.originalSamples);
-        this.drawInCanvas(this.filteredCanvas, this.tape.filteredSamples);
-        this.drawInCanvas(this.lowSpeedCanvas, this.tape.lowSpeedSamples);
-    }
-
     /**
      * @param {HTMLCanvasElement} canvas
      * @param {DisplaySamples} displaySamples
      */
-    drawInCanvas(canvas: HTMLCanvasElement, displaySamples: DisplaySamples) {
-        const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    private drawInCanvas(canvas: HTMLCanvasElement, displaySamples: DisplaySamples) {
+        const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
         const samplesList = displaySamples.samplesList;
         const width = canvas.width;
         const height = canvas.height;
@@ -147,12 +141,10 @@ export class TapeBrowser {
         const mag = Math.pow(2, this.displayLevel);
         const centerSample = Math.floor(this.centerSample / mag);
 
-        const frameToX = function (i: number) {
-            return Math.floor(width / 2) + (i - centerSample);
-        };
+        const frameToX = (i: number) => Math.floor(width / 2) + (i - centerSample);
 
         // Background.
-        ctx.fillStyle = 'rgb(0, 0, 0)';
+        ctx.fillStyle = "rgb(0, 0, 0)";
         ctx.fillRect(0, 0, width, height);
 
         // Compute viewing window in zoom space.
@@ -167,34 +159,34 @@ export class TapeBrowser {
         const drawingLine: boolean = this.displayLevel < 3;
 
         // Programs.
-        for (let program of this.tape.programs) {
+        for (const program of this.tape.programs) {
             if (drawingLine) {
-                for (let bitInfo of program.bits) {
+                for (const bitInfo of program.bits) {
                     if (bitInfo.endFrame >= firstOrigSample && bitInfo.startFrame <= lastOrigSample) {
-                        let x1 = frameToX(bitInfo.startFrame / mag);
-                        let x2 = frameToX(bitInfo.endFrame / mag);
+                        const x1 = frameToX(bitInfo.startFrame / mag);
+                        const x2 = frameToX(bitInfo.endFrame / mag);
                         // console.log(bitInfo, x1, x2);
                         switch (bitInfo.bitType) {
                             case BitType.ZERO:
-                                ctx.fillStyle = 'rgb(50, 50, 50)';
+                                ctx.fillStyle = "rgb(50, 50, 50)";
                                 break;
                             case BitType.ONE:
-                                ctx.fillStyle = 'rgb(100, 100, 100)';
+                                ctx.fillStyle = "rgb(100, 100, 100)";
                                 break;
                             case BitType.START:
-                                ctx.fillStyle = 'rgb(20, 150, 20)';
+                                ctx.fillStyle = "rgb(20, 150, 20)";
                                 break;
                             case BitType.BAD:
-                                ctx.fillStyle = 'rgb(150, 20, 20)';
+                                ctx.fillStyle = "rgb(150, 20, 20)";
                                 break;
                         }
                         ctx.fillRect(x1, 0, x2 - x1 - 1, height);
                     }
                 }
             } else {
-                ctx.fillStyle = 'rgb(50, 50, 50)';
-                let x1 = frameToX(program.startFrame / mag);
-                let x2 = frameToX(program.endFrame / mag);
+                ctx.fillStyle = "rgb(50, 50, 50)";
+                const x1 = frameToX(program.startFrame / mag);
+                const x2 = frameToX(program.endFrame / mag);
                 ctx.fillRect(x1, 0, x2 - x1, height);
             }
         }
@@ -209,7 +201,7 @@ export class TapeBrowser {
             const y = value * height / 2;
 
             if (drawingLine) {
-                if (i == firstSample) {
+                if (i === firstSample) {
                     ctx.moveTo(x, height / 2 - y);
                 } else {
                     ctx.lineTo(x, height / 2 - y);
@@ -226,21 +218,21 @@ export class TapeBrowser {
         }
     }
 
-    zoomIn() {
+    private zoomIn() {
         if (this.displayLevel > 0) {
             this.displayLevel -= 1;
             this.draw();
         }
     }
 
-    zoomOut() {
+    private zoomOut() {
         if (this.displayLevel < this.tape.originalSamples.samplesList.length - 1) {
             this.displayLevel += 1;
             this.draw();
         }
     }
 
-    zoomToBitData(bitData: BitData) {
+    private zoomToBitData(bitData: BitData) {
         // Show a bit after a many bits before.
         const startFrame = bitData.startFrame - 1500;
         const endFrame = bitData.endFrame + 300;
@@ -248,7 +240,7 @@ export class TapeBrowser {
         this.zoomToFit(startFrame, endFrame);
     }
 
-    zoomToFit(startFrame: number, endFrame: number) {
+    private zoomToFit(startFrame: number, endFrame: number) {
         const sampleCount = endFrame - startFrame;
 
         // Find appropriate zoom.
@@ -260,11 +252,11 @@ export class TapeBrowser {
         this.draw();
     }
 
-    zoomToFitAll() {
+    private zoomToFitAll() {
         this.zoomToFit(0, this.tape.originalSamples.samplesList[0].length);
     }
 
-    showBinary(program: Program) {
+    private showBinary(program: Program) {
         this.showProgramText();
 
         const div = this.programText;
@@ -274,7 +266,7 @@ export class TapeBrowser {
 
         const binary = program.binary;
         for (let addr = 0; addr < binary.length; addr += 16) {
-            let line = document.createElement("div");
+            const line = document.createElement("div");
 
             let e = document.createElement("span");
             e.classList.add("address");
@@ -296,14 +288,14 @@ export class TapeBrowser {
 
             // ASCII.
             for (subAddr = addr; subAddr < binary.length && subAddr < addr + 16; subAddr++) {
-                let c = binary[subAddr];
+                const c = binary[subAddr];
                 e = document.createElement("span");
                 if (c >= 32 && c < 127) {
                     e.classList.add("ascii");
                     e.innerText += String.fromCharCode(c);
                 } else {
                     e.classList.add("ascii-unprintable");
-                    e.innerText += '.';
+                    e.innerText += ".";
                 }
                 line.appendChild(e);
             }
@@ -312,10 +304,10 @@ export class TapeBrowser {
     }
 
     /**
-     * 
-     * @param {Program} program 
+     *
+     * @param {Program} program
      */
-    showBasic(program: Program) {
+    private showBasic(program: Program) {
         this.showProgramText();
 
         const div = this.programText;
@@ -326,53 +318,52 @@ export class TapeBrowser {
         fromTokenized(program.binary, div);
     }
 
-    showProgramText() {
+    private showProgramText() {
         this.waveforms.style.display = "none";
         this.programText.style.display = "block";
     }
 
-    showCanvases() {
+    private showCanvases() {
         this.waveforms.style.display = "block";
         this.programText.style.display = "none";
     }
 
-    updateTapeContents() {
-        let self = this;
-        let addRow = function (text: string, onClick: ((this: GlobalEventHandlers, ev: MouseEvent) => any) | null) {
-            let div = document.createElement("div");
+    private updateTapeContents() {
+        const addRow = (text: string, onClick: ((this: GlobalEventHandlers, ev: MouseEvent) => any) | null) => {
+            const div = document.createElement("div");
             div.classList.add("tape_contents_row");
             div.innerText = text;
             if (onClick != null) {
                 div.classList.add("selectable_row");
                 div.onclick = onClick;
             }
-            self.tapeContents.appendChild(div);
+            this.tapeContents.appendChild(div);
         };
         this.clearElement(this.tapeContents);
-        addRow("Entire recording", function () {
-            self.showCanvases();
-            self.zoomToFitAll();
+        addRow("Entire recording", () => {
+            this.showCanvases();
+            this.zoomToFitAll();
         });
-        for (let program of this.tape.programs) {
+        for (const program of this.tape.programs) {
             addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName, null);
-            addRow("    Waveform", function () {
-                self.showCanvases();
-                self.zoomToFit(program.startFrame, program.endFrame);
+            addRow("    Waveform", () => {
+                this.showCanvases();
+                this.zoomToFit(program.startFrame, program.endFrame);
             });
-            addRow("    Binary", function () {
-                self.showBinary(program);
+            addRow("    Binary", () => {
+                this.showBinary(program);
             });
             if (program.isBasicProgram()) {
-                addRow("    Basic", function () {
-                    self.showBasic(program);
+                addRow("    Basic", () => {
+                    this.showBasic(program);
                 });
             }
             let count = 1;
-            for (let bitData of program.bits) {
-                if (bitData.bitType == BitType.BAD) {
-                    addRow("    Bit error " + count++, function () {
-                        self.showCanvases();
-                        self.zoomToBitData(bitData);
+            for (const bitData of program.bits) {
+                if (bitData.bitType === BitType.BAD) {
+                    addRow("    Bit error " + count++, () => {
+                        this.showCanvases();
+                        this.zoomToBitData(bitData);
                     });
                 }
             }
@@ -381,10 +372,10 @@ export class TapeBrowser {
 
     /**
      * Remove all children from element.
-     * 
+     *
      * @param {HTMLElement} e
      */
-    clearElement(e: HTMLElement) {
+    private clearElement(e: HTMLElement) {
         while (e.firstChild) {
             e.removeChild(e.firstChild);
         }

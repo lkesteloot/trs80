@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/lkesteloot/trs80-cassette-reader-js#readme",
   "devDependencies": {
+    "tslint": "^5.20.1",
     "typescript": "^3.7.2"
   }
 }
