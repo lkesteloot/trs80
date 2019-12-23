@@ -20,3 +20,11 @@ export function lo(value: number): number {
 export function word(hi: number, lo: number): number {
     return ((hi & 0xFF) << 8) | (lo & 0xFF);
 }
+
+export function inc8(value: number): number {
+    return (value + 1) & 0xFF;
+}
+
+export function inc16(value: number): number {
+    return (value + 1) & 0xFFFF;
+}

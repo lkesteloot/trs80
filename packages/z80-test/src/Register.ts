@@ -26,3 +26,9 @@ export const allRegisters = [
     Register.IFF2,
     Register.IM,
 ];
+
+const WORD_REG = new Set(["af", "bc", "de", "hl", "af'", "bc'", "de'", "hl'", "ix", "iy", "sp", "pc"]);
+
+export function isWordReg(s: string): boolean {
+    return WORD_REG.has(s.toLowerCase());
+}
