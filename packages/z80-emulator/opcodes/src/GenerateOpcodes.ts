@@ -45,8 +45,31 @@ function processFile(pathname: string): void {
             output.push("    // Undefined opcode.");
         } else {
             switch (opcode) {
+                case "LD": {
+                    if (params === undefined) {
+                        throw new Error("LD requires params: " + line);
+                    }
+                    const locs = params.split(",");
+                    if (locs.length !== 2) {
+                        throw new Error("LD requires two params: " + line);
+                    }
+                    const [dest, src] = locs;
+                    if (dest.length === 1 && src.length === 1) {
+                        if (dest !== src) {
+                            output.push("    z80.regs." + dest.toLowerCase() + " = z80.regs." + src.toLowerCase() + ";");
+                        }
+                    } else {
+                        console.log("Unhandled LD: " + line);
+                    }
+
+                    break;
+                }
+
                 case "RST":
-                    handle_rst(output, parseInt(params as string, 16));
+                    if (params === undefined) {
+                        throw new Error("RST requires params: " + line);
+                    }
+                    handle_rst(output, parseInt(params, 16));
                     break;
 
                 default:

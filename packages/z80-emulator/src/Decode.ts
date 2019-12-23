@@ -270,22 +270,27 @@ export function decode(z80: Z80): void {
         }
 
         case 0x41: { // 0x41 LD B,C
+            z80.regs.b = z80.regs.c;
             break;
         }
 
         case 0x42: { // 0x42 LD B,D
+            z80.regs.b = z80.regs.d;
             break;
         }
 
         case 0x43: { // 0x43 LD B,E
+            z80.regs.b = z80.regs.e;
             break;
         }
 
         case 0x44: { // 0x44 LD B,H
+            z80.regs.b = z80.regs.h;
             break;
         }
 
         case 0x45: { // 0x45 LD B,L
+            z80.regs.b = z80.regs.l;
             break;
         }
 
@@ -294,10 +299,12 @@ export function decode(z80: Z80): void {
         }
 
         case 0x47: { // 0x47 LD B,A
+            z80.regs.b = z80.regs.a;
             break;
         }
 
         case 0x48: { // 0x48 LD C,B
+            z80.regs.c = z80.regs.b;
             break;
         }
 
@@ -306,18 +313,22 @@ export function decode(z80: Z80): void {
         }
 
         case 0x4A: { // 0x4a LD C,D
+            z80.regs.c = z80.regs.d;
             break;
         }
 
         case 0x4B: { // 0x4b LD C,E
+            z80.regs.c = z80.regs.e;
             break;
         }
 
         case 0x4C: { // 0x4c LD C,H
+            z80.regs.c = z80.regs.h;
             break;
         }
 
         case 0x4D: { // 0x4d LD C,L
+            z80.regs.c = z80.regs.l;
             break;
         }
 
@@ -326,14 +337,17 @@ export function decode(z80: Z80): void {
         }
 
         case 0x4F: { // 0x4f LD C,A
+            z80.regs.c = z80.regs.a;
             break;
         }
 
         case 0x50: { // 0x50 LD D,B
+            z80.regs.d = z80.regs.b;
             break;
         }
 
         case 0x51: { // 0x51 LD D,C
+            z80.regs.d = z80.regs.c;
             break;
         }
 
@@ -342,14 +356,17 @@ export function decode(z80: Z80): void {
         }
 
         case 0x53: { // 0x53 LD D,E
+            z80.regs.d = z80.regs.e;
             break;
         }
 
         case 0x54: { // 0x54 LD D,H
+            z80.regs.d = z80.regs.h;
             break;
         }
 
         case 0x55: { // 0x55 LD D,L
+            z80.regs.d = z80.regs.l;
             break;
         }
 
@@ -358,18 +375,22 @@ export function decode(z80: Z80): void {
         }
 
         case 0x57: { // 0x57 LD D,A
+            z80.regs.d = z80.regs.a;
             break;
         }
 
         case 0x58: { // 0x58 LD E,B
+            z80.regs.e = z80.regs.b;
             break;
         }
 
         case 0x59: { // 0x59 LD E,C
+            z80.regs.e = z80.regs.c;
             break;
         }
 
         case 0x5A: { // 0x5a LD E,D
+            z80.regs.e = z80.regs.d;
             break;
         }
 
@@ -378,10 +399,12 @@ export function decode(z80: Z80): void {
         }
 
         case 0x5C: { // 0x5c LD E,H
+            z80.regs.e = z80.regs.h;
             break;
         }
 
         case 0x5D: { // 0x5d LD E,L
+            z80.regs.e = z80.regs.l;
             break;
         }
 
@@ -390,22 +413,27 @@ export function decode(z80: Z80): void {
         }
 
         case 0x5F: { // 0x5f LD E,A
+            z80.regs.e = z80.regs.a;
             break;
         }
 
         case 0x60: { // 0x60 LD H,B
+            z80.regs.h = z80.regs.b;
             break;
         }
 
         case 0x61: { // 0x61 LD H,C
+            z80.regs.h = z80.regs.c;
             break;
         }
 
         case 0x62: { // 0x62 LD H,D
+            z80.regs.h = z80.regs.d;
             break;
         }
 
         case 0x63: { // 0x63 LD H,E
+            z80.regs.h = z80.regs.e;
             break;
         }
 
@@ -414,6 +442,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0x65: { // 0x65 LD H,L
+            z80.regs.h = z80.regs.l;
             break;
         }
 
@@ -422,26 +451,32 @@ export function decode(z80: Z80): void {
         }
 
         case 0x67: { // 0x67 LD H,A
+            z80.regs.h = z80.regs.a;
             break;
         }
 
         case 0x68: { // 0x68 LD L,B
+            z80.regs.l = z80.regs.b;
             break;
         }
 
         case 0x69: { // 0x69 LD L,C
+            z80.regs.l = z80.regs.c;
             break;
         }
 
         case 0x6A: { // 0x6a LD L,D
+            z80.regs.l = z80.regs.d;
             break;
         }
 
         case 0x6B: { // 0x6b LD L,E
+            z80.regs.l = z80.regs.e;
             break;
         }
 
         case 0x6C: { // 0x6c LD L,H
+            z80.regs.l = z80.regs.h;
             break;
         }
 
@@ -454,6 +489,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0x6F: { // 0x6f LD L,A
+            z80.regs.l = z80.regs.a;
             break;
         }
 
@@ -490,26 +526,32 @@ export function decode(z80: Z80): void {
         }
 
         case 0x78: { // 0x78 LD A,B
+            z80.regs.a = z80.regs.b;
             break;
         }
 
         case 0x79: { // 0x79 LD A,C
+            z80.regs.a = z80.regs.c;
             break;
         }
 
         case 0x7A: { // 0x7a LD A,D
+            z80.regs.a = z80.regs.d;
             break;
         }
 
         case 0x7B: { // 0x7b LD A,E
+            z80.regs.a = z80.regs.e;
             break;
         }
 
         case 0x7C: { // 0x7c LD A,H
+            z80.regs.a = z80.regs.h;
             break;
         }
 
         case 0x7D: { // 0x7d LD A,L
+            z80.regs.a = z80.regs.l;
             break;
         }
 
