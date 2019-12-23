@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import {toHex, isWordReg} from "z80-test/dist";
+import {toHex, isWordReg, isByteReg} from "z80-test/dist";
 
 const BYTE_PARAMS = new Set(["a", "b", "c", "d", "e", "h", "l", "nn"]);
 const WORD_PARAMS = new Set(["af", "bc", "de", "hl", "nnnn"]);
@@ -43,6 +43,37 @@ function handleRst(output: string[], rst: number): void {
     output.push("    z80.pushWord(z80.regs.pc);");
     output.push("    z80.regs.pc = 0x" + toHex(rst, 4)+ ";");
     output.push("    z80.regs.memptr = z80.regs.pc;");
+}
+
+function handleCp(output: string[], src: string): void {
+    output.push("    let value: number;");
+    if (src === "(hl)") {
+        output.push("    value = z80.readByte(z80.regs.hl);");
+    } else if (src === "nn") {
+        output.push("    value = z80.readByte(z80.regs.pc);");
+        output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+    } else if (isByteReg(src)) {
+        output.push("    value = z80.regs." + src + ";");
+    } else {
+        throw new Error("Unknown src type: " + src);
+    }
+
+    output.push("    const diff = (z80.regs.a - value) & 0xFFFF;");
+    output.push("    const lookup = (((z80.regs.a & 0x88) >> 3) |");
+    output.push("                   ((value & 0x88) >> 2) |");
+    output.push("                   ((diff & 0x88) >> 1)) & 0xFF;");
+    output.push("    let f = Flag.N;");
+    output.push("    if ((diff & 0x100) != 0) f |= Flag.C;");
+    output.push("    if (diff == 0) f |= Flag.Z;");
+    output.push("    f |= halfCarrySubTable[lookup & 0x07];");
+    output.push("    f |= overflowSubTable[lookup >> 4];");
+    output.push("    f |= value & (Flag.X3 | Flag.X5);");
+    output.push("    f |= diff & Flag.S;");
+    // overflow_sub_table[lookup >> 4] |\
+    // ( value & ( FLAG_3 | FLAG_5 ) ) |\
+    // ( cptemp & FLAG_S );\
+    output.push("    z80.regs.af = word(z80.regs.a, f);")
+    // TODO finish.
 }
 
 function handleLd(output: string[], dest: string, src: string): void {
@@ -175,15 +206,27 @@ function processFile(pathname: string): void {
             output.push("    // Undefined opcode.");
         } else {
             switch (opcode) {
+                case "cp": {
+                    if (params === undefined) {
+                        throw new Error("CP requires params: " + line);
+                    }
+                    const parts = params.split(",");
+                    if (parts.length !== 1) {
+                        throw new Error("LD requires one param: " + line);
+                    }
+                    handleCp(output, parts[0]);
+                    break;
+                }
+
                 case "ld": {
                     if (params === undefined) {
                         throw new Error("LD requires params: " + line);
                     }
-                    const locs = params.split(",");
-                    if (locs.length !== 2) {
+                    const parts = params.split(",");
+                    if (parts.length !== 2) {
                         throw new Error("LD requires two params: " + line);
                     }
-                    const [dest, src] = locs;
+                    const [dest, src] = parts;
                     handleLd(output, dest, src);
                     break;
                 }
