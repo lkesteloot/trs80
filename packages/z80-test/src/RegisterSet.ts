@@ -3,7 +3,7 @@ import {Register} from "./Register";
 /**
  * Set of register values.
  */
-export type RegisterSet = Map<Register,number>;
+export type RegisterSet = Map<Register, number>;
 
 export function makeEmptyRegisterSet(): RegisterSet {
     const registerSet = new Map<Register, number>();

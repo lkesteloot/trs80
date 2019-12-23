@@ -1,10 +1,10 @@
-import * as path from "path";
 import * as fs from "fs";
-import {Delegate} from "./Delegate";
-import {Test} from "./Test";
-import {Register} from "./Register";
+import * as path from "path";
 import {CpuEvent} from "./CpuEvent";
 import {parseCpuEventType} from "./CpuEventType";
+import {Delegate} from "./Delegate";
+import {Register} from "./Register";
+import {Test} from "./Test";
 import {toHex} from "./Utils";
 
 const IN_FILENAME = "tests.in";
@@ -22,18 +22,18 @@ enum ParserState {
  * Runs the Z80 tests.
  */
 export class Runner {
-    testFileDir: string;
-    delegate: Delegate;
-    tests: Map<string, Test> = new Map();
-    errors: string[] = [];
-    successfulTests: number = 0;
+    public tests: Map<string, Test> = new Map();
+    public errors: string[] = [];
+    public successfulTests: number = 0;
+    private readonly testFileDir: string;
+    private readonly delegate: Delegate;
 
     constructor(testFileDir: string, delegate: Delegate) {
         this.testFileDir = testFileDir;
         this.delegate = delegate;
     }
 
-    loadTests() {
+    public loadTests() {
         const inPathname = path.join(this.testFileDir, IN_FILENAME);
         const expectedPathname = path.join(this.testFileDir, EXPECTED_FILENAME);
 
@@ -44,7 +44,7 @@ export class Runner {
         console.log("Loaded " + this.tests.size + " tests");
     }
 
-    runAll() {
+    public runAll() {
         this.successfulTests = 0;
         for (const test of this.tests.values()) {
             const success = this.runTest(test);
@@ -54,10 +54,9 @@ export class Runner {
         }
     }
 
-    runOne(testName: string) {
+    public runOne(testName: string) {
         // TODO.
     }
-
 
     private parseFile(pathname: string, isExpected: boolean) {
         let state = ParserState.EXPECTING_NAME;
@@ -92,11 +91,11 @@ export class Runner {
                     // AF BC DE HL AF' BC' DE' HL' IX IY SP PC MEMPTR
                     // <time> <type> <address> <data>
 
-                    let fields = line.split(/\s+/);
-                    if (state == ParserState.EXPECTING_EVENT_OR_REG1 && (fields.length === 3 || fields.length === 4)) {
+                    const fields = line.split(/\s+/);
+                    if (state === ParserState.EXPECTING_EVENT_OR_REG1 && (fields.length === 3 || fields.length === 4)) {
                         // Event.
                         test.postCpuEvents.push(new CpuEvent(
-                            parseInt(fields[0]),
+                            parseInt(fields[0], 10),
                             parseCpuEventType(fields[1]),
                             parseInt(fields[1], 16),
                             fields.length === 4 ? parseInt(fields[2], 16) : undefined));
@@ -133,15 +132,15 @@ export class Runner {
                     const registerSet = isExpected ? test.postRegisterSet : test.preRegisterSet;
                     registerSet.set(Register.I, parseInt(fields[0], 16));
                     registerSet.set(Register.R, parseInt(fields[1], 16));
-                    registerSet.set(Register.IFF1, parseInt(fields[2]));
-                    registerSet.set(Register.IFF2, parseInt(fields[3]));
-                    registerSet.set(Register.IM, parseInt(fields[4]));
+                    registerSet.set(Register.IFF1, parseInt(fields[2], 10));
+                    registerSet.set(Register.IFF2, parseInt(fields[3], 10));
+                    registerSet.set(Register.IM, parseInt(fields[4], 10));
                     if (isExpected) {
-                        test.postHalted = parseInt(fields[5]) != 0;
-                        test.postTStateCount = parseInt(fields[6]);
+                        test.postHalted = parseInt(fields[5], 10) !== 0;
+                        test.postTStateCount = parseInt(fields[6], 10);
                     } else {
-                        test.preHalted = parseInt(fields[5]) != 0;
-                        test.preTStateCount = parseInt(fields[6]);
+                        test.preHalted = parseInt(fields[5], 10) !== 0;
+                        test.preTStateCount = parseInt(fields[6], 10);
                     }
                     state = ParserState.EXPECTING_MEMORY;
                     break;
@@ -176,7 +175,7 @@ export class Runner {
                     }
                     break;
             }
-        })
+        });
     }
 
     private runTest(test: Test): boolean {
@@ -201,7 +200,7 @@ export class Runner {
         // TODO compare events.
         for (const [register, expectedValue] of test.postRegisterSet.entries()) {
             const actualValue = this.delegate.getRegister(register);
-            if (actualValue != expectedValue) {
+            if (actualValue !== expectedValue) {
                 this.errors.push(test.name + ": expected register " + Register[register] + " to be " +
                     toHex(expectedValue, 4) + " but was " + toHex(actualValue, 4));
                 success = false;
@@ -209,15 +208,16 @@ export class Runner {
         }
         for (const [address, expectedValue] of test.postMemory) {
             const actualValue = this.delegate.readMemory(address);
-            if (actualValue != expectedValue) {
+            if (actualValue !== expectedValue) {
                 this.errors.push(test.name + ": expected memory " + toHex(address, 4) + " to be " +
                     toHex(expectedValue, 2) + " but was " + toHex(actualValue, 2));
                 success = false;
             }
         }
         const actualTStateCount = this.delegate.getTStateCount();
-        if (actualTStateCount != test.postTStateCount) {
-            this.errors.push(test.name + ": expected " + test.postTStateCount + " t-counts but got " + actualTStateCount);
+        if (actualTStateCount !== test.postTStateCount) {
+            this.errors.push(test.name + ": expected " + test.postTStateCount +
+                " t-counts but got " + actualTStateCount);
             success = false;
         }
 

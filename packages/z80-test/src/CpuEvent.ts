@@ -4,22 +4,22 @@ export class CpuEvent {
     /**
      * T-state count of event from start of test.
      */
-    time: number;
+    public time: number;
 
     /**
      *
      */
-    eventType: CpuEventType;
+    public eventType: CpuEventType;
 
     /**
      * Memory or port address of event.
      */
-    address: number;
+    public address: number;
 
     /**
      * Data read or written, or undefined for contend.
      */
-    value: number | undefined;
+    public value: number | undefined;
 
     constructor(time: number, eventType: CpuEventType, address: number, value: number | undefined) {
         this.time = time;

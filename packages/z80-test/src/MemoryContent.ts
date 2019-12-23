@@ -1,3 +1,3 @@
 
 // Address to byte value.
-export type MemoryContent = Map<number,number>;
+export type MemoryContent = Map<number, number>;

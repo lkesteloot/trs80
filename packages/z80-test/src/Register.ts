@@ -1,5 +1,4 @@
 
-
 export enum Register {
     AF, BC, DE, HL,
     AF_PRIME, BC_PRIME, DE_PRIME, HL_PRIME,
