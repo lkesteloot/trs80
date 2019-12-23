@@ -39,7 +39,7 @@ class DelegateImpl implements Delegate {
 }
 
 const delegate = new DelegateImpl();
-const runner = new Runner("tests", delegate);
+const runner = new Runner(delegate);
 runner.loadTests();
 runner.runAll();
 for (const error of runner.errors) {

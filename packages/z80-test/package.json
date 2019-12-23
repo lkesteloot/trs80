@@ -2,13 +2,16 @@
   "name": "z80-test",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/Main.js",
+  "main": "dist/index.js",
+  "typing": "dist/index.d.ts",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "npx tslint --project ."
+    "build": "tsc",
+    "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src",
+    "lint": "tslint --project . --format codeFrame",
+    "lint:fix": "npm run lint -- --fix"
   },
   "keywords": [],
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
@@ -16,6 +19,7 @@
   "devDependencies": {
     "@types/node": "^12.12.21",
     "tslint": "^5.20.1",
+    "typedoc": "^0.15.5",
     "typescript": "^3.7.4"
   },
   "dependencies": {}

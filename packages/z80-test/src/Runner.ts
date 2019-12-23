@@ -3,7 +3,7 @@ import * as path from "path";
 import {CpuEvent} from "./CpuEvent";
 import {parseCpuEventType} from "./CpuEventType";
 import {Delegate} from "./Delegate";
-import {Register} from "./Register";
+import {allRegisters, Register} from "./Register";
 import {Test} from "./Test";
 import {toHex} from "./Utils";
 
@@ -25,17 +25,17 @@ export class Runner {
     public tests: Map<string, Test> = new Map();
     public errors: string[] = [];
     public successfulTests: number = 0;
-    private readonly testFileDir: string;
     private readonly delegate: Delegate;
 
-    constructor(testFileDir: string, delegate: Delegate) {
-        this.testFileDir = testFileDir;
+    constructor(delegate: Delegate) {
         this.delegate = delegate;
     }
 
     public loadTests() {
-        const inPathname = path.join(this.testFileDir, IN_FILENAME);
-        const expectedPathname = path.join(this.testFileDir, EXPECTED_FILENAME);
+        const moduleDir = path.join(__dirname, "..");
+        const testDir = path.join(moduleDir, "tests");
+        const inPathname = path.join(testDir, IN_FILENAME);
+        const expectedPathname = path.join(testDir, EXPECTED_FILENAME);
 
         this.tests = new Map();
         this.errors = [];
@@ -50,6 +50,7 @@ export class Runner {
             const success = this.runTest(test);
             if (success) {
                 this.successfulTests += 1;
+                console.log("Passed " + test.name);
             }
         }
     }
@@ -183,7 +184,8 @@ export class Runner {
 
         // Setup.
         this.delegate.startNewTest(test.name);
-        for (const [register, value] of test.preRegisterSet.entries()) {
+        for (const register of allRegisters) {
+            const value = test.preRegisterSet.get(register);
             this.delegate.setRegister(register, value);
         }
         for (const [address, value] of test.preMemory) {
@@ -198,7 +200,8 @@ export class Runner {
 
         // Check results.
         // TODO compare events.
-        for (const [register, expectedValue] of test.postRegisterSet.entries()) {
+        for (const register of allRegisters) {
+            const expectedValue = test.postRegisterSet.get(register);
             const actualValue = this.delegate.getRegister(register);
             if (actualValue !== expectedValue) {
                 this.errors.push(test.name + ": expected register " + Register[register] + " to be " +
