@@ -1,4 +1,3 @@
 
-import {MemoryByteContent} from "./MemoryByteContent";
-
-export type MemoryContent = MemoryByteContent[];
+// Address to byte value.
+export type MemoryContent = Map<number,number>;

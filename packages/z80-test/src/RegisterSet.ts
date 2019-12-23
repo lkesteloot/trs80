@@ -3,29 +3,29 @@ import {Register} from "./Register";
 /**
  * Set of register values.
  */
-export type RegisterSet = {
-    [register in Register]: number;
-};
+export type RegisterSet = Map<Register,number>;
 
 export function makeEmptyRegisterSet(): RegisterSet {
-    return {
-        [Register.AF]: 0,
-        [Register.BC]: 0,
-        [Register.DE]: 0,
-        [Register.HL]: 0,
-        [Register.AF_PRIME]: 0,
-        [Register.BC_PRIME]: 0,
-        [Register.DE_PRIME]: 0,
-        [Register.HL_PRIME]: 0,
-        [Register.IX]: 0,
-        [Register.IY]: 0,
-        [Register.SP]: 0,
-        [Register.PC]: 0,
-        [Register.MEMPTR]: 0,
-        [Register.I]: 0,
-        [Register.R]: 0,
-        [Register.IFF1]: 0,
-        [Register.IFF2]: 0,
-        [Register.IM]: 0,
-    };
+    const registerSet = new Map<Register, number>();
+
+    registerSet.set(Register.AF, 0);
+    registerSet.set(Register.BC, 0);
+    registerSet.set(Register.DE, 0);
+    registerSet.set(Register.HL, 0);
+    registerSet.set(Register.AF_PRIME, 0);
+    registerSet.set(Register.BC_PRIME, 0);
+    registerSet.set(Register.DE_PRIME, 0);
+    registerSet.set(Register.HL_PRIME, 0);
+    registerSet.set(Register.IX, 0);
+    registerSet.set(Register.IY, 0);
+    registerSet.set(Register.SP, 0);
+    registerSet.set(Register.PC, 0);
+    registerSet.set(Register.MEMPTR, 0);
+    registerSet.set(Register.I, 0);
+    registerSet.set(Register.R, 0);
+    registerSet.set(Register.IFF1, 0);
+    registerSet.set(Register.IFF2, 0);
+    registerSet.set(Register.IM, 0);
+
+    return registerSet;
 }

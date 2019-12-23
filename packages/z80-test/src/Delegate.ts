@@ -30,4 +30,9 @@ export interface Delegate {
      * Read a byte from the specified address.
      */
     readMemory(address: number): number;
+
+    /**
+     * Get the number of t-state counts that ran.
+     */
+    getTStateCount(): number;
 }

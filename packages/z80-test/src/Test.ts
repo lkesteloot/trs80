@@ -6,13 +6,14 @@ export class Test {
     name: string;
     preRegisterSet: RegisterSet = makeEmptyRegisterSet();
     preHalted: boolean = false;
-    preTCount: number = 0;
-    preMemory: MemoryContent = [];
+    preTStateCount: number = 0;
+    preMemory: MemoryContent = new Map();
 
     postCpuEvents: CpuEvent[] = [];
     postRegisterSet: RegisterSet = makeEmptyRegisterSet();
     postHalted: boolean = false;
-    postTCount: number = 0;
+    postTStateCount: number = 0;
+    postMemory: MemoryContent = new Map();
 
     constructor(name: string) {
         this.name = name;
