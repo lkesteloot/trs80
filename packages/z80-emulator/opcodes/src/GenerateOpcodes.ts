@@ -1,12 +1,98 @@
 import * as path from "path";
 import * as fs from "fs";
-import {toHex} from "z80-test/dist";
+import {toHex, isWordReg} from "z80-test/dist";
 
-function handle_rst(output: string[], rst: number): void {
+const BYTE_PARAMS = new Set(["a", "b", "c", "d", "e", "h", "l", "nn"]);
+const WORD_PARAMS = new Set(["af", "bc", "de", "hl", "nnnn"]);
+
+enum DataWidth {
+    BYTE, WORD
+}
+
+function determineParamWidth(param: string): DataWidth | undefined {
+    if (BYTE_PARAMS.has(param)) {
+        return DataWidth.BYTE;
+    }
+    if (WORD_PARAMS.has(param)) {
+        return DataWidth.WORD;
+    }
+
+    return undefined;
+}
+
+function determineDataWidth(param1: string, param2: string): DataWidth {
+    let dataWidth1 = determineParamWidth(param1);
+    let dataWidth2 = determineParamWidth(param2);
+
+    if (dataWidth1 === undefined) {
+        if (dataWidth2 === undefined) {
+            throw new Error(`Can't determine data width from "${param1}" and "${param2}"`);
+        }
+        return dataWidth2;
+    }
+
+    if (dataWidth2 !== undefined && dataWidth1 !== dataWidth2) {
+        throw new Error(`Mismatch of data width between "${param1}" and "${param2}"`);
+    }
+
+    return dataWidth1;
+}
+
+function handleRst(output: string[], rst: number): void {
     output.push("    z80.tStateCount += 1;");
     output.push("    z80.pushWord(z80.regs.pc);");
     output.push("    z80.regs.pc = 0x" + toHex(rst, 4)+ ";");
     output.push("    z80.regs.memptr = z80.regs.pc;");
+}
+
+function handleLd(output: string[], dest: string, src: string): void {
+    if (determineDataWidth(dest, src) == DataWidth.BYTE) {
+        output.push("    let value: number;");
+        if (src.startsWith("(") && src.endsWith(")")) {
+            const addr = src.substr(1, src.length - 2);
+            if (isWordReg(addr)) {
+                output.push("    z80.regs.memptr = inc16(z80.regs.bc);");
+                output.push("    value = z80.readByte(z80.regs.bc);");
+            } else if (addr === "nnnn") {
+                output.push("    value = z80.readByte(z80.regs.pc);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+                output.push("    value = word(z80.readByte(z80.regs.pc), value);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+                output.push("    value = z80.readByte(value);");
+                output.push("    z80.regs.memptr = inc16(value);");
+            } else {
+                throw new Error("Unknown src address type: " + addr);
+            }
+        } else {
+            if (src === "nn") {
+                output.push("    value = z80.readByte(z80.regs.pc);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+            } else {
+                output.push("    value = z80.regs." + src + ";");
+            }
+        }
+        if (dest.startsWith("(") && dest.endsWith(")")) {
+            const addr = dest.substr(1, dest.length - 2);
+            if (isWordReg(addr)) {
+                output.push("    z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));");
+                output.push("    z80.writeByte(z80.regs.bc, value);");
+            } else if (addr === "nnnn") {
+                output.push("    value = z80.readByte(z80.regs.pc);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+                output.push("    value = word(z80.readByte(z80.regs.pc), value);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+                output.push("    z80.regs.memptr = word(z80.regs.a, inc16(value));");
+                output.push("    z80.writeByte(value, z80.regs.a);");
+            } else {
+                throw new Error("Unknown dest address type: " + addr);
+            }
+        } else {
+            output.push("    z80.regs." + dest + " = value;");
+        }
+    } else {
+        // DataWidth.WORD.
+        console.log(`Unhandled ld ${dest}, ${src}`);
+    }
 }
 
 function processFile(pathname: string): void {
@@ -26,8 +112,8 @@ function processFile(pathname: string): void {
 
         const fields = line.split(/\s+/);
         const numberString = fields.length >= 1 ? fields[0] : undefined;
-        const opcode = fields.length >= 2 ? fields[1] : undefined;
-        const params = fields.length >= 3 ? fields[2] : undefined;
+        const opcode = fields.length >= 2 ? fields[1].toLowerCase() : undefined;
+        const params = fields.length >= 3 ? fields[2].toLowerCase() : undefined;
         const extra = fields.length >= 4 ? fields[3] : undefined;
         if (fields.length > 4) {
             throw new Error("Invalid opcode line: " + line);
@@ -39,13 +125,13 @@ function processFile(pathname: string): void {
 
         const number = parseInt(numberString, 16);
 
-        output.push("case 0x" + toHex(number, 2) + ": { // " + line);
+        output.push("case 0x" + toHex(number, 2) + ": { // " + ((opcode || "") + " " + (params || "")).trim());
 
         if (opcode === undefined) {
             output.push("    // Undefined opcode.");
         } else {
             switch (opcode) {
-                case "LD": {
+                case "ld": {
                     if (params === undefined) {
                         throw new Error("LD requires params: " + line);
                     }
@@ -54,22 +140,15 @@ function processFile(pathname: string): void {
                         throw new Error("LD requires two params: " + line);
                     }
                     const [dest, src] = locs;
-                    if (dest.length === 1 && src.length === 1) {
-                        if (dest !== src) {
-                            output.push("    z80.regs." + dest.toLowerCase() + " = z80.regs." + src.toLowerCase() + ";");
-                        }
-                    } else {
-                        console.log("Unhandled LD: " + line);
-                    }
-
+                    handleLd(output, dest, src);
                     break;
                 }
 
-                case "RST":
+                case "rst":
                     if (params === undefined) {
                         throw new Error("RST requires params: " + line);
                     }
-                    handle_rst(output, parseInt(params, 16));
+                    handleRst(output, parseInt(params, 16));
                     break;
 
                 default:
@@ -84,7 +163,8 @@ function processFile(pathname: string): void {
     });
 
     const replacement = output.map((line) => line.length === 0 ? line : "        " + line).join("\n");
-    const finalCode = template.replace("// DECODE", replacement);
+    const preamble = "// Do not modify. This file is generated by GenerateOpcodes.ts.\n\n";
+    const finalCode = preamble + template.replace("// DECODE", replacement);
 
     fs.writeFileSync("src/Decode.ts", finalCode);
 }

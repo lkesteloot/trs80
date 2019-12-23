@@ -20,11 +20,22 @@ export class Z80 {
         decode(this);
     }
 
-    public fetch(): number {
-        this.tStateCount += 4;
-        const value = this.ram[this.regs.pc];
-        this.regs.pc += 1;
-        return value;
+    public readByte(address: number): number {
+        this.tStateCount += 3;
+        return this.readByteInternal(address);
+    }
+
+    public readByteInternal(address: number): number {
+        return this.ram[address];
+    }
+
+    public writeByte(address: number, value: number): void {
+        this.tStateCount += 3;
+        this.writeByteInternal(address, value);
+    }
+
+    public writeByteInternal(address: number, value: number): void {
+        this.ram[address] = value;
     }
 
     public pushWord(value: number): void {
@@ -35,10 +46,5 @@ export class Z80 {
     public pushByte(value: number): void {
         this.regs.sp = (this.regs.sp - 1) & 0xFFFF;
         this.writeByte(this.regs.sp, value);
-    }
-
-    public writeByte(address: number, value: number): void {
-        this.tStateCount += 3;
-        this.ram[address] = value;
     }
 }
