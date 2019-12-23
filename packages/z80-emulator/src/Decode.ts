@@ -18,6 +18,12 @@ export function decode(z80: Z80): void {
         }
 
         case 0x01: { // ld bc,nnnn
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            value = word(z80.readByte(z80.regs.pc), value);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.bc = value;
             break;
         }
 
@@ -98,14 +104,20 @@ export function decode(z80: Z80): void {
         }
 
         case 0x11: { // ld de,nnnn
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            value = word(z80.readByte(z80.regs.pc), value);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.de = value;
             break;
         }
 
         case 0x12: { // ld (de),a
             let value: number;
             value = z80.regs.a;
-            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
-            z80.writeByte(z80.regs.bc, value);
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.de));
+            z80.writeByte(z80.regs.de, value);
             break;
         }
 
@@ -143,8 +155,8 @@ export function decode(z80: Z80): void {
 
         case 0x1A: { // ld a,(de)
             let value: number;
-            z80.regs.memptr = inc16(z80.regs.bc);
-            value = z80.readByte(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.de);
+            value = z80.readByte(z80.regs.de);
             z80.regs.a = value;
             break;
         }
@@ -178,10 +190,26 @@ export function decode(z80: Z80): void {
         }
 
         case 0x21: { // ld hl,nnnn
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            value = word(z80.readByte(z80.regs.pc), value);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.hl = value;
             break;
         }
 
         case 0x22: { // ld (nnnn),hl
+            let value: number;
+            value = z80.regs.hl;
+            let addr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            addr = word(z80.readByte(z80.regs.pc), addr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.regs.a, inc16(value));
+            z80.writeByte(addr, lo(value));
+            z80.regs.memptr = addr;
+            z80.writeByte(inc16(addr), hi(value));
             break;
         }
 
@@ -218,6 +246,14 @@ export function decode(z80: Z80): void {
         }
 
         case 0x2A: { // ld hl,(nnnn)
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            value = word(z80.readByte(z80.regs.pc), value);
+            z80.regs.pc = inc16(z80.regs.pc);
+            value = z80.readByte(value);
+            z80.regs.memptr = inc16(value);
+            z80.regs.hl = value;
             break;
         }
 
@@ -250,6 +286,12 @@ export function decode(z80: Z80): void {
         }
 
         case 0x31: { // ld sp,nnnn
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            value = word(z80.readByte(z80.regs.pc), value);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.sp = value;
             break;
         }
 
@@ -281,8 +323,8 @@ export function decode(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.pc);
             z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
-            z80.writeByte(z80.regs.bc, value);
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.hl));
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
@@ -378,8 +420,8 @@ export function decode(z80: Z80): void {
 
         case 0x46: { // ld b,(hl)
             let value: number;
-            z80.regs.memptr = inc16(z80.regs.bc);
-            value = z80.readByte(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.hl);
+            value = z80.readByte(z80.regs.hl);
             z80.regs.b = value;
             break;
         }
@@ -435,8 +477,8 @@ export function decode(z80: Z80): void {
 
         case 0x4E: { // ld c,(hl)
             let value: number;
-            z80.regs.memptr = inc16(z80.regs.bc);
-            value = z80.readByte(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.hl);
+            value = z80.readByte(z80.regs.hl);
             z80.regs.c = value;
             break;
         }
@@ -492,8 +534,8 @@ export function decode(z80: Z80): void {
 
         case 0x56: { // ld d,(hl)
             let value: number;
-            z80.regs.memptr = inc16(z80.regs.bc);
-            value = z80.readByte(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.hl);
+            value = z80.readByte(z80.regs.hl);
             z80.regs.d = value;
             break;
         }
@@ -549,8 +591,8 @@ export function decode(z80: Z80): void {
 
         case 0x5E: { // ld e,(hl)
             let value: number;
-            z80.regs.memptr = inc16(z80.regs.bc);
-            value = z80.readByte(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.hl);
+            value = z80.readByte(z80.regs.hl);
             z80.regs.e = value;
             break;
         }
@@ -606,8 +648,8 @@ export function decode(z80: Z80): void {
 
         case 0x66: { // ld h,(hl)
             let value: number;
-            z80.regs.memptr = inc16(z80.regs.bc);
-            value = z80.readByte(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.hl);
+            value = z80.readByte(z80.regs.hl);
             z80.regs.h = value;
             break;
         }
@@ -663,8 +705,8 @@ export function decode(z80: Z80): void {
 
         case 0x6E: { // ld l,(hl)
             let value: number;
-            z80.regs.memptr = inc16(z80.regs.bc);
-            value = z80.readByte(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.hl);
+            value = z80.readByte(z80.regs.hl);
             z80.regs.l = value;
             break;
         }
@@ -679,48 +721,48 @@ export function decode(z80: Z80): void {
         case 0x70: { // ld (hl),b
             let value: number;
             value = z80.regs.b;
-            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
-            z80.writeByte(z80.regs.bc, value);
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.hl));
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
         case 0x71: { // ld (hl),c
             let value: number;
             value = z80.regs.c;
-            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
-            z80.writeByte(z80.regs.bc, value);
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.hl));
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
         case 0x72: { // ld (hl),d
             let value: number;
             value = z80.regs.d;
-            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
-            z80.writeByte(z80.regs.bc, value);
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.hl));
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
         case 0x73: { // ld (hl),e
             let value: number;
             value = z80.regs.e;
-            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
-            z80.writeByte(z80.regs.bc, value);
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.hl));
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
         case 0x74: { // ld (hl),h
             let value: number;
             value = z80.regs.h;
-            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
-            z80.writeByte(z80.regs.bc, value);
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.hl));
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
         case 0x75: { // ld (hl),l
             let value: number;
             value = z80.regs.l;
-            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
-            z80.writeByte(z80.regs.bc, value);
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.hl));
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
@@ -731,8 +773,8 @@ export function decode(z80: Z80): void {
         case 0x77: { // ld (hl),a
             let value: number;
             value = z80.regs.a;
-            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
-            z80.writeByte(z80.regs.bc, value);
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.hl));
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
@@ -780,8 +822,8 @@ export function decode(z80: Z80): void {
 
         case 0x7E: { // ld a,(hl)
             let value: number;
-            z80.regs.memptr = inc16(z80.regs.bc);
-            value = z80.readByte(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.hl);
+            value = z80.readByte(z80.regs.hl);
             z80.regs.a = value;
             break;
         }
@@ -1306,6 +1348,9 @@ export function decode(z80: Z80): void {
         }
 
         case 0xF9: { // ld sp,hl
+            let value: number;
+            value = z80.regs.hl;
+            z80.regs.sp = value;
             break;
         }
 

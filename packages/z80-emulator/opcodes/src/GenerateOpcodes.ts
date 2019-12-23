@@ -46,13 +46,13 @@ function handleRst(output: string[], rst: number): void {
 }
 
 function handleLd(output: string[], dest: string, src: string): void {
+    output.push("    let value: number;");
     if (determineDataWidth(dest, src) == DataWidth.BYTE) {
-        output.push("    let value: number;");
         if (src.startsWith("(") && src.endsWith(")")) {
             const addr = src.substr(1, src.length - 2);
             if (isWordReg(addr)) {
-                output.push("    z80.regs.memptr = inc16(z80.regs.bc);");
-                output.push("    value = z80.readByte(z80.regs.bc);");
+                output.push("    z80.regs.memptr = inc16(z80.regs." + addr + ");");
+                output.push("    value = z80.readByte(z80.regs." + addr + ");");
             } else if (addr === "nnnn") {
                 output.push("    value = z80.readByte(z80.regs.pc);");
                 output.push("    z80.regs.pc = inc16(z80.regs.pc);");
@@ -74,8 +74,8 @@ function handleLd(output: string[], dest: string, src: string): void {
         if (dest.startsWith("(") && dest.endsWith(")")) {
             const addr = dest.substr(1, dest.length - 2);
             if (isWordReg(addr)) {
-                output.push("    z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));");
-                output.push("    z80.writeByte(z80.regs.bc, value);");
+                output.push("    z80.regs.memptr = word(z80.regs.a, inc16(z80.regs." + addr + "));");
+                output.push("    z80.writeByte(z80.regs." + addr + ", value);");
             } else if (addr === "nnnn") {
                 output.push("    value = z80.readByte(z80.regs.pc);");
                 output.push("    z80.regs.pc = inc16(z80.regs.pc);");
@@ -91,7 +91,51 @@ function handleLd(output: string[], dest: string, src: string): void {
         }
     } else {
         // DataWidth.WORD.
-        console.log(`Unhandled ld ${dest}, ${src}`);
+        if (src.startsWith("(") && src.endsWith(")")) {
+            const addr = src.substr(1, src.length - 2);
+            if (addr === "nnnn") {
+                output.push("    value = z80.readByte(z80.regs.pc);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+                output.push("    value = word(z80.readByte(z80.regs.pc), value);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+                output.push("    value = z80.readByte(value);");
+                output.push("    z80.regs.memptr = inc16(value);");
+            } else {
+                throw new Error("Unknown src address type: " + addr);
+            }
+        } else {
+            if (src === "nnnn") {
+                output.push("    value = z80.readByte(z80.regs.pc);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+                output.push("    value = word(z80.readByte(z80.regs.pc), value);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+            } else if (isWordReg(src)) {
+                output.push("    value = z80.regs." + src + ";");
+            } else {
+                throw new Error("Unknown src type: " + src);
+            }
+        }
+        if (dest.startsWith("(") && dest.endsWith(")")) {
+            const addr = dest.substr(1, dest.length - 2);
+            if (addr === "nnnn") {
+                output.push("    let addr = z80.readByte(z80.regs.pc);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+                output.push("    addr = word(z80.readByte(z80.regs.pc), addr);");
+                output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+                output.push("    z80.regs.memptr = word(z80.regs.a, inc16(value));");
+                output.push("    z80.writeByte(addr, lo(value));");
+                output.push("    z80.regs.memptr = addr;");
+                output.push("    z80.writeByte(inc16(addr), hi(value));");
+            } else {
+                throw new Error("Unknown dest address type: " + addr);
+            }
+        } else {
+            if (isWordReg(dest)) {
+                output.push("    z80.regs." + dest + " = value;");
+            } else {
+                throw new Error("Unknown dest type: " + dest);
+            }
+        }
     }
 }
 
