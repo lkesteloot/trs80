@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc",
-    "lint": "npx tslint --project ."
+    "build": "tsc",
+    "generate": "tsc --project opcodes && node opcodes/dist/GenerateOpcodes.js",
+    "lint": "tslint --project .",
+    "test": "npm run build && node dist/Main.js"
   },
   "keywords": [],
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",

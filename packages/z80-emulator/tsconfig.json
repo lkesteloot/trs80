@@ -65,5 +65,8 @@
   },
   "include": [
       "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.template.ts"
   ]
 }
