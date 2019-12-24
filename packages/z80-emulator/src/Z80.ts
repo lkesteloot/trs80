@@ -1,5 +1,5 @@
 import {RegisterSet} from "z80-test";
-import {hi, lo} from "z80-test";
+import {hi, lo, word, inc16} from "z80-test";
 import {decode} from "./Decode";
 
 export class Z80 {
@@ -46,5 +46,17 @@ export class Z80 {
     public pushByte(value: number): void {
         this.regs.sp = (this.regs.sp - 1) & 0xFFFF;
         this.writeByte(this.regs.sp, value);
+    }
+
+    public popWord(): number {
+        const lo = this.popByte();
+        const hi = this.popByte();
+        return word(hi, lo);
+    }
+
+    public popByte(): number {
+        const value = this.readByte(this.regs.sp);
+        this.regs.sp = inc16(this.regs.sp);
+        return value;
     }
 }

@@ -247,8 +247,11 @@ function handleLd(output: string[], dest: string, src: string): void {
     }
 }
 
+function handlePop(output: string[], reg: string): void {
+    output.push("    z80.regs." + reg + " = z80.popWord();");
+}
+
 function handlePush(output: string[], reg: string): void {
-    output.push("    z80.tStateCount += 1;");
     output.push("    z80.pushWord(z80.regs." + reg + ");");
 }
 
@@ -348,6 +351,18 @@ function generateDispatch(pathname: string): string {
                     }
                     const [dest, src] = parts;
                     handleLd(output, dest, src);
+                    break;
+                }
+
+                case "pop": {
+                    if (params === undefined) {
+                        throw new Error("POP requires params: " + line);
+                    }
+                    const parts = params.split(",");
+                    if (parts.length !== 1) {
+                        throw new Error("POP requires one param: " + line);
+                    }
+                    handlePop(output, parts[0]);
                     break;
                 }
 
