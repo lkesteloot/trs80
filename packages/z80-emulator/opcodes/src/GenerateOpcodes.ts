@@ -227,7 +227,9 @@ function generateDispatch(pathname: string): string {
 
         output.push("case 0x" + toHex(number, 2) + ": { // " + ((opcode || "") + " " + (params || "")).trim());
 
-        if (opcode === undefined) {
+        if (extra !== undefined) {
+            output.push("    // We don't yet implement undocumented opcodes");
+        } else if (opcode === undefined) {
             output.push("    // Undefined opcode.");
         } else {
             switch (opcode) {
@@ -299,7 +301,7 @@ function generateSource(dispatchMap: Map<string, string>): void {
 
 function generateOpcodes(): void {
     const opcodesDir = path.join(__dirname, "..");
-    const prefixes = ["base", "dd", "fd"];
+    const prefixes = ["base", "dd", "ddcb", "fd", "fdcb"];
     const dispatchMap = new Map<string, string>();
 
     for (const prefix of prefixes) {
