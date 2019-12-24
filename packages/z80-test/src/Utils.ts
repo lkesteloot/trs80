@@ -28,3 +28,7 @@ export function inc8(value: number): number {
 export function inc16(value: number): number {
     return (value + 1) & 0xFFFF;
 }
+
+export function signedByte(value: number): number {
+    return value >= 128 ? value - 256 : value;
+}

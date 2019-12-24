@@ -88,6 +88,38 @@ export class RegisterSet {
         this.hl = word(this.h, value);
     }
 
+    get ixh(): number {
+        return hi(this.ix);
+    }
+
+    set ixh(value: number) {
+        this.ix = word(value, this.ixl);
+    }
+
+    get ixl(): number {
+        return lo(this.ix);
+    }
+
+    set ixl(value: number) {
+        this.ix = word(this.ixh, value);
+    }
+
+    get iyh(): number {
+        return hi(this.iy);
+    }
+
+    set iyh(value: number) {
+        this.iy = word(value, this.iyl);
+    }
+
+    get iyl(): number {
+        return lo(this.iy);
+    }
+
+    set iyl(value: number) {
+        this.iy = word(this.iyh, value);
+    }
+
     public get(register: Register): number {
         switch (register) {
             case Register.AF:
