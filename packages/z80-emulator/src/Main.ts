@@ -53,4 +53,4 @@ runner.runAll();
 for (const error of runner.errors) {
     console.log(error);
 }
-console.log("Passed " + runner.successfulTests + " of " + runner.tests.size + " with " + runner.errors.length + " errors");
+console.log(`Passed ${runner.successfulTests} of ${runner.tests.size} (${Math.round(runner.successfulTests*100/runner.tests.size)}%) with ${runner.errors.length} errors`);

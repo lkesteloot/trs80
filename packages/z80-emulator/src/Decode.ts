@@ -607,6 +607,15 @@ function decodeDD(z80: Z80): void {
         }
 
         case 0xE3: { // ex (sp),ix
+            const rightValue = z80.regs.ix;
+            const leftValueL = z80.readByte(z80.regs.sp);
+            const leftValueH = z80.readByte(inc16(z80.regs.sp));
+            z80.tStateCount += 1;
+            z80.writeByte(inc16(z80.regs.sp), hi(rightValue));
+            z80.writeByte(z80.regs.sp, lo(rightValue));
+            z80.tStateCount += 2;
+            z80.regs.memptr = word(leftValueH, leftValueL);
+            z80.regs.ix = word(leftValueH, leftValueL);
             break;
         }
 
@@ -2493,6 +2502,15 @@ function decodeFD(z80: Z80): void {
         }
 
         case 0xE3: { // ex (sp),iy
+            const rightValue = z80.regs.iy;
+            const leftValueL = z80.readByte(z80.regs.sp);
+            const leftValueH = z80.readByte(inc16(z80.regs.sp));
+            z80.tStateCount += 1;
+            z80.writeByte(inc16(z80.regs.sp), hi(rightValue));
+            z80.writeByte(z80.regs.sp, lo(rightValue));
+            z80.tStateCount += 2;
+            z80.regs.memptr = word(leftValueH, leftValueL);
+            z80.regs.iy = word(leftValueH, leftValueL);
             break;
         }
 
@@ -3843,6 +3861,9 @@ export function decode(z80: Z80): void {
         }
 
         case 0x08: { // ex af,af'
+            const rightValue = z80.regs.afPrime;
+            z80.regs.afPrime = z80.regs.af;
+            z80.regs.af = rightValue;
             break;
         }
 
@@ -5189,6 +5210,15 @@ export function decode(z80: Z80): void {
         }
 
         case 0xE3: { // ex (sp),hl
+            const rightValue = z80.regs.hl;
+            const leftValueL = z80.readByte(z80.regs.sp);
+            const leftValueH = z80.readByte(inc16(z80.regs.sp));
+            z80.tStateCount += 1;
+            z80.writeByte(inc16(z80.regs.sp), hi(rightValue));
+            z80.writeByte(z80.regs.sp, lo(rightValue));
+            z80.tStateCount += 2;
+            z80.regs.memptr = word(leftValueH, leftValueL);
+            z80.regs.hl = word(leftValueH, leftValueL);
             break;
         }
 
@@ -5239,6 +5269,9 @@ export function decode(z80: Z80): void {
         }
 
         case 0xEB: { // ex de,hl
+            const rightValue = z80.regs.hl;
+            z80.regs.hl = z80.regs.de;
+            z80.regs.de = rightValue;
             break;
         }
 

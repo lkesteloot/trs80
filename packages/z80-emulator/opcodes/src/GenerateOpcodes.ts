@@ -80,6 +80,28 @@ function handleCp(output: string[], src: string): void {
     // TODO finish.
 }
 
+function handleEx(output: string[], op1: string, op2: string): void {
+    if (op2 === "af'") {
+        op2 = "afPrime";
+    }
+
+    output.push("    const rightValue = z80.regs." + op2 + ";");
+    if (op1 === "(sp)") {
+        output.push("    const leftValueL = z80.readByte(z80.regs.sp);");
+        output.push("    const leftValueH = z80.readByte(inc16(z80.regs.sp));");
+        output.push("    z80.tStateCount += 1;");
+        output.push("    z80.writeByte(inc16(z80.regs.sp), hi(rightValue));");
+        output.push("    z80.writeByte(z80.regs.sp, lo(rightValue));");
+        output.push("    z80.tStateCount += 2;");
+        output.push("    z80.regs.memptr = word(leftValueH, leftValueL);");
+        output.push("    z80.regs." + op2 + " = word(leftValueH, leftValueL);");
+    } else {
+        output.push("    z80.regs." + op2 + " = z80.regs." + op1 + ";");
+        output.push("    z80.regs." + op1 + " = rightValue;");
+    }
+}
+
+
 function handleJp(output: string[], cond: string | undefined, dest: string): void {
     output.push("    z80.regs.memptr = z80.readByte(z80.regs.pc);");
     output.push("    z80.regs.pc = inc16(z80.regs.pc);");
@@ -282,6 +304,19 @@ function generateDispatch(pathname: string): string {
                         throw new Error("CP requires one param: " + line);
                     }
                     handleCp(output, parts[0]);
+                    break;
+                }
+
+                case "ex": {
+                    if (params === undefined) {
+                        throw new Error("EX requires params: " + line);
+                    }
+                    const parts = params.split(",");
+                    if (parts.length !== 2) {
+                        throw new Error("EX requires two params: " + line);
+                    }
+                    const [op1, op2] = parts;
+                    handleEx(output, op1, op2);
                     break;
                 }
 
