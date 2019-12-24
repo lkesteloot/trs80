@@ -38,13 +38,6 @@ function determineDataWidth(param1: string, param2: string): DataWidth {
     return dataWidth1;
 }
 
-function handleRst(output: string[], rst: number): void {
-    output.push("    z80.tStateCount += 1;");
-    output.push("    z80.pushWord(z80.regs.pc);");
-    output.push("    z80.regs.pc = 0x" + toHex(rst, 4)+ ";");
-    output.push("    z80.regs.memptr = z80.regs.pc;");
-}
-
 function handleCp(output: string[], src: string): void {
     output.push("    let value: number;");
     if (src.startsWith("(") && src.endsWith(")")) {
@@ -232,6 +225,18 @@ function handleLd(output: string[], dest: string, src: string): void {
     }
 }
 
+function handlePush(output: string[], reg: string): void {
+    output.push("    z80.tStateCount += 1;");
+    output.push("    z80.pushWord(z80.regs." + reg + ");");
+}
+
+function handleRst(output: string[], rst: number): void {
+    output.push("    z80.tStateCount += 1;");
+    output.push("    z80.pushWord(z80.regs.pc);");
+    output.push("    z80.regs.pc = 0x" + toHex(rst, 4)+ ";");
+    output.push("    z80.regs.memptr = z80.regs.pc;");
+}
+
 function generateDispatch(pathname: string): string {
     const output: string[] = [];
     output.push("");
@@ -308,6 +313,18 @@ function generateDispatch(pathname: string): string {
                     }
                     const [dest, src] = parts;
                     handleLd(output, dest, src);
+                    break;
+                }
+
+                case "push": {
+                    if (params === undefined) {
+                        throw new Error("PUSH requires params: " + line);
+                    }
+                    const parts = params.split(",");
+                    if (parts.length !== 1) {
+                        throw new Error("PUSH requires one param: " + line);
+                    }
+                    handlePush(output, parts[0]);
                     break;
                 }
 

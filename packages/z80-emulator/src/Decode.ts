@@ -611,6 +611,8 @@ function decodeDD(z80: Z80): void {
         }
 
         case 0xE5: { // push ix
+            z80.tStateCount += 1;
+            z80.pushWord(z80.regs.ix);
             break;
         }
 
@@ -2495,6 +2497,8 @@ function decodeFD(z80: Z80): void {
         }
 
         case 0xE5: { // push iy
+            z80.tStateCount += 1;
+            z80.pushWord(z80.regs.iy);
             break;
         }
 
@@ -5015,6 +5019,8 @@ export function decode(z80: Z80): void {
         }
 
         case 0xC5: { // push bc
+            z80.tStateCount += 1;
+            z80.pushWord(z80.regs.bc);
             break;
         }
 
@@ -5102,6 +5108,8 @@ export function decode(z80: Z80): void {
         }
 
         case 0xD5: { // push de
+            z80.tStateCount += 1;
+            z80.pushWord(z80.regs.de);
             break;
         }
 
@@ -5189,6 +5197,8 @@ export function decode(z80: Z80): void {
         }
 
         case 0xE5: { // push hl
+            z80.tStateCount += 1;
+            z80.pushWord(z80.regs.hl);
             break;
         }
 
@@ -5281,6 +5291,8 @@ export function decode(z80: Z80): void {
         }
 
         case 0xF5: { // push af
+            z80.tStateCount += 1;
+            z80.pushWord(z80.regs.af);
             break;
         }
 
