@@ -87,6 +87,41 @@ function handleCp(output: string[], src: string): void {
     // TODO finish.
 }
 
+function handleJp(output: string[], cond: string | undefined, dest: string): void {
+    output.push("    z80.regs.memptr = z80.readByte(z80.regs.pc);");
+    output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+    output.push("    z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);");
+    output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+    if (cond !== undefined) {
+        let not = cond.startsWith("n");
+        let flag = (not ? cond.substr(1) : cond).toUpperCase();
+        if (cond === "po") {
+            not = true;
+            flag = "P";
+        } else if (cond === "pe") {
+            not = false;
+            flag = "P";
+        } else if (cond === "p") {
+            not = true;
+            flag = "S";
+        } else if (cond === "m") {
+            not = false;
+            flag = "S";
+        }
+        output.push("    if ((z80.regs.f & Flag." + flag + ") " + (not ? "===" : "!==") + " 0) {");
+    }
+    if (dest === "nnnn") {
+        output.push("    z80.regs.pc = z80.regs.memptr;");
+    } else if (isWordReg(dest)) {
+        output.push("    z80.regs.pc = z80.regs." + dest + ";");
+    } else {
+        throw new Error("Unknown JP dest: " + dest);
+    }
+    if (cond !== undefined) {
+        output.push("    }");
+    }
+}
+
 function handleLd(output: string[], dest: string, src: string): void {
     if (dest.includes("dd")) {
         // Must fetch this first, before possible "nn" in src.
@@ -242,6 +277,24 @@ function generateDispatch(pathname: string): string {
                         throw new Error("CP requires one param: " + line);
                     }
                     handleCp(output, parts[0]);
+                    break;
+                }
+
+                case "jp": {
+                    if (params === undefined) {
+                        throw new Error("JP requires params: " + line);
+                    }
+                    const parts = params.split(",");
+                    let cond: string | undefined;
+                    let dest: string;
+                    if (parts.length == 2) {
+                        cond = parts[0];
+                        dest = parts[1];
+                    } else {
+                        cond = undefined;
+                        dest = parts[0];
+                    }
+                    handleJp(output, cond, dest)
                     break;
                 }
 
