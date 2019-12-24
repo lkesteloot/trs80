@@ -5359,6 +5359,8 @@ export function decode(z80: Z80): void {
         }
 
         case 0xF3: { // di
+            z80.regs.iff1 = 0;
+            z80.regs.iff2 = 0;
             break;
         }
 
@@ -5414,6 +5416,8 @@ export function decode(z80: Z80): void {
         }
 
         case 0xFB: { // ei
+            z80.regs.iff1 = 1;
+            z80.regs.iff2 = 1;
             break;
         }
 

@@ -315,6 +315,12 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "di": {
+                    output.push("    z80.regs.iff1 = 0;");
+                    output.push("    z80.regs.iff2 = 0;");
+                    break;
+                }
+
                 case "ex": {
                     if (params === undefined) {
                         throw new Error("EX requires params: " + line);
@@ -325,6 +331,13 @@ function generateDispatch(pathname: string): string {
                     }
                     const [op1, op2] = parts;
                     handleEx(output, op1, op2);
+                    break;
+                }
+
+                case "ei": {
+                    // TODO Wait another instruction before enabling interrupts.
+                    output.push("    z80.regs.iff1 = 1;");
+                    output.push("    z80.regs.iff2 = 1;");
                     break;
                 }
 
