@@ -626,10 +626,6 @@ function decodeDD(z80: Z80): void {
         }
 
         case 0xE9: { // jp ix
-            z80.regs.memptr = z80.readByte(z80.regs.pc);
-            z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
-            z80.regs.pc = inc16(z80.regs.pc);
             z80.regs.pc = z80.regs.ix;
             break;
         }
@@ -2521,10 +2517,6 @@ function decodeFD(z80: Z80): void {
         }
 
         case 0xE9: { // jp iy
-            z80.regs.memptr = z80.readByte(z80.regs.pc);
-            z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
-            z80.regs.pc = inc16(z80.regs.pc);
             z80.regs.pc = z80.regs.iy;
             break;
         }
@@ -5037,6 +5029,14 @@ export function decode(z80: Z80): void {
         }
 
         case 0xC4: { // call nz,nnnn
+            z80.regs.memptr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            if ((z80.regs.f & Flag.Z) === 0) {
+            z80.pushWord(z80.regs.pc);
+            z80.regs.pc = z80.regs.memptr;
+            }
             break;
         }
 
@@ -5082,10 +5082,24 @@ export function decode(z80: Z80): void {
         }
 
         case 0xCC: { // call z,nnnn
+            z80.regs.memptr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            if ((z80.regs.f & Flag.Z) !== 0) {
+            z80.pushWord(z80.regs.pc);
+            z80.regs.pc = z80.regs.memptr;
+            }
             break;
         }
 
         case 0xCD: { // call nnnn
+            z80.regs.memptr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.pushWord(z80.regs.pc);
+            z80.regs.pc = z80.regs.memptr;
             break;
         }
 
@@ -5126,6 +5140,14 @@ export function decode(z80: Z80): void {
         }
 
         case 0xD4: { // call nc,nnnn
+            z80.regs.memptr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            if ((z80.regs.f & Flag.C) === 0) {
+            z80.pushWord(z80.regs.pc);
+            z80.regs.pc = z80.regs.memptr;
+            }
             break;
         }
 
@@ -5170,6 +5192,14 @@ export function decode(z80: Z80): void {
         }
 
         case 0xDC: { // call c,nnnn
+            z80.regs.memptr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            if ((z80.regs.f & Flag.C) !== 0) {
+            z80.pushWord(z80.regs.pc);
+            z80.regs.pc = z80.regs.memptr;
+            }
             break;
         }
 
@@ -5224,6 +5254,14 @@ export function decode(z80: Z80): void {
         }
 
         case 0xE4: { // call po,nnnn
+            z80.regs.memptr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            if ((z80.regs.f & Flag.P) === 0) {
+            z80.pushWord(z80.regs.pc);
+            z80.regs.pc = z80.regs.memptr;
+            }
             break;
         }
 
@@ -5249,10 +5287,6 @@ export function decode(z80: Z80): void {
         }
 
         case 0xE9: { // jp hl
-            z80.regs.memptr = z80.readByte(z80.regs.pc);
-            z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
-            z80.regs.pc = inc16(z80.regs.pc);
             z80.regs.pc = z80.regs.hl;
             break;
         }
@@ -5276,6 +5310,14 @@ export function decode(z80: Z80): void {
         }
 
         case 0xEC: { // call pe,nnnn
+            z80.regs.memptr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            if ((z80.regs.f & Flag.P) !== 0) {
+            z80.pushWord(z80.regs.pc);
+            z80.regs.pc = z80.regs.memptr;
+            }
             break;
         }
 
@@ -5321,6 +5363,14 @@ export function decode(z80: Z80): void {
         }
 
         case 0xF4: { // call p,nnnn
+            z80.regs.memptr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            if ((z80.regs.f & Flag.S) === 0) {
+            z80.pushWord(z80.regs.pc);
+            z80.regs.pc = z80.regs.memptr;
+            }
             break;
         }
 
@@ -5368,6 +5418,14 @@ export function decode(z80: Z80): void {
         }
 
         case 0xFC: { // call m,nnnn
+            z80.regs.memptr = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
+            z80.regs.pc = inc16(z80.regs.pc);
+            if ((z80.regs.f & Flag.S) !== 0) {
+            z80.pushWord(z80.regs.pc);
+            z80.regs.pc = z80.regs.memptr;
+            }
             break;
         }
 

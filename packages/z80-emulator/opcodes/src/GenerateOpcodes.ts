@@ -102,11 +102,13 @@ function handleEx(output: string[], op1: string, op2: string): void {
 }
 
 
-function handleJp(output: string[], cond: string | undefined, dest: string): void {
-    output.push("    z80.regs.memptr = z80.readByte(z80.regs.pc);");
-    output.push("    z80.regs.pc = inc16(z80.regs.pc);");
-    output.push("    z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);");
-    output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+function handleJpCall(output: string[], opcode: string, cond: string | undefined, dest: string): void {
+    if (dest === "nnnn") {
+        output.push("    z80.regs.memptr = z80.readByte(z80.regs.pc);");
+        output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+        output.push("    z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);");
+        output.push("    z80.regs.pc = inc16(z80.regs.pc);");
+    }
     if (cond !== undefined) {
         let not = cond.startsWith("n");
         let flag = (not ? cond.substr(1) : cond).toUpperCase();
@@ -124,6 +126,9 @@ function handleJp(output: string[], cond: string | undefined, dest: string): voi
             flag = "S";
         }
         output.push("    if ((z80.regs.f & Flag." + flag + ") " + (not ? "===" : "!==") + " 0) {");
+    }
+    if (opcode === "call") {
+        output.push("    z80.pushWord(z80.regs.pc);");
     }
     if (dest === "nnnn") {
         output.push("    z80.regs.pc = z80.regs.memptr;");
@@ -323,9 +328,10 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "call":
                 case "jp": {
                     if (params === undefined) {
-                        throw new Error("JP requires params: " + line);
+                        throw new Error(opcode + " requires params: " + line);
                     }
                     const parts = params.split(",");
                     let cond: string | undefined;
@@ -337,7 +343,7 @@ function generateDispatch(pathname: string): string {
                         cond = undefined;
                         dest = parts[0];
                     }
-                    handleJp(output, cond, dest)
+                    handleJpCall(output, opcode, cond, dest)
                     break;
                 }
 
