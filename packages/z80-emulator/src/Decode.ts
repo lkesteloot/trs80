@@ -9,7 +9,7 @@ const overflowAddTable = [0, 0, 0, Flag.V, Flag.V, 0, 0, 0];
 const overflowSubTable = [0, Flag.V, 0, 0, 0, 0, Flag.V, 0];
 
 function fetchInstruction(z80: Z80): number {
-    z80.tStateCount += 4;
+    z80.incTStateCount(4);
     const inst = z80.readByteInternal(z80.regs.pc);
     z80.regs.pc = (z80.regs.pc + 1) & 0xFFFF;
     z80.regs.r = (z80.regs.r + 1) & 0xFF;
@@ -1551,7 +1551,7 @@ function decodeDD(z80: Z80): void {
         case 0xA6: { // and a,(ix+dd)
             let value: number;
             value = z80.readByte(z80.regs.pc);
-            z80.tStateCount += 5;
+            z80.incTStateCount(5);
             z80.regs.pc = inc16(z80.regs.pc);
             z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
             value = z80.readByte(z80.regs.memptr);
@@ -1580,7 +1580,7 @@ function decodeDD(z80: Z80): void {
         case 0xAE: { // xor a,(ix+dd)
             let value: number;
             value = z80.readByte(z80.regs.pc);
-            z80.tStateCount += 5;
+            z80.incTStateCount(5);
             z80.regs.pc = inc16(z80.regs.pc);
             z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
             value = z80.readByte(z80.regs.memptr);
@@ -1608,7 +1608,7 @@ function decodeDD(z80: Z80): void {
         case 0xB6: { // or a,(ix+dd)
             let value: number;
             value = z80.readByte(z80.regs.pc);
-            z80.tStateCount += 5;
+            z80.incTStateCount(5);
             z80.regs.pc = inc16(z80.regs.pc);
             z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
             value = z80.readByte(z80.regs.memptr);
@@ -1688,10 +1688,10 @@ function decodeDD(z80: Z80): void {
             const rightValue = z80.regs.ix;
             const leftValueL = z80.readByte(z80.regs.sp);
             const leftValueH = z80.readByte(inc16(z80.regs.sp));
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.writeByte(inc16(z80.regs.sp), hi(rightValue));
             z80.writeByte(z80.regs.sp, lo(rightValue));
-            z80.tStateCount += 2;
+            z80.incTStateCount(2);
             z80.regs.memptr = word(leftValueH, leftValueL);
             z80.regs.ix = word(leftValueH, leftValueL);
             break;
@@ -3388,7 +3388,7 @@ function decodeED(z80: Z80): void {
         }
 
         case 0xB3: { // otir
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             const value = z80.readByte(z80.regs.hl);
             z80.regs.b = dec8(z80.regs.b);
             z80.regs.memptr = dec16(z80.regs.bc);
@@ -3397,7 +3397,7 @@ function decodeED(z80: Z80): void {
             const other = add8(value, z80.regs.l);
             z80.regs.f = (value & 0x80 ? Flag.N : 0 ) | (other < value ? Flag.H | Flag.C : 0) | (z80.parityTable[(other & 0x07) ^ z80.regs.b] ? Flag.P : 0) | z80.sz53Table[z80.regs.b];
             if (z80.regs.b > 0) {
-                z80.tStateCount += 5;
+                z80.incTStateCount(5);
                 z80.regs.pc = add16(z80.regs.pc, -2);
             }
             break;
@@ -3416,7 +3416,7 @@ function decodeED(z80: Z80): void {
         }
 
         case 0xBB: { // otdr
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             const value = z80.readByte(z80.regs.hl);
             z80.regs.b = dec8(z80.regs.b);
             z80.regs.memptr = dec16(z80.regs.bc);
@@ -3425,7 +3425,7 @@ function decodeED(z80: Z80): void {
             const other = add8(value, z80.regs.l);
             z80.regs.f = (value & 0x80 ? Flag.N : 0 ) | (other < value ? Flag.H | Flag.C : 0) | (z80.parityTable[(other & 0x07) ^ z80.regs.b] ? Flag.P : 0) | z80.sz53Table[z80.regs.b];
             if (z80.regs.b > 0) {
-                z80.tStateCount += 5;
+                z80.incTStateCount(5);
                 z80.regs.pc = add16(z80.regs.pc, -2);
             }
             break;
@@ -3938,7 +3938,7 @@ function decodeFD(z80: Z80): void {
         case 0xA6: { // and a,(iy+dd)
             let value: number;
             value = z80.readByte(z80.regs.pc);
-            z80.tStateCount += 5;
+            z80.incTStateCount(5);
             z80.regs.pc = inc16(z80.regs.pc);
             z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
             value = z80.readByte(z80.regs.memptr);
@@ -3967,7 +3967,7 @@ function decodeFD(z80: Z80): void {
         case 0xAE: { // xor a,(iy+dd)
             let value: number;
             value = z80.readByte(z80.regs.pc);
-            z80.tStateCount += 5;
+            z80.incTStateCount(5);
             z80.regs.pc = inc16(z80.regs.pc);
             z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
             value = z80.readByte(z80.regs.memptr);
@@ -3995,7 +3995,7 @@ function decodeFD(z80: Z80): void {
         case 0xB6: { // or a,(iy+dd)
             let value: number;
             value = z80.readByte(z80.regs.pc);
-            z80.tStateCount += 5;
+            z80.incTStateCount(5);
             z80.regs.pc = inc16(z80.regs.pc);
             z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
             value = z80.readByte(z80.regs.memptr);
@@ -4075,10 +4075,10 @@ function decodeFD(z80: Z80): void {
             const rightValue = z80.regs.iy;
             const leftValueL = z80.readByte(z80.regs.sp);
             const leftValueH = z80.readByte(inc16(z80.regs.sp));
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.writeByte(inc16(z80.regs.sp), hi(rightValue));
             z80.writeByte(z80.regs.sp, lo(rightValue));
-            z80.tStateCount += 2;
+            z80.incTStateCount(2);
             z80.regs.memptr = word(leftValueH, leftValueL);
             z80.regs.iy = word(leftValueH, leftValueL);
             break;
@@ -6677,7 +6677,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xC0: { // ret nz
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             if ((z80.regs.f & Flag.Z) === 0) {
                 z80.regs.pc = z80.popWord();
                 z80.regs.memptr = z80.regs.pc;
@@ -6732,7 +6732,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xC7: { // rst 00
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.pushWord(z80.regs.pc);
             z80.regs.pc = 0x0000;
             z80.regs.memptr = z80.regs.pc;
@@ -6740,7 +6740,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xC8: { // ret z
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             if ((z80.regs.f & Flag.Z) !== 0) {
                 z80.regs.pc = z80.popWord();
                 z80.regs.memptr = z80.regs.pc;
@@ -6749,7 +6749,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xC9: { // ret
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.regs.pc = z80.popWord();
             z80.regs.memptr = z80.regs.pc;
             break;
@@ -6798,7 +6798,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xCF: { // rst 8
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.pushWord(z80.regs.pc);
             z80.regs.pc = 0x0008;
             z80.regs.memptr = z80.regs.pc;
@@ -6806,7 +6806,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xD0: { // ret nc
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             if ((z80.regs.f & Flag.C) === 0) {
                 z80.regs.pc = z80.popWord();
                 z80.regs.memptr = z80.regs.pc;
@@ -6856,7 +6856,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xD7: { // rst 10
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.pushWord(z80.regs.pc);
             z80.regs.pc = 0x0010;
             z80.regs.memptr = z80.regs.pc;
@@ -6864,7 +6864,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xD8: { // ret c
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             if ((z80.regs.f & Flag.C) !== 0) {
                 z80.regs.pc = z80.popWord();
                 z80.regs.memptr = z80.regs.pc;
@@ -6913,7 +6913,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xDF: { // rst 18
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.pushWord(z80.regs.pc);
             z80.regs.pc = 0x0018;
             z80.regs.memptr = z80.regs.pc;
@@ -6921,7 +6921,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xE0: { // ret po
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             if ((z80.regs.f & Flag.P) === 0) {
                 z80.regs.pc = z80.popWord();
                 z80.regs.memptr = z80.regs.pc;
@@ -6949,10 +6949,10 @@ export function decode(z80: Z80): void {
             const rightValue = z80.regs.hl;
             const leftValueL = z80.readByte(z80.regs.sp);
             const leftValueH = z80.readByte(inc16(z80.regs.sp));
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.writeByte(inc16(z80.regs.sp), hi(rightValue));
             z80.writeByte(z80.regs.sp, lo(rightValue));
-            z80.tStateCount += 2;
+            z80.incTStateCount(2);
             z80.regs.memptr = word(leftValueH, leftValueL);
             z80.regs.hl = word(leftValueH, leftValueL);
             break;
@@ -6986,7 +6986,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xE7: { // rst 20
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.pushWord(z80.regs.pc);
             z80.regs.pc = 0x0020;
             z80.regs.memptr = z80.regs.pc;
@@ -6994,7 +6994,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xE8: { // ret pe
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             if ((z80.regs.f & Flag.P) !== 0) {
                 z80.regs.pc = z80.popWord();
                 z80.regs.memptr = z80.regs.pc;
@@ -7052,7 +7052,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xEF: { // rst 28
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.pushWord(z80.regs.pc);
             z80.regs.pc = 0x0028;
             z80.regs.memptr = z80.regs.pc;
@@ -7060,7 +7060,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xF0: { // ret p
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             if ((z80.regs.f & Flag.S) === 0) {
                 z80.regs.pc = z80.popWord();
                 z80.regs.memptr = z80.regs.pc;
@@ -7117,7 +7117,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xF7: { // rst 30
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.pushWord(z80.regs.pc);
             z80.regs.pc = 0x0030;
             z80.regs.memptr = z80.regs.pc;
@@ -7125,7 +7125,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xF8: { // ret m
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             if ((z80.regs.f & Flag.S) !== 0) {
                 z80.regs.pc = z80.popWord();
                 z80.regs.memptr = z80.regs.pc;
@@ -7194,7 +7194,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0xFF: { // rst 38
-            z80.tStateCount += 1;
+            z80.incTStateCount(1);
             z80.pushWord(z80.regs.pc);
             z80.regs.pc = 0x0038;
             z80.regs.memptr = z80.regs.pc;

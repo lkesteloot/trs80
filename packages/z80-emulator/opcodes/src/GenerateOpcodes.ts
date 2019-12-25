@@ -134,10 +134,10 @@ function handleEx(output: string[], op1: string, op2: string): void {
     if (op1 === "(sp)") {
         addLine(output, "const leftValueL = z80.readByte(z80.regs.sp);");
         addLine(output, "const leftValueH = z80.readByte(inc16(z80.regs.sp));");
-        addLine(output, "z80.tStateCount += 1;");
+        addLine(output, "z80.incTStateCount(1);");
         addLine(output, "z80.writeByte(inc16(z80.regs.sp), hi(rightValue));");
         addLine(output, "z80.writeByte(z80.regs.sp, lo(rightValue));");
-        addLine(output, "z80.tStateCount += 2;");
+        addLine(output, "z80.incTStateCount(2);");
         addLine(output, "z80.regs.memptr = word(leftValueH, leftValueL);");
         addLine(output, "z80.regs." + op2 + " = word(leftValueH, leftValueL);");
     } else {
@@ -287,7 +287,7 @@ function handleLogic(output: string[], opcode: string, operand: string): void {
     } else if (operand === "(ix+dd)" || operand === "(iy+dd)") {
         const reg = operand.substr(1, 2);
         addLine(output, "value = z80.readByte(z80.regs.pc);");
-        addLine(output, "z80.tStateCount += 5;");
+        addLine(output, "z80.incTStateCount(5);");
         addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
         addLine(output, "z80.regs.memptr = (z80.regs." + reg + " + signedByte(value)) & 0xFFFF;");
         addLine(output, "value = z80.readByte(z80.regs.memptr);");
@@ -305,7 +305,7 @@ function handleLogic(output: string[], opcode: string, operand: string): void {
 }
 
 function handleOtirOtdr(output: string[], decrement: boolean): void {
-    addLine(output, "z80.tStateCount += 1;");
+    addLine(output, "z80.incTStateCount(1);");
     addLine(output, "const value = z80.readByte(z80.regs.hl);");
     addLine(output, "z80.regs.b = dec8(z80.regs.b);");
     addLine(output, "z80.regs.memptr = dec16(z80.regs.bc);");
@@ -315,7 +315,7 @@ function handleOtirOtdr(output: string[], decrement: boolean): void {
     addLine(output, "z80.regs.f = (value & 0x80 ? Flag.N : 0 ) | (other < value ? Flag.H | Flag.C : 0) | (z80.parityTable[(other & 0x07) ^ z80.regs.b] ? Flag.P : 0) | z80.sz53Table[z80.regs.b];");
     addLine(output, "if (z80.regs.b > 0) {");
     enter();
-    addLine(output, "z80.tStateCount += 5;");
+    addLine(output, "z80.incTStateCount(5);");
     addLine(output, "z80.regs.pc = add16(z80.regs.pc, -2);");
     exit();
     addLine(output, "}");
@@ -330,7 +330,7 @@ function handlePush(output: string[], reg: string): void {
 }
 
 function handleRet(output: string[], cond: string | undefined): void {
-    addLine(output, "z80.tStateCount += 1;");
+    addLine(output, "z80.incTStateCount(1);");
     addCondIf(output, cond);
     addLine(output, "z80.regs.pc = z80.popWord();");
     addLine(output, "z80.regs.memptr = z80.regs.pc;");
@@ -338,7 +338,7 @@ function handleRet(output: string[], cond: string | undefined): void {
 }
 
 function handleRst(output: string[], rst: number): void {
-    addLine(output, "z80.tStateCount += 1;");
+    addLine(output, "z80.incTStateCount(1);");
     addLine(output, "z80.pushWord(z80.regs.pc);");
     addLine(output, "z80.regs.pc = 0x" + toHex(rst, 4)+ ";");
     addLine(output, "z80.regs.memptr = z80.regs.pc;");

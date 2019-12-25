@@ -7,7 +7,7 @@ const overflowAddTable = [0, 0, 0, Flag.V, Flag.V, 0, 0, 0];
 const overflowSubTable = [0, Flag.V, 0, 0, 0, 0, Flag.V, 0];
 
 function fetchInstruction(z80: Z80): number {
-    z80.tStateCount += 4;
+    z80.incTStateCount(4);
     const inst = z80.readByteInternal(z80.regs.pc);
     z80.regs.pc = (z80.regs.pc + 1) & 0xFFFF;
     z80.regs.r = (z80.regs.r + 1) & 0xFF;

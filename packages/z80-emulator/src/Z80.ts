@@ -2,17 +2,17 @@ import {RegisterSet} from "z80-test";
 import {hi, lo, word, inc16} from "z80-test";
 import {decode} from "./Decode";
 import {Flag} from "z80-test/dist";
+import {Hal} from "./Hal";
 
 export class Z80 {
     public regs: RegisterSet = new RegisterSet();
-    public tStateCount: number = 0;
-    public ram: Uint8Array;
+    public hal: Hal;
     public sz53Table: number[] = []; /* The S, Z, 5 and 3 bits of the index */
     public parityTable: number[] = []; /* The parity of the lookup value */
     public sz53pTable: number[] = []; /* OR the above two tables together */
 
-    constructor(ram: Uint8Array) {
-        this.ram = ram;
+    constructor(hal: Hal) {
+        this.hal = hal;
         this.initTables();
     }
 
@@ -36,38 +36,42 @@ export class Z80 {
 
     public reset(): void {
         this.regs = new RegisterSet();
-        this.tStateCount = 0;
     }
 
     public step(): void {
         decode(this);
     }
 
+    public incTStateCount(count: number): void {
+        this.hal.tStateCount += count;
+    }
+
     public readByte(address: number): number {
-        this.tStateCount += 3;
+        this.incTStateCount(3);
         return this.readByteInternal(address);
     }
 
     public readByteInternal(address: number): number {
-        return this.ram[address];
+        return this.hal.readMemory(address);
     }
 
     public writeByte(address: number, value: number): void {
-        this.tStateCount += 3;
+        this.incTStateCount(3);
         this.writeByteInternal(address, value);
     }
 
     public writeByteInternal(address: number, value: number): void {
-        this.ram[address] = value;
+        this.hal.writeMemory(address, value);
     }
 
     public writePort(address: number, value: number): void {
-        // TODO.
+        this.incTStateCount(1);
+        this.hal.writePort(address, value);
+        this.incTStateCount(3);
     }
 
     public readPort(address: number): number {
-        // TODO.
-        return 0;
+        return this.hal.readPort(address);
     }
 
     public pushWord(value: number): void {
