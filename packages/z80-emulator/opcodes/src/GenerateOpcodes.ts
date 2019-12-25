@@ -489,6 +489,14 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "im": {
+                    if (params === undefined) {
+                        throw new Error(opcode + " requires params: " + line);
+                    }
+                    addLine(output, "z80.regs.im = " + parseInt(params, 10) + ";");
+                    break;
+                }
+
                 case "call":
                 case "jp": {
                     if (params === undefined) {

@@ -3112,6 +3112,7 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x6E: { // im 0
+            z80.regs.im = 0;
             break;
         }
 
@@ -3185,6 +3186,7 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x76: { // im 1
+            z80.regs.im = 1;
             break;
         }
 
@@ -3225,6 +3227,7 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x7E: { // im 2
+            z80.regs.im = 2;
             break;
         }
 
