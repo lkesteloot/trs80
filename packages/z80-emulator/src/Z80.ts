@@ -61,6 +61,15 @@ export class Z80 {
         this.ram[address] = value;
     }
 
+    public writePort(address: number, value: number): void {
+        // TODO.
+    }
+
+    public readPort(address: number): number {
+        // TODO.
+        return 0;
+    }
+
     public pushWord(value: number): void {
         this.pushByte(hi(value));
         this.pushByte(lo(value));

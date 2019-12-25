@@ -3,7 +3,7 @@ import * as fs from "fs";
 import {toHex, isWordReg, isByteReg, Flag} from "z80-test/dist";
 
 const BYTE_PARAMS = new Set(["a", "b", "c", "d", "e", "h", "l", "nn", "ixh", "ixl", "iyh", "iyl"]);
-const WORD_PARAMS = new Set(["af", "bc", "de", "hl", "nnnn", "ix", "iy"]);
+const WORD_PARAMS = new Set(["af", "bc", "de", "hl", "nnnn", "ix", "iy", "sp"]);
 const TAB = "    ";
 
 enum DataWidth {
@@ -304,6 +304,23 @@ function handleLogic(output: string[], opcode: string, operand: string): void {
     }
 }
 
+function handleOtirOtdr(output: string[], decrement: boolean): void {
+    addLine(output, "z80.tStateCount += 1;");
+    addLine(output, "const value = z80.readByte(z80.regs.hl);");
+    addLine(output, "z80.regs.b = dec8(z80.regs.b);");
+    addLine(output, "z80.regs.memptr = dec16(z80.regs.bc);");
+    addLine(output, "z80.writePort(z80.regs.bc, value);");
+    addLine(output, "z80.regs.hl = " + (decrement ? "dec" : "inc") + "16(z80.regs.hl);");
+    addLine(output, "const other = add8(value, z80.regs.l);");
+    addLine(output, "z80.regs.f = (value & 0x80 ? Flag.N : 0 ) | (other < value ? Flag.H | Flag.C : 0) | (z80.parityTable[(other & 0x07) ^ z80.regs.b] ? Flag.P : 0) | z80.sz53Table[z80.regs.b];");
+    addLine(output, "if (z80.regs.b > 0) {");
+    enter();
+    addLine(output, "z80.tStateCount += 5;");
+    addLine(output, "z80.regs.pc = add16(z80.regs.pc, -2);");
+    exit();
+    addLine(output, "}");
+}
+
 function handlePop(output: string[], reg: string): void {
     addLine(output, "z80.regs." + reg + " = z80.popWord();");
 }
@@ -459,6 +476,12 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "otir":
+                case "otdr": {
+                    handleOtirOtdr(output, opcode === "otdr");
+                    break;
+                }
+
                 case "pop": {
                     if (params === undefined) {
                         throw new Error("POP requires params: " + line);
@@ -538,7 +561,7 @@ function generateSource(dispatchMap: Map<string, string>): void {
 
 function generateOpcodes(): void {
     const opcodesDir = path.join(__dirname, "..");
-    const prefixes = ["base", "dd", "ddcb", "fd", "fdcb"];
+    const prefixes = ["base", "cb", "dd", "ddcb", "ed", "fd", "fdcb"];
     const dispatchMap = new Map<string, string>();
 
     for (const prefix of prefixes) {
