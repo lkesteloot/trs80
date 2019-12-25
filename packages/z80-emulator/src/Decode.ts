@@ -3376,6 +3376,19 @@ function decodeED(z80: Z80): void {
         }
 
         case 0xB0: { // ldir
+            let value = z80.readByte(z80.regs.hl);
+            z80.writeByte(z80.regs.de, value);
+            z80.incTStateCount(2);
+            z80.regs.bc = dec16(z80.regs.bc);
+            value = add16(value, z80.regs.a);
+            z80.regs.f = (z80.regs.f & (Flag.C | Flag.Z | Flag.S)) | (z80.regs.bc !== 0 ? Flag.V : 0) | (value & Flag.X3) | ((value & 0x02) !== 0 ? Flag.X5 : 0)
+            if (z80.regs.bc !== 0) {
+                z80.incTStateCount(5);
+                z80.regs.pc = add16(z80.regs.pc, -2);
+                z80.regs.memptr = add16(z80.regs.pc, 1);
+            }
+            z80.regs.hl = inc16(z80.regs.hl);
+            z80.regs.de = inc16(z80.regs.de);
             break;
         }
 
@@ -3403,9 +3416,9 @@ function decodeED(z80: Z80): void {
             z80.incTStateCount(1);
             const value = z80.readPort(z80.regs.bc);
             z80.writeByte(z80.regs.hl, value);
-            z80.regs.memptr = dec16(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.bc);
             z80.regs.b = dec8(z80.regs.b);
-            const other = dec8(add8(value, z80.regs.c));
+            const other = inc8(add8(value, z80.regs.c));
             z80.regs.f = (value & 0x80 ? Flag.N : 0 ) | (other < value ? Flag.H | Flag.C : 0) | (z80.parityTable[(other & 0x07) ^ z80.regs.b] ? Flag.P : 0) | z80.sz53Table[z80.regs.b];
             if (z80.regs.b > 0) {
                 z80.incTStateCount(5);
@@ -3419,7 +3432,7 @@ function decodeED(z80: Z80): void {
             z80.incTStateCount(1);
             const value = z80.readByte(z80.regs.hl);
             z80.regs.b = dec8(z80.regs.b);
-            z80.regs.memptr = dec16(z80.regs.bc);
+            z80.regs.memptr = inc16(z80.regs.bc);
             z80.writePort(z80.regs.bc, value);
             z80.regs.hl = inc16(z80.regs.hl);
             const other = add8(value, z80.regs.l);
@@ -3432,6 +3445,19 @@ function decodeED(z80: Z80): void {
         }
 
         case 0xB8: { // lddr
+            let value = z80.readByte(z80.regs.hl);
+            z80.writeByte(z80.regs.de, value);
+            z80.incTStateCount(2);
+            z80.regs.bc = dec16(z80.regs.bc);
+            value = add16(value, z80.regs.a);
+            z80.regs.f = (z80.regs.f & (Flag.C | Flag.Z | Flag.S)) | (z80.regs.bc !== 0 ? Flag.V : 0) | (value & Flag.X3) | ((value & 0x02) !== 0 ? Flag.X5 : 0)
+            if (z80.regs.bc !== 0) {
+                z80.incTStateCount(5);
+                z80.regs.pc = add16(z80.regs.pc, -2);
+                z80.regs.memptr = add16(z80.regs.pc, 1);
+            }
+            z80.regs.hl = dec16(z80.regs.hl);
+            z80.regs.de = dec16(z80.regs.de);
             break;
         }
 

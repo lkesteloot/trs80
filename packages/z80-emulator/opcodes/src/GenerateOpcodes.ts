@@ -308,7 +308,7 @@ function handleOtirOtdr(output: string[], decrement: boolean): void {
     addLine(output, "z80.incTStateCount(1);");
     addLine(output, "const value = z80.readByte(z80.regs.hl);");
     addLine(output, "z80.regs.b = dec8(z80.regs.b);");
-    addLine(output, "z80.regs.memptr = dec16(z80.regs.bc);");
+    addLine(output, "z80.regs.memptr = " + (decrement ? "dec" : "inc") + "16(z80.regs.bc);");
     addLine(output, "z80.writePort(z80.regs.bc, value);");
     addLine(output, "z80.regs.hl = " + (decrement ? "dec" : "inc") + "16(z80.regs.hl);");
     addLine(output, "const other = add8(value, z80.regs.l);");
@@ -325,9 +325,9 @@ function handleInirIndr(output: string[], decrement: boolean): void {
     addLine(output, "z80.incTStateCount(1);");
     addLine(output, "const value = z80.readPort(z80.regs.bc);");
     addLine(output, "z80.writeByte(z80.regs.hl, value);");
-    addLine(output, "z80.regs.memptr = dec16(z80.regs.bc);");
+    addLine(output, "z80.regs.memptr = " + (decrement ? "dec" : "inc") + "16(z80.regs.bc);");
     addLine(output, "z80.regs.b = dec8(z80.regs.b);");
-    addLine(output, "const other = dec8(add8(value, z80.regs.c));");
+    addLine(output, "const other = " + (decrement ? "dec" : "inc") + "8(add8(value, z80.regs.c));");
     addLine(output, "z80.regs.f = (value & 0x80 ? Flag.N : 0 ) | (other < value ? Flag.H | Flag.C : 0) | (z80.parityTable[(other & 0x07) ^ z80.regs.b] ? Flag.P : 0) | z80.sz53Table[z80.regs.b];");
     addLine(output, "if (z80.regs.b > 0) {");
     enter();
@@ -359,6 +359,24 @@ function handleCpirCpdr(output: string[], decrement: boolean): void {
     exit();
     addLine(output, "}");
     addLine(output, "z80.regs.hl = " + (decrement ? "dec" : "inc") + "16(z80.regs.hl);");
+}
+
+function handleLdirLddr(output: string[], decrement: boolean): void {
+    addLine(output, "let value = z80.readByte(z80.regs.hl);");
+    addLine(output, "z80.writeByte(z80.regs.de, value);");
+    addLine(output, "z80.incTStateCount(2);");
+    addLine(output, "z80.regs.bc = dec16(z80.regs.bc);");
+    addLine(output, "value = add16(value, z80.regs.a);");
+    addLine(output, "z80.regs.f = (z80.regs.f & (Flag.C | Flag.Z | Flag.S)) | (z80.regs.bc !== 0 ? Flag.V : 0) | (value & Flag.X3) | ((value & 0x02) !== 0 ? Flag.X5 : 0)");
+    addLine(output, "if (z80.regs.bc !== 0) {");
+    enter();
+    addLine(output, "z80.incTStateCount(5);");
+    addLine(output, "z80.regs.pc = add16(z80.regs.pc, -2);");
+    addLine(output, "z80.regs.memptr = add16(z80.regs.pc, 1);");
+    exit();
+    addLine(output, "}");
+    addLine(output, "z80.regs.hl = " + (decrement ? "dec" : "inc") + "16(z80.regs.hl);");
+    addLine(output, "z80.regs.de = " + (decrement ? "dec" : "inc") + "16(z80.regs.de);");
 }
 
 function handlePop(output: string[], reg: string): void {
@@ -531,6 +549,12 @@ function generateDispatch(pathname: string): string {
                 case "cpir":
                 case "cpdr": {
                     handleCpirCpdr(output, opcode === "cpdr");
+                    break;
+                }
+
+                case "ldir":
+                case "lddr": {
+                    handleLdirLddr(output, opcode === "lddr");
                     break;
                 }
 
