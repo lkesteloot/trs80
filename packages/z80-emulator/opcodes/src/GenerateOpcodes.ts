@@ -338,6 +338,29 @@ function handleInirIndr(output: string[], decrement: boolean): void {
     addLine(output, "z80.regs.hl = " + (decrement ? "dec" : "inc") + "16(z80.regs.hl);");
 }
 
+function handleCpirCpdr(output: string[], decrement: boolean): void {
+    addLine(output, "const value = z80.readByte(z80.regs.hl);");
+    addLine(output, "let diff = (z80.regs.a - value) & 0xFF;");
+    addLine(output, "const lookup = ((z80.regs.a & 0x08) >> 3) | ((value & 0x08) >> 2) | ((diff & 0x08) >> 1);");
+    addLine(output, "z80.incTStateCount(5);");
+    addLine(output, "z80.regs.bc = dec16(z80.regs.bc);");
+    addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | (z80.regs.bc !== 0 ? Flag.V : 0) | Flag.N | halfCarrySubTable[lookup] | (diff !== 0 ? 0 : Flag.Z) | (diff & Flag.S);");
+    addLine(output, "if ((z80.regs.f & Flag.H) !== 0) diff = dec8(diff);");
+    addLine(output, "z80.regs.f |= (diff & Flag.X3) | (((diff & 0x02) !== 0) ? Flag.X5 : 0);");
+    addLine(output, "if ((z80.regs.f & (Flag.V | Flag.Z)) === Flag.V) {");
+    enter();
+    addLine(output, "z80.incTStateCount(5);");
+    addLine(output, "z80.regs.pc = add16(z80.regs.pc, -2);");
+    addLine(output, "z80.regs.memptr = add16(z80.regs.pc, 1);");
+    exit();
+    addLine(output, "} else {");
+    enter();
+    addLine(output, "z80.regs.memptr = " + (decrement ? "dec" : "inc") + "16(z80.regs.memptr);");
+    exit();
+    addLine(output, "}");
+    addLine(output, "z80.regs.hl = " + (decrement ? "dec" : "inc") + "16(z80.regs.hl);");
+}
+
 function handlePop(output: string[], reg: string): void {
     addLine(output, "z80.regs." + reg + " = z80.popWord();");
 }
@@ -502,6 +525,12 @@ function generateDispatch(pathname: string): string {
                 case "inir":
                 case "indr": {
                     handleInirIndr(output, opcode === "indr");
+                    break;
+                }
+
+                case "cpir":
+                case "cpdr": {
+                    handleCpirCpdr(output, opcode === "cpdr");
                     break;
                 }
 

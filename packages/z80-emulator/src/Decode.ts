@@ -3380,6 +3380,22 @@ function decodeED(z80: Z80): void {
         }
 
         case 0xB1: { // cpir
+            const value = z80.readByte(z80.regs.hl);
+            let diff = (z80.regs.a - value) & 0xFF;
+            const lookup = ((z80.regs.a & 0x08) >> 3) | ((value & 0x08) >> 2) | ((diff & 0x08) >> 1);
+            z80.incTStateCount(5);
+            z80.regs.bc = dec16(z80.regs.bc);
+            z80.regs.f = (z80.regs.f & Flag.C) | (z80.regs.bc !== 0 ? Flag.V : 0) | Flag.N | halfCarrySubTable[lookup] | (diff !== 0 ? 0 : Flag.Z) | (diff & Flag.S);
+            if ((z80.regs.f & Flag.H) !== 0) diff = dec8(diff);
+            z80.regs.f |= (diff & Flag.X3) | (((diff & 0x02) !== 0) ? Flag.X5 : 0);
+            if ((z80.regs.f & (Flag.V | Flag.Z)) === Flag.V) {
+                z80.incTStateCount(5);
+                z80.regs.pc = add16(z80.regs.pc, -2);
+                z80.regs.memptr = add16(z80.regs.pc, 1);
+            } else {
+                z80.regs.memptr = inc16(z80.regs.memptr);
+            }
+            z80.regs.hl = inc16(z80.regs.hl);
             break;
         }
 
@@ -3420,6 +3436,22 @@ function decodeED(z80: Z80): void {
         }
 
         case 0xB9: { // cpdr
+            const value = z80.readByte(z80.regs.hl);
+            let diff = (z80.regs.a - value) & 0xFF;
+            const lookup = ((z80.regs.a & 0x08) >> 3) | ((value & 0x08) >> 2) | ((diff & 0x08) >> 1);
+            z80.incTStateCount(5);
+            z80.regs.bc = dec16(z80.regs.bc);
+            z80.regs.f = (z80.regs.f & Flag.C) | (z80.regs.bc !== 0 ? Flag.V : 0) | Flag.N | halfCarrySubTable[lookup] | (diff !== 0 ? 0 : Flag.Z) | (diff & Flag.S);
+            if ((z80.regs.f & Flag.H) !== 0) diff = dec8(diff);
+            z80.regs.f |= (diff & Flag.X3) | (((diff & 0x02) !== 0) ? Flag.X5 : 0);
+            if ((z80.regs.f & (Flag.V | Flag.Z)) === Flag.V) {
+                z80.incTStateCount(5);
+                z80.regs.pc = add16(z80.regs.pc, -2);
+                z80.regs.memptr = add16(z80.regs.pc, 1);
+            } else {
+                z80.regs.memptr = dec16(z80.regs.memptr);
+            }
+            z80.regs.hl = dec16(z80.regs.hl);
             break;
         }
 
