@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import {CpuEvent} from "./CpuEvent";
-import {parseCpuEventType} from "./CpuEventType";
+import {CpuEventType, parseCpuEventType} from "./CpuEventType";
 import {Delegate} from "./Delegate";
 import {allRegisters, Register} from "./Register";
 import {Test} from "./Test";
@@ -25,6 +25,9 @@ export class Runner {
     public tests: Map<string, Test> = new Map();
     public errors: string[] = [];
     public successfulTests: number = 0;
+    public checkTStates: boolean = true;
+    public checkEvents: boolean = true;
+    public checkContend: boolean = true;
     private readonly delegate: Delegate;
 
     constructor(delegate: Delegate) {
@@ -44,7 +47,7 @@ export class Runner {
         console.log("Loaded " + this.tests.size + " tests");
     }
 
-    public runAll() {
+    public runAll(): void {
         this.successfulTests = 0;
         for (const test of this.tests.values()) {
             const success = this.runTest(test);
@@ -55,8 +58,19 @@ export class Runner {
         }
     }
 
-    public runOne(testName: string) {
-        // TODO.
+    public runOne(name: string): boolean {
+        const test = this.tests.get(name);
+        if (test === undefined) {
+            console.log("Can't find test \"" + name + "\"");
+            return false;
+        } else {
+            const success =  this.runTest(test);
+            if (success) {
+                this.successfulTests += 1;
+                console.log("Passed " + test.name);
+            }
+            return success;
+        }
     }
 
     private parseFile(pathname: string, isExpected: boolean) {
@@ -98,8 +112,8 @@ export class Runner {
                         test.postCpuEvents.push(new CpuEvent(
                             parseInt(fields[0], 10),
                             parseCpuEventType(fields[1]),
-                            parseInt(fields[1], 16),
-                            fields.length === 4 ? parseInt(fields[2], 16) : undefined));
+                            parseInt(fields[2], 16),
+                            fields.length === 4 ? parseInt(fields[3], 16) : undefined));
                     } else if (fields.length === 13) {
                         // REG1.
                         const hexFields = fields.map((value) => parseInt(value, 16));
@@ -199,7 +213,6 @@ export class Runner {
         const events = this.delegate.run(test.preTStateCount);
 
         // Check results.
-        // TODO compare events.
         for (const register of allRegisters) {
             const expectedValue = test.postRegisterSet.get(register);
             const actualValue = this.delegate.getRegister(register);
@@ -218,10 +231,25 @@ export class Runner {
             }
         }
         const actualTStateCount = this.delegate.getTStateCount();
-        if (actualTStateCount !== test.postTStateCount) {
+        if (this.checkTStates && actualTStateCount !== test.postTStateCount) {
             this.errors.push(test.name + ": expected " + test.postTStateCount +
                 " t-counts but got " + actualTStateCount);
             success = false;
+        }
+        if (this.checkEvents) {
+            // TODO
+            console.log("Expected events:");
+            for (const event of test.postCpuEvents) {
+                if (this.checkContend || (event.eventType !== CpuEventType.MEMORY_CONTEND && event.eventType !== CpuEventType.PORT_CONTEND)) {
+                    console.log(event.toString());
+                }
+            }
+            console.log("Actual events:");
+            for (const event of events) {
+                if (this.checkContend || (event.eventType !== CpuEventType.MEMORY_CONTEND && event.eventType !== CpuEventType.PORT_CONTEND)) {
+                    console.log(event.toString());
+                }
+            }
         }
 
         return success;

@@ -1,4 +1,5 @@
 import {Register} from "./Register";
+import {CpuEvent} from "./CpuEvent";
 
 export interface Delegate {
     /**
@@ -19,7 +20,7 @@ export interface Delegate {
     /**
      * Run for at least this many t-states. Complete the last operation.
      */
-    run(tStateCount: number): Event[];
+    run(tStateCount: number): CpuEvent[];
 
     /**
      * Write a byte at the specified address.

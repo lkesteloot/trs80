@@ -19,3 +19,22 @@ export function parseCpuEventType(s: string): CpuEventType {
         default: throw new Error("Unknown CPU event type " + s);
     }
 }
+
+export function cpuEventTypeToString(cpuEventType: CpuEventType): string {
+    switch (cpuEventType) {
+        case CpuEventType.MEMORY_READ:
+            return "MR";
+        case CpuEventType.MEMORY_WRITE:
+            return "MW";
+        case CpuEventType.MEMORY_CONTEND:
+            return "MC";
+        case CpuEventType.PORT_READ:
+            return "PR";
+        case CpuEventType.PORT_WRITE:
+            return "PW";
+        case CpuEventType.PORT_CONTEND:
+            return "PC";
+    }
+
+    return "??";
+}

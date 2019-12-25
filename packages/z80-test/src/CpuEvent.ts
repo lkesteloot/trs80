@@ -1,4 +1,5 @@
-import {CpuEventType} from "./CpuEventType";
+import {CpuEventType, cpuEventTypeToString} from "./CpuEventType";
+import {toHex} from "./Utils";
 
 export class CpuEvent {
     /**
@@ -21,10 +22,22 @@ export class CpuEvent {
      */
     public value: number | undefined;
 
-    constructor(time: number, eventType: CpuEventType, address: number, value: number | undefined) {
+    constructor(time: number, eventType: CpuEventType, address: number, value?: number) {
         this.time = time;
         this.eventType = eventType;
         this.address = address;
         this.value = value;
+    }
+
+    toString(): string {
+        let s: string = this.time.toString(10);
+        while (s.length < 5) {
+            s = " " + s;
+        }
+        s += " " + cpuEventTypeToString(this.eventType) + " " + toHex(this.address, 4);
+        if (this.value !== undefined) {
+            s += " " + toHex(this.value, 2);
+        }
+        return s;
     }
 }
