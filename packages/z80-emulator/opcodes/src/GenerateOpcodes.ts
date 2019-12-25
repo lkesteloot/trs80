@@ -497,6 +497,13 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "retn": {
+                    addLine(output, "z80.regs.iff1 = z80.regs.iff2;");
+                    addLine(output, "z80.regs.pc = z80.popWord();");
+                    addLine(output, "z80.regs.memptr = z80.regs.pc;");
+                    break;
+                }
+
                 case "call":
                 case "jp": {
                     if (params === undefined) {

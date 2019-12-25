@@ -3093,6 +3093,9 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x7D: { // retn
+            z80.regs.iff1 = z80.regs.iff2;
+            z80.regs.pc = z80.popWord();
+            z80.regs.memptr = z80.regs.pc;
             break;
         }
 
