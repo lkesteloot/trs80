@@ -321,6 +321,23 @@ function handleOtirOtdr(output: string[], decrement: boolean): void {
     addLine(output, "}");
 }
 
+function handleInirIndr(output: string[], decrement: boolean): void {
+    addLine(output, "z80.incTStateCount(1);");
+    addLine(output, "const value = z80.readPort(z80.regs.bc);");
+    addLine(output, "z80.writeByte(z80.regs.hl, value);");
+    addLine(output, "z80.regs.memptr = dec16(z80.regs.bc);");
+    addLine(output, "z80.regs.b = dec8(z80.regs.b);");
+    addLine(output, "const other = dec8(add8(value, z80.regs.c));");
+    addLine(output, "z80.regs.f = (value & 0x80 ? Flag.N : 0 ) | (other < value ? Flag.H | Flag.C : 0) | (z80.parityTable[(other & 0x07) ^ z80.regs.b] ? Flag.P : 0) | z80.sz53Table[z80.regs.b];");
+    addLine(output, "if (z80.regs.b > 0) {");
+    enter();
+    addLine(output, "z80.incTStateCount(5);");
+    addLine(output, "z80.regs.pc = add16(z80.regs.pc, -2);");
+    exit();
+    addLine(output, "}");
+    addLine(output, "z80.regs.hl = " + (decrement ? "dec" : "inc") + "16(z80.regs.hl);");
+}
+
 function handlePop(output: string[], reg: string): void {
     addLine(output, "z80.regs." + reg + " = z80.popWord();");
 }
@@ -479,6 +496,12 @@ function generateDispatch(pathname: string): string {
                 case "otir":
                 case "otdr": {
                     handleOtirOtdr(output, opcode === "otdr");
+                    break;
+                }
+
+                case "inir":
+                case "indr": {
+                    handleInirIndr(output, opcode === "indr");
                     break;
                 }
 

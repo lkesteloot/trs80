@@ -71,7 +71,10 @@ export class Z80 {
     }
 
     public readPort(address: number): number {
-        return this.hal.readPort(address);
+        this.incTStateCount(1);
+        const value = this.hal.readPort(address);
+        this.incTStateCount(3);
+        return value;
     }
 
     public pushWord(value: number): void {

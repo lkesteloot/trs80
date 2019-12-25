@@ -3384,6 +3384,18 @@ function decodeED(z80: Z80): void {
         }
 
         case 0xB2: { // inir
+            z80.incTStateCount(1);
+            const value = z80.readPort(z80.regs.bc);
+            z80.writeByte(z80.regs.hl, value);
+            z80.regs.memptr = dec16(z80.regs.bc);
+            z80.regs.b = dec8(z80.regs.b);
+            const other = dec8(add8(value, z80.regs.c));
+            z80.regs.f = (value & 0x80 ? Flag.N : 0 ) | (other < value ? Flag.H | Flag.C : 0) | (z80.parityTable[(other & 0x07) ^ z80.regs.b] ? Flag.P : 0) | z80.sz53Table[z80.regs.b];
+            if (z80.regs.b > 0) {
+                z80.incTStateCount(5);
+                z80.regs.pc = add16(z80.regs.pc, -2);
+            }
+            z80.regs.hl = inc16(z80.regs.hl);
             break;
         }
 
@@ -3412,6 +3424,18 @@ function decodeED(z80: Z80): void {
         }
 
         case 0xBA: { // indr
+            z80.incTStateCount(1);
+            const value = z80.readPort(z80.regs.bc);
+            z80.writeByte(z80.regs.hl, value);
+            z80.regs.memptr = dec16(z80.regs.bc);
+            z80.regs.b = dec8(z80.regs.b);
+            const other = dec8(add8(value, z80.regs.c));
+            z80.regs.f = (value & 0x80 ? Flag.N : 0 ) | (other < value ? Flag.H | Flag.C : 0) | (z80.parityTable[(other & 0x07) ^ z80.regs.b] ? Flag.P : 0) | z80.sz53Table[z80.regs.b];
+            if (z80.regs.b > 0) {
+                z80.incTStateCount(5);
+                z80.regs.pc = add16(z80.regs.pc, -2);
+            }
+            z80.regs.hl = dec16(z80.regs.hl);
             break;
         }
 

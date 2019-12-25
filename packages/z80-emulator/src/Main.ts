@@ -1,4 +1,4 @@
-import {Delegate, Register, Runner, toHex} from "z80-test";
+import {Delegate, Register, Runner, toHex, hi} from "z80-test";
 import {Z80} from "./Z80";
 import {Hal} from "./Hal";
 import {CpuEvent} from "z80-test/dist/CpuEvent";
@@ -30,7 +30,7 @@ class HalImpl implements Hal {
     }
 
     readPort(address: number): number {
-        const value = 0;
+        const value = hi(address); // For testing.
         this.events.push(new CpuEvent(this.tStateCount, CpuEventType.PORT_READ, address, value));
         return value;
     }
@@ -99,7 +99,8 @@ runner.loadTests();
 if (true) {
     runner.runAll();
 } else {
-    runner.runOne("edbb");
+    runner.checkEvents = true;
+    runner.runOne("edba");
 }
 for (const error of runner.errors) {
     console.log(error);
