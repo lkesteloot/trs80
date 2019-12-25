@@ -277,7 +277,7 @@ function handleLd(output: string[], dest: string, src: string): void {
     }
 }
 
-function handleOr(output: string[], opcode: string, operand: string): void {
+function handleLogic(output: string[], opcode: string, operand: string): void {
     addLine(output, "let value: number;");
     if (operand === "nn") {
         addLine(output, "value = z80.readByte(z80.regs.pc);");
@@ -296,8 +296,12 @@ function handleOr(output: string[], opcode: string, operand: string): void {
     } else {
         throw new Error("Unknown " + opcode + " operand " + operand);
     }
-    addLine(output, "z80.regs.a |= value;");
+    const operator = opcode === "and" ? "&" : opcode === "or" ? "|" : "^";
+    addLine(output, "z80.regs.a " + operator + "= value;");
     addLine(output, "z80.regs.f = z80.sz53pTable[z80.regs.a];");
+    if (opcode === "and") {
+        addLine(output, "z80.regs.f |= Flag.H;");
+    }
 }
 
 function handlePop(output: string[], reg: string): void {
@@ -432,7 +436,9 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
-                case "or": {
+                case "or":
+                case "and":
+                case "xor": {
                     if (params === undefined) {
                         throw new Error(opcode + " requires params: " + line);
                     }
@@ -449,7 +455,7 @@ function generateDispatch(pathname: string): string {
                     } else {
                         throw new Error("LD requires two params: " + line);
                     }
-                    handleOr(output, opcode, operand);
+                    handleLogic(output, opcode, operand);
                     break;
                 }
 

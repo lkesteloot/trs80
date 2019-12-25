@@ -505,26 +505,61 @@ function decodeDD(z80: Z80): void {
         }
 
         case 0xA4: { // and a,ixh
+            let value: number;
+            value = z80.regs.ixh;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA5: { // and a,ixl
+            let value: number;
+            value = z80.regs.ixl;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA6: { // and a,(ix+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.tStateCount += 5;
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
+            value = z80.readByte(z80.regs.memptr);
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xAC: { // xor a,ixh
+            let value: number;
+            value = z80.regs.ixh;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAD: { // xor a,ixl
+            let value: number;
+            value = z80.regs.ixl;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAE: { // xor a,(ix+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.tStateCount += 5;
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
+            value = z80.readByte(z80.regs.memptr);
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
@@ -2412,26 +2447,61 @@ function decodeFD(z80: Z80): void {
         }
 
         case 0xA4: { // and a,iyh
+            let value: number;
+            value = z80.regs.iyh;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA5: { // and a,iyl
+            let value: number;
+            value = z80.regs.iyl;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA6: { // and a,(iy+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.tStateCount += 5;
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
+            value = z80.readByte(z80.regs.memptr);
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xAC: { // xor a,iyh
+            let value: number;
+            value = z80.regs.iyh;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAD: { // xor a,iyl
+            let value: number;
+            value = z80.regs.iyl;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAE: { // xor a,(iy+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.tStateCount += 5;
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
+            value = z80.readByte(z80.regs.memptr);
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
@@ -4792,66 +4862,138 @@ export function decode(z80: Z80): void {
         }
 
         case 0xA0: { // and a,b
+            let value: number;
+            value = z80.regs.b;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA1: { // and a,c
+            let value: number;
+            value = z80.regs.c;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA2: { // and a,d
+            let value: number;
+            value = z80.regs.d;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA3: { // and a,e
+            let value: number;
+            value = z80.regs.e;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA4: { // and a,h
+            let value: number;
+            value = z80.regs.h;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA5: { // and a,l
+            let value: number;
+            value = z80.regs.l;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA6: { // and a,(hl)
+            let value: number;
+            value = z80.readByte(z80.regs.hl);
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA7: { // and a,a
+            let value: number;
+            value = z80.regs.a;
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
         case 0xA8: { // xor a,b
+            let value: number;
+            value = z80.regs.b;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xA9: { // xor a,c
+            let value: number;
+            value = z80.regs.c;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAA: { // xor a,d
+            let value: number;
+            value = z80.regs.d;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAB: { // xor a,e
+            let value: number;
+            value = z80.regs.e;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAC: { // xor a,h
+            let value: number;
+            value = z80.regs.h;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAD: { // xor a,l
+            let value: number;
+            value = z80.regs.l;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAE: { // xor a,(hl)
+            let value: number;
+            value = z80.readByte(z80.regs.hl);
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xAF: { // xor a,a
+            let value: number;
+            value = z80.regs.a;
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
@@ -5363,6 +5505,12 @@ export function decode(z80: Z80): void {
         }
 
         case 0xE6: { // and nn
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.a &= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
+            z80.regs.f |= Flag.H;
             break;
         }
 
@@ -5424,6 +5572,11 @@ export function decode(z80: Z80): void {
         }
 
         case 0xEE: { // xor a,nn
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.a ^= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
