@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import {toHex, isWordReg, isByteReg} from "z80-test/dist";
+import {toHex, isWordReg, isByteReg, Flag} from "z80-test/dist";
 
 const BYTE_PARAMS = new Set(["a", "b", "c", "d", "e", "h", "l", "nn", "ixh", "ixl", "iyh", "iyl"]);
 const WORD_PARAMS = new Set(["af", "bc", "de", "hl", "nnnn", "ix", "iy"]);
@@ -277,6 +277,29 @@ function handleLd(output: string[], dest: string, src: string): void {
     }
 }
 
+function handleOr(output: string[], opcode: string, operand: string): void {
+    addLine(output, "let value: number;");
+    if (operand === "nn") {
+        addLine(output, "value = z80.readByte(z80.regs.pc);");
+        addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+    } else if (operand === "(hl)") {
+        addLine(output, "value = z80.readByte(z80.regs.hl);");
+    } else if (operand === "(ix+dd)" || operand === "(iy+dd)") {
+        const reg = operand.substr(1, 2);
+        addLine(output, "value = z80.readByte(z80.regs.pc);");
+        addLine(output, "z80.tStateCount += 5;");
+        addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+        addLine(output, "z80.regs.memptr = (z80.regs." + reg + " + signedByte(value)) & 0xFFFF;");
+        addLine(output, "value = z80.readByte(z80.regs.memptr);");
+    } else if (isByteReg(operand)) {
+        addLine(output, "value = z80.regs." + operand + ";");
+    } else {
+        throw new Error("Unknown " + opcode + " operand " + operand);
+    }
+    addLine(output, "z80.regs.a |= value;");
+    addLine(output, "z80.regs.f = z80.sz53pTable[z80.regs.a];");
+}
+
 function handlePop(output: string[], reg: string): void {
     addLine(output, "z80.regs." + reg + " = z80.popWord();");
 }
@@ -406,6 +429,27 @@ function generateDispatch(pathname: string): string {
                     }
                     const [dest, src] = parts;
                     handleLd(output, dest, src);
+                    break;
+                }
+
+                case "or": {
+                    if (params === undefined) {
+                        throw new Error(opcode + " requires params: " + line);
+                    }
+                    let operand: string;
+                    const parts = params.split(",");
+                    if (parts.length === 2) {
+                        if (parts[0] === "a") {
+                            operand = parts[1];
+                        } else {
+                            throw new Error("First operand of " + opcode + " must be A");
+                        }
+                    } else if (parts.length === 1) {
+                        operand = parts[0];
+                    } else {
+                        throw new Error("LD requires two params: " + line);
+                    }
+                    handleOr(output, opcode, operand);
                     break;
                 }
 

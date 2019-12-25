@@ -529,14 +529,30 @@ function decodeDD(z80: Z80): void {
         }
 
         case 0xB4: { // or a,ixh
+            let value: number;
+            value = z80.regs.ixh;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB5: { // or a,ixl
+            let value: number;
+            value = z80.regs.ixl;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB6: { // or a,(ix+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.tStateCount += 5;
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
+            value = z80.readByte(z80.regs.memptr);
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
@@ -2420,14 +2436,30 @@ function decodeFD(z80: Z80): void {
         }
 
         case 0xB4: { // or a,iyh
+            let value: number;
+            value = z80.regs.iyh;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB5: { // or a,iyl
+            let value: number;
+            value = z80.regs.iyl;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB6: { // or a,(iy+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.tStateCount += 5;
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
+            value = z80.readByte(z80.regs.memptr);
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
@@ -4824,34 +4856,66 @@ export function decode(z80: Z80): void {
         }
 
         case 0xB0: { // or a,b
+            let value: number;
+            value = z80.regs.b;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB1: { // or a,c
+            let value: number;
+            value = z80.regs.c;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB2: { // or a,d
+            let value: number;
+            value = z80.regs.d;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB3: { // or a,e
+            let value: number;
+            value = z80.regs.e;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB4: { // or a,h
+            let value: number;
+            value = z80.regs.h;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB5: { // or a,l
+            let value: number;
+            value = z80.regs.l;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB6: { // or a,(hl)
+            let value: number;
+            value = z80.readByte(z80.regs.hl);
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
         case 0xB7: { // or a,a
+            let value: number;
+            value = z80.regs.a;
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
@@ -5420,6 +5484,11 @@ export function decode(z80: Z80): void {
         }
 
         case 0xF6: { // or nn
+            let value: number;
+            value = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.a |= value;
+            z80.regs.f = z80.sz53pTable[z80.regs.a];
             break;
         }
 
