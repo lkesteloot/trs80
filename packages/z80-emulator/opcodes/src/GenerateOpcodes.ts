@@ -412,6 +412,21 @@ function handleRst(output: string[], rst: number): void {
     addLine(output, "z80.regs.memptr = z80.regs.pc;");
 }
 
+// Value to subtract is already in "value".
+function handleSub(output: string[]): void {
+    addLine(output, "const diff = sub16(z80.regs.a, value);");
+    addLine(output, "const lookup = (((z80.regs.a & 0x88) >> 3) |");
+    addLine(output, "               ((value & 0x88) >> 2) |");
+    addLine(output, "               ((diff & 0x88) >> 1)) & 0xFF;");
+    addLine(output, "z80.regs.a = diff;");
+    addLine(output, "let f = Flag.N;");
+    addLine(output, "if ((diff & 0x100) != 0) f |= Flag.C;");
+    addLine(output, "f |= halfCarrySubTable[lookup & 0x07];");
+    addLine(output, "f |= overflowSubTable[lookup >> 4];");
+    addLine(output, "f |= z80.sz53Table[z80.regs.a];");
+    addLine(output, "z80.regs.f = f;");
+}
+
 function generateDispatch(pathname: string): string {
     const output: string[] = [];
     enter();
@@ -501,6 +516,13 @@ function generateDispatch(pathname: string): string {
                     addLine(output, "z80.regs.iff1 = z80.regs.iff2;");
                     addLine(output, "z80.regs.pc = z80.popWord();");
                     addLine(output, "z80.regs.memptr = z80.regs.pc;");
+                    break;
+                }
+
+                case "neg": {
+                    addLine(output, "const value = z80.regs.a;");
+                    addLine(output, "z80.regs.a = 0;");
+                    handleSub(output);
                     break;
                 }
 
