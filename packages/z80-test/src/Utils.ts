@@ -30,11 +30,11 @@ export function inc16(value: number): number {
 }
 
 export function dec8(value: number): number {
-    return add8(value, -1);
+    return sub8(value, 1);
 }
 
 export function dec16(value: number): number {
-    return add16(value, -1);
+    return sub16(value, 1);
 }
 
 export function add8(a: number, b: number): number {
@@ -43,6 +43,14 @@ export function add8(a: number, b: number): number {
 
 export function add16(a: number, b: number): number {
     return (a + b) & 0xFFFF;
+}
+
+export function sub8(a: number, b: number): number {
+    return (a - b) & 0xFF;
+}
+
+export function sub16(a: number, b: number): number {
+    return (a - b) & 0xFFFF;
 }
 
 export function signedByte(value: number): number {
