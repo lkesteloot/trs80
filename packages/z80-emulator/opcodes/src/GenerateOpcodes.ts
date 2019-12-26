@@ -1099,6 +1099,12 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "cpl": {
+                    addLine(output, "z80.regs.a ^= 0xFF;");
+                    addLine(output, "z80.regs.f = (z80.regs.f & (Flag.C | Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | Flag.N | Flag.H;");
+                    break;
+                }
+
                 case "shift":
                     if (params === undefined) {
                         throw new Error("Shift requires params: " + line);

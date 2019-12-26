@@ -7309,6 +7309,8 @@ export function decode(z80: Z80): void {
         }
 
         case 0x2F: { // cpl
+            z80.regs.a ^= 0xFF;
+            z80.regs.f = (z80.regs.f & (Flag.C | Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | Flag.N | Flag.H;
             break;
         }
 
