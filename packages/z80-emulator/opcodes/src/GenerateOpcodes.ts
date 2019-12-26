@@ -532,7 +532,7 @@ function handleRst(output: string[], rst: number): void {
 }
 
 // Value to subtract is already in "value".
-function handleSub(output: string[]): void {
+function emitSub(output: string[]): void {
     addLine(output, "const diff = sub16(z80.regs.a, value);");
     addLine(output, "const lookup = (((z80.regs.a & 0x88) >> 3) |");
     addLine(output, "               ((value & 0x88) >> 2) |");
@@ -544,6 +544,32 @@ function handleSub(output: string[]): void {
     addLine(output, "f |= overflowSubTable[lookup >> 4];");
     addLine(output, "f |= z80.sz53Table[z80.regs.a];");
     addLine(output, "z80.regs.f = f;");
+}
+
+function handleOut(output: string[], port: string, value: string): void {
+    if (port === "(nn)") {
+        if (value !== "a") {
+            throw new Error("When OUT to (nn), source must be A");
+        }
+        addLine(output, "const port = z80.readByte(z80.regs.pc);");
+        addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+        addLine(output, "z80.regs.memptr = word(z80.regs.a, inc8(port));");
+        addLine(output, "z80.writePort(word(z80.regs.a, port), z80.regs.a);");
+    } else if (port === "(c)") {
+        let src: string;
+        if (value === "0") {
+            // TODO: apparently it's 0xFF if the Z80 is CMOS?!
+            src = "0x00";
+        } else if (isByteReg(value)) {
+            src = "z80.regs." + value;
+        } else {
+            throw new Error("Unknown value for OUT: " + value);
+        }
+        addLine(output, "z80.writePort(z80.regs.bc, " + src + ");");
+        addLine(output, "z80.regs.memptr = inc16(z80.regs.bc);");
+    } else {
+        throw new Error("Unknown port for OUT: " + port);
+    }
 }
 
 function generateDispatch(pathname: string): string {
@@ -657,7 +683,7 @@ function generateDispatch(pathname: string): string {
                 case "neg": {
                     addLine(output, "const value = z80.regs.a;");
                     addLine(output, "z80.regs.a = 0;");
-                    handleSub(output);
+                    emitSub(output);
                     break;
                 }
 
@@ -777,12 +803,22 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
-                case "rst":
+                case "rst": {
                     if (params === undefined) {
                         throw new Error("RST requires params: " + line);
                     }
                     handleRst(output, parseInt(params, 16));
                     break;
+                }
+
+                case "out": {
+                    if (params === undefined) {
+                        throw new Error(opcode + " requires params: " + line);
+                    }
+                    const [port, value] = params.split(",");
+                    handleOut(output, port, value);
+                    break;
+                }
 
                 case "shift":
                     if (params === undefined) {

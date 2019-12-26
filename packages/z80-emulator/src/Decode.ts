@@ -3168,6 +3168,8 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x41: { // out (c),b
+            z80.writePort(z80.regs.bc, z80.regs.b);
+            z80.regs.memptr = inc16(z80.regs.bc);
             break;
         }
 
@@ -3328,6 +3330,8 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x49: { // out (c),c
+            z80.writePort(z80.regs.bc, z80.regs.c);
+            z80.regs.memptr = inc16(z80.regs.bc);
             break;
         }
 
@@ -3373,6 +3377,8 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x51: { // out (c),d
+            z80.writePort(z80.regs.bc, z80.regs.d);
+            z80.regs.memptr = inc16(z80.regs.bc);
             break;
         }
 
@@ -3429,6 +3435,8 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x59: { // out (c),e
+            z80.writePort(z80.regs.bc, z80.regs.e);
+            z80.regs.memptr = inc16(z80.regs.bc);
             break;
         }
 
@@ -3484,6 +3492,8 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x61: { // out (c),h
+            z80.writePort(z80.regs.bc, z80.regs.h);
+            z80.regs.memptr = inc16(z80.regs.bc);
             break;
         }
 
@@ -3527,6 +3537,8 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x69: { // out (c),l
+            z80.writePort(z80.regs.bc, z80.regs.l);
+            z80.regs.memptr = inc16(z80.regs.bc);
             break;
         }
 
@@ -3569,6 +3581,8 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x71: { // out (c),0
+            z80.writePort(z80.regs.bc, 0x00);
+            z80.regs.memptr = inc16(z80.regs.bc);
             break;
         }
 
@@ -3608,6 +3622,8 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x79: { // out (c),a
+            z80.writePort(z80.regs.bc, z80.regs.a);
+            z80.regs.memptr = inc16(z80.regs.bc);
             break;
         }
 
@@ -7816,6 +7832,10 @@ export function decode(z80: Z80): void {
         }
 
         case 0xD3: { // out (nn),a
+            const port = z80.readByte(z80.regs.pc);
+            z80.regs.pc = inc16(z80.regs.pc);
+            z80.regs.memptr = word(z80.regs.a, inc8(port));
+            z80.writePort(word(z80.regs.a, port), z80.regs.a);
             break;
         }
 
