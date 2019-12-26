@@ -2960,9 +2960,9 @@ function decodeED(z80: Z80): void {
             if ((z80.regs.f & Flag.C) !== 0) {
                 result -= 1;
             }
-            const lookup = (((z80.regs.hl & 0x0800) >> 11) |
-                           ((value & 0x0800) >> 10) |
-                           ((result & 0x0800) >> 9)) & 0xFF;
+            const lookup = (((z80.regs.hl & 0x8800) >> 11) |
+                           ((value & 0x8800) >> 10) |
+                           ((result & 0x8800) >> 9)) & 0xFF;
             z80.regs.memptr = inc16(z80.regs.hl);
             z80.regs.hl = result & 0xFFFF;
             z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | Flag.N | overflowSubTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarrySubTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);
@@ -3057,9 +3057,9 @@ function decodeED(z80: Z80): void {
             if ((z80.regs.f & Flag.C) !== 0) {
                 result += 1;
             }
-            const lookup = (((z80.regs.hl & 0x0800) >> 11) |
-                           ((value & 0x0800) >> 10) |
-                           ((result & 0x0800) >> 9)) & 0xFF;
+            const lookup = (((z80.regs.hl & 0x8800) >> 11) |
+                           ((value & 0x8800) >> 10) |
+                           ((result & 0x8800) >> 9)) & 0xFF;
             z80.regs.memptr = inc16(z80.regs.hl);
             z80.regs.hl = result & 0xFFFF;
             z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | overflowAddTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarryAddTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);
@@ -3107,9 +3107,9 @@ function decodeED(z80: Z80): void {
             if ((z80.regs.f & Flag.C) !== 0) {
                 result -= 1;
             }
-            const lookup = (((z80.regs.hl & 0x0800) >> 11) |
-                           ((value & 0x0800) >> 10) |
-                           ((result & 0x0800) >> 9)) & 0xFF;
+            const lookup = (((z80.regs.hl & 0x8800) >> 11) |
+                           ((value & 0x8800) >> 10) |
+                           ((result & 0x8800) >> 9)) & 0xFF;
             z80.regs.memptr = inc16(z80.regs.hl);
             z80.regs.hl = result & 0xFFFF;
             z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | Flag.N | overflowSubTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarrySubTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);
@@ -3164,9 +3164,9 @@ function decodeED(z80: Z80): void {
             if ((z80.regs.f & Flag.C) !== 0) {
                 result += 1;
             }
-            const lookup = (((z80.regs.hl & 0x0800) >> 11) |
-                           ((value & 0x0800) >> 10) |
-                           ((result & 0x0800) >> 9)) & 0xFF;
+            const lookup = (((z80.regs.hl & 0x8800) >> 11) |
+                           ((value & 0x8800) >> 10) |
+                           ((result & 0x8800) >> 9)) & 0xFF;
             z80.regs.memptr = inc16(z80.regs.hl);
             z80.regs.hl = result & 0xFFFF;
             z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | overflowAddTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarryAddTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);
@@ -3220,9 +3220,9 @@ function decodeED(z80: Z80): void {
             if ((z80.regs.f & Flag.C) !== 0) {
                 result -= 1;
             }
-            const lookup = (((z80.regs.hl & 0x0800) >> 11) |
-                           ((value & 0x0800) >> 10) |
-                           ((result & 0x0800) >> 9)) & 0xFF;
+            const lookup = (((z80.regs.hl & 0x8800) >> 11) |
+                           ((value & 0x8800) >> 10) |
+                           ((result & 0x8800) >> 9)) & 0xFF;
             z80.regs.memptr = inc16(z80.regs.hl);
             z80.regs.hl = result & 0xFFFF;
             z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | Flag.N | overflowSubTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarrySubTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);
@@ -3268,9 +3268,9 @@ function decodeED(z80: Z80): void {
             if ((z80.regs.f & Flag.C) !== 0) {
                 result += 1;
             }
-            const lookup = (((z80.regs.hl & 0x0800) >> 11) |
-                           ((value & 0x0800) >> 10) |
-                           ((result & 0x0800) >> 9)) & 0xFF;
+            const lookup = (((z80.regs.hl & 0x8800) >> 11) |
+                           ((value & 0x8800) >> 10) |
+                           ((result & 0x8800) >> 9)) & 0xFF;
             z80.regs.memptr = inc16(z80.regs.hl);
             z80.regs.hl = result & 0xFFFF;
             z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | overflowAddTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarryAddTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);
@@ -3315,9 +3315,9 @@ function decodeED(z80: Z80): void {
             if ((z80.regs.f & Flag.C) !== 0) {
                 result -= 1;
             }
-            const lookup = (((z80.regs.hl & 0x0800) >> 11) |
-                           ((value & 0x0800) >> 10) |
-                           ((result & 0x0800) >> 9)) & 0xFF;
+            const lookup = (((z80.regs.hl & 0x8800) >> 11) |
+                           ((value & 0x8800) >> 10) |
+                           ((result & 0x8800) >> 9)) & 0xFF;
             z80.regs.memptr = inc16(z80.regs.hl);
             z80.regs.hl = result & 0xFFFF;
             z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | Flag.N | overflowSubTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarrySubTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);
@@ -3359,9 +3359,9 @@ function decodeED(z80: Z80): void {
             if ((z80.regs.f & Flag.C) !== 0) {
                 result += 1;
             }
-            const lookup = (((z80.regs.hl & 0x0800) >> 11) |
-                           ((value & 0x0800) >> 10) |
-                           ((result & 0x0800) >> 9)) & 0xFF;
+            const lookup = (((z80.regs.hl & 0x8800) >> 11) |
+                           ((value & 0x8800) >> 10) |
+                           ((result & 0x8800) >> 9)) & 0xFF;
             z80.regs.memptr = inc16(z80.regs.hl);
             z80.regs.hl = result & 0xFFFF;
             z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | overflowAddTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarryAddTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);

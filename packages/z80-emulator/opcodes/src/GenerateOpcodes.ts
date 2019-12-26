@@ -123,6 +123,7 @@ function emitArith16(output: string[], opcode: string, dest: string): void {
     let op = opcode.startsWith("a") ? "+" : "-";
     let opCap = opcode.startsWith("a") ? "Add" : "Sub";
     let carry = opcode.endsWith("c");
+    let mask = carry ? "0x8800" : "0x0800";
 
     addLine(output, "let result = z80.regs." + dest + " " + op + " value;");
     if (carry) {
@@ -132,9 +133,9 @@ function emitArith16(output: string[], opcode: string, dest: string): void {
         exit();
         addLine(output, "}");
     }
-    addLine(output, "const lookup = (((z80.regs." + dest + " & 0x0800) >> 11) |");
-    addLine(output, "               ((value & 0x0800) >> 10) |");
-    addLine(output, "               ((result & 0x0800) >> 9)) & 0xFF;");
+    addLine(output, "const lookup = (((z80.regs." + dest + " & " + mask + ") >> 11) |");
+    addLine(output, "               ((value & " + mask + ") >> 10) |");
+    addLine(output, "               ((result & " + mask + ") >> 9)) & 0xFF;");
     addLine(output, "z80.regs.memptr = inc16(z80.regs." + dest + ");");
     addLine(output, "z80.regs." + dest + " = result & 0xFFFF;");
 
