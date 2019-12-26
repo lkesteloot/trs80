@@ -655,6 +655,71 @@ function handleSetResBit(output: string[], opcode:string, bit: string, operand: 
     }
 }
 
+function handleRotateShift(output: string[], opcode: string, operand: string):void {
+    // Read operand.
+    addLine(output, "let value: number;");
+    if (isByteReg(operand)) {
+        addLine(output, "value = z80.regs." + operand + ";");
+    } else if (operand === "(hl)") {
+        addLine(output, "value = z80.readByte(z80.regs.hl);");
+        addLine(output, "z80.incTStateCount(1);");
+    } else if (operand.endsWith("+dd)")) {
+        addLine(output, "value = z80.readByte(z80.regs.memptr);");
+        addLine(output, "z80.incTStateCount(1);");
+    } else {
+        throw new Error("Unknown operand for " + opcode + ": " + operand);
+    }
+
+    // Perform operation.
+    addLine(output, "const tmp = value;");
+    switch (opcode) {
+        case "rl":
+            addLine(output, "value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;");
+            break;
+
+        case "rlc":
+            addLine(output, "value = ((value << 1) | (value >> 7)) & 0xFF;");
+            break;
+
+        case "rr":
+            addLine(output, "value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);");
+            break;
+
+        case "rrc":
+            addLine(output, "value = ((value >> 1) | (value << 7)) & 0xFF;");
+            break;
+
+        case "sla":
+            addLine(output, "value = (value << 1) & 0xFF;");
+            break;
+
+        case "sll":
+            addLine(output, "value = ((value << 1) | 0x01) & 0xFF;");
+            break;
+
+        case "sra":
+            addLine(output, "value = (value & 0x80) | (value >> 1);");
+            break;
+
+        case "srl":
+            addLine(output, "value = value >> 1;");
+            break;
+    }
+
+    // Which bit goes into the carry flag.
+    const bitIntoCarry = opcode.substr(1, 1) === "l" ? "0x80" : "0x01";
+    addLine(output, "z80.regs.f = ((tmp & " + bitIntoCarry + ") !== 0 ? Flag.C : 0) | z80.sz53pTable[value];");
+
+    // Write operand.
+    if (isByteReg(operand)) {
+        addLine(output, "z80.regs." + operand + " = value;");
+    } else if (operand === "(hl)") {
+        addLine(output, "z80.writeByte(z80.regs.hl, value);");
+    } else if (operand.endsWith("+dd)")) {
+        addLine(output, "z80.writeByte(z80.regs.memptr, value);");
+    }
+}
+
 function generateDispatch(pathname: string): string {
     const output: string[] = [];
     enter();
@@ -952,6 +1017,21 @@ function generateDispatch(pathname: string): string {
                     }
                     const [bit, operand] = params.split(",");
                     handleSetResBit(output, opcode, bit, operand);
+                    break;
+                }
+
+                case "rl":
+                case "rlc":
+                case "rr":
+                case "rrc":
+                case "sla":
+                case "sll":
+                case "sra":
+                case "srl": {
+                    if (params === undefined) {
+                        throw new Error(opcode + " requires params: " + line);
+                    }
+                    handleRotateShift(output, opcode, params);
                     break;
                 }
 
