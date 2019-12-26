@@ -53,7 +53,6 @@ export class Runner {
             const success = this.runTest(test);
             if (success) {
                 this.successfulTests += 1;
-                console.log("Passed " + test.name);
             }
         }
     }
