@@ -1040,6 +1040,16 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "ccf": {
+                    addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | ((z80.regs.f & Flag.C) !== 0 ? Flag.H : Flag.C) | (z80.regs.a & (Flag.X3 | Flag.X5));");
+                    break;
+                }
+
+                case "scf": {
+                    addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | Flag.C | (z80.regs.a & (Flag.X3 | Flag.X5));");
+                    break;
+                }
+
                 case "shift":
                     if (params === undefined) {
                         throw new Error("Shift requires params: " + line);

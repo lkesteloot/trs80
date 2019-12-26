@@ -7136,6 +7136,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0x37: { // scf
+            z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | Flag.C | (z80.regs.a & (Flag.X3 | Flag.X5));
             break;
         }
 
@@ -7190,6 +7191,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0x3F: { // ccf
+            z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | ((z80.regs.f & Flag.C) !== 0 ? Flag.H : Flag.C) | (z80.regs.a & (Flag.X3 | Flag.X5));
             break;
         }
 
