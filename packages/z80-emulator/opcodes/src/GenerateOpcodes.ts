@@ -623,13 +623,17 @@ function generateDispatch(pathname: string): string {
 
         const number = parseInt(numberString, 16);
 
+        if (opcode === undefined) {
+            // Fallthrough to next line.
+            addLine(output, "case 0x" + toHex(number, 2) + ":");
+            return;
+        }
+
         addLine(output, "case 0x" + toHex(number, 2) + ": { // " + ((opcode || "") + " " + (params || "")).trim());
         enter();
 
         if (extra !== undefined) {
             addLine(output, "// We don't yet implement undocumented opcodes");
-        } else if (opcode === undefined) {
-            addLine(output, "// Undefined opcode.");
         } else {
             switch (opcode) {
                 case "add":

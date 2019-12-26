@@ -2212,314 +2212,90 @@ function decodeDDCB(z80: Z80): void {
             break;
         }
 
-        case 0x40: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x41: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x42: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x43: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x44: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x45: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x46: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x40:
+        case 0x41:
+        case 0x42:
+        case 0x43:
+        case 0x44:
+        case 0x45:
+        case 0x46:
         case 0x47: { // bit 0,(ix+dd)
             break;
         }
 
-        case 0x48: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x49: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4A: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4B: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4E: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x48:
+        case 0x49:
+        case 0x4A:
+        case 0x4B:
+        case 0x4C:
+        case 0x4D:
+        case 0x4E:
         case 0x4F: { // bit 1,(ix+dd)
             break;
         }
 
-        case 0x50: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x51: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x52: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x53: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x54: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x55: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x56: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x50:
+        case 0x51:
+        case 0x52:
+        case 0x53:
+        case 0x54:
+        case 0x55:
+        case 0x56:
         case 0x57: { // bit 2,(ix+dd)
             break;
         }
 
-        case 0x58: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x59: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5A: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5B: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5E: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x58:
+        case 0x59:
+        case 0x5A:
+        case 0x5B:
+        case 0x5C:
+        case 0x5D:
+        case 0x5E:
         case 0x5F: { // bit 3,(ix+dd)
             break;
         }
 
-        case 0x60: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x61: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x62: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x63: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x64: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x65: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x66: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x60:
+        case 0x61:
+        case 0x62:
+        case 0x63:
+        case 0x64:
+        case 0x65:
+        case 0x66:
         case 0x67: { // bit 4,(ix+dd)
             break;
         }
 
-        case 0x68: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x69: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6A: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6B: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6E: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x68:
+        case 0x69:
+        case 0x6A:
+        case 0x6B:
+        case 0x6C:
+        case 0x6D:
+        case 0x6E:
         case 0x6F: { // bit 5,(ix+dd)
             break;
         }
 
-        case 0x70: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x71: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x72: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x73: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x74: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x75: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x76: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x70:
+        case 0x71:
+        case 0x72:
+        case 0x73:
+        case 0x74:
+        case 0x75:
+        case 0x76:
         case 0x77: { // bit 6,(ix+dd)
             break;
         }
 
-        case 0x78: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x79: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7A: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7B: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7E: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x78:
+        case 0x79:
+        case 0x7A:
+        case 0x7B:
+        case 0x7C:
+        case 0x7D:
+        case 0x7E:
         case 0x7F: { // bit 7,(ix+dd)
             break;
         }
@@ -3207,41 +2983,13 @@ function decodeED(z80: Z80): void {
             break;
         }
 
-        case 0x44: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x54: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x64: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x74: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x44:
+        case 0x4C:
+        case 0x54:
+        case 0x5C:
+        case 0x64:
+        case 0x6C:
+        case 0x74:
         case 0x7C: { // neg
             const value = z80.regs.a;
             z80.regs.a = 0;
@@ -3259,41 +3007,13 @@ function decodeED(z80: Z80): void {
             break;
         }
 
-        case 0x45: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x55: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x65: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x75: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x45:
+        case 0x4D:
+        case 0x55:
+        case 0x5D:
+        case 0x65:
+        case 0x6D:
+        case 0x75:
         case 0x7D: { // retn
             z80.regs.iff1 = z80.regs.iff2;
             z80.regs.pc = z80.popWord();
@@ -3301,21 +3021,9 @@ function decodeED(z80: Z80): void {
             break;
         }
 
-        case 0x46: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4E: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x66: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x46:
+        case 0x4E:
+        case 0x66:
         case 0x6E: { // im 0
             z80.regs.im = 0;
             break;
@@ -3422,11 +3130,7 @@ function decodeED(z80: Z80): void {
             break;
         }
 
-        case 0x56: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x56:
         case 0x76: { // im 1
             z80.regs.im = 1;
             break;
@@ -3482,11 +3186,7 @@ function decodeED(z80: Z80): void {
             break;
         }
 
-        case 0x5E: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x5E:
         case 0x7E: { // im 2
             z80.regs.im = 2;
             break;
@@ -5087,314 +4787,90 @@ function decodeFDCB(z80: Z80): void {
             break;
         }
 
-        case 0x40: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x41: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x42: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x43: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x44: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x45: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x46: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x40:
+        case 0x41:
+        case 0x42:
+        case 0x43:
+        case 0x44:
+        case 0x45:
+        case 0x46:
         case 0x47: { // bit 0,(iy+dd)
             break;
         }
 
-        case 0x48: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x49: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4A: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4B: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x4E: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x48:
+        case 0x49:
+        case 0x4A:
+        case 0x4B:
+        case 0x4C:
+        case 0x4D:
+        case 0x4E:
         case 0x4F: { // bit 1,(iy+dd)
             break;
         }
 
-        case 0x50: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x51: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x52: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x53: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x54: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x55: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x56: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x50:
+        case 0x51:
+        case 0x52:
+        case 0x53:
+        case 0x54:
+        case 0x55:
+        case 0x56:
         case 0x57: { // bit 2,(iy+dd)
             break;
         }
 
-        case 0x58: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x59: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5A: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5B: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x5E: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x58:
+        case 0x59:
+        case 0x5A:
+        case 0x5B:
+        case 0x5C:
+        case 0x5D:
+        case 0x5E:
         case 0x5F: { // bit 3,(iy+dd)
             break;
         }
 
-        case 0x60: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x61: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x62: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x63: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x64: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x65: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x66: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x60:
+        case 0x61:
+        case 0x62:
+        case 0x63:
+        case 0x64:
+        case 0x65:
+        case 0x66:
         case 0x67: { // bit 4,(iy+dd)
             break;
         }
 
-        case 0x68: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x69: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6A: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6B: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x6E: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x68:
+        case 0x69:
+        case 0x6A:
+        case 0x6B:
+        case 0x6C:
+        case 0x6D:
+        case 0x6E:
         case 0x6F: { // bit 5,(iy+dd)
             break;
         }
 
-        case 0x70: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x71: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x72: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x73: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x74: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x75: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x76: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x70:
+        case 0x71:
+        case 0x72:
+        case 0x73:
+        case 0x74:
+        case 0x75:
+        case 0x76:
         case 0x77: { // bit 6,(iy+dd)
             break;
         }
 
-        case 0x78: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x79: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7A: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7B: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7C: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7D: { // 
-            // Undefined opcode.
-            break;
-        }
-
-        case 0x7E: { // 
-            // Undefined opcode.
-            break;
-        }
-
+        case 0x78:
+        case 0x79:
+        case 0x7A:
+        case 0x7B:
+        case 0x7C:
+        case 0x7D:
+        case 0x7E:
         case 0x7F: { // bit 7,(iy+dd)
             break;
         }
