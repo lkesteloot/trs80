@@ -19,7 +19,8 @@ export class RegisterSet {
     public pc: number = 0;
     public memptr: number = 0;
     public i: number = 0;
-    public r: number = 0;
+    public r: number = 0;  // Low 7 bits of R.
+    public r7: number = 0; // Bit 7 of R.
     public iff1: number = 0;
     public iff2: number = 0;
     public im: number = 0;
@@ -120,6 +121,10 @@ export class RegisterSet {
         this.iy = word(this.iyh, value);
     }
 
+    get rCombined(): number {
+        return (this.r7 & 0x80) | (this.r & 0xF7);
+    }
+
     public get(register: Register): number {
         switch (register) {
             case Register.AF:
@@ -151,7 +156,7 @@ export class RegisterSet {
             case Register.I:
                 return this.i;
             case Register.R:
-                return this.r;
+                return this.rCombined;
             case Register.IFF1:
                 return this.iff1;
             case Register.IFF2:
@@ -209,6 +214,7 @@ export class RegisterSet {
                 break;
             case Register.R:
                 this.r = value;
+                this.r7 = value;
                 break;
             case Register.IFF1:
                 this.iff1 = value;

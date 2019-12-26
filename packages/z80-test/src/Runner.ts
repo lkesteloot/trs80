@@ -251,6 +251,9 @@ export class Runner {
                 }
             }
         }
+        if (test.postHalted) {
+            // TODO, we don't currently check this.
+        }
 
         return success;
     }
