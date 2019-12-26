@@ -47,6 +47,17 @@ function addCondIf(output: string[], cond: string | undefined): void {
     }
 }
 
+function addCondElse(output: string[], cond: string | undefined): boolean {
+    if (cond !== undefined) {
+        exit();
+        addLine(output, "} else {");
+        enter();
+        return true;
+    }
+
+    return false;
+}
+
 function addCondEndIf(output: string[], cond: string | undefined): void {
     if (cond !== undefined) {
         exit();
@@ -265,7 +276,7 @@ function handleEx(output: string[], op1: string, op2: string): void {
     }
 }
 
-function handleJpCall(output: string[], opcode: string, cond: string | undefined, dest: string): void {
+function handleJpJrCall(output: string[], opcode: string, cond: string | undefined, dest: string): void {
     if (dest === "nnnn") {
         addLine(output, "z80.regs.memptr = z80.readByte(z80.regs.pc);");
         addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
@@ -273,15 +284,27 @@ function handleJpCall(output: string[], opcode: string, cond: string | undefined
         addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
     }
     addCondIf(output, cond);
-    if (opcode === "call") {
-        addLine(output, "z80.pushWord(z80.regs.pc);");
-    }
-    if (dest === "nnnn") {
-        addLine(output, "z80.regs.pc = z80.regs.memptr;");
-    } else if (isWordReg(dest)) {
-        addLine(output, "z80.regs.pc = z80.regs." + dest + ";");
+    if (opcode === "jr") {
+        addLine(output, "const offset = z80.readByte(z80.regs.pc);");
+        addLine(output, "z80.incTStateCount(5);");
+        addLine(output, "z80.regs.pc = add16(z80.regs.pc, signedByte(offset));");
+        addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+        addLine(output, "z80.regs.memptr = z80.regs.pc;");
+        if (addCondElse(output, cond)) {
+            addLine(output, "z80.incTStateCount(3);");
+            addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+        }
     } else {
-        throw new Error("Unknown " + opcode + " dest: " + dest);
+        if (opcode === "call") {
+            addLine(output, "z80.pushWord(z80.regs.pc);");
+        }
+        if (dest === "nnnn") {
+            addLine(output, "z80.regs.pc = z80.regs.memptr;");
+        } else if (isWordReg(dest)) {
+            addLine(output, "z80.regs.pc = z80.regs." + dest + ";");
+        } else {
+            throw new Error("Unknown " + opcode + " dest: " + dest);
+        }
     }
     addCondEndIf(output, cond);
 }
@@ -303,8 +326,8 @@ function handleLd(output: string[], dest: string, src: string): void {
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
                 addLine(output, "value = word(z80.readByte(z80.regs.pc), value);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
-                addLine(output, "value = z80.readByte(value);");
                 addLine(output, "z80.regs.memptr = inc16(value);");
+                addLine(output, "value = z80.readByte(value);");
             } else if (addr.endsWith("+dd")) {
                 const reg = addr.substr(0, addr.length - 3);
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
@@ -860,6 +883,7 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "jr":
                 case "call":
                 case "jp": {
                     if (params === undefined) {
@@ -875,7 +899,7 @@ function generateDispatch(pathname: string): string {
                         cond = undefined;
                         dest = parts[0];
                     }
-                    handleJpCall(output, opcode, cond, dest)
+                    handleJpJrCall(output, opcode, cond, dest)
                     break;
                 }
 
