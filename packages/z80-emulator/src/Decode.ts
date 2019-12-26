@@ -3140,6 +3140,7 @@ function decodeED(z80: Z80): void {
             let value: number;
             value = z80.regs.i;
             z80.regs.a = value;
+            z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53Table[z80.regs.a] | (z80.regs.iff2 ? Flag.V : 0);
             break;
         }
 
@@ -3194,8 +3195,10 @@ function decodeED(z80: Z80): void {
 
         case 0x5F: { // ld a,r
             let value: number;
-            value = z80.regs.r;
+            z80.incTStateCount(1);
+            value = z80.regs.rCombined;
             z80.regs.a = value;
+            z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53Table[z80.regs.a] | (z80.regs.iff2 ? Flag.V : 0);
             break;
         }
 

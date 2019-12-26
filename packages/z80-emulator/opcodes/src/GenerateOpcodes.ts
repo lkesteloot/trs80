@@ -319,6 +319,9 @@ function handleLd(output: string[], dest: string, src: string): void {
             if (src === "nn") {
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+            } else if (src === "r") {
+                addLine(output, "z80.incTStateCount(1);");
+                addLine(output, "value = z80.regs.rCombined;");
             } else {
                 addLine(output, "value = z80.regs." + src + ";");
             }
@@ -345,6 +348,10 @@ function handleLd(output: string[], dest: string, src: string): void {
             }
         } else {
             addLine(output, "z80.regs." + dest + " = value;");
+            if (src === "r" || src === "i") {
+                addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53Table[z80.regs.a] | (z80.regs.iff2 ? Flag.V : 0);");
+                // TODO: Must clear the P flag on NMOS Z80s. See "iff2_read" in Fuse.
+            }
         }
     } else {
         // DataWidth.WORD.
