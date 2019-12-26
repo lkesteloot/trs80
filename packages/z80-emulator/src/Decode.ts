@@ -7227,6 +7227,33 @@ export function decode(z80: Z80): void {
         }
 
         case 0x27: { // daa
+            let value = 0;
+            let carry = z80.regs.f & Flag.C;
+            if ((z80.regs.f & Flag.H) !== 0 || ((z80.regs.a & 0x0F) > 9)) {
+                value = 6; // Skip over hex digits in lower nybble.
+            }
+            if (carry !== 0 || z80.regs.a > 0x99) {
+                value |= 0x60; // Skip over hex digits in upper nybble.
+            }
+            if (z80.regs.a > 0x99) {
+                carry = Flag.C;
+            }
+            if ((z80.regs.f & Flag.N) !== 0) {
+                let result = sub16(z80.regs.a, value);
+                const lookup = (((z80.regs.a & 0x88) >> 3) |
+                               ((value & 0x88) >> 2) |
+                               ((result & 0x88) >> 1)) & 0xFF;
+                z80.regs.a = result & 0xFF;
+                z80.regs.f = (((result & 0x100) !== 0) ? Flag.C : 0) | Flag.N | halfCarrySubTable[lookup & 0x07] | overflowSubTable[lookup >> 4] | z80.sz53Table[z80.regs.a];
+            } else {
+                let result = add16(z80.regs.a, value);
+                const lookup = (((z80.regs.a & 0x88) >> 3) |
+                               ((value & 0x88) >> 2) |
+                               ((result & 0x88) >> 1)) & 0xFF;
+                z80.regs.a = result & 0xFF;
+                z80.regs.f = (((result & 0x100) !== 0) ? Flag.C : 0) | halfCarryAddTable[lookup & 0x07] | overflowAddTable[lookup >> 4] | z80.sz53Table[z80.regs.a];
+            }
+            z80.regs.f = (z80.regs.f & ~(Flag.C | Flag.P)) | carry | z80.parityTable[z80.regs.a];
             break;
         }
 

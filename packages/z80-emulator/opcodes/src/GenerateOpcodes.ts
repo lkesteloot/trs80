@@ -764,6 +764,36 @@ function handleRotateShiftIncDec(output: string[], opcode: string, operand: stri
     }
 }
 
+function handleDaa(output: string[]): void {
+    addLine(output, "let value = 0;");
+    addLine(output, "let carry = z80.regs.f & Flag.C;");
+    addLine(output, "if ((z80.regs.f & Flag.H) !== 0 || ((z80.regs.a & 0x0F) > 9)) {");
+    enter();
+    addLine(output, "value = 6; // Skip over hex digits in lower nybble.");
+    exit();
+    addLine(output, "}");
+    addLine(output, "if (carry !== 0 || z80.regs.a > 0x99) {");
+    enter();
+    addLine(output, "value |= 0x60; // Skip over hex digits in upper nybble.");
+    exit();
+    addLine(output, "}");
+    addLine(output, "if (z80.regs.a > 0x99) {");
+    enter();
+    addLine(output, "carry = Flag.C;");
+    exit();
+    addLine(output, "}");
+    addLine(output, "if ((z80.regs.f & Flag.N) !== 0) {");
+    enter();
+    emitArith8(output, "sub");
+    exit();
+    addLine(output, "} else {");
+    enter();
+    emitArith8(output, "add");
+    exit();
+    addLine(output, "}");
+    addLine(output, "z80.regs.f = (z80.regs.f & ~(Flag.C | Flag.P)) | carry | z80.parityTable[z80.regs.a];");
+}
+
 function generateDispatch(pathname: string): string {
     const output: string[] = [];
     enter();
@@ -1102,6 +1132,11 @@ function generateDispatch(pathname: string): string {
                 case "cpl": {
                     addLine(output, "z80.regs.a ^= 0xFF;");
                     addLine(output, "z80.regs.f = (z80.regs.f & (Flag.C | Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | Flag.N | Flag.H;");
+                    break;
+                }
+
+                case "daa": {
+                    handleDaa(output);
                     break;
                 }
 
