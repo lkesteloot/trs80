@@ -232,12 +232,13 @@ function handleLd(output: string[], dest: string, src: string): void {
         if (src.startsWith("(") && src.endsWith(")")) {
             const addr = src.substr(1, src.length - 2);
             if (addr === "nnnn") {
-                addLine(output, "value = z80.readByte(z80.regs.pc);");
+                addLine(output, "let addr = z80.readByte(z80.regs.pc);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
-                addLine(output, "value = word(z80.readByte(z80.regs.pc), value);");
+                addLine(output, "addr = word(z80.readByte(z80.regs.pc), addr);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
-                addLine(output, "value = z80.readByte(value);");
-                addLine(output, "z80.regs.memptr = inc16(value);");
+                addLine(output, "value = z80.readByte(addr);");
+                addLine(output, "z80.regs.memptr = inc16(addr);");
+                addLine(output, "value = word(z80.readByte(z80.regs.memptr), value);");
             } else {
                 throw new Error("Unknown src address type: " + addr);
             }
