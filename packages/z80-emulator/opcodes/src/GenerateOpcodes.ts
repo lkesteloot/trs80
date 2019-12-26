@@ -83,6 +83,124 @@ function determineDataWidth(param1: string, param2: string): DataWidth {
     return dataWidth1;
 }
 
+// Operand should already be in "value".
+function emitArith8(output: string[], opcode: string): void {
+    if (opcode !== "add" && opcode !== "adc" && opcode !== "sub" && opcode !== "sbc") {
+        throw new Error("Invalid opcode for emitArith8: " + opcode);
+    }
+
+    let addition = opcode.startsWith("a");
+    let op = opcode.startsWith("a") ? "add" : "sub";
+    let opCap = opcode.startsWith("a") ? "Add" : "Sub";
+    let carry = opcode.endsWith("c");
+
+    addLine(output, "let result = " + op + "16(z80.regs.a, value);");
+    if (carry) {
+        addLine(output, "if ((z80.regs.f & Flag.C) !== 0) {");
+        enter();
+        addLine(output, "result = inc16(result);");
+        exit();
+        addLine(output, "}");
+    }
+    addLine(output, "const lookup = (((z80.regs.a & 0x88) >> 3) |");
+    addLine(output, "               ((value & 0x88) >> 2) |");
+    addLine(output, "               ((result & 0x88) >> 1)) & 0xFF;");
+    addLine(output, "z80.regs.a = result & 0xFF;");
+    addLine(output, "z80.regs.f = (((result & 0x100) !== 0) ? Flag.C : 0) " +
+        (addition ? "" : "| Flag.N ") +
+        "| halfCarry" + opCap + "Table[lookup & 0x07] " + "" +
+        "| overflow" + opCap + "Table[lookup >> 4] " +
+        "| z80.sz53Table[z80.regs.a];");
+}
+
+// Operand should already be in "value".
+function emitArith16(output: string[], opcode: string, dest: string): void {
+    if (opcode !== "add" && opcode !== "adc" && opcode !== "sub" && opcode !== "sbc") {
+        throw new Error("Invalid opcode for emitArith8: " + opcode);
+    }
+
+    let addition = opcode.startsWith("a");
+    let op = opcode.startsWith("a") ? "+" : "-";
+    let opCap = opcode.startsWith("a") ? "Add" : "Sub";
+    let carry = opcode.endsWith("c");
+
+    addLine(output, "let result = z80.regs." + dest + " " + op + " value;");
+    if (carry) {
+        addLine(output, "if ((z80.regs.f & Flag.C) !== 0) {");
+        enter();
+        addLine(output, "result " + op + "= 1;");
+        exit();
+        addLine(output, "}");
+    }
+    addLine(output, "const lookup = (((z80.regs." + dest + " & 0x0800) >> 11) |");
+    addLine(output, "               ((value & 0x0800) >> 10) |");
+    addLine(output, "               ((result & 0x0800) >> 9)) & 0xFF;");
+    addLine(output, "z80.regs.memptr = inc16(z80.regs." + dest + ");");
+    addLine(output, "z80.regs." + dest + " = result & 0xFFFF;");
+
+    // Flags are set differently based on operation.
+    switch (opcode) {
+        case "add":
+            addLine(output, "z80.regs.f = (z80.regs.f & (Flag.V | Flag.Z | Flag.S)) | ((result & 0x10000) !== 0 ? Flag.C : 0) | ((result >> 8) & (Flag.X3 | Flag.X5)) | halfCarryAddTable[lookup];");
+            break;
+
+        case "adc":
+            addLine(output, "z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | overflowAddTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarryAddTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);");
+            break;
+
+        case "sub":
+            throw new Error("Not 16-bit SUB");
+
+        case "sbc":
+            addLine(output, "z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | Flag.N | overflowSubTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarrySubTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);");
+            break;
+    }
+}
+
+function handleArith(output: string[], opcode: string, dest: string, src: string): void {
+    addLine(output, "let value: number;");
+    if (determineDataWidth(dest, src) == DataWidth.BYTE) {
+        if (src.startsWith("(") && src.endsWith(")")) {
+            const addr = src.substr(1, src.length - 2);
+            if (isWordReg(addr)) {
+                addLine(output, "value = z80.readByte(z80.regs." + addr + ");");
+            } else if (addr.endsWith("+dd")) {
+                const reg = addr.substr(0, addr.length - 3);
+                addLine(output, "value = z80.readByte(z80.regs.pc);");
+                addLine(output, "z80.incTStateCount(5);");
+                addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+                addLine(output, "z80.regs.memptr = (z80.regs." + reg + " + signedByte(value)) & 0xFFFF;");
+                addLine(output, "value = z80.readByte(z80.regs.memptr);");
+            } else {
+                throw new Error("Unknown src address type: " + addr);
+            }
+        } else if (src === "nn") {
+            addLine(output, "value = z80.readByte(z80.regs.pc);");
+            addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+        } else {
+            addLine(output, "value = z80.regs." + src + ";");
+        }
+        if (dest === "a") {
+            emitArith8(output, opcode);
+        } else {
+            throw new Error("8-bit " + opcode + " must have A as destination");
+        }
+    } else {
+        // DataWidth.WORD.
+        addLine(output, "z80.incTStateCount(7);");
+        if (isWordReg(src)) {
+            addLine(output, "value = z80.regs." + src + ";");
+        } else {
+            throw new Error("Unknown src type: " + src);
+        }
+        if (isWordReg(dest)) {
+            emitArith16(output, opcode, dest);
+        } else {
+            throw new Error("Unknown dest type: " + dest);
+        }
+    }
+}
+
 function handleCp(output: string[], src: string): void {
     addLine(output, "let value: number;");
     if (src.startsWith("(") && src.endsWith(")")) {
@@ -467,6 +585,22 @@ function generateDispatch(pathname: string): string {
             addLine(output, "// Undefined opcode.");
         } else {
             switch (opcode) {
+                case "add":
+                case "adc":
+                case "sub":
+                case "sbc": {
+                    if (params === undefined) {
+                        throw new Error(opcode + " requires params: " + line);
+                    }
+                    const parts = params.split(",");
+                    if (parts.length !== 2) {
+                        throw new Error(opcode + " requires two params: " + line);
+                    }
+                    const [dest, src] = parts;
+                    handleArith(output, opcode, dest, src);
+                    break;
+                }
+
                 case "cp": {
                     if (params === undefined) {
                         throw new Error("CP requires params: " + line);

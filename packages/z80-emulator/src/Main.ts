@@ -100,7 +100,7 @@ if (true) {
     runner.runAll();
 } else {
     runner.checkEvents = true;
-    runner.runOne("edba");
+    runner.runOne("ed7a");
 }
 for (const error of runner.errors) {
     console.log(error);
