@@ -546,9 +546,9 @@ function emitSub(output: string[]): void {
     addLine(output, "z80.regs.f = f;");
 }
 
-function handleOut(output: string[], port: string, value: string): void {
+function handleOut(output: string[], port: string, src: string): void {
     if (port === "(nn)") {
-        if (value !== "a") {
+        if (src !== "a") {
             throw new Error("When OUT to (nn), source must be A");
         }
         addLine(output, "const port = z80.readByte(z80.regs.pc);");
@@ -556,17 +556,38 @@ function handleOut(output: string[], port: string, value: string): void {
         addLine(output, "z80.regs.memptr = word(z80.regs.a, inc8(port));");
         addLine(output, "z80.writePort(word(z80.regs.a, port), z80.regs.a);");
     } else if (port === "(c)") {
-        let src: string;
-        if (value === "0") {
+        let value: string;
+        if (src === "0") {
             // TODO: apparently it's 0xFF if the Z80 is CMOS?!
-            src = "0x00";
-        } else if (isByteReg(value)) {
-            src = "z80.regs." + value;
+            value = "0x00";
+        } else if (isByteReg(src)) {
+            value = "z80.regs." + src;
         } else {
-            throw new Error("Unknown value for OUT: " + value);
+            throw new Error("Unknown source for OUT: " + src);
         }
-        addLine(output, "z80.writePort(z80.regs.bc, " + src + ");");
+        addLine(output, "z80.writePort(z80.regs.bc, " + value + ");");
         addLine(output, "z80.regs.memptr = inc16(z80.regs.bc);");
+    } else {
+        throw new Error("Unknown port for OUT: " + port);
+    }
+}
+
+function handleIn(output: string[], dest: string, port: string): void {
+    if (port === "(nn)") {
+        if (dest !== "a") {
+            throw new Error("When IN from (nn), destination must be A");
+        }
+        addLine(output, "const port = word(z80.regs.a, z80.readByte(z80.regs.pc));");
+        addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+        addLine(output, "z80.regs.a = z80.readPort(port);");
+        addLine(output, "z80.regs.memptr = inc16(port);");
+    } else if (port === "(c)") {
+        if (!isByteReg(dest)) {
+            throw new Error("Unknown dest for IN: " + dest);
+        }
+        addLine(output, "z80.regs.memptr = inc16(z80.regs.bc);");
+        addLine(output, "z80.regs." + dest + " = z80.readPort(z80.regs.bc);");
+        addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53pTable[z80.regs." + dest + "];");
     } else {
         throw new Error("Unknown port for OUT: " + port);
     }
@@ -815,8 +836,17 @@ function generateDispatch(pathname: string): string {
                     if (params === undefined) {
                         throw new Error(opcode + " requires params: " + line);
                     }
-                    const [port, value] = params.split(",");
-                    handleOut(output, port, value);
+                    const [port, src] = params.split(",");
+                    handleOut(output, port, src);
+                    break;
+                }
+
+                case "in": {
+                    if (params === undefined) {
+                        throw new Error(opcode + " requires params: " + line);
+                    }
+                    const [dest, port] = params.split(",");
+                    handleIn(output, dest, port);
                     break;
                 }
 
