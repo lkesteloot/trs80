@@ -628,14 +628,33 @@ function handleIn(output: string[], dest: string, port: string): void {
     }
 }
 
-function handleSetResBit(output: string[], opcode:string, bit: string, operand: string): void {
+// Return a tuple of bit value, C bitwise operator, and hex string to compare to.
+// E.g., "set 5" would return [0x20, "|", "0x20"].
+function getSetRes(opcode: "bit" | "set" | "res", bit: string): [number, string, string] {
     let bitValue = 1 << parseInt(bit, 10);
-    let operator: string = "|";
-    if (opcode === "res") {
-        bitValue ^= 0xFF;
-        operator = "&";
+    let operator: string;
+
+    switch (opcode) {
+        case "bit":
+            operator = "&";
+            break;
+
+        case "set":
+            operator = "|";
+            break;
+
+        case "res":
+            operator = "&";
+            bitValue ^= 0xFF;
+            break;
     }
     let hexBit = "0x" + toHex(bitValue, 2);
+
+    return [bitValue, operator, hexBit];
+}
+
+function handleSetResBit(output: string[], opcode:"bit" | "set" | "res", bit: string, operand: string): void {
+    const [bitValue, operator, hexBit] = getSetRes(opcode, bit);
 
     if (opcode === "bit") {
         if (isByteReg(operand)) {
@@ -647,10 +666,9 @@ function handleSetResBit(output: string[], opcode:string, bit: string, operand: 
             addLine(output, "z80.incTStateCount(1);");
         } else if (operand.endsWith("+dd)")) {
             const reg = operand.substr(1, 2);
-            // TODO
-            console.log("Warning: SET with +dd not implemented");
-            addLine(output, "const value = 0;");
-            addLine(output, "const hiddenValue = 0;");
+            addLine(output, "const value = z80.readByte(z80.regs.memptr);");
+            addLine(output, "const hiddenValue = hi(z80.regs.memptr);");
+            addLine(output, "z80.incTStateCount(1);");
         }
         addLine(output, "let f = (z80.regs.f & Flag.C) | Flag.H | (hiddenValue & (Flag.X3 | Flag.X5));");
         addLine(output, "if ((value & " + hexBit + ") === 0) {");
@@ -675,9 +693,9 @@ function handleSetResBit(output: string[], opcode:string, bit: string, operand: 
             addLine(output, "z80.incTStateCount(1);");
             addLine(output, "z80.writeByte(z80.regs.hl, value " + operator + " " + hexBit + ");");
         } else if (operand.endsWith("+dd)")) {
-            const reg = operand.substr(1, 2);
-            // TODO
-            console.log("Warning: SET with +dd not implemented");
+            addLine(output, "const value = z80.readByte(z80.regs.memptr);");
+            addLine(output, "z80.incTStateCount(1);");
+            addLine(output, "z80.writeByte(z80.regs.memptr, value " + operator + " " + hexBit + ");");
         }
     }
 }
@@ -867,9 +885,33 @@ function generateDispatch(pathname: string): string {
         enter();
 
         if (extra !== undefined) {
-            addLine(output, "// We don't yet implement undocumented opcodes");
+            if (params === undefined) {
+                throw new Error(opcode + " requires params: " + line);
+            }
+            const [reg, newOpcode] = params.split(",");
+            if (newOpcode === "set" || newOpcode === "res") {
+                const bit = extra.split(",")[0];
+                const [bitValue, operator, hexBit] = getSetRes(newOpcode, bit);
+                addLine(output, "z80.regs." + reg + " = z80.readByte(z80.regs.memptr) " + operator + " " + hexBit + ";");
+                addLine(output, "z80.incTStateCount(1);");
+                addLine(output, "z80.writeByte(z80.regs.memptr, z80.regs." + reg + ");");
+            } else {
+                addLine(output, "z80.regs." + reg + " = z80.readByte(z80.regs.memptr);");
+                addLine(output, "z80.incTStateCount(1);");
+                addLine(output, "{");
+                enter();
+                handleRotateShiftIncDec(output, newOpcode, reg);
+                exit();
+                addLine(output, "}");
+                addLine(output, "z80.writeByte(z80.regs.memptr, z80.regs." + reg + ");");
+            }
         } else {
             switch (opcode) {
+                case "nop": {
+                    // Nothing to do.
+                    break;
+                }
+
                 case "add":
                 case "adc":
                 case "sub":

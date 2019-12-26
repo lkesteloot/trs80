@@ -42,7 +42,14 @@ function decodeDD(z80: Z80): void {
 }
 
 function decodeDDCB(z80: Z80): void {
-    const inst = fetchInstruction(z80);
+    z80.incTStateCount(3);
+    const offset = z80.readByteInternal(z80.regs.pc);
+    z80.regs.memptr = add16(z80.regs.ix, signedByte(offset));
+    z80.regs.pc = inc16(z80.regs.pc);
+    z80.incTStateCount(3);
+    const inst = z80.readByteInternal(z80.regs.pc);
+    z80.incTStateCount(2);
+    z80.regs.pc = inc16(z80.regs.pc);
 
     switch (inst) {
         // DECODE_DDCB
@@ -81,7 +88,14 @@ function decodeFD(z80: Z80): void {
 }
 
 function decodeFDCB(z80: Z80): void {
-    const inst = fetchInstruction(z80);
+    z80.incTStateCount(3);
+    const offset = z80.readByteInternal(z80.regs.pc);
+    z80.regs.memptr = add16(z80.regs.iy, signedByte(offset));
+    z80.regs.pc = inc16(z80.regs.pc);
+    z80.incTStateCount(3);
+    const inst = z80.readByteInternal(z80.regs.pc);
+    z80.incTStateCount(2);
+    z80.regs.pc = inc16(z80.regs.pc);
 
     switch (inst) {
         // DECODE_FDCB
