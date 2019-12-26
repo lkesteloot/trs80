@@ -1657,7 +1657,7 @@ function decodeDD(z80: Z80): void {
             value = z80.regs.ixh;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -1672,7 +1672,7 @@ function decodeDD(z80: Z80): void {
             value = z80.regs.ixl;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -1691,7 +1691,7 @@ function decodeDD(z80: Z80): void {
             value = z80.readByte(z80.regs.memptr);
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -4247,7 +4247,7 @@ function decodeFD(z80: Z80): void {
             value = z80.regs.iyh;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -4262,7 +4262,7 @@ function decodeFD(z80: Z80): void {
             value = z80.regs.iyl;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -4281,7 +4281,7 @@ function decodeFD(z80: Z80): void {
             value = z80.readByte(z80.regs.memptr);
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -6712,7 +6712,7 @@ export function decode(z80: Z80): void {
             value = z80.regs.b;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -6727,7 +6727,7 @@ export function decode(z80: Z80): void {
             value = z80.regs.c;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -6742,7 +6742,7 @@ export function decode(z80: Z80): void {
             value = z80.regs.d;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -6757,7 +6757,7 @@ export function decode(z80: Z80): void {
             value = z80.regs.e;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -6772,7 +6772,7 @@ export function decode(z80: Z80): void {
             value = z80.regs.h;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -6787,7 +6787,7 @@ export function decode(z80: Z80): void {
             value = z80.regs.l;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -6802,7 +6802,7 @@ export function decode(z80: Z80): void {
             value = z80.readByte(z80.regs.hl);
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -6817,7 +6817,7 @@ export function decode(z80: Z80): void {
             value = z80.regs.a;
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |
@@ -7447,7 +7447,7 @@ export function decode(z80: Z80): void {
             z80.regs.pc = inc16(z80.regs.pc);
             let result = sub16(z80.regs.a, value);
             if ((z80.regs.f & Flag.C) !== 0) {
-                result = inc16(result);
+                result = dec16(result);
             }
             const lookup = (((z80.regs.a & 0x88) >> 3) |
                            ((value & 0x88) >> 2) |

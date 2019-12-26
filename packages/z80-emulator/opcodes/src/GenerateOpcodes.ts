@@ -90,15 +90,15 @@ function emitArith8(output: string[], opcode: string): void {
     }
 
     let addition = opcode.startsWith("a");
-    let op = opcode.startsWith("a") ? "add" : "sub";
-    let opCap = opcode.startsWith("a") ? "Add" : "Sub";
+    let op = addition ? "add" : "sub";
+    let opCap = addition ? "Add" : "Sub";
     let carry = opcode.endsWith("c");
 
     addLine(output, "let result = " + op + "16(z80.regs.a, value);");
     if (carry) {
         addLine(output, "if ((z80.regs.f & Flag.C) !== 0) {");
         enter();
-        addLine(output, "result = inc16(result);");
+        addLine(output, "result = " + (addition ? "inc" : "dec") + "16(result);");
         exit();
         addLine(output, "}");
     }
