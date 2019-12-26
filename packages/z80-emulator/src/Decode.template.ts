@@ -22,7 +22,7 @@ function decodeCB(z80: Z80): void {
         // DECODE_CB
 
         default:
-            console.log("Unhandled opcode " + toHex(inst, 2));
+            console.log("Unhandled opcode in CB: " + toHex(inst, 2));
             break;
 
     }
@@ -35,7 +35,7 @@ function decodeDD(z80: Z80): void {
         // DECODE_DD
 
         default:
-            console.log("Unhandled opcode " + toHex(inst, 2));
+            console.log("Unhandled opcode in DD: " + toHex(inst, 2));
             break;
 
     }
@@ -55,7 +55,7 @@ function decodeDDCB(z80: Z80): void {
         // DECODE_DDCB
 
         default:
-            console.log("Unhandled opcode " + toHex(inst, 2));
+            console.log("Unhandled opcode in DDCB: " + toHex(inst, 2));
             break;
 
     }
@@ -68,7 +68,7 @@ function decodeED(z80: Z80): void {
         // DECODE_ED
 
         default:
-            console.log("Unhandled opcode " + toHex(inst, 2));
+            console.log("Unhandled opcode in ED: " + toHex(inst, 2));
             break;
 
     }
@@ -81,7 +81,7 @@ function decodeFD(z80: Z80): void {
         // DECODE_FD
 
         default:
-            console.log("Unhandled opcode " + toHex(inst, 2));
+            console.log("Unhandled opcode in FD: " + toHex(inst, 2));
             break;
 
     }
@@ -101,7 +101,7 @@ function decodeFDCB(z80: Z80): void {
         // DECODE_FDCB
 
         default:
-            console.log("Unhandled opcode " + toHex(inst, 2));
+            console.log("Unhandled opcode in FDCB: " + toHex(inst, 2));
             break;
 
     }

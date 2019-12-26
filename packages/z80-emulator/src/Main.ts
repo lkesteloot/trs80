@@ -50,25 +50,25 @@ class DelegateImpl implements Delegate {
     private z80: Z80 = new Z80(this.hal);
 
     public startNewTest(name: string): void {
-        console.log("Running test \"" + name + "\"");
+        // console.log("Running test \"" + name + "\"");
         this.z80.reset();
         this.hal.reset();
     }
 
     public getRegister(register: Register): number {
         const value = this.z80.regs.get(register) as number;
-        console.log("Checking value of " + Register[register] + " (" + toHex(value, 4) + ")");
+        // console.log("Checking value of " + Register[register] + " (" + toHex(value, 4) + ")");
         return value;
     }
 
     public readMemory(address: number): number {
         const value = this.hal.memory[address];
-        console.log("Checking value of " + toHex(address, 4) + " (" + toHex(value, 2) + ")");
+        // console.log("Checking value of " + toHex(address, 4) + " (" + toHex(value, 2) + ")");
         return value;
     }
 
     public run(tStateCount: number): CpuEvent[] {
-        console.log("Running for " + tStateCount + " t-states");
+        // console.log("Running for " + tStateCount + " t-states");
         while (this.hal.tStateCount < tStateCount) {
             this.z80.step();
         }
@@ -76,12 +76,12 @@ class DelegateImpl implements Delegate {
     }
 
     public setRegister(register: Register, value: number): void {
-        console.log("Setting register " + Register[register] + " to " + toHex(value, 4));
+        // console.log("Setting register " + Register[register] + " to " + toHex(value, 4));
         this.z80.regs.set(register, value);
     }
 
     public writeMemory(address: number, value: number): void {
-        console.log("Writing " + toHex(value, 2) + " to " + toHex(address, 4));
+        // console.log("Writing " + toHex(value, 2) + " to " + toHex(address, 4));
         this.hal.memory[address] = value;
     }
 

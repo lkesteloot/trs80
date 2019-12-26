@@ -845,7 +845,7 @@ function handleRotateA(output: string[], opcode: string): void {
     addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | ((oldA & " + bitIntoCarry + ") !== 0 ? Flag.C : 0);");
 }
 
-function generateDispatch(pathname: string): string {
+function generateDispatch(pathname: string, prefix: string): string {
     const output: string[] = [];
     enter();
     enter();
@@ -1247,7 +1247,7 @@ function generateDispatch(pathname: string): string {
                     break;
 
                 default:
-                    console.log("Unhandled opcode: " + line);
+                    console.log("Unhandled opcode in " + prefix + ": " + line);
                     break;
             }
         }
@@ -1287,7 +1287,7 @@ function generateOpcodes(): void {
 
     for (const prefix of prefixes) {
         const dataPathname = path.join(opcodesDir, "opcodes_" + prefix + ".dat");
-        const dispatch = generateDispatch(dataPathname);
+        const dispatch = generateDispatch(dataPathname, prefix);
         dispatchMap.set(prefix, dispatch);
     }
 
