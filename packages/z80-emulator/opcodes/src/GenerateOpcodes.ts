@@ -709,7 +709,7 @@ function handleRotateShiftIncDec(output: string[], opcode: string, operand: stri
         addLine(output, "value = z80.readByte(z80.regs.hl);");
         addLine(output, "z80.incTStateCount(1);");
     } else if (operand.endsWith("+dd)")) {
-        if (operand === "inc" || operand === "dec") {
+        if (opcode === "inc" || opcode === "dec") {
             const reg = operand.substr(1, 2);
             addLine(output, "const offset = z80.readByte(z80.regs.pc);");
             addLine(output, "z80.incTStateCount(5);");
