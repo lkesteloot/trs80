@@ -653,15 +653,22 @@ function handleSetResBit(output: string[], opcode:string, bit: string, operand: 
     }
 }
 
-function handleRotateShift(output: string[], opcode: string, operand: string):void {
+function handleRotateShiftIncDec(output: string[], opcode: string, operand: string):void {
     // Read operand.
     addLine(output, "let value: number;");
-    if (isByteReg(operand)) {
+    if (isByteReg(operand) || isWordReg(operand)) {
         addLine(output, "value = z80.regs." + operand + ";");
     } else if (operand === "(hl)") {
         addLine(output, "value = z80.readByte(z80.regs.hl);");
         addLine(output, "z80.incTStateCount(1);");
     } else if (operand.endsWith("+dd)")) {
+        if (operand === "inc" || operand === "dec") {
+            const reg = operand.substr(1, 2);
+            addLine(output, "const offset = z80.readByte(z80.regs.pc);");
+            addLine(output, "z80.incTStateCount(5);");
+            addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+            addLine(output, "z80.regs.memptr = add16(z80.regs." + reg + ", signedByte(offset));");
+        }
         addLine(output, "value = z80.readByte(z80.regs.memptr);");
         addLine(output, "z80.incTStateCount(1);");
     } else {
@@ -669,7 +676,7 @@ function handleRotateShift(output: string[], opcode: string, operand: string):vo
     }
 
     // Perform operation.
-    addLine(output, "const tmp = value;");
+    addLine(output, "const oldValue = value;");
     switch (opcode) {
         case "rl":
             addLine(output, "value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;");
@@ -702,14 +709,30 @@ function handleRotateShift(output: string[], opcode: string, operand: string):vo
         case "srl":
             addLine(output, "value = value >> 1;");
             break;
+
+        case "inc":
+        case "dec":
+            if (isWordReg(operand)) {
+                addLine(output, "value = " + opcode + "16(value);");
+            } else {
+                addLine(output, "value = " + opcode + "8(value);");
+                if (opcode === "dec") {
+                    addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];");
+                } else {
+                    addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];");
+                }
+            }
+            break;
     }
 
-    // Which bit goes into the carry flag.
-    const bitIntoCarry = opcode.substr(1, 1) === "l" ? "0x80" : "0x01";
-    addLine(output, "z80.regs.f = ((tmp & " + bitIntoCarry + ") !== 0 ? Flag.C : 0) | z80.sz53pTable[value];");
+    if (opcode !== "inc" && opcode !== "dec") {
+        // Which bit goes into the carry flag.
+        const bitIntoCarry = opcode.substr(1, 1) === "l" ? "0x80" : "0x01";
+        addLine(output, "z80.regs.f = ((oldValue & " + bitIntoCarry + ") !== 0 ? Flag.C : 0) | z80.sz53pTable[value];");
+    }
 
     // Write operand.
-    if (isByteReg(operand)) {
+    if (isByteReg(operand) || isWordReg(operand)) {
         addLine(output, "z80.regs." + operand + " = value;");
     } else if (operand === "(hl)") {
         addLine(output, "z80.writeByte(z80.regs.hl, value);");
@@ -1025,11 +1048,13 @@ function generateDispatch(pathname: string): string {
                 case "sla":
                 case "sll":
                 case "sra":
-                case "srl": {
+                case "srl":
+                case "inc":
+                case "dec": {
                     if (params === undefined) {
                         throw new Error(opcode + " requires params: " + line);
                     }
-                    handleRotateShift(output, opcode, params);
+                    handleRotateShiftIncDec(output, opcode, params);
                     break;
                 }
 

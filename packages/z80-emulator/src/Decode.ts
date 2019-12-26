@@ -27,9 +27,9 @@ function decodeCB(z80: Z80): void {
         case 0x00: { // rlc b
             let value: number;
             value = z80.regs.b;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.b = value;
             break;
         }
@@ -37,9 +37,9 @@ function decodeCB(z80: Z80): void {
         case 0x01: { // rlc c
             let value: number;
             value = z80.regs.c;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.c = value;
             break;
         }
@@ -47,9 +47,9 @@ function decodeCB(z80: Z80): void {
         case 0x02: { // rlc d
             let value: number;
             value = z80.regs.d;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.d = value;
             break;
         }
@@ -57,9 +57,9 @@ function decodeCB(z80: Z80): void {
         case 0x03: { // rlc e
             let value: number;
             value = z80.regs.e;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.e = value;
             break;
         }
@@ -67,9 +67,9 @@ function decodeCB(z80: Z80): void {
         case 0x04: { // rlc h
             let value: number;
             value = z80.regs.h;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.h = value;
             break;
         }
@@ -77,9 +77,9 @@ function decodeCB(z80: Z80): void {
         case 0x05: { // rlc l
             let value: number;
             value = z80.regs.l;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.l = value;
             break;
         }
@@ -88,9 +88,9 @@ function decodeCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.hl);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.hl, value);
             break;
         }
@@ -98,9 +98,9 @@ function decodeCB(z80: Z80): void {
         case 0x07: { // rlc a
             let value: number;
             value = z80.regs.a;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.a = value;
             break;
         }
@@ -108,9 +108,9 @@ function decodeCB(z80: Z80): void {
         case 0x08: { // rrc b
             let value: number;
             value = z80.regs.b;
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.b = value;
             break;
         }
@@ -118,9 +118,9 @@ function decodeCB(z80: Z80): void {
         case 0x09: { // rrc c
             let value: number;
             value = z80.regs.c;
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.c = value;
             break;
         }
@@ -128,9 +128,9 @@ function decodeCB(z80: Z80): void {
         case 0x0A: { // rrc d
             let value: number;
             value = z80.regs.d;
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.d = value;
             break;
         }
@@ -138,9 +138,9 @@ function decodeCB(z80: Z80): void {
         case 0x0B: { // rrc e
             let value: number;
             value = z80.regs.e;
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.e = value;
             break;
         }
@@ -148,9 +148,9 @@ function decodeCB(z80: Z80): void {
         case 0x0C: { // rrc h
             let value: number;
             value = z80.regs.h;
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.h = value;
             break;
         }
@@ -158,9 +158,9 @@ function decodeCB(z80: Z80): void {
         case 0x0D: { // rrc l
             let value: number;
             value = z80.regs.l;
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.l = value;
             break;
         }
@@ -169,9 +169,9 @@ function decodeCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.hl);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.hl, value);
             break;
         }
@@ -179,9 +179,9 @@ function decodeCB(z80: Z80): void {
         case 0x0F: { // rrc a
             let value: number;
             value = z80.regs.a;
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.a = value;
             break;
         }
@@ -189,9 +189,9 @@ function decodeCB(z80: Z80): void {
         case 0x10: { // rl b
             let value: number;
             value = z80.regs.b;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.b = value;
             break;
         }
@@ -199,9 +199,9 @@ function decodeCB(z80: Z80): void {
         case 0x11: { // rl c
             let value: number;
             value = z80.regs.c;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.c = value;
             break;
         }
@@ -209,9 +209,9 @@ function decodeCB(z80: Z80): void {
         case 0x12: { // rl d
             let value: number;
             value = z80.regs.d;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.d = value;
             break;
         }
@@ -219,9 +219,9 @@ function decodeCB(z80: Z80): void {
         case 0x13: { // rl e
             let value: number;
             value = z80.regs.e;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.e = value;
             break;
         }
@@ -229,9 +229,9 @@ function decodeCB(z80: Z80): void {
         case 0x14: { // rl h
             let value: number;
             value = z80.regs.h;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.h = value;
             break;
         }
@@ -239,9 +239,9 @@ function decodeCB(z80: Z80): void {
         case 0x15: { // rl l
             let value: number;
             value = z80.regs.l;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.l = value;
             break;
         }
@@ -250,9 +250,9 @@ function decodeCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.hl);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.hl, value);
             break;
         }
@@ -260,9 +260,9 @@ function decodeCB(z80: Z80): void {
         case 0x17: { // rl a
             let value: number;
             value = z80.regs.a;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.a = value;
             break;
         }
@@ -270,9 +270,9 @@ function decodeCB(z80: Z80): void {
         case 0x18: { // rr b
             let value: number;
             value = z80.regs.b;
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.b = value;
             break;
         }
@@ -280,9 +280,9 @@ function decodeCB(z80: Z80): void {
         case 0x19: { // rr c
             let value: number;
             value = z80.regs.c;
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.c = value;
             break;
         }
@@ -290,9 +290,9 @@ function decodeCB(z80: Z80): void {
         case 0x1A: { // rr d
             let value: number;
             value = z80.regs.d;
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.d = value;
             break;
         }
@@ -300,9 +300,9 @@ function decodeCB(z80: Z80): void {
         case 0x1B: { // rr e
             let value: number;
             value = z80.regs.e;
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.e = value;
             break;
         }
@@ -310,9 +310,9 @@ function decodeCB(z80: Z80): void {
         case 0x1C: { // rr h
             let value: number;
             value = z80.regs.h;
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.h = value;
             break;
         }
@@ -320,9 +320,9 @@ function decodeCB(z80: Z80): void {
         case 0x1D: { // rr l
             let value: number;
             value = z80.regs.l;
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.l = value;
             break;
         }
@@ -331,9 +331,9 @@ function decodeCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.hl);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.hl, value);
             break;
         }
@@ -341,9 +341,9 @@ function decodeCB(z80: Z80): void {
         case 0x1F: { // rr a
             let value: number;
             value = z80.regs.a;
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.a = value;
             break;
         }
@@ -351,9 +351,9 @@ function decodeCB(z80: Z80): void {
         case 0x20: { // sla b
             let value: number;
             value = z80.regs.b;
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.b = value;
             break;
         }
@@ -361,9 +361,9 @@ function decodeCB(z80: Z80): void {
         case 0x21: { // sla c
             let value: number;
             value = z80.regs.c;
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.c = value;
             break;
         }
@@ -371,9 +371,9 @@ function decodeCB(z80: Z80): void {
         case 0x22: { // sla d
             let value: number;
             value = z80.regs.d;
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.d = value;
             break;
         }
@@ -381,9 +381,9 @@ function decodeCB(z80: Z80): void {
         case 0x23: { // sla e
             let value: number;
             value = z80.regs.e;
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.e = value;
             break;
         }
@@ -391,9 +391,9 @@ function decodeCB(z80: Z80): void {
         case 0x24: { // sla h
             let value: number;
             value = z80.regs.h;
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.h = value;
             break;
         }
@@ -401,9 +401,9 @@ function decodeCB(z80: Z80): void {
         case 0x25: { // sla l
             let value: number;
             value = z80.regs.l;
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.l = value;
             break;
         }
@@ -412,9 +412,9 @@ function decodeCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.hl);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.hl, value);
             break;
         }
@@ -422,9 +422,9 @@ function decodeCB(z80: Z80): void {
         case 0x27: { // sla a
             let value: number;
             value = z80.regs.a;
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.a = value;
             break;
         }
@@ -432,9 +432,9 @@ function decodeCB(z80: Z80): void {
         case 0x28: { // sra b
             let value: number;
             value = z80.regs.b;
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.b = value;
             break;
         }
@@ -442,9 +442,9 @@ function decodeCB(z80: Z80): void {
         case 0x29: { // sra c
             let value: number;
             value = z80.regs.c;
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.c = value;
             break;
         }
@@ -452,9 +452,9 @@ function decodeCB(z80: Z80): void {
         case 0x2A: { // sra d
             let value: number;
             value = z80.regs.d;
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.d = value;
             break;
         }
@@ -462,9 +462,9 @@ function decodeCB(z80: Z80): void {
         case 0x2B: { // sra e
             let value: number;
             value = z80.regs.e;
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.e = value;
             break;
         }
@@ -472,9 +472,9 @@ function decodeCB(z80: Z80): void {
         case 0x2C: { // sra h
             let value: number;
             value = z80.regs.h;
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.h = value;
             break;
         }
@@ -482,9 +482,9 @@ function decodeCB(z80: Z80): void {
         case 0x2D: { // sra l
             let value: number;
             value = z80.regs.l;
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.l = value;
             break;
         }
@@ -493,9 +493,9 @@ function decodeCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.hl);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.hl, value);
             break;
         }
@@ -503,9 +503,9 @@ function decodeCB(z80: Z80): void {
         case 0x2F: { // sra a
             let value: number;
             value = z80.regs.a;
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.a = value;
             break;
         }
@@ -513,9 +513,9 @@ function decodeCB(z80: Z80): void {
         case 0x30: { // sll b
             let value: number;
             value = z80.regs.b;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.b = value;
             break;
         }
@@ -523,9 +523,9 @@ function decodeCB(z80: Z80): void {
         case 0x31: { // sll c
             let value: number;
             value = z80.regs.c;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.c = value;
             break;
         }
@@ -533,9 +533,9 @@ function decodeCB(z80: Z80): void {
         case 0x32: { // sll d
             let value: number;
             value = z80.regs.d;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.d = value;
             break;
         }
@@ -543,9 +543,9 @@ function decodeCB(z80: Z80): void {
         case 0x33: { // sll e
             let value: number;
             value = z80.regs.e;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.e = value;
             break;
         }
@@ -553,9 +553,9 @@ function decodeCB(z80: Z80): void {
         case 0x34: { // sll h
             let value: number;
             value = z80.regs.h;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.h = value;
             break;
         }
@@ -563,9 +563,9 @@ function decodeCB(z80: Z80): void {
         case 0x35: { // sll l
             let value: number;
             value = z80.regs.l;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.l = value;
             break;
         }
@@ -574,9 +574,9 @@ function decodeCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.hl);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.hl, value);
             break;
         }
@@ -584,9 +584,9 @@ function decodeCB(z80: Z80): void {
         case 0x37: { // sll a
             let value: number;
             value = z80.regs.a;
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.a = value;
             break;
         }
@@ -594,9 +594,9 @@ function decodeCB(z80: Z80): void {
         case 0x38: { // srl b
             let value: number;
             value = z80.regs.b;
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.b = value;
             break;
         }
@@ -604,9 +604,9 @@ function decodeCB(z80: Z80): void {
         case 0x39: { // srl c
             let value: number;
             value = z80.regs.c;
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.c = value;
             break;
         }
@@ -614,9 +614,9 @@ function decodeCB(z80: Z80): void {
         case 0x3A: { // srl d
             let value: number;
             value = z80.regs.d;
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.d = value;
             break;
         }
@@ -624,9 +624,9 @@ function decodeCB(z80: Z80): void {
         case 0x3B: { // srl e
             let value: number;
             value = z80.regs.e;
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.e = value;
             break;
         }
@@ -634,9 +634,9 @@ function decodeCB(z80: Z80): void {
         case 0x3C: { // srl h
             let value: number;
             value = z80.regs.h;
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.h = value;
             break;
         }
@@ -644,9 +644,9 @@ function decodeCB(z80: Z80): void {
         case 0x3D: { // srl l
             let value: number;
             value = z80.regs.l;
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.l = value;
             break;
         }
@@ -655,9 +655,9 @@ function decodeCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.hl);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.hl, value);
             break;
         }
@@ -665,9 +665,9 @@ function decodeCB(z80: Z80): void {
         case 0x3F: { // srl a
             let value: number;
             value = z80.regs.a;
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.regs.a = value;
             break;
         }
@@ -2148,14 +2148,31 @@ function decodeDD(z80: Z80): void {
         }
 
         case 0x23: { // inc ix
+            let value: number;
+            value = z80.regs.ix;
+            const oldValue = value;
+            value = inc16(value);
+            z80.regs.ix = value;
             break;
         }
 
         case 0x24: { // inc ixh
+            let value: number;
+            value = z80.regs.ixh;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.ixh = value;
             break;
         }
 
         case 0x25: { // dec ixh
+            let value: number;
+            value = z80.regs.ixh;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.ixh = value;
             break;
         }
 
@@ -2195,14 +2212,31 @@ function decodeDD(z80: Z80): void {
         }
 
         case 0x2B: { // dec ix
+            let value: number;
+            value = z80.regs.ix;
+            const oldValue = value;
+            value = dec16(value);
+            z80.regs.ix = value;
             break;
         }
 
         case 0x2C: { // inc ixl
+            let value: number;
+            value = z80.regs.ixl;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.ixl = value;
             break;
         }
 
         case 0x2D: { // dec ixl
+            let value: number;
+            value = z80.regs.ixl;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.ixl = value;
             break;
         }
 
@@ -2215,10 +2249,24 @@ function decodeDD(z80: Z80): void {
         }
 
         case 0x34: { // inc (ix+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.memptr);
+            z80.incTStateCount(1);
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.writeByte(z80.regs.memptr, value);
             break;
         }
 
         case 0x35: { // dec (ix+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.memptr);
+            z80.incTStateCount(1);
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.writeByte(z80.regs.memptr, value);
             break;
         }
 
@@ -2966,9 +3014,9 @@ function decodeDDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -3012,9 +3060,9 @@ function decodeDDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -3058,9 +3106,9 @@ function decodeDDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -3104,9 +3152,9 @@ function decodeDDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -3150,9 +3198,9 @@ function decodeDDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -3196,9 +3244,9 @@ function decodeDDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -3242,9 +3290,9 @@ function decodeDDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -3288,9 +3336,9 @@ function decodeDDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -4853,14 +4901,31 @@ function decodeFD(z80: Z80): void {
         }
 
         case 0x23: { // inc iy
+            let value: number;
+            value = z80.regs.iy;
+            const oldValue = value;
+            value = inc16(value);
+            z80.regs.iy = value;
             break;
         }
 
         case 0x24: { // inc iyh
+            let value: number;
+            value = z80.regs.iyh;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.iyh = value;
             break;
         }
 
         case 0x25: { // dec iyh
+            let value: number;
+            value = z80.regs.iyh;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.iyh = value;
             break;
         }
 
@@ -4900,14 +4965,31 @@ function decodeFD(z80: Z80): void {
         }
 
         case 0x2B: { // dec iy
+            let value: number;
+            value = z80.regs.iy;
+            const oldValue = value;
+            value = dec16(value);
+            z80.regs.iy = value;
             break;
         }
 
         case 0x2C: { // inc iyl
+            let value: number;
+            value = z80.regs.iyl;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.iyl = value;
             break;
         }
 
         case 0x2D: { // dec iyl
+            let value: number;
+            value = z80.regs.iyl;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.iyl = value;
             break;
         }
 
@@ -4920,10 +5002,24 @@ function decodeFD(z80: Z80): void {
         }
 
         case 0x34: { // inc (iy+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.memptr);
+            z80.incTStateCount(1);
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.writeByte(z80.regs.memptr, value);
             break;
         }
 
         case 0x35: { // dec (iy+dd)
+            let value: number;
+            value = z80.readByte(z80.regs.memptr);
+            z80.incTStateCount(1);
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.writeByte(z80.regs.memptr, value);
             break;
         }
 
@@ -5671,9 +5767,9 @@ function decodeFDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | (value >> 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -5717,9 +5813,9 @@ function decodeFDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value >> 1) | (value << 7)) & 0xFF;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -5763,9 +5859,9 @@ function decodeFDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | ((z80.regs.f & Flag.C) !== 0 ? 1 : 0)) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -5809,9 +5905,9 @@ function decodeFDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = (value >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -5855,9 +5951,9 @@ function decodeFDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = (value << 1) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -5901,9 +5997,9 @@ function decodeFDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = (value & 0x80) | (value >> 1);
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -5947,9 +6043,9 @@ function decodeFDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = ((value << 1) | 0x01) & 0xFF;
-            z80.regs.f = ((tmp & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -5993,9 +6089,9 @@ function decodeFDCB(z80: Z80): void {
             let value: number;
             value = z80.readByte(z80.regs.memptr);
             z80.incTStateCount(1);
-            const tmp = value;
+            const oldValue = value;
             value = value >> 1;
-            z80.regs.f = ((tmp & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
+            z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
             z80.writeByte(z80.regs.memptr, value);
             break;
         }
@@ -6813,14 +6909,31 @@ export function decode(z80: Z80): void {
         }
 
         case 0x03: { // inc bc
+            let value: number;
+            value = z80.regs.bc;
+            const oldValue = value;
+            value = inc16(value);
+            z80.regs.bc = value;
             break;
         }
 
         case 0x04: { // inc b
+            let value: number;
+            value = z80.regs.b;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.b = value;
             break;
         }
 
         case 0x05: { // dec b
+            let value: number;
+            value = z80.regs.b;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.b = value;
             break;
         }
 
@@ -6865,14 +6978,31 @@ export function decode(z80: Z80): void {
         }
 
         case 0x0B: { // dec bc
+            let value: number;
+            value = z80.regs.bc;
+            const oldValue = value;
+            value = dec16(value);
+            z80.regs.bc = value;
             break;
         }
 
         case 0x0C: { // inc c
+            let value: number;
+            value = z80.regs.c;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.c = value;
             break;
         }
 
         case 0x0D: { // dec c
+            let value: number;
+            value = z80.regs.c;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.c = value;
             break;
         }
 
@@ -6910,14 +7040,31 @@ export function decode(z80: Z80): void {
         }
 
         case 0x13: { // inc de
+            let value: number;
+            value = z80.regs.de;
+            const oldValue = value;
+            value = inc16(value);
+            z80.regs.de = value;
             break;
         }
 
         case 0x14: { // inc d
+            let value: number;
+            value = z80.regs.d;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.d = value;
             break;
         }
 
         case 0x15: { // dec d
+            let value: number;
+            value = z80.regs.d;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.d = value;
             break;
         }
 
@@ -6959,14 +7106,31 @@ export function decode(z80: Z80): void {
         }
 
         case 0x1B: { // dec de
+            let value: number;
+            value = z80.regs.de;
+            const oldValue = value;
+            value = dec16(value);
+            z80.regs.de = value;
             break;
         }
 
         case 0x1C: { // inc e
+            let value: number;
+            value = z80.regs.e;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.e = value;
             break;
         }
 
         case 0x1D: { // dec e
+            let value: number;
+            value = z80.regs.e;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.e = value;
             break;
         }
 
@@ -7011,14 +7175,31 @@ export function decode(z80: Z80): void {
         }
 
         case 0x23: { // inc hl
+            let value: number;
+            value = z80.regs.hl;
+            const oldValue = value;
+            value = inc16(value);
+            z80.regs.hl = value;
             break;
         }
 
         case 0x24: { // inc h
+            let value: number;
+            value = z80.regs.h;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.h = value;
             break;
         }
 
         case 0x25: { // dec h
+            let value: number;
+            value = z80.regs.h;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.h = value;
             break;
         }
 
@@ -7066,14 +7247,31 @@ export function decode(z80: Z80): void {
         }
 
         case 0x2B: { // dec hl
+            let value: number;
+            value = z80.regs.hl;
+            const oldValue = value;
+            value = dec16(value);
+            z80.regs.hl = value;
             break;
         }
 
         case 0x2C: { // inc l
+            let value: number;
+            value = z80.regs.l;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.l = value;
             break;
         }
 
         case 0x2D: { // dec l
+            let value: number;
+            value = z80.regs.l;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.l = value;
             break;
         }
 
@@ -7116,14 +7314,33 @@ export function decode(z80: Z80): void {
         }
 
         case 0x33: { // inc sp
+            let value: number;
+            value = z80.regs.sp;
+            const oldValue = value;
+            value = inc16(value);
+            z80.regs.sp = value;
             break;
         }
 
         case 0x34: { // inc (hl)
+            let value: number;
+            value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
         case 0x35: { // dec (hl)
+            let value: number;
+            value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.writeByte(z80.regs.hl, value);
             break;
         }
 
@@ -7171,14 +7388,31 @@ export function decode(z80: Z80): void {
         }
 
         case 0x3B: { // dec sp
+            let value: number;
+            value = z80.regs.sp;
+            const oldValue = value;
+            value = dec16(value);
+            z80.regs.sp = value;
             break;
         }
 
         case 0x3C: { // inc a
+            let value: number;
+            value = z80.regs.a;
+            const oldValue = value;
+            value = inc8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x80 ? Flag.V : 0) | ((value & 0x0F) !== 0 ? 0 : Flag.H) | z80.sz53Table[value];
+            z80.regs.a = value;
             break;
         }
 
         case 0x3D: { // dec a
+            let value: number;
+            value = z80.regs.a;
+            const oldValue = value;
+            value = dec8(value);
+            z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];
+            z80.regs.a = value;
             break;
         }
 
