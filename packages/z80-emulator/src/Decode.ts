@@ -7402,6 +7402,10 @@ export function decode(z80: Z80): void {
         }
 
         case 0xD9: { // exx
+            let tmp: number;
+            tmp = z80.regs.bc; z80.regs.bc = z80.regs.bcPrime; z80.regs.bcPrime = tmp;
+            tmp = z80.regs.de; z80.regs.de = z80.regs.dePrime; z80.regs.dePrime = tmp;
+            tmp = z80.regs.hl; z80.regs.hl = z80.regs.hlPrime; z80.regs.hlPrime = tmp;
             break;
         }
 

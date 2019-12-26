@@ -882,6 +882,14 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "exx": {
+                    addLine(output, "let tmp: number;");
+                    addLine(output, "tmp = z80.regs.bc; z80.regs.bc = z80.regs.bcPrime; z80.regs.bcPrime = tmp;");
+                    addLine(output, "tmp = z80.regs.de; z80.regs.de = z80.regs.dePrime; z80.regs.dePrime = tmp;");
+                    addLine(output, "tmp = z80.regs.hl; z80.regs.hl = z80.regs.hlPrime; z80.regs.hlPrime = tmp;");
+                    break;
+                }
+
                 case "shift":
                     if (params === undefined) {
                         throw new Error("Shift requires params: " + line);
