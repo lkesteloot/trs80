@@ -1,9 +1,14 @@
+// Regression test for the Z80.
+
 import {Delegate, Register, Runner, toHex, hi} from "z80-test";
 import {Z80} from "./Z80";
 import {Hal} from "./Hal";
 import {CpuEvent} from "z80-test/dist/CpuEvent";
 import {CpuEventType} from "z80-test/dist/CpuEventType";
 
+/**
+ * HAL for the test suite.
+ */
 class HalImpl implements Hal {
     public memory: Uint8Array = new Uint8Array(64*1024);
     public events: CpuEvent[] = [];
@@ -45,6 +50,9 @@ class HalImpl implements Hal {
     }
 }
 
+/**
+ * Delegate for the test suite.
+ */
 class DelegateImpl implements Delegate {
     private hal: HalImpl = new HalImpl();
     private z80: Z80 = new Z80(this.hal);
@@ -90,6 +98,7 @@ class DelegateImpl implements Delegate {
     }
 }
 
+// Run the test.
 const delegate = new DelegateImpl();
 const runner = new Runner(delegate);
 runner.checkEvents = false;

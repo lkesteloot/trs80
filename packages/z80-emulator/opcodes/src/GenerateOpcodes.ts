@@ -1,15 +1,36 @@
+// This program generates the Decode.ts source file for decoding
+// and executing Z80 instructions. It takes as input the template
+// (Decode.templates.ts) and the data files in the "opcodes" directory.
+
 import * as path from "path";
 import * as fs from "fs";
 import {toHex, isWordReg, isByteReg, Flag} from "z80-test/dist";
 
+/**
+ * Params that qualify as "byte-sized".
+ */
 const BYTE_PARAMS = new Set(["a", "b", "c", "d", "e", "h", "l", "nn", "ixh", "ixl", "iyh", "iyl"]);
+
+/**
+ * Params that qualify as "word-sized".
+ */
 const WORD_PARAMS = new Set(["af", "bc", "de", "hl", "nnnn", "ix", "iy", "sp"]);
+
+/**
+ * Indentation for generate blocks.
+ */
 const TAB = "    ";
 
+/**
+ * The two possible param sizes.
+ */
 enum DataWidth {
     BYTE, WORD
 }
 
+/**
+ * Track the indentation level of code currently being generated.
+ */
 let indent = "";
 function enter(): void {
     indent += TAB;
@@ -25,6 +46,10 @@ function addLine(output: string[], line: string): void {
     }
 }
 
+/**
+ * Some operations have conditions (e.g., "Z" to mean "if the value is zero").
+ * Generate the TypeScript "if" statement for it, or none if there's no condition.
+ */
 function addCondIf(output: string[], cond: string | undefined): void {
     if (cond !== undefined) {
         let not = cond.startsWith("n");
@@ -47,6 +72,9 @@ function addCondIf(output: string[], cond: string | undefined): void {
     }
 }
 
+/**
+ * Generate else statement for condition code. Returns whether there's a condition code.
+ */
 function addCondElse(output: string[], cond: string | undefined): boolean {
     if (cond !== undefined) {
         exit();
@@ -58,6 +86,9 @@ function addCondElse(output: string[], cond: string | undefined): boolean {
     return false;
 }
 
+/**
+ * Finish the "if" block for a condition code.
+ */
 function addCondEndIf(output: string[], cond: string | undefined): void {
     if (cond !== undefined) {
         exit();
@@ -65,6 +96,10 @@ function addCondEndIf(output: string[], cond: string | undefined): void {
     }
 }
 
+/**
+ * Given a parameter, determine its width, or undefined if it can't be determined
+ * (e.g., "(nnnn)").
+ */
 function determineParamWidth(param: string): DataWidth | undefined {
     if (BYTE_PARAMS.has(param)) {
         return DataWidth.BYTE;
@@ -76,6 +111,10 @@ function determineParamWidth(param: string): DataWidth | undefined {
     return undefined;
 }
 
+/**
+ * Given two parameters, determines the data width of the pair. At least one
+ * of them must indicate the width, and if both do, they must match.
+ */
 function determineDataWidth(param1: string, param2: string): DataWidth {
     let dataWidth1 = determineParamWidth(param1);
     let dataWidth2 = determineParamWidth(param2);
@@ -94,12 +133,11 @@ function determineDataWidth(param1: string, param2: string): DataWidth {
     return dataWidth1;
 }
 
-// Operand should already be in "value".
-function emitArith8(output: string[], opcode: string): void {
-    if (opcode !== "add" && opcode !== "adc" && opcode !== "sub" && opcode !== "sbc") {
-        throw new Error("Invalid opcode for emitArith8: " + opcode);
-    }
-
+/**
+ * Generate 8-bit arithmetic code for the opcode and "A". The operand
+ * must already be in "value".
+ */
+function emitArith8(output: string[], opcode: "add" | "adc" | "sub" | "sbc"): void {
     let addition = opcode.startsWith("a");
     let op = addition ? "add" : "sub";
     let opCap = addition ? "Add" : "Sub";
@@ -124,15 +162,13 @@ function emitArith8(output: string[], opcode: string): void {
         "| z80.sz53Table[z80.regs.a];");
 }
 
-// Operand should already be in "value".
-function emitArith16(output: string[], opcode: string, dest: string): void {
-    if (opcode !== "add" && opcode !== "adc" && opcode !== "sub" && opcode !== "sbc") {
-        throw new Error("Invalid opcode for emitArith8: " + opcode);
-    }
-
+/**
+ * Generate 16-bit arithmetic code for the opcode and "dest". The operand
+ * must already be in "value".
+ */
+function emitArith16(output: string[], opcode: "add" | "adc" | "sbc", dest: string): void {
     let addition = opcode.startsWith("a");
-    let op = opcode.startsWith("a") ? "+" : "-";
-    let opCap = opcode.startsWith("a") ? "Add" : "Sub";
+    let op = addition ? "+" : "-";
     let carry = opcode.endsWith("c");
     let mask = carry ? "0x8800" : "0x0800";
 
@@ -160,16 +196,16 @@ function emitArith16(output: string[], opcode: string, dest: string): void {
             addLine(output, "z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | overflowAddTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarryAddTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);");
             break;
 
-        case "sub":
-            throw new Error("Not 16-bit SUB");
-
         case "sbc":
             addLine(output, "z80.regs.f = ((result & 0x10000) !== 0 ? Flag.C : 0) | Flag.N | overflowSubTable[lookup >> 4] | ((result >> 8) & (Flag.X3 | Flag.X5 | Flag.S)) | halfCarrySubTable[lookup & 0x07] | (result !== 0 ? 0 : Flag.Z);");
             break;
     }
 }
 
-function handleArith(output: string[], opcode: string, dest: string, src: string): void {
+/**
+ * Handle 8-bit and 16-bit arithmetic operations.
+ */
+function handleArith(output: string[], opcode: "add" | "adc" | "sub" | "sbc", dest: string, src: string): void {
     addLine(output, "let value: number;");
     if (determineDataWidth(dest, src) == DataWidth.BYTE) {
         if (src.startsWith("(") && src.endsWith(")")) {
@@ -199,6 +235,9 @@ function handleArith(output: string[], opcode: string, dest: string, src: string
         }
     } else {
         // DataWidth.WORD.
+        if (opcode === "sub") {
+            throw new Error("SUB is not supported with 16 bits");
+        }
         addLine(output, "z80.incTStateCount(7);");
         if (isWordReg(src)) {
             addLine(output, "value = z80.regs." + src + ";");
@@ -248,11 +287,7 @@ function handleCp(output: string[], src: string): void {
     addLine(output, "f |= overflowSubTable[lookup >> 4];");
     addLine(output, "f |= value & (Flag.X3 | Flag.X5);");
     addLine(output, "f |= diff & Flag.S;");
-    // overflow_sub_table[lookup >> 4] |\
-    // ( value & ( FLAG_3 | FLAG_5 ) ) |\
-    // ( cptemp & FLAG_S );\
     addLine(output, "z80.regs.af = word(z80.regs.a, f);")
-    // TODO finish.
 }
 
 function handleEx(output: string[], op1: string, op2: string): void {
@@ -1282,7 +1317,9 @@ function generateSource(dispatchMap: Map<string, string>): void {
 
 function generateOpcodes(): void {
     const opcodesDir = path.join(__dirname, "..");
+    // All the prefixes to parse.
     const prefixes = ["base", "cb", "dd", "ddcb", "ed", "fd", "fdcb"];
+    // Map from prefix (like "ddcb") to the switch statement contents for it.
     const dispatchMap = new Map<string, string>();
 
     for (const prefix of prefixes) {
