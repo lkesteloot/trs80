@@ -320,6 +320,9 @@ function handleLd(output: string[], dest: string, src: string): void {
         if (src.startsWith("(") && src.endsWith(")")) {
             const addr = src.substr(1, src.length - 2);
             if (isWordReg(addr)) {
+                if (addr === "bc" || addr === "de") {
+                    addLine(output, "z80.regs.memptr = inc16(z80.regs." + addr + ");");
+                }
                 addLine(output, "value = z80.readByte(z80.regs." + addr + ");");
             } else if (addr === "nnnn") {
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
@@ -351,6 +354,9 @@ function handleLd(output: string[], dest: string, src: string): void {
         if (dest.startsWith("(") && dest.endsWith(")")) {
             const addr = dest.substr(1, dest.length - 2);
             if (isWordReg(addr)) {
+                if (addr === "bc" || addr === "de") {
+                    addLine(output, "z80.regs.memptr = word(z80.regs.a, inc16(z80.regs." + addr + "));");
+                }
                 addLine(output, "z80.writeByte(z80.regs." + addr + ", value);");
             } else if (addr === "nnnn") {
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
@@ -1172,6 +1178,22 @@ function generateDispatch(pathname: string): string {
                 case "rlca":
                 case "rrca": {
                     handleRotateA(output, opcode);
+                    break;
+                }
+
+                case "djnz": {
+                    addLine(output, "z80.incTStateCount(1);");
+                    addLine(output, "z80.regs.b = dec8(z80.regs.b);");
+                    addLine(output, "if (z80.regs.b !== 0) {");
+                    enter();
+                    handleJpJrCall(output, "jr", undefined, "nn");
+                    exit();
+                    addLine(output, "} else {");
+                    enter();
+                    addLine(output, "z80.incTStateCount(3);");
+                    addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+                    exit();
+                    addLine(output, "}");
                     break;
                 }
 

@@ -6904,6 +6904,7 @@ export function decode(z80: Z80): void {
         case 0x02: { // ld (bc),a
             let value: number;
             value = z80.regs.a;
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.bc));
             z80.writeByte(z80.regs.bc, value);
             break;
         }
@@ -6975,6 +6976,7 @@ export function decode(z80: Z80): void {
 
         case 0x0A: { // ld a,(bc)
             let value: number;
+            z80.regs.memptr = inc16(z80.regs.bc);
             value = z80.readByte(z80.regs.bc);
             z80.regs.a = value;
             break;
@@ -7025,6 +7027,18 @@ export function decode(z80: Z80): void {
         }
 
         case 0x10: { // djnz offset
+            z80.incTStateCount(1);
+            z80.regs.b = dec8(z80.regs.b);
+            if (z80.regs.b !== 0) {
+                const offset = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
+                z80.regs.pc = add16(z80.regs.pc, signedByte(offset));
+                z80.regs.pc = inc16(z80.regs.pc);
+                z80.regs.memptr = z80.regs.pc;
+            } else {
+                z80.incTStateCount(3);
+                z80.regs.pc = inc16(z80.regs.pc);
+            }
             break;
         }
 
@@ -7041,6 +7055,7 @@ export function decode(z80: Z80): void {
         case 0x12: { // ld (de),a
             let value: number;
             value = z80.regs.a;
+            z80.regs.memptr = word(z80.regs.a, inc16(z80.regs.de));
             z80.writeByte(z80.regs.de, value);
             break;
         }
@@ -7114,6 +7129,7 @@ export function decode(z80: Z80): void {
 
         case 0x1A: { // ld a,(de)
             let value: number;
+            z80.regs.memptr = inc16(z80.regs.de);
             value = z80.readByte(z80.regs.de);
             z80.regs.a = value;
             break;
