@@ -601,7 +601,7 @@ function handleIn(output: string[], dest: string, port: string): void {
     }
 }
 
-function handleSetRes(output: string[], opcode:string, bit: string, operand: string): void {
+function handleSetResBit(output: string[], opcode:string, bit: string, operand: string): void {
     let bitValue = 1 << parseInt(bit, 10);
     let operator: string = "|";
     if (opcode === "res") {
@@ -610,16 +610,48 @@ function handleSetRes(output: string[], opcode:string, bit: string, operand: str
     }
     let hexBit = "0x" + toHex(bitValue, 2);
 
-    if (isByteReg(operand)) {
-        addLine(output, "z80.regs." + operand + " " + operator + "= " + hexBit + ";");
-    } else if (operand === "(hl)") {
-        addLine(output, "const value = z80.readByte(z80.regs.hl);");
-        addLine(output, "z80.incTStateCount(1);");
-        addLine(output, "z80.writeByte(z80.regs.hl, value " + operator + " " + hexBit + ");");
-    } else if (operand.endsWith("+dd)")) {
-        const reg = operand.substr(1, 2);
-        // TODO
-        console.log("Warning: SET with +dd not implemented");
+    if (opcode === "bit") {
+        if (isByteReg(operand)) {
+            addLine(output, "const value = z80.regs." + operand + ";");
+            addLine(output, "const hiddenValue = value;");
+        } else if (operand === "(hl)") {
+            addLine(output, "const value = z80.readByte(z80.regs.hl);");
+            addLine(output, "const hiddenValue = hi(z80.regs.memptr);");
+            addLine(output, "z80.incTStateCount(1);");
+        } else if (operand.endsWith("+dd)")) {
+            const reg = operand.substr(1, 2);
+            // TODO
+            console.log("Warning: SET with +dd not implemented");
+            addLine(output, "const value = 0;");
+            addLine(output, "const hiddenValue = 0;");
+        }
+        addLine(output, "let f = (z80.regs.f & Flag.C) | Flag.H | (hiddenValue & (Flag.X3 | Flag.X5));");
+        addLine(output, "if ((value & " + hexBit + ") === 0) {");
+        enter();
+        addLine(output, "f |= Flag.P | Flag.Z;");
+        exit();
+        addLine(output, "}");
+        if (bitValue === 0x80) {
+            addLine(output, "if ((value & " + hexBit + ") !== 0) {");
+            enter();
+            addLine(output, "f |= Flag.S;");
+            exit();
+            addLine(output, "}");
+        }
+        addLine(output, "z80.regs.f = f;");
+    } else {
+        // set or res.
+        if (isByteReg(operand)) {
+            addLine(output, "z80.regs." + operand + " " + operator + "= " + hexBit + ";");
+        } else if (operand === "(hl)") {
+            addLine(output, "const value = z80.readByte(z80.regs.hl);");
+            addLine(output, "z80.incTStateCount(1);");
+            addLine(output, "z80.writeByte(z80.regs.hl, value " + operator + " " + hexBit + ");");
+        } else if (operand.endsWith("+dd)")) {
+            const reg = operand.substr(1, 2);
+            // TODO
+            console.log("Warning: SET with +dd not implemented");
+        }
     }
 }
 
@@ -912,13 +944,14 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "bit":
                 case "set":
                 case "res": {
                     if (params === undefined) {
                         throw new Error(opcode + " requires params: " + line);
                     }
                     const [bit, operand] = params.split(",");
-                    handleSetRes(output, opcode, bit, operand);
+                    handleSetResBit(output, opcode, bit, operand);
                     break;
                 }
 
