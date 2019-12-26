@@ -537,514 +537,674 @@ function decodeCB(z80: Z80): void {
         }
 
         case 0x80: { // res 0,b
+            z80.regs.b &= 0xFE;
             break;
         }
 
         case 0x81: { // res 0,c
+            z80.regs.c &= 0xFE;
             break;
         }
 
         case 0x82: { // res 0,d
+            z80.regs.d &= 0xFE;
             break;
         }
 
         case 0x83: { // res 0,e
+            z80.regs.e &= 0xFE;
             break;
         }
 
         case 0x84: { // res 0,h
+            z80.regs.h &= 0xFE;
             break;
         }
 
         case 0x85: { // res 0,l
+            z80.regs.l &= 0xFE;
             break;
         }
 
         case 0x86: { // res 0,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value & 0xFE);
             break;
         }
 
         case 0x87: { // res 0,a
+            z80.regs.a &= 0xFE;
             break;
         }
 
         case 0x88: { // res 1,b
+            z80.regs.b &= 0xFD;
             break;
         }
 
         case 0x89: { // res 1,c
+            z80.regs.c &= 0xFD;
             break;
         }
 
         case 0x8A: { // res 1,d
+            z80.regs.d &= 0xFD;
             break;
         }
 
         case 0x8B: { // res 1,e
+            z80.regs.e &= 0xFD;
             break;
         }
 
         case 0x8C: { // res 1,h
+            z80.regs.h &= 0xFD;
             break;
         }
 
         case 0x8D: { // res 1,l
+            z80.regs.l &= 0xFD;
             break;
         }
 
         case 0x8E: { // res 1,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value & 0xFD);
             break;
         }
 
         case 0x8F: { // res 1,a
+            z80.regs.a &= 0xFD;
             break;
         }
 
         case 0x90: { // res 2,b
+            z80.regs.b &= 0xFB;
             break;
         }
 
         case 0x91: { // res 2,c
+            z80.regs.c &= 0xFB;
             break;
         }
 
         case 0x92: { // res 2,d
+            z80.regs.d &= 0xFB;
             break;
         }
 
         case 0x93: { // res 2,e
+            z80.regs.e &= 0xFB;
             break;
         }
 
         case 0x94: { // res 2,h
+            z80.regs.h &= 0xFB;
             break;
         }
 
         case 0x95: { // res 2,l
+            z80.regs.l &= 0xFB;
             break;
         }
 
         case 0x96: { // res 2,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value & 0xFB);
             break;
         }
 
         case 0x97: { // res 2,a
+            z80.regs.a &= 0xFB;
             break;
         }
 
         case 0x98: { // res 3,b
+            z80.regs.b &= 0xF7;
             break;
         }
 
         case 0x99: { // res 3,c
+            z80.regs.c &= 0xF7;
             break;
         }
 
         case 0x9A: { // res 3,d
+            z80.regs.d &= 0xF7;
             break;
         }
 
         case 0x9B: { // res 3,e
+            z80.regs.e &= 0xF7;
             break;
         }
 
         case 0x9C: { // res 3,h
+            z80.regs.h &= 0xF7;
             break;
         }
 
         case 0x9D: { // res 3,l
+            z80.regs.l &= 0xF7;
             break;
         }
 
         case 0x9E: { // res 3,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value & 0xF7);
             break;
         }
 
         case 0x9F: { // res 3,a
+            z80.regs.a &= 0xF7;
             break;
         }
 
         case 0xA0: { // res 4,b
+            z80.regs.b &= 0xEF;
             break;
         }
 
         case 0xA1: { // res 4,c
+            z80.regs.c &= 0xEF;
             break;
         }
 
         case 0xA2: { // res 4,d
+            z80.regs.d &= 0xEF;
             break;
         }
 
         case 0xA3: { // res 4,e
+            z80.regs.e &= 0xEF;
             break;
         }
 
         case 0xA4: { // res 4,h
+            z80.regs.h &= 0xEF;
             break;
         }
 
         case 0xA5: { // res 4,l
+            z80.regs.l &= 0xEF;
             break;
         }
 
         case 0xA6: { // res 4,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value & 0xEF);
             break;
         }
 
         case 0xA7: { // res 4,a
+            z80.regs.a &= 0xEF;
             break;
         }
 
         case 0xA8: { // res 5,b
+            z80.regs.b &= 0xDF;
             break;
         }
 
         case 0xA9: { // res 5,c
+            z80.regs.c &= 0xDF;
             break;
         }
 
         case 0xAA: { // res 5,d
+            z80.regs.d &= 0xDF;
             break;
         }
 
         case 0xAB: { // res 5,e
+            z80.regs.e &= 0xDF;
             break;
         }
 
         case 0xAC: { // res 5,h
+            z80.regs.h &= 0xDF;
             break;
         }
 
         case 0xAD: { // res 5,l
+            z80.regs.l &= 0xDF;
             break;
         }
 
         case 0xAE: { // res 5,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value & 0xDF);
             break;
         }
 
         case 0xAF: { // res 5,a
+            z80.regs.a &= 0xDF;
             break;
         }
 
         case 0xB0: { // res 6,b
+            z80.regs.b &= 0xBF;
             break;
         }
 
         case 0xB1: { // res 6,c
+            z80.regs.c &= 0xBF;
             break;
         }
 
         case 0xB2: { // res 6,d
+            z80.regs.d &= 0xBF;
             break;
         }
 
         case 0xB3: { // res 6,e
+            z80.regs.e &= 0xBF;
             break;
         }
 
         case 0xB4: { // res 6,h
+            z80.regs.h &= 0xBF;
             break;
         }
 
         case 0xB5: { // res 6,l
+            z80.regs.l &= 0xBF;
             break;
         }
 
         case 0xB6: { // res 6,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value & 0xBF);
             break;
         }
 
         case 0xB7: { // res 6,a
+            z80.regs.a &= 0xBF;
             break;
         }
 
         case 0xB8: { // res 7,b
+            z80.regs.b &= 0x7F;
             break;
         }
 
         case 0xB9: { // res 7,c
+            z80.regs.c &= 0x7F;
             break;
         }
 
         case 0xBA: { // res 7,d
+            z80.regs.d &= 0x7F;
             break;
         }
 
         case 0xBB: { // res 7,e
+            z80.regs.e &= 0x7F;
             break;
         }
 
         case 0xBC: { // res 7,h
+            z80.regs.h &= 0x7F;
             break;
         }
 
         case 0xBD: { // res 7,l
+            z80.regs.l &= 0x7F;
             break;
         }
 
         case 0xBE: { // res 7,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value & 0x7F);
             break;
         }
 
         case 0xBF: { // res 7,a
+            z80.regs.a &= 0x7F;
             break;
         }
 
         case 0xC0: { // set 0,b
+            z80.regs.b |= 0x01;
             break;
         }
 
         case 0xC1: { // set 0,c
+            z80.regs.c |= 0x01;
             break;
         }
 
         case 0xC2: { // set 0,d
+            z80.regs.d |= 0x01;
             break;
         }
 
         case 0xC3: { // set 0,e
+            z80.regs.e |= 0x01;
             break;
         }
 
         case 0xC4: { // set 0,h
+            z80.regs.h |= 0x01;
             break;
         }
 
         case 0xC5: { // set 0,l
+            z80.regs.l |= 0x01;
             break;
         }
 
         case 0xC6: { // set 0,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value | 0x01);
             break;
         }
 
         case 0xC7: { // set 0,a
+            z80.regs.a |= 0x01;
             break;
         }
 
         case 0xC8: { // set 1,b
+            z80.regs.b |= 0x02;
             break;
         }
 
         case 0xC9: { // set 1,c
+            z80.regs.c |= 0x02;
             break;
         }
 
         case 0xCA: { // set 1,d
+            z80.regs.d |= 0x02;
             break;
         }
 
         case 0xCB: { // set 1,e
+            z80.regs.e |= 0x02;
             break;
         }
 
         case 0xCC: { // set 1,h
+            z80.regs.h |= 0x02;
             break;
         }
 
         case 0xCD: { // set 1,l
+            z80.regs.l |= 0x02;
             break;
         }
 
         case 0xCE: { // set 1,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value | 0x02);
             break;
         }
 
         case 0xCF: { // set 1,a
+            z80.regs.a |= 0x02;
             break;
         }
 
         case 0xD0: { // set 2,b
+            z80.regs.b |= 0x04;
             break;
         }
 
         case 0xD1: { // set 2,c
+            z80.regs.c |= 0x04;
             break;
         }
 
         case 0xD2: { // set 2,d
+            z80.regs.d |= 0x04;
             break;
         }
 
         case 0xD3: { // set 2,e
+            z80.regs.e |= 0x04;
             break;
         }
 
         case 0xD4: { // set 2,h
+            z80.regs.h |= 0x04;
             break;
         }
 
         case 0xD5: { // set 2,l
+            z80.regs.l |= 0x04;
             break;
         }
 
         case 0xD6: { // set 2,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value | 0x04);
             break;
         }
 
         case 0xD7: { // set 2,a
+            z80.regs.a |= 0x04;
             break;
         }
 
         case 0xD8: { // set 3,b
+            z80.regs.b |= 0x08;
             break;
         }
 
         case 0xD9: { // set 3,c
+            z80.regs.c |= 0x08;
             break;
         }
 
         case 0xDA: { // set 3,d
+            z80.regs.d |= 0x08;
             break;
         }
 
         case 0xDB: { // set 3,e
+            z80.regs.e |= 0x08;
             break;
         }
 
         case 0xDC: { // set 3,h
+            z80.regs.h |= 0x08;
             break;
         }
 
         case 0xDD: { // set 3,l
+            z80.regs.l |= 0x08;
             break;
         }
 
         case 0xDE: { // set 3,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value | 0x08);
             break;
         }
 
         case 0xDF: { // set 3,a
+            z80.regs.a |= 0x08;
             break;
         }
 
         case 0xE0: { // set 4,b
+            z80.regs.b |= 0x10;
             break;
         }
 
         case 0xE1: { // set 4,c
+            z80.regs.c |= 0x10;
             break;
         }
 
         case 0xE2: { // set 4,d
+            z80.regs.d |= 0x10;
             break;
         }
 
         case 0xE3: { // set 4,e
+            z80.regs.e |= 0x10;
             break;
         }
 
         case 0xE4: { // set 4,h
+            z80.regs.h |= 0x10;
             break;
         }
 
         case 0xE5: { // set 4,l
+            z80.regs.l |= 0x10;
             break;
         }
 
         case 0xE6: { // set 4,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value | 0x10);
             break;
         }
 
         case 0xE7: { // set 4,a
+            z80.regs.a |= 0x10;
             break;
         }
 
         case 0xE8: { // set 5,b
+            z80.regs.b |= 0x20;
             break;
         }
 
         case 0xE9: { // set 5,c
+            z80.regs.c |= 0x20;
             break;
         }
 
         case 0xEA: { // set 5,d
+            z80.regs.d |= 0x20;
             break;
         }
 
         case 0xEB: { // set 5,e
+            z80.regs.e |= 0x20;
             break;
         }
 
         case 0xEC: { // set 5,h
+            z80.regs.h |= 0x20;
             break;
         }
 
         case 0xED: { // set 5,l
+            z80.regs.l |= 0x20;
             break;
         }
 
         case 0xEE: { // set 5,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value | 0x20);
             break;
         }
 
         case 0xEF: { // set 5,a
+            z80.regs.a |= 0x20;
             break;
         }
 
         case 0xF0: { // set 6,b
+            z80.regs.b |= 0x40;
             break;
         }
 
         case 0xF1: { // set 6,c
+            z80.regs.c |= 0x40;
             break;
         }
 
         case 0xF2: { // set 6,d
+            z80.regs.d |= 0x40;
             break;
         }
 
         case 0xF3: { // set 6,e
+            z80.regs.e |= 0x40;
             break;
         }
 
         case 0xF4: { // set 6,h
+            z80.regs.h |= 0x40;
             break;
         }
 
         case 0xF5: { // set 6,l
+            z80.regs.l |= 0x40;
             break;
         }
 
         case 0xF6: { // set 6,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value | 0x40);
             break;
         }
 
         case 0xF7: { // set 6,a
+            z80.regs.a |= 0x40;
             break;
         }
 
         case 0xF8: { // set 7,b
+            z80.regs.b |= 0x80;
             break;
         }
 
         case 0xF9: { // set 7,c
+            z80.regs.c |= 0x80;
             break;
         }
 
         case 0xFA: { // set 7,d
+            z80.regs.d |= 0x80;
             break;
         }
 
         case 0xFB: { // set 7,e
+            z80.regs.e |= 0x80;
             break;
         }
 
         case 0xFC: { // set 7,h
+            z80.regs.h |= 0x80;
             break;
         }
 
         case 0xFD: { // set 7,l
+            z80.regs.l |= 0x80;
             break;
         }
 
         case 0xFE: { // set 7,(hl)
+            const value = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(1);
+            z80.writeByte(z80.regs.hl, value | 0x80);
             break;
         }
 
         case 0xFF: { // set 7,a
+            z80.regs.a |= 0x80;
             break;
         }
 

@@ -601,6 +601,28 @@ function handleIn(output: string[], dest: string, port: string): void {
     }
 }
 
+function handleSetRes(output: string[], opcode:string, bit: string, operand: string): void {
+    let bitValue = 1 << parseInt(bit, 10);
+    let operator: string = "|";
+    if (opcode === "res") {
+        bitValue ^= 0xFF;
+        operator = "&";
+    }
+    let hexBit = "0x" + toHex(bitValue, 2);
+
+    if (isByteReg(operand)) {
+        addLine(output, "z80.regs." + operand + " " + operator + "= " + hexBit + ";");
+    } else if (operand === "(hl)") {
+        addLine(output, "const value = z80.readByte(z80.regs.hl);");
+        addLine(output, "z80.incTStateCount(1);");
+        addLine(output, "z80.writeByte(z80.regs.hl, value " + operator + " " + hexBit + ");");
+    } else if (operand.endsWith("+dd)")) {
+        const reg = operand.substr(1, 2);
+        // TODO
+        console.log("Warning: SET with +dd not implemented");
+    }
+}
+
 function generateDispatch(pathname: string): string {
     const output: string[] = [];
     enter();
@@ -887,6 +909,16 @@ function generateDispatch(pathname: string): string {
                     addLine(output, "tmp = z80.regs.bc; z80.regs.bc = z80.regs.bcPrime; z80.regs.bcPrime = tmp;");
                     addLine(output, "tmp = z80.regs.de; z80.regs.de = z80.regs.dePrime; z80.regs.dePrime = tmp;");
                     addLine(output, "tmp = z80.regs.hl; z80.regs.hl = z80.regs.hlPrime; z80.regs.hlPrime = tmp;");
+                    break;
+                }
+
+                case "set":
+                case "res": {
+                    if (params === undefined) {
+                        throw new Error(opcode + " requires params: " + line);
+                    }
+                    const [bit, operand] = params.split(",");
+                    handleSetRes(output, opcode, bit, operand);
                     break;
                 }
 
