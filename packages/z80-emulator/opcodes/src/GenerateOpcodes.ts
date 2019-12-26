@@ -297,7 +297,6 @@ function handleLd(output: string[], dest: string, src: string): void {
         if (src.startsWith("(") && src.endsWith(")")) {
             const addr = src.substr(1, src.length - 2);
             if (isWordReg(addr)) {
-                addLine(output, "z80.regs.memptr = inc16(z80.regs." + addr + ");");
                 addLine(output, "value = z80.readByte(z80.regs." + addr + ");");
             } else if (addr === "nnnn") {
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
@@ -329,7 +328,6 @@ function handleLd(output: string[], dest: string, src: string): void {
         if (dest.startsWith("(") && dest.endsWith(")")) {
             const addr = dest.substr(1, dest.length - 2);
             if (isWordReg(addr)) {
-                addLine(output, "z80.regs.memptr = word(z80.regs.a, inc16(z80.regs." + addr + "));");
                 addLine(output, "z80.writeByte(z80.regs." + addr + ", value);");
             } else if (addr === "nnnn") {
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
@@ -1032,6 +1030,13 @@ function generateDispatch(pathname: string): string {
                         throw new Error(opcode + " requires params: " + line);
                     }
                     handleRotateShift(output, opcode, params);
+                    break;
+                }
+
+                case "halt": {
+                    // TODO we don't halt the Z80 currently.
+                    // addLine(output, "z80.regs.halted = 1;");
+                    addLine(output, "z80.regs.pc = dec16(z80.regs.pc);");
                     break;
                 }
 
