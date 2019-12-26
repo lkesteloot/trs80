@@ -3244,6 +3244,12 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x67: { // rrd
+            const tmp = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(4);
+            z80.writeByte(z80.regs.hl, ((z80.regs.a << 4) | (tmp >> 4)) & 0xFF);
+            z80.regs.a = (z80.regs.a & 0xF0) | (tmp & 0x0F);
+            z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53pTable[z80.regs.a];
+            z80.regs.memptr = inc16(z80.regs.hl);
             break;
         }
 
@@ -3291,6 +3297,12 @@ function decodeED(z80: Z80): void {
         }
 
         case 0x6F: { // rld
+            const tmp = z80.readByte(z80.regs.hl);
+            z80.incTStateCount(4);
+            z80.writeByte(z80.regs.hl, ((tmp << 4) | (z80.regs.a & 0x0F)) & 0xFF);
+            z80.regs.a = (z80.regs.a & 0xF0) | (tmp >> 4);
+            z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53pTable[z80.regs.a];
+            z80.regs.memptr = inc16(z80.regs.hl);
             break;
         }
 

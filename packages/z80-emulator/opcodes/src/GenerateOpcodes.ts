@@ -855,6 +855,26 @@ function generateDispatch(pathname: string): string {
                     break;
                 }
 
+                case "rld": {
+                    addLine(output, "const tmp = z80.readByte(z80.regs.hl);");
+                    addLine(output, "z80.incTStateCount(4);");
+                    addLine(output, "z80.writeByte(z80.regs.hl, ((tmp << 4) | (z80.regs.a & 0x0F)) & 0xFF);");
+                    addLine(output, "z80.regs.a = (z80.regs.a & 0xF0) | (tmp >> 4);");
+                    addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53pTable[z80.regs.a];");
+                    addLine(output, "z80.regs.memptr = inc16(z80.regs.hl);");
+                    break;
+                }
+
+                case "rrd": {
+                    addLine(output, "const tmp = z80.readByte(z80.regs.hl);");
+                    addLine(output, "z80.incTStateCount(4);");
+                    addLine(output, "z80.writeByte(z80.regs.hl, ((z80.regs.a << 4) | (tmp >> 4)) & 0xFF);");
+                    addLine(output, "z80.regs.a = (z80.regs.a & 0xF0) | (tmp & 0x0F);");
+                    addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53pTable[z80.regs.a];");
+                    addLine(output, "z80.regs.memptr = inc16(z80.regs.hl);");
+                    break;
+                }
+
                 case "shift":
                     if (params === undefined) {
                         throw new Error("Shift requires params: " + line);
