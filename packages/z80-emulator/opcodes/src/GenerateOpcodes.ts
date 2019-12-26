@@ -794,6 +794,33 @@ function handleDaa(output: string[]): void {
     addLine(output, "z80.regs.f = (z80.regs.f & ~(Flag.C | Flag.P)) | carry | z80.parityTable[z80.regs.a];");
 }
 
+function handleRotateA(output: string[], opcode: string): void {
+    // Can't use "rr" etc. code here, the flags are set differently.
+    addLine(output, "const oldA = z80.regs.a;");
+
+    switch (opcode) {
+        case "rla":
+            addLine(output, "z80.regs.a = ((z80.regs.a << 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x01 : 0)) & 0xFF;");
+            break;
+
+        case "rra":
+            addLine(output, "z80.regs.a = (z80.regs.a >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);");
+            break;
+
+        case "rlca":
+            addLine(output, "z80.regs.a = ((z80.regs.a >> 7) | (z80.regs.a << 1)) & 0xFF;");
+            break;
+
+        case "rrca":
+            addLine(output, "z80.regs.a = ((z80.regs.a >> 1) | (z80.regs.a << 7)) & 0xFF;");
+            break;
+    }
+
+    // Which bit goes into the carry flag.
+    const bitIntoCarry = opcode.substr(1, 1) === "l" ? "0x80" : "0x01";
+    addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | ((oldA & " + bitIntoCarry + ") !== 0 ? Flag.C : 0);");
+}
+
 function generateDispatch(pathname: string): string {
     const output: string[] = [];
     enter();
@@ -1137,6 +1164,14 @@ function generateDispatch(pathname: string): string {
 
                 case "daa": {
                     handleDaa(output);
+                    break;
+                }
+
+                case "rla":
+                case "rra":
+                case "rlca":
+                case "rrca": {
+                    handleRotateA(output, opcode);
                     break;
                 }
 

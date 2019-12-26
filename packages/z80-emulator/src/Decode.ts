@@ -6946,6 +6946,9 @@ export function decode(z80: Z80): void {
         }
 
         case 0x07: { // rlca
+            const oldA = z80.regs.a;
+            z80.regs.a = ((z80.regs.a >> 7) | (z80.regs.a << 1)) & 0xFF;
+            z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | ((oldA & 0x80) !== 0 ? Flag.C : 0);
             break;
         }
 
@@ -7015,6 +7018,9 @@ export function decode(z80: Z80): void {
         }
 
         case 0x0F: { // rrca
+            const oldA = z80.regs.a;
+            z80.regs.a = ((z80.regs.a >> 1) | (z80.regs.a << 7)) & 0xFF;
+            z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | ((oldA & 0x01) !== 0 ? Flag.C : 0);
             break;
         }
 
@@ -7077,6 +7083,9 @@ export function decode(z80: Z80): void {
         }
 
         case 0x17: { // rla
+            const oldA = z80.regs.a;
+            z80.regs.a = ((z80.regs.a << 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x01 : 0)) & 0xFF;
+            z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | ((oldA & 0x80) !== 0 ? Flag.C : 0);
             break;
         }
 
@@ -7148,6 +7157,9 @@ export function decode(z80: Z80): void {
         }
 
         case 0x1F: { // rra
+            const oldA = z80.regs.a;
+            z80.regs.a = (z80.regs.a >> 1) | ((z80.regs.f & Flag.C) !== 0 ? 0x80 : 0);
+            z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | ((oldA & 0x01) !== 0 ? Flag.C : 0);
             break;
         }
 
