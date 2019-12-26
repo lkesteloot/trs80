@@ -1108,10 +1108,10 @@ function decodeDD(z80: Z80): void {
             z80.regs.pc = inc16(z80.regs.pc);
             addr = word(z80.readByte(z80.regs.pc), addr);
             z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.regs.a, inc16(value));
             z80.writeByte(addr, lo(value));
+            addr = inc16(addr);
             z80.regs.memptr = addr;
-            z80.writeByte(inc16(addr), hi(value));
+            z80.writeByte(addr, hi(value));
             break;
         }
 
@@ -2976,10 +2976,10 @@ function decodeED(z80: Z80): void {
             z80.regs.pc = inc16(z80.regs.pc);
             addr = word(z80.readByte(z80.regs.pc), addr);
             z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.regs.a, inc16(value));
             z80.writeByte(addr, lo(value));
+            addr = inc16(addr);
             z80.regs.memptr = addr;
-            z80.writeByte(inc16(addr), hi(value));
+            z80.writeByte(addr, hi(value));
             break;
         }
 
@@ -3123,10 +3123,10 @@ function decodeED(z80: Z80): void {
             z80.regs.pc = inc16(z80.regs.pc);
             addr = word(z80.readByte(z80.regs.pc), addr);
             z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.regs.a, inc16(value));
             z80.writeByte(addr, lo(value));
+            addr = inc16(addr);
             z80.regs.memptr = addr;
-            z80.writeByte(inc16(addr), hi(value));
+            z80.writeByte(addr, hi(value));
             break;
         }
 
@@ -3236,10 +3236,10 @@ function decodeED(z80: Z80): void {
             z80.regs.pc = inc16(z80.regs.pc);
             addr = word(z80.readByte(z80.regs.pc), addr);
             z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.regs.a, inc16(value));
             z80.writeByte(addr, lo(value));
+            addr = inc16(addr);
             z80.regs.memptr = addr;
-            z80.writeByte(inc16(addr), hi(value));
+            z80.writeByte(addr, hi(value));
             break;
         }
 
@@ -3331,10 +3331,10 @@ function decodeED(z80: Z80): void {
             z80.regs.pc = inc16(z80.regs.pc);
             addr = word(z80.readByte(z80.regs.pc), addr);
             z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.regs.a, inc16(value));
             z80.writeByte(addr, lo(value));
+            addr = inc16(addr);
             z80.regs.memptr = addr;
-            z80.writeByte(inc16(addr), hi(value));
+            z80.writeByte(addr, hi(value));
             break;
         }
 
@@ -3683,10 +3683,10 @@ function decodeFD(z80: Z80): void {
             z80.regs.pc = inc16(z80.regs.pc);
             addr = word(z80.readByte(z80.regs.pc), addr);
             z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.regs.a, inc16(value));
             z80.writeByte(addr, lo(value));
+            addr = inc16(addr);
             z80.regs.memptr = addr;
-            z80.writeByte(inc16(addr), hi(value));
+            z80.writeByte(addr, hi(value));
             break;
         }
 
@@ -5730,10 +5730,10 @@ export function decode(z80: Z80): void {
             z80.regs.pc = inc16(z80.regs.pc);
             addr = word(z80.readByte(z80.regs.pc), addr);
             z80.regs.pc = inc16(z80.regs.pc);
-            z80.regs.memptr = word(z80.regs.a, inc16(value));
             z80.writeByte(addr, lo(value));
+            addr = inc16(addr);
             z80.regs.memptr = addr;
-            z80.writeByte(inc16(addr), hi(value));
+            z80.writeByte(addr, hi(value));
             break;
         }
 

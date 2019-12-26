@@ -379,10 +379,10 @@ function handleLd(output: string[], dest: string, src: string): void {
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
                 addLine(output, "addr = word(z80.readByte(z80.regs.pc), addr);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
-                addLine(output, "z80.regs.memptr = word(z80.regs.a, inc16(value));");
                 addLine(output, "z80.writeByte(addr, lo(value));");
+                addLine(output, "addr = inc16(addr);");
                 addLine(output, "z80.regs.memptr = addr;");
-                addLine(output, "z80.writeByte(inc16(addr), hi(value));");
+                addLine(output, "z80.writeByte(addr, hi(value));");
             } else {
                 throw new Error("Unknown dest address type: " + addr);
             }
