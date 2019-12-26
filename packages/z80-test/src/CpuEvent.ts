@@ -1,6 +1,10 @@
 import {CpuEventType, cpuEventTypeToString} from "./CpuEventType";
 import {toHex} from "./Utils";
 
+/**
+ * Records a CPU event, such as reading from memory at a particular time. These
+ * are used to verify that the CPU is doing the right thing at the right time.
+ */
 export class CpuEvent {
     /**
      * T-state count of event from start of test.
@@ -8,7 +12,7 @@ export class CpuEvent {
     public time: number;
 
     /**
-     *
+     * Type of event.
      */
     public eventType: CpuEventType;
 
@@ -29,6 +33,9 @@ export class CpuEvent {
         this.value = value;
     }
 
+    /**
+     * Generate a Fuse-compatible string.
+     */
     toString(): string {
         let s: string = this.time.toString(10);
         while (s.length < 5) {

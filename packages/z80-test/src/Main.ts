@@ -4,6 +4,7 @@ import {Runner} from "./Runner";
 import {toHex} from "./Utils";
 import {CpuEvent} from "./CpuEvent";
 
+// Dummy delegate that does nothing.
 class DelegateImpl implements Delegate {
     public getRegister(register: Register): number {
         const value = 0;
@@ -39,9 +40,12 @@ class DelegateImpl implements Delegate {
     }
 }
 
+// Demo of how to run the test.
 const delegate = new DelegateImpl();
 const runner = new Runner(delegate);
+// Whether to check that the number of t-states is correct.
 runner.checkTStates = false;
+// Whether to check that the event list is correct.
 runner.checkEvents = false;
 runner.loadTests();
 runner.runAll();

@@ -1,6 +1,9 @@
 import {Register} from "./Register";
 import {CpuEvent} from "./CpuEvent";
 
+/**
+ * Delegate to be implemented by the CPU.
+ */
 export interface Delegate {
     /**
      * Reset the machine to a known state for a new test. Reset t-state count.
@@ -19,6 +22,7 @@ export interface Delegate {
 
     /**
      * Run for at least this many t-states. Complete the last operation.
+     * Return a list of CPU events that occurred during the run.
      */
     run(tStateCount: number): CpuEvent[];
 

@@ -2,6 +2,9 @@ import {CpuEvent} from "./CpuEvent";
 import {MemoryContent} from "./MemoryContent";
 import {RegisterSet} from "./RegisterSet";
 
+/**
+ * All the information (in and expected) about one test.
+ */
 export class Test {
     public name: string;
     public preRegisterSet: RegisterSet = new RegisterSet();

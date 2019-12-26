@@ -1,4 +1,7 @@
 
+/**
+ * Type of CPU event.
+ */
 export enum CpuEventType {
     MEMORY_READ,
     MEMORY_WRITE,
@@ -8,6 +11,9 @@ export enum CpuEventType {
     PORT_CONTEND,
 }
 
+/**
+ * Parse a CPU event from a Fuse string.
+ */
 export function parseCpuEventType(s: string): CpuEventType {
     switch (s) {
         case "MR": return CpuEventType.MEMORY_READ;
@@ -20,6 +26,9 @@ export function parseCpuEventType(s: string): CpuEventType {
     }
 }
 
+/**
+ * Convert a CPU event to a Fuse-compatible string.
+ */
 export function cpuEventTypeToString(cpuEventType: CpuEventType): string {
     switch (cpuEventType) {
         case CpuEventType.MEMORY_READ:

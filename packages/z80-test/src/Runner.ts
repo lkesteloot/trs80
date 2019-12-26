@@ -10,6 +10,9 @@ import {toHex} from "./Utils";
 const IN_FILENAME = "tests.in";
 const EXPECTED_FILENAME = "tests.expected";
 
+/**
+ * State of the parser of "in" and "expected" files.
+ */
 enum ParserState {
     EXPECTING_NAME,
     EXPECTING_REG1,
@@ -22,18 +25,42 @@ enum ParserState {
  * Runs the Z80 tests.
  */
 export class Runner {
+    /**
+     * All the tests that were parsed, keyed on the test name.
+     */
     public tests: Map<string, Test> = new Map();
+    /**
+     * All errors found when running the tests.
+     */
     public errors: string[] = [];
+    /**
+     * Number of passed tests.
+     */
     public successfulTests: number = 0;
+    /**
+     * Whether to check that the t-state count is correct after each test.
+     */
     public checkTStates: boolean = true;
+    /**
+     * Whether to check that the CPU events are correct after each test.
+     */
     public checkEvents: boolean = true;
+    /**
+     * Whether to check that memory and port contend CPU events are correct after each test.
+     */
     public checkContend: boolean = true;
+    /**
+     * CPU delegate for the test.
+     */
     private readonly delegate: Delegate;
 
     constructor(delegate: Delegate) {
         this.delegate = delegate;
     }
 
+    /**
+     * Load tests from the text files.
+     */
     public loadTests() {
         const moduleDir = path.join(__dirname, "..");
         const testDir = path.join(moduleDir, "tests");
@@ -47,6 +74,9 @@ export class Runner {
         console.log("Loaded " + this.tests.size + " tests");
     }
 
+    /**
+     * Run all tests.
+     */
     public runAll(): void {
         this.successfulTests = 0;
         for (const test of this.tests.values()) {
@@ -57,6 +87,9 @@ export class Runner {
         }
     }
 
+    /**
+     * Run one particular test by name.
+     */
     public runOne(name: string): boolean {
         const test = this.tests.get(name);
         if (test === undefined) {
@@ -72,6 +105,9 @@ export class Runner {
         }
     }
 
+    /**
+     * Parse a test file, adding it to the map.
+     */
     private parseFile(pathname: string, isExpected: boolean) {
         let state = ParserState.EXPECTING_NAME;
         let test = new Test("unset");
@@ -192,6 +228,9 @@ export class Runner {
         });
     }
 
+    /**
+     * Run one test.
+     */
     private runTest(test: Test): boolean {
         let success = true;
 
@@ -236,7 +275,7 @@ export class Runner {
             success = false;
         }
         if (this.checkEvents) {
-            // TODO
+            // TODO compare events.
             console.log("Expected events:");
             for (const event of test.postCpuEvents) {
                 if (this.checkContend || (event.eventType !== CpuEventType.MEMORY_CONTEND && event.eventType !== CpuEventType.PORT_CONTEND)) {

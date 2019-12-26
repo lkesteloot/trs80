@@ -2,7 +2,7 @@ import {Register} from "./Register";
 import {hi, lo, word} from "./Utils";
 
 /**
- * Set of register values.
+ * All the registers in a Z80.
  */
 export class RegisterSet {
     public af: number = 0;
@@ -121,10 +121,16 @@ export class RegisterSet {
         this.iy = word(this.iyh, value);
     }
 
+    /**
+     * Combine the two R parts together.
+     */
     get rCombined(): number {
         return (this.r7 & 0x80) | (this.r & 0xF7);
     }
 
+    /**
+     * Get register by name.
+     */
     public get(register: Register): number {
         switch (register) {
             case Register.AF:
@@ -168,6 +174,9 @@ export class RegisterSet {
         }
     }
 
+    /**
+     * Set register by name.
+     */
     public set(register: Register, value: number): void {
         switch (register) {
             case Register.AF:
