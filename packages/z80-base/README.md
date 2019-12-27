@@ -9,7 +9,7 @@ and utility functions for assembling and disassembling words and bytes.
 
 See the [z80-test](https://github.com/lkesteloot/z80-test)
 and [z80-emulator](https://github.com/lkesteloot/z80-emulator)
-projects.
+projects, and the [docs](https://lkesteloot.github.io/z80-base/).
 
 # License
 
