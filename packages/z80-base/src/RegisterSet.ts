@@ -135,7 +135,7 @@ export class RegisterSet {
 /**
  * All real fields of RegisterSet, for enumeration.
  */
-const registerSetFields: Register[] = [
+export const registerSetFields: Register[] = [
     "af", "bc", "de", "hl",
     "afPrime", "bcPrime", "dePrime", "hlPrime",
     "ix", "iy", "sp", "pc",
