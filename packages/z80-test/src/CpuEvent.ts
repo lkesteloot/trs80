@@ -36,7 +36,7 @@ export class CpuEvent {
     /**
      * Generate a Fuse-compatible string.
      */
-    toString(): string {
+    public toString(): string {
         let s: string = this.time.toString(10);
         while (s.length < 5) {
             s = " " + s;

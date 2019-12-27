@@ -1,8 +1,8 @@
+import {CpuEvent} from "./CpuEvent";
 import {Delegate} from "./Delegate";
 import {Register} from "./Register";
 import {Runner} from "./Runner";
 import {toHex} from "./Utils";
-import {CpuEvent} from "./CpuEvent";
 
 // Dummy delegate that does nothing.
 class DelegateImpl implements Delegate {

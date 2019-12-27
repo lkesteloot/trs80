@@ -278,13 +278,17 @@ export class Runner {
             // TODO compare events.
             console.log("Expected events:");
             for (const event of test.postCpuEvents) {
-                if (this.checkContend || (event.eventType !== CpuEventType.MEMORY_CONTEND && event.eventType !== CpuEventType.PORT_CONTEND)) {
+                if (this.checkContend ||
+                    (event.eventType !== CpuEventType.MEMORY_CONTEND &&
+                     event.eventType !== CpuEventType.PORT_CONTEND)) {
                     console.log(event.toString());
                 }
             }
             console.log("Actual events:");
             for (const event of events) {
-                if (this.checkContend || (event.eventType !== CpuEventType.MEMORY_CONTEND && event.eventType !== CpuEventType.PORT_CONTEND)) {
+                if (this.checkContend ||
+                    (event.eventType !== CpuEventType.MEMORY_CONTEND &&
+                     event.eventType !== CpuEventType.PORT_CONTEND)) {
                     console.log(event.toString());
                 }
             }

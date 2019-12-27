@@ -31,8 +31,8 @@ export function lo(value: number): number {
 /**
  * Create a word from a high and low byte.
  */
-export function word(hi: number, lo: number): number {
-    return ((hi & 0xFF) << 8) | (lo & 0xFF);
+export function word(highByte: number, lowByte: number): number {
+    return ((highByte & 0xFF) << 8) | (lowByte & 0xFF);
 }
 
 /**

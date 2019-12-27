@@ -1,5 +1,5 @@
-import {Register} from "./Register";
 import {CpuEvent} from "./CpuEvent";
+import {Register} from "./Register";
 
 /**
  * Delegate to be implemented by the CPU.
