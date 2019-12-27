@@ -1,8 +1,8 @@
 // Regression test for the Z80.
 
-import {CpuEvent, CpuEventType, Delegate, hi, Register, Runner, toHex} from "z80-test";
-import {Hal} from "./Hal";
-import {Z80} from "./Z80";
+import {hi, Register, toHex} from "z80-base";
+import {CpuEvent, CpuEventType, Delegate, Runner} from "z80-test";
+import {Hal, Z80} from "../src";
 
 /**
  * HAL for the test suite.
@@ -62,7 +62,7 @@ class DelegateImpl implements Delegate {
     }
 
     public getRegister(register: Register): number {
-        const value = this.z80.regs.get(register) as number;
+        const value = this.z80.regs[register];
         // console.log("Checking value of " + Register[register] + " (" + toHex(value, 4) + ")");
         return value;
     }
@@ -83,7 +83,7 @@ class DelegateImpl implements Delegate {
 
     public setRegister(register: Register, value: number): void {
         // console.log("Setting register " + Register[register] + " to " + toHex(value, 4));
-        this.z80.regs.set(register, value);
+        this.z80.regs[register] = value;
     }
 
     public writeMemory(address: number, value: number): void {

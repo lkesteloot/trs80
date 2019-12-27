@@ -9,23 +9,31 @@
     "build": "npm run build:main && npm run build:module",
     "build:main": "tsc -p tsconfig.json",
     "build:module": "tsc -p tsconfig.module.json",
+    "build:test": "tsc -p tsconfig.test.json",
     "generate": "tsc --project opcodes && node opcodes/dist/GenerateOpcodes.js",
     "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src",
     "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
     "lint:fix": "npm run lint -- --fix",
-    "test": "npm run build && node dist/Main.js",
-    "clean": "rm -rf dist"
+    "test": "npm run build:test && node dist-tests/tests/Test.js",
+    "clean": "rm -rf dist dist-tests"
   },
-  "keywords": ["z80", "emulator"],
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [
+    "z80",
+    "emulator"
+  ],
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": "https://github.com/lkesteloot/z80-emulator",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^12.12.21",
+    "@types/node": "^12.12.22",
     "tslint": "^5.20.1",
-    "typescript": "^3.7.4"
+    "typescript": "^3.7.4",
+    "z80-test": "^1.0.4"
   },
   "dependencies": {
-    "z80-test": "^1.0.0"
+    "z80-base": "^1.0.2"
   }
 }

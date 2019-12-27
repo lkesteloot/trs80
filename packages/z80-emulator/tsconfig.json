@@ -9,7 +9,8 @@
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true
+    "noImplicitReturns": true,
+    "moduleResolution": "Node"
   },
   "include": [
     "src/**/*.ts"

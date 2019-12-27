@@ -1,5 +1,7 @@
 node_modules
-dist
+/dist
+/dist-tests
+/opcodes/dist
 
 # The rest is from:
 #     https://raw.githubusercontent.com/github/gitignore/master/Global/JetBrains.gitignore

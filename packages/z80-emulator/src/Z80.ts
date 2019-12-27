@@ -1,4 +1,4 @@
-import {Flag, hi, inc16, lo, RegisterSet, word} from "z80-test";
+import {Flag, hi, inc16, lo, RegisterSet, word} from "z80-base";
 import {decode} from "./Decode";
 import {Hal} from "./Hal";
 
