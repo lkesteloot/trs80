@@ -4,7 +4,7 @@
 
 import * as path from "path";
 import * as fs from "fs";
-import {toHex, isWordReg, isByteReg, Flag} from "z80-test/dist";
+import {toHex, isWordReg, isByteReg, Flag} from "z80-test";
 
 /**
  * Params that qualify as "byte-sized".

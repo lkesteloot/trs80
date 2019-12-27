@@ -3,8 +3,8 @@
 import {Delegate, Register, Runner, toHex, hi} from "z80-test";
 import {Z80} from "./Z80";
 import {Hal} from "./Hal";
-import {CpuEvent} from "z80-test/dist/CpuEvent";
-import {CpuEventType} from "z80-test/dist/CpuEventType";
+import {CpuEvent} from "z80-test";
+import {CpuEventType} from "z80-test";
 
 /**
  * HAL for the test suite.

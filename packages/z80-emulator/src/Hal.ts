@@ -24,12 +24,14 @@ export interface Hal {
     contendMemory(address: number): void;
 
     /**
-     * Read a byte from a port.
+     * Read a byte from a port. Warning: Use only the lower byte of
+     * the address. The upper byte may have data used for testing.
      */
     readPort(address: number): number;
 
     /**
-     * Write a byte to a port.
+     * Write a byte to a port. Warning: Use only the lower byte of
+     * the address. The upper byte may have data used for testing.
      */
     writePort(address: number, value: number): void;
 

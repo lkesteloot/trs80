@@ -1,7 +1,7 @@
 import {RegisterSet} from "z80-test";
 import {hi, lo, word, inc16} from "z80-test";
 import {decode} from "./Decode";
-import {Flag} from "z80-test/dist";
+import {Flag} from "z80-test";
 import {Hal} from "./Hal";
 
 /**
