@@ -62,7 +62,7 @@ export class Runner {
      * Load tests from the text files.
      */
     public loadTests() {
-        const moduleDir = path.join(__dirname, "..");
+        const moduleDir = path.join(__dirname, "../..");
         const testDir = path.join(moduleDir, "tests");
         const inPathname = path.join(testDir, IN_FILENAME);
         const expectedPathname = path.join(testDir, EXPECTED_FILENAME);
