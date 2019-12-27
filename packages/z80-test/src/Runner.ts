@@ -1,9 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
+import {registerSetFields, toHex} from "z80-base";
 import {CpuEvent} from "./CpuEvent";
 import {CpuEventType, parseCpuEventType} from "./CpuEventType";
 import {Delegate} from "./Delegate";
-import {registerSetFields, toHex} from "z80-base";
 import {Test} from "./Test";
 
 const IN_FILENAME = "tests.in";

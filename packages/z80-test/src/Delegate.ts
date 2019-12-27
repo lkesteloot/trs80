@@ -1,5 +1,5 @@
-import {CpuEvent} from "./CpuEvent";
 import {Register} from "z80-base";
+import {CpuEvent} from "./CpuEvent";
 
 /**
  * Delegate to be implemented by the CPU.
