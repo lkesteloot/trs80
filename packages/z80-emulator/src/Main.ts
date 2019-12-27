@@ -1,10 +1,8 @@
 // Regression test for the Z80.
 
-import {Delegate, Register, Runner, toHex, hi} from "z80-test";
-import {Z80} from "./Z80";
+import {CpuEvent, CpuEventType, Delegate, hi, Register, Runner, toHex} from "z80-test";
 import {Hal} from "./Hal";
-import {CpuEvent} from "z80-test";
-import {CpuEventType} from "z80-test";
+import {Z80} from "./Z80";
 
 /**
  * HAL for the test suite.
@@ -20,32 +18,32 @@ class HalImpl implements Hal {
         this.tStateCount = 0;
     }
 
-    contendMemory(address: number): void {
+    public contendMemory(address: number): void {
         this.events.push(new CpuEvent(this.tStateCount, CpuEventType.MEMORY_CONTEND, address));
     }
 
-    contendPort(address: number): void {
+    public contendPort(address: number): void {
         this.events.push(new CpuEvent(this.tStateCount, CpuEventType.PORT_CONTEND, address));
     }
 
-    readMemory(address: number): number {
+    public readMemory(address: number): number {
         const value = this.memory[address];
         this.events.push(new CpuEvent(this.tStateCount, CpuEventType.MEMORY_READ, address, value));
         return value;
     }
 
-    readPort(address: number): number {
+    public readPort(address: number): number {
         const value = hi(address); // For testing.
         this.events.push(new CpuEvent(this.tStateCount, CpuEventType.PORT_READ, address, value));
         return value;
     }
 
-    writeMemory(address: number, value: number): void {
+    public writeMemory(address: number, value: number): void {
         this.events.push(new CpuEvent(this.tStateCount, CpuEventType.MEMORY_WRITE, address, value));
         this.memory[address] = value;
     }
 
-    writePort(address: number, value: number): void {
+    public writePort(address: number, value: number): void {
         this.events.push(new CpuEvent(this.tStateCount, CpuEventType.PORT_WRITE, address, value));
     }
 }

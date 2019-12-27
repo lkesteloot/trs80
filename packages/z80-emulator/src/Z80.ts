@@ -1,7 +1,5 @@
-import {RegisterSet} from "z80-test";
-import {hi, lo, word, inc16} from "z80-test";
+import {Flag, hi, inc16, lo, RegisterSet, word} from "z80-test";
 import {decode} from "./Decode";
-import {Flag} from "z80-test";
 import {Hal} from "./Hal";
 
 /**
@@ -27,24 +25,6 @@ export class Z80 {
     constructor(hal: Hal) {
         this.hal = hal;
         this.initTables();
-    }
-
-    private initTables(): void {
-        for (let i = 0; i< 0x100; i++) {
-            this.sz53Table.push(i & (Flag.X3 | Flag.X5 | Flag.S));
-            let bits = i;
-            let parity = 0;
-            for (let bit = 0; bit < 8; bit++) {
-                parity ^= bits & 1;
-                bits >>= 1;
-            }
-            this.parityTable.push(parity ? 0 : Flag.P);
-            this.sz53pTable.push(this.sz53Table[i] | this.parityTable[i]);
-        }
-
-        this.sz53Table[0] |= Flag.Z;
-        this.sz53pTable[0] |= Flag.Z;
-
     }
 
     /**
@@ -137,9 +117,9 @@ export class Z80 {
      * Pop a word from the stack.
      */
     public popWord(): number {
-        const lo = this.popByte();
-        const hi = this.popByte();
-        return word(hi, lo);
+        const lowByte = this.popByte();
+        const highByte = this.popByte();
+        return word(highByte, lowByte);
     }
 
     /**
@@ -149,5 +129,23 @@ export class Z80 {
         const value = this.readByte(this.regs.sp);
         this.regs.sp = inc16(this.regs.sp);
         return value;
+    }
+
+    private initTables(): void {
+        for (let i = 0; i< 0x100; i++) {
+            this.sz53Table.push(i & (Flag.X3 | Flag.X5 | Flag.S));
+            let bits = i;
+            let parity = 0;
+            for (let bit = 0; bit < 8; bit++) {
+                parity ^= bits & 1;
+                bits >>= 1;
+            }
+            this.parityTable.push(parity ? 0 : Flag.P);
+            this.sz53pTable.push(this.sz53Table[i] | this.parityTable[i]);
+        }
+
+        this.sz53Table[0] |= Flag.Z;
+        this.sz53pTable[0] |= Flag.Z;
+
     }
 }
