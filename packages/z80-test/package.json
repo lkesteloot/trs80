@@ -6,6 +6,7 @@
   "typing": "dist/main/index.d.ts",
   "module": "dist/module/index.js",
   "repository": "https://github.com/lkesteloot/z80-test",
+  "author": "Lawrence Kesteloot <lk@teamten.com> (http://teamten.com)",
   "license": "MIT",
   "directories": {
     "test": "tests"
