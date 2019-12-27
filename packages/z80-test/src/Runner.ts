@@ -3,9 +3,8 @@ import * as path from "path";
 import {CpuEvent} from "./CpuEvent";
 import {CpuEventType, parseCpuEventType} from "./CpuEventType";
 import {Delegate} from "./Delegate";
-import {allRegisters, Register} from "./Register";
+import {registerSetFields, toHex} from "z80-base";
 import {Test} from "./Test";
-import {toHex} from "./Utils";
 
 const IN_FILENAME = "tests.in";
 const EXPECTED_FILENAME = "tests.expected";
@@ -153,19 +152,19 @@ export class Runner {
                         // REG1.
                         const hexFields = fields.map((value) => parseInt(value, 16));
                         const registerSet = isExpected ? test.postRegisterSet : test.preRegisterSet;
-                        registerSet.set(Register.AF, hexFields[0]);
-                        registerSet.set(Register.BC, hexFields[1]);
-                        registerSet.set(Register.DE, hexFields[2]);
-                        registerSet.set(Register.HL, hexFields[3]);
-                        registerSet.set(Register.AF_PRIME, hexFields[4]);
-                        registerSet.set(Register.BC_PRIME, hexFields[5]);
-                        registerSet.set(Register.DE_PRIME, hexFields[6]);
-                        registerSet.set(Register.HL_PRIME, hexFields[7]);
-                        registerSet.set(Register.IX, hexFields[8]);
-                        registerSet.set(Register.IY, hexFields[9]);
-                        registerSet.set(Register.SP, hexFields[10]);
-                        registerSet.set(Register.PC, hexFields[11]);
-                        registerSet.set(Register.MEMPTR, hexFields[12]);
+                        registerSet.af = hexFields[0];
+                        registerSet.bc = hexFields[1];
+                        registerSet.de = hexFields[2];
+                        registerSet.hl = hexFields[3];
+                        registerSet.afPrime = hexFields[4];
+                        registerSet.bcPrime = hexFields[5];
+                        registerSet.dePrime = hexFields[6];
+                        registerSet.hlPrime = hexFields[7];
+                        registerSet.ix = hexFields[8];
+                        registerSet.iy = hexFields[9];
+                        registerSet.sp = hexFields[10];
+                        registerSet.pc = hexFields[11];
+                        registerSet.memptr = hexFields[12];
                         state = ParserState.EXPECTING_REG2;
                     } else {
                         throw new Error("Unexpected line: " + line);
@@ -180,11 +179,11 @@ export class Runner {
                         throw new Error("Found " + fields.length + " fields in REG2: " + line);
                     }
                     const registerSet = isExpected ? test.postRegisterSet : test.preRegisterSet;
-                    registerSet.set(Register.I, parseInt(fields[0], 16));
-                    registerSet.set(Register.R, parseInt(fields[1], 16));
-                    registerSet.set(Register.IFF1, parseInt(fields[2], 10));
-                    registerSet.set(Register.IFF2, parseInt(fields[3], 10));
-                    registerSet.set(Register.IM, parseInt(fields[4], 10));
+                    registerSet.i = parseInt(fields[0], 16);
+                    registerSet.r = parseInt(fields[1], 16);
+                    registerSet.iff1 = parseInt(fields[2], 10);
+                    registerSet.iff2 = parseInt(fields[3], 10);
+                    registerSet.im = parseInt(fields[4], 10);
                     if (isExpected) {
                         test.postHalted = parseInt(fields[5], 10) !== 0;
                         test.postTStateCount = parseInt(fields[6], 10);
@@ -236,8 +235,8 @@ export class Runner {
 
         // Setup.
         this.delegate.startNewTest(test.name);
-        for (const register of allRegisters) {
-            const value = test.preRegisterSet.get(register);
+        for (const register of registerSetFields) {
+            const value = test.preRegisterSet[register];
             this.delegate.setRegister(register, value);
         }
         for (const [address, value] of test.preMemory) {
@@ -251,11 +250,11 @@ export class Runner {
         const events = this.delegate.run(test.preTStateCount);
 
         // Check results.
-        for (const register of allRegisters) {
-            const expectedValue = test.postRegisterSet.get(register);
+        for (const register of registerSetFields) {
+            const expectedValue = test.postRegisterSet[register];
             const actualValue = this.delegate.getRegister(register);
             if (actualValue !== expectedValue) {
-                this.errors.push(test.name + ": expected register " + Register[register] + " to be " +
+                this.errors.push(test.name + ": expected register " + register + " to be " +
                     toHex(expectedValue, 4) + " but was " + toHex(actualValue, 4));
                 success = false;
             }

@@ -1,5 +1,5 @@
 import {CpuEventType, cpuEventTypeToString} from "./CpuEventType";
-import {toHex} from "./Utils";
+import {toHex} from "z80-base";
 
 /**
  * Records a CPU event, such as reading from memory at a particular time. These

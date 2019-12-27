@@ -1,14 +1,13 @@
 import {CpuEvent} from "./CpuEvent";
 import {Delegate} from "./Delegate";
-import {Register} from "./Register";
 import {Runner} from "./Runner";
-import {toHex} from "./Utils";
+import {toHex, Register} from "z80-base";
 
 // Dummy delegate that does nothing.
 class DelegateImpl implements Delegate {
     public getRegister(register: Register): number {
         const value = 0;
-        console.log("Checking value of " + Register[register] + " (" + toHex(value, 4) + ")");
+        console.log("Checking value of " + register + " (" + toHex(value, 4) + ")");
         return value;
     }
 
@@ -24,7 +23,7 @@ class DelegateImpl implements Delegate {
     }
 
     public setRegister(register: Register, value: number): void {
-        console.log("Setting register " + Register[register] + " to " + toHex(value, 4));
+        console.log("Setting register " + register + " to " + toHex(value, 4));
     }
 
     public startNewTest(name: string): void {

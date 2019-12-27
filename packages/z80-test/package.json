@@ -24,10 +24,12 @@
     "z80"
   ],
   "devDependencies": {
-    "@types/node": "^12.12.21",
+    "@types/node": "^13.1.1",
     "tslint": "^5.20.1",
-    "typedoc": "^0.15.5",
+    "typedoc": "^0.15.6",
     "typescript": "^3.7.4"
   },
-  "dependencies": {}
+  "dependencies": {
+    "z80-base": "^1.0.2"
+  }
 }

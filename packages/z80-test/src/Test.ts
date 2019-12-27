@@ -1,6 +1,6 @@
 import {CpuEvent} from "./CpuEvent";
 import {MemoryContent} from "./MemoryContent";
-import {RegisterSet} from "./RegisterSet";
+import {RegisterSet} from "z80-base";
 
 /**
  * All the information (in and expected) about one test.
