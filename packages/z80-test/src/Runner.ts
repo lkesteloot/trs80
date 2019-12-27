@@ -62,7 +62,7 @@ export class Runner {
      */
     public loadTests() {
         const moduleDir = path.join(__dirname, "../..");
-        const testDir = path.join(moduleDir, "tests");
+        const testDir = path.join(moduleDir, "z80-tests");
         const inPathname = path.join(testDir, IN_FILENAME);
         const expectedPathname = path.join(testDir, EXPECTED_FILENAME);
 

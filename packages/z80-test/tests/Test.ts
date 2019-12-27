@@ -1,7 +1,7 @@
 import {Register, toHex} from "z80-base";
-import {CpuEvent} from "./CpuEvent";
-import {Delegate} from "./Delegate";
-import {Runner} from "./Runner";
+import {CpuEvent} from "../src/CpuEvent";
+import {Delegate} from "../src/Delegate";
+import {Runner} from "../src/Runner";
 
 // Dummy delegate that does nothing.
 class DelegateImpl implements Delegate {
