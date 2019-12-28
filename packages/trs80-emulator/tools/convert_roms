@@ -1,0 +1,7 @@
+#!/bin/bash
+
+filename="src/Model3Rom.ts"
+echo "export const model3Rom = \`" > $filename
+base64 < roms/model3.rom >> $filename
+echo "\`;" >> $filename
+

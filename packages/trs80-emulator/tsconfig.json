@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "amd",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outFile": "./dist/compiled.js",
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "moduleResolution": "Node",
+    "lib": [
+        "dom",
+        "es6"
+    ]
+  },
+  "include": [
+      "src/**/*.ts"
+  ]
+}
