@@ -36,7 +36,7 @@ function scheduleNextTick() {
     const delay = Math.round(Math.max(0, expectedElapsed - actualElapsed));
     if (delay === 0) {
         // Delay too short, do more each tick.
-        clocksPerTick += 100;
+        clocksPerTick = Math.min(clocksPerTick + 100, 10000);
     } else if (delay > 1) {
         // Delay too long, do less each tick.
         clocksPerTick = Math.max(clocksPerTick - 100, 100);

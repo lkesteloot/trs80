@@ -14,6 +14,7 @@ export class Trs80 implements Hal {
     private memory = new Uint8Array(64*1024);
     private keyboard = new Keyboard();
     public tStateCount = 0;
+    private modeImage = 0x80;
 
     constructor() {
         this.memory.fill(0);
@@ -35,6 +36,10 @@ export class Trs80 implements Hal {
 
     public readMemory(address: number): number {
         if (address < this.ROM_SIZE || address >= this.RAM_START || Trs80.isScreenAddress(address)) {
+            if (address === 16412) {
+                // TODO remove.
+                console.log("Reading from cursor blink: " + this.memory[address]);
+            }
             return this.memory[address];
         } else if (address === 0x37E8) {
             // Printer. 0x30 = Printer selected, ready, with paper, not busy.
@@ -44,6 +49,7 @@ export class Trs80 implements Hal {
             return this.keyboard.readKeyboard(address, this.tStateCount);
         } else {
             // Unmapped memory.
+            console.log("Reading from unmapped memory at 0x" + toHex(address, 4));
             return 0xFF;
         }
     }
@@ -57,6 +63,11 @@ export class Trs80 implements Hal {
                 value = 0xFF;
                 break;
 
+            case 0xFF:
+                // Cassette and various flags.
+                value = (this.modeImage & 0x7E) | 0x00; // vm.getCassetteByte()
+                break;
+
             default:
                 console.log("Reading from unknown port 0x" + toHex(lo(address), 2));
                 return 0;
@@ -67,7 +78,53 @@ export class Trs80 implements Hal {
 
     public writePort(address: number, value: number): void {
         const port = address & 0xFF;
-        console.log("Writing 0x" + toHex(value, 2) + " to port 0x" + toHex(port, 2));
+        switch (port) {
+            case 0xE0:
+                // Set interrupt mask.
+                // TODO
+                // vm.setIrqMask(value)
+                break;
+
+            case 0xE4:
+            case 0xE5:
+            case 0xE6:
+            case 0xE7:
+                // Set NMI state.
+                // TODO
+                // vm.setNmiMask(value)
+                break;
+
+            case 0xEC:
+            case 0xED:
+            case 0xEE:
+            case 0xEF:
+                // Various controls.
+                // TODO
+                this.modeImage = value;
+                // vm.setCassetteMotor(value&0x02 != 0)
+                // vm.setExpandedCharacters(value&0x04 != 0)
+                break;
+
+            case 0xF0:
+                // Disk command.
+                // TODO
+                // vm.writeDiskCommand(value)
+                break;
+
+            case 0xF4:
+            case 0xF5:
+            case 0xF6:
+            case 0xF7:
+                // Disk select.
+                // TODO
+                // vm.writeDiskSelect(value)
+                break;
+
+            default:
+                console.log("Writing 0x" + toHex(value, 2) + " to unknown port 0x" + toHex(port, 2));
+                return;
+        }
+        console.log("Wrote 0x" + toHex(value, 2) + " to port 0x" + toHex(port, 2));
     }
 
     public writeMemory(address: number, value: number): void {
@@ -78,6 +135,8 @@ export class Trs80 implements Hal {
                 const c = document.getElementById("c" + address) as HTMLSpanElement;
                 // https://www.kreativekorp.com/software/fonts/trs80.shtml
                 c.innerText = String.fromCharCode(0xE000 + value);
+            } else if (address < this.RAM_START) {
+                console.log("Writing to unmapped memory at 0x" + toHex(address, 4));
             }
             this.memory[address] = value;
         }
