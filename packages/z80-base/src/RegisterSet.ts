@@ -27,6 +27,7 @@ export class RegisterSet {
     public iff1: number = 0;
     public iff2: number = 0;
     public im: number = 0;
+    public halted: number = 0;
 
     get a(): number {
         return hi(this.af);
@@ -139,4 +140,4 @@ export const registerSetFields: Register[] = [
     "af", "bc", "de", "hl",
     "afPrime", "bcPrime", "dePrime", "hlPrime",
     "ix", "iy", "sp", "pc",
-    "memptr", "i", "r", "iff1", "iff2", "im"];
+    "memptr", "i", "r", "iff1", "iff2", "im", "halted"];

@@ -1,5 +1,6 @@
 node_modules
 /dist
+/.idea
 
 # The rest is from:
 #     https://raw.githubusercontent.com/github/gitignore/master/Global/JetBrains.gitignore

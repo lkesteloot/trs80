@@ -13,7 +13,7 @@ export type WordReg = "af" | "bc" | "de" | "hl" | "afPrime" | "bcPrime" | "dePri
 /**
  * Internal state.
  */
-export type InternalReg = "memptr" | "i" | "r" | "iff1" | "iff2" | "im";
+export type InternalReg = "memptr" | "i" | "r" | "iff1" | "iff2" | "im" | "halted";
 
 /**
  * All registers.
