@@ -1,4 +1,3 @@
-import {Z80} from "z80-emulator";
 import {Trs80} from "./Trs80";
 
 // Set up the screen.
@@ -18,14 +17,14 @@ for (let offset = 0; offset < 1024; offset++) {
 }
 
 const trs80 = new Trs80();
-const z80 = new Z80(trs80);
+trs80.reset();
 
 // Start machine.
 let clocksPerTick = 2000;
 const startTime = Date.now();
 function tick() {
     for (let i = 0; i < clocksPerTick; i++) {
-        z80.step();
+        trs80.step();
     }
     scheduleNextTick();
 }
