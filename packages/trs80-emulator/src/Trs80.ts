@@ -19,15 +19,15 @@ export class Trs80 implements Hal {
         this.tStateCount = 0;
     }
 
-    contendMemory(address: number): void {
+    public contendMemory(address: number): void {
         // Ignore.
     }
 
-    contendPort(address: number): void {
+    public contendPort(address: number): void {
         // Ignore.
     }
 
-    readMemory(address: number): number {
+    public readMemory(address: number): number {
         return this.memory[address];
     }
 

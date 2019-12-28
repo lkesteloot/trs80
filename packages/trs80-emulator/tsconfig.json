@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2018",
-    "module": "amd",
+    "module": "umd",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outFile": "./dist/compiled.js",
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,

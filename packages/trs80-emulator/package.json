@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "TRS-80 Model III emulator",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "build": "rollup -c",
+    "clean": "rm -rf dist"
+  },
   "keywords": [
     "trs-80",
     "emulator"
@@ -14,7 +17,10 @@
     "z80-emulator": "^1.0.1"
   },
   "devDependencies": {
-    "parcel-bundler": "^1.12.4",
+    "@rollup/plugin-node-resolve": "^6.0.0",
+    "@rollup/plugin-typescript": "^2.0.1",
+    "rollup": "^1.27.14",
+    "tslib": "^1.10.0",
     "typescript": "^3.7.4"
   }
 }
