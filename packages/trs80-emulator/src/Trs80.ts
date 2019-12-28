@@ -1,13 +1,16 @@
 import {model3Rom} from "./Model3Rom";
 import {Hal} from "z80-emulator";
-import {toHex, lo} from "z80-base";
+import {lo, toHex} from "z80-base";
+import {Keyboard} from "./Keyboard";
 
 /**
  * HAL for the TRS-80 Model III.
  */
 export class Trs80 implements Hal {
     private readonly ROM_SIZE = 14*1024;
+    private readonly RAM_START = 16*1024;
     private memory = new Uint8Array(64*1024);
+    private keyboard = new Keyboard();
     public tStateCount = 0;
 
     constructor() {
@@ -17,6 +20,7 @@ export class Trs80 implements Hal {
             this.memory[i] = raw.charCodeAt(i);
         }
         this.tStateCount = 0;
+        this.keyboard.configureKeyboard();
     }
 
     public contendMemory(address: number): void {
@@ -28,7 +32,18 @@ export class Trs80 implements Hal {
     }
 
     public readMemory(address: number): number {
-        return this.memory[address];
+        if (address < this.ROM_SIZE || address >= this.RAM_START || Trs80.isScreenAddress(address)) {
+            return this.memory[address];
+        } else if (address === 0x37E8) {
+            // Printer. 0x30 = Printer selected, ready, with paper, not busy.
+            return 0x30;
+        } else if (Keyboard.isInRange(address)) {
+            // Keyboard.
+            return this.keyboard.readKeyboard(address, this.tStateCount);
+        } else {
+            // Unmapped memory.
+            return 0xFF;
+        }
     }
 
     public readPort(address: number): number {
@@ -57,10 +72,16 @@ export class Trs80 implements Hal {
         if (address < this.ROM_SIZE) {
             console.log("Warning: Writing to ROM location 0x" + toHex(address, 4))
         } else {
-            if (address >= 15360 && address < 16384 && value != 32) {
-                document.write("Writing \"" + String.fromCharCode(value) + "\" to " + address + "<br>");
+            if (address >= 15360 && address < 16384) {
+                const c = document.getElementById("c" + address) as HTMLSpanElement;
+                // https://www.kreativekorp.com/software/fonts/trs80.shtml
+                c.innerText = String.fromCharCode(0xE000 + value);
             }
             this.memory[address] = value;
         }
+    }
+
+    private static isScreenAddress(address: number): boolean {
+        return address >= 15 * 1024 && address < 16 * 1024;
     }
 }
