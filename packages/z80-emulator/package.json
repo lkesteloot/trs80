@@ -11,7 +11,7 @@
     "build:module": "tsc -p tsconfig.module.json",
     "build:test": "tsc -p tsconfig.test.json",
     "generate": "tsc --project opcodes && node opcodes/dist/GenerateOpcodes.js",
-    "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src",
+    "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
     "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
     "lint:fix": "npm run lint -- --fix",
     "test": "npm run build:test && node dist-tests/tests/Test.js",
