@@ -1,6 +1,6 @@
 {
   "name": "z80-test",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Z80 test suite",
   "main": "dist/main/index.js",
   "typing": "dist/main/index.d.ts",
