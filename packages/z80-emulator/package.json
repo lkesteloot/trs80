@@ -31,9 +31,9 @@
     "@types/node": "^12.12.22",
     "tslint": "^5.20.1",
     "typescript": "^3.7.4",
-    "z80-test": "^1.0.4"
+    "z80-test": "^1.0.5"
   },
   "dependencies": {
-    "z80-base": "^1.0.2"
+    "z80-base": "^1.0.3"
   }
 }

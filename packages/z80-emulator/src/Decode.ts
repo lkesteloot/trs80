@@ -9635,6 +9635,7 @@ export function decode(z80: Z80): void {
         }
 
         case 0x76: { // halt
+            z80.regs.halted = 1;
             z80.regs.pc = dec16(z80.regs.pc);
             break;
         }

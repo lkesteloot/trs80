@@ -1223,8 +1223,7 @@ function generateDispatch(pathname: string, prefix: string): string {
                 }
 
                 case "halt": {
-                    // TODO we don't halt the Z80 currently.
-                    // addLine(output, "z80.regs.halted = 1;");
+                    addLine(output, "z80.regs.halted = 1;");
                     addLine(output, "z80.regs.pc = dec16(z80.regs.pc);");
                     break;
                 }
