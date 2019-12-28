@@ -49,11 +49,78 @@ export class Z80 {
     }
 
     /**
+     * Interrupt the CPU with a maskable interrupt
+     */
+    public maskableInterrupt(): void {
+        if (this.regs.iff1 !== 0) {
+            this.interrupt(true);
+        }
+    }
+
+    /**
+     * Interrupt the CPU with a non-maskable interrupt
+     */
+    public nonMaskableInterrupt(): void {
+        this.interrupt(false);
+    }
+
+    /**
+     * Process either kind of interrupt. If maskable, assumes that
+     * the mask has already been checked.
+     */
+    private interrupt(maskable: boolean): void {
+        if (this.regs.halted) {
+            // Skip past HALT instruction.
+            this.regs.pc++;
+            this.regs.halted = 0;
+        }
+
+        this.incTStateCount(7);
+        this.regs.r += 1;
+        this.regs.iff1 = 0;
+        this.regs.iff2 = 0;
+
+        this.pushWord(this.regs.pc);
+
+        if (maskable) {
+            switch (this.regs.im) {
+                case 0:
+                case 1:
+                    this.regs.pc = 0x0038;
+                    break;
+
+                case 2: {
+                    // The LSB here is taken from the data bus, so it's
+                    // unpredictable. We use 0xFF but any value would do.
+                    const address = word(this.regs.i, 0xFF);
+                    this.regs.pc = this.readWord(address);
+                    break;
+                }
+
+                default:
+                    throw new Error("Unknown im mode " + this.regs.im);
+            }
+        } else {
+            this.regs.pc = 0x0066;
+        }
+    }
+
+    /**
      * Read a byte from memory, taking as many clock cycles as necessary.
      */
     public readByte(address: number): number {
         this.incTStateCount(3);
         return this.readByteInternal(address);
+    }
+
+    /**
+     * Reads a word at the specified address. Reads the low byte first.
+     */
+    public readWord(address: number): number {
+        const lowByte = this.readByte(address);
+        const highByte = this.readByte(address + 1);
+
+        return word(highByte, lowByte);
     }
 
     /**
