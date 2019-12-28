@@ -32,6 +32,6 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "z80-base": "^1.0.2"
+    "z80-base": "^1.0.3"
   }
 }

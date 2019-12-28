@@ -8,13 +8,11 @@ import {MemoryContent} from "./MemoryContent";
 export class Test {
     public name: string;
     public preRegisterSet: RegisterSet = new RegisterSet();
-    public preHalted: boolean = false;
     public preTStateCount: number = 0;
     public preMemory: MemoryContent = new Map();
 
     public postCpuEvents: CpuEvent[] = [];
     public postRegisterSet: RegisterSet = new RegisterSet();
-    public postHalted: boolean = false;
     public postTStateCount: number = 0;
     public postMemory: MemoryContent = new Map();
 

@@ -184,11 +184,10 @@ export class Runner {
                     registerSet.iff1 = parseInt(fields[2], 10);
                     registerSet.iff2 = parseInt(fields[3], 10);
                     registerSet.im = parseInt(fields[4], 10);
+                    registerSet.halted = parseInt(fields[5], 10);
                     if (isExpected) {
-                        test.postHalted = parseInt(fields[5], 10) !== 0;
                         test.postTStateCount = parseInt(fields[6], 10);
                     } else {
-                        test.preHalted = parseInt(fields[5], 10) !== 0;
                         test.preTStateCount = parseInt(fields[6], 10);
                     }
                     state = ParserState.EXPECTING_MEMORY;
@@ -242,9 +241,6 @@ export class Runner {
         for (const [address, value] of test.preMemory) {
             this.delegate.writeMemory(address, value);
         }
-        if (test.preHalted) {
-            throw new Error("Don't know how to handle preHalted");
-        }
 
         // Run the test.
         const events = this.delegate.run(test.preTStateCount);
@@ -291,9 +287,6 @@ export class Runner {
                     console.log(event.toString());
                 }
             }
-        }
-        if (test.postHalted) {
-            // TODO, we don't currently check this.
         }
 
         return success;
