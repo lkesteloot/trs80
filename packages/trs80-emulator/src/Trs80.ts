@@ -169,7 +169,7 @@ export class Trs80 implements Hal {
                 console.log("Reading from unknown port 0x" + toHex(lo(address), 2));
                 return 0;
         }
-        console.log("Reading 0x" + toHex(value, 2) + " from port 0x" + toHex(lo(address), 2));
+        // console.log("Reading 0x" + toHex(value, 2) + " from port 0x" + toHex(lo(address), 2));
         return value;
     }
 
@@ -219,7 +219,7 @@ export class Trs80 implements Hal {
                 console.log("Writing 0x" + toHex(value, 2) + " to unknown port 0x" + toHex(port, 2));
                 return;
         }
-        console.log("Wrote 0x" + toHex(value, 2) + " to port 0x" + toHex(port, 2));
+        // console.log("Wrote 0x" + toHex(value, 2) + " to port 0x" + toHex(port, 2));
     }
 
     public writeMemory(address: number, value: number): void {
