@@ -13,6 +13,7 @@
   ],
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
+  "private": true,
   "dependencies": {
     "z80-emulator": "^1.0.1"
   },

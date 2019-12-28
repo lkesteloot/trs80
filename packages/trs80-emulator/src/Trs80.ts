@@ -9,6 +9,8 @@ import {Keyboard} from "./Keyboard";
 export class Trs80 implements Hal {
     private readonly ROM_SIZE = 14*1024;
     private readonly RAM_START = 16*1024;
+    // https://en.wikipedia.org/wiki/TRS-80#Model_III
+    public static readonly CLOCK_HZ = 2_030_000;
     private memory = new Uint8Array(64*1024);
     private keyboard = new Keyboard();
     public tStateCount = 0;

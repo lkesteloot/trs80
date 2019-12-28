@@ -351,6 +351,11 @@ export class Keyboard {
             //     return;
             // }
 
+            // Don't interfere with browser keys.
+            if (event.metaKey || event.ctrlKey) {
+                return;
+            }
+
             const key = eventToKey(event);
             if (key !== "") {
                 this.keyEvent(key, isPressed);
