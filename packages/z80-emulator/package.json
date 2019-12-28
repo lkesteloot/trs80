@@ -30,6 +30,7 @@
   "devDependencies": {
     "@types/node": "^12.12.22",
     "tslint": "^5.20.1",
+    "typedoc": "^0.15.6",
     "typescript": "^3.7.4",
     "z80-test": "^1.0.5"
   },
