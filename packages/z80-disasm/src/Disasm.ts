@@ -37,6 +37,7 @@ export class Disasm {
                 } else if (value.shift !== undefined) {
                     // Descend to sub-map.
                     map = value.shift;
+                    byte = next();
                 } else {
                     // Found instruction. Parse arguments.
                     const args: string[] = (value.params ?? []).slice();
