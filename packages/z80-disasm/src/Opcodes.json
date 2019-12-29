@@ -1,0 +1,9762 @@
+{
+  "0": {
+    "opcode": "nop"
+  },
+  "1": {
+    "opcode": "ld",
+    "params": [
+      "bc",
+      "nnnn"
+    ]
+  },
+  "2": {
+    "opcode": "ld",
+    "params": [
+      "(bc)",
+      "a"
+    ]
+  },
+  "3": {
+    "opcode": "inc",
+    "params": [
+      "bc"
+    ]
+  },
+  "4": {
+    "opcode": "inc",
+    "params": [
+      "b"
+    ]
+  },
+  "5": {
+    "opcode": "dec",
+    "params": [
+      "b"
+    ]
+  },
+  "6": {
+    "opcode": "ld",
+    "params": [
+      "b",
+      "nn"
+    ]
+  },
+  "7": {
+    "opcode": "rlca"
+  },
+  "8": {
+    "opcode": "ex",
+    "params": [
+      "af",
+      "af'"
+    ]
+  },
+  "9": {
+    "opcode": "add",
+    "params": [
+      "hl",
+      "bc"
+    ]
+  },
+  "10": {
+    "opcode": "djnz",
+    "params": [
+      "offset"
+    ]
+  },
+  "11": {
+    "opcode": "ld",
+    "params": [
+      "de",
+      "nnnn"
+    ]
+  },
+  "12": {
+    "opcode": "ld",
+    "params": [
+      "(de)",
+      "a"
+    ]
+  },
+  "13": {
+    "opcode": "inc",
+    "params": [
+      "de"
+    ]
+  },
+  "14": {
+    "opcode": "inc",
+    "params": [
+      "d"
+    ]
+  },
+  "15": {
+    "opcode": "dec",
+    "params": [
+      "d"
+    ]
+  },
+  "16": {
+    "opcode": "ld",
+    "params": [
+      "d",
+      "nn"
+    ]
+  },
+  "17": {
+    "opcode": "rla"
+  },
+  "18": {
+    "opcode": "jr",
+    "params": [
+      "offset"
+    ]
+  },
+  "19": {
+    "opcode": "add",
+    "params": [
+      "hl",
+      "de"
+    ]
+  },
+  "20": {
+    "opcode": "jr",
+    "params": [
+      "nz",
+      "offset"
+    ]
+  },
+  "21": {
+    "opcode": "ld",
+    "params": [
+      "hl",
+      "nnnn"
+    ]
+  },
+  "22": {
+    "opcode": "ld",
+    "params": [
+      "(nnnn)",
+      "hl"
+    ]
+  },
+  "23": {
+    "opcode": "inc",
+    "params": [
+      "hl"
+    ]
+  },
+  "24": {
+    "opcode": "inc",
+    "params": [
+      "h"
+    ]
+  },
+  "25": {
+    "opcode": "dec",
+    "params": [
+      "h"
+    ]
+  },
+  "26": {
+    "opcode": "ld",
+    "params": [
+      "h",
+      "nn"
+    ]
+  },
+  "27": {
+    "opcode": "daa"
+  },
+  "28": {
+    "opcode": "jr",
+    "params": [
+      "z",
+      "offset"
+    ]
+  },
+  "29": {
+    "opcode": "add",
+    "params": [
+      "hl",
+      "hl"
+    ]
+  },
+  "30": {
+    "opcode": "jr",
+    "params": [
+      "nc",
+      "offset"
+    ]
+  },
+  "31": {
+    "opcode": "ld",
+    "params": [
+      "sp",
+      "nnnn"
+    ]
+  },
+  "32": {
+    "opcode": "ld",
+    "params": [
+      "(nnnn)",
+      "a"
+    ]
+  },
+  "33": {
+    "opcode": "inc",
+    "params": [
+      "sp"
+    ]
+  },
+  "34": {
+    "opcode": "inc",
+    "params": [
+      "(hl)"
+    ]
+  },
+  "35": {
+    "opcode": "dec",
+    "params": [
+      "(hl)"
+    ]
+  },
+  "36": {
+    "opcode": "ld",
+    "params": [
+      "(hl)",
+      "nn"
+    ]
+  },
+  "37": {
+    "opcode": "scf"
+  },
+  "38": {
+    "opcode": "jr",
+    "params": [
+      "c",
+      "offset"
+    ]
+  },
+  "39": {
+    "opcode": "add",
+    "params": [
+      "hl",
+      "sp"
+    ]
+  },
+  "40": {
+    "opcode": "ld",
+    "params": [
+      "b",
+      "b"
+    ]
+  },
+  "41": {
+    "opcode": "ld",
+    "params": [
+      "b",
+      "c"
+    ]
+  },
+  "42": {
+    "opcode": "ld",
+    "params": [
+      "b",
+      "d"
+    ]
+  },
+  "43": {
+    "opcode": "ld",
+    "params": [
+      "b",
+      "e"
+    ]
+  },
+  "44": {
+    "opcode": "ld",
+    "params": [
+      "b",
+      "h"
+    ]
+  },
+  "45": {
+    "opcode": "ld",
+    "params": [
+      "b",
+      "l"
+    ]
+  },
+  "46": {
+    "opcode": "ld",
+    "params": [
+      "b",
+      "(hl)"
+    ]
+  },
+  "47": {
+    "opcode": "ld",
+    "params": [
+      "b",
+      "a"
+    ]
+  },
+  "48": {
+    "opcode": "ld",
+    "params": [
+      "c",
+      "b"
+    ]
+  },
+  "49": {
+    "opcode": "ld",
+    "params": [
+      "c",
+      "c"
+    ]
+  },
+  "50": {
+    "opcode": "ld",
+    "params": [
+      "d",
+      "b"
+    ]
+  },
+  "51": {
+    "opcode": "ld",
+    "params": [
+      "d",
+      "c"
+    ]
+  },
+  "52": {
+    "opcode": "ld",
+    "params": [
+      "d",
+      "d"
+    ]
+  },
+  "53": {
+    "opcode": "ld",
+    "params": [
+      "d",
+      "e"
+    ]
+  },
+  "54": {
+    "opcode": "ld",
+    "params": [
+      "d",
+      "h"
+    ]
+  },
+  "55": {
+    "opcode": "ld",
+    "params": [
+      "d",
+      "l"
+    ]
+  },
+  "56": {
+    "opcode": "ld",
+    "params": [
+      "d",
+      "(hl)"
+    ]
+  },
+  "57": {
+    "opcode": "ld",
+    "params": [
+      "d",
+      "a"
+    ]
+  },
+  "58": {
+    "opcode": "ld",
+    "params": [
+      "e",
+      "b"
+    ]
+  },
+  "59": {
+    "opcode": "ld",
+    "params": [
+      "e",
+      "c"
+    ]
+  },
+  "60": {
+    "opcode": "ld",
+    "params": [
+      "h",
+      "b"
+    ]
+  },
+  "61": {
+    "opcode": "ld",
+    "params": [
+      "h",
+      "c"
+    ]
+  },
+  "62": {
+    "opcode": "ld",
+    "params": [
+      "h",
+      "d"
+    ]
+  },
+  "63": {
+    "opcode": "ld",
+    "params": [
+      "h",
+      "e"
+    ]
+  },
+  "64": {
+    "opcode": "ld",
+    "params": [
+      "h",
+      "h"
+    ]
+  },
+  "65": {
+    "opcode": "ld",
+    "params": [
+      "h",
+      "l"
+    ]
+  },
+  "66": {
+    "opcode": "ld",
+    "params": [
+      "h",
+      "(hl)"
+    ]
+  },
+  "67": {
+    "opcode": "ld",
+    "params": [
+      "h",
+      "a"
+    ]
+  },
+  "68": {
+    "opcode": "ld",
+    "params": [
+      "l",
+      "b"
+    ]
+  },
+  "69": {
+    "opcode": "ld",
+    "params": [
+      "l",
+      "c"
+    ]
+  },
+  "70": {
+    "opcode": "ld",
+    "params": [
+      "(hl)",
+      "b"
+    ]
+  },
+  "71": {
+    "opcode": "ld",
+    "params": [
+      "(hl)",
+      "c"
+    ]
+  },
+  "72": {
+    "opcode": "ld",
+    "params": [
+      "(hl)",
+      "d"
+    ]
+  },
+  "73": {
+    "opcode": "ld",
+    "params": [
+      "(hl)",
+      "e"
+    ]
+  },
+  "74": {
+    "opcode": "ld",
+    "params": [
+      "(hl)",
+      "h"
+    ]
+  },
+  "75": {
+    "opcode": "ld",
+    "params": [
+      "(hl)",
+      "l"
+    ]
+  },
+  "76": {
+    "opcode": "halt"
+  },
+  "77": {
+    "opcode": "ld",
+    "params": [
+      "(hl)",
+      "a"
+    ]
+  },
+  "78": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "b"
+    ]
+  },
+  "79": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "c"
+    ]
+  },
+  "80": {
+    "opcode": "add",
+    "params": [
+      "a",
+      "b"
+    ]
+  },
+  "81": {
+    "opcode": "add",
+    "params": [
+      "a",
+      "c"
+    ]
+  },
+  "82": {
+    "opcode": "add",
+    "params": [
+      "a",
+      "d"
+    ]
+  },
+  "83": {
+    "opcode": "add",
+    "params": [
+      "a",
+      "e"
+    ]
+  },
+  "84": {
+    "opcode": "add",
+    "params": [
+      "a",
+      "h"
+    ]
+  },
+  "85": {
+    "opcode": "add",
+    "params": [
+      "a",
+      "l"
+    ]
+  },
+  "86": {
+    "opcode": "add",
+    "params": [
+      "a",
+      "(hl)"
+    ]
+  },
+  "87": {
+    "opcode": "add",
+    "params": [
+      "a",
+      "a"
+    ]
+  },
+  "88": {
+    "opcode": "adc",
+    "params": [
+      "a",
+      "b"
+    ]
+  },
+  "89": {
+    "opcode": "adc",
+    "params": [
+      "a",
+      "c"
+    ]
+  },
+  "90": {
+    "opcode": "sub",
+    "params": [
+      "a",
+      "b"
+    ]
+  },
+  "91": {
+    "opcode": "sub",
+    "params": [
+      "a",
+      "c"
+    ]
+  },
+  "92": {
+    "opcode": "sub",
+    "params": [
+      "a",
+      "d"
+    ]
+  },
+  "93": {
+    "opcode": "sub",
+    "params": [
+      "a",
+      "e"
+    ]
+  },
+  "94": {
+    "opcode": "sub",
+    "params": [
+      "a",
+      "h"
+    ]
+  },
+  "95": {
+    "opcode": "sub",
+    "params": [
+      "a",
+      "l"
+    ]
+  },
+  "96": {
+    "opcode": "sub",
+    "params": [
+      "a",
+      "(hl)"
+    ]
+  },
+  "97": {
+    "opcode": "sub",
+    "params": [
+      "a",
+      "a"
+    ]
+  },
+  "98": {
+    "opcode": "sbc",
+    "params": [
+      "a",
+      "b"
+    ]
+  },
+  "99": {
+    "opcode": "sbc",
+    "params": [
+      "a",
+      "c"
+    ]
+  },
+  "a": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "(bc)"
+    ]
+  },
+  "b": {
+    "opcode": "dec",
+    "params": [
+      "bc"
+    ]
+  },
+  "c": {
+    "opcode": "inc",
+    "params": [
+      "c"
+    ]
+  },
+  "d": {
+    "opcode": "dec",
+    "params": [
+      "c"
+    ]
+  },
+  "e": {
+    "opcode": "ld",
+    "params": [
+      "c",
+      "nn"
+    ]
+  },
+  "f": {
+    "opcode": "rrca"
+  },
+  "1a": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "(de)"
+    ]
+  },
+  "1b": {
+    "opcode": "dec",
+    "params": [
+      "de"
+    ]
+  },
+  "1c": {
+    "opcode": "inc",
+    "params": [
+      "e"
+    ]
+  },
+  "1d": {
+    "opcode": "dec",
+    "params": [
+      "e"
+    ]
+  },
+  "1e": {
+    "opcode": "ld",
+    "params": [
+      "e",
+      "nn"
+    ]
+  },
+  "1f": {
+    "opcode": "rra"
+  },
+  "2a": {
+    "opcode": "ld",
+    "params": [
+      "hl",
+      "(nnnn)"
+    ]
+  },
+  "2b": {
+    "opcode": "dec",
+    "params": [
+      "hl"
+    ]
+  },
+  "2c": {
+    "opcode": "inc",
+    "params": [
+      "l"
+    ]
+  },
+  "2d": {
+    "opcode": "dec",
+    "params": [
+      "l"
+    ]
+  },
+  "2e": {
+    "opcode": "ld",
+    "params": [
+      "l",
+      "nn"
+    ]
+  },
+  "2f": {
+    "opcode": "cpl"
+  },
+  "3a": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "(nnnn)"
+    ]
+  },
+  "3b": {
+    "opcode": "dec",
+    "params": [
+      "sp"
+    ]
+  },
+  "3c": {
+    "opcode": "inc",
+    "params": [
+      "a"
+    ]
+  },
+  "3d": {
+    "opcode": "dec",
+    "params": [
+      "a"
+    ]
+  },
+  "3e": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "nn"
+    ]
+  },
+  "3f": {
+    "opcode": "ccf"
+  },
+  "4a": {
+    "opcode": "ld",
+    "params": [
+      "c",
+      "d"
+    ]
+  },
+  "4b": {
+    "opcode": "ld",
+    "params": [
+      "c",
+      "e"
+    ]
+  },
+  "4c": {
+    "opcode": "ld",
+    "params": [
+      "c",
+      "h"
+    ]
+  },
+  "4d": {
+    "opcode": "ld",
+    "params": [
+      "c",
+      "l"
+    ]
+  },
+  "4e": {
+    "opcode": "ld",
+    "params": [
+      "c",
+      "(hl)"
+    ]
+  },
+  "4f": {
+    "opcode": "ld",
+    "params": [
+      "c",
+      "a"
+    ]
+  },
+  "5a": {
+    "opcode": "ld",
+    "params": [
+      "e",
+      "d"
+    ]
+  },
+  "5b": {
+    "opcode": "ld",
+    "params": [
+      "e",
+      "e"
+    ]
+  },
+  "5c": {
+    "opcode": "ld",
+    "params": [
+      "e",
+      "h"
+    ]
+  },
+  "5d": {
+    "opcode": "ld",
+    "params": [
+      "e",
+      "l"
+    ]
+  },
+  "5e": {
+    "opcode": "ld",
+    "params": [
+      "e",
+      "(hl)"
+    ]
+  },
+  "5f": {
+    "opcode": "ld",
+    "params": [
+      "e",
+      "a"
+    ]
+  },
+  "6a": {
+    "opcode": "ld",
+    "params": [
+      "l",
+      "d"
+    ]
+  },
+  "6b": {
+    "opcode": "ld",
+    "params": [
+      "l",
+      "e"
+    ]
+  },
+  "6c": {
+    "opcode": "ld",
+    "params": [
+      "l",
+      "h"
+    ]
+  },
+  "6d": {
+    "opcode": "ld",
+    "params": [
+      "l",
+      "l"
+    ]
+  },
+  "6e": {
+    "opcode": "ld",
+    "params": [
+      "l",
+      "(hl)"
+    ]
+  },
+  "6f": {
+    "opcode": "ld",
+    "params": [
+      "l",
+      "a"
+    ]
+  },
+  "7a": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "d"
+    ]
+  },
+  "7b": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "e"
+    ]
+  },
+  "7c": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "h"
+    ]
+  },
+  "7d": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "l"
+    ]
+  },
+  "7e": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "(hl)"
+    ]
+  },
+  "7f": {
+    "opcode": "ld",
+    "params": [
+      "a",
+      "a"
+    ]
+  },
+  "8a": {
+    "opcode": "adc",
+    "params": [
+      "a",
+      "d"
+    ]
+  },
+  "8b": {
+    "opcode": "adc",
+    "params": [
+      "a",
+      "e"
+    ]
+  },
+  "8c": {
+    "opcode": "adc",
+    "params": [
+      "a",
+      "h"
+    ]
+  },
+  "8d": {
+    "opcode": "adc",
+    "params": [
+      "a",
+      "l"
+    ]
+  },
+  "8e": {
+    "opcode": "adc",
+    "params": [
+      "a",
+      "(hl)"
+    ]
+  },
+  "8f": {
+    "opcode": "adc",
+    "params": [
+      "a",
+      "a"
+    ]
+  },
+  "9a": {
+    "opcode": "sbc",
+    "params": [
+      "a",
+      "d"
+    ]
+  },
+  "9b": {
+    "opcode": "sbc",
+    "params": [
+      "a",
+      "e"
+    ]
+  },
+  "9c": {
+    "opcode": "sbc",
+    "params": [
+      "a",
+      "h"
+    ]
+  },
+  "9d": {
+    "opcode": "sbc",
+    "params": [
+      "a",
+      "l"
+    ]
+  },
+  "9e": {
+    "opcode": "sbc",
+    "params": [
+      "a",
+      "(hl)"
+    ]
+  },
+  "9f": {
+    "opcode": "sbc",
+    "params": [
+      "a",
+      "a"
+    ]
+  },
+  "a0": {
+    "opcode": "and",
+    "params": [
+      "a",
+      "b"
+    ]
+  },
+  "a1": {
+    "opcode": "and",
+    "params": [
+      "a",
+      "c"
+    ]
+  },
+  "a2": {
+    "opcode": "and",
+    "params": [
+      "a",
+      "d"
+    ]
+  },
+  "a3": {
+    "opcode": "and",
+    "params": [
+      "a",
+      "e"
+    ]
+  },
+  "a4": {
+    "opcode": "and",
+    "params": [
+      "a",
+      "h"
+    ]
+  },
+  "a5": {
+    "opcode": "and",
+    "params": [
+      "a",
+      "l"
+    ]
+  },
+  "a6": {
+    "opcode": "and",
+    "params": [
+      "a",
+      "(hl)"
+    ]
+  },
+  "a7": {
+    "opcode": "and",
+    "params": [
+      "a",
+      "a"
+    ]
+  },
+  "a8": {
+    "opcode": "xor",
+    "params": [
+      "a",
+      "b"
+    ]
+  },
+  "a9": {
+    "opcode": "xor",
+    "params": [
+      "a",
+      "c"
+    ]
+  },
+  "aa": {
+    "opcode": "xor",
+    "params": [
+      "a",
+      "d"
+    ]
+  },
+  "ab": {
+    "opcode": "xor",
+    "params": [
+      "a",
+      "e"
+    ]
+  },
+  "ac": {
+    "opcode": "xor",
+    "params": [
+      "a",
+      "h"
+    ]
+  },
+  "ad": {
+    "opcode": "xor",
+    "params": [
+      "a",
+      "l"
+    ]
+  },
+  "ae": {
+    "opcode": "xor",
+    "params": [
+      "a",
+      "(hl)"
+    ]
+  },
+  "af": {
+    "opcode": "xor",
+    "params": [
+      "a",
+      "a"
+    ]
+  },
+  "b0": {
+    "opcode": "or",
+    "params": [
+      "a",
+      "b"
+    ]
+  },
+  "b1": {
+    "opcode": "or",
+    "params": [
+      "a",
+      "c"
+    ]
+  },
+  "b2": {
+    "opcode": "or",
+    "params": [
+      "a",
+      "d"
+    ]
+  },
+  "b3": {
+    "opcode": "or",
+    "params": [
+      "a",
+      "e"
+    ]
+  },
+  "b4": {
+    "opcode": "or",
+    "params": [
+      "a",
+      "h"
+    ]
+  },
+  "b5": {
+    "opcode": "or",
+    "params": [
+      "a",
+      "l"
+    ]
+  },
+  "b6": {
+    "opcode": "or",
+    "params": [
+      "a",
+      "(hl)"
+    ]
+  },
+  "b7": {
+    "opcode": "or",
+    "params": [
+      "a",
+      "a"
+    ]
+  },
+  "b8": {
+    "opcode": "cp",
+    "params": [
+      "b"
+    ]
+  },
+  "b9": {
+    "opcode": "cp",
+    "params": [
+      "c"
+    ]
+  },
+  "ba": {
+    "opcode": "cp",
+    "params": [
+      "d"
+    ]
+  },
+  "bb": {
+    "opcode": "cp",
+    "params": [
+      "e"
+    ]
+  },
+  "bc": {
+    "opcode": "cp",
+    "params": [
+      "h"
+    ]
+  },
+  "bd": {
+    "opcode": "cp",
+    "params": [
+      "l"
+    ]
+  },
+  "be": {
+    "opcode": "cp",
+    "params": [
+      "(hl)"
+    ]
+  },
+  "bf": {
+    "opcode": "cp",
+    "params": [
+      "a"
+    ]
+  },
+  "c0": {
+    "opcode": "ret",
+    "params": [
+      "nz"
+    ]
+  },
+  "c1": {
+    "opcode": "pop",
+    "params": [
+      "bc"
+    ]
+  },
+  "c2": {
+    "opcode": "jp",
+    "params": [
+      "nz",
+      "nnnn"
+    ]
+  },
+  "c3": {
+    "opcode": "jp",
+    "params": [
+      "nnnn"
+    ]
+  },
+  "c4": {
+    "opcode": "call",
+    "params": [
+      "nz",
+      "nnnn"
+    ]
+  },
+  "c5": {
+    "opcode": "push",
+    "params": [
+      "bc"
+    ]
+  },
+  "c6": {
+    "opcode": "add",
+    "params": [
+      "a",
+      "nn"
+    ]
+  },
+  "c7": {
+    "opcode": "rst",
+    "params": [
+      "00"
+    ]
+  },
+  "c8": {
+    "opcode": "ret",
+    "params": [
+      "z"
+    ]
+  },
+  "c9": {
+    "opcode": "ret"
+  },
+  "ca": {
+    "opcode": "jp",
+    "params": [
+      "z",
+      "nnnn"
+    ]
+  },
+  "cb": {
+    "shift": {
+      "0": {
+        "opcode": "rlc",
+        "params": [
+          "b"
+        ]
+      },
+      "1": {
+        "opcode": "rlc",
+        "params": [
+          "c"
+        ]
+      },
+      "2": {
+        "opcode": "rlc",
+        "params": [
+          "d"
+        ]
+      },
+      "3": {
+        "opcode": "rlc",
+        "params": [
+          "e"
+        ]
+      },
+      "4": {
+        "opcode": "rlc",
+        "params": [
+          "h"
+        ]
+      },
+      "5": {
+        "opcode": "rlc",
+        "params": [
+          "l"
+        ]
+      },
+      "6": {
+        "opcode": "rlc",
+        "params": [
+          "(hl)"
+        ]
+      },
+      "7": {
+        "opcode": "rlc",
+        "params": [
+          "a"
+        ]
+      },
+      "8": {
+        "opcode": "rrc",
+        "params": [
+          "b"
+        ]
+      },
+      "9": {
+        "opcode": "rrc",
+        "params": [
+          "c"
+        ]
+      },
+      "10": {
+        "opcode": "rl",
+        "params": [
+          "b"
+        ]
+      },
+      "11": {
+        "opcode": "rl",
+        "params": [
+          "c"
+        ]
+      },
+      "12": {
+        "opcode": "rl",
+        "params": [
+          "d"
+        ]
+      },
+      "13": {
+        "opcode": "rl",
+        "params": [
+          "e"
+        ]
+      },
+      "14": {
+        "opcode": "rl",
+        "params": [
+          "h"
+        ]
+      },
+      "15": {
+        "opcode": "rl",
+        "params": [
+          "l"
+        ]
+      },
+      "16": {
+        "opcode": "rl",
+        "params": [
+          "(hl)"
+        ]
+      },
+      "17": {
+        "opcode": "rl",
+        "params": [
+          "a"
+        ]
+      },
+      "18": {
+        "opcode": "rr",
+        "params": [
+          "b"
+        ]
+      },
+      "19": {
+        "opcode": "rr",
+        "params": [
+          "c"
+        ]
+      },
+      "20": {
+        "opcode": "sla",
+        "params": [
+          "b"
+        ]
+      },
+      "21": {
+        "opcode": "sla",
+        "params": [
+          "c"
+        ]
+      },
+      "22": {
+        "opcode": "sla",
+        "params": [
+          "d"
+        ]
+      },
+      "23": {
+        "opcode": "sla",
+        "params": [
+          "e"
+        ]
+      },
+      "24": {
+        "opcode": "sla",
+        "params": [
+          "h"
+        ]
+      },
+      "25": {
+        "opcode": "sla",
+        "params": [
+          "l"
+        ]
+      },
+      "26": {
+        "opcode": "sla",
+        "params": [
+          "(hl)"
+        ]
+      },
+      "27": {
+        "opcode": "sla",
+        "params": [
+          "a"
+        ]
+      },
+      "28": {
+        "opcode": "sra",
+        "params": [
+          "b"
+        ]
+      },
+      "29": {
+        "opcode": "sra",
+        "params": [
+          "c"
+        ]
+      },
+      "30": {
+        "opcode": "sll",
+        "params": [
+          "b"
+        ]
+      },
+      "31": {
+        "opcode": "sll",
+        "params": [
+          "c"
+        ]
+      },
+      "32": {
+        "opcode": "sll",
+        "params": [
+          "d"
+        ]
+      },
+      "33": {
+        "opcode": "sll",
+        "params": [
+          "e"
+        ]
+      },
+      "34": {
+        "opcode": "sll",
+        "params": [
+          "h"
+        ]
+      },
+      "35": {
+        "opcode": "sll",
+        "params": [
+          "l"
+        ]
+      },
+      "36": {
+        "opcode": "sll",
+        "params": [
+          "(hl)"
+        ]
+      },
+      "37": {
+        "opcode": "sll",
+        "params": [
+          "a"
+        ]
+      },
+      "38": {
+        "opcode": "srl",
+        "params": [
+          "b"
+        ]
+      },
+      "39": {
+        "opcode": "srl",
+        "params": [
+          "c"
+        ]
+      },
+      "40": {
+        "opcode": "bit",
+        "params": [
+          "0",
+          "b"
+        ]
+      },
+      "41": {
+        "opcode": "bit",
+        "params": [
+          "0",
+          "c"
+        ]
+      },
+      "42": {
+        "opcode": "bit",
+        "params": [
+          "0",
+          "d"
+        ]
+      },
+      "43": {
+        "opcode": "bit",
+        "params": [
+          "0",
+          "e"
+        ]
+      },
+      "44": {
+        "opcode": "bit",
+        "params": [
+          "0",
+          "h"
+        ]
+      },
+      "45": {
+        "opcode": "bit",
+        "params": [
+          "0",
+          "l"
+        ]
+      },
+      "46": {
+        "opcode": "bit",
+        "params": [
+          "0",
+          "(hl)"
+        ]
+      },
+      "47": {
+        "opcode": "bit",
+        "params": [
+          "0",
+          "a"
+        ]
+      },
+      "48": {
+        "opcode": "bit",
+        "params": [
+          "1",
+          "b"
+        ]
+      },
+      "49": {
+        "opcode": "bit",
+        "params": [
+          "1",
+          "c"
+        ]
+      },
+      "50": {
+        "opcode": "bit",
+        "params": [
+          "2",
+          "b"
+        ]
+      },
+      "51": {
+        "opcode": "bit",
+        "params": [
+          "2",
+          "c"
+        ]
+      },
+      "52": {
+        "opcode": "bit",
+        "params": [
+          "2",
+          "d"
+        ]
+      },
+      "53": {
+        "opcode": "bit",
+        "params": [
+          "2",
+          "e"
+        ]
+      },
+      "54": {
+        "opcode": "bit",
+        "params": [
+          "2",
+          "h"
+        ]
+      },
+      "55": {
+        "opcode": "bit",
+        "params": [
+          "2",
+          "l"
+        ]
+      },
+      "56": {
+        "opcode": "bit",
+        "params": [
+          "2",
+          "(hl)"
+        ]
+      },
+      "57": {
+        "opcode": "bit",
+        "params": [
+          "2",
+          "a"
+        ]
+      },
+      "58": {
+        "opcode": "bit",
+        "params": [
+          "3",
+          "b"
+        ]
+      },
+      "59": {
+        "opcode": "bit",
+        "params": [
+          "3",
+          "c"
+        ]
+      },
+      "60": {
+        "opcode": "bit",
+        "params": [
+          "4",
+          "b"
+        ]
+      },
+      "61": {
+        "opcode": "bit",
+        "params": [
+          "4",
+          "c"
+        ]
+      },
+      "62": {
+        "opcode": "bit",
+        "params": [
+          "4",
+          "d"
+        ]
+      },
+      "63": {
+        "opcode": "bit",
+        "params": [
+          "4",
+          "e"
+        ]
+      },
+      "64": {
+        "opcode": "bit",
+        "params": [
+          "4",
+          "h"
+        ]
+      },
+      "65": {
+        "opcode": "bit",
+        "params": [
+          "4",
+          "l"
+        ]
+      },
+      "66": {
+        "opcode": "bit",
+        "params": [
+          "4",
+          "(hl)"
+        ]
+      },
+      "67": {
+        "opcode": "bit",
+        "params": [
+          "4",
+          "a"
+        ]
+      },
+      "68": {
+        "opcode": "bit",
+        "params": [
+          "5",
+          "b"
+        ]
+      },
+      "69": {
+        "opcode": "bit",
+        "params": [
+          "5",
+          "c"
+        ]
+      },
+      "70": {
+        "opcode": "bit",
+        "params": [
+          "6",
+          "b"
+        ]
+      },
+      "71": {
+        "opcode": "bit",
+        "params": [
+          "6",
+          "c"
+        ]
+      },
+      "72": {
+        "opcode": "bit",
+        "params": [
+          "6",
+          "d"
+        ]
+      },
+      "73": {
+        "opcode": "bit",
+        "params": [
+          "6",
+          "e"
+        ]
+      },
+      "74": {
+        "opcode": "bit",
+        "params": [
+          "6",
+          "h"
+        ]
+      },
+      "75": {
+        "opcode": "bit",
+        "params": [
+          "6",
+          "l"
+        ]
+      },
+      "76": {
+        "opcode": "bit",
+        "params": [
+          "6",
+          "(hl)"
+        ]
+      },
+      "77": {
+        "opcode": "bit",
+        "params": [
+          "6",
+          "a"
+        ]
+      },
+      "78": {
+        "opcode": "bit",
+        "params": [
+          "7",
+          "b"
+        ]
+      },
+      "79": {
+        "opcode": "bit",
+        "params": [
+          "7",
+          "c"
+        ]
+      },
+      "80": {
+        "opcode": "res",
+        "params": [
+          "0",
+          "b"
+        ]
+      },
+      "81": {
+        "opcode": "res",
+        "params": [
+          "0",
+          "c"
+        ]
+      },
+      "82": {
+        "opcode": "res",
+        "params": [
+          "0",
+          "d"
+        ]
+      },
+      "83": {
+        "opcode": "res",
+        "params": [
+          "0",
+          "e"
+        ]
+      },
+      "84": {
+        "opcode": "res",
+        "params": [
+          "0",
+          "h"
+        ]
+      },
+      "85": {
+        "opcode": "res",
+        "params": [
+          "0",
+          "l"
+        ]
+      },
+      "86": {
+        "opcode": "res",
+        "params": [
+          "0",
+          "(hl)"
+        ]
+      },
+      "87": {
+        "opcode": "res",
+        "params": [
+          "0",
+          "a"
+        ]
+      },
+      "88": {
+        "opcode": "res",
+        "params": [
+          "1",
+          "b"
+        ]
+      },
+      "89": {
+        "opcode": "res",
+        "params": [
+          "1",
+          "c"
+        ]
+      },
+      "90": {
+        "opcode": "res",
+        "params": [
+          "2",
+          "b"
+        ]
+      },
+      "91": {
+        "opcode": "res",
+        "params": [
+          "2",
+          "c"
+        ]
+      },
+      "92": {
+        "opcode": "res",
+        "params": [
+          "2",
+          "d"
+        ]
+      },
+      "93": {
+        "opcode": "res",
+        "params": [
+          "2",
+          "e"
+        ]
+      },
+      "94": {
+        "opcode": "res",
+        "params": [
+          "2",
+          "h"
+        ]
+      },
+      "95": {
+        "opcode": "res",
+        "params": [
+          "2",
+          "l"
+        ]
+      },
+      "96": {
+        "opcode": "res",
+        "params": [
+          "2",
+          "(hl)"
+        ]
+      },
+      "97": {
+        "opcode": "res",
+        "params": [
+          "2",
+          "a"
+        ]
+      },
+      "98": {
+        "opcode": "res",
+        "params": [
+          "3",
+          "b"
+        ]
+      },
+      "99": {
+        "opcode": "res",
+        "params": [
+          "3",
+          "c"
+        ]
+      },
+      "a": {
+        "opcode": "rrc",
+        "params": [
+          "d"
+        ]
+      },
+      "b": {
+        "opcode": "rrc",
+        "params": [
+          "e"
+        ]
+      },
+      "c": {
+        "opcode": "rrc",
+        "params": [
+          "h"
+        ]
+      },
+      "d": {
+        "opcode": "rrc",
+        "params": [
+          "l"
+        ]
+      },
+      "e": {
+        "opcode": "rrc",
+        "params": [
+          "(hl)"
+        ]
+      },
+      "f": {
+        "opcode": "rrc",
+        "params": [
+          "a"
+        ]
+      },
+      "1a": {
+        "opcode": "rr",
+        "params": [
+          "d"
+        ]
+      },
+      "1b": {
+        "opcode": "rr",
+        "params": [
+          "e"
+        ]
+      },
+      "1c": {
+        "opcode": "rr",
+        "params": [
+          "h"
+        ]
+      },
+      "1d": {
+        "opcode": "rr",
+        "params": [
+          "l"
+        ]
+      },
+      "1e": {
+        "opcode": "rr",
+        "params": [
+          "(hl)"
+        ]
+      },
+      "1f": {
+        "opcode": "rr",
+        "params": [
+          "a"
+        ]
+      },
+      "2a": {
+        "opcode": "sra",
+        "params": [
+          "d"
+        ]
+      },
+      "2b": {
+        "opcode": "sra",
+        "params": [
+          "e"
+        ]
+      },
+      "2c": {
+        "opcode": "sra",
+        "params": [
+          "h"
+        ]
+      },
+      "2d": {
+        "opcode": "sra",
+        "params": [
+          "l"
+        ]
+      },
+      "2e": {
+        "opcode": "sra",
+        "params": [
+          "(hl)"
+        ]
+      },
+      "2f": {
+        "opcode": "sra",
+        "params": [
+          "a"
+        ]
+      },
+      "3a": {
+        "opcode": "srl",
+        "params": [
+          "d"
+        ]
+      },
+      "3b": {
+        "opcode": "srl",
+        "params": [
+          "e"
+        ]
+      },
+      "3c": {
+        "opcode": "srl",
+        "params": [
+          "h"
+        ]
+      },
+      "3d": {
+        "opcode": "srl",
+        "params": [
+          "l"
+        ]
+      },
+      "3e": {
+        "opcode": "srl",
+        "params": [
+          "(hl)"
+        ]
+      },
+      "3f": {
+        "opcode": "srl",
+        "params": [
+          "a"
+        ]
+      },
+      "4a": {
+        "opcode": "bit",
+        "params": [
+          "1",
+          "d"
+        ]
+      },
+      "4b": {
+        "opcode": "bit",
+        "params": [
+          "1",
+          "e"
+        ]
+      },
+      "4c": {
+        "opcode": "bit",
+        "params": [
+          "1",
+          "h"
+        ]
+      },
+      "4d": {
+        "opcode": "bit",
+        "params": [
+          "1",
+          "l"
+        ]
+      },
+      "4e": {
+        "opcode": "bit",
+        "params": [
+          "1",
+          "(hl)"
+        ]
+      },
+      "4f": {
+        "opcode": "bit",
+        "params": [
+          "1",
+          "a"
+        ]
+      },
+      "5a": {
+        "opcode": "bit",
+        "params": [
+          "3",
+          "d"
+        ]
+      },
+      "5b": {
+        "opcode": "bit",
+        "params": [
+          "3",
+          "e"
+        ]
+      },
+      "5c": {
+        "opcode": "bit",
+        "params": [
+          "3",
+          "h"
+        ]
+      },
+      "5d": {
+        "opcode": "bit",
+        "params": [
+          "3",
+          "l"
+        ]
+      },
+      "5e": {
+        "opcode": "bit",
+        "params": [
+          "3",
+          "(hl)"
+        ]
+      },
+      "5f": {
+        "opcode": "bit",
+        "params": [
+          "3",
+          "a"
+        ]
+      },
+      "6a": {
+        "opcode": "bit",
+        "params": [
+          "5",
+          "d"
+        ]
+      },
+      "6b": {
+        "opcode": "bit",
+        "params": [
+          "5",
+          "e"
+        ]
+      },
+      "6c": {
+        "opcode": "bit",
+        "params": [
+          "5",
+          "h"
+        ]
+      },
+      "6d": {
+        "opcode": "bit",
+        "params": [
+          "5",
+          "l"
+        ]
+      },
+      "6e": {
+        "opcode": "bit",
+        "params": [
+          "5",
+          "(hl)"
+        ]
+      },
+      "6f": {
+        "opcode": "bit",
+        "params": [
+          "5",
+          "a"
+        ]
+      },
+      "7a": {
+        "opcode": "bit",
+        "params": [
+          "7",
+          "d"
+        ]
+      },
+      "7b": {
+        "opcode": "bit",
+        "params": [
+          "7",
+          "e"
+        ]
+      },
+      "7c": {
+        "opcode": "bit",
+        "params": [
+          "7",
+          "h"
+        ]
+      },
+      "7d": {
+        "opcode": "bit",
+        "params": [
+          "7",
+          "l"
+        ]
+      },
+      "7e": {
+        "opcode": "bit",
+        "params": [
+          "7",
+          "(hl)"
+        ]
+      },
+      "7f": {
+        "opcode": "bit",
+        "params": [
+          "7",
+          "a"
+        ]
+      },
+      "8a": {
+        "opcode": "res",
+        "params": [
+          "1",
+          "d"
+        ]
+      },
+      "8b": {
+        "opcode": "res",
+        "params": [
+          "1",
+          "e"
+        ]
+      },
+      "8c": {
+        "opcode": "res",
+        "params": [
+          "1",
+          "h"
+        ]
+      },
+      "8d": {
+        "opcode": "res",
+        "params": [
+          "1",
+          "l"
+        ]
+      },
+      "8e": {
+        "opcode": "res",
+        "params": [
+          "1",
+          "(hl)"
+        ]
+      },
+      "8f": {
+        "opcode": "res",
+        "params": [
+          "1",
+          "a"
+        ]
+      },
+      "9a": {
+        "opcode": "res",
+        "params": [
+          "3",
+          "d"
+        ]
+      },
+      "9b": {
+        "opcode": "res",
+        "params": [
+          "3",
+          "e"
+        ]
+      },
+      "9c": {
+        "opcode": "res",
+        "params": [
+          "3",
+          "h"
+        ]
+      },
+      "9d": {
+        "opcode": "res",
+        "params": [
+          "3",
+          "l"
+        ]
+      },
+      "9e": {
+        "opcode": "res",
+        "params": [
+          "3",
+          "(hl)"
+        ]
+      },
+      "9f": {
+        "opcode": "res",
+        "params": [
+          "3",
+          "a"
+        ]
+      },
+      "a0": {
+        "opcode": "res",
+        "params": [
+          "4",
+          "b"
+        ]
+      },
+      "a1": {
+        "opcode": "res",
+        "params": [
+          "4",
+          "c"
+        ]
+      },
+      "a2": {
+        "opcode": "res",
+        "params": [
+          "4",
+          "d"
+        ]
+      },
+      "a3": {
+        "opcode": "res",
+        "params": [
+          "4",
+          "e"
+        ]
+      },
+      "a4": {
+        "opcode": "res",
+        "params": [
+          "4",
+          "h"
+        ]
+      },
+      "a5": {
+        "opcode": "res",
+        "params": [
+          "4",
+          "l"
+        ]
+      },
+      "a6": {
+        "opcode": "res",
+        "params": [
+          "4",
+          "(hl)"
+        ]
+      },
+      "a7": {
+        "opcode": "res",
+        "params": [
+          "4",
+          "a"
+        ]
+      },
+      "a8": {
+        "opcode": "res",
+        "params": [
+          "5",
+          "b"
+        ]
+      },
+      "a9": {
+        "opcode": "res",
+        "params": [
+          "5",
+          "c"
+        ]
+      },
+      "aa": {
+        "opcode": "res",
+        "params": [
+          "5",
+          "d"
+        ]
+      },
+      "ab": {
+        "opcode": "res",
+        "params": [
+          "5",
+          "e"
+        ]
+      },
+      "ac": {
+        "opcode": "res",
+        "params": [
+          "5",
+          "h"
+        ]
+      },
+      "ad": {
+        "opcode": "res",
+        "params": [
+          "5",
+          "l"
+        ]
+      },
+      "ae": {
+        "opcode": "res",
+        "params": [
+          "5",
+          "(hl)"
+        ]
+      },
+      "af": {
+        "opcode": "res",
+        "params": [
+          "5",
+          "a"
+        ]
+      },
+      "b0": {
+        "opcode": "res",
+        "params": [
+          "6",
+          "b"
+        ]
+      },
+      "b1": {
+        "opcode": "res",
+        "params": [
+          "6",
+          "c"
+        ]
+      },
+      "b2": {
+        "opcode": "res",
+        "params": [
+          "6",
+          "d"
+        ]
+      },
+      "b3": {
+        "opcode": "res",
+        "params": [
+          "6",
+          "e"
+        ]
+      },
+      "b4": {
+        "opcode": "res",
+        "params": [
+          "6",
+          "h"
+        ]
+      },
+      "b5": {
+        "opcode": "res",
+        "params": [
+          "6",
+          "l"
+        ]
+      },
+      "b6": {
+        "opcode": "res",
+        "params": [
+          "6",
+          "(hl)"
+        ]
+      },
+      "b7": {
+        "opcode": "res",
+        "params": [
+          "6",
+          "a"
+        ]
+      },
+      "b8": {
+        "opcode": "res",
+        "params": [
+          "7",
+          "b"
+        ]
+      },
+      "b9": {
+        "opcode": "res",
+        "params": [
+          "7",
+          "c"
+        ]
+      },
+      "ba": {
+        "opcode": "res",
+        "params": [
+          "7",
+          "d"
+        ]
+      },
+      "bb": {
+        "opcode": "res",
+        "params": [
+          "7",
+          "e"
+        ]
+      },
+      "bc": {
+        "opcode": "res",
+        "params": [
+          "7",
+          "h"
+        ]
+      },
+      "bd": {
+        "opcode": "res",
+        "params": [
+          "7",
+          "l"
+        ]
+      },
+      "be": {
+        "opcode": "res",
+        "params": [
+          "7",
+          "(hl)"
+        ]
+      },
+      "bf": {
+        "opcode": "res",
+        "params": [
+          "7",
+          "a"
+        ]
+      },
+      "c0": {
+        "opcode": "set",
+        "params": [
+          "0",
+          "b"
+        ]
+      },
+      "c1": {
+        "opcode": "set",
+        "params": [
+          "0",
+          "c"
+        ]
+      },
+      "c2": {
+        "opcode": "set",
+        "params": [
+          "0",
+          "d"
+        ]
+      },
+      "c3": {
+        "opcode": "set",
+        "params": [
+          "0",
+          "e"
+        ]
+      },
+      "c4": {
+        "opcode": "set",
+        "params": [
+          "0",
+          "h"
+        ]
+      },
+      "c5": {
+        "opcode": "set",
+        "params": [
+          "0",
+          "l"
+        ]
+      },
+      "c6": {
+        "opcode": "set",
+        "params": [
+          "0",
+          "(hl)"
+        ]
+      },
+      "c7": {
+        "opcode": "set",
+        "params": [
+          "0",
+          "a"
+        ]
+      },
+      "c8": {
+        "opcode": "set",
+        "params": [
+          "1",
+          "b"
+        ]
+      },
+      "c9": {
+        "opcode": "set",
+        "params": [
+          "1",
+          "c"
+        ]
+      },
+      "ca": {
+        "opcode": "set",
+        "params": [
+          "1",
+          "d"
+        ]
+      },
+      "cb": {
+        "opcode": "set",
+        "params": [
+          "1",
+          "e"
+        ]
+      },
+      "cc": {
+        "opcode": "set",
+        "params": [
+          "1",
+          "h"
+        ]
+      },
+      "cd": {
+        "opcode": "set",
+        "params": [
+          "1",
+          "l"
+        ]
+      },
+      "ce": {
+        "opcode": "set",
+        "params": [
+          "1",
+          "(hl)"
+        ]
+      },
+      "cf": {
+        "opcode": "set",
+        "params": [
+          "1",
+          "a"
+        ]
+      },
+      "d0": {
+        "opcode": "set",
+        "params": [
+          "2",
+          "b"
+        ]
+      },
+      "d1": {
+        "opcode": "set",
+        "params": [
+          "2",
+          "c"
+        ]
+      },
+      "d2": {
+        "opcode": "set",
+        "params": [
+          "2",
+          "d"
+        ]
+      },
+      "d3": {
+        "opcode": "set",
+        "params": [
+          "2",
+          "e"
+        ]
+      },
+      "d4": {
+        "opcode": "set",
+        "params": [
+          "2",
+          "h"
+        ]
+      },
+      "d5": {
+        "opcode": "set",
+        "params": [
+          "2",
+          "l"
+        ]
+      },
+      "d6": {
+        "opcode": "set",
+        "params": [
+          "2",
+          "(hl)"
+        ]
+      },
+      "d7": {
+        "opcode": "set",
+        "params": [
+          "2",
+          "a"
+        ]
+      },
+      "d8": {
+        "opcode": "set",
+        "params": [
+          "3",
+          "b"
+        ]
+      },
+      "d9": {
+        "opcode": "set",
+        "params": [
+          "3",
+          "c"
+        ]
+      },
+      "da": {
+        "opcode": "set",
+        "params": [
+          "3",
+          "d"
+        ]
+      },
+      "db": {
+        "opcode": "set",
+        "params": [
+          "3",
+          "e"
+        ]
+      },
+      "dc": {
+        "opcode": "set",
+        "params": [
+          "3",
+          "h"
+        ]
+      },
+      "dd": {
+        "opcode": "set",
+        "params": [
+          "3",
+          "l"
+        ]
+      },
+      "de": {
+        "opcode": "set",
+        "params": [
+          "3",
+          "(hl)"
+        ]
+      },
+      "df": {
+        "opcode": "set",
+        "params": [
+          "3",
+          "a"
+        ]
+      },
+      "e0": {
+        "opcode": "set",
+        "params": [
+          "4",
+          "b"
+        ]
+      },
+      "e1": {
+        "opcode": "set",
+        "params": [
+          "4",
+          "c"
+        ]
+      },
+      "e2": {
+        "opcode": "set",
+        "params": [
+          "4",
+          "d"
+        ]
+      },
+      "e3": {
+        "opcode": "set",
+        "params": [
+          "4",
+          "e"
+        ]
+      },
+      "e4": {
+        "opcode": "set",
+        "params": [
+          "4",
+          "h"
+        ]
+      },
+      "e5": {
+        "opcode": "set",
+        "params": [
+          "4",
+          "l"
+        ]
+      },
+      "e6": {
+        "opcode": "set",
+        "params": [
+          "4",
+          "(hl)"
+        ]
+      },
+      "e7": {
+        "opcode": "set",
+        "params": [
+          "4",
+          "a"
+        ]
+      },
+      "e8": {
+        "opcode": "set",
+        "params": [
+          "5",
+          "b"
+        ]
+      },
+      "e9": {
+        "opcode": "set",
+        "params": [
+          "5",
+          "c"
+        ]
+      },
+      "ea": {
+        "opcode": "set",
+        "params": [
+          "5",
+          "d"
+        ]
+      },
+      "eb": {
+        "opcode": "set",
+        "params": [
+          "5",
+          "e"
+        ]
+      },
+      "ec": {
+        "opcode": "set",
+        "params": [
+          "5",
+          "h"
+        ]
+      },
+      "ed": {
+        "opcode": "set",
+        "params": [
+          "5",
+          "l"
+        ]
+      },
+      "ee": {
+        "opcode": "set",
+        "params": [
+          "5",
+          "(hl)"
+        ]
+      },
+      "ef": {
+        "opcode": "set",
+        "params": [
+          "5",
+          "a"
+        ]
+      },
+      "f0": {
+        "opcode": "set",
+        "params": [
+          "6",
+          "b"
+        ]
+      },
+      "f1": {
+        "opcode": "set",
+        "params": [
+          "6",
+          "c"
+        ]
+      },
+      "f2": {
+        "opcode": "set",
+        "params": [
+          "6",
+          "d"
+        ]
+      },
+      "f3": {
+        "opcode": "set",
+        "params": [
+          "6",
+          "e"
+        ]
+      },
+      "f4": {
+        "opcode": "set",
+        "params": [
+          "6",
+          "h"
+        ]
+      },
+      "f5": {
+        "opcode": "set",
+        "params": [
+          "6",
+          "l"
+        ]
+      },
+      "f6": {
+        "opcode": "set",
+        "params": [
+          "6",
+          "(hl)"
+        ]
+      },
+      "f7": {
+        "opcode": "set",
+        "params": [
+          "6",
+          "a"
+        ]
+      },
+      "f8": {
+        "opcode": "set",
+        "params": [
+          "7",
+          "b"
+        ]
+      },
+      "f9": {
+        "opcode": "set",
+        "params": [
+          "7",
+          "c"
+        ]
+      },
+      "fa": {
+        "opcode": "set",
+        "params": [
+          "7",
+          "d"
+        ]
+      },
+      "fb": {
+        "opcode": "set",
+        "params": [
+          "7",
+          "e"
+        ]
+      },
+      "fc": {
+        "opcode": "set",
+        "params": [
+          "7",
+          "h"
+        ]
+      },
+      "fd": {
+        "opcode": "set",
+        "params": [
+          "7",
+          "l"
+        ]
+      },
+      "fe": {
+        "opcode": "set",
+        "params": [
+          "7",
+          "(hl)"
+        ]
+      },
+      "ff": {
+        "opcode": "set",
+        "params": [
+          "7",
+          "a"
+        ]
+      }
+    }
+  },
+  "cc": {
+    "opcode": "call",
+    "params": [
+      "z",
+      "nnnn"
+    ]
+  },
+  "cd": {
+    "opcode": "call",
+    "params": [
+      "nnnn"
+    ]
+  },
+  "ce": {
+    "opcode": "adc",
+    "params": [
+      "a",
+      "nn"
+    ]
+  },
+  "cf": {
+    "opcode": "rst",
+    "params": [
+      "8"
+    ]
+  },
+  "d0": {
+    "opcode": "ret",
+    "params": [
+      "nc"
+    ]
+  },
+  "d1": {
+    "opcode": "pop",
+    "params": [
+      "de"
+    ]
+  },
+  "d2": {
+    "opcode": "jp",
+    "params": [
+      "nc",
+      "nnnn"
+    ]
+  },
+  "d3": {
+    "opcode": "out",
+    "params": [
+      "(nn)",
+      "a"
+    ]
+  },
+  "d4": {
+    "opcode": "call",
+    "params": [
+      "nc",
+      "nnnn"
+    ]
+  },
+  "d5": {
+    "opcode": "push",
+    "params": [
+      "de"
+    ]
+  },
+  "d6": {
+    "opcode": "sub",
+    "params": [
+      "a",
+      "nn"
+    ]
+  },
+  "d7": {
+    "opcode": "rst",
+    "params": [
+      "10"
+    ]
+  },
+  "d8": {
+    "opcode": "ret",
+    "params": [
+      "c"
+    ]
+  },
+  "d9": {
+    "opcode": "exx"
+  },
+  "da": {
+    "opcode": "jp",
+    "params": [
+      "c",
+      "nnnn"
+    ]
+  },
+  "db": {
+    "opcode": "in",
+    "params": [
+      "a",
+      "(nn)"
+    ]
+  },
+  "dc": {
+    "opcode": "call",
+    "params": [
+      "c",
+      "nnnn"
+    ]
+  },
+  "dd": {
+    "shift": {
+      "9": {
+        "opcode": "add",
+        "params": [
+          "ix",
+          "bc"
+        ]
+      },
+      "19": {
+        "opcode": "add",
+        "params": [
+          "ix",
+          "de"
+        ]
+      },
+      "21": {
+        "opcode": "ld",
+        "params": [
+          "ix",
+          "nnnn"
+        ]
+      },
+      "22": {
+        "opcode": "ld",
+        "params": [
+          "(nnnn)",
+          "ix"
+        ]
+      },
+      "23": {
+        "opcode": "inc",
+        "params": [
+          "ix"
+        ]
+      },
+      "24": {
+        "opcode": "inc",
+        "params": [
+          "ixh"
+        ]
+      },
+      "25": {
+        "opcode": "dec",
+        "params": [
+          "ixh"
+        ]
+      },
+      "26": {
+        "opcode": "ld",
+        "params": [
+          "ixh",
+          "nn"
+        ]
+      },
+      "29": {
+        "opcode": "add",
+        "params": [
+          "ix",
+          "ix"
+        ]
+      },
+      "34": {
+        "opcode": "inc",
+        "params": [
+          "(ix+dd)"
+        ]
+      },
+      "35": {
+        "opcode": "dec",
+        "params": [
+          "(ix+dd)"
+        ]
+      },
+      "36": {
+        "opcode": "ld",
+        "params": [
+          "(ix+dd)",
+          "nn"
+        ]
+      },
+      "39": {
+        "opcode": "add",
+        "params": [
+          "ix",
+          "sp"
+        ]
+      },
+      "44": {
+        "opcode": "ld",
+        "params": [
+          "b",
+          "ixh"
+        ]
+      },
+      "45": {
+        "opcode": "ld",
+        "params": [
+          "b",
+          "ixl"
+        ]
+      },
+      "46": {
+        "opcode": "ld",
+        "params": [
+          "b",
+          "(ix+dd)"
+        ]
+      },
+      "54": {
+        "opcode": "ld",
+        "params": [
+          "d",
+          "ixh"
+        ]
+      },
+      "55": {
+        "opcode": "ld",
+        "params": [
+          "d",
+          "ixl"
+        ]
+      },
+      "56": {
+        "opcode": "ld",
+        "params": [
+          "d",
+          "(ix+dd)"
+        ]
+      },
+      "60": {
+        "opcode": "ld",
+        "params": [
+          "ixh",
+          "b"
+        ]
+      },
+      "61": {
+        "opcode": "ld",
+        "params": [
+          "ixh",
+          "c"
+        ]
+      },
+      "62": {
+        "opcode": "ld",
+        "params": [
+          "ixh",
+          "d"
+        ]
+      },
+      "63": {
+        "opcode": "ld",
+        "params": [
+          "ixh",
+          "e"
+        ]
+      },
+      "64": {
+        "opcode": "ld",
+        "params": [
+          "ixh",
+          "ixh"
+        ]
+      },
+      "65": {
+        "opcode": "ld",
+        "params": [
+          "ixh",
+          "ixl"
+        ]
+      },
+      "66": {
+        "opcode": "ld",
+        "params": [
+          "h",
+          "(ix+dd)"
+        ]
+      },
+      "67": {
+        "opcode": "ld",
+        "params": [
+          "ixh",
+          "a"
+        ]
+      },
+      "68": {
+        "opcode": "ld",
+        "params": [
+          "ixl",
+          "b"
+        ]
+      },
+      "69": {
+        "opcode": "ld",
+        "params": [
+          "ixl",
+          "c"
+        ]
+      },
+      "70": {
+        "opcode": "ld",
+        "params": [
+          "(ix+dd)",
+          "b"
+        ]
+      },
+      "71": {
+        "opcode": "ld",
+        "params": [
+          "(ix+dd)",
+          "c"
+        ]
+      },
+      "72": {
+        "opcode": "ld",
+        "params": [
+          "(ix+dd)",
+          "d"
+        ]
+      },
+      "73": {
+        "opcode": "ld",
+        "params": [
+          "(ix+dd)",
+          "e"
+        ]
+      },
+      "74": {
+        "opcode": "ld",
+        "params": [
+          "(ix+dd)",
+          "h"
+        ]
+      },
+      "75": {
+        "opcode": "ld",
+        "params": [
+          "(ix+dd)",
+          "l"
+        ]
+      },
+      "77": {
+        "opcode": "ld",
+        "params": [
+          "(ix+dd)",
+          "a"
+        ]
+      },
+      "84": {
+        "opcode": "add",
+        "params": [
+          "a",
+          "ixh"
+        ]
+      },
+      "85": {
+        "opcode": "add",
+        "params": [
+          "a",
+          "ixl"
+        ]
+      },
+      "86": {
+        "opcode": "add",
+        "params": [
+          "a",
+          "(ix+dd)"
+        ]
+      },
+      "94": {
+        "opcode": "sub",
+        "params": [
+          "a",
+          "ixh"
+        ]
+      },
+      "95": {
+        "opcode": "sub",
+        "params": [
+          "a",
+          "ixl"
+        ]
+      },
+      "96": {
+        "opcode": "sub",
+        "params": [
+          "a",
+          "(ix+dd)"
+        ]
+      },
+      "2a": {
+        "opcode": "ld",
+        "params": [
+          "ix",
+          "(nnnn)"
+        ]
+      },
+      "2b": {
+        "opcode": "dec",
+        "params": [
+          "ix"
+        ]
+      },
+      "2c": {
+        "opcode": "inc",
+        "params": [
+          "ixl"
+        ]
+      },
+      "2d": {
+        "opcode": "dec",
+        "params": [
+          "ixl"
+        ]
+      },
+      "2e": {
+        "opcode": "ld",
+        "params": [
+          "ixl",
+          "nn"
+        ]
+      },
+      "4c": {
+        "opcode": "ld",
+        "params": [
+          "c",
+          "ixh"
+        ]
+      },
+      "4d": {
+        "opcode": "ld",
+        "params": [
+          "c",
+          "ixl"
+        ]
+      },
+      "4e": {
+        "opcode": "ld",
+        "params": [
+          "c",
+          "(ix+dd)"
+        ]
+      },
+      "5c": {
+        "opcode": "ld",
+        "params": [
+          "e",
+          "ixh"
+        ]
+      },
+      "5d": {
+        "opcode": "ld",
+        "params": [
+          "e",
+          "ixl"
+        ]
+      },
+      "5e": {
+        "opcode": "ld",
+        "params": [
+          "e",
+          "(ix+dd)"
+        ]
+      },
+      "6a": {
+        "opcode": "ld",
+        "params": [
+          "ixl",
+          "d"
+        ]
+      },
+      "6b": {
+        "opcode": "ld",
+        "params": [
+          "ixl",
+          "e"
+        ]
+      },
+      "6c": {
+        "opcode": "ld",
+        "params": [
+          "ixl",
+          "ixh"
+        ]
+      },
+      "6d": {
+        "opcode": "ld",
+        "params": [
+          "ixl",
+          "ixl"
+        ]
+      },
+      "6e": {
+        "opcode": "ld",
+        "params": [
+          "l",
+          "(ix+dd)"
+        ]
+      },
+      "6f": {
+        "opcode": "ld",
+        "params": [
+          "ixl",
+          "a"
+        ]
+      },
+      "7c": {
+        "opcode": "ld",
+        "params": [
+          "a",
+          "ixh"
+        ]
+      },
+      "7d": {
+        "opcode": "ld",
+        "params": [
+          "a",
+          "ixl"
+        ]
+      },
+      "7e": {
+        "opcode": "ld",
+        "params": [
+          "a",
+          "(ix+dd)"
+        ]
+      },
+      "8c": {
+        "opcode": "adc",
+        "params": [
+          "a",
+          "ixh"
+        ]
+      },
+      "8d": {
+        "opcode": "adc",
+        "params": [
+          "a",
+          "ixl"
+        ]
+      },
+      "8e": {
+        "opcode": "adc",
+        "params": [
+          "a",
+          "(ix+dd)"
+        ]
+      },
+      "9c": {
+        "opcode": "sbc",
+        "params": [
+          "a",
+          "ixh"
+        ]
+      },
+      "9d": {
+        "opcode": "sbc",
+        "params": [
+          "a",
+          "ixl"
+        ]
+      },
+      "9e": {
+        "opcode": "sbc",
+        "params": [
+          "a",
+          "(ix+dd)"
+        ]
+      },
+      "a4": {
+        "opcode": "and",
+        "params": [
+          "a",
+          "ixh"
+        ]
+      },
+      "a5": {
+        "opcode": "and",
+        "params": [
+          "a",
+          "ixl"
+        ]
+      },
+      "a6": {
+        "opcode": "and",
+        "params": [
+          "a",
+          "(ix+dd)"
+        ]
+      },
+      "ac": {
+        "opcode": "xor",
+        "params": [
+          "a",
+          "ixh"
+        ]
+      },
+      "ad": {
+        "opcode": "xor",
+        "params": [
+          "a",
+          "ixl"
+        ]
+      },
+      "ae": {
+        "opcode": "xor",
+        "params": [
+          "a",
+          "(ix+dd)"
+        ]
+      },
+      "b4": {
+        "opcode": "or",
+        "params": [
+          "a",
+          "ixh"
+        ]
+      },
+      "b5": {
+        "opcode": "or",
+        "params": [
+          "a",
+          "ixl"
+        ]
+      },
+      "b6": {
+        "opcode": "or",
+        "params": [
+          "a",
+          "(ix+dd)"
+        ]
+      },
+      "bc": {
+        "opcode": "cp",
+        "params": [
+          "ixh"
+        ]
+      },
+      "bd": {
+        "opcode": "cp",
+        "params": [
+          "ixl"
+        ]
+      },
+      "be": {
+        "opcode": "cp",
+        "params": [
+          "(ix+dd)"
+        ]
+      },
+      "cb": {
+        "shift": {
+          "0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "rlc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "rlc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "rlc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "rlc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "rlc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "rlc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "6": {
+            "opcode": "rlc",
+            "params": [
+              "(ix+dd)"
+            ]
+          },
+          "7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "rlc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "rrc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "rrc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "10": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "rl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "11": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "rl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "12": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "rl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "13": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "rl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "14": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "rl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "15": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "rl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "16": {
+            "opcode": "rl",
+            "params": [
+              "(ix+dd)"
+            ]
+          },
+          "17": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "rl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "18": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "rr"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "19": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "rr"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "20": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "sla"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "21": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "sla"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "22": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "sla"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "23": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "sla"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "24": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "sla"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "25": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "sla"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "26": {
+            "opcode": "sla",
+            "params": [
+              "(ix+dd)"
+            ]
+          },
+          "27": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "sla"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "28": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "sra"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "29": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "sra"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "30": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "sll"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "31": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "sll"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "32": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "sll"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "33": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "sll"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "34": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "sll"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "35": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "sll"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "36": {
+            "opcode": "sll",
+            "params": [
+              "(ix+dd)"
+            ]
+          },
+          "37": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "sll"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "38": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "srl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "39": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "srl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "40": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "41": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "42": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "43": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "44": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "45": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "46": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "47": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "48": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "49": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "50": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "51": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "52": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "53": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "54": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "55": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "56": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "57": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "58": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "59": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "60": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "61": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "62": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "63": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "64": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "65": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "66": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "67": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "68": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "69": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "70": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "71": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "72": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "73": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "74": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "75": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "76": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "77": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "78": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "79": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "80": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "81": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "82": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "83": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "84": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "85": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "86": {
+            "opcode": "res",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "87": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "88": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "89": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "90": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "91": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "92": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "93": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "94": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "95": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "96": {
+            "opcode": "res",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "97": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "98": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "99": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "rrc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "rrc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "rrc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "rrc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "e": {
+            "opcode": "rrc",
+            "params": [
+              "(ix+dd)"
+            ]
+          },
+          "f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "rrc"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "1a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "rr"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "1b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "rr"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "1c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "rr"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "1d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "rr"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "1e": {
+            "opcode": "rr",
+            "params": [
+              "(ix+dd)"
+            ]
+          },
+          "1f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "rr"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "2a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "sra"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "2b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "sra"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "2c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "sra"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "2d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "sra"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "2e": {
+            "opcode": "sra",
+            "params": [
+              "(ix+dd)"
+            ]
+          },
+          "2f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "sra"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "3a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "srl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "3b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "srl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "3c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "srl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "3d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "srl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "3e": {
+            "opcode": "srl",
+            "params": [
+              "(ix+dd)"
+            ]
+          },
+          "3f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "srl"
+            ],
+            "extra": [
+              "(ix+dd)"
+            ]
+          },
+          "4a": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "4b": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "4c": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "4d": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "4e": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "4f": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "5a": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "5b": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "5c": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "5d": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "5e": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "5f": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "6a": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "6b": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "6c": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "6d": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "6e": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "6f": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "7a": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "7b": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "7c": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "7d": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "7e": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "7f": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "8a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "8b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "8c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "8d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "8e": {
+            "opcode": "res",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "8f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "9a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "9b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "9c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "9d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "9e": {
+            "opcode": "res",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "9f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "a0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "a1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "a2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "a3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "a4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "a5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "a6": {
+            "opcode": "res",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "a7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "a8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "a9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "aa": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "ab": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "ac": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "ad": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "ae": {
+            "opcode": "res",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "af": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "b0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "b1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "b2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "b3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "b4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "b5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "b6": {
+            "opcode": "res",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "b7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "b8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "b9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "ba": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "bb": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "bc": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "bd": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "be": {
+            "opcode": "res",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "bf": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "c0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "c1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "c2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "c3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "c4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "c5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "c6": {
+            "opcode": "set",
+            "params": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "c7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(ix+dd)"
+            ]
+          },
+          "c8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "c9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "ca": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "cb": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "cc": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "cd": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "ce": {
+            "opcode": "set",
+            "params": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "cf": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(ix+dd)"
+            ]
+          },
+          "d0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "d1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "d2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "d3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "d4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "d5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "d6": {
+            "opcode": "set",
+            "params": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "d7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(ix+dd)"
+            ]
+          },
+          "d8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "d9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "da": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "db": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "dc": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "dd": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "de": {
+            "opcode": "set",
+            "params": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "df": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(ix+dd)"
+            ]
+          },
+          "e0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "e1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "e2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "e3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "e4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "e5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "e6": {
+            "opcode": "set",
+            "params": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "e7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(ix+dd)"
+            ]
+          },
+          "e8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "e9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "ea": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "eb": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "ec": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "ed": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "ee": {
+            "opcode": "set",
+            "params": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "ef": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(ix+dd)"
+            ]
+          },
+          "f0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "f1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "f2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "f3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "f4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "f5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "f6": {
+            "opcode": "set",
+            "params": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "f7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(ix+dd)"
+            ]
+          },
+          "f8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "f9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "fa": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "fb": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "fc": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "fd": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "fe": {
+            "opcode": "set",
+            "params": [
+              "7",
+              "(ix+dd)"
+            ]
+          },
+          "ff": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(ix+dd)"
+            ]
+          }
+        }
+      },
+      "e1": {
+        "opcode": "pop",
+        "params": [
+          "ix"
+        ]
+      },
+      "e3": {
+        "opcode": "ex",
+        "params": [
+          "(sp)",
+          "ix"
+        ]
+      },
+      "e5": {
+        "opcode": "push",
+        "params": [
+          "ix"
+        ]
+      },
+      "e9": {
+        "opcode": "jp",
+        "params": [
+          "ix"
+        ]
+      },
+      "f9": {
+        "opcode": "ld",
+        "params": [
+          "sp",
+          "ix"
+        ]
+      }
+    }
+  },
+  "de": {
+    "opcode": "sbc",
+    "params": [
+      "a",
+      "nn"
+    ]
+  },
+  "df": {
+    "opcode": "rst",
+    "params": [
+      "18"
+    ]
+  },
+  "e0": {
+    "opcode": "ret",
+    "params": [
+      "po"
+    ]
+  },
+  "e1": {
+    "opcode": "pop",
+    "params": [
+      "hl"
+    ]
+  },
+  "e2": {
+    "opcode": "jp",
+    "params": [
+      "po",
+      "nnnn"
+    ]
+  },
+  "e3": {
+    "opcode": "ex",
+    "params": [
+      "(sp)",
+      "hl"
+    ]
+  },
+  "e4": {
+    "opcode": "call",
+    "params": [
+      "po",
+      "nnnn"
+    ]
+  },
+  "e5": {
+    "opcode": "push",
+    "params": [
+      "hl"
+    ]
+  },
+  "e6": {
+    "opcode": "and",
+    "params": [
+      "nn"
+    ]
+  },
+  "e7": {
+    "opcode": "rst",
+    "params": [
+      "20"
+    ]
+  },
+  "e8": {
+    "opcode": "ret",
+    "params": [
+      "pe"
+    ]
+  },
+  "e9": {
+    "opcode": "jp",
+    "params": [
+      "hl"
+    ]
+  },
+  "ea": {
+    "opcode": "jp",
+    "params": [
+      "pe",
+      "nnnn"
+    ]
+  },
+  "eb": {
+    "opcode": "ex",
+    "params": [
+      "de",
+      "hl"
+    ]
+  },
+  "ec": {
+    "opcode": "call",
+    "params": [
+      "pe",
+      "nnnn"
+    ]
+  },
+  "ed": {
+    "shift": {
+      "40": {
+        "opcode": "in",
+        "params": [
+          "b",
+          "(c)"
+        ]
+      },
+      "41": {
+        "opcode": "out",
+        "params": [
+          "(c)",
+          "b"
+        ]
+      },
+      "42": {
+        "opcode": "sbc",
+        "params": [
+          "hl",
+          "bc"
+        ]
+      },
+      "43": {
+        "opcode": "ld",
+        "params": [
+          "(nnnn)",
+          "bc"
+        ]
+      },
+      "44": {
+        "opcode": "neg"
+      },
+      "45": {
+        "opcode": "retn"
+      },
+      "46": {
+        "opcode": "im",
+        "params": [
+          "0"
+        ]
+      },
+      "47": {
+        "opcode": "ld",
+        "params": [
+          "i",
+          "a"
+        ]
+      },
+      "48": {
+        "opcode": "in",
+        "params": [
+          "c",
+          "(c)"
+        ]
+      },
+      "49": {
+        "opcode": "out",
+        "params": [
+          "(c)",
+          "c"
+        ]
+      },
+      "50": {
+        "opcode": "in",
+        "params": [
+          "d",
+          "(c)"
+        ]
+      },
+      "51": {
+        "opcode": "out",
+        "params": [
+          "(c)",
+          "d"
+        ]
+      },
+      "52": {
+        "opcode": "sbc",
+        "params": [
+          "hl",
+          "de"
+        ]
+      },
+      "53": {
+        "opcode": "ld",
+        "params": [
+          "(nnnn)",
+          "de"
+        ]
+      },
+      "54": {
+        "opcode": "neg"
+      },
+      "55": {
+        "opcode": "retn"
+      },
+      "56": {
+        "opcode": "im",
+        "params": [
+          "1"
+        ]
+      },
+      "57": {
+        "opcode": "ld",
+        "params": [
+          "a",
+          "i"
+        ]
+      },
+      "58": {
+        "opcode": "in",
+        "params": [
+          "e",
+          "(c)"
+        ]
+      },
+      "59": {
+        "opcode": "out",
+        "params": [
+          "(c)",
+          "e"
+        ]
+      },
+      "60": {
+        "opcode": "in",
+        "params": [
+          "h",
+          "(c)"
+        ]
+      },
+      "61": {
+        "opcode": "out",
+        "params": [
+          "(c)",
+          "h"
+        ]
+      },
+      "62": {
+        "opcode": "sbc",
+        "params": [
+          "hl",
+          "hl"
+        ]
+      },
+      "63": {
+        "opcode": "ld",
+        "params": [
+          "(nnnn)",
+          "hl"
+        ]
+      },
+      "64": {
+        "opcode": "neg"
+      },
+      "65": {
+        "opcode": "retn"
+      },
+      "66": {
+        "opcode": "im",
+        "params": [
+          "0"
+        ]
+      },
+      "67": {
+        "opcode": "rrd"
+      },
+      "68": {
+        "opcode": "in",
+        "params": [
+          "l",
+          "(c)"
+        ]
+      },
+      "69": {
+        "opcode": "out",
+        "params": [
+          "(c)",
+          "l"
+        ]
+      },
+      "70": {
+        "opcode": "in",
+        "params": [
+          "f",
+          "(c)"
+        ]
+      },
+      "71": {
+        "opcode": "out",
+        "params": [
+          "(c)",
+          "0"
+        ]
+      },
+      "72": {
+        "opcode": "sbc",
+        "params": [
+          "hl",
+          "sp"
+        ]
+      },
+      "73": {
+        "opcode": "ld",
+        "params": [
+          "(nnnn)",
+          "sp"
+        ]
+      },
+      "74": {
+        "opcode": "neg"
+      },
+      "75": {
+        "opcode": "retn"
+      },
+      "76": {
+        "opcode": "im",
+        "params": [
+          "1"
+        ]
+      },
+      "78": {
+        "opcode": "in",
+        "params": [
+          "a",
+          "(c)"
+        ]
+      },
+      "79": {
+        "opcode": "out",
+        "params": [
+          "(c)",
+          "a"
+        ]
+      },
+      "4c": {
+        "opcode": "neg"
+      },
+      "5c": {
+        "opcode": "neg"
+      },
+      "6c": {
+        "opcode": "neg"
+      },
+      "7c": {
+        "opcode": "neg"
+      },
+      "4d": {
+        "opcode": "retn"
+      },
+      "5d": {
+        "opcode": "retn"
+      },
+      "6d": {
+        "opcode": "retn"
+      },
+      "7d": {
+        "opcode": "retn"
+      },
+      "4e": {
+        "opcode": "im",
+        "params": [
+          "0"
+        ]
+      },
+      "6e": {
+        "opcode": "im",
+        "params": [
+          "0"
+        ]
+      },
+      "4a": {
+        "opcode": "adc",
+        "params": [
+          "hl",
+          "bc"
+        ]
+      },
+      "4b": {
+        "opcode": "ld",
+        "params": [
+          "bc",
+          "(nnnn)"
+        ]
+      },
+      "4f": {
+        "opcode": "ld",
+        "params": [
+          "r",
+          "a"
+        ]
+      },
+      "5a": {
+        "opcode": "adc",
+        "params": [
+          "hl",
+          "de"
+        ]
+      },
+      "5b": {
+        "opcode": "ld",
+        "params": [
+          "de",
+          "(nnnn)"
+        ]
+      },
+      "5e": {
+        "opcode": "im",
+        "params": [
+          "2"
+        ]
+      },
+      "7e": {
+        "opcode": "im",
+        "params": [
+          "2"
+        ]
+      },
+      "5f": {
+        "opcode": "ld",
+        "params": [
+          "a",
+          "r"
+        ]
+      },
+      "6a": {
+        "opcode": "adc",
+        "params": [
+          "hl",
+          "hl"
+        ]
+      },
+      "6b": {
+        "opcode": "ld",
+        "params": [
+          "hl",
+          "(nnnn)"
+        ]
+      },
+      "6f": {
+        "opcode": "rld"
+      },
+      "7a": {
+        "opcode": "adc",
+        "params": [
+          "hl",
+          "sp"
+        ]
+      },
+      "7b": {
+        "opcode": "ld",
+        "params": [
+          "sp",
+          "(nnnn)"
+        ]
+      },
+      "a0": {
+        "opcode": "ldi"
+      },
+      "a1": {
+        "opcode": "cpi"
+      },
+      "a2": {
+        "opcode": "ini"
+      },
+      "a3": {
+        "opcode": "outi"
+      },
+      "a8": {
+        "opcode": "ldd"
+      },
+      "a9": {
+        "opcode": "cpd"
+      },
+      "aa": {
+        "opcode": "ind"
+      },
+      "ab": {
+        "opcode": "outd"
+      },
+      "b0": {
+        "opcode": "ldir"
+      },
+      "b1": {
+        "opcode": "cpir"
+      },
+      "b2": {
+        "opcode": "inir"
+      },
+      "b3": {
+        "opcode": "otir"
+      },
+      "b8": {
+        "opcode": "lddr"
+      },
+      "b9": {
+        "opcode": "cpdr"
+      },
+      "ba": {
+        "opcode": "indr"
+      },
+      "bb": {
+        "opcode": "otdr"
+      }
+    }
+  },
+  "ee": {
+    "opcode": "xor",
+    "params": [
+      "a",
+      "nn"
+    ]
+  },
+  "ef": {
+    "opcode": "rst",
+    "params": [
+      "28"
+    ]
+  },
+  "f0": {
+    "opcode": "ret",
+    "params": [
+      "p"
+    ]
+  },
+  "f1": {
+    "opcode": "pop",
+    "params": [
+      "af"
+    ]
+  },
+  "f2": {
+    "opcode": "jp",
+    "params": [
+      "p",
+      "nnnn"
+    ]
+  },
+  "f3": {
+    "opcode": "di"
+  },
+  "f4": {
+    "opcode": "call",
+    "params": [
+      "p",
+      "nnnn"
+    ]
+  },
+  "f5": {
+    "opcode": "push",
+    "params": [
+      "af"
+    ]
+  },
+  "f6": {
+    "opcode": "or",
+    "params": [
+      "nn"
+    ]
+  },
+  "f7": {
+    "opcode": "rst",
+    "params": [
+      "30"
+    ]
+  },
+  "f8": {
+    "opcode": "ret",
+    "params": [
+      "m"
+    ]
+  },
+  "f9": {
+    "opcode": "ld",
+    "params": [
+      "sp",
+      "hl"
+    ]
+  },
+  "fa": {
+    "opcode": "jp",
+    "params": [
+      "m",
+      "nnnn"
+    ]
+  },
+  "fb": {
+    "opcode": "ei"
+  },
+  "fc": {
+    "opcode": "call",
+    "params": [
+      "m",
+      "nnnn"
+    ]
+  },
+  "fd": {
+    "shift": {
+      "9": {
+        "opcode": "add",
+        "params": [
+          "iy",
+          "bc"
+        ]
+      },
+      "19": {
+        "opcode": "add",
+        "params": [
+          "iy",
+          "de"
+        ]
+      },
+      "21": {
+        "opcode": "ld",
+        "params": [
+          "iy",
+          "nnnn"
+        ]
+      },
+      "22": {
+        "opcode": "ld",
+        "params": [
+          "(nnnn)",
+          "iy"
+        ]
+      },
+      "23": {
+        "opcode": "inc",
+        "params": [
+          "iy"
+        ]
+      },
+      "24": {
+        "opcode": "inc",
+        "params": [
+          "iyh"
+        ]
+      },
+      "25": {
+        "opcode": "dec",
+        "params": [
+          "iyh"
+        ]
+      },
+      "26": {
+        "opcode": "ld",
+        "params": [
+          "iyh",
+          "nn"
+        ]
+      },
+      "29": {
+        "opcode": "add",
+        "params": [
+          "iy",
+          "iy"
+        ]
+      },
+      "34": {
+        "opcode": "inc",
+        "params": [
+          "(iy+dd)"
+        ]
+      },
+      "35": {
+        "opcode": "dec",
+        "params": [
+          "(iy+dd)"
+        ]
+      },
+      "36": {
+        "opcode": "ld",
+        "params": [
+          "(iy+dd)",
+          "nn"
+        ]
+      },
+      "39": {
+        "opcode": "add",
+        "params": [
+          "iy",
+          "sp"
+        ]
+      },
+      "44": {
+        "opcode": "ld",
+        "params": [
+          "b",
+          "iyh"
+        ]
+      },
+      "45": {
+        "opcode": "ld",
+        "params": [
+          "b",
+          "iyl"
+        ]
+      },
+      "46": {
+        "opcode": "ld",
+        "params": [
+          "b",
+          "(iy+dd)"
+        ]
+      },
+      "54": {
+        "opcode": "ld",
+        "params": [
+          "d",
+          "iyh"
+        ]
+      },
+      "55": {
+        "opcode": "ld",
+        "params": [
+          "d",
+          "iyl"
+        ]
+      },
+      "56": {
+        "opcode": "ld",
+        "params": [
+          "d",
+          "(iy+dd)"
+        ]
+      },
+      "60": {
+        "opcode": "ld",
+        "params": [
+          "iyh",
+          "b"
+        ]
+      },
+      "61": {
+        "opcode": "ld",
+        "params": [
+          "iyh",
+          "c"
+        ]
+      },
+      "62": {
+        "opcode": "ld",
+        "params": [
+          "iyh",
+          "d"
+        ]
+      },
+      "63": {
+        "opcode": "ld",
+        "params": [
+          "iyh",
+          "e"
+        ]
+      },
+      "64": {
+        "opcode": "ld",
+        "params": [
+          "iyh",
+          "iyh"
+        ]
+      },
+      "65": {
+        "opcode": "ld",
+        "params": [
+          "iyh",
+          "iyl"
+        ]
+      },
+      "66": {
+        "opcode": "ld",
+        "params": [
+          "h",
+          "(iy+dd)"
+        ]
+      },
+      "67": {
+        "opcode": "ld",
+        "params": [
+          "iyh",
+          "a"
+        ]
+      },
+      "68": {
+        "opcode": "ld",
+        "params": [
+          "iyl",
+          "b"
+        ]
+      },
+      "69": {
+        "opcode": "ld",
+        "params": [
+          "iyl",
+          "c"
+        ]
+      },
+      "70": {
+        "opcode": "ld",
+        "params": [
+          "(iy+dd)",
+          "b"
+        ]
+      },
+      "71": {
+        "opcode": "ld",
+        "params": [
+          "(iy+dd)",
+          "c"
+        ]
+      },
+      "72": {
+        "opcode": "ld",
+        "params": [
+          "(iy+dd)",
+          "d"
+        ]
+      },
+      "73": {
+        "opcode": "ld",
+        "params": [
+          "(iy+dd)",
+          "e"
+        ]
+      },
+      "74": {
+        "opcode": "ld",
+        "params": [
+          "(iy+dd)",
+          "h"
+        ]
+      },
+      "75": {
+        "opcode": "ld",
+        "params": [
+          "(iy+dd)",
+          "l"
+        ]
+      },
+      "77": {
+        "opcode": "ld",
+        "params": [
+          "(iy+dd)",
+          "a"
+        ]
+      },
+      "84": {
+        "opcode": "add",
+        "params": [
+          "a",
+          "iyh"
+        ]
+      },
+      "85": {
+        "opcode": "add",
+        "params": [
+          "a",
+          "iyl"
+        ]
+      },
+      "86": {
+        "opcode": "add",
+        "params": [
+          "a",
+          "(iy+dd)"
+        ]
+      },
+      "94": {
+        "opcode": "sub",
+        "params": [
+          "a",
+          "iyh"
+        ]
+      },
+      "95": {
+        "opcode": "sub",
+        "params": [
+          "a",
+          "iyl"
+        ]
+      },
+      "96": {
+        "opcode": "sub",
+        "params": [
+          "a",
+          "(iy+dd)"
+        ]
+      },
+      "2a": {
+        "opcode": "ld",
+        "params": [
+          "iy",
+          "(nnnn)"
+        ]
+      },
+      "2b": {
+        "opcode": "dec",
+        "params": [
+          "iy"
+        ]
+      },
+      "2c": {
+        "opcode": "inc",
+        "params": [
+          "iyl"
+        ]
+      },
+      "2d": {
+        "opcode": "dec",
+        "params": [
+          "iyl"
+        ]
+      },
+      "2e": {
+        "opcode": "ld",
+        "params": [
+          "iyl",
+          "nn"
+        ]
+      },
+      "4c": {
+        "opcode": "ld",
+        "params": [
+          "c",
+          "iyh"
+        ]
+      },
+      "4d": {
+        "opcode": "ld",
+        "params": [
+          "c",
+          "iyl"
+        ]
+      },
+      "4e": {
+        "opcode": "ld",
+        "params": [
+          "c",
+          "(iy+dd)"
+        ]
+      },
+      "5c": {
+        "opcode": "ld",
+        "params": [
+          "e",
+          "iyh"
+        ]
+      },
+      "5d": {
+        "opcode": "ld",
+        "params": [
+          "e",
+          "iyl"
+        ]
+      },
+      "5e": {
+        "opcode": "ld",
+        "params": [
+          "e",
+          "(iy+dd)"
+        ]
+      },
+      "6a": {
+        "opcode": "ld",
+        "params": [
+          "iyl",
+          "d"
+        ]
+      },
+      "6b": {
+        "opcode": "ld",
+        "params": [
+          "iyl",
+          "e"
+        ]
+      },
+      "6c": {
+        "opcode": "ld",
+        "params": [
+          "iyl",
+          "iyh"
+        ]
+      },
+      "6d": {
+        "opcode": "ld",
+        "params": [
+          "iyl",
+          "iyl"
+        ]
+      },
+      "6e": {
+        "opcode": "ld",
+        "params": [
+          "l",
+          "(iy+dd)"
+        ]
+      },
+      "6f": {
+        "opcode": "ld",
+        "params": [
+          "iyl",
+          "a"
+        ]
+      },
+      "7c": {
+        "opcode": "ld",
+        "params": [
+          "a",
+          "iyh"
+        ]
+      },
+      "7d": {
+        "opcode": "ld",
+        "params": [
+          "a",
+          "iyl"
+        ]
+      },
+      "7e": {
+        "opcode": "ld",
+        "params": [
+          "a",
+          "(iy+dd)"
+        ]
+      },
+      "8c": {
+        "opcode": "adc",
+        "params": [
+          "a",
+          "iyh"
+        ]
+      },
+      "8d": {
+        "opcode": "adc",
+        "params": [
+          "a",
+          "iyl"
+        ]
+      },
+      "8e": {
+        "opcode": "adc",
+        "params": [
+          "a",
+          "(iy+dd)"
+        ]
+      },
+      "9c": {
+        "opcode": "sbc",
+        "params": [
+          "a",
+          "iyh"
+        ]
+      },
+      "9d": {
+        "opcode": "sbc",
+        "params": [
+          "a",
+          "iyl"
+        ]
+      },
+      "9e": {
+        "opcode": "sbc",
+        "params": [
+          "a",
+          "(iy+dd)"
+        ]
+      },
+      "a4": {
+        "opcode": "and",
+        "params": [
+          "a",
+          "iyh"
+        ]
+      },
+      "a5": {
+        "opcode": "and",
+        "params": [
+          "a",
+          "iyl"
+        ]
+      },
+      "a6": {
+        "opcode": "and",
+        "params": [
+          "a",
+          "(iy+dd)"
+        ]
+      },
+      "ac": {
+        "opcode": "xor",
+        "params": [
+          "a",
+          "iyh"
+        ]
+      },
+      "ad": {
+        "opcode": "xor",
+        "params": [
+          "a",
+          "iyl"
+        ]
+      },
+      "ae": {
+        "opcode": "xor",
+        "params": [
+          "a",
+          "(iy+dd)"
+        ]
+      },
+      "b4": {
+        "opcode": "or",
+        "params": [
+          "a",
+          "iyh"
+        ]
+      },
+      "b5": {
+        "opcode": "or",
+        "params": [
+          "a",
+          "iyl"
+        ]
+      },
+      "b6": {
+        "opcode": "or",
+        "params": [
+          "a",
+          "(iy+dd)"
+        ]
+      },
+      "bc": {
+        "opcode": "cp",
+        "params": [
+          "iyh"
+        ]
+      },
+      "bd": {
+        "opcode": "cp",
+        "params": [
+          "iyl"
+        ]
+      },
+      "be": {
+        "opcode": "cp",
+        "params": [
+          "(iy+dd)"
+        ]
+      },
+      "cb": {
+        "shift": {
+          "0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "rlc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "rlc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "rlc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "rlc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "rlc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "rlc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "6": {
+            "opcode": "rlc",
+            "params": [
+              "(iy+dd)"
+            ]
+          },
+          "7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "rlc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "rrc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "rrc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "10": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "rl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "11": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "rl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "12": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "rl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "13": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "rl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "14": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "rl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "15": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "rl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "16": {
+            "opcode": "rl",
+            "params": [
+              "(iy+dd)"
+            ]
+          },
+          "17": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "rl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "18": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "rr"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "19": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "rr"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "20": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "sla"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "21": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "sla"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "22": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "sla"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "23": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "sla"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "24": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "sla"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "25": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "sla"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "26": {
+            "opcode": "sla",
+            "params": [
+              "(iy+dd)"
+            ]
+          },
+          "27": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "sla"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "28": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "sra"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "29": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "sra"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "30": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "sll"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "31": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "sll"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "32": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "sll"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "33": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "sll"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "34": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "sll"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "35": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "sll"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "36": {
+            "opcode": "sll",
+            "params": [
+              "(iy+dd)"
+            ]
+          },
+          "37": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "sll"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "38": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "srl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "39": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "srl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "40": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "41": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "42": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "43": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "44": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "45": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "46": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "47": {
+            "opcode": "bit",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "48": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "49": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "50": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "51": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "52": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "53": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "54": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "55": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "56": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "57": {
+            "opcode": "bit",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "58": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "59": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "60": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "61": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "62": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "63": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "64": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "65": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "66": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "67": {
+            "opcode": "bit",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "68": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "69": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "70": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "71": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "72": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "73": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "74": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "75": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "76": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "77": {
+            "opcode": "bit",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "78": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "79": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "80": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "81": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "82": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "83": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "84": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "85": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "86": {
+            "opcode": "res",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "87": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "88": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "89": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "90": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "91": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "92": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "93": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "94": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "95": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "96": {
+            "opcode": "res",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "97": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "98": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "99": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "rrc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "rrc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "rrc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "rrc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "e": {
+            "opcode": "rrc",
+            "params": [
+              "(iy+dd)"
+            ]
+          },
+          "f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "rrc"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "1a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "rr"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "1b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "rr"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "1c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "rr"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "1d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "rr"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "1e": {
+            "opcode": "rr",
+            "params": [
+              "(iy+dd)"
+            ]
+          },
+          "1f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "rr"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "2a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "sra"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "2b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "sra"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "2c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "sra"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "2d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "sra"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "2e": {
+            "opcode": "sra",
+            "params": [
+              "(iy+dd)"
+            ]
+          },
+          "2f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "sra"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "3a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "srl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "3b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "srl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "3c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "srl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "3d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "srl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "3e": {
+            "opcode": "srl",
+            "params": [
+              "(iy+dd)"
+            ]
+          },
+          "3f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "srl"
+            ],
+            "extra": [
+              "(iy+dd)"
+            ]
+          },
+          "4a": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "4b": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "4c": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "4d": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "4e": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "4f": {
+            "opcode": "bit",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "5a": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "5b": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "5c": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "5d": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "5e": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "5f": {
+            "opcode": "bit",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "6a": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "6b": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "6c": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "6d": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "6e": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "6f": {
+            "opcode": "bit",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "7a": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "7b": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "7c": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "7d": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "7e": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "7f": {
+            "opcode": "bit",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "8a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "8b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "8c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "8d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "8e": {
+            "opcode": "res",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "8f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "9a": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "9b": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "9c": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "9d": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "9e": {
+            "opcode": "res",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "9f": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "a0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "a1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "a2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "a3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "a4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "a5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "a6": {
+            "opcode": "res",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "a7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "a8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "a9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "aa": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "ab": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "ac": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "ad": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "ae": {
+            "opcode": "res",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "af": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "b0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "b1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "b2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "b3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "b4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "b5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "b6": {
+            "opcode": "res",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "b7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "b8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "b9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "ba": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "bb": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "bc": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "bd": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "be": {
+            "opcode": "res",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "bf": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "res"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "c0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "c1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "c2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "c3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "c4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "c5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "c6": {
+            "opcode": "set",
+            "params": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "c7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "0",
+              "(iy+dd)"
+            ]
+          },
+          "c8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "c9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "ca": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "cb": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "cc": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "cd": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "ce": {
+            "opcode": "set",
+            "params": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "cf": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "1",
+              "(iy+dd)"
+            ]
+          },
+          "d0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "d1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "d2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "d3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "d4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "d5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "d6": {
+            "opcode": "set",
+            "params": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "d7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "2",
+              "(iy+dd)"
+            ]
+          },
+          "d8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "d9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "da": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "db": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "dc": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "dd": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "de": {
+            "opcode": "set",
+            "params": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "df": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "3",
+              "(iy+dd)"
+            ]
+          },
+          "e0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "e1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "e2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "e3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "e4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "e5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "e6": {
+            "opcode": "set",
+            "params": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "e7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "4",
+              "(iy+dd)"
+            ]
+          },
+          "e8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "e9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "ea": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "eb": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "ec": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "ed": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "ee": {
+            "opcode": "set",
+            "params": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "ef": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "5",
+              "(iy+dd)"
+            ]
+          },
+          "f0": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "f1": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "f2": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "f3": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "f4": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "f5": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "f6": {
+            "opcode": "set",
+            "params": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "f7": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "6",
+              "(iy+dd)"
+            ]
+          },
+          "f8": {
+            "opcode": "ld",
+            "params": [
+              "b",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "f9": {
+            "opcode": "ld",
+            "params": [
+              "c",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "fa": {
+            "opcode": "ld",
+            "params": [
+              "d",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "fb": {
+            "opcode": "ld",
+            "params": [
+              "e",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "fc": {
+            "opcode": "ld",
+            "params": [
+              "h",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "fd": {
+            "opcode": "ld",
+            "params": [
+              "l",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "fe": {
+            "opcode": "set",
+            "params": [
+              "7",
+              "(iy+dd)"
+            ]
+          },
+          "ff": {
+            "opcode": "ld",
+            "params": [
+              "a",
+              "set"
+            ],
+            "extra": [
+              "7",
+              "(iy+dd)"
+            ]
+          }
+        }
+      },
+      "e1": {
+        "opcode": "pop",
+        "params": [
+          "iy"
+        ]
+      },
+      "e3": {
+        "opcode": "ex",
+        "params": [
+          "(sp)",
+          "iy"
+        ]
+      },
+      "e5": {
+        "opcode": "push",
+        "params": [
+          "iy"
+        ]
+      },
+      "e9": {
+        "opcode": "jp",
+        "params": [
+          "iy"
+        ]
+      },
+      "f9": {
+        "opcode": "ld",
+        "params": [
+          "sp",
+          "iy"
+        ]
+      }
+    }
+  },
+  "fe": {
+    "opcode": "cp",
+    "params": [
+      "nn"
+    ]
+  },
+  "ff": {
+    "opcode": "rst",
+    "params": [
+      "38"
+    ]
+  }
+}
