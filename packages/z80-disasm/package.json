@@ -14,7 +14,7 @@
     "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
     "lint": "tslint --project . --format codeFrame",
     "lint:fix": "npm run lint -- --fix",
-    "test": "npm run build:test && node dist-tests/tests/Test.js",
+    "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "clean": "rm -rf dist dist-tests"
   },
   "directories": {
@@ -28,7 +28,12 @@
   "repository": "https://github.com/lkesteloot/z80-disasm",
   "license": "MIT",
   "devDependencies": {
+    "@types/chai": "^4.2.7",
+    "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.22",
+    "chai": "^4.2.0",
+    "mocha": "^6.2.2",
+    "ts-node": "^8.5.4",
     "tslint": "^5.20.1",
     "typedoc": "^0.15.6",
     "typescript": "^3.7.4"

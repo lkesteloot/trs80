@@ -10,6 +10,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
+    "resolveJsonModule": true,
     "moduleResolution": "Node"
   },
   "include": [
