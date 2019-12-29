@@ -20,6 +20,9 @@
   "directories": {
     "test": "tests"
   },
+  "bin": {
+    "zdisasm": "bin/zdisasm"
+  },
   "keywords": [
     "z80",
     "disassembler"
@@ -39,6 +42,7 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
+    "commander": "^4.0.1",
     "z80-base": "^1.0.3"
   }
 }
