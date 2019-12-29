@@ -1,6 +1,6 @@
 {
   "name": "z80-emulator",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Z80 emulator in TypeScript",
   "main": "dist/main/index.js",
   "typing": "dist/main/index.d.ts",
