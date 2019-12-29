@@ -261,6 +261,7 @@ function handleCp(output: string[], src: string): void {
         } else if (addr.endsWith("+dd")) {
             const reg = addr.substr(0, addr.length - 3);
             addLine(output, "value = z80.readByte(z80.regs.pc);");
+            addLine(output, "z80.incTStateCount(5);");
             addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
             addLine(output, "z80.regs.memptr = (z80.regs." + reg + " + signedByte(value)) & 0xFFFF;");
             addLine(output, "value = z80.readByte(z80.regs.memptr);");
@@ -331,6 +332,7 @@ function handleJpJrCall(output: string[], opcode: string, cond: string | undefin
         }
     } else {
         if (opcode === "call") {
+            addLine(output, "z80.incTStateCount(1);");
             addLine(output, "z80.pushWord(z80.regs.pc);");
         }
         if (dest === "nnnn") {
@@ -348,6 +350,9 @@ function handleLd(output: string[], dest: string, src: string): void {
     if (dest.includes("dd")) {
         // Must fetch this first, before possible "nn" in src.
         addLine(output, "const dd = z80.readByte(z80.regs.pc);");
+        if (isByteReg(src)) {
+            addLine(output, "z80.incTStateCount(5);");
+        }
         addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
     }
     addLine(output, "let value: number;");
@@ -369,6 +374,7 @@ function handleLd(output: string[], dest: string, src: string): void {
             } else if (addr.endsWith("+dd")) {
                 const reg = addr.substr(0, addr.length - 3);
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
+                addLine(output, "z80.incTStateCount(5);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
                 addLine(output, "z80.regs.memptr = (z80.regs." + reg + " + signedByte(value)) & 0xFFFF;");
                 addLine(output, "value = z80.readByte(z80.regs.memptr);");
@@ -378,13 +384,18 @@ function handleLd(output: string[], dest: string, src: string): void {
         } else {
             if (src === "nn") {
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
+                if (dest.includes("dd")) {
+                    addLine(output, "z80.incTStateCount(2);");
+                }
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
             } else if (src === "r") {
-                addLine(output, "z80.incTStateCount(1);");
                 addLine(output, "value = z80.regs.rCombined;");
             } else {
                 addLine(output, "value = z80.regs." + src + ";");
             }
+        }
+        if (src === "r" || src === "i" || dest === "r" || dest === "i") {
+            addLine(output, "z80.incTStateCount(1);");
         }
         if (dest.startsWith("(") && dest.endsWith(")")) {
             const addr = dest.substr(1, dest.length - 2);
@@ -438,6 +449,9 @@ function handleLd(output: string[], dest: string, src: string): void {
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
             } else if (isWordReg(src)) {
                 addLine(output, "value = z80.regs." + src + ";");
+                if (isWordReg(dest) && (src === "hl" || src === "ix" || src === "iy")) {
+                    addLine(output, "z80.incTStateCount(2);");
+                }
             } else {
                 throw new Error("Unknown src type: " + src);
             }
@@ -583,11 +597,14 @@ function handlePop(output: string[], reg: string): void {
 }
 
 function handlePush(output: string[], reg: string): void {
+    addLine(output, "z80.incTStateCount(1);");
     addLine(output, "z80.pushWord(z80.regs." + reg + ");");
 }
 
 function handleRet(output: string[], cond: string | undefined): void {
-    addLine(output, "z80.incTStateCount(1);");
+    if (cond !== undefined) {
+        addLine(output, "z80.incTStateCount(1);");
+    }
     addCondIf(output, cond);
     addLine(output, "z80.regs.pc = z80.popWord();");
     addLine(output, "z80.regs.memptr = z80.regs.pc;");
@@ -795,6 +812,7 @@ function handleRotateShiftIncDec(output: string[], opcode: string, operand: stri
         case "inc":
         case "dec":
             if (isWordReg(operand)) {
+                addLine(output, "z80.incTStateCount(2);");
                 addLine(output, "value = " + opcode + "16(value);");
             } else {
                 addLine(output, "value = " + opcode + "8(value);");

@@ -100,7 +100,7 @@ class DelegateImpl implements Delegate {
 const delegate = new DelegateImpl();
 const runner = new Runner(delegate);
 runner.checkEvents = false;
-runner.checkTStates = false;
+runner.checkTStates = true;
 runner.checkContend = false;
 runner.loadTests();
 if (true) {

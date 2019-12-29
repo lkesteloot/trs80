@@ -14,6 +14,8 @@ To run the regression suite:
     % npm run test
 
 To use the Z80 in your own project, implement the `Hal` interface.
+See the [TRS-80 Model III emulator](https://github.com/lkesteloot/trs80-emulator)
+project for an example.
 
 # License
 
