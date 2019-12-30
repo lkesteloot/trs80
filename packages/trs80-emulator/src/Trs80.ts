@@ -32,7 +32,7 @@ const CLOCK_HZ = 2_030_000;
 
 const INITIAL_CLICKS_PER_TICK = 2000;
 
-const CSS_CLASS_PREFIX = "trs80-emulator-screen";
+const CSS_CLASS_PREFIX = "trs80-emulator";
 
 /**
  * HAL for the TRS-80 Model III.
@@ -252,8 +252,17 @@ export class Trs80 implements Hal {
                 const chList = this.node.getElementsByClassName(CSS_CLASS_PREFIX + "-c" + address);
                 if (chList.length > 0) {
                     const ch = chList[0] as HTMLSpanElement;
-                    // https://www.kreativekorp.com/software/fonts/trs80.shtml
-                    ch.innerText = String.fromCharCode(0xE000 + value);
+                    // It'd be nice to put the character there so that copy-and-paste works.
+                    /// ch.innerText = String.fromCharCode(value);
+                    for (let i = 0; i < ch.classList.length; i++) {
+                        const className = ch.classList[i];
+                        if (className.startsWith(CSS_CLASS_PREFIX + "-char-")) {
+                            ch.classList.remove(className);
+                            // There should only be one.
+                            break;
+                        }
+                    }
+                    ch.classList.add(CSS_CLASS_PREFIX + "-char-" + value);
                 }
             } else if (address < RAM_START) {
                 console.log("Writing to unmapped memory at 0x" + toHex(address, 4));
@@ -268,11 +277,17 @@ export class Trs80 implements Hal {
             return;
         }
         this.node.classList.add(CSS_CLASS_PREFIX);
+        this.node.classList.add(CSS_CLASS_PREFIX + "-narrow");
 
         for (let offset = 0; offset < 1024; offset++) {
             const address = SCREEN_ADDRESS + offset;
             const c = document.createElement("span");
             c.classList.add(CSS_CLASS_PREFIX + "-c" + address);
+            if (offset % 2 === 0) {
+                c.classList.add(CSS_CLASS_PREFIX + "-even-column");
+            } else {
+                c.classList.add(CSS_CLASS_PREFIX + "-odd-column");
+            }
             c.innerText = " ";
             this.node.appendChild(c);
 
@@ -284,8 +299,22 @@ export class Trs80 implements Hal {
     }
 
     private configureStyle(): void {
+        // Image is 512x480
+        // 10 rows of glyphs, but last two are different page.
+        // Use first 8 rows.
+        // 32 chars across (32*8 = 256)
+        // For thin font:
+        //     256px wide.
+        //     Chars are 8px wide (256/32 = 8)
+        //     Chars are 24px high (480/2/10 = 24), with doubled rows.
+        const lines: string[] = [];
+        for (let ch = 0; ch < 256; ch++) {
+            lines.push(`.${CSS_CLASS_PREFIX}-narrow .${CSS_CLASS_PREFIX}-char-${ch} { background-position: ${-(ch%32)*8}px ${-Math.floor(ch/32)*24}px; }`);
+            lines.push(`.${CSS_CLASS_PREFIX}-expanded .${CSS_CLASS_PREFIX}-char-${ch} { background-position: ${-(ch%32)*16}px ${-Math.floor(ch/32+10)*24}px; }`);
+        }
+
         const node = document.createElement("style");
-        node.innerHTML = css;
+        node.innerHTML = css + "\n\n" + lines.join("\n");
         document.head.appendChild(node);
     }
 

@@ -7,10 +7,11 @@ To run a local build:
 
     % npm install
     % npm run build
-    % open docs/index.html
+    % npm run serve
 
-Fonts by [KreativeKorp](https://www.kreativekorp.com/software/fonts/trs80.shtml).
+Then visit http://127.0.0.1:8080/
 
 # License
 
-MIT
+Copyright (c) Lawrence Kesteloot, [MIT license](LICENSE).
+
