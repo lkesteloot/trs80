@@ -2,6 +2,8 @@ import {model3Rom} from "./Model3Rom";
 import {Hal, Z80} from "z80-emulator";
 import {lo, toHex} from "z80-base";
 import {Keyboard} from "./Keyboard";
+// @ts-ignore
+import css from "./main.css";
 
 // IRQs
 const CASSETTE_RISE_IRQ_MASK = 0x01;
@@ -21,15 +23,23 @@ const DISK_INTRQ_NMI_MASK = 0x80;
 // Timer.
 const TIMER_HZ = 30;
 
+const ROM_SIZE = 14*1024;
+const RAM_START = 16*1024;
+const SCREEN_ADDRESS = 15*1024;
+
+// https://en.wikipedia.org/wiki/TRS-80#Model_III
+const CLOCK_HZ = 2_030_000;
+
+const INITIAL_CLICKS_PER_TICK = 2000;
+
+const CSS_CLASS_PREFIX = "trs80-emulator-screen";
+
 /**
  * HAL for the TRS-80 Model III.
  */
 export class Trs80 implements Hal {
-    private readonly ROM_SIZE = 14*1024;
-    private readonly RAM_START = 16*1024;
-    // https://en.wikipedia.org/wiki/TRS-80#Model_III
-    public static readonly CLOCK_HZ = 2_030_000;
-    private static readonly TIMER_CYCLES = Trs80.CLOCK_HZ / TIMER_HZ;
+    private static readonly TIMER_CYCLES = CLOCK_HZ / TIMER_HZ;
+    private readonly node: HTMLElement;
     private memory = new Uint8Array(64*1024);
     private keyboard = new Keyboard();
     public tStateCount = 0;
@@ -46,8 +56,11 @@ export class Trs80 implements Hal {
     private nmiSeen = false;
     private previousTimerClock = 0;
     private z80 = new Z80(this);
+    private clocksPerTick = INITIAL_CLICKS_PER_TICK;
+    private startTime = Date.now();
 
-    constructor() {
+    constructor(node: HTMLElement) {
+        this.node = node;
         this.memory.fill(0);
         const raw = window.atob(model3Rom);
         for (let i = 0; i < raw.length; i++) {
@@ -55,6 +68,9 @@ export class Trs80 implements Hal {
         }
         this.tStateCount = 0;
         this.keyboard.configureKeyboard();
+
+        this.configureNode();
+        this.configureStyle();
     }
 
     public reset(): void {
@@ -63,6 +79,12 @@ export class Trs80 implements Hal {
         this.keyboard.clearKeyboard();
         this.setTimerInterrupt(false);
         this.z80.reset();
+    }
+
+    public start(): void {
+        this.clocksPerTick = INITIAL_CLICKS_PER_TICK;
+        this.startTime = Date.now();
+        this.scheduleNextTick();
     }
 
     // Set the mask for IRQ (regular) interrupts.
@@ -117,7 +139,7 @@ export class Trs80 implements Hal {
     }
 
     public readMemory(address: number): number {
-        if (address < this.ROM_SIZE || address >= this.RAM_START || Trs80.isScreenAddress(address)) {
+        if (address < ROM_SIZE || address >= RAM_START || Trs80.isScreenAddress(address)) {
             return this.memory[address];
         } else if (address === 0x37E8) {
             // Printer. 0x30 = Printer selected, ready, with paper, not busy.
@@ -178,7 +200,7 @@ export class Trs80 implements Hal {
         switch (port) {
             case 0xE0:
                 // Set interrupt mask.
-                this.setIrqMask(value)
+                this.setIrqMask(value);
                 break;
 
             case 0xE4:
@@ -186,7 +208,7 @@ export class Trs80 implements Hal {
             case 0xE6:
             case 0xE7:
                 // Set NMI state.
-                this.setNmiMask(value)
+                this.setNmiMask(value);
                 break;
 
             case 0xEC:
@@ -223,18 +245,78 @@ export class Trs80 implements Hal {
     }
 
     public writeMemory(address: number, value: number): void {
-        if (address < this.ROM_SIZE) {
+        if (address < ROM_SIZE) {
             console.log("Warning: Writing to ROM location 0x" + toHex(address, 4))
         } else {
             if (address >= 15360 && address < 16384) {
-                const c = document.getElementById("c" + address) as HTMLSpanElement;
-                // https://www.kreativekorp.com/software/fonts/trs80.shtml
-                c.innerText = String.fromCharCode(0xE000 + value);
-            } else if (address < this.RAM_START) {
+                const chList = this.node.getElementsByClassName(CSS_CLASS_PREFIX + "-c" + address);
+                if (chList.length > 0) {
+                    const ch = chList[0] as HTMLSpanElement;
+                    // https://www.kreativekorp.com/software/fonts/trs80.shtml
+                    ch.innerText = String.fromCharCode(0xE000 + value);
+                }
+            } else if (address < RAM_START) {
                 console.log("Writing to unmapped memory at 0x" + toHex(address, 4));
             }
             this.memory[address] = value;
         }
+    }
+
+    private configureNode(): void {
+        if (this.node.classList.contains(CSS_CLASS_PREFIX)) {
+            // Already configured.
+            return;
+        }
+        this.node.classList.add(CSS_CLASS_PREFIX);
+
+        for (let offset = 0; offset < 1024; offset++) {
+            const address = SCREEN_ADDRESS + offset;
+            const c = document.createElement("span");
+            c.classList.add(CSS_CLASS_PREFIX + "-c" + address);
+            c.innerText = " ";
+            this.node.appendChild(c);
+
+            // Newlines.
+            if (offset % 64 == 63) {
+                this.node.appendChild(document.createElement("br"));
+            }
+        }
+    }
+
+    private configureStyle(): void {
+        const node = document.createElement("style");
+        node.innerHTML = css;
+        document.head.appendChild(node);
+    }
+
+    private tick(): void {
+        for (let i = 0; i < this.clocksPerTick; i++) {
+            this.step();
+        }
+        this.scheduleNextTick();
+    }
+
+    private scheduleNextTick():void {
+        // Delay to match original clock speed.
+        const now = Date.now();
+        const actualElapsed = now - this.startTime;
+        const expectedElapsed = this.tStateCount*1000/CLOCK_HZ;
+        let behind = expectedElapsed - actualElapsed;
+        if (behind < -100) {
+            // We're too far behind. Catch up artificially.
+            this.startTime = now - expectedElapsed;
+            behind = 0;
+        }
+        const delay = Math.round(Math.max(0, behind));
+        if (delay === 0) {
+            // Delay too short, do more each tick.
+            this.clocksPerTick = Math.min(this.clocksPerTick + 100, 10000);
+        } else if (delay > 1) {
+            // Delay too long, do less each tick.
+            this.clocksPerTick = Math.max(this.clocksPerTick - 100, 100);
+        }
+        // console.log(clocksPerTick, delay);
+        setTimeout(() => this.tick(), delay);
     }
 
     private static isScreenAddress(address: number): boolean {

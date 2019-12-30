@@ -1,0 +1,27 @@
+
+@font-face {
+  font-family: "AnotherMansTreasureMIII32C";
+  src: url("fonts/amtreasure/AnotherMansTreasureMIII32C.ttf");
+}
+
+@font-face {
+  font-family: "AnotherMansTreasureMIII64C";
+  src: url("fonts/amtreasure/AnotherMansTreasureMIII64C.ttf");
+}
+
+.trs80-emulator-screen {
+    font-family: "AnotherMansTreasureMIII64C", monospace;
+    font-size: 30pt;
+    display: inline-block;
+    padding: 10px;
+    background-color: #334843;
+    color: white;
+    border-radius: 8px;
+    /* Pack the lines tightly: */
+    /* line-height: 1px; */
+}
+
+.trs80-emulator-screen span {
+    display: inline-block;
+    white-space: pre;
+}
