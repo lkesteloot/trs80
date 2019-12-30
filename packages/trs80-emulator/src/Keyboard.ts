@@ -27,8 +27,8 @@ class KeyInfo {
 
 // A queued-up key.
 class KeyActivity {
-    keyInfo: KeyInfo;
-    isPressed: boolean;
+    public keyInfo: KeyInfo;
+    public isPressed: boolean;
 
     constructor(keyInfo: KeyInfo, isPressed: boolean) {
         this.keyInfo = keyInfo;
@@ -144,17 +144,16 @@ keyMap.set(" ", new KeyInfo(6, 7, ShiftState.NEUTRAL));
 keyMap.set("Shift", new KeyInfo(7, 0, ShiftState.NEUTRAL));
 
 export class Keyboard {
-    // 8 bytes, each a bitfield of keys currently pressed.
-    private keys = new Uint8Array(8);
-    private shiftForce = ShiftState.NEUTRAL;
-
-    // We queue up keystrokes so that we don't overwhelm the ROM polling routines.
-    keyQueue: KeyActivity[]  = [];
-    keyProcessMinClock: number = 0;
-
     public static isInRange(address: number): boolean {
         return address >= BEGIN_ADDR && address < END_ADDR;
     }
+
+    // We queue up keystrokes so that we don't overwhelm the ROM polling routines.
+    public keyQueue: KeyActivity[]  = [];
+    public keyProcessMinClock: number = 0;
+    // 8 bytes, each a bitfield of keys currently pressed.
+    private keys = new Uint8Array(8);
+    private shiftForce = ShiftState.NEUTRAL;
 
     // Release all keys.
     public clearKeyboard(): void {
@@ -172,7 +171,7 @@ export class Keyboard {
 
         // Dequeue if necessary.
         if (clock > this.keyProcessMinClock) {
-            let keyWasPressed = this.processKeyQueue();
+            const keyWasPressed = this.processKeyQueue();
             if (keyWasPressed) {
                 this.keyProcessMinClock = clock + KEY_DELAY_CLOCK_CYCLES;
             }
@@ -201,7 +200,7 @@ export class Keyboard {
                     }
                 }
 
-                b |= keys
+                b |= keys;
             }
         }
 
@@ -211,31 +210,13 @@ export class Keyboard {
     // Enqueue a key press or release.
     public keyEvent(key: string, isPressed: boolean) {
         // Look up the key info.
-        let keyInfo = keyMap.get(key);
+        const keyInfo = keyMap.get(key);
         if (keyInfo === undefined) {
             console.log("Unknown key \"" + key + "\"");
         } else {
             // Append key to queue.
             this.keyQueue.push(new KeyActivity(keyInfo, isPressed));
         }
-    }
-
-    // Dequeue the next key and set its bit. Return whether a key was processed.
-    private  processKeyQueue(): boolean {
-        const keyActivity = this.keyQueue.shift();
-        if (keyActivity === undefined) {
-            return false;
-        }
-
-        this.shiftForce = keyActivity.keyInfo.shiftForce;
-        const bit = 1 << keyActivity.keyInfo.bitNumber;
-        if (keyActivity.isPressed) {
-            this.keys[keyActivity.keyInfo.byteIndex] |= bit
-        } else {
-            this.keys[keyActivity.keyInfo.byteIndex] &= ~bit;
-        }
-
-        return true;
     }
 
     // Convert keys on the keyboard to ASCII letters or special strings like "Enter".
@@ -296,40 +277,40 @@ export class Keyboard {
             } else if (which === 190) {
                 // Period.
                 key = shifted ? ">" : ".";
-            } else if (which == 16) {
+            } else if (which === 16) {
                 // Shift.
                 key = "Shift";
-            } else if (which == 192) {
+            } else if (which === 192) {
                 // Backtick.
                 key = shifted ? "~" : "`";
-            } else if (which == 186) {
+            } else if (which === 186) {
                 // Semicolon.
                 key = shifted ? ":" : ";";
-            } else if (which == 222) {
+            } else if (which === 222) {
                 // Quote..
                 key = shifted ? "\"" : "'";
-            } else if (which == 189) {
+            } else if (which === 189) {
                 // Hyphen.
                 key = shifted ? "_" : "-";
-            } else if (which == 191) {
+            } else if (which === 191) {
                 // Slash.
                 key = shifted ? "?" : "/";
-            } else if (which == 37) {
+            } else if (which === 37) {
                 // Left arrow.
                 key = "Left";
-            } else if (which == 39) {
+            } else if (which === 39) {
                 // Right arrow.
                 key = "Right";
-            } else if (which == 40) {
+            } else if (which === 40) {
                 // Down arrow.
                 key = "Down";
-            } else if (which == 38) {
+            } else if (which === 38) {
                 // Up arrow.
                 key = "Up";
-            } else if (which == 27) {
+            } else if (which === 27) {
                 // Escape.
                 key = "Break";
-            } else if (which == 9) {
+            } else if (which === 9) {
                 // Tab.
                 key = "Clear";
 
@@ -341,13 +322,13 @@ export class Keyboard {
                 key = "";
             }
 
-            return key
+            return key;
         };
 
         // Handle a key event by mapping it and sending it to the emulator.
         const keyEvent = (event: KeyboardEvent, isPressed: boolean) => {
             // Don't send to virtual computer if a text input field is selected.
-            // if ($(document.activeElement).attr("type") == "text") {
+            // if ($(document.activeElement).attr("type") === "text") {
             //     return;
             // }
 
@@ -366,5 +347,23 @@ export class Keyboard {
         const body = document.getElementsByTagName("body")[0];
         body.addEventListener("keydown", (event) => keyEvent(event, true));
         body.addEventListener("keyup", (event) => keyEvent(event, false));
-    };
+    }
+
+    // Dequeue the next key and set its bit. Return whether a key was processed.
+    private  processKeyQueue(): boolean {
+        const keyActivity = this.keyQueue.shift();
+        if (keyActivity === undefined) {
+            return false;
+        }
+
+        this.shiftForce = keyActivity.keyInfo.shiftForce;
+        const bit = 1 << keyActivity.keyInfo.bitNumber;
+        if (keyActivity.isPressed) {
+            this.keys[keyActivity.keyInfo.byteIndex] |= bit;
+        } else {
+            this.keys[keyActivity.keyInfo.byteIndex] &= ~bit;
+        }
+
+        return true;
+    }
 }

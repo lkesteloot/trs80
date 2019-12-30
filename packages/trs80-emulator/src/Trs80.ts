@@ -1,8 +1,8 @@
-import {model3Rom} from "./Model3Rom";
-import {Hal, Z80} from "z80-emulator";
 import {lo, toHex} from "z80-base";
-import {Keyboard} from "./Keyboard";
+import {Hal, Z80} from "z80-emulator";
 import css from "./css";
+import {Keyboard} from "./Keyboard";
+import {model3Rom} from "./Model3Rom";
 
 // IRQs
 const CASSETTE_RISE_IRQ_MASK = 0x01;
@@ -38,10 +38,14 @@ const CSS_CLASS_PREFIX = "trs80-emulator";
  */
 export class Trs80 implements Hal {
     private static readonly TIMER_CYCLES = CLOCK_HZ / TIMER_HZ;
+
+    private static isScreenAddress(address: number): boolean {
+        return address >= 15 * 1024 && address < 16 * 1024;
+    }
+    public tStateCount = 0;
     private readonly node: HTMLElement;
     private memory = new Uint8Array(64*1024);
     private keyboard = new Keyboard();
-    public tStateCount = 0;
     private modeImage = 0x80;
     // Which IRQs should be handled.
     private irqMask = 0;
@@ -96,13 +100,6 @@ export class Trs80 implements Hal {
         // Reset is always allowed:
         this.nmiMask = nmiMask | RESET_NMI_MASK;
         this.updateNmiSeen();
-    }
-
-    // Reset whether we've seen this NMI interrupt if the mask and latch no longer overlap.
-    private updateNmiSeen(): void {
-        if ((this.nmiLatch & this.nmiMask) === 0) {
-            this.nmiSeen = false;
-        }
     }
 
     public step(): void {
@@ -245,7 +242,7 @@ export class Trs80 implements Hal {
 
     public writeMemory(address: number, value: number): void {
         if (address < ROM_SIZE) {
-            console.log("Warning: Writing to ROM location 0x" + toHex(address, 4))
+            console.log("Warning: Writing to ROM location 0x" + toHex(address, 4));
         } else {
             if (address >= 15360 && address < 16384) {
                 const chList = this.node.getElementsByClassName(CSS_CLASS_PREFIX + "-c" + address);
@@ -270,6 +267,13 @@ export class Trs80 implements Hal {
         }
     }
 
+    // Reset whether we've seen this NMI interrupt if the mask and latch no longer overlap.
+    private updateNmiSeen(): void {
+        if ((this.nmiLatch & this.nmiMask) === 0) {
+            this.nmiSeen = false;
+        }
+    }
+
     private configureNode(): void {
         if (this.node.classList.contains(CSS_CLASS_PREFIX)) {
             // Already configured.
@@ -291,7 +295,7 @@ export class Trs80 implements Hal {
             this.node.appendChild(c);
 
             // Newlines.
-            if (offset % 64 == 63) {
+            if (offset % 64 === 63) {
                 this.node.appendChild(document.createElement("br"));
             }
         }
@@ -324,7 +328,7 @@ export class Trs80 implements Hal {
         this.scheduleNextTick();
     }
 
-    private scheduleNextTick():void {
+    private scheduleNextTick(): void {
         // Delay to match original clock speed.
         const now = Date.now();
         const actualElapsed = now - this.startTime;
@@ -345,10 +349,6 @@ export class Trs80 implements Hal {
         }
         // console.log(clocksPerTick, delay);
         setTimeout(() => this.tick(), delay);
-    }
-
-    private static isScreenAddress(address: number): boolean {
-        return address >= 15 * 1024 && address < 16 * 1024;
     }
 
     // Set or reset the timer interrupt.
