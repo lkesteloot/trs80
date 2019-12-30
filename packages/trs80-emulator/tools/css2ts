@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Run from the package directory.
+
+TS=src/css.ts
+
+echo 'export default `' > $TS
+cat src/main.css >> $TS
+echo '`;' >> $TS
+

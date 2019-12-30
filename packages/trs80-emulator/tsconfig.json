@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
     "target": "ES2018",
-    "module": "umd",
+    "module": "commonjs",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "outDir": "dist/main",
     "strict": true,
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "moduleResolution": "Node",

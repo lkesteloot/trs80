@@ -2,8 +2,7 @@ import {model3Rom} from "./Model3Rom";
 import {Hal, Z80} from "z80-emulator";
 import {lo, toHex} from "z80-base";
 import {Keyboard} from "./Keyboard";
-// @ts-ignore
-import css from "./main.css";
+import css from "./css";
 
 // IRQs
 const CASSETTE_RISE_IRQ_MASK = 0x01;
