@@ -28,7 +28,8 @@ export class Decoder {
 
             // Start out trying all decoders.
             let tapeDecoders: TapeDecoder[] = [
-                new LowSpeedTapeDecoder(),
+                new LowSpeedTapeDecoder(true),
+                new LowSpeedTapeDecoder(false),
                 new HighSpeedTapeDecoder(),
             ];
 

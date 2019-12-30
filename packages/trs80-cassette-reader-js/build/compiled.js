@@ -409,7 +409,8 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "BitData", "B
      */
     const MIN_HEADER_ZEROS = 6;
     class LowSpeedTapeDecoder {
-        constructor() {
+        constructor(invert) {
+            this.invert = invert;
             this.state = TapeDecoderState_1.TapeDecoderState.UNDECIDED;
             this.programBytes = [];
             // The frame where we last detected a pulse.
@@ -446,7 +447,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "BitData", "B
         }
         handleSample(tape, frame) {
             const samples = tape.lowSpeedSamples.samplesList[0];
-            const pulse = -samples[frame];
+            const pulse = this.invert ? -samples[frame] : samples[frame];
             const timeDiff = frame - this.lastPulseFrame;
             const pulsing = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
             // Keep track of the height of this pulse, to calibrate for the next one.
@@ -714,7 +715,8 @@ define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "
                 console.log("--------------------------------------- " + instanceNumber);
                 // Start out trying all decoders.
                 let tapeDecoders = [
-                    new LowSpeedTapeDecoder_2.LowSpeedTapeDecoder(),
+                    new LowSpeedTapeDecoder_2.LowSpeedTapeDecoder(true),
+                    new LowSpeedTapeDecoder_2.LowSpeedTapeDecoder(false),
                     new HighSpeedTapeDecoder_1.HighSpeedTapeDecoder(),
                 ];
                 const searchFrameStart = frame;
@@ -1198,7 +1200,7 @@ define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploade
         console.log("Audio is " + audioBuffer.duration + " seconds, " +
             audioBuffer.numberOfChannels + " channels, " +
             audioBuffer.sampleRate + " Hz");
-        // TODO check that there's 1 channel and it's 48 kHz.
+        // TODO check that there's 1 channel.
         const zoomInButton = document.getElementById("zoom_in_button");
         const zoomOutButton = document.getElementById("zoom_out_button");
         const waveforms = document.getElementById("waveforms");

@@ -49,6 +49,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         return out;
     }
 
+    private invert: boolean;
     private state: TapeDecoderState;
     private programBytes: number[];
     private lastPulseFrame: number;
@@ -61,7 +62,8 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     private bits: BitData[];
     private pulseCount: number;
 
-    constructor() {
+    constructor(invert: boolean) {
+        this.invert = invert;
         this.state = TapeDecoderState.UNDECIDED;
         this.programBytes = [];
         // The frame where we last detected a pulse.
@@ -84,7 +86,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
 
     public handleSample(tape: Tape, frame: number) {
         const samples = tape.lowSpeedSamples.samplesList[0];
-        const pulse = -samples[frame];
+        const pulse = this.invert ? -samples[frame] : samples[frame];
 
         const timeDiff = frame - this.lastPulseFrame;
         const pulsing: boolean = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;

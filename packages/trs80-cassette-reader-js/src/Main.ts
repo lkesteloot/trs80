@@ -8,7 +8,7 @@ function handleAudioBuffer(audioBuffer: AudioBuffer) {
     console.log("Audio is " + audioBuffer.duration + " seconds, " +
                 audioBuffer.numberOfChannels + " channels, " +
                     audioBuffer.sampleRate + " Hz");
-    // TODO check that there's 1 channel and it's 48 kHz.
+    // TODO check that there's 1 channel.
 
     const zoomInButton = document.getElementById("zoom_in_button") as HTMLButtonElement;
     const zoomOutButton = document.getElementById("zoom_out_button") as HTMLButtonElement;

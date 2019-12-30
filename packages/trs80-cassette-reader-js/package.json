@@ -4,7 +4,8 @@
   "description": "Processes TRS-80 cassettes and cleans them up.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "lint": "tslint --project ."
   },
   "repository": {
     "type": "git",
