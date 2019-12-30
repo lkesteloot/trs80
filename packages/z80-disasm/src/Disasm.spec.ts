@@ -21,10 +21,10 @@ describe("disassemble", () => {
     });
     it("fill nn", () => {
         const result = new Disasm().disassemble([0x06, 0x01]).map((i) => i.toText());
-        expect(result).to.eql(["ld b,01"]);
+        expect(result).to.eql(["ld b,0x01"]);
     });
     it("fill nnnn", () => {
         const result = new Disasm().disassemble([0xC3, 0x15, 0x30]).map((i) => i.toText());
-        expect(result).to.eql(["jp 3015"]);
+        expect(result).to.eql(["jp 0x3015"]);
     });
 });
