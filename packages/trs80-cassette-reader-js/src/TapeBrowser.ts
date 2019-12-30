@@ -325,7 +325,7 @@ export class TapeBrowser {
             this.tapeContents.appendChild(div);
         };
         this.clearElement(this.tapeContents);
-        addRow("Entire recording", () => {
+        addRow(this.tape.name, () => {
             this.showCanvases();
             this.zoomToFitAll();
         });

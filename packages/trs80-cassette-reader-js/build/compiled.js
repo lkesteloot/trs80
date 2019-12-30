@@ -570,9 +570,11 @@ define("Tape", ["require", "exports", "AudioUtils", "DisplaySamples", "LowSpeedT
     Object.defineProperty(exports, "__esModule", { value: true });
     class Tape {
         /**
+         * @param name text to display (e.g., "LOAD80-Feb82-s1").
          * @param samples original samples from the tape.
          */
-        constructor(samples) {
+        constructor(name, samples) {
+            this.name = name;
             this.originalSamples = new DisplaySamples_1.DisplaySamples(samples);
             this.filteredSamples = new DisplaySamples_1.DisplaySamples(AudioUtils_2.highPassFilter(samples, 500));
             this.lowSpeedSamples = new DisplaySamples_1.DisplaySamples(LowSpeedTapeDecoder_1.LowSpeedTapeDecoder.filterSamples(this.filteredSamples.samplesList[0]));
@@ -1052,7 +1054,7 @@ define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils"], funct
                 this.tapeContents.appendChild(div);
             };
             this.clearElement(this.tapeContents);
-            addRow("Entire recording", () => {
+            addRow(this.tape.name, () => {
                 this.showCanvases();
                 this.zoomToFitAll();
             });
@@ -1132,7 +1134,7 @@ define("Uploader", ["require", "exports"], function (require, exports) {
                     const request = new XMLHttpRequest();
                     request.open("GET", url, true);
                     request.responseType = "arraybuffer";
-                    request.onload = () => this.handleArrayBuffer(request.response);
+                    request.onload = () => this.handleArrayBuffer(url, request.response);
                     request.onprogress = (event) => this.showProgress(event);
                     // For testing progress bar only:
                     /// request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -1147,7 +1149,7 @@ define("Uploader", ["require", "exports"], function (require, exports) {
             const fileReader = new FileReader();
             fileReader.addEventListener("loadend", () => {
                 if (fileReader.result instanceof ArrayBuffer) {
-                    this.handleArrayBuffer(fileReader.result);
+                    this.handleArrayBuffer(file.name, fileReader.result);
                 }
                 else {
                     console.log("Error: Unexpected type for fileReader.result: " +
@@ -1162,9 +1164,9 @@ define("Uploader", ["require", "exports"], function (require, exports) {
             this.progressBar.value = event.loaded;
             this.progressBar.max = event.total;
         }
-        handleArrayBuffer(arrayBuffer) {
+        handleArrayBuffer(pathname, arrayBuffer) {
             const audioCtx = new window.AudioContext();
-            audioCtx.decodeAudioData(arrayBuffer).then(this.handleAudioBuffer);
+            audioCtx.decodeAudioData(arrayBuffer).then((b) => this.handleAudioBuffer(pathname, b));
         }
         dropHandler(ev) {
             // Prevent default behavior (Prevent file from being opened)
@@ -1196,7 +1198,21 @@ define("Uploader", ["require", "exports"], function (require, exports) {
 define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploader"], function (require, exports, Decoder_1, Tape_1, TapeBrowser_1, Uploader_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    function handleAudioBuffer(audioBuffer) {
+    function nameFromPathname(pathname) {
+        let name = pathname;
+        // Keep only last component.
+        let pos = name.lastIndexOf("/");
+        if (pos >= 0) {
+            name = name.substr(pos + 1);
+        }
+        // Remove extension.
+        pos = name.lastIndexOf(".");
+        if (pos >= 0) {
+            name = name.substr(0, pos);
+        }
+        return name;
+    }
+    function handleAudioBuffer(pathname, audioBuffer) {
         console.log("Audio is " + audioBuffer.duration + " seconds, " +
             audioBuffer.numberOfChannels + " channels, " +
             audioBuffer.sampleRate + " Hz");
@@ -1210,7 +1226,7 @@ define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploade
         const programText = document.getElementById("program_text");
         const tapeContents = document.getElementById("tape_contents");
         const samples = audioBuffer.getChannelData(0);
-        const tape = new Tape_1.Tape(samples);
+        const tape = new Tape_1.Tape(nameFromPathname(pathname), samples);
         const decoder = new Decoder_1.Decoder(tape);
         decoder.decode();
         const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents);

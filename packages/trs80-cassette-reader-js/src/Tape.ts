@@ -9,15 +9,18 @@ import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
 import {Program} from "./Program";
 
 export class Tape {
+    public name: string;
     public originalSamples: DisplaySamples;
     public filteredSamples: DisplaySamples;
     public lowSpeedSamples: DisplaySamples;
     public programs: Program[];
 
     /**
+     * @param name text to display (e.g., "LOAD80-Feb82-s1").
      * @param samples original samples from the tape.
      */
-    constructor(samples: Float32Array) {
+    constructor(name: string, samples: Float32Array) {
+        this.name = name;
         this.originalSamples = new DisplaySamples(samples);
         this.filteredSamples = new DisplaySamples(highPassFilter(samples, 500));
         this.lowSpeedSamples = new DisplaySamples(LowSpeedTapeDecoder.filterSamples(

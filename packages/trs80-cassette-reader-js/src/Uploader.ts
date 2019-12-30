@@ -2,7 +2,7 @@
 // Handles uploading WAV files and decoding them.
 
 export class Uploader {
-    private handleAudioBuffer: (audioBuffer: AudioBuffer) => void;
+    private readonly handleAudioBuffer: (pathname: string, audioBuffer: AudioBuffer) => void;
     private progressBar: HTMLProgressElement;
 
     /**
@@ -16,7 +16,7 @@ export class Uploader {
                 dropUpload: HTMLInputElement,
                 dropS3: NodeList,
                 dropProgress: HTMLProgressElement,
-                handleAudioBuffer: (audioBuffer: AudioBuffer) => void) {
+                handleAudioBuffer: (pathname: string, audioBuffer: AudioBuffer) => void) {
 
         this.handleAudioBuffer = handleAudioBuffer;
         this.progressBar = dropProgress;
@@ -45,7 +45,7 @@ export class Uploader {
                 const request = new XMLHttpRequest();
                 request.open("GET", url, true);
                 request.responseType = "arraybuffer";
-                request.onload = () => this.handleArrayBuffer(request.response);
+                request.onload = () => this.handleArrayBuffer(url, request.response);
                 request.onprogress = (event) => this.showProgress(event);
                 // For testing progress bar only:
                 /// request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -61,7 +61,7 @@ export class Uploader {
         const fileReader = new FileReader();
         fileReader.addEventListener("loadend", () => {
             if (fileReader.result instanceof ArrayBuffer) {
-                this.handleArrayBuffer(fileReader.result);
+                this.handleArrayBuffer(file.name, fileReader.result);
             } else {
                 console.log("Error: Unexpected type for fileReader.result: " +
                             fileReader.result);
@@ -77,9 +77,9 @@ export class Uploader {
         this.progressBar.max = event.total;
     }
 
-    private handleArrayBuffer(arrayBuffer: ArrayBuffer) {
+    private handleArrayBuffer(pathname: string, arrayBuffer: ArrayBuffer) {
         const audioCtx = new window.AudioContext();
-        audioCtx.decodeAudioData(arrayBuffer).then(this.handleAudioBuffer);
+        audioCtx.decodeAudioData(arrayBuffer).then((b) => this.handleAudioBuffer(pathname, b));
     }
 
     private dropHandler(ev: DragEvent) {

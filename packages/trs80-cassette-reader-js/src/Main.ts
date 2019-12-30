@@ -4,7 +4,25 @@ import {Tape} from "./Tape";
 import {TapeBrowser} from "./TapeBrowser";
 import {Uploader} from "./Uploader";
 
-function handleAudioBuffer(audioBuffer: AudioBuffer) {
+function nameFromPathname(pathname: string): string {
+    let name = pathname;
+
+    // Keep only last component.
+    let pos = name.lastIndexOf("/");
+    if (pos >= 0) {
+        name = name.substr(pos + 1);
+    }
+
+    // Remove extension.
+    pos = name.lastIndexOf(".");
+    if (pos >= 0) {
+        name = name.substr(0, pos);
+    }
+
+    return name;
+}
+
+function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
     console.log("Audio is " + audioBuffer.duration + " seconds, " +
                 audioBuffer.numberOfChannels + " channels, " +
                     audioBuffer.sampleRate + " Hz");
@@ -20,7 +38,7 @@ function handleAudioBuffer(audioBuffer: AudioBuffer) {
     const tapeContents = document.getElementById("tape_contents") as HTMLElement;
 
     const samples = audioBuffer.getChannelData(0);
-    const tape = new Tape(samples);
+    const tape = new Tape(nameFromPathname(pathname), samples);
     const decoder = new Decoder(tape);
     decoder.decode();
     const tapeBrowser = new TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms,
