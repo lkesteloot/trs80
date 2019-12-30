@@ -8,6 +8,7 @@ import {DisplaySamples} from "./DisplaySamples";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
 import {pad} from "./Utils";
+import {frameToTimestamp} from "./AudioUtils";
 
 export class TapeBrowser {
     private tape: Tape;
@@ -331,6 +332,9 @@ export class TapeBrowser {
         });
         for (const program of this.tape.programs) {
             addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName, null);
+            addRow(frameToTimestamp(program.startFrame, true) + " to " +
+                frameToTimestamp(program.endFrame, true) + " (" +
+                frameToTimestamp(program.endFrame - program.startFrame, true) + ")", null);
             addRow("    Waveform", () => {
                 this.showCanvases();
                 this.zoomToFit(program.startFrame, program.endFrame);
@@ -346,7 +350,7 @@ export class TapeBrowser {
             let count = 1;
             for (const bitData of program.bits) {
                 if (bitData.bitType === BitType.BAD) {
-                    addRow("    Bit error " + count++, () => {
+                    addRow("    Bit error " + count++ + " (" + frameToTimestamp(bitData.startFrame, true) + ")", () => {
                         this.showCanvases();
                         this.zoomToBitData(bitData);
                     });

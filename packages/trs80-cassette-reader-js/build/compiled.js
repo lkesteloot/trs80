@@ -47,7 +47,11 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
         return out;
     }
     exports.highPassFilter = highPassFilter;
-    function frameToTimestamp(frame) {
+    /**
+     * @param frame the frame number to be described as a timestamp.
+     * @param brief omit hour if zero, omit milliseconds and frame itself.
+     */
+    function frameToTimestamp(frame, brief) {
         const time = frame / exports.HZ;
         let ms = Math.floor(time * 1000);
         let sec = Math.floor(ms / 1000);
@@ -56,7 +60,12 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
         sec -= min * 60;
         const hour = Math.floor(min / 60);
         min -= hour * 60;
-        return hour + ":" + Utils_1.pad(min, 10, 2) + ":" + Utils_1.pad(sec, 10, 2) + "." + Utils_1.pad(ms, 10, 3) + " (frame " + frame + ")";
+        if (brief) {
+            return (hour !== 0 ? hour + ":" + Utils_1.pad(min, 10, 2) : min) + ":" + Utils_1.pad(sec, 10, 2);
+        }
+        else {
+            return hour + ":" + Utils_1.pad(min, 10, 2) + ":" + Utils_1.pad(sec, 10, 2) + "." + Utils_1.pad(ms, 10, 3) + " (frame " + frame + ")";
+        }
     }
     exports.frameToTimestamp = frameToTimestamp;
 });
@@ -789,7 +798,7 @@ define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "
     exports.Decoder = Decoder;
 });
 // UI for browsing a tape interactively.
-define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils"], function (require, exports, Basic_1, BitType_3, Utils_3) {
+define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils", "AudioUtils"], function (require, exports, Basic_1, BitType_3, Utils_3, AudioUtils_5) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class TapeBrowser {
@@ -1060,6 +1069,9 @@ define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils"], funct
             });
             for (const program of this.tape.programs) {
                 addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName, null);
+                addRow(AudioUtils_5.frameToTimestamp(program.startFrame, true) + " to " +
+                    AudioUtils_5.frameToTimestamp(program.endFrame, true) + " (" +
+                    AudioUtils_5.frameToTimestamp(program.endFrame - program.startFrame, true) + ")", null);
                 addRow("    Waveform", () => {
                     this.showCanvases();
                     this.zoomToFit(program.startFrame, program.endFrame);
@@ -1075,7 +1087,7 @@ define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils"], funct
                 let count = 1;
                 for (const bitData of program.bits) {
                     if (bitData.bitType === BitType_3.BitType.BAD) {
-                        addRow("    Bit error " + count++, () => {
+                        addRow("    Bit error " + count++ + " (" + AudioUtils_5.frameToTimestamp(bitData.startFrame, true) + ")", () => {
                             this.showCanvases();
                             this.zoomToBitData(bitData);
                         });

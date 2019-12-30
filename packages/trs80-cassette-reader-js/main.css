@@ -26,6 +26,10 @@ body {
 .tape_contents_row {
     cursor: default;
     white-space: pre;
+    font-weight: bold;
+}
+.tape_contents_row.selectable_row {
+    font-weight: normal;
 }
 .tape_contents_row.selectable_row:hover {
     background-color: #eee;

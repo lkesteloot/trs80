@@ -28,7 +28,11 @@ export function highPassFilter(samples: Float32Array, size: number): Float32Arra
     return out;
 }
 
-export function frameToTimestamp(frame: number) {
+/**
+ * @param frame the frame number to be described as a timestamp.
+ * @param brief omit hour if zero, omit milliseconds and frame itself.
+ */
+export function frameToTimestamp(frame: number, brief?: boolean) {
     const time = frame / HZ;
 
     let ms = Math.floor(time * 1000);
@@ -39,5 +43,9 @@ export function frameToTimestamp(frame: number) {
     const hour = Math.floor(min / 60);
     min -= hour * 60;
 
-    return hour + ":" + pad(min, 10, 2) + ":" + pad(sec, 10, 2) + "." + pad(ms, 10, 3) + " (frame " + frame + ")";
+    if (brief) {
+        return (hour !== 0 ? hour + ":" + pad(min, 10, 2) : min) + ":" + pad(sec, 10, 2);
+    } else {
+        return hour + ":" + pad(min, 10, 2) + ":" + pad(sec, 10, 2) + "." + pad(ms, 10, 3) + " (frame " + frame + ")";
+    }
 }
