@@ -11,5 +11,5 @@ Favicon from [here](https://www.freefavicon.com/freefavicons/objects/iconinfo/ca
 
 # License
 
-MIT
+Copyright (c) Lawrence Kesteloot, [MIT license](LICENSE).
 
