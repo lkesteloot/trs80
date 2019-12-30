@@ -1,6 +1,7 @@
 
 // UI for browsing a tape interactively.
 
+import {frameToTimestamp} from "./AudioUtils";
 import {fromTokenized} from "./Basic";
 import {BitData} from "./BitData";
 import {BitType} from "./BitType";
@@ -8,7 +9,6 @@ import {DisplaySamples} from "./DisplaySamples";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
 import {pad} from "./Utils";
-import {frameToTimestamp} from "./AudioUtils";
 
 export class TapeBrowser {
     private tape: Tape;

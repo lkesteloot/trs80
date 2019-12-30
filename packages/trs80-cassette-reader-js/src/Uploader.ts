@@ -54,6 +54,10 @@ export class Uploader {
         });
     }
 
+    public reset(): void {
+        this.progressBar.style.display = "none";
+    }
+
     private handleDroppedFile(file: File) {
         console.log("File " + file.name + " has size " + file.size);
         // We could use file.arrayBuffer() here, but as of writing it's buggy
@@ -69,10 +73,6 @@ export class Uploader {
         });
         fileReader.addEventListener("progress", (event) => this.showProgress(event));
         fileReader.readAsArrayBuffer(file);
-    }
-
-    public reset(): void {
-        this.progressBar.style.display = "none";
     }
 
     private showProgress(event: ProgressEvent) {
