@@ -28,3 +28,27 @@ describe("disassemble", () => {
         expect(result).to.eql(["jp 0x3015"]);
     });
 });
+
+describe("label", () => {
+    it("built-in", () => {
+        const result = new Disasm().disassemble([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+            .map((i) => i.label);
+        expect(result).to.eql(["reset", undefined, undefined, undefined, undefined, undefined,
+            undefined, undefined, "rst08"]);
+    });
+    it("jp", () => {
+        const result = new Disasm().disassemble([0xC3, 0x03, 0x00, 0x00]);
+        expect(result.map((i) => i.label)).to.eql(["reset", "L1"]);
+        expect(result.map((i) => i.toText())).to.eql(["jp L1", "nop"]);
+    });
+    it("call", () => {
+        const result = new Disasm().disassemble([0xCD, 0x03, 0x00, 0x00]);
+        expect(result.map((i) => i.label)).to.eql(["reset", "L1"]);
+        expect(result.map((i) => i.toText())).to.eql(["call L1", "nop"]);
+    });
+    it("jr", () => {
+        const result = new Disasm().disassemble([0x18, 0x01, 0x00, 0x00]);
+        expect(result.map((i) => i.label)).to.eql(["reset", undefined, "L1"]);
+        expect(result.map((i) => i.toText())).to.eql(["jr L1", "nop", "nop"]);
+    });
+});
