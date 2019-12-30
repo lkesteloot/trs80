@@ -1,8 +1,11 @@
 body {
     font-family: sans-serif;
+    margin: 0;
+    padding: 0;
 }
 #drop_screen {
     display: block;
+    padding: 30px;
 }
 #data_screen {
     display: none;
@@ -10,11 +13,15 @@ body {
 .data_container {
     display: grid;
     grid-template-areas: "nav main";
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: 250px 1fr;
     grid-gap: 10px;
 }
 .data_container nav {
     grid-area: nav;
+    max-height: 100vh;
+    overflow: auto;
+    padding: 0.5em;
+    box-sizing: border-box;
 }
 .tape_contents_row {
     cursor: default;
@@ -25,6 +32,10 @@ body {
 }
 .data_container main {
     grid-area: main;
+    max-height: 100vh;
+    overflow: auto;
+    padding: 1em;
+    box-sizing: border-box;
 }
 #drop_zone {
     padding: 2em 3em;
