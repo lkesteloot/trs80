@@ -150,6 +150,8 @@ export class Keyboard {
 
     // We queue up keystrokes so that we don't overwhelm the ROM polling routines.
     public keyQueue: KeyActivity[]  = [];
+    // Whether browser keys should be intercepted.
+    public interceptKeys = false;
     public keyProcessMinClock: number = 0;
     // 8 bytes, each a bitfield of keys currently pressed.
     private keys = new Uint8Array(8);
@@ -327,6 +329,10 @@ export class Keyboard {
 
         // Handle a key event by mapping it and sending it to the emulator.
         const keyEvent = (event: KeyboardEvent, isPressed: boolean) => {
+            if (!this.interceptKeys) {
+                return;
+            }
+
             // Don't send to virtual computer if a text input field is selected.
             // if ($(document.activeElement).attr("type") === "text") {
             //     return;

@@ -30,7 +30,6 @@
     "@rollup/plugin-typescript": "^2.0.1",
     "http-server": "^0.12.0",
     "rollup": "^1.27.14",
-    "rollup-plugin-string": "^3.0.0",
     "tslib": "^1.10.0",
     "tslint": "^5.20.1",
     "typescript": "^3.7.4"

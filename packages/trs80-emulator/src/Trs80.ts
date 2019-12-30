@@ -31,17 +31,17 @@ const CLOCK_HZ = 2_030_000;
 
 const INITIAL_CLICKS_PER_TICK = 2000;
 
-const CSS_CLASS_PREFIX = "trs80-emulator";
+const CSS_PREFIX = "trs80-emulator";
+
+function isScreenAddress(address: number): boolean {
+    return address >= SCREEN_ADDRESS && address < SCREEN_ADDRESS + 1024;
+}
 
 /**
  * HAL for the TRS-80 Model III.
  */
 export class Trs80 implements Hal {
     private static readonly TIMER_CYCLES = CLOCK_HZ / TIMER_HZ;
-
-    private static isScreenAddress(address: number): boolean {
-        return address >= 15 * 1024 && address < 16 * 1024;
-    }
     public tStateCount = 0;
     private readonly node: HTMLElement;
     private memory = new Uint8Array(64*1024);
@@ -61,8 +61,13 @@ export class Trs80 implements Hal {
     private z80 = new Z80(this);
     private clocksPerTick = INITIAL_CLICKS_PER_TICK;
     private startTime = Date.now();
+    private tickHandle: number | undefined;
+    private started = false;
 
-    constructor(node: HTMLElement) {
+    constructor(parentNode: HTMLElement) {
+        // Make our own sub-node that we have control over.
+        const node = document.createElement("div");
+        parentNode.appendChild(node);
         this.node = node;
         this.memory.fill(0);
         const raw = window.atob(model3Rom);
@@ -84,10 +89,26 @@ export class Trs80 implements Hal {
         this.z80.reset();
     }
 
+    /**
+     * Start the CPU and intercept browser keys.
+     */
     public start(): void {
-        this.clocksPerTick = INITIAL_CLICKS_PER_TICK;
-        this.startTime = Date.now();
-        this.scheduleNextTick();
+        if (!this.started) {
+            this.keyboard.interceptKeys = true;
+            this.scheduleNextTick();
+            this.started = true;
+        }
+    }
+
+    /**
+     * Stop the CPU and no longer intercept browser keys.
+     */
+    public stop(): void {
+        if (this.started) {
+            this.keyboard.interceptKeys = false;
+            this.cancelTickTimeout();
+            this.started = false;
+        }
     }
 
     // Set the mask for IRQ (regular) interrupts.
@@ -135,7 +156,7 @@ export class Trs80 implements Hal {
     }
 
     public readMemory(address: number): number {
-        if (address < ROM_SIZE || address >= RAM_START || Trs80.isScreenAddress(address)) {
+        if (address < ROM_SIZE || address >= RAM_START || isScreenAddress(address)) {
             return this.memory[address];
         } else if (address === 0x37E8) {
             // Printer. 0x30 = Printer selected, ready, with paper, not busy.
@@ -245,20 +266,20 @@ export class Trs80 implements Hal {
             console.log("Warning: Writing to ROM location 0x" + toHex(address, 4));
         } else {
             if (address >= 15360 && address < 16384) {
-                const chList = this.node.getElementsByClassName(CSS_CLASS_PREFIX + "-c" + address);
+                const chList = this.node.getElementsByClassName(CSS_PREFIX + "-c" + address);
                 if (chList.length > 0) {
                     const ch = chList[0] as HTMLSpanElement;
                     // It'd be nice to put the character there so that copy-and-paste works.
                     /// ch.innerText = String.fromCharCode(value);
                     for (let i = 0; i < ch.classList.length; i++) {
                         const className = ch.classList[i];
-                        if (className.startsWith(CSS_CLASS_PREFIX + "-char-")) {
+                        if (className.startsWith(CSS_PREFIX + "-char-")) {
                             ch.classList.remove(className);
                             // There should only be one.
                             break;
                         }
                     }
-                    ch.classList.add(CSS_CLASS_PREFIX + "-char-" + value);
+                    ch.classList.add(CSS_PREFIX + "-char-" + value);
                 }
             } else if (address < RAM_START) {
                 console.log("Writing to unmapped memory at 0x" + toHex(address, 4));
@@ -275,21 +296,21 @@ export class Trs80 implements Hal {
     }
 
     private configureNode(): void {
-        if (this.node.classList.contains(CSS_CLASS_PREFIX)) {
+        if (this.node.classList.contains(CSS_PREFIX)) {
             // Already configured.
             return;
         }
-        this.node.classList.add(CSS_CLASS_PREFIX);
-        this.node.classList.add(CSS_CLASS_PREFIX + "-narrow");
+        this.node.classList.add(CSS_PREFIX);
+        this.node.classList.add(CSS_PREFIX + "-narrow");
 
         for (let offset = 0; offset < 1024; offset++) {
             const address = SCREEN_ADDRESS + offset;
             const c = document.createElement("span");
-            c.classList.add(CSS_CLASS_PREFIX + "-c" + address);
+            c.classList.add(CSS_PREFIX + "-c" + address);
             if (offset % 2 === 0) {
-                c.classList.add(CSS_CLASS_PREFIX + "-even-column");
+                c.classList.add(CSS_PREFIX + "-even-column");
             } else {
-                c.classList.add(CSS_CLASS_PREFIX + "-odd-column");
+                c.classList.add(CSS_PREFIX + "-odd-column");
             }
             c.innerText = " ";
             this.node.appendChild(c);
@@ -302,6 +323,12 @@ export class Trs80 implements Hal {
     }
 
     private configureStyle(): void {
+        const styleId = CSS_PREFIX + "-style";
+        if (document.getElementById(styleId) !== null) {
+            // Already created.
+            return;
+        }
+
         // Image is 512x480
         // 10 rows of glyphs, but last two are different page.
         // Use first 8 rows.
@@ -312,15 +339,19 @@ export class Trs80 implements Hal {
         //     Chars are 24px high (480/2/10 = 24), with doubled rows.
         const lines: string[] = [];
         for (let ch = 0; ch < 256; ch++) {
-            lines.push(`.${CSS_CLASS_PREFIX}-narrow .${CSS_CLASS_PREFIX}-char-${ch} { background-position: ${-(ch%32)*8}px ${-Math.floor(ch/32)*24}px; }`);
-            lines.push(`.${CSS_CLASS_PREFIX}-expanded .${CSS_CLASS_PREFIX}-char-${ch} { background-position: ${-(ch%32)*16}px ${-Math.floor(ch/32+10)*24}px; }`);
+            lines.push(`.${CSS_PREFIX}-narrow .${CSS_PREFIX}-char-${ch} { background-position: ${-(ch%32)*8}px ${-Math.floor(ch/32)*24}px; }`);
+            lines.push(`.${CSS_PREFIX}-expanded .${CSS_PREFIX}-char-${ch} { background-position: ${-(ch%32)*16}px ${-Math.floor(ch/32+10)*24}px; }`);
         }
 
         const node = document.createElement("style");
+        node.id = styleId;
         node.innerHTML = css + "\n\n" + lines.join("\n");
         document.head.appendChild(node);
     }
 
+    /**
+     * Run a certain number of CPU instructions and schedule another tick.
+     */
     private tick(): void {
         for (let i = 0; i < this.clocksPerTick; i++) {
             this.step();
@@ -347,8 +378,23 @@ export class Trs80 implements Hal {
             // Delay too long, do less each tick.
             this.clocksPerTick = Math.max(this.clocksPerTick - 100, 100);
         }
-        // console.log(clocksPerTick, delay);
-        setTimeout(() => this.tick(), delay);
+        // console.log(this.clocksPerTick, delay);
+
+        this.cancelTickTimeout();
+        this.tickHandle = window.setTimeout(() => {
+            this.tickHandle = undefined;
+            this.tick();
+        }, delay);
+    }
+
+    /**
+     * Stop the tick timeout, if it's running.
+     */
+    private cancelTickTimeout(): void {
+        if (this.tickHandle !== undefined) {
+            window.clearTimeout(this.tickHandle);
+            this.tickHandle = undefined;
+        }
     }
 
     // Set or reset the timer interrupt.
