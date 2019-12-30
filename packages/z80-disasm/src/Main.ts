@@ -20,5 +20,8 @@ let bin = fs.readFileSync(binPathname);
 const disasm = new Disasm();
 const instructions = disasm.disassemble(bin);
 for (const instruction of instructions) {
-    console.log(toHex(instruction.address, 4) + " " + instruction.binText().padEnd(12) + instruction.toText());
+    if (instruction.label !== undefined) {
+        console.log("                 " + instruction.label + ":");
+    }
+    console.log(toHex(instruction.address, 4) + " " + instruction.binText().padEnd(12) + "        " + instruction.toText());
 }
