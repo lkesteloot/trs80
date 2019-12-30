@@ -9,6 +9,7 @@ import {DisplaySamples} from "./DisplaySamples";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
 import {pad} from "./Utils";
+import {Trs80} from "trs80-emulator";
 
 export class TapeBrowser {
     private tape: Tape;
@@ -17,10 +18,12 @@ export class TapeBrowser {
     private filteredCanvas: HTMLCanvasElement;
     private lowSpeedCanvas: HTMLCanvasElement;
     private programText: HTMLElement;
+    private emulatorScreens: HTMLElement;
     private tapeContents: HTMLElement;
     private displayWidth: number;
     private displayLevel: number = 0; // Initialized in zoomToFitAll()
     private centerSample: number = 0; // Initialized in zoomToFitAll()
+    private startedTrs80: Trs80 | undefined;
 
     constructor(tape: Tape,
                 zoomInButton: HTMLButtonElement,
@@ -29,7 +32,9 @@ export class TapeBrowser {
                 originalCanvas: HTMLCanvasElement,
                 filteredCanvas: HTMLCanvasElement,
                 lowSpeedCanvas: HTMLCanvasElement,
-                programText: HTMLElement, tapeContents: HTMLElement) {
+                programText: HTMLElement,
+                emulatorScreens: HTMLElement,
+                tapeContents: HTMLElement) {
 
         this.tape = tape;
         this.waveforms = waveforms;
@@ -37,6 +42,7 @@ export class TapeBrowser {
         this.filteredCanvas = filteredCanvas;
         this.lowSpeedCanvas = lowSpeedCanvas;
         this.programText = programText;
+        this.emulatorScreens = emulatorScreens;
         this.tapeContents = tapeContents;
         this.displayWidth = originalCanvas.width;
 
@@ -289,10 +295,6 @@ export class TapeBrowser {
         }
     }
 
-    /**
-     *
-     * @param {Program} program
-     */
     private showBasic(program: Program) {
         this.showProgramText();
 
@@ -304,14 +306,44 @@ export class TapeBrowser {
         fromTokenized(program.binary, div);
     }
 
+    private showEmulator(program: Program, screen: HTMLElement, trs80: Trs80) {
+        this.showEmulatorScreens();
+
+        // Show just this screen.
+        this.emulatorScreens.querySelectorAll(":scope > div")
+            .forEach((e) => (e as HTMLElement).style.display = e === screen ? "block" : "none");
+
+        // Start the machine.
+        this.stopTrs80();
+        trs80.start();
+        this.startedTrs80 = trs80;
+    }
+
+    private stopTrs80(): void {
+        if (this.startedTrs80 !== undefined) {
+            this.startedTrs80.stop();
+            this.startedTrs80 = undefined;
+        }
+    }
+
     private showProgramText() {
+        this.stopTrs80();
         this.waveforms.style.display = "none";
         this.programText.style.display = "block";
+        this.emulatorScreens.style.display = "none";
     }
 
     private showCanvases() {
+        this.stopTrs80();
         this.waveforms.style.display = "block";
         this.programText.style.display = "none";
+        this.emulatorScreens.style.display = "none";
+    }
+
+    private showEmulatorScreens() {
+        this.waveforms.style.display = "none";
+        this.programText.style.display = "none";
+        this.emulatorScreens.style.display = "block";
     }
 
     private updateTapeContents() {
@@ -326,6 +358,7 @@ export class TapeBrowser {
             this.tapeContents.appendChild(div);
         };
         this.clearElement(this.tapeContents);
+        this.clearElement(this.emulatorScreens); // TODO stop emulators too.
         addRow(this.tape.name, () => {
             this.showCanvases();
             this.zoomToFitAll();
@@ -345,6 +378,14 @@ export class TapeBrowser {
             if (program.isBasicProgram()) {
                 addRow("    Basic", () => {
                     this.showBasic(program);
+                });
+                const screen = document.createElement("div");
+                screen.style.display = "none";
+                const trs80 = new Trs80(screen);
+                trs80.reset();
+                this.emulatorScreens.appendChild(screen);
+                addRow("    Emulator", () => {
+                    this.showEmulator(program, screen, trs80);
                 });
             }
             let count = 1;

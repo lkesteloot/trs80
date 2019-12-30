@@ -11,6 +11,7 @@ const originalCanvas = document.getElementById("original_canvas") as HTMLCanvasE
 const filteredCanvas = document.getElementById("filtered_canvas") as HTMLCanvasElement;
 const lowSpeedCanvas = document.getElementById("low_speed_canvas") as HTMLCanvasElement;
 const programText = document.getElementById("program_text") as HTMLElement;
+const emulatorScreens = document.getElementById("emulator_screens") as HTMLElement;
 const tapeContents = document.getElementById("tape_contents") as HTMLElement;
 const dropZone = document.getElementById("drop_zone") as HTMLElement;
 const dropUpload = document.getElementById("drop_upload") as HTMLInputElement;
@@ -47,7 +48,7 @@ function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
     const decoder = new Decoder(tape);
     decoder.decode();
     const tapeBrowser = new TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms,
-        originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents);
+        originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents);
     tapeBrowser.draw();
 
     // Switch screens.

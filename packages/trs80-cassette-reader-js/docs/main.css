@@ -120,3 +120,6 @@ body {
 #program_text.basic .comment {
     color: #6A9955;
 }
+#emulator_screens {
+    display: none;
+}

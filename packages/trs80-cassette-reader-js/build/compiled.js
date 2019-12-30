@@ -798,11 +798,11 @@ define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "
     exports.Decoder = Decoder;
 });
 // UI for browsing a tape interactively.
-define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils", "AudioUtils"], function (require, exports, Basic_1, BitType_3, Utils_3, AudioUtils_5) {
+define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "Utils", "trs80-emulator"], function (require, exports, AudioUtils_5, Basic_1, BitType_3, Utils_3, trs80_emulator_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class TapeBrowser {
-        constructor(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents) {
+        constructor(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents) {
             this.displayLevel = 0; // Initialized in zoomToFitAll()
             this.centerSample = 0; // Initialized in zoomToFitAll()
             this.tape = tape;
@@ -811,6 +811,7 @@ define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils", "Audio
             this.filteredCanvas = filteredCanvas;
             this.lowSpeedCanvas = lowSpeedCanvas;
             this.programText = programText;
+            this.emulatorScreens = emulatorScreens;
             this.tapeContents = tapeContents;
             this.displayWidth = originalCanvas.width;
             this.configureCanvas(originalCanvas);
@@ -1031,10 +1032,6 @@ define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils", "Audio
                 div.appendChild(line);
             }
         }
-        /**
-         *
-         * @param {Program} program
-         */
         showBasic(program) {
             this.showProgramText();
             const div = this.programText;
@@ -1043,13 +1040,38 @@ define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils", "Audio
             div.classList.remove("binary");
             Basic_1.fromTokenized(program.binary, div);
         }
+        showEmulator(program, screen, trs80) {
+            this.showEmulatorScreens();
+            // Show just this screen.
+            this.emulatorScreens.querySelectorAll(":scope > div")
+                .forEach((e) => e.style.display = e === screen ? "block" : "none");
+            // Start the machine.
+            this.stopTrs80();
+            trs80.start();
+            this.startedTrs80 = trs80;
+        }
+        stopTrs80() {
+            if (this.startedTrs80 !== undefined) {
+                this.startedTrs80.stop();
+                this.startedTrs80 = undefined;
+            }
+        }
         showProgramText() {
+            this.stopTrs80();
             this.waveforms.style.display = "none";
             this.programText.style.display = "block";
+            this.emulatorScreens.style.display = "none";
         }
         showCanvases() {
+            this.stopTrs80();
             this.waveforms.style.display = "block";
             this.programText.style.display = "none";
+            this.emulatorScreens.style.display = "none";
+        }
+        showEmulatorScreens() {
+            this.waveforms.style.display = "none";
+            this.programText.style.display = "none";
+            this.emulatorScreens.style.display = "block";
         }
         updateTapeContents() {
             const addRow = (text, onClick) => {
@@ -1063,6 +1085,7 @@ define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils", "Audio
                 this.tapeContents.appendChild(div);
             };
             this.clearElement(this.tapeContents);
+            this.clearElement(this.emulatorScreens); // TODO stop emulators too.
             addRow(this.tape.name, () => {
                 this.showCanvases();
                 this.zoomToFitAll();
@@ -1082,6 +1105,14 @@ define("TapeBrowser", ["require", "exports", "Basic", "BitType", "Utils", "Audio
                 if (program.isBasicProgram()) {
                     addRow("    Basic", () => {
                         this.showBasic(program);
+                    });
+                    const screen = document.createElement("div");
+                    screen.style.display = "none";
+                    const trs80 = new trs80_emulator_1.Trs80(screen);
+                    trs80.reset();
+                    this.emulatorScreens.appendChild(screen);
+                    addRow("    Emulator", () => {
+                        this.showEmulator(program, screen, trs80);
                     });
                 }
                 let count = 1;
@@ -1154,6 +1185,9 @@ define("Uploader", ["require", "exports"], function (require, exports) {
                 };
             });
         }
+        reset() {
+            this.progressBar.style.display = "none";
+        }
         handleDroppedFile(file) {
             console.log("File " + file.name + " has size " + file.size);
             // We could use file.arrayBuffer() here, but as of writing it's buggy
@@ -1170,9 +1204,6 @@ define("Uploader", ["require", "exports"], function (require, exports) {
             });
             fileReader.addEventListener("progress", (event) => this.showProgress(event));
             fileReader.readAsArrayBuffer(file);
-        }
-        reset() {
-            this.progressBar.style.display = "none";
         }
         showProgress(event) {
             this.progressBar.style.display = "block";
@@ -1220,6 +1251,7 @@ define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploade
     const filteredCanvas = document.getElementById("filtered_canvas");
     const lowSpeedCanvas = document.getElementById("low_speed_canvas");
     const programText = document.getElementById("program_text");
+    const emulatorScreens = document.getElementById("emulator_screens");
     const tapeContents = document.getElementById("tape_contents");
     const dropZone = document.getElementById("drop_zone");
     const dropUpload = document.getElementById("drop_upload");
@@ -1249,7 +1281,7 @@ define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploade
         const tape = new Tape_1.Tape(nameFromPathname(pathname), samples);
         const decoder = new Decoder_1.Decoder(tape);
         decoder.decode();
-        const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, tapeContents);
+        const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents);
         tapeBrowser.draw();
         // Switch screens.
         const dropScreen = document.getElementById("drop_screen");

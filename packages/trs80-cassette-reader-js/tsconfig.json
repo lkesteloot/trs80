@@ -4,6 +4,7 @@
         "module": "amd",
         "target": "ES2015",
         "sourceMap": false,
+        "moduleResolution": "Node",
         "strict": true
     },
     "include": [

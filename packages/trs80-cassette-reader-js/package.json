@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
     "lint:fix": "npm run lint -- --fix",
-    "serve": "rollup -c && http-server docs"
+    "serve": "tsc --noEmit && rollup -c && http-server docs"
   },
   "repository": {
     "type": "git",
