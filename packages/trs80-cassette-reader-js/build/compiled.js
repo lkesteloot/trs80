@@ -1159,6 +1159,9 @@ define("Uploader", ["require", "exports"], function (require, exports) {
             fileReader.addEventListener("progress", (event) => this.showProgress(event));
             fileReader.readAsArrayBuffer(file);
         }
+        reset() {
+            this.progressBar.style.display = "none";
+        }
         showProgress(event) {
             this.progressBar.style.display = "block";
             this.progressBar.value = event.loaded;
@@ -1198,6 +1201,19 @@ define("Uploader", ["require", "exports"], function (require, exports) {
 define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploader"], function (require, exports, Decoder_1, Tape_1, TapeBrowser_1, Uploader_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    const zoomInButton = document.getElementById("zoom_in_button");
+    const zoomOutButton = document.getElementById("zoom_out_button");
+    const waveforms = document.getElementById("waveforms");
+    const originalCanvas = document.getElementById("original_canvas");
+    const filteredCanvas = document.getElementById("filtered_canvas");
+    const lowSpeedCanvas = document.getElementById("low_speed_canvas");
+    const programText = document.getElementById("program_text");
+    const tapeContents = document.getElementById("tape_contents");
+    const dropZone = document.getElementById("drop_zone");
+    const dropUpload = document.getElementById("drop_upload");
+    const dropS3 = document.querySelectorAll("#test_files button");
+    const dropProgress = document.getElementById("drop_progress");
+    let uploader;
     function nameFromPathname(pathname) {
         let name = pathname;
         // Keep only last component.
@@ -1217,14 +1233,6 @@ define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploade
             audioBuffer.numberOfChannels + " channels, " +
             audioBuffer.sampleRate + " Hz");
         // TODO check that there's 1 channel.
-        const zoomInButton = document.getElementById("zoom_in_button");
-        const zoomOutButton = document.getElementById("zoom_out_button");
-        const waveforms = document.getElementById("waveforms");
-        const originalCanvas = document.getElementById("original_canvas");
-        const filteredCanvas = document.getElementById("filtered_canvas");
-        const lowSpeedCanvas = document.getElementById("low_speed_canvas");
-        const programText = document.getElementById("program_text");
-        const tapeContents = document.getElementById("tape_contents");
         const samples = audioBuffer.getChannelData(0);
         const tape = new Tape_1.Tape(nameFromPathname(pathname), samples);
         const decoder = new Decoder_1.Decoder(tape);
@@ -1236,13 +1244,17 @@ define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploade
         const dataScreen = document.getElementById("data_screen");
         dropScreen.style.display = "none";
         dataScreen.style.display = "block";
+        const loadAnotherButton = document.getElementById("load_another_button");
+        loadAnotherButton.onclick = () => {
+            dropScreen.style.display = "block";
+            dataScreen.style.display = "none";
+            if (uploader !== undefined) {
+                uploader.reset();
+            }
+        };
     }
     function main() {
-        const dropZone = document.getElementById("drop_zone");
-        const dropUpload = document.getElementById("drop_upload");
-        const dropS3 = document.querySelectorAll("#test_files button");
-        const dropProgress = document.getElementById("drop_progress");
-        const uploader = new Uploader_1.Uploader(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer);
+        uploader = new Uploader_1.Uploader(dropZone, dropUpload, dropS3, dropProgress, handleAudioBuffer);
     }
     exports.main = main;
 });

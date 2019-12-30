@@ -71,6 +71,10 @@ export class Uploader {
         fileReader.readAsArrayBuffer(file);
     }
 
+    public reset(): void {
+        this.progressBar.style.display = "none";
+    }
+
     private showProgress(event: ProgressEvent) {
         this.progressBar.style.display = "block";
         this.progressBar.value = event.loaded;
