@@ -41,19 +41,9 @@
             </main>
         </div>
     </div>
-    <script src="require-2.3.6.js"></script>
-    <script src="build/compiled.js"></script>
-    <script>
-        "use strict";
-
-        requirejs.config({
-            // Force reloading of JS files.
-            urlArgs: "bust=" + (new Date()).getTime()
-        });
-
-        requirejs(["Main"], function (Main) {
-            Main.main();
-        });
+    <script type="module">
+        import "./index.js";
+        trs80CassetteReader.main();
     </script>
 </body>
 

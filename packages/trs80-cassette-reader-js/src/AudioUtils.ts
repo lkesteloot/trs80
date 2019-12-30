@@ -1,5 +1,5 @@
 
-import { pad } from "Utils";
+import { pad } from "./Utils";
 
 // Expected HZ on tape.
 export const HZ = 48000;

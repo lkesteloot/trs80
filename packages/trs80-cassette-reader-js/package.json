@@ -4,8 +4,9 @@
   "description": "Processes TRS-80 cassettes and cleans them up.",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "lint": "tslint --project ."
+    "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
+    "lint:fix": "npm run lint -- --fix",
+    "serve": "rollup -c && http-server docs"
   },
   "repository": {
     "type": "git",
@@ -18,7 +19,14 @@
   },
   "homepage": "https://github.com/lkesteloot/trs80-cassette-reader-js#readme",
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^6.0.0",
+    "@rollup/plugin-typescript": "^2.0.1",
+    "http-server": "^0.12.0",
+    "rollup": "^1.27.14",
     "tslint": "^5.20.1",
     "typescript": "^3.7.2"
+  },
+  "dependencies": {
+    "trs80-emulator": "file:../trs80-emulator"
   }
 }

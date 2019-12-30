@@ -1,7 +1,7 @@
 
 // Tools for decoding Basic programs.
 
-import { pad } from "Utils";
+import { pad } from "./Utils";
 
 // Starts at 0x80.
 const TOKENS = [
