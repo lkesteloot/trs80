@@ -5,7 +5,7 @@
 
 const BEGIN_ADDR = 0x3800;
 const END_ADDR = BEGIN_ADDR + 256;
-const KEY_DELAY_CLOCK_CYCLES = 4000;
+const KEY_DELAY_CLOCK_CYCLES = 50000;
 
 // Whether to force a Shift key, and how.
 enum ShiftState {
@@ -353,6 +353,21 @@ export class Keyboard {
         const body = document.getElementsByTagName("body")[0];
         body.addEventListener("keydown", (event) => keyEvent(event, true));
         body.addEventListener("keyup", (event) => keyEvent(event, false));
+        body.addEventListener("paste", (event) => {
+            if (event.clipboardData) {
+                const pastedText = event.clipboardData.getData("text/plain");
+                if (pastedText) {
+                    for (let ch of pastedText) {
+                        if (ch === "\n" || ch === "\r") {
+                            ch = "Enter";
+                        }
+                        this.keyEvent(ch, true);
+                        this.keyEvent(ch, false);
+                    }
+                }
+            }
+            event.preventDefault();
+        });
     }
 
     // Dequeue the next key and set its bit. Return whether a key was processed.
