@@ -581,12 +581,14 @@ define("Tape", ["require", "exports", "AudioUtils", "DisplaySamples", "LowSpeedT
         /**
          * @param name text to display (e.g., "LOAD80-Feb82-s1").
          * @param samples original samples from the tape.
+         * @param sampleRate the number of samples per second.
          */
-        constructor(name, samples) {
+        constructor(name, samples, sampleRate) {
             this.name = name;
             this.originalSamples = new DisplaySamples_1.DisplaySamples(samples);
             this.filteredSamples = new DisplaySamples_1.DisplaySamples(AudioUtils_2.highPassFilter(samples, 500));
             this.lowSpeedSamples = new DisplaySamples_1.DisplaySamples(LowSpeedTapeDecoder_1.LowSpeedTapeDecoder.filterSamples(this.filteredSamples.samplesList[0]));
+            this.sampleRate = sampleRate;
             this.programs = [];
         }
         addProgram(program) {
@@ -801,6 +803,27 @@ define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "
 define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "Utils", "trs80-emulator"], function (require, exports, AudioUtils_5, Basic_1, BitType_3, Utils_3, trs80_emulator_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    /**
+     * Implementation of Cassette that reads from our displayed data.
+     */
+    class Trs80Cassette extends trs80_emulator_1.Cassette {
+        constructor(tape, program) {
+            super();
+            this.tape = tape;
+            this.program = program;
+            // Set this from the tape:
+            this.samplesPerSecond = tape.sampleRate;
+            // Start one second before the official program start, so that the machine
+            // can detect the header.
+            this.frame = Math.max(0, program.startFrame - this.samplesPerSecond);
+        }
+        readSample() {
+            if (this.frame % this.samplesPerSecond === 0) {
+                console.log("Reading tape at " + AudioUtils_5.frameToTimestamp(this.frame));
+            }
+            return this.frame < this.program.endFrame + this.samplesPerSecond ? this.tape.originalSamples.samplesList[0][this.frame++] : 0;
+        }
+    }
     class TapeBrowser {
         constructor(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents) {
             this.displayLevel = 0; // Initialized in zoomToFitAll()
@@ -1085,7 +1108,8 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
                 this.tapeContents.appendChild(div);
             };
             this.clearElement(this.tapeContents);
-            this.clearElement(this.emulatorScreens); // TODO stop emulators too.
+            this.stopTrs80();
+            this.clearElement(this.emulatorScreens);
             addRow(this.tape.name, () => {
                 this.showCanvases();
                 this.zoomToFitAll();
@@ -1108,7 +1132,7 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
                     });
                     const screen = document.createElement("div");
                     screen.style.display = "none";
-                    const trs80 = new trs80_emulator_1.Trs80(screen);
+                    const trs80 = new trs80_emulator_1.Trs80(screen, new Trs80Cassette(this.tape, program));
                     trs80.reset();
                     this.emulatorScreens.appendChild(screen);
                     addRow("    Emulator", () => {
@@ -1278,7 +1302,7 @@ define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploade
             audioBuffer.sampleRate + " Hz");
         // TODO check that there's 1 channel.
         const samples = audioBuffer.getChannelData(0);
-        const tape = new Tape_1.Tape(nameFromPathname(pathname), samples);
+        const tape = new Tape_1.Tape(nameFromPathname(pathname), samples, audioBuffer.sampleRate);
         const decoder = new Decoder_1.Decoder(tape);
         decoder.decode();
         const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents);

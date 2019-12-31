@@ -13,18 +13,21 @@ export class Tape {
     public originalSamples: DisplaySamples;
     public filteredSamples: DisplaySamples;
     public lowSpeedSamples: DisplaySamples;
+    public sampleRate: number;
     public programs: Program[];
 
     /**
      * @param name text to display (e.g., "LOAD80-Feb82-s1").
      * @param samples original samples from the tape.
+     * @param sampleRate the number of samples per second.
      */
-    constructor(name: string, samples: Float32Array) {
+    constructor(name: string, samples: Float32Array, sampleRate: number) {
         this.name = name;
         this.originalSamples = new DisplaySamples(samples);
         this.filteredSamples = new DisplaySamples(highPassFilter(samples, 500));
         this.lowSpeedSamples = new DisplaySamples(LowSpeedTapeDecoder.filterSamples(
             this.filteredSamples.samplesList[0]));
+        this.sampleRate = sampleRate;
         this.programs = [];
     }
 

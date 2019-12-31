@@ -44,7 +44,7 @@ function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
     // TODO check that there's 1 channel.
 
     const samples = audioBuffer.getChannelData(0);
-    const tape = new Tape(nameFromPathname(pathname), samples);
+    const tape = new Tape(nameFromPathname(pathname), samples, audioBuffer.sampleRate);
     const decoder = new Decoder(tape);
     decoder.decode();
     const tapeBrowser = new TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms,

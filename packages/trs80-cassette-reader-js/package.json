@@ -27,6 +27,6 @@
     "typescript": "^3.7.2"
   },
   "dependencies": {
-    "trs80-emulator": "file:../trs80-emulator"
+    "trs80-emulator": "^1.0.1"
   }
 }

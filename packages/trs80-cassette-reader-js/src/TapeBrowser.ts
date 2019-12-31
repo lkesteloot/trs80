@@ -9,7 +9,36 @@ import {DisplaySamples} from "./DisplaySamples";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
 import {pad} from "./Utils";
-import {Trs80} from "trs80-emulator";
+import {Cassette, Trs80} from "trs80-emulator";
+
+/**
+ * Implementation of Cassette that reads from our displayed data.
+ */
+class Trs80Cassette extends Cassette {
+    private readonly tape: Tape;
+    private readonly program: Program;
+    private frame: number;
+
+    constructor(tape: Tape, program: Program) {
+        super();
+        this.tape = tape;
+        this.program = program;
+
+        // Set this from the tape:
+        this.samplesPerSecond = tape.sampleRate;
+
+        // Start one second before the official program start, so that the machine
+        // can detect the header.
+        this.frame = Math.max(0, program.startFrame - this.samplesPerSecond);
+    }
+
+    public readSample(): number {
+        if (this.frame % this.samplesPerSecond === 0) {
+            console.log("Reading tape at " + frameToTimestamp(this.frame));
+        }
+        return this.frame < this.program.endFrame + this.samplesPerSecond ? this.tape.originalSamples.samplesList[0][this.frame++] : 0;
+    }
+}
 
 export class TapeBrowser {
     private tape: Tape;
@@ -358,7 +387,8 @@ export class TapeBrowser {
             this.tapeContents.appendChild(div);
         };
         this.clearElement(this.tapeContents);
-        this.clearElement(this.emulatorScreens); // TODO stop emulators too.
+        this.stopTrs80();
+        this.clearElement(this.emulatorScreens);
         addRow(this.tape.name, () => {
             this.showCanvases();
             this.zoomToFitAll();
@@ -381,7 +411,7 @@ export class TapeBrowser {
                 });
                 const screen = document.createElement("div");
                 screen.style.display = "none";
-                const trs80 = new Trs80(screen);
+                const trs80 = new Trs80(screen, new Trs80Cassette(this.tape, program));
                 trs80.reset();
                 this.emulatorScreens.appendChild(screen);
                 addRow("    Emulator", () => {

@@ -518,12 +518,14 @@
         /**
          * @param name text to display (e.g., "LOAD80-Feb82-s1").
          * @param samples original samples from the tape.
+         * @param sampleRate the number of samples per second.
          */
-        constructor(name, samples) {
+        constructor(name, samples, sampleRate) {
             this.name = name;
             this.originalSamples = new DisplaySamples(samples);
             this.filteredSamples = new DisplaySamples(highPassFilter(samples, 500));
             this.lowSpeedSamples = new DisplaySamples(LowSpeedTapeDecoder.filterSamples(this.filteredSamples.samplesList[0]));
+            this.sampleRate = sampleRate;
             this.programs = [];
         }
         addProgram(program) {
@@ -743,6 +745,24 @@
                 /// state = NORMAL;
             }
             out.appendChild(line);
+        }
+    }
+
+    // Interface for fetching cassette audio data. We make this a concrete
+    // class because rollup.js can't handle exported interfaces.
+    class Cassette {
+        constructor() {
+            /**
+             * The number of samples per second that this audio represents.
+             */
+            this.samplesPerSecond = 44100;
+        }
+        /**
+         * Read the next sample. Must be in the range -1 to 1. If we try to read off
+         * the end of the cassette, just return zero.
+         */
+        readSample() {
+            return 0;
         }
     }
 
@@ -2868,6 +2888,7 @@
             case 0x23: { // inc ix
                 let value;
                 value = z80.regs.ix;
+                z80.incTStateCount(2);
                 value = inc16(value);
                 z80.regs.ix = value;
                 break;
@@ -2924,6 +2945,7 @@
             case 0x2B: { // dec ix
                 let value;
                 value = z80.regs.ix;
+                z80.incTStateCount(2);
                 value = dec16(value);
                 z80.regs.ix = value;
                 break;
@@ -2984,6 +3006,7 @@
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(2);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.ix + signedByte(dd)) & 0xFFFF;
                 z80.writeByte(z80.regs.memptr, value);
@@ -3017,6 +3040,7 @@
             case 0x46: { // ld b,(ix+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -3038,6 +3062,7 @@
             case 0x4E: { // ld c,(ix+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -3059,6 +3084,7 @@
             case 0x56: { // ld d,(ix+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -3080,6 +3106,7 @@
             case 0x5E: { // ld e,(ix+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -3125,6 +3152,7 @@
             case 0x66: { // ld h,(ix+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -3176,6 +3204,7 @@
             case 0x6E: { // ld l,(ix+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -3190,6 +3219,7 @@
             }
             case 0x70: { // ld (ix+dd),b
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.b;
@@ -3199,6 +3229,7 @@
             }
             case 0x71: { // ld (ix+dd),c
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.c;
@@ -3208,6 +3239,7 @@
             }
             case 0x72: { // ld (ix+dd),d
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.d;
@@ -3217,6 +3249,7 @@
             }
             case 0x73: { // ld (ix+dd),e
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.e;
@@ -3226,6 +3259,7 @@
             }
             case 0x74: { // ld (ix+dd),h
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.h;
@@ -3235,6 +3269,7 @@
             }
             case 0x75: { // ld (ix+dd),l
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.l;
@@ -3244,6 +3279,7 @@
             }
             case 0x77: { // ld (ix+dd),a
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.a;
@@ -3266,6 +3302,7 @@
             case 0x7E: { // ld a,(ix+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -3557,6 +3594,7 @@
             case 0xBE: { // cp (ix+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.ix + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -3597,6 +3635,7 @@
                 break;
             }
             case 0xE5: { // push ix
+                z80.incTStateCount(1);
                 z80.pushWord(z80.regs.ix);
                 break;
             }
@@ -3607,6 +3646,7 @@
             case 0xF9: { // ld sp,ix
                 let value;
                 value = z80.regs.ix;
+                z80.incTStateCount(2);
                 z80.regs.sp = value;
                 break;
             }
@@ -5507,6 +5547,7 @@
             case 0x47: { // ld i,a
                 let value;
                 value = z80.regs.a;
+                z80.incTStateCount(1);
                 z80.regs.i = value;
                 break;
             }
@@ -5552,6 +5593,7 @@
             case 0x4F: { // ld r,a
                 let value;
                 value = z80.regs.a;
+                z80.incTStateCount(1);
                 z80.regs.r = value;
                 break;
             }
@@ -5603,6 +5645,7 @@
             case 0x57: { // ld a,i
                 let value;
                 value = z80.regs.i;
+                z80.incTStateCount(1);
                 z80.regs.a = value;
                 z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53Table[z80.regs.a] | (z80.regs.iff2 ? Flag.V : 0);
                 break;
@@ -5653,8 +5696,8 @@
             }
             case 0x5F: { // ld a,r
                 let value;
-                z80.incTStateCount(1);
                 value = z80.regs.rCombined;
+                z80.incTStateCount(1);
                 z80.regs.a = value;
                 z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53Table[z80.regs.a] | (z80.regs.iff2 ? Flag.V : 0);
                 break;
@@ -6126,6 +6169,7 @@
             case 0x23: { // inc iy
                 let value;
                 value = z80.regs.iy;
+                z80.incTStateCount(2);
                 value = inc16(value);
                 z80.regs.iy = value;
                 break;
@@ -6182,6 +6226,7 @@
             case 0x2B: { // dec iy
                 let value;
                 value = z80.regs.iy;
+                z80.incTStateCount(2);
                 value = dec16(value);
                 z80.regs.iy = value;
                 break;
@@ -6242,6 +6287,7 @@
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(2);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.iy + signedByte(dd)) & 0xFFFF;
                 z80.writeByte(z80.regs.memptr, value);
@@ -6275,6 +6321,7 @@
             case 0x46: { // ld b,(iy+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -6296,6 +6343,7 @@
             case 0x4E: { // ld c,(iy+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -6317,6 +6365,7 @@
             case 0x56: { // ld d,(iy+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -6338,6 +6387,7 @@
             case 0x5E: { // ld e,(iy+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -6383,6 +6433,7 @@
             case 0x66: { // ld h,(iy+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -6434,6 +6485,7 @@
             case 0x6E: { // ld l,(iy+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -6448,6 +6500,7 @@
             }
             case 0x70: { // ld (iy+dd),b
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.b;
@@ -6457,6 +6510,7 @@
             }
             case 0x71: { // ld (iy+dd),c
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.c;
@@ -6466,6 +6520,7 @@
             }
             case 0x72: { // ld (iy+dd),d
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.d;
@@ -6475,6 +6530,7 @@
             }
             case 0x73: { // ld (iy+dd),e
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.e;
@@ -6484,6 +6540,7 @@
             }
             case 0x74: { // ld (iy+dd),h
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.h;
@@ -6493,6 +6550,7 @@
             }
             case 0x75: { // ld (iy+dd),l
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.l;
@@ -6502,6 +6560,7 @@
             }
             case 0x77: { // ld (iy+dd),a
                 const dd = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 let value;
                 value = z80.regs.a;
@@ -6524,6 +6583,7 @@
             case 0x7E: { // ld a,(iy+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -6815,6 +6875,7 @@
             case 0xBE: { // cp (iy+dd)
                 let value;
                 value = z80.readByte(z80.regs.pc);
+                z80.incTStateCount(5);
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = (z80.regs.iy + signedByte(value)) & 0xFFFF;
                 value = z80.readByte(z80.regs.memptr);
@@ -6855,6 +6916,7 @@
                 break;
             }
             case 0xE5: { // push iy
+                z80.incTStateCount(1);
                 z80.pushWord(z80.regs.iy);
                 break;
             }
@@ -6865,6 +6927,7 @@
             case 0xF9: { // ld sp,iy
                 let value;
                 value = z80.regs.iy;
+                z80.incTStateCount(2);
                 z80.regs.sp = value;
                 break;
             }
@@ -8700,6 +8763,7 @@
             case 0x03: { // inc bc
                 let value;
                 value = z80.regs.bc;
+                z80.incTStateCount(2);
                 value = inc16(value);
                 z80.regs.bc = value;
                 break;
@@ -8763,6 +8827,7 @@
             case 0x0B: { // dec bc
                 let value;
                 value = z80.regs.bc;
+                z80.incTStateCount(2);
                 value = dec16(value);
                 z80.regs.bc = value;
                 break;
@@ -8832,6 +8897,7 @@
             case 0x13: { // inc de
                 let value;
                 value = z80.regs.de;
+                z80.incTStateCount(2);
                 value = inc16(value);
                 z80.regs.de = value;
                 break;
@@ -8897,6 +8963,7 @@
             case 0x1B: { // dec de
                 let value;
                 value = z80.regs.de;
+                z80.incTStateCount(2);
                 value = dec16(value);
                 z80.regs.de = value;
                 break;
@@ -8970,6 +9037,7 @@
             case 0x23: { // inc hl
                 let value;
                 value = z80.regs.hl;
+                z80.incTStateCount(2);
                 value = inc16(value);
                 z80.regs.hl = value;
                 break;
@@ -9071,6 +9139,7 @@
             case 0x2B: { // dec hl
                 let value;
                 value = z80.regs.hl;
+                z80.incTStateCount(2);
                 value = dec16(value);
                 z80.regs.hl = value;
                 break;
@@ -9141,6 +9210,7 @@
             case 0x33: { // inc sp
                 let value;
                 value = z80.regs.sp;
+                z80.incTStateCount(2);
                 value = inc16(value);
                 z80.regs.sp = value;
                 break;
@@ -9216,6 +9286,7 @@
             case 0x3B: { // dec sp
                 let value;
                 value = z80.regs.sp;
+                z80.incTStateCount(2);
                 value = dec16(value);
                 z80.regs.sp = value;
                 break;
@@ -10395,12 +10466,14 @@
                 z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
                 z80.regs.pc = inc16(z80.regs.pc);
                 if ((z80.regs.f & Flag.Z) === 0) {
+                    z80.incTStateCount(1);
                     z80.pushWord(z80.regs.pc);
                     z80.regs.pc = z80.regs.memptr;
                 }
                 break;
             }
             case 0xC5: { // push bc
+                z80.incTStateCount(1);
                 z80.pushWord(z80.regs.bc);
                 break;
             }
@@ -10432,7 +10505,6 @@
                 break;
             }
             case 0xC9: { // ret
-                z80.incTStateCount(1);
                 z80.regs.pc = z80.popWord();
                 z80.regs.memptr = z80.regs.pc;
                 break;
@@ -10457,6 +10529,7 @@
                 z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
                 z80.regs.pc = inc16(z80.regs.pc);
                 if ((z80.regs.f & Flag.Z) !== 0) {
+                    z80.incTStateCount(1);
                     z80.pushWord(z80.regs.pc);
                     z80.regs.pc = z80.regs.memptr;
                 }
@@ -10467,6 +10540,7 @@
                 z80.regs.pc = inc16(z80.regs.pc);
                 z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
                 z80.regs.pc = inc16(z80.regs.pc);
+                z80.incTStateCount(1);
                 z80.pushWord(z80.regs.pc);
                 z80.regs.pc = z80.regs.memptr;
                 break;
@@ -10528,12 +10602,14 @@
                 z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
                 z80.regs.pc = inc16(z80.regs.pc);
                 if ((z80.regs.f & Flag.C) === 0) {
+                    z80.incTStateCount(1);
                     z80.pushWord(z80.regs.pc);
                     z80.regs.pc = z80.regs.memptr;
                 }
                 break;
             }
             case 0xD5: { // push de
+                z80.incTStateCount(1);
                 z80.pushWord(z80.regs.de);
                 break;
             }
@@ -10600,6 +10676,7 @@
                 z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
                 z80.regs.pc = inc16(z80.regs.pc);
                 if ((z80.regs.f & Flag.C) !== 0) {
+                    z80.incTStateCount(1);
                     z80.pushWord(z80.regs.pc);
                     z80.regs.pc = z80.regs.memptr;
                 }
@@ -10671,12 +10748,14 @@
                 z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
                 z80.regs.pc = inc16(z80.regs.pc);
                 if ((z80.regs.f & Flag.P) === 0) {
+                    z80.incTStateCount(1);
                     z80.pushWord(z80.regs.pc);
                     z80.regs.pc = z80.regs.memptr;
                 }
                 break;
             }
             case 0xE5: { // push hl
+                z80.incTStateCount(1);
                 z80.pushWord(z80.regs.hl);
                 break;
             }
@@ -10730,6 +10809,7 @@
                 z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
                 z80.regs.pc = inc16(z80.regs.pc);
                 if ((z80.regs.f & Flag.P) !== 0) {
+                    z80.incTStateCount(1);
                     z80.pushWord(z80.regs.pc);
                     z80.regs.pc = z80.regs.memptr;
                 }
@@ -10787,12 +10867,14 @@
                 z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
                 z80.regs.pc = inc16(z80.regs.pc);
                 if ((z80.regs.f & Flag.S) === 0) {
+                    z80.incTStateCount(1);
                     z80.pushWord(z80.regs.pc);
                     z80.regs.pc = z80.regs.memptr;
                 }
                 break;
             }
             case 0xF5: { // push af
+                z80.incTStateCount(1);
                 z80.pushWord(z80.regs.af);
                 break;
             }
@@ -10822,6 +10904,7 @@
             case 0xF9: { // ld sp,hl
                 let value;
                 value = z80.regs.hl;
+                z80.incTStateCount(2);
                 z80.regs.sp = value;
                 break;
             }
@@ -10846,6 +10929,7 @@
                 z80.regs.memptr = word(z80.readByte(z80.regs.pc), z80.regs.memptr);
                 z80.regs.pc = inc16(z80.regs.pc);
                 if ((z80.regs.f & Flag.S) !== 0) {
+                    z80.incTStateCount(1);
                     z80.pushWord(z80.regs.pc);
                     z80.regs.pc = z80.regs.memptr;
                 }
@@ -11479,7 +11563,11 @@
 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
 `;
 
+    // IRQs
+    const CASSETTE_RISE_IRQ_MASK = 0x01;
+    const CASSETTE_FALL_IRQ_MASK = 0x02;
     const TIMER_IRQ_MASK = 0x04;
+    const CASSETTE_IRQ_MASKS = CASSETTE_RISE_IRQ_MASK | CASSETTE_FALL_IRQ_MASK;
     // NMIs
     const RESET_NMI_MASK = 0x20;
     // Timer.
@@ -11491,6 +11579,21 @@
     const CLOCK_HZ = 2030000;
     const INITIAL_CLICKS_PER_TICK = 2000;
     const CSS_PREFIX = "trs80-emulator";
+    const CASSETTE_THRESHOLD = 5000 / 32768.0;
+    // State of the cassette hardware. We don't support writing.
+    var CassetteState;
+    (function (CassetteState) {
+        CassetteState[CassetteState["CLOSE"] = 0] = "CLOSE";
+        CassetteState[CassetteState["READ"] = 1] = "READ";
+        CassetteState[CassetteState["FAIL"] = 2] = "FAIL";
+    })(CassetteState || (CassetteState = {}));
+    // Value of wave in audio: negative, neutral (around zero), or positive.
+    var CassetteValue;
+    (function (CassetteValue) {
+        CassetteValue[CassetteValue["NEGATIVE"] = 0] = "NEGATIVE";
+        CassetteValue[CassetteValue["NEUTRAL"] = 1] = "NEUTRAL";
+        CassetteValue[CassetteValue["POSITIVE"] = 2] = "POSITIVE";
+    })(CassetteValue || (CassetteValue = {}));
     function isScreenAddress(address) {
         return address >= SCREEN_ADDRESS && address < SCREEN_ADDRESS + 1024;
     }
@@ -11498,7 +11601,7 @@
      * HAL for the TRS-80 Model III.
      */
     class Trs80 {
-        constructor(parentNode) {
+        constructor(parentNode, cassette) {
             this.tStateCount = 0;
             this.memory = new Uint8Array(64 * 1024);
             this.keyboard = new Keyboard();
@@ -11518,10 +11621,26 @@
             this.clocksPerTick = INITIAL_CLICKS_PER_TICK;
             this.startTime = Date.now();
             this.started = false;
+            // Internal state of the cassette controller.
+            // Whether the motor is running.
+            this.cassetteMotorOn = false;
+            // State machine.
+            this.cassetteState = CassetteState.CLOSE;
+            // Internal register state.
+            this.cassetteValue = CassetteValue.NEUTRAL;
+            this.cassetteLastNonZeroValue = CassetteValue.NEUTRAL;
+            this.cassetteFlipFlop = false;
+            // When we turned on the motor (started reading the file) and how many samples
+            // we've read since then.
+            this.cassetteMotorOnClock = 0;
+            this.cassetteSamplesRead = 0;
+            this.cassetteRiseInterruptCount = 0;
+            this.cassetteFallInterruptCount = 0;
             // Make our own sub-node that we have control over.
             const node = document.createElement("div");
             parentNode.appendChild(node);
             this.node = node;
+            this.cassette = cassette;
             this.memory.fill(0);
             const raw = window.atob(model3Rom);
             for (let i = 0; i < raw.length; i++) {
@@ -11535,6 +11654,7 @@
         reset() {
             this.setIrqMask(0);
             this.setNmiMask(0);
+            this.resetCassette();
             this.keyboard.clearKeyboard();
             this.setTimerInterrupt(false);
             this.z80.reset();
@@ -11587,6 +11707,8 @@
                 this.handleTimer();
                 this.previousTimerClock = this.tStateCount;
             }
+            // Update cassette state.
+            this.updateCassette();
         }
         contendMemory(address) {
             // Ignore.
@@ -11638,7 +11760,7 @@
                     break;
                 case 0xFF:
                     // Cassette and various flags.
-                    value = (this.modeImage & 0x7E) | 0x00; // this.getCassetteByte()
+                    value = (this.modeImage & 0x7E) | this.getCassetteByte();
                     break;
                 default:
                     console.log("Reading from unknown port 0x" + toHex(lo(address), 2));
@@ -11666,10 +11788,10 @@
                 case 0xEE:
                 case 0xEF:
                     // Various controls.
-                    // TODO
                     this.modeImage = value;
-                    // this.setCassetteMotor(value&0x02 != 0)
-                    // this.setExpandedCharacters(value&0x04 != 0)
+                    this.setCassetteMotor((value & 0x02) !== 0);
+                    // TODO
+                    // this.setExpandedCharacters((value & 0x04) !== 0);
                     break;
                 case 0xF0:
                     // Disk command.
@@ -11683,6 +11805,19 @@
                     // Disk select.
                     // TODO
                     // this.writeDiskSelect(value)
+                    break;
+                case 0xFC:
+                case 0xFD:
+                case 0xFE:
+                case 0xFF:
+                    if ((value & 0x20) != 0) {
+                        // Model III Micro Labs graphics card.
+                        console.log("Sending 0x" + toHex(value, 2) + " to Micro Labs graphics card");
+                    }
+                    else {
+                        // Do cassette emulation.
+                        this.putCassetteByte(value & 0x03);
+                    }
                     break;
                 default:
                     console.log("Writing 0x" + toHex(value, 2) + " to unknown port 0x" + toHex(port, 2));
@@ -11782,6 +11917,10 @@
             }
             this.scheduleNextTick();
         }
+        /**
+         * Figure out how many CPU cycles we should optimally run and how long
+         * to wait until scheduling it, then schedule it to be run later.
+         */
         scheduleNextTick() {
             // Delay to match original clock speed.
             const now = Date.now();
@@ -11831,10 +11970,180 @@
         handleTimer() {
             this.setTimerInterrupt(true);
         }
+        // Reset the controller to a known state.
+        resetCassette() {
+            this.setCassetteState(CassetteState.CLOSE);
+        }
+        // Get a byte from the I/O port.
+        getCassetteByte() {
+            // If the motor's running, and we're reading a byte, then get into read mode.
+            if (this.cassetteMotorOn) {
+                this.setCassetteState(CassetteState.READ);
+            }
+            // Clear any interrupt that may have triggered this read.
+            this.cassetteClearInterrupt();
+            // Cassette owns bits 0 and 7.
+            let b = 0;
+            if (this.cassetteFlipFlop) {
+                b |= 0x80;
+            }
+            if (this.cassetteLastNonZeroValue === CassetteValue.POSITIVE) {
+                b |= 0x01;
+            }
+            return b;
+        }
+        // Write to the cassette port. We don't support writing tapes, but this is used
+        // for 500-baud reading to trigger the next analysis of the tape.
+        putCassetteByte(b) {
+            if (this.cassetteMotorOn) {
+                if (this.cassetteState === CassetteState.READ) {
+                    this.updateCassette();
+                    this.cassetteFlipFlop = false;
+                }
+            }
+        }
+        // Kick off the reading process when doing 1500-baud reads.
+        kickOffCassette() {
+            if (this.cassetteMotorOn &&
+                this.cassetteState === CassetteState.CLOSE &&
+                this.cassetteInterruptsEnabled()) {
+                // Kick off the process.
+                this.cassetteRiseInterrupt();
+                this.cassetteFallInterrupt();
+            }
+        }
+        // Turn the motor on or off.
+        setCassetteMotor(cassetteMotorOn) {
+            if (cassetteMotorOn !== this.cassetteMotorOn) {
+                if (cassetteMotorOn) {
+                    this.cassetteFlipFlop = false;
+                    this.cassetteLastNonZeroValue = CassetteValue.NEUTRAL;
+                    // Waits a second before kicking off the cassette.
+                    // TODO this should be in CPU cycles, not browser cycles.
+                    setTimeout(() => this.kickOffCassette(), 1000);
+                }
+                else {
+                    this.setCassetteState(CassetteState.CLOSE);
+                }
+                this.cassetteMotorOn = cassetteMotorOn;
+                this.updateCassetteMotorLight();
+            }
+        }
+        // Read some of the cassette to see if we should be triggering a rise/fall interrupt.
+        updateCassette() {
+            if (this.cassetteMotorOn && this.setCassetteState(CassetteState.READ) >= 0) {
+                // See how many samples we should have read by now.
+                const samplesToRead = Math.round((this.tStateCount - this.cassetteMotorOnClock) *
+                    this.cassette.samplesPerSecond / CLOCK_HZ);
+                // Catch up.
+                while (this.cassetteSamplesRead < samplesToRead) {
+                    const sample = this.cassette.readSample();
+                    this.cassetteSamplesRead++;
+                    // Convert to state, where neutral is some noisy in-between state.
+                    let cassetteValue = CassetteValue.NEUTRAL;
+                    if (sample > CASSETTE_THRESHOLD) {
+                        cassetteValue = CassetteValue.POSITIVE;
+                    }
+                    else if (sample < -CASSETTE_THRESHOLD) {
+                        cassetteValue = CassetteValue.NEGATIVE;
+                    }
+                    // See if we've changed value.
+                    if (cassetteValue !== this.cassetteValue) {
+                        if (cassetteValue === CassetteValue.POSITIVE) {
+                            // Positive edge.
+                            this.cassetteFlipFlop = true;
+                            this.cassetteRiseInterrupt();
+                        }
+                        else if (cassetteValue === CassetteValue.NEGATIVE) {
+                            // Negative edge.
+                            this.cassetteFlipFlop = true;
+                            this.cassetteFallInterrupt();
+                        }
+                        this.cassetteValue = cassetteValue;
+                        if (cassetteValue !== CassetteValue.NEUTRAL) {
+                            this.cassetteLastNonZeroValue = cassetteValue;
+                        }
+                    }
+                }
+            }
+        }
+        // Returns 0 if the state was changed, 1 if it wasn't, and -1 on error.
+        setCassetteState(newState) {
+            const oldCassetteState = this.cassetteState;
+            // See if we're changing anything.
+            if (oldCassetteState === newState) {
+                return 1;
+            }
+            // Once in error, everything will fail until we close.
+            if (oldCassetteState === CassetteState.FAIL && newState !== CassetteState.CLOSE) {
+                return -1;
+            }
+            // Change things based on new state.
+            switch (newState) {
+                case CassetteState.READ:
+                    this.openCassetteFile();
+                    break;
+            }
+            // Update state.
+            this.cassetteState = newState;
+            return 0;
+        }
+        // Open file, get metadata, and get read to read the tape.
+        openCassetteFile() {
+            // TODO open/rewind cassette?
+            // Reset the clock.
+            this.cassetteMotorOnClock = this.tStateCount;
+            this.cassetteSamplesRead = 0;
+        }
+        // Update the status of the red light on the display.
+        updateCassetteMotorLight() {
+            // TODO Update UI light based on this.cassetteMotorOn.
+        }
+        // Saw a positive edge on cassette.
+        cassetteRiseInterrupt() {
+            this.cassetteRiseInterruptCount++;
+            this.irqLatch = (this.irqLatch & ~CASSETTE_RISE_IRQ_MASK) |
+                (this.irqMask & CASSETTE_RISE_IRQ_MASK);
+        }
+        // Saw a negative edge on cassette.
+        cassetteFallInterrupt() {
+            this.cassetteFallInterruptCount++;
+            this.irqLatch = (this.irqLatch & ~CASSETTE_FALL_IRQ_MASK) |
+                (this.irqMask & CASSETTE_FALL_IRQ_MASK);
+        }
+        // Reset cassette edge interrupts.
+        cassetteClearInterrupt() {
+            this.irqLatch &= ~CASSETTE_IRQ_MASKS;
+        }
+        // Check whether the software has enabled these interrupts.
+        cassetteInterruptsEnabled() {
+            return (this.irqMask & CASSETTE_IRQ_MASKS) != 0;
+        }
     }
     Trs80.TIMER_CYCLES = CLOCK_HZ / TIMER_HZ;
 
     // UI for browsing a tape interactively.
+    /**
+     * Implementation of Cassette that reads from our displayed data.
+     */
+    class Trs80Cassette extends Cassette {
+        constructor(tape, program) {
+            super();
+            this.tape = tape;
+            this.program = program;
+            // Set this from the tape:
+            this.samplesPerSecond = tape.sampleRate;
+            // Start one second before the official program start, so that the machine
+            // can detect the header.
+            this.frame = Math.max(0, program.startFrame - this.samplesPerSecond);
+        }
+        readSample() {
+            if (this.frame % this.samplesPerSecond === 0) {
+                console.log("Reading tape at " + frameToTimestamp(this.frame));
+            }
+            return this.frame < this.program.endFrame + this.samplesPerSecond ? this.tape.originalSamples.samplesList[0][this.frame++] : 0;
+        }
+    }
     class TapeBrowser {
         constructor(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents) {
             this.displayLevel = 0; // Initialized in zoomToFitAll()
@@ -12119,7 +12428,8 @@
                 this.tapeContents.appendChild(div);
             };
             this.clearElement(this.tapeContents);
-            this.clearElement(this.emulatorScreens); // TODO stop emulators too.
+            this.stopTrs80();
+            this.clearElement(this.emulatorScreens);
             addRow(this.tape.name, () => {
                 this.showCanvases();
                 this.zoomToFitAll();
@@ -12142,7 +12452,7 @@
                     });
                     const screen = document.createElement("div");
                     screen.style.display = "none";
-                    const trs80 = new Trs80(screen);
+                    const trs80 = new Trs80(screen, new Trs80Cassette(this.tape, program));
                     trs80.reset();
                     this.emulatorScreens.appendChild(screen);
                     addRow("    Emulator", () => {
@@ -12304,7 +12614,7 @@
             audioBuffer.sampleRate + " Hz");
         // TODO check that there's 1 channel.
         const samples = audioBuffer.getChannelData(0);
-        const tape = new Tape(nameFromPathname(pathname), samples);
+        const tape = new Tape(nameFromPathname(pathname), samples, audioBuffer.sampleRate);
         const decoder = new Decoder(tape);
         decoder.decode();
         const tapeBrowser = new TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents);
