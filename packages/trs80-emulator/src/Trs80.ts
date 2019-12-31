@@ -412,23 +412,30 @@ export class Trs80 implements Hal {
      * to wait until scheduling it, then schedule it to be run later.
      */
     private scheduleNextTick(): void {
-        // Delay to match original clock speed.
-        const now = Date.now();
-        const actualElapsed = now - this.startTime;
-        const expectedElapsed = this.tStateCount*1000/CLOCK_HZ;
-        let behind = expectedElapsed - actualElapsed;
-        if (behind < -100) {
-            // We're too far behind. Catch up artificially.
-            this.startTime = now - expectedElapsed;
-            behind = 0;
-        }
-        const delay = Math.round(Math.max(0, behind));
-        if (delay === 0) {
-            // Delay too short, do more each tick.
-            this.clocksPerTick = Math.min(this.clocksPerTick + 100, 10000);
-        } else if (delay > 1) {
-            // Delay too long, do less each tick.
-            this.clocksPerTick = Math.max(this.clocksPerTick - 100, 100);
+        let delay: number;
+        if (this.cassetteMotorOn || this.keyboard.keyQueue.length > 4) {
+            // Go fast if we're accessing the cassette or pasting.
+            this.clocksPerTick = 100_000;
+            delay = 0;
+        } else {
+            // Delay to match original clock speed.
+            const now = Date.now();
+            const actualElapsed = now - this.startTime;
+            const expectedElapsed = this.tStateCount * 1000 / CLOCK_HZ;
+            let behind = expectedElapsed - actualElapsed;
+            if (behind < -100 || behind > 100) {
+                // We're too far behind or ahead. Catch up artificially.
+                this.startTime = now - expectedElapsed;
+                behind = 0;
+            }
+            delay = Math.round(Math.max(0, behind));
+            if (delay === 0) {
+                // Delay too short, do more each tick.
+                this.clocksPerTick = Math.min(this.clocksPerTick + 100, 10000);
+            } else if (delay > 1) {
+                // Delay too long, do less each tick.
+                this.clocksPerTick = Math.max(this.clocksPerTick - 100, 100);
+            }
         }
         // console.log(this.clocksPerTick, delay);
 
