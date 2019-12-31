@@ -4,9 +4,10 @@
   "description": "Processes TRS-80 cassettes and cleans them up.",
   "main": "index.js",
   "scripts": {
+    "build": "tsc --noEmit && rollup -c",
     "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
     "lint:fix": "npm run lint -- --fix",
-    "serve": "tsc --noEmit && rollup -c && http-server docs"
+    "serve": "npm run build && http-server docs"
   },
   "repository": {
     "type": "git",
