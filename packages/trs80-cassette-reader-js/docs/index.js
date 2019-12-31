@@ -11197,7 +11197,7 @@
     // really not.
     const BEGIN_ADDR = 0x3800;
     const END_ADDR = BEGIN_ADDR + 256;
-    const KEY_DELAY_CLOCK_CYCLES = 4000;
+    const KEY_DELAY_CLOCK_CYCLES = 50000;
     // Whether to force a Shift key, and how.
     var ShiftState;
     (function (ShiftState) {
@@ -11540,6 +11540,21 @@
             const body = document.getElementsByTagName("body")[0];
             body.addEventListener("keydown", (event) => keyEvent(event, true));
             body.addEventListener("keyup", (event) => keyEvent(event, false));
+            body.addEventListener("paste", (event) => {
+                if (event.clipboardData) {
+                    const pastedText = event.clipboardData.getData("text/plain");
+                    if (pastedText) {
+                        for (let ch of pastedText) {
+                            if (ch === "\n" || ch === "\r") {
+                                ch = "Enter";
+                            }
+                            this.keyEvent(ch, true);
+                            this.keyEvent(ch, false);
+                        }
+                    }
+                }
+                event.preventDefault();
+            });
         }
         // Dequeue the next key and set its bit. Return whether a key was processed.
         processKeyQueue() {
@@ -11922,24 +11937,32 @@
          * to wait until scheduling it, then schedule it to be run later.
          */
         scheduleNextTick() {
-            // Delay to match original clock speed.
-            const now = Date.now();
-            const actualElapsed = now - this.startTime;
-            const expectedElapsed = this.tStateCount * 1000 / CLOCK_HZ;
-            let behind = expectedElapsed - actualElapsed;
-            if (behind < -100) {
-                // We're too far behind. Catch up artificially.
-                this.startTime = now - expectedElapsed;
-                behind = 0;
+            let delay;
+            if (this.cassetteMotorOn || this.keyboard.keyQueue.length > 4) {
+                // Go fast if we're accessing the cassette or pasting.
+                this.clocksPerTick = 100000;
+                delay = 0;
             }
-            const delay = Math.round(Math.max(0, behind));
-            if (delay === 0) {
-                // Delay too short, do more each tick.
-                this.clocksPerTick = Math.min(this.clocksPerTick + 100, 10000);
-            }
-            else if (delay > 1) {
-                // Delay too long, do less each tick.
-                this.clocksPerTick = Math.max(this.clocksPerTick - 100, 100);
+            else {
+                // Delay to match original clock speed.
+                const now = Date.now();
+                const actualElapsed = now - this.startTime;
+                const expectedElapsed = this.tStateCount * 1000 / CLOCK_HZ;
+                let behind = expectedElapsed - actualElapsed;
+                if (behind < -100 || behind > 100) {
+                    // We're too far behind or ahead. Catch up artificially.
+                    this.startTime = now - expectedElapsed;
+                    behind = 0;
+                }
+                delay = Math.round(Math.max(0, behind));
+                if (delay === 0) {
+                    // Delay too short, do more each tick.
+                    this.clocksPerTick = Math.min(this.clocksPerTick + 100, 10000);
+                }
+                else if (delay > 1) {
+                    // Delay too long, do less each tick.
+                    this.clocksPerTick = Math.max(this.clocksPerTick - 100, 100);
+                }
             }
             // console.log(this.clocksPerTick, delay);
             this.cancelTickTimeout();

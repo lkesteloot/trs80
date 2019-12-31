@@ -25,9 +25,9 @@
     "http-server": "^0.12.0",
     "rollup": "^1.27.14",
     "tslint": "^5.20.1",
-    "typescript": "^3.7.2"
+    "typescript": "^3.7.4"
   },
   "dependencies": {
-    "trs80-emulator": "^1.0.1"
+    "trs80-emulator": "^1.0.2"
   }
 }
