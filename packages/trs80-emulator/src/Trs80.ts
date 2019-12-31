@@ -3,6 +3,7 @@ import {Hal, Z80} from "z80-emulator";
 import css from "./css";
 import {Keyboard} from "./Keyboard";
 import {model3Rom} from "./Model3Rom";
+import {Cassette} from "./Cassette";
 
 // IRQs
 const CASSETTE_RISE_IRQ_MASK = 0x01;
@@ -33,6 +34,18 @@ const INITIAL_CLICKS_PER_TICK = 2000;
 
 const CSS_PREFIX = "trs80-emulator";
 
+const CASSETTE_THRESHOLD = 5000/32768.0;
+
+// State of the cassette hardware. We don't support writing.
+enum CassetteState {
+    CLOSE, READ, FAIL
+}
+
+// Value of wave in audio: negative, neutral (around zero), or positive.
+enum CassetteValue {
+    NEGATIVE, NEUTRAL, POSITIVE,
+}
+
 function isScreenAddress(address: number): boolean {
     return address >= SCREEN_ADDRESS && address < SCREEN_ADDRESS + 1024;
 }
@@ -44,6 +57,7 @@ export class Trs80 implements Hal {
     private static readonly TIMER_CYCLES = CLOCK_HZ / TIMER_HZ;
     public tStateCount = 0;
     private readonly node: HTMLElement;
+    private cassette: Cassette;
     private memory = new Uint8Array(64*1024);
     private keyboard = new Keyboard();
     private modeImage = 0x80;
@@ -64,11 +78,28 @@ export class Trs80 implements Hal {
     private tickHandle: number | undefined;
     private started = false;
 
-    constructor(parentNode: HTMLElement) {
+    // Internal state of the cassette controller.
+    // Whether the motor is running.
+    private cassetteMotorOn = false;
+    // State machine.
+    private cassetteState = CassetteState.CLOSE;
+    // Internal register state.
+    private cassetteValue = CassetteValue.NEUTRAL;
+    private cassetteLastNonZeroValue = CassetteValue.NEUTRAL;
+    private cassetteFlipFlop = false;
+    // When we turned on the motor (started reading the file) and how many samples
+    // we've read since then.
+    private cassetteMotorOnClock = 0;
+    private cassetteSamplesRead = 0;
+    private cassetteRiseInterruptCount = 0;
+    private cassetteFallInterruptCount = 0;
+
+    constructor(parentNode: HTMLElement, cassette: Cassette) {
         // Make our own sub-node that we have control over.
         const node = document.createElement("div");
         parentNode.appendChild(node);
         this.node = node;
+        this.cassette = cassette;
         this.memory.fill(0);
         const raw = window.atob(model3Rom);
         for (let i = 0; i < raw.length; i++) {
@@ -84,6 +115,7 @@ export class Trs80 implements Hal {
     public reset(): void {
         this.setIrqMask(0);
         this.setNmiMask(0);
+        this.resetCassette();
         this.keyboard.clearKeyboard();
         this.setTimerInterrupt(false);
         this.z80.reset();
@@ -145,6 +177,9 @@ export class Trs80 implements Hal {
             this.handleTimer();
             this.previousTimerClock = this.tStateCount;
         }
+
+        // Update cassette state.
+        this.updateCassette();
     }
 
     public contendMemory(address: number): void {
@@ -201,7 +236,7 @@ export class Trs80 implements Hal {
 
             case 0xFF:
                 // Cassette and various flags.
-                value = (this.modeImage & 0x7E) | 0x00; // this.getCassetteByte()
+                value = (this.modeImage & 0x7E) | this.getCassetteByte();
                 break;
 
             default:
@@ -233,10 +268,10 @@ export class Trs80 implements Hal {
             case 0xEE:
             case 0xEF:
                 // Various controls.
-                // TODO
                 this.modeImage = value;
-                // this.setCassetteMotor(value&0x02 != 0)
-                // this.setExpandedCharacters(value&0x04 != 0)
+                this.setCassetteMotor((value & 0x02) !== 0);
+                // TODO
+                // this.setExpandedCharacters((value & 0x04) !== 0);
                 break;
 
             case 0xF0:
@@ -252,6 +287,19 @@ export class Trs80 implements Hal {
                 // Disk select.
                 // TODO
                 // this.writeDiskSelect(value)
+                break;
+
+            case 0xFC:
+            case 0xFD:
+            case 0xFE:
+            case 0xFF:
+                if ((value & 0x20) != 0) {
+                    // Model III Micro Labs graphics card.
+                    console.log("Sending 0x" + toHex(value, 2) + " to Micro Labs graphics card");
+                } else {
+                    // Do cassette emulation.
+                    this.putCassetteByte(value & 0x03);
+                }
                 break;
 
             default:
@@ -359,6 +407,10 @@ export class Trs80 implements Hal {
         this.scheduleNextTick();
     }
 
+    /**
+     * Figure out how many CPU cycles we should optimally run and how long
+     * to wait until scheduling it, then schedule it to be run later.
+     */
     private scheduleNextTick(): void {
         // Delay to match original clock speed.
         const now = Date.now();
@@ -409,5 +461,178 @@ export class Trs80 implements Hal {
     // What to do when the hardware timer goes off.
     private handleTimer(): void {
         this.setTimerInterrupt(true);
+    }
+
+    // Reset the controller to a known state.
+    private resetCassette() {
+        this.setCassetteState(CassetteState.CLOSE);
+    }
+
+    // Get a byte from the I/O port.
+    private getCassetteByte(): number {
+        // If the motor's running, and we're reading a byte, then get into read mode.
+        if (this.cassetteMotorOn) {
+            this.setCassetteState(CassetteState.READ);
+        }
+
+        // Clear any interrupt that may have triggered this read.
+        this.cassetteClearInterrupt();
+
+        // Cassette owns bits 0 and 7.
+        let b = 0;
+        if (this.cassetteFlipFlop) {
+            b |= 0x80;
+        }
+        if (this.cassetteLastNonZeroValue === CassetteValue.POSITIVE) {
+            b |= 0x01;
+        }
+        return b
+    }
+
+    // Write to the cassette port. We don't support writing tapes, but this is used
+    // for 500-baud reading to trigger the next analysis of the tape.
+    private putCassetteByte(b: number) {
+        if (this.cassetteMotorOn) {
+            if (this.cassetteState === CassetteState.READ) {
+                this.updateCassette();
+                this.cassetteFlipFlop = false;
+            }
+        }
+    }
+
+    // Kick off the reading process when doing 1500-baud reads.
+    private kickOffCassette() {
+        if (this.cassetteMotorOn &&
+                    this.cassetteState === CassetteState.CLOSE &&
+                    this.cassetteInterruptsEnabled()) {
+
+            // Kick off the process.
+            this.cassetteRiseInterrupt();
+            this.cassetteFallInterrupt();
+        }
+    }
+
+    // Turn the motor on or off.
+    private setCassetteMotor(cassetteMotorOn: boolean) {
+        if (cassetteMotorOn !== this.cassetteMotorOn) {
+            if (cassetteMotorOn) {
+                this.cassetteFlipFlop = false;
+                this.cassetteLastNonZeroValue = CassetteValue.NEUTRAL;
+
+                // Waits a second before kicking off the cassette.
+                // TODO this should be in CPU cycles, not browser cycles.
+                setTimeout(() => this.kickOffCassette(), 1000);
+            } else {
+                this.setCassetteState(CassetteState.CLOSE);
+            }
+            this.cassetteMotorOn = cassetteMotorOn;
+            this.updateCassetteMotorLight();
+        }
+    }
+
+    // Read some of the cassette to see if we should be triggering a rise/fall interrupt.
+    private updateCassette() {
+        if (this.cassetteMotorOn && this.setCassetteState(CassetteState.READ) >= 0) {
+            // See how many samples we should have read by now.
+            const samplesToRead = Math.round((this.tStateCount - this.cassetteMotorOnClock) *
+                this.cassette.samplesPerSecond / CLOCK_HZ);
+
+            // Catch up.
+            while (this.cassetteSamplesRead < samplesToRead) {
+                const sample = this.cassette.readSample();
+                this.cassetteSamplesRead++;
+
+                // Convert to state, where neutral is some noisy in-between state.
+                let cassetteValue = CassetteValue.NEUTRAL;
+                if (sample > CASSETTE_THRESHOLD) {
+                    cassetteValue = CassetteValue.POSITIVE;
+                } else if (sample < -CASSETTE_THRESHOLD) {
+                    cassetteValue = CassetteValue.NEGATIVE;
+                }
+
+                // See if we've changed value.
+                if (cassetteValue !== this.cassetteValue) {
+                    if (cassetteValue === CassetteValue.POSITIVE) {
+                        // Positive edge.
+                        this.cassetteFlipFlop = true;
+                        this.cassetteRiseInterrupt();
+                    } else if (cassetteValue === CassetteValue.NEGATIVE) {
+                        // Negative edge.
+                        this.cassetteFlipFlop = true;
+                        this.cassetteFallInterrupt();
+                    }
+
+                    this.cassetteValue = cassetteValue;
+                    if (cassetteValue !== CassetteValue.NEUTRAL) {
+                        this.cassetteLastNonZeroValue = cassetteValue;
+                    }
+                }
+            }
+        }
+    }
+
+    // Returns 0 if the state was changed, 1 if it wasn't, and -1 on error.
+    private setCassetteState(newState: CassetteState): number {
+        const oldCassetteState = this.cassetteState;
+
+        // See if we're changing anything.
+        if (oldCassetteState === newState) {
+            return 1;
+        }
+
+        // Once in error, everything will fail until we close.
+        if (oldCassetteState === CassetteState.FAIL && newState !== CassetteState.CLOSE) {
+            return -1;
+        }
+
+        // Change things based on new state.
+        switch (newState) {
+            case CassetteState.READ:
+                this.openCassetteFile();
+                break;
+        }
+
+        // Update state.
+        this.cassetteState = newState;
+
+        return 0;
+    }
+
+    // Open file, get metadata, and get read to read the tape.
+    private openCassetteFile(): void {
+        // TODO open/rewind cassette?
+
+        // Reset the clock.
+        this.cassetteMotorOnClock = this.tStateCount;
+        this.cassetteSamplesRead = 0;
+    }
+
+    // Update the status of the red light on the display.
+    private updateCassetteMotorLight() {
+        // TODO Update UI light based on this.cassetteMotorOn.
+    }
+
+    // Saw a positive edge on cassette.
+    private cassetteRiseInterrupt(): void {
+        this.cassetteRiseInterruptCount++;
+        this.irqLatch = (this.irqLatch & ~CASSETTE_RISE_IRQ_MASK) |
+            (this.irqMask & CASSETTE_RISE_IRQ_MASK);
+    }
+
+    // Saw a negative edge on cassette.
+    private cassetteFallInterrupt(): void {
+        this.cassetteFallInterruptCount++;
+        this.irqLatch = (this.irqLatch & ~CASSETTE_FALL_IRQ_MASK) |
+            (this.irqMask & CASSETTE_FALL_IRQ_MASK);
+    }
+
+    // Reset cassette edge interrupts.
+    public cassetteClearInterrupt(): void {
+        this.irqLatch &= ~CASSETTE_IRQ_MASKS;
+    }
+
+    // Check whether the software has enabled these interrupts.
+    public cassetteInterruptsEnabled(): boolean {
+        return (this.irqMask & CASSETTE_IRQ_MASKS) != 0;
     }
 }
