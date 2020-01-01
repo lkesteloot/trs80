@@ -19,13 +19,9 @@ export class Instruction {
      */
     public params: string[];
     /**
-     * Arguments to the instruction (e.g., ["hl","1234"]).
+     * Arguments to the instruction (e.g., ["hl","0x1234"]).
      */
     public args: string[];
-    /**
-     * Whether this instruction is the target of a CALL, JP, or JR instruction.
-     */
-    public isJumpTarget = false;
     /**
      * Label at this address.
      */
@@ -51,7 +47,7 @@ export class Instruction {
     }
 
     /**
-     * Text of the instruction (e.g., "ld hl,1234").
+     * Text of the instruction (e.g., "ld hl,0x1234").
      */
     public toText(): string {
         return (this.mnemonic + " " + this.args.join(",")).trim();
@@ -65,14 +61,15 @@ export class Instruction {
         for (let i = 0; i < args.length; i++) {
             let arg = args[i];
 
-            while (true) {
+            let changed: boolean;
+            do {
+                changed = false;
                 const pos = arg.indexOf(varName);
                 if (pos >= 0) {
                     arg = arg.substr(0, pos) + replacement + arg.substr(pos + varName.length);
-                } else {
-                    break;
+                    changed = true;
                 }
-            }
+            } while (changed);
 
             args[i] = arg;
         }
