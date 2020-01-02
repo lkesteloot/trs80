@@ -19,5 +19,5 @@ project for an example.
 
 # License
 
-MIT
+Copyright (c) Lawrence Kesteloot, [MIT license](LICENSE).
 

@@ -7,6 +7,35 @@ const halfCarrySubTable = [0, 0, Flag.H, 0, Flag.H, 0, Flag.H, Flag.H];
 const overflowAddTable = [0, 0, 0, Flag.V, Flag.V, 0, 0, 0];
 const overflowSubTable = [0, Flag.V, 0, 0, 0, 0, Flag.V, 0];
 
+let fillMap: Map<number, (z80: Z80) => void>;
+const decodeMap = new Map<number, (z80: Z80) => void>();
+fillMap = decodeMap;
+// DECODE_BASE
+
+const decodeMapCB = new Map<number, (z80: Z80) => void>();
+fillMap = decodeMapCB;
+// DECODE_CB
+
+const decodeMapDD = new Map<number, (z80: Z80) => void>();
+fillMap = decodeMapDD;
+// DECODE_DD
+
+const decodeMapDDCB = new Map<number, (z80: Z80) => void>();
+fillMap = decodeMapDDCB;
+// DECODE_DDCB
+
+const decodeMapED = new Map<number, (z80: Z80) => void>();
+fillMap = decodeMapED;
+// DECODE_ED
+
+const decodeMapFD = new Map<number, (z80: Z80) => void>();
+fillMap = decodeMapFD;
+// DECODE_FD
+
+const decodeMapFDCB = new Map<number, (z80: Z80) => void>();
+fillMap = decodeMapFDCB;
+// DECODE_FDCB
+
 /**
  * Fetch an instruction for decode.
  */
@@ -24,13 +53,11 @@ function fetchInstruction(z80: Z80): number {
  */
 function decodeCB(z80: Z80): void {
     const inst = fetchInstruction(z80);
-
-    switch (inst) {
-        // DECODE_CB
-
-        default:
-            console.log("Unhandled opcode in CB: " + toHex(inst, 2));
-            break;
+    const func = decodeMapCB.get(inst);
+    if (func === undefined) {
+        console.log("Unhandled opcode in CB: " + toHex(inst, 2));
+    } else {
+        func(z80);
     }
 }
 
@@ -39,13 +66,11 @@ function decodeCB(z80: Z80): void {
  */
 function decodeDD(z80: Z80): void {
     const inst = fetchInstruction(z80);
-
-    switch (inst) {
-        // DECODE_DD
-
-        default:
-            console.log("Unhandled opcode in DD: " + toHex(inst, 2));
-            break;
+    const func = decodeMapDD.get(inst);
+    if (func === undefined) {
+        console.log("Unhandled opcode in DD: " + toHex(inst, 2));
+    } else {
+        func(z80);
     }
 }
 
@@ -62,12 +87,11 @@ function decodeDDCB(z80: Z80): void {
     z80.incTStateCount(2);
     z80.regs.pc = inc16(z80.regs.pc);
 
-    switch (inst) {
-        // DECODE_DDCB
-
-        default:
-            console.log("Unhandled opcode in DDCB: " + toHex(inst, 2));
-            break;
+    const func = decodeMapDDCB.get(inst);
+    if (func === undefined) {
+        console.log("Unhandled opcode in DDCB: " + toHex(inst, 2));
+    } else {
+        func(z80);
     }
 }
 
@@ -76,13 +100,11 @@ function decodeDDCB(z80: Z80): void {
  */
 function decodeED(z80: Z80): void {
     const inst = fetchInstruction(z80);
-
-    switch (inst) {
-        // DECODE_ED
-
-        default:
-            console.log("Unhandled opcode in ED: " + toHex(inst, 2));
-            break;
+    const func = decodeMapED.get(inst);
+    if (func === undefined) {
+        console.log("Unhandled opcode in ED: " + toHex(inst, 2));
+    } else {
+        func(z80);
     }
 }
 
@@ -91,13 +113,11 @@ function decodeED(z80: Z80): void {
  */
 function decodeFD(z80: Z80): void {
     const inst = fetchInstruction(z80);
-
-    switch (inst) {
-        // DECODE_FD
-
-        default:
-            console.log("Unhandled opcode in FD: " + toHex(inst, 2));
-            break;
+    const func = decodeMapFD.get(inst);
+    if (func === undefined) {
+        console.log("Unhandled opcode in FD: " + toHex(inst, 2));
+    } else {
+        func(z80);
     }
 }
 
@@ -114,12 +134,11 @@ function decodeFDCB(z80: Z80): void {
     z80.incTStateCount(2);
     z80.regs.pc = inc16(z80.regs.pc);
 
-    switch (inst) {
-        // DECODE_FDCB
-
-        default:
-            console.log("Unhandled opcode in FDCB: " + toHex(inst, 2));
-            break;
+    const func = decodeMapFDCB.get(inst);
+    if (func === undefined) {
+        console.log("Unhandled opcode in FDCB: " + toHex(inst, 2));
+    } else {
+        func(z80);
     }
 }
 
@@ -128,12 +147,10 @@ function decodeFDCB(z80: Z80): void {
  */
 export function decode(z80: Z80): void {
     const inst = fetchInstruction(z80);
-
-    switch (inst) {
-        // DECODE_BASE
-
-        default:
-            console.log("Unhandled opcode " + toHex(inst, 2));
-            break;
+    const func = decodeMap.get(inst);
+    if (func === undefined) {
+        console.log("Unhandled opcode " + toHex(inst, 2));
+    } else {
+        func(z80);
     }
 }
