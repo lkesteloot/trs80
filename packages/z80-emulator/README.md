@@ -15,9 +15,10 @@ To run the regression suite:
 
 To use the Z80 in your own project, implement the `Hal` interface.
 See the [TRS-80 Model III emulator](https://github.com/lkesteloot/trs80-emulator)
-project for an example.
+project for a web example and the
+[CP/M emulator](https://github.com/lkesteloot/cpm-emulator) project for a Node.js example.
 
 # License
 
-Copyright (c) Lawrence Kesteloot, [MIT license](LICENSE).
+Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).
 
