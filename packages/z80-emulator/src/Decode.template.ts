@@ -1,39 +1,33 @@
 import {Z80} from "./Z80";
 import {toHex, inc8, inc16, dec8, dec16, add8, add16, sub8, sub16, word, hi, lo, Flag, signedByte} from "z80-base";
 
+type OpcodeFunc = (z80: Z80) => void;
+
 // Tables for computing flags after an operation.
 const halfCarryAddTable = [0, Flag.H, Flag.H, Flag.H, 0, 0, 0, Flag.H];
 const halfCarrySubTable = [0, 0, Flag.H, 0, Flag.H, 0, Flag.H, Flag.H];
 const overflowAddTable = [0, 0, 0, Flag.V, Flag.V, 0, 0, 0];
 const overflowSubTable = [0, Flag.V, 0, 0, 0, 0, Flag.V, 0];
 
-let fillMap: Map<number, (z80: Z80) => void>;
-const decodeMap = new Map<number, (z80: Z80) => void>();
-fillMap = decodeMap;
+const decodeMapBASE = new Map<number, OpcodeFunc>();
 // DECODE_BASE
 
-const decodeMapCB = new Map<number, (z80: Z80) => void>();
-fillMap = decodeMapCB;
+const decodeMapCB = new Map<number, OpcodeFunc>();
 // DECODE_CB
 
-const decodeMapDD = new Map<number, (z80: Z80) => void>();
-fillMap = decodeMapDD;
+const decodeMapDD = new Map<number, OpcodeFunc>();
 // DECODE_DD
 
-const decodeMapDDCB = new Map<number, (z80: Z80) => void>();
-fillMap = decodeMapDDCB;
+const decodeMapDDCB = new Map<number, OpcodeFunc>();
 // DECODE_DDCB
 
-const decodeMapED = new Map<number, (z80: Z80) => void>();
-fillMap = decodeMapED;
+const decodeMapED = new Map<number, OpcodeFunc>();
 // DECODE_ED
 
-const decodeMapFD = new Map<number, (z80: Z80) => void>();
-fillMap = decodeMapFD;
+const decodeMapFD = new Map<number, OpcodeFunc>();
 // DECODE_FD
 
-const decodeMapFDCB = new Map<number, (z80: Z80) => void>();
-fillMap = decodeMapFDCB;
+const decodeMapFDCB = new Map<number, OpcodeFunc>();
 // DECODE_FDCB
 
 /**
@@ -147,7 +141,7 @@ function decodeFDCB(z80: Z80): void {
  */
 export function decode(z80: Z80): void {
     const inst = fetchInstruction(z80);
-    const func = decodeMap.get(inst);
+    const func = decodeMapBASE.get(inst);
     if (func === undefined) {
         console.log("Unhandled opcode " + toHex(inst, 2));
     } else {
