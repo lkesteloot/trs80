@@ -20,6 +20,11 @@
   "directories": {
     "test": "tests"
   },
+  "keywords": [
+    "z80",
+    "z-80",
+    "disassembler"
+  ],
   "bin": {
     "zdisasm": "bin/zdisasm"
   },
