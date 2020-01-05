@@ -13,5 +13,4 @@ project for a CPU that passes all the tests.
 
 # License
 
-MIT
-
+Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).
