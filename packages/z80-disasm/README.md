@@ -30,5 +30,5 @@ For example, with the TRS-80 Model III ROM:
 
 # License
 
-MIT
+Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).
 
