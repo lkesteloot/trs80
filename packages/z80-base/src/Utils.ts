@@ -5,13 +5,21 @@
  * Convert a number to hex and zero-pad to the specified number of hex digits.
  */
 export function toHex(value: number, digits: number): string {
-    let s = value.toString(16).toUpperCase();
+    return value.toString(16).toUpperCase().padStart(digits, "0");
+}
 
-    while (s.length < digits) {
-        s = "0" + s;
-    }
+/**
+ * Convert a byte to hex.
+ */
+export function toHexByte(value: number): string {
+    return toHex(value, 2);
+}
 
-    return s;
+/**
+ * Convert a word to hex.
+ */
+export function toHexWord(value: number): string {
+    return toHex(value, 4);
 }
 
 /**

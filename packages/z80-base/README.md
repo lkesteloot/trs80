@@ -13,5 +13,4 @@ projects, and the [docs](https://lkesteloot.github.io/z80-base/).
 
 # License
 
-MIT
-
+Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).
