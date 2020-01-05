@@ -20,14 +20,15 @@
   },
   "homepage": "https://github.com/lkesteloot/trs80-cassette-reader-js#readme",
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^6.0.0",
-    "@rollup/plugin-typescript": "^2.0.1",
+    "@rollup/plugin-node-resolve": "^6.1.0",
+    "@rollup/plugin-typescript": "^2.0.2",
+    "@types/node": "^13.1.4",
     "http-server": "^0.12.0",
-    "rollup": "^1.27.14",
+    "rollup": "^1.28.0",
     "tslint": "^5.20.1",
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "trs80-emulator": "^1.0.2"
+    "trs80-emulator": "^1.0.4"
   }
 }
