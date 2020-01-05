@@ -1,6 +1,6 @@
 {
   "name": "z80-disasm",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Z80 disassembler in TypeScript",
   "main": "dist/main/index.js",
   "typing": "dist/main/index.d.ts",
@@ -22,16 +22,11 @@
   },
   "keywords": [
     "z80",
-    "z-80",
     "disassembler"
   ],
   "bin": {
     "zdisasm": "bin/zdisasm"
   },
-  "keywords": [
-    "z80",
-    "disassembler"
-  ],
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": "https://github.com/lkesteloot/z80-disasm",
   "license": "MIT",
