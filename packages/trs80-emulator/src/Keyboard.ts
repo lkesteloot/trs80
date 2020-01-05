@@ -139,6 +139,7 @@ keyMap.set("Escape", new KeyInfo(6, 2, ShiftState.NEUTRAL)); // Break
 keyMap.set("ArrowUp", new KeyInfo(6, 3, ShiftState.NEUTRAL));
 keyMap.set("ArrowDown", new KeyInfo(6, 4, ShiftState.NEUTRAL));
 keyMap.set("ArrowLeft", new KeyInfo(6, 5, ShiftState.NEUTRAL));
+keyMap.set("Backspace", new KeyInfo(6, 5, ShiftState.NEUTRAL)); // Left arrow
 keyMap.set("ArrowRight", new KeyInfo(6, 6, ShiftState.NEUTRAL));
 keyMap.set(" ", new KeyInfo(6, 7, ShiftState.NEUTRAL));
 keyMap.set("Shift", new KeyInfo(7, 0, ShiftState.NEUTRAL));
@@ -240,7 +241,7 @@ export class Keyboard {
                 return;
             }
 
-            let key = event.key;
+            const key = event.key;
             if (key !== "") {
                 this.keyEvent(key, isPressed);
                 event.preventDefault();

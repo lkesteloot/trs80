@@ -1,9 +1,9 @@
 import {lo, toHex} from "z80-base";
 import {Hal, Z80} from "z80-emulator";
+import {Cassette} from "./Cassette";
 import css from "./css";
 import {Keyboard} from "./Keyboard";
 import {model3Rom} from "./Model3Rom";
-import {Cassette} from "./Cassette";
 
 // IRQs
 const CASSETTE_RISE_IRQ_MASK = 0x01;
@@ -38,7 +38,7 @@ const CASSETTE_THRESHOLD = 5000/32768.0;
 
 // State of the cassette hardware. We don't support writing.
 enum CassetteState {
-    CLOSE, READ, FAIL
+    CLOSE, READ, FAIL,
 }
 
 // Value of wave in audio: negative, neutral (around zero), or positive.
@@ -293,7 +293,7 @@ export class Trs80 implements Hal {
             case 0xFD:
             case 0xFE:
             case 0xFF:
-                if ((value & 0x20) != 0) {
+                if ((value & 0x20) !== 0) {
                     // Model III Micro Labs graphics card.
                     console.log("Sending 0x" + toHex(value, 2) + " to Micro Labs graphics card");
                 } else {
@@ -334,6 +334,16 @@ export class Trs80 implements Hal {
             }
             this.memory[address] = value;
         }
+    }
+
+    // Reset cassette edge interrupts.
+    public cassetteClearInterrupt(): void {
+        this.irqLatch &= ~CASSETTE_IRQ_MASKS;
+    }
+
+    // Check whether the software has enabled these interrupts.
+    public cassetteInterruptsEnabled(): boolean {
+        return (this.irqMask & CASSETTE_IRQ_MASKS) !== 0;
     }
 
     // Reset whether we've seen this NMI interrupt if the mask and latch no longer overlap.
@@ -493,7 +503,7 @@ export class Trs80 implements Hal {
         if (this.cassetteLastNonZeroValue === CassetteValue.POSITIVE) {
             b |= 0x01;
         }
-        return b
+        return b;
     }
 
     // Write to the cassette port. We don't support writing tapes, but this is used
@@ -631,15 +641,5 @@ export class Trs80 implements Hal {
         this.cassetteFallInterruptCount++;
         this.irqLatch = (this.irqLatch & ~CASSETTE_FALL_IRQ_MASK) |
             (this.irqMask & CASSETTE_FALL_IRQ_MASK);
-    }
-
-    // Reset cassette edge interrupts.
-    public cassetteClearInterrupt(): void {
-        this.irqLatch &= ~CASSETTE_IRQ_MASKS;
-    }
-
-    // Check whether the software has enabled these interrupts.
-    public cassetteInterruptsEnabled(): boolean {
-        return (this.irqMask & CASSETTE_IRQ_MASKS) != 0;
     }
 }
