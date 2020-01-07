@@ -543,7 +543,12 @@ export class Trs80 implements Hal {
                 this.setCassetteState(CassetteState.CLOSE);
             }
             this.cassetteMotorOn = cassetteMotorOn;
-            this.updateCassetteMotorLight();
+
+            if (cassetteMotorOn) {
+                this.cassette.onMotorStart();
+            } else {
+                this.cassette.onMotorStop();
+            }
         }
     }
 
@@ -622,11 +627,6 @@ export class Trs80 implements Hal {
         // Reset the clock.
         this.cassetteMotorOnClock = this.tStateCount;
         this.cassetteSamplesRead = 0;
-    }
-
-    // Update the status of the red light on the display.
-    private updateCassetteMotorLight() {
-        // TODO Update UI light based on this.cassetteMotorOn.
     }
 
     // Saw a positive edge on cassette.
