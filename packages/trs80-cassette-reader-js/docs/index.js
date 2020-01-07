@@ -11355,6 +11355,20 @@
         }
     }
     /**
+     * Implementation of Cassette that reads from our displayed data.
+     */
+    class TapeCassette extends Float32Cassette {
+        constructor(tape, program, progressBar) {
+            const samples = tape.originalSamples.samplesList[0];
+            // Start one second before the official program start, so that the machine
+            // can detect the header.
+            const begin = Math.max(0, program.startFrame - tape.sampleRate);
+            // Go until one second after the detected end of our program.
+            const end = Math.min(samples.length, program.endFrame + tape.sampleRate);
+            super(samples.subarray(begin, end), tape.sampleRate, progressBar);
+        }
+    }
+    /**
      * Implementation of Cassette that reads from our high-speed reconstruction.
      */
     class ReconstructedCassette extends Float32Cassette {
@@ -11544,18 +11558,32 @@
                     addRow("    Basic", () => {
                         this.showBasic(program);
                     });
-                    const screen = document.createElement("div");
-                    screen.style.display = "none";
-                    const progressBar = document.createElement("progress");
-                    progressBar.style.display = "none";
-                    // const trs80 = new Trs80(screen, new TapeCassette(this.tape, program));
-                    const trs80 = new Trs80(screen, new ReconstructedCassette(program, progressBar));
-                    trs80.reset();
-                    this.emulatorScreens.appendChild(screen);
-                    this.emulatorScreens.appendChild(progressBar);
-                    addRow("    Emulator", () => {
-                        this.showEmulator(screen, trs80);
-                    });
+                    {
+                        const screen = document.createElement("div");
+                        screen.style.display = "none";
+                        const progressBar = document.createElement("progress");
+                        progressBar.style.display = "none";
+                        const trs80 = new Trs80(screen, new TapeCassette(this.tape, program, progressBar));
+                        trs80.reset();
+                        this.emulatorScreens.appendChild(screen);
+                        this.emulatorScreens.appendChild(progressBar);
+                        addRow("    Emulator (original)", () => {
+                            this.showEmulator(screen, trs80);
+                        });
+                    }
+                    {
+                        const screen = document.createElement("div");
+                        screen.style.display = "none";
+                        const progressBar = document.createElement("progress");
+                        progressBar.style.display = "none";
+                        const trs80 = new Trs80(screen, new ReconstructedCassette(program, progressBar));
+                        trs80.reset();
+                        this.emulatorScreens.appendChild(screen);
+                        this.emulatorScreens.appendChild(progressBar);
+                        addRow("    Emulator (reconstructed)", () => {
+                            this.showEmulator(screen, trs80);
+                        });
+                    }
                 }
                 let count = 1;
                 for (const bitData of program.bits) {

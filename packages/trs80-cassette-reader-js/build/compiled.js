@@ -1453,18 +1453,32 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
                     addRow("    Basic", () => {
                         this.showBasic(program);
                     });
-                    const screen = document.createElement("div");
-                    screen.style.display = "none";
-                    const progressBar = document.createElement("progress");
-                    progressBar.style.display = "none";
-                    // const trs80 = new Trs80(screen, new TapeCassette(this.tape, program));
-                    const trs80 = new trs80_emulator_1.Trs80(screen, new ReconstructedCassette(program, progressBar));
-                    trs80.reset();
-                    this.emulatorScreens.appendChild(screen);
-                    this.emulatorScreens.appendChild(progressBar);
-                    addRow("    Emulator", () => {
-                        this.showEmulator(screen, trs80);
-                    });
+                    {
+                        const screen = document.createElement("div");
+                        screen.style.display = "none";
+                        const progressBar = document.createElement("progress");
+                        progressBar.style.display = "none";
+                        const trs80 = new trs80_emulator_1.Trs80(screen, new TapeCassette(this.tape, program, progressBar));
+                        trs80.reset();
+                        this.emulatorScreens.appendChild(screen);
+                        this.emulatorScreens.appendChild(progressBar);
+                        addRow("    Emulator (original)", () => {
+                            this.showEmulator(screen, trs80);
+                        });
+                    }
+                    {
+                        const screen = document.createElement("div");
+                        screen.style.display = "none";
+                        const progressBar = document.createElement("progress");
+                        progressBar.style.display = "none";
+                        const trs80 = new trs80_emulator_1.Trs80(screen, new ReconstructedCassette(program, progressBar));
+                        trs80.reset();
+                        this.emulatorScreens.appendChild(screen);
+                        this.emulatorScreens.appendChild(progressBar);
+                        addRow("    Emulator (reconstructed)", () => {
+                            this.showEmulator(screen, trs80);
+                        });
+                    }
                 }
                 let count = 1;
                 for (const bitData of program.bits) {
