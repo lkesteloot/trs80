@@ -100,9 +100,25 @@ export class Decoder {
                         console.log("Found end of program at " + frameToTimestamp(frame) + ".");
                     }
                     let binary = tapeDecoders[0].getBinary();
+                    // Low-speed programs end in two 0x00, but high-speed programs
+                    // end in three 0x00. Add the additional 0x00 since we're
+                    // saving high-speed.
+                    let highSpeedBytes;
+                    if (binary.length >= 3 &&
+                        binary[binary.length - 1] === 0x00 &&
+                        binary[binary.length - 2] === 0x00 &&
+                        binary[binary.length - 3] !== 0x00) {
+
+                        highSpeedBytes = new Uint8Array(binary.length + 1);
+                        highSpeedBytes.set(binary);
+                        highSpeedBytes[highSpeedBytes.length - 1] = 0x00;
+                    } else {
+                        highSpeedBytes = binary;
+                    }
+
                     const program = new Program(trackNumber, copyNumber, programStartFrame, frame,
                         tapeDecoders[0].getName(), binary, tapeDecoders[0].getBits(),
-                        encodeHighSpeed(binary));
+                        encodeHighSpeed(highSpeedBytes));
                     this.tape.addProgram(program);
                     break;
             }
