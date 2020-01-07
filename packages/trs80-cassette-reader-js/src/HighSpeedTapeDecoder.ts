@@ -112,7 +112,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
         return this.state;
     }
 
-    public getProgram() {
+    public getBinary() {
         const bytes = new Uint8Array(this.programBytes.length);
         for (let i = 0; i < bytes.length; i++) {
             bytes[i] = this.programBytes[i];

@@ -1,5 +1,6 @@
 
 import {BitData} from "./BitData";
+import {DisplaySamples} from "./DisplaySamples";
 
 export class Program {
     public trackNumber: number;
@@ -9,9 +10,11 @@ export class Program {
     public decoderName: string;
     public binary: Uint8Array;
     public bits: BitData[];
+    public reconstructedSamples: DisplaySamples;
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
-                decoderName: string, binary: Uint8Array, bits: BitData[]) {
+                decoderName: string, binary: Uint8Array, bits: BitData[],
+                reconstructedSamples: Float32Array) {
 
         this.trackNumber = trackNumber;
         this.copyNumber = copyNumber;
@@ -20,6 +23,7 @@ export class Program {
         this.decoderName = decoderName;
         this.binary = binary;
         this.bits = bits;
+        this.reconstructedSamples = new DisplaySamples(reconstructedSamples);
     }
 
     /**

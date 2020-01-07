@@ -4,15 +4,6 @@ import {Tape} from "./Tape";
 import {TapeBrowser} from "./TapeBrowser";
 import {Uploader} from "./Uploader";
 
-const zoomInButton = document.getElementById("zoom_in_button") as HTMLButtonElement;
-const zoomOutButton = document.getElementById("zoom_out_button") as HTMLButtonElement;
-const waveforms = document.getElementById("waveforms") as HTMLElement;
-const originalCanvas = document.getElementById("original_canvas") as HTMLCanvasElement;
-const filteredCanvas = document.getElementById("filtered_canvas") as HTMLCanvasElement;
-const lowSpeedCanvas = document.getElementById("low_speed_canvas") as HTMLCanvasElement;
-const programText = document.getElementById("program_text") as HTMLElement;
-const emulatorScreens = document.getElementById("emulator_screens") as HTMLElement;
-const tapeContents = document.getElementById("tape_contents") as HTMLElement;
 const dropZone = document.getElementById("drop_zone") as HTMLElement;
 const dropUpload = document.getElementById("drop_upload") as HTMLInputElement;
 const dropS3 = document.querySelectorAll("#test_files button");
@@ -39,17 +30,26 @@ function nameFromPathname(pathname: string): string {
 
 function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
     console.log("Audio is " + audioBuffer.duration + " seconds, " +
-                audioBuffer.numberOfChannels + " channels, " +
-                    audioBuffer.sampleRate + " Hz");
+        audioBuffer.numberOfChannels + " channels, " +
+        audioBuffer.sampleRate + " Hz");
     // TODO check that there's 1 channel.
 
     const samples = audioBuffer.getChannelData(0);
     const tape = new Tape(nameFromPathname(pathname), samples, audioBuffer.sampleRate);
     const decoder = new Decoder(tape);
     decoder.decode();
-    const tapeBrowser = new TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms,
-        originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents);
-    tapeBrowser.draw();
+    const tapeBrowser = new TapeBrowser(tape,
+        document.getElementById("zoom_in_button") as HTMLButtonElement,
+        document.getElementById("zoom_out_button") as HTMLButtonElement,
+        document.getElementById("waveforms") as HTMLElement,
+        document.getElementById("original_canvas") as HTMLCanvasElement,
+        document.getElementById("filtered_canvas") as HTMLCanvasElement,
+        document.getElementById("low_speed_canvas") as HTMLCanvasElement,
+        document.getElementById("program_text") as HTMLElement,
+        document.getElementById("emulator_screens") as HTMLElement,
+        document.getElementById("reconstructed_waveforms") as HTMLElement,
+        document.getElementById("reconstructed_canvas") as HTMLCanvasElement,
+        document.getElementById("tape_contents") as HTMLElement);
 
     // Switch screens.
     const dropScreen = document.getElementById("drop_screen") as HTMLElement;

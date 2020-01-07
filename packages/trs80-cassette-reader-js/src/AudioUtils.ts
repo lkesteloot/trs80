@@ -49,3 +49,19 @@ export function frameToTimestamp(frame: number, brief?: boolean) {
         return hour + ":" + pad(min, 10, 2) + ":" + pad(sec, 10, 2) + "." + pad(ms, 10, 3) + " (frame " + frame + ")";
     }
 }
+
+/**
+ * Concatenate a list of audio samples into one.
+ */
+export function concatAudio(samplesList: Float32Array[]): Float32Array {
+    const length = samplesList.reduce((sum, samples) => sum + samples.length, 0);
+    const allSamples = new Float32Array(length);
+
+    let offset = 0;
+    for (const samples of samplesList) {
+        allSamples.set(samples, offset);
+        offset += samples.length;
+    }
+
+    return allSamples;
+}

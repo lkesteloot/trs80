@@ -24,7 +24,7 @@ export interface TapeDecoder {
     /**
      * Get the bytes of the decoded program. Only called if the state is FINISHED or ERROR.
      */
-    getProgram(): Uint8Array;
+    getBinary(): Uint8Array;
 
     /**
      * Get the bits for the decoded program. Only called if the state is FINISHED or ERROR.

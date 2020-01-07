@@ -1,5 +1,11 @@
 
+/**
+ * Samples that are pre-filtered so we can display them zoomed out quickly.
+ */
 export class DisplaySamples {
+    /**
+     * Index 0 are the original samples, index 1 are halved, etc.
+     */
     public samplesList: Float32Array[];
 
     constructor(samples: Float32Array) {
@@ -7,8 +13,10 @@ export class DisplaySamples {
         this.filterDown();
     }
 
+    /**
+     * Sample down for quick display.
+     */
     private filterDown() {
-        // Sample down for quick display.
         while (this.samplesList[this.samplesList.length - 1].length > 1) {
             const samples = this.samplesList[this.samplesList.length - 1];
             const half = Math.ceil(samples.length / 2);

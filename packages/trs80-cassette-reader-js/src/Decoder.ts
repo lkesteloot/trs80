@@ -8,6 +8,7 @@ import {Program} from "./Program";
 import {Tape} from "./Tape";
 import {TapeDecoder} from "./TapeDecoder";
 import {TapeDecoderState} from "./TapeDecoderState";
+import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
 
 export class Decoder {
     private tape: Tape;
@@ -98,8 +99,10 @@ export class Decoder {
                     } else {
                         console.log("Found end of program at " + frameToTimestamp(frame) + ".");
                     }
+                    let binary = tapeDecoders[0].getBinary();
                     const program = new Program(trackNumber, copyNumber, programStartFrame, frame,
-                        tapeDecoders[0].getName(), tapeDecoders[0].getProgram(), tapeDecoders[0].getBits());
+                        tapeDecoders[0].getName(), binary, tapeDecoders[0].getBits(),
+                        encodeHighSpeed(binary));
                     this.tape.addProgram(program);
                     break;
             }

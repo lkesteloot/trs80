@@ -68,6 +68,20 @@ define("AudioUtils", ["require", "exports", "Utils"], function (require, exports
         }
     }
     exports.frameToTimestamp = frameToTimestamp;
+    /**
+     * Concatenate a list of audio samples into one.
+     */
+    function concatAudio(samplesList) {
+        const length = samplesList.reduce((sum, samples) => sum + samples.length, 0);
+        const allSamples = new Float32Array(length);
+        let offset = 0;
+        for (const samples of samplesList) {
+            allSamples.set(samples, offset);
+            offset += samples.length;
+        }
+        return allSamples;
+    }
+    exports.concatAudio = concatAudio;
 });
 // Tools for decoding Basic programs.
 define("Basic", ["require", "exports", "Utils"], function (require, exports, Utils_2) {
@@ -339,13 +353,18 @@ define("BitData", ["require", "exports"], function (require, exports) {
 define("DisplaySamples", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    /**
+     * Samples that are pre-filtered so we can display them zoomed out quickly.
+     */
     class DisplaySamples {
         constructor(samples) {
             this.samplesList = [samples];
             this.filterDown();
         }
+        /**
+         * Sample down for quick display.
+         */
         filterDown() {
-            // Sample down for quick display.
             while (this.samplesList[this.samplesList.length - 1].length > 1) {
                 const samples = this.samplesList[this.samplesList.length - 1];
                 const half = Math.ceil(samples.length / 2);
@@ -532,7 +551,7 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "BitData", "B
         getState() {
             return this.state;
         }
-        getProgram() {
+        getBinary() {
             const bytes = new Uint8Array(this.programBytes.length);
             for (let i = 0; i < bytes.length; i++) {
                 bytes[i] = this.programBytes[i];
@@ -545,11 +564,11 @@ define("LowSpeedTapeDecoder", ["require", "exports", "AudioUtils", "BitData", "B
     }
     exports.LowSpeedTapeDecoder = LowSpeedTapeDecoder;
 });
-define("Program", ["require", "exports"], function (require, exports) {
+define("Program", ["require", "exports", "DisplaySamples"], function (require, exports, DisplaySamples_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Program {
-        constructor(trackNumber, copyNumber, startFrame, endFrame, decoderName, binary, bits) {
+        constructor(trackNumber, copyNumber, startFrame, endFrame, decoderName, binary, bits, reconstructedSamples) {
             this.trackNumber = trackNumber;
             this.copyNumber = copyNumber;
             this.startFrame = startFrame;
@@ -557,6 +576,7 @@ define("Program", ["require", "exports"], function (require, exports) {
             this.decoderName = decoderName;
             this.binary = binary;
             this.bits = bits;
+            this.reconstructedSamples = new DisplaySamples_1.DisplaySamples(reconstructedSamples);
         }
         /**
          * Whether the binary represents a Basic program.
@@ -574,7 +594,7 @@ define("Program", ["require", "exports"], function (require, exports) {
 // Represents a recorded tape, with its audio samples,
 // filtered-down samples for display, and other information
 // we got from it.
-define("Tape", ["require", "exports", "AudioUtils", "DisplaySamples", "LowSpeedTapeDecoder"], function (require, exports, AudioUtils_2, DisplaySamples_1, LowSpeedTapeDecoder_1) {
+define("Tape", ["require", "exports", "AudioUtils", "DisplaySamples", "LowSpeedTapeDecoder"], function (require, exports, AudioUtils_2, DisplaySamples_2, LowSpeedTapeDecoder_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Tape {
@@ -585,9 +605,9 @@ define("Tape", ["require", "exports", "AudioUtils", "DisplaySamples", "LowSpeedT
          */
         constructor(name, samples, sampleRate) {
             this.name = name;
-            this.originalSamples = new DisplaySamples_1.DisplaySamples(samples);
-            this.filteredSamples = new DisplaySamples_1.DisplaySamples(AudioUtils_2.highPassFilter(samples, 500));
-            this.lowSpeedSamples = new DisplaySamples_1.DisplaySamples(LowSpeedTapeDecoder_1.LowSpeedTapeDecoder.filterSamples(this.filteredSamples.samplesList[0]));
+            this.originalSamples = new DisplaySamples_2.DisplaySamples(samples);
+            this.filteredSamples = new DisplaySamples_2.DisplaySamples(AudioUtils_2.highPassFilter(samples, 500));
+            this.lowSpeedSamples = new DisplaySamples_2.DisplaySamples(LowSpeedTapeDecoder_1.LowSpeedTapeDecoder.filterSamples(this.filteredSamples.samplesList[0]));
             this.sampleRate = sampleRate;
             this.programs = [];
         }
@@ -696,7 +716,7 @@ define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "BitData", "
         getState() {
             return this.state;
         }
-        getProgram() {
+        getBinary() {
             const bytes = new Uint8Array(this.programBytes.length);
             for (let i = 0; i < bytes.length; i++) {
                 bytes[i] = this.programBytes[i];
@@ -709,8 +729,156 @@ define("HighSpeedTapeDecoder", ["require", "exports", "AudioUtils", "BitData", "
     }
     exports.HighSpeedTapeDecoder = HighSpeedTapeDecoder;
 });
+define("HighSpeedTapeEncoder", ["require", "exports", "AudioUtils"], function (require, exports, AudioUtils_4) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    /**
+     * Length of a zero bit, in samples.
+     */
+    const ZERO_LENGTH = Math.round(0.00072 * AudioUtils_4.HZ);
+    /**
+     * Length of a one bit, in samples.
+     */
+    const ONE_LENGTH = Math.round(0.00034 * AudioUtils_4.HZ);
+    /**
+     * Samples representing a zero bit.
+     */
+    const ZERO = generateCycle(ZERO_LENGTH);
+    /**
+     * Samples representing a one bit.
+     */
+    const ONE = generateCycle(ONE_LENGTH);
+    /**
+     * Samples representing a long zero bit. This is the first start bit
+     * after the end of the header. It's 1 ms longer than a regular zero.
+     */
+    const LONG_ZERO = generateCycle(ZERO_LENGTH + AudioUtils_4.HZ / 1000);
+    /**
+     * The final cycle in the entire waveform, which is necessary
+     * to force that last negative-to-positive transition (and interrupt).
+     * We could just use a simple half cycle here, but it's nicer to do
+     * something like the original analog.
+     */
+    const FINAL_HALF_CYCLE = generateFinalHalfCycle(ZERO_LENGTH * 3, ZERO);
+    /**
+     * Generate one cycle of a sine wave.
+     * @param length number of samples in the full cycle.
+     * @return audio samples for one cycle.
+     */
+    function generateCycle(length) {
+        const audio = new Float32Array(length);
+        for (let i = 0; i < length; i++) {
+            const t = 2 * Math.PI * i / length;
+            // -0.5 to 0.5, matches recorded audio.
+            audio[i] = Math.sin(t) / 2;
+        }
+        return audio;
+    }
+    /**
+     * Generate a half cycle that fades off to zero instead of coming down hard to zero.
+     *
+     * @param length number of samples to generate.
+     * @param previousBit the previous cycle, so we copy the ending slope.
+     */
+    function generateFinalHalfCycle(length, previousBit) {
+        // Copy the slope of the end of the zero bit.
+        const slope = previousBit[previousBit.length - 1] - previousBit[previousBit.length - 2];
+        // Points on the Bezier.
+        const x1 = 0;
+        const y1 = 0;
+        const y2 = 1.0;
+        const x2 = (y2 - y1 + x1 * slope) / slope;
+        const x3 = length / 2;
+        const y3 = 0;
+        const x4 = length - 1;
+        const y4 = 0;
+        // Generated audio;
+        const audio = new Float32Array(length);
+        // Go through Bezier in small steps.
+        let position = 0;
+        for (let i = 0; i <= 128; i++) {
+            const t = i / 128.0;
+            // Compute Bezier value.
+            const x12 = x1 + (x2 - x1) * t;
+            const y12 = y1 + (y2 - y1) * t;
+            const x23 = x2 + (x3 - x2) * t;
+            const y23 = y2 + (y3 - y2) * t;
+            const x34 = x3 + (x4 - x3) * t;
+            const y34 = y3 + (y4 - y3) * t;
+            const x123 = x12 + (x23 - x12) * t;
+            const y123 = y12 + (y23 - y12) * t;
+            const x234 = x23 + (x34 - x23) * t;
+            const y234 = y23 + (y34 - y23) * t;
+            const x1234 = x123 + (x234 - x123) * t;
+            const y1234 = y123 + (y234 - y123) * t;
+            // Draw a crude horizontal line from the previous point.
+            const newPosition = Math.min(Math.floor(x1234), length - 1);
+            while (position <= newPosition) {
+                audio[position] = y1234;
+                position += 1;
+            }
+        }
+        // Finish up anything left.
+        while (position <= length - 1) {
+            audio[position] = 0;
+            position += 1;
+        }
+        return audio;
+    }
+    /**
+     * Adds the byte "b" to the samples list, most significant bit first.
+     * @param samplesList list of samples we're adding to.
+     * @param b byte to generate.
+     */
+    function addByte(samplesList, b) {
+        // MSb first.
+        for (let i = 7; i >= 0; i--) {
+            if ((b & (1 << i)) != 0) {
+                samplesList.push(ONE);
+            }
+            else {
+                samplesList.push(ZERO);
+            }
+        }
+    }
+    /**
+     * Encode the sequence of bytes as an array of audio samples for high-speed (1500 baud) cassettes.
+     */
+    function encodeHighSpeed(bytes) {
+        // List of samples.
+        const samplesList = [];
+        // Start with half a second of silence.
+        samplesList.push(new Float32Array(AudioUtils_4.HZ / 2));
+        // Header of 0x55.
+        for (let i = 0; i < 256; i++) {
+            addByte(samplesList, 0x55);
+        }
+        // End of header.
+        addByte(samplesList, 0x7F);
+        // Write program.
+        let firstStartBit = true;
+        for (const b of bytes) {
+            // Start bit.
+            if (firstStartBit) {
+                samplesList.push(LONG_ZERO);
+                firstStartBit = false;
+            }
+            else {
+                samplesList.push(ZERO);
+            }
+            addByte(samplesList, b);
+        }
+        // Finish off the last cycle, so that it generates an interrupt.
+        samplesList.push(FINAL_HALF_CYCLE);
+        // End with half a second of silence.
+        samplesList.push(new Float32Array(AudioUtils_4.HZ / 2));
+        // Concatenate all samples.
+        return AudioUtils_4.concatAudio(samplesList);
+    }
+    exports.encodeHighSpeed = encodeHighSpeed;
+});
 // Uses tape decoders to work through the tape, finding programs and decoding them.
-define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "LowSpeedTapeDecoder", "Program", "TapeDecoderState"], function (require, exports, AudioUtils_4, HighSpeedTapeDecoder_1, LowSpeedTapeDecoder_2, Program_1, TapeDecoderState_3) {
+define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "LowSpeedTapeDecoder", "Program", "TapeDecoderState", "HighSpeedTapeEncoder"], function (require, exports, AudioUtils_5, HighSpeedTapeDecoder_1, LowSpeedTapeDecoder_2, Program_1, TapeDecoderState_3, HighSpeedTapeEncoder_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Decoder {
@@ -751,7 +919,7 @@ define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "
                         if (detectedIndex !== -1) {
                             const tapeDecoder = tapeDecoders[detectedIndex];
                             // See how long it took to find it. A large gap means a new track.
-                            const leadTime = (frame - searchFrameStart) / AudioUtils_4.HZ;
+                            const leadTime = (frame - searchFrameStart) / AudioUtils_5.HZ;
                             if (leadTime > 10 || programStartFrame === -1) {
                                 trackNumber += 1;
                                 copyNumber = 1;
@@ -759,7 +927,7 @@ define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "
                             programStartFrame = frame;
                             console.log("Decoder \"" + tapeDecoder.getName() + "\" detected " +
                                 trackNumber + "-" + copyNumber + " at " +
-                                AudioUtils_4.frameToTimestamp(frame) + " after " +
+                                AudioUtils_5.frameToTimestamp(frame) + " after " +
                                 leadTime.toFixed(3) + " seconds.");
                             // Throw away the other decoders.
                             tapeDecoders = [
@@ -786,9 +954,10 @@ define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "
                             console.log("Decoder detected an error; skipping program.");
                         }
                         else {
-                            console.log("Found end of program at " + AudioUtils_4.frameToTimestamp(frame) + ".");
+                            console.log("Found end of program at " + AudioUtils_5.frameToTimestamp(frame) + ".");
                         }
-                        const program = new Program_1.Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getName(), tapeDecoders[0].getProgram(), tapeDecoders[0].getBits());
+                        let binary = tapeDecoders[0].getBinary();
+                        const program = new Program_1.Program(trackNumber, copyNumber, programStartFrame, frame, tapeDecoders[0].getName(), binary, tapeDecoders[0].getBits(), HighSpeedTapeEncoder_1.encodeHighSpeed(binary));
                         this.tape.addProgram(program);
                         break;
                 }
@@ -799,72 +968,60 @@ define("Decoder", ["require", "exports", "AudioUtils", "HighSpeedTapeDecoder", "
     }
     exports.Decoder = Decoder;
 });
-// UI for browsing a tape interactively.
-define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "Utils", "trs80-emulator"], function (require, exports, AudioUtils_5, Basic_1, BitType_3, Utils_3, trs80_emulator_1) {
+define("WaveformDisplay", ["require", "exports", "BitType"], function (require, exports, BitType_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     /**
-     * Implementation of Cassette that reads from our displayed data.
+     * An individual waveform to be displayed.
      */
-    class Trs80Cassette extends trs80_emulator_1.Cassette {
-        constructor(tape, program) {
-            super();
-            this.tape = tape;
-            this.program = program;
-            // Set this from the tape:
-            this.samplesPerSecond = tape.sampleRate;
-            // Start one second before the official program start, so that the machine
-            // can detect the header.
-            this.frame = Math.max(0, program.startFrame - this.samplesPerSecond);
-        }
-        readSample() {
-            if (this.frame % this.samplesPerSecond === 0) {
-                console.log("Reading tape at " + AudioUtils_5.frameToTimestamp(this.frame));
-            }
-            return this.frame < this.program.endFrame + this.samplesPerSecond ? this.tape.originalSamples.samplesList[0][this.frame++] : 0;
+    class Waveform {
+        constructor(canvas, samples) {
+            this.canvas = canvas;
+            this.samples = samples;
         }
     }
-    class TapeBrowser {
-        constructor(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents) {
+    /**
+     * Displays a list of different waveforms, synchronizing their pan and zoom.
+     */
+    class WaveformDisplay {
+        constructor() {
+            this.displayWidth = 0;
             this.displayLevel = 0; // Initialized in zoomToFitAll()
             this.centerSample = 0; // Initialized in zoomToFitAll()
-            this.tape = tape;
-            this.waveforms = waveforms;
-            this.originalCanvas = originalCanvas;
-            this.filteredCanvas = filteredCanvas;
-            this.lowSpeedCanvas = lowSpeedCanvas;
-            this.programText = programText;
-            this.emulatorScreens = emulatorScreens;
-            this.tapeContents = tapeContents;
-            this.displayWidth = originalCanvas.width;
-            this.configureCanvas(originalCanvas);
-            this.configureCanvas(filteredCanvas);
-            this.configureCanvas(lowSpeedCanvas);
-            this.zoomToFitAll();
-            zoomInButton.onclick = () => this.zoomIn();
-            zoomOutButton.onclick = () => this.zoomOut();
-            // Configure zoom keys.
-            document.onkeypress = (event) => {
-                if (event.key === "=") {
-                    this.zoomIn();
-                    event.preventDefault();
-                }
-                if (event.key === "-") {
-                    this.zoomOut();
-                    event.preventDefault();
-                }
-            };
-            // Update left-side panel.
-            this.updateTapeContents();
-        }
-        draw() {
-            this.drawInCanvas(this.originalCanvas, this.tape.originalSamples);
-            this.drawInCanvas(this.filteredCanvas, this.tape.filteredSamples);
-            this.drawInCanvas(this.lowSpeedCanvas, this.tape.lowSpeedSamples);
+            this.waveforms = [];
+            this.programs = [];
         }
         /**
-         *
-         * @param {HTMLCanvasElement} canvas
+         * Add a waveform to display.
+         */
+        addWaveform(canvas, samples) {
+            const displayWidth = canvas.width;
+            if (this.displayWidth === 0) {
+                this.displayWidth = displayWidth;
+            }
+            else if (this.displayWidth !== displayWidth) {
+                throw new Error("Widths of the canvases must match");
+            }
+            this.waveforms.push(new Waveform(canvas, samples));
+            this.configureCanvas(canvas);
+        }
+        replaceSamples(canvas, samples) {
+            for (const waveform of this.waveforms) {
+                if (waveform.canvas === canvas) {
+                    waveform.samples = samples;
+                    return;
+                }
+            }
+            throw new Error("canvas not found when replacing waveform");
+        }
+        /**
+         * Add a program to highlight in the waveform.
+         */
+        addProgram(program) {
+            this.programs.push(program);
+        }
+        /**
+         * Configure the mouse events in the canvas.
          */
         configureCanvas(canvas) {
             let dragging = false;
@@ -890,6 +1047,14 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
             };
         }
         /**
+         * Draw all the waveforms.
+         */
+        draw() {
+            for (const waveform of this.waveforms) {
+                this.drawInCanvas(waveform.canvas, waveform.samples);
+            }
+        }
+        /**
          * Compute fit level to fit the specified number of samples.
          *
          * @param sampleCount number of samples we want to display.
@@ -906,16 +1071,19 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
          */
         drawInCanvas(canvas, displaySamples) {
             const ctx = canvas.getContext("2d");
-            const samplesList = displaySamples.samplesList;
             const width = canvas.width;
             const height = canvas.height;
+            // Background.
+            ctx.fillStyle = "rgb(0, 0, 0)";
+            ctx.fillRect(0, 0, width, height);
+            if (displaySamples === undefined) {
+                return;
+            }
+            const samplesList = displaySamples.samplesList;
             const samples = samplesList[this.displayLevel];
             const mag = Math.pow(2, this.displayLevel);
             const centerSample = Math.floor(this.centerSample / mag);
             const frameToX = (i) => Math.floor(width / 2) + (i - centerSample);
-            // Background.
-            ctx.fillStyle = "rgb(0, 0, 0)";
-            ctx.fillRect(0, 0, width, height);
             // Compute viewing window in zoom space.
             const firstSample = Math.max(centerSample - Math.floor(width / 2), 0);
             const lastSample = Math.min(centerSample + width - 1, samples.length - 1);
@@ -925,7 +1093,7 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
             // Whether we're zoomed in enough to draw and line and individual bits.
             const drawingLine = this.displayLevel < 3;
             // Programs.
-            for (const program of this.tape.programs) {
+            for (const program of this.programs) {
                 if (drawingLine) {
                     for (const bitInfo of program.bits) {
                         if (bitInfo.endFrame >= firstOrigSample && bitInfo.startFrame <= lastOrigSample) {
@@ -984,24 +1152,38 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
                 ctx.stroke();
             }
         }
+        /**
+         * Zoom in one level.
+         */
         zoomIn() {
             if (this.displayLevel > 0) {
                 this.displayLevel -= 1;
                 this.draw();
             }
         }
+        /**
+         * Zoom out one level.
+         */
         zoomOut() {
-            if (this.displayLevel < this.tape.originalSamples.samplesList.length - 1) {
+            if (this.waveforms.length > 0 &&
+                this.waveforms[0].samples !== undefined &&
+                this.displayLevel < this.waveforms[0].samples.samplesList.length - 1) {
                 this.displayLevel += 1;
                 this.draw();
             }
         }
+        /**
+         * Zoom to fit a particular bit.
+         */
         zoomToBitData(bitData) {
             // Show a bit after a many bits before.
             const startFrame = bitData.startFrame - 1500;
             const endFrame = bitData.endFrame + 300;
             this.zoomToFit(startFrame, endFrame);
         }
+        /**
+         * Zoom to fit a range of samples.
+         */
         zoomToFit(startFrame, endFrame) {
             const sampleCount = endFrame - startFrame;
             // Find appropriate zoom.
@@ -1010,13 +1192,109 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
             this.centerSample = Math.floor((startFrame + endFrame) / 2);
             this.draw();
         }
+        /**
+         * Zoom to fit all samples.
+         */
         zoomToFitAll() {
-            this.zoomToFit(0, this.tape.originalSamples.samplesList[0].length);
+            if (this.waveforms.length > 0 && this.waveforms[0].samples !== undefined) {
+                this.zoomToFit(0, this.waveforms[0].samples.samplesList[0].length);
+            }
+        }
+    }
+    exports.WaveformDisplay = WaveformDisplay;
+});
+define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "Utils", "trs80-emulator", "WaveformDisplay"], function (require, exports, AudioUtils_6, Basic_1, BitType_4, Utils_3, trs80_emulator_1, WaveformDisplay_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    /**
+     * Generic cassette that reads from a Float32Array.
+     */
+    class Float32Cassette extends trs80_emulator_1.Cassette {
+        constructor(samples, samplesPerSecond) {
+            super();
+            this.frame = 0;
+            this.samples = samples;
+            this.samplesPerSecond = samplesPerSecond;
+        }
+        readSample() {
+            if (this.frame % this.samplesPerSecond === 0) {
+                console.log("Reading tape at " + AudioUtils_6.frameToTimestamp(this.frame));
+            }
+            return this.frame < this.samples.length ? this.samples[this.frame++] : 0;
+        }
+    }
+    /**
+     * Implementation of Cassette that reads from our displayed data.
+     */
+    class TapeCassette extends Float32Cassette {
+        constructor(tape, program) {
+            const samples = tape.originalSamples.samplesList[0];
+            // Start one second before the official program start, so that the machine
+            // can detect the header.
+            const begin = Math.max(0, program.startFrame - tape.sampleRate);
+            // Go until one second after the detected end of our program.
+            const end = Math.min(samples.length, program.endFrame + tape.sampleRate);
+            super(samples.subarray(begin, end), tape.sampleRate);
+        }
+    }
+    /**
+     * Implementation of Cassette that reads from our high-speed reconstruction.
+     */
+    class ReconstructedCassette extends Float32Cassette {
+        constructor(program) {
+            super(program.reconstructedSamples.samplesList[0], AudioUtils_6.HZ);
+        }
+    }
+    /**
+     * Remove all children from element.
+     */
+    function clearElement(e) {
+        while (e.firstChild) {
+            e.removeChild(e.firstChild);
+        }
+    }
+    /**
+     * UI for browsing a tape interactively.
+     */
+    class TapeBrowser {
+        constructor(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, reconstructedWaveforms, reconstructedCanvas, tapeContents) {
+            this.originalWaveformDisplay = new WaveformDisplay_1.WaveformDisplay();
+            this.reconstructedWaveformDisplay = new WaveformDisplay_1.WaveformDisplay();
+            this.tape = tape;
+            this.waveforms = waveforms;
+            this.programText = programText;
+            this.emulatorScreens = emulatorScreens;
+            this.reconstructedWaveforms = reconstructedWaveforms;
+            this.reconstructedCanvas = reconstructedCanvas;
+            this.tapeContents = tapeContents;
+            this.originalWaveformDisplay.addWaveform(originalCanvas, tape.originalSamples);
+            this.originalWaveformDisplay.addWaveform(filteredCanvas, tape.filteredSamples);
+            this.originalWaveformDisplay.addWaveform(lowSpeedCanvas, tape.lowSpeedSamples);
+            this.tape.programs.forEach(program => this.originalWaveformDisplay.addProgram(program));
+            this.originalWaveformDisplay.zoomToFitAll();
+            this.currentWaveformDisplay = this.originalWaveformDisplay;
+            this.reconstructedWaveformDisplay.addWaveform(this.reconstructedCanvas);
+            zoomInButton.onclick = () => this.originalWaveformDisplay.zoomIn();
+            zoomOutButton.onclick = () => this.originalWaveformDisplay.zoomOut();
+            // Configure zoom keys.
+            document.onkeypress = (event) => {
+                if (event.key === "=" && this.currentWaveformDisplay !== undefined) {
+                    this.currentWaveformDisplay.zoomIn();
+                    event.preventDefault();
+                }
+                if (event.key === "-" && this.currentWaveformDisplay !== undefined) {
+                    this.currentWaveformDisplay.zoomOut();
+                    event.preventDefault();
+                }
+            };
+            // Update left-side panel.
+            this.updateTapeContents();
+            this.currentWaveformDisplay.draw();
         }
         showBinary(program) {
             this.showProgramText();
             const div = this.programText;
-            this.clearElement(div);
+            clearElement(div);
             div.classList.add("binary");
             div.classList.remove("basic");
             const binary = program.binary;
@@ -1058,12 +1336,12 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
         showBasic(program) {
             this.showProgramText();
             const div = this.programText;
-            this.clearElement(div);
+            clearElement(div);
             div.classList.add("basic");
             div.classList.remove("binary");
             Basic_1.fromTokenized(program.binary, div);
         }
-        showEmulator(program, screen, trs80) {
+        showEmulator(screen, trs80) {
             this.showEmulatorScreens();
             // Show just this screen.
             this.emulatorScreens.querySelectorAll(":scope > div")
@@ -1084,17 +1362,33 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
             this.waveforms.style.display = "none";
             this.programText.style.display = "block";
             this.emulatorScreens.style.display = "none";
+            this.reconstructedWaveforms.style.display = "none";
+            this.currentWaveformDisplay = undefined;
         }
-        showCanvases() {
+        showWaveforms() {
             this.stopTrs80();
             this.waveforms.style.display = "block";
             this.programText.style.display = "none";
             this.emulatorScreens.style.display = "none";
+            this.reconstructedWaveforms.style.display = "none";
+            this.currentWaveformDisplay = this.originalWaveformDisplay;
         }
         showEmulatorScreens() {
             this.waveforms.style.display = "none";
             this.programText.style.display = "none";
             this.emulatorScreens.style.display = "block";
+            this.reconstructedWaveforms.style.display = "none";
+            this.currentWaveformDisplay = undefined;
+        }
+        showReconstructedWaveforms(program) {
+            this.stopTrs80();
+            this.waveforms.style.display = "none";
+            this.programText.style.display = "none";
+            this.emulatorScreens.style.display = "none";
+            this.reconstructedWaveforms.style.display = "block";
+            this.currentWaveformDisplay = this.reconstructedWaveformDisplay;
+            this.reconstructedWaveformDisplay.replaceSamples(this.reconstructedCanvas, program.reconstructedSamples);
+            this.reconstructedWaveformDisplay.zoomToFitAll();
         }
         updateTapeContents() {
             const addRow = (text, onClick) => {
@@ -1107,24 +1401,27 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
                 }
                 this.tapeContents.appendChild(div);
             };
-            this.clearElement(this.tapeContents);
+            clearElement(this.tapeContents);
             this.stopTrs80();
-            this.clearElement(this.emulatorScreens);
+            clearElement(this.emulatorScreens);
             addRow(this.tape.name, () => {
-                this.showCanvases();
-                this.zoomToFitAll();
+                this.showWaveforms();
+                this.originalWaveformDisplay.zoomToFitAll();
             });
             for (const program of this.tape.programs) {
                 addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName, null);
-                addRow(AudioUtils_5.frameToTimestamp(program.startFrame, true) + " to " +
-                    AudioUtils_5.frameToTimestamp(program.endFrame, true) + " (" +
-                    AudioUtils_5.frameToTimestamp(program.endFrame - program.startFrame, true) + ")", null);
-                addRow("    Waveform", () => {
-                    this.showCanvases();
-                    this.zoomToFit(program.startFrame, program.endFrame);
+                addRow(AudioUtils_6.frameToTimestamp(program.startFrame, true) + " to " +
+                    AudioUtils_6.frameToTimestamp(program.endFrame, true) + " (" +
+                    AudioUtils_6.frameToTimestamp(program.endFrame - program.startFrame, true) + ")", null);
+                addRow("    Waveforms", () => {
+                    this.showWaveforms();
+                    this.originalWaveformDisplay.zoomToFit(program.startFrame, program.endFrame);
                 });
                 addRow("    Binary", () => {
                     this.showBinary(program);
+                });
+                addRow("    Reconstructed", () => {
+                    this.showReconstructedWaveforms(program);
                 });
                 if (program.isBasicProgram()) {
                     addRow("    Basic", () => {
@@ -1132,32 +1429,23 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
                     });
                     const screen = document.createElement("div");
                     screen.style.display = "none";
-                    const trs80 = new trs80_emulator_1.Trs80(screen, new Trs80Cassette(this.tape, program));
+                    // const trs80 = new Trs80(screen, new TapeCassette(this.tape, program));
+                    const trs80 = new trs80_emulator_1.Trs80(screen, new ReconstructedCassette(program));
                     trs80.reset();
                     this.emulatorScreens.appendChild(screen);
                     addRow("    Emulator", () => {
-                        this.showEmulator(program, screen, trs80);
+                        this.showEmulator(screen, trs80);
                     });
                 }
                 let count = 1;
                 for (const bitData of program.bits) {
-                    if (bitData.bitType === BitType_3.BitType.BAD) {
-                        addRow("    Bit error " + count++ + " (" + AudioUtils_5.frameToTimestamp(bitData.startFrame, true) + ")", () => {
-                            this.showCanvases();
-                            this.zoomToBitData(bitData);
+                    if (bitData.bitType === BitType_4.BitType.BAD) {
+                        addRow("    Bit error " + count++ + " (" + AudioUtils_6.frameToTimestamp(bitData.startFrame, true) + ")", () => {
+                            this.showWaveforms();
+                            this.originalWaveformDisplay.zoomToBitData(bitData);
                         });
                     }
                 }
-            }
-        }
-        /**
-         * Remove all children from element.
-         *
-         * @param {HTMLElement} e
-         */
-        clearElement(e) {
-            while (e.firstChild) {
-                e.removeChild(e.firstChild);
             }
         }
     }
@@ -1268,15 +1556,6 @@ define("Uploader", ["require", "exports"], function (require, exports) {
 define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploader"], function (require, exports, Decoder_1, Tape_1, TapeBrowser_1, Uploader_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    const zoomInButton = document.getElementById("zoom_in_button");
-    const zoomOutButton = document.getElementById("zoom_out_button");
-    const waveforms = document.getElementById("waveforms");
-    const originalCanvas = document.getElementById("original_canvas");
-    const filteredCanvas = document.getElementById("filtered_canvas");
-    const lowSpeedCanvas = document.getElementById("low_speed_canvas");
-    const programText = document.getElementById("program_text");
-    const emulatorScreens = document.getElementById("emulator_screens");
-    const tapeContents = document.getElementById("tape_contents");
     const dropZone = document.getElementById("drop_zone");
     const dropUpload = document.getElementById("drop_upload");
     const dropS3 = document.querySelectorAll("#test_files button");
@@ -1305,8 +1584,7 @@ define("Main", ["require", "exports", "Decoder", "Tape", "TapeBrowser", "Uploade
         const tape = new Tape_1.Tape(nameFromPathname(pathname), samples, audioBuffer.sampleRate);
         const decoder = new Decoder_1.Decoder(tape);
         decoder.decode();
-        const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, zoomInButton, zoomOutButton, waveforms, originalCanvas, filteredCanvas, lowSpeedCanvas, programText, emulatorScreens, tapeContents);
-        tapeBrowser.draw();
+        const tapeBrowser = new TapeBrowser_1.TapeBrowser(tape, document.getElementById("zoom_in_button"), document.getElementById("zoom_out_button"), document.getElementById("waveforms"), document.getElementById("original_canvas"), document.getElementById("filtered_canvas"), document.getElementById("low_speed_canvas"), document.getElementById("program_text"), document.getElementById("emulator_screens"), document.getElementById("reconstructed_waveforms"), document.getElementById("reconstructed_canvas"), document.getElementById("tape_contents"));
         // Switch screens.
         const dropScreen = document.getElementById("drop_screen");
         const dataScreen = document.getElementById("data_screen");
