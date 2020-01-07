@@ -14,19 +14,33 @@ import {WaveformDisplay} from "./WaveformDisplay";
 class Float32Cassette extends Cassette {
     private readonly samples: Float32Array;
     private frame: number = 0;
+    private progressBar: HTMLProgressElement;
 
-    constructor(samples: Float32Array, samplesPerSecond: number) {
+    constructor(samples: Float32Array, samplesPerSecond: number, progressBar: HTMLProgressElement) {
         super();
         this.samples = samples;
         this.samplesPerSecond = samplesPerSecond;
+        this.progressBar = progressBar;
+        this.progressBar.max = this.samples.length;
+    }
+
+    public onMotorStart(): void {
+        this.progressBar.style.display = "block";
     }
 
     public readSample(): number {
         if (this.frame % this.samplesPerSecond === 0) {
             console.log("Reading tape at " + frameToTimestamp(this.frame));
         }
+        if (this.frame % Math.floor(this.samplesPerSecond / 10) === 0) {
+            this.progressBar.value = this.frame;
+        }
 
         return this.frame < this.samples.length ? this.samples[this.frame++] : 0;
+    }
+
+    public onMotorStop(): void {
+        this.progressBar.style.display = "none";
     }
 }
 
@@ -34,7 +48,7 @@ class Float32Cassette extends Cassette {
  * Implementation of Cassette that reads from our displayed data.
  */
 class TapeCassette extends Float32Cassette {
-    constructor(tape: Tape, program: Program) {
+    constructor(tape: Tape, program: Program, progressBar: HTMLProgressElement) {
         const samples = tape.originalSamples.samplesList[0];
 
         // Start one second before the official program start, so that the machine
@@ -44,7 +58,7 @@ class TapeCassette extends Float32Cassette {
         // Go until one second after the detected end of our program.
         const end = Math.min(samples.length, program.endFrame + tape.sampleRate);
 
-        super(samples.subarray(begin, end), tape.sampleRate);
+        super(samples.subarray(begin, end), tape.sampleRate, progressBar);
     }
 }
 
@@ -52,8 +66,8 @@ class TapeCassette extends Float32Cassette {
  * Implementation of Cassette that reads from our high-speed reconstruction.
  */
 class ReconstructedCassette extends Float32Cassette {
-    constructor(program: Program) {
-        super(program.reconstructedSamples.samplesList[0], HZ);
+    constructor(program: Program, progressBar: HTMLProgressElement) {
+        super(program.reconstructedSamples.samplesList[0], HZ, progressBar);
     }
 }
 
@@ -294,10 +308,13 @@ export class TapeBrowser {
                 });
                 const screen = document.createElement("div");
                 screen.style.display = "none";
+                const progressBar = document.createElement("progress");
+                progressBar.style.display = "none";
                 // const trs80 = new Trs80(screen, new TapeCassette(this.tape, program));
-                const trs80 = new Trs80(screen, new ReconstructedCassette(program));
+                const trs80 = new Trs80(screen, new ReconstructedCassette(program, progressBar));
                 trs80.reset();
                 this.emulatorScreens.appendChild(screen);
+                this.emulatorScreens.appendChild(progressBar);
                 addRow("    Emulator", () => {
                     this.showEmulator(screen, trs80);
                 });

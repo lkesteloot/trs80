@@ -1210,39 +1210,50 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
      * Generic cassette that reads from a Float32Array.
      */
     class Float32Cassette extends trs80_emulator_1.Cassette {
-        constructor(samples, samplesPerSecond) {
+        constructor(samples, samplesPerSecond, progressBar) {
             super();
             this.frame = 0;
             this.samples = samples;
             this.samplesPerSecond = samplesPerSecond;
+            this.progressBar = progressBar;
+            this.progressBar.max = this.samples.length;
+        }
+        onMotorStart() {
+            this.progressBar.style.display = "block";
         }
         readSample() {
             if (this.frame % this.samplesPerSecond === 0) {
                 console.log("Reading tape at " + AudioUtils_6.frameToTimestamp(this.frame));
             }
+            if (this.frame % Math.floor(this.samplesPerSecond / 10) === 0) {
+                this.progressBar.value = this.frame;
+            }
             return this.frame < this.samples.length ? this.samples[this.frame++] : 0;
+        }
+        onMotorStop() {
+            this.progressBar.style.display = "none";
         }
     }
     /**
      * Implementation of Cassette that reads from our displayed data.
      */
     class TapeCassette extends Float32Cassette {
-        constructor(tape, program) {
+        constructor(tape, program, progressBar) {
             const samples = tape.originalSamples.samplesList[0];
             // Start one second before the official program start, so that the machine
             // can detect the header.
             const begin = Math.max(0, program.startFrame - tape.sampleRate);
             // Go until one second after the detected end of our program.
             const end = Math.min(samples.length, program.endFrame + tape.sampleRate);
-            super(samples.subarray(begin, end), tape.sampleRate);
+            super(samples.subarray(begin, end), tape.sampleRate, progressBar);
         }
     }
     /**
      * Implementation of Cassette that reads from our high-speed reconstruction.
      */
     class ReconstructedCassette extends Float32Cassette {
-        constructor(program) {
-            super(program.reconstructedSamples.samplesList[0], AudioUtils_6.HZ);
+        constructor(program, progressBar) {
+            super(program.reconstructedSamples.samplesList[0], AudioUtils_6.HZ, progressBar);
         }
     }
     /**
@@ -1429,10 +1440,13 @@ define("TapeBrowser", ["require", "exports", "AudioUtils", "Basic", "BitType", "
                     });
                     const screen = document.createElement("div");
                     screen.style.display = "none";
+                    const progressBar = document.createElement("progress");
+                    progressBar.style.display = "none";
                     // const trs80 = new Trs80(screen, new TapeCassette(this.tape, program));
-                    const trs80 = new trs80_emulator_1.Trs80(screen, new ReconstructedCassette(program));
+                    const trs80 = new trs80_emulator_1.Trs80(screen, new ReconstructedCassette(program, progressBar));
                     trs80.reset();
                     this.emulatorScreens.appendChild(screen);
+                    this.emulatorScreens.appendChild(progressBar);
                     addRow("    Emulator", () => {
                         this.showEmulator(screen, trs80);
                     });
