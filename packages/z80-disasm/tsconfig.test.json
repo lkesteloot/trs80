@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig",
   "compilerOptions": {
-    "target": "ES2018",
+    "target": "es6",
     "module": "commonjs",
     "outDir": "dist-tests"
   },
