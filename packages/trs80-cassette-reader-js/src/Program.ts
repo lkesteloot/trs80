@@ -36,4 +36,35 @@ export class Program {
             this.binary[1] === 0xD3 &&
             this.binary[2] === 0xD3;
     }
+
+    /**
+     * Whether the binary represents an EDTASM program.
+     *
+     * http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/edtasm-file-format/
+     */
+    public isEdtasmProgram(): boolean {
+        function isValidProgramNameChar(n: number) {
+            console.log("isValidProgramNameChar: " + n);
+            return (n >= 0x41 && n <= 0x5A) || n === 0x20;
+        }
+        function isValidLineNumberChar(n: number) {
+            console.log("isValidLineNumberChar: " + n);
+            return n >= 0xB0 && n <= 0xB9;
+        }
+        return this.binary != null &&
+            this.binary.length >= 13 &&
+            this.binary[0] === 0xD3 &&
+            isValidProgramNameChar(this.binary[1]) &&
+            isValidProgramNameChar(this.binary[2]) &&
+            isValidProgramNameChar(this.binary[3]) &&
+            isValidProgramNameChar(this.binary[4]) &&
+            isValidProgramNameChar(this.binary[5]) &&
+            isValidProgramNameChar(this.binary[6]) &&
+            isValidLineNumberChar(this.binary[7]) &&
+            isValidLineNumberChar(this.binary[8]) &&
+            isValidLineNumberChar(this.binary[9]) &&
+            isValidLineNumberChar(this.binary[10]) &&
+            isValidLineNumberChar(this.binary[11]) &&
+            this.binary[12] === 0x20;
+    }
 }

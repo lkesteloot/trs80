@@ -7,6 +7,7 @@ import {Tape} from "./Tape";
 import {pad} from "./Utils";
 import {Cassette, Trs80} from "trs80-emulator";
 import {WaveformDisplay} from "./WaveformDisplay";
+import {decodeEdtasm} from "./Edtasm";
 
 /**
  * Generic cassette that reads from a Float32Array.
@@ -154,12 +155,13 @@ export class TapeBrowser {
     }
 
     private showBinary(program: Program) {
-        this.showProgramText();
+        this.showTextPane();
 
         const div = this.programText;
         clearElement(div);
         div.classList.add("binary");
         div.classList.remove("basic");
+        div.classList.remove("edtasm");
 
         const binary = program.binary;
         for (let addr = 0; addr < binary.length; addr += 16) {
@@ -201,14 +203,27 @@ export class TapeBrowser {
     }
 
     private showBasic(program: Program) {
-        this.showProgramText();
+        this.showTextPane();
 
         const div = this.programText;
         clearElement(div);
         div.classList.add("basic");
         div.classList.remove("binary");
+        div.classList.remove("edtasm");
 
         fromTokenized(program.binary, div);
+    }
+
+    private showEdtasm(program: Program) {
+        this.showTextPane();
+
+        const div = this.programText;
+        clearElement(div);
+        div.classList.add("edtasm");
+        div.classList.remove("binary");
+        div.classList.remove("basic");
+
+        decodeEdtasm(program.binary, div);
     }
 
     private showEmulator(screen: HTMLElement, trs80: Trs80) {
@@ -231,7 +246,7 @@ export class TapeBrowser {
         }
     }
 
-    private showProgramText() {
+    private showTextPane() {
         this.stopTrs80();
         this.waveforms.style.display = "none";
         this.programText.style.display = "block";
@@ -334,6 +349,12 @@ export class TapeBrowser {
                         this.showEmulator(screen, trs80);
                     });
                 }
+            }
+            console.log("Checking EDTASM");
+            if (program.isEdtasmProgram()) {
+                addRow("    Assembly", () => {
+                    this.showEdtasm(program);
+                });
             }
             let count = 1;
             for (const bitData of program.bits) {

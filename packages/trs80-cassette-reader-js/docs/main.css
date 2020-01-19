@@ -144,13 +144,16 @@ body {
 #program_text.binary .ascii-unprintable {
     color: #858585;
 }
-#program_text.basic {
+#program_text.basic,
+#program_text.edtasm {
     display: pre;
 }
-#program_text.basic .error {
+#program_text.basic .error,
+#program_text.edtasm .error {
     color: #aa0000;
 }
-#program_text.basic .line_number {
+#program_text.basic .line_number,
+#program_text.edtasm .line_number {
     color: #858585;
 }
 #program_text.basic .punctuation {

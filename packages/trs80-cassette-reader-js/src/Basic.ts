@@ -43,7 +43,7 @@ const COLON = 3;
 const COLON_REM = 4;
 
 class ByteReader {
-    private b: Uint8Array;
+    private readonly b: Uint8Array;
     private pos: number;
 
     constructor(b: Uint8Array) {
