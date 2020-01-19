@@ -71,6 +71,9 @@ body {
     padding-top: 1em;
     padding-right: 1em;
 }
+#drop_instructions p {
+    text-align: left;
+}
 #drop_upload {
     display: none;
 }
@@ -110,7 +113,7 @@ body {
     font-size: 18px;
 }
 #test_files button:hover {
-    background-color: #DDDDDD;
+    background-color: #E4E4E4;
 }
 #program_text {
     font-family: monospace;
