@@ -115,6 +115,15 @@ body {
 #test_files button:hover {
     background-color: #E4E4E4;
 }
+#about {
+    text-align: center;
+    color: #aaa;
+    width: 50%;
+    margin: 2em auto;
+}
+#about a {
+    color: #aaa;
+}
 #program_text {
     font-family: monospace;
     background-color: #1E1E1E;
@@ -160,5 +169,8 @@ body {
     color: #6A9955;
 }
 #emulator_screens {
+    display: none;
+}
+#reconstructed_waveforms {
     display: none;
 }
