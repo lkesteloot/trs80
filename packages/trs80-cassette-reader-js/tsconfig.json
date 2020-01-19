@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
-        "outFile": "build/compiled.js",
-        "module": "amd",
+        "module": "es6",
         "target": "ES2015",
         "sourceMap": false,
         "moduleResolution": "Node",

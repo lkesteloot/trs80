@@ -9,16 +9,22 @@
 
 <body>
     <div id="drop_screen">
-        <div id="drop_zone">
-            <p>Drop a 48 kHz mono 16-bit WAV file here, or select a file.</p>
-            <input id="drop_upload" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav">
-            <div id="test_files">
-                Test files
-                <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav">C-1-1</button>
-                <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s1.wav">LOAD80 Feb 82, side 1</button>
-                <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s2.wav">LOAD80 Feb 82, side 2</button>
+        <h1>TRS-80 Cassette Reader</h1>
+        <label id="drop_zone" for="drop_upload">
+            <div id="drop_instructions">
+                <div id="cassette_icon">
+                    <img src="noun_Cassette_13639.png"/>
+                </div>
+                <p>Drop a WAV file here,<br>or click to select a file.</p>
             </div>
             <progress id="drop_progress"></progress>
+        </div>
+        <input id="drop_upload" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav">
+        <div id="test_files">
+            Or pick one of these test files:
+            <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav">C-1-1</button>
+            <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s1.wav">LOAD80 Feb 82, side 1</button>
+            <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s2.wav">LOAD80 Feb 82, side 2</button>
         </div>
     </div>
     <div id="data_screen">
@@ -47,8 +53,7 @@
         </div>
     </div>
     <script type="module">
-        import "./index.js";
-        trs80CassetteReader.main();
+        import "./dist/main.js";
     </script>
 </body>
 

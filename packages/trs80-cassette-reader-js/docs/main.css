@@ -1,11 +1,16 @@
 body {
-    font-family: sans-serif;
+    font-family: "Helvetica Neue", sans-serif;
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
 }
 #drop_screen {
-    display: block;
     padding: 30px;
+}
+#drop_screen h1 {
+    text-align: center;
+    font-size: 48pt;
+    font-weight: 100;
 }
 #data_screen {
     display: none;
@@ -21,7 +26,6 @@ body {
     max-height: 100vh;
     overflow: auto;
     padding: 0.5em;
-    box-sizing: border-box;
 }
 .tape_contents_row {
     cursor: default;
@@ -39,13 +43,36 @@ body {
     max-height: 100vh;
     overflow: auto;
     padding: 1em;
-    box-sizing: border-box;
 }
 #drop_zone {
+    display: flex;
+    flex-direction: column;
     padding: 2em 3em;
-    border: 2px solid red;
+    border: 2px dashed #BBBBBB;
+    border-radius: 2px;
+    background-color: #EEEEEE;
+    color: #BBBBBB;
     font-size: 24pt;
     text-align: center;
+    width: 60%;
+    margin: 0 auto;
+}
+#drop_zone.hover {
+    border-color: #00E676;
+}
+#drop_instructions {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+#cassette_icon img {
+    max-width: 100px;
+    padding-top: 1em;
+    padding-right: 1em;
+}
+#drop_upload {
+    display: none;
 }
 #drop_browse {
     /* No longer used. */
@@ -66,15 +93,24 @@ body {
     margin: 1em auto;
 }
 #test_files {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
     margin-top: 2em;
     font-size: 18px;
 }
-#test_files button {
-    display: block;
-    margin: 10px auto;
+#test_files > * {
+    margin: 10px;
 }
-.hover {
-    background-color: #fee;
+#test_files button {
+    border: 1px solid #BBBBBB;
+    border-radius: 2px;
+    background-color: #EEEEEE;
+    padding: 5px 10px;
+    font-size: 18px;
+}
+#test_files button:hover {
+    background-color: #DDDDDD;
 }
 #program_text {
     font-family: monospace;
