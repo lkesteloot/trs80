@@ -2,22 +2,24 @@
 // Handles uploading WAV files and decoding them.
 
 export class Uploader {
+    private readonly uploadInput: HTMLInputElement;
     private readonly handleAudioBuffer: (pathname: string, audioBuffer: AudioBuffer) => void;
     private progressBar: HTMLProgressElement;
 
     /**
      * @param dropZone any element where files can be dropped.
-     * @param dropUpload file type input element.
+     * @param inputElement file type input element.
      * @param dropS3 buttons to upload from S3.
      * @param dropProgress progress bar for loading large files.
      * @param handleAudioBuffer callback with AudioBuffer parameter.
      */
     constructor(dropZone: HTMLElement,
-                dropUpload: HTMLInputElement,
+                inputElement: HTMLInputElement,
                 dropS3: NodeList,
                 dropProgress: HTMLProgressElement,
                 handleAudioBuffer: (pathname: string, audioBuffer: AudioBuffer) => void) {
 
+        this.uploadInput = inputElement;
         this.handleAudioBuffer = handleAudioBuffer;
         this.progressBar = dropProgress;
 
@@ -29,15 +31,15 @@ export class Uploader {
             ev.preventDefault();
         };
         dropZone.ondragleave = () => dropZone.classList.remove("hover");
-        dropUpload.onchange = () => {
-            if (dropUpload.files) {
-                const file = dropUpload.files[0];
+        inputElement.onchange = () => {
+            if (inputElement.files) {
+                const file = inputElement.files[0];
                 if (file) {
                     this.handleDroppedFile(file);
                 }
             }
         };
-        dropUpload.onprogress = (event) => this.showProgress(event);
+        inputElement.onprogress = (event) => this.showProgress(event);
         dropS3.forEach((node) => {
             const button = node as HTMLButtonElement;
             button.onclick = () => {
@@ -56,6 +58,7 @@ export class Uploader {
 
     public reset(): void {
         this.progressBar.classList.add("hidden");
+        this.uploadInput.value = "";
     }
 
     private handleDroppedFile(file: File) {

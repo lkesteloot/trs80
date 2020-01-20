@@ -103,6 +103,15 @@ class Pane {
 }
 
 /**
+ * Remove all children from element.
+ */
+function clearElement(e: HTMLElement): void {
+    while (e.firstChild) {
+        e.removeChild(e.firstChild);
+    }
+}
+
+/**
  * UI for browsing a tape interactively.
  */
 export class TapeBrowser {
@@ -134,6 +143,9 @@ export class TapeBrowser {
         this.waveforms = waveforms;
         this.tapeContents = tapeContents;
         this.topData = topData;
+
+        clearElement(tapeContents);
+        clearElement(topData);
 
         this.originalWaveformDisplay.addWaveform(originalCanvas, tape.originalSamples);
         this.originalWaveformDisplay.addWaveform(filteredCanvas, tape.filteredSamples);
