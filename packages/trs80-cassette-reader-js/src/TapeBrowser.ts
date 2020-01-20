@@ -354,11 +354,11 @@ export class TapeBrowser {
      */
     private updateTapeContents() {
         // Add a row to the table of contents.
-        const addRow = (text: string, onClick: ((this: GlobalEventHandlers, ev: MouseEvent) => any) | null) => {
+        const addRow = (text: string, onClick?: ((this: GlobalEventHandlers, ev: MouseEvent) => any)) => {
             const div = document.createElement("div");
             div.classList.add("tape_contents_row");
             div.innerText = text;
-            if (onClick != null) {
+            if (onClick != undefined) {
                 div.classList.add("selectable_row");
                 div.onclick = onClick;
             }
@@ -366,15 +366,15 @@ export class TapeBrowser {
             return div;
         };
 
-        // Show the name of the whole tape, and have it zoom out.
-        addRow(this.tape.name, () => {
-            this.originalWaveformDisplay.zoomToFitAll();
-        });
+        // Show the name of the whole tape.
+        const title = addRow(this.tape.name);
+        title.style.fontWeight = "100";
+        title.style.fontSize = "24pt";
 
         // Create panes for each program.
         for (const program of this.tape.programs) {
             // Header for program.
-            const row = addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName, null);
+            const row = addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName);
             row.style.marginTop = "1em";
 
             // Add a pane to the top-right, register it, and add it to table of contents.
