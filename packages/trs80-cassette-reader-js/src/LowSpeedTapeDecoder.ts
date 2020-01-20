@@ -81,7 +81,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     }
 
     public getName(): string {
-        return "low speed";
+        return "Low speed";
     }
 
     public handleSample(tape: Tape, frame: number) {

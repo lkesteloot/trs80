@@ -166,8 +166,14 @@ body {
 .metadata h1 {
     font-weight: 100;
 }
+.metadata table {
+    padding: 0;
+    margin: 0;
+    border-collapse: collapse;
+}
 .metadata .key {
     font-weight: bold;
+    padding-left: 0;
     padding-right: 2em;
 }
 .metadata .value {

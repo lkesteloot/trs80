@@ -163,7 +163,7 @@ export class TapeBrowser {
         this.currentWaveformDisplay.draw();
     }
 
-    private makeMetadataPane(program: Program): Pane {
+    private makeMetadataPane(program: Program, basicPane?: Pane, edtasmPane?: Pane): Pane {
         const div = document.createElement("div");
         div.classList.add("metadata");
 
@@ -201,6 +201,13 @@ export class TapeBrowser {
             this.originalWaveformDisplay.zoomToFit(program.endFrame - 100, program.endFrame + 100));
         addKeyValue("Duration", frameToTimestamp(program.endFrame - program.startFrame, true), () =>
             this.originalWaveformDisplay.zoomToFit(program.startFrame, program.endFrame));
+        if (basicPane !== undefined) {
+            addKeyValue("Type", "Basic program", () => this.showPane(basicPane));
+        } else if (edtasmPane !== undefined) {
+            addKeyValue("Type", "Assembly program", () => this.showPane(edtasmPane));
+        } else {
+            addKeyValue("Type", "Unknown");
+        }
 
         let count = 1;
         for (const bitData of program.bits) {
@@ -388,22 +395,26 @@ export class TapeBrowser {
                 });
             };
 
+            // Make these panes here so they're accessible from the metadata page.
+            const basicPane = program.isBasicProgram() ? this.makeBasicPane(program) : undefined;
+            const edtasmPane = program.isEdtasmProgram() ? this.makeEdtasmPane(program) : undefined;
+
             // Metadata pane.
             let metadataLabel = frameToTimestamp(program.startFrame, true) + " to " +
                 frameToTimestamp(program.endFrame, true) + " (" +
                 frameToTimestamp(program.endFrame - program.startFrame, true) + ")";
-            addPane(metadataLabel, this.makeMetadataPane(program));
+            addPane(metadataLabel, this.makeMetadataPane(program, basicPane, edtasmPane));
 
             // Make the various panes.
             addPane("Binary", this.makeBinaryPane(program));
             addPane("Reconstructed", this.makeReconstructedPane(program));
-            if (program.isBasicProgram()) {
-                addPane("Basic", this.makeBasicPane(program));
+            if (basicPane !== undefined) {
+                addPane("Basic", basicPane);
                 addPane("Emulator (original)", this.makeEmulatorPane(program, new TapeCassette(this.tape, program)));
                 addPane("Emulator (reconstructed)", this.makeEmulatorPane(program, new ReconstructedCassette(program)));
             }
-            if (program.isEdtasmProgram()) {
-                addPane("Assembly", this.makeEdtasmPane(program));
+            if (edtasmPane !== undefined) {
+                addPane("Assembly", edtasmPane);
             }
         }
 

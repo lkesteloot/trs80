@@ -26,7 +26,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
     private bits: BitData[] = [];
 
     public getName(): string {
-        return "high speed";
+        return "High speed";
     }
 
     public handleSample(tape: Tape, frame: number) {
