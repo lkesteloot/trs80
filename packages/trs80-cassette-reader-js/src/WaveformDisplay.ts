@@ -41,17 +41,6 @@ export class WaveformDisplay {
         this.configureCanvas(canvas);
     }
 
-    public replaceSamples(canvas: HTMLCanvasElement, samples: DisplaySamples): void {
-        for (const waveform of this.waveforms) {
-            if (waveform.canvas === canvas) {
-                waveform.samples = samples;
-                return;
-            }
-        }
-
-        throw new Error("canvas not found when replacing waveform");
-    }
-
     /**
      * Add a program to highlight in the waveform.
      */
@@ -67,26 +56,26 @@ export class WaveformDisplay {
         let dragInitialX = 0;
         let dragInitialCenterSample = 0;
 
-        canvas.onmousedown = (event) => {
+        canvas.addEventListener("mousedown", event => {
             dragging = true;
             dragInitialX = event.x;
             dragInitialCenterSample = this.centerSample;
             canvas.style.cursor = "grab";
-        };
+        });
 
-        canvas.onmouseup = () => {
+        canvas.addEventListener("mouseup", () => {
             dragging = false;
             canvas.style.cursor = "auto";
-        };
+        });
 
-        canvas.onmousemove = (event) => {
+        canvas.addEventListener("mousemove", event => {
             if (dragging) {
                 const dx = event.x - dragInitialX;
                 const mag = Math.pow(2, this.displayLevel);
                 this.centerSample = Math.round(dragInitialCenterSample - dx * mag);
                 this.draw();
             }
-        };
+        });
     }
 
     /**

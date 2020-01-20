@@ -23,6 +23,18 @@ body {
     cursor: col-resize;
     background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
 }
+.nice_button {
+    border-radius: 4px;
+    background-color: #5C646A;
+    color: white;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 4px 0;
+}
+.nice_button:hover {
+    background-color: #5A6268;
+}
 
 /* Drag and drop (upload) screen. */
 #drop_screen {
@@ -78,15 +90,8 @@ body {
 #test_files > * {
     margin: 10px;
 }
-#test_files button {
-    border: 1px solid #BBBBBB;
-    border-radius: 2px;
-    background-color: #EEEEEE;
-    padding: 5px 10px;
+#test_files .nice_button {
     font-size: 18px;
-}
-#test_files button:hover {
-    background-color: #E4E4E4;
 }
 #about {
     text-align: center;
@@ -114,12 +119,18 @@ body {
     cursor: default;
     white-space: pre;
     font-weight: bold;
+    padding: 3px 0;
 }
 .tape_contents_row.selectable_row {
     font-weight: normal;
 }
 .tape_contents_row.selectable_row:hover {
     background-color: #eee;
+}
+.tape_contents_row.selected,
+.tape_contents_row.selected.selectable_row:hover {
+    background-color: #AAAAAA;
+    color: white;
 }
 #data_screen > main {
     display: flex;
