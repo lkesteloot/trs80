@@ -17,11 +17,14 @@ function add(out: HTMLElement, text: string, className: string) {
     out.appendChild(e);
 }
 
-export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement) {
+/**
+ * Decoded the program into the DIV, returning the program name.
+ */
+export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement): string {
     // Check magic.
     if (bytes.length < 7 || bytes[0] !== 0xD3) {
         add(out, "EDTASM: missing magic -- not a EDTASM file.", "error");
-        return;
+        return "Error";
     }
 
     // Read name of program.
@@ -37,7 +40,7 @@ export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement) {
     while (true) {
         // End of program.
         if (bytes.length - i < 5) {
-            return;
+            return name;
         }
 
         const line = document.createElement("div");

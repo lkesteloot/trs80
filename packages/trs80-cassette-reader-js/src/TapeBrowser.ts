@@ -86,6 +86,7 @@ class Pane {
     row?: HTMLElement;
     waveformDisplay?: WaveformDisplay;
     trs80?: Trs80;
+    edtasmName?: string;
 
     constructor(element: HTMLElement) {
         this.element = element;
@@ -204,7 +205,7 @@ export class TapeBrowser {
         if (basicPane !== undefined) {
             addKeyValue("Type", "Basic program", () => this.showPane(basicPane));
         } else if (edtasmPane !== undefined) {
-            addKeyValue("Type", "Assembly program", () => this.showPane(edtasmPane));
+            addKeyValue("Type", "Assembly program (" + edtasmPane.edtasmName + ")", () => this.showPane(edtasmPane));
         } else {
             addKeyValue("Type", "Unknown");
         }
@@ -315,9 +316,11 @@ export class TapeBrowser {
         div.classList.add("program");
         div.classList.add("edtasm");
 
-        decodeEdtasm(program.binary, div);
+        const name = decodeEdtasm(program.binary, div);
 
-        return new Pane(div);
+        const pane = new Pane(div);
+        pane.edtasmName = name;
+        return pane;
     }
 
     private makeEmulatorPane(program: Program, cassette: Float32Cassette): Pane {
@@ -414,7 +417,7 @@ export class TapeBrowser {
                 addPane("Emulator (reconstructed)", this.makeEmulatorPane(program, new ReconstructedCassette(program)));
             }
             if (edtasmPane !== undefined) {
-                addPane("Assembly", edtasmPane);
+                addPane("Assembly (" + edtasmPane.edtasmName + ")", edtasmPane);
             }
         }
 
