@@ -6,6 +6,7 @@ import {pad} from "./Utils";
 import {Cassette, Trs80} from "trs80-emulator";
 import {WaveformDisplay} from "./WaveformDisplay";
 import {decodeEdtasm} from "./Edtasm";
+import {BitType} from "./BitType";
 
 /**
  * Generic cassette that reads from a Float32Array.
@@ -160,6 +161,56 @@ export class TapeBrowser {
         this.updateTapeContents();
 
         this.currentWaveformDisplay.draw();
+    }
+
+    private makeMetadataPane(program: Program): Pane {
+        const div = document.createElement("div");
+        div.classList.add("metadata");
+
+        const h1 = document.createElement("h1");
+        h1.innerText = "Track " + program.trackNumber + ", copy " + program.copyNumber;
+        div.appendChild(h1);
+
+        const table = document.createElement("table");
+        div.appendChild(table);
+
+        const addKeyValue = (key: string, value: string, click?: () => void) => {
+            const row = document.createElement("tr");
+
+            const keyElement = document.createElement("td");
+            keyElement.classList.add("key");
+            keyElement.innerText = key + ":";
+            row.appendChild(keyElement);
+
+            const valueElement = document.createElement("td");
+            valueElement.classList.add("value");
+            valueElement.innerText = value;
+            if (click !== undefined) {
+                valueElement.classList.add("clickable");
+                valueElement.addEventListener("click", click);
+            }
+            row.appendChild(valueElement);
+
+            table.appendChild(row);
+        };
+
+        addKeyValue("Decoder", program.decoderName);
+        addKeyValue("Start time", frameToTimestamp(program.startFrame), () =>
+            this.originalWaveformDisplay.zoomToFit(program.startFrame - 100, program.startFrame + 100));
+        addKeyValue("End time", frameToTimestamp(program.endFrame), () =>
+            this.originalWaveformDisplay.zoomToFit(program.endFrame - 100, program.endFrame + 100));
+        addKeyValue("Duration", frameToTimestamp(program.endFrame - program.startFrame, true), () =>
+            this.originalWaveformDisplay.zoomToFit(program.startFrame, program.endFrame));
+
+        let count = 1;
+        for (const bitData of program.bits) {
+            if (bitData.bitType === BitType.BAD) {
+                addKeyValue("Bit error " + count++, frameToTimestamp(bitData.startFrame), () =>
+                    this.originalWaveformDisplay.zoomToBitData(bitData));
+            }
+        }
+
+        return new Pane(div);
     }
 
     private makeBinaryPane(program: Program): Pane {
@@ -326,12 +377,6 @@ export class TapeBrowser {
             const row = addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName, null);
             row.style.marginTop = "1em";
 
-            // Span of program.
-            addRow("    " + frameToTimestamp(program.startFrame, true) + " to " +
-                frameToTimestamp(program.endFrame, true) + " (" +
-                frameToTimestamp(program.endFrame - program.startFrame, true) + ")",
-                () => this.originalWaveformDisplay.zoomToFit(program.startFrame, program.endFrame));
-
             // Add a pane to the top-right, register it, and add it to table of contents.
             const addPane = (label: string, pane: Pane) => {
                 pane.element.classList.add("pane");
@@ -342,6 +387,12 @@ export class TapeBrowser {
                     this.showPane(pane);
                 });
             };
+
+            // Metadata pane.
+            let metadataLabel = frameToTimestamp(program.startFrame, true) + " to " +
+                frameToTimestamp(program.endFrame, true) + " (" +
+                frameToTimestamp(program.endFrame - program.startFrame, true) + ")";
+            addPane(metadataLabel, this.makeMetadataPane(program));
 
             // Make the various panes.
             addPane("Binary", this.makeBinaryPane(program));
@@ -354,16 +405,6 @@ export class TapeBrowser {
             if (program.isEdtasmProgram()) {
                 addPane("Assembly", this.makeEdtasmPane(program));
             }
-            /* TODO
-            let count = 1;
-            for (const bitData of program.bits) {
-                if (bitData.bitType === BitType.BAD) {
-                    addRow("    Bit error " + count++ + " (" + frameToTimestamp(bitData.startFrame, true) + ")", () => {
-                        this.originalWaveformDisplay.zoomToBitData(bitData);
-                    });
-                }
-            }
-             */
         }
 
         // Show the first pane.

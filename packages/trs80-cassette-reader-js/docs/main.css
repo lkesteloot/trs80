@@ -125,7 +125,7 @@ body {
     font-weight: normal;
 }
 .tape_contents_row.selectable_row:hover {
-    background-color: #eee;
+    background-color: #EEEEEE;
 }
 .tape_contents_row.selected,
 .tape_contents_row.selected.selectable_row:hover {
@@ -162,6 +162,23 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
+}
+.metadata h1 {
+    font-weight: 100;
+}
+.metadata .key {
+    font-weight: bold;
+    padding-right: 2em;
+}
+.metadata .value {
+    padding: 4px 8px;
+}
+.metadata .value.clickable {
+    cursor: pointer;
+    color: #0000EE;
+}
+.metadata .value.clickable:hover {
+    background-color: #EEEEEE;
 }
 .program {
     font-family: monospace;
