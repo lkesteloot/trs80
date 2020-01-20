@@ -17,9 +17,9 @@
                 </div>
                 <p>Drop a WAV file here<br>or click to select a file</p>
             </div>
-            <progress id="drop_progress"></progress>
+            <progress id="drop_progress" class="hidden"></progress>
         </label>
-        <input id="drop_upload" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav">
+        <input id="drop_upload" class="hidden" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav">
         <div id="test_files">
             Or use one of these test files:
             <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav">C-1-1</button>
@@ -32,30 +32,28 @@
             <a href="https://github.com/lkesteloot/trs80-cassette-reader-js">Source code</a>
         </p>
     </div>
-    <div id="data_screen">
-        <div class="data_container">
-            <nav id="tape_contents">
-            </nav>
-            <main>
-                <div id="waveforms">
-                    <button id="zoom_in_button">Zoom In (=)</button>
-                    <button id="zoom_out_button">Zoom Out (-)</button>
-                    <button id="load_another_button">Load Another</button>
-                    <p>Original waveform:</p>
-                    <canvas id="original_canvas" width="800" height="400"></canvas>
-                    <p>High-pass filtered to get rid of DC:</p>
-                    <canvas id="filtered_canvas" width="800" height="400"></canvas>
-                    <p>Differentiated for low-speed decoding:</p>
-                    <canvas id="low_speed_canvas" width="800" height="400"></canvas>
-                </div>
-                <div id="program_text"></div>
-                <div id="emulator_screens"></div>
-                <div id="reconstructed_waveforms">
-                    <p>Reconstructed high-speed waveform:</p>
-                    <canvas id="reconstructed_canvas" width="800" height="400"></canvas>
-                </div>
-            </main>
-        </div>
+    <div id="data_screen" class="hidden">
+        <nav id="tape_contents">
+        </nav>
+        <main>
+            <div id="waveforms">
+                <button id="zoom_in_button">Zoom In (=)</button>
+                <button id="zoom_out_button">Zoom Out (-)</button>
+                <button id="load_another_button">Load Another</button>
+                <p>Original waveform:</p>
+                <canvas id="original_canvas" width="800" height="400"></canvas>
+                <p>High-pass filtered to get rid of DC:</p>
+                <canvas id="filtered_canvas" width="800" height="400"></canvas>
+                <p>Differentiated for low-speed decoding:</p>
+                <canvas id="low_speed_canvas" width="800" height="400"></canvas>
+            </div>
+            <div id="program_text" class="hidden"></div>
+            <div id="emulator_screens" class="hidden"></div>
+            <div id="reconstructed_waveforms" class="hidden">
+                <p>Reconstructed high-speed waveform:</p>
+                <canvas id="reconstructed_canvas" width="800" height="400"></canvas>
+            </div>
+        </main>
     </div>
     <script type="module">
         import "./dist/main.js";

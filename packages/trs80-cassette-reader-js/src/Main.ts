@@ -3,6 +3,7 @@ import {Decoder} from "./Decoder";
 import {Tape} from "./Tape";
 import {TapeBrowser} from "./TapeBrowser";
 import {Uploader} from "./Uploader";
+import Split from "split.js";
 
 const dropZone = document.getElementById("drop_zone") as HTMLElement;
 const dropUpload = document.getElementById("drop_upload") as HTMLInputElement;
@@ -54,17 +55,23 @@ function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
     // Switch screens.
     const dropScreen = document.getElementById("drop_screen") as HTMLElement;
     const dataScreen = document.getElementById("data_screen") as HTMLElement;
-    dropScreen.style.display = "none";
-    dataScreen.style.display = "block";
+    dropScreen.classList.add("hidden");
+    dataScreen.classList.remove("hidden");
 
     const loadAnotherButton = document.getElementById("load_another_button") as HTMLButtonElement;
     loadAnotherButton.onclick = () => {
-        dropScreen.style.display = "block";
-        dataScreen.style.display = "none";
+        dropScreen.classList.remove("hidden");
+        dataScreen.classList.add("hidden");
         if (uploader !== undefined) {
             uploader.reset();
         }
     };
+
+    Split(["#data_screen > nav", "#data_screen > main"], {
+        sizes: [20,80],
+        minSize: [200, 200],
+        snapOffset: 0,
+    });
 }
 
 export function main() {

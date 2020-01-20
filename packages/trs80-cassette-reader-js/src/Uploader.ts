@@ -55,7 +55,7 @@ export class Uploader {
     }
 
     public reset(): void {
-        this.progressBar.style.display = "none";
+        this.progressBar.classList.add("hidden");
     }
 
     private handleDroppedFile(file: File) {
@@ -76,7 +76,7 @@ export class Uploader {
     }
 
     private showProgress(event: ProgressEvent) {
-        this.progressBar.style.display = "block";
+        this.progressBar.classList.remove("hidden");
         this.progressBar.value = event.loaded;
         this.progressBar.max = event.total;
     }

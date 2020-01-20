@@ -4,7 +4,8 @@
         "target": "ES2015",
         "sourceMap": false,
         "moduleResolution": "Node",
-        "strict": true
+        "strict": true,
+        "allowSyntheticDefaultImports": true
     },
     "include": [
         "src/**/*"

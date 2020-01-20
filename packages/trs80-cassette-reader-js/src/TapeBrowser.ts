@@ -26,7 +26,7 @@ class Float32Cassette extends Cassette {
     }
 
     public onMotorStart(): void {
-        this.progressBar.style.display = "block";
+        this.progressBar.classList.remove("hidden");
     }
 
     public readSample(): number {
@@ -41,7 +41,7 @@ class Float32Cassette extends Cassette {
     }
 
     public onMotorStop(): void {
-        this.progressBar.style.display = "none";
+        this.progressBar.classList.add("hidden");
     }
 }
 
@@ -231,7 +231,13 @@ export class TapeBrowser {
 
         // Show just this screen.
         this.emulatorScreens.querySelectorAll(":scope > div")
-            .forEach((e) => (e as HTMLElement).style.display = e === screen ? "block" : "none");
+            .forEach((e) => {
+                if (e === screen) {
+                    (e as HTMLElement).classList.remove("hidden");
+                } else {
+                    (e as HTMLElement).classList.add("hidden");
+                }
+            });
 
         // Start the machine.
         this.stopTrs80();
@@ -248,36 +254,36 @@ export class TapeBrowser {
 
     private showTextPane() {
         this.stopTrs80();
-        this.waveforms.style.display = "none";
-        this.programText.style.display = "block";
-        this.emulatorScreens.style.display = "none";
-        this.reconstructedWaveforms.style.display = "none";
+        this.waveforms.classList.add("hidden");
+        this.programText.classList.remove("hidden");
+        this.emulatorScreens.classList.add("hidden");
+        this.reconstructedWaveforms.classList.add("hidden");
         this.currentWaveformDisplay = undefined;
     }
 
     private showWaveforms() {
         this.stopTrs80();
-        this.waveforms.style.display = "block";
-        this.programText.style.display = "none";
-        this.emulatorScreens.style.display = "none";
-        this.reconstructedWaveforms.style.display = "none";
+        this.waveforms.classList.remove("hidden");
+        this.programText.classList.add("hidden");
+        this.emulatorScreens.classList.add("hidden");
+        this.reconstructedWaveforms.classList.add("hidden");
         this.currentWaveformDisplay = this.originalWaveformDisplay;
     }
 
     private showEmulatorScreens() {
-        this.waveforms.style.display = "none";
-        this.programText.style.display = "none";
-        this.emulatorScreens.style.display = "block";
-        this.reconstructedWaveforms.style.display = "none";
+        this.waveforms.classList.add("hidden");
+        this.programText.classList.add("hidden");
+        this.emulatorScreens.classList.remove("hidden");
+        this.reconstructedWaveforms.classList.add("hidden");
         this.currentWaveformDisplay = undefined;
     }
 
     private showReconstructedWaveforms(program: Program): void {
         this.stopTrs80();
-        this.waveforms.style.display = "none";
-        this.programText.style.display = "none";
-        this.emulatorScreens.style.display = "none";
-        this.reconstructedWaveforms.style.display = "block";
+        this.waveforms.classList.add("hidden");
+        this.programText.classList.add("hidden");
+        this.emulatorScreens.classList.add("hidden");
+        this.reconstructedWaveforms.classList.remove("hidden");
         this.currentWaveformDisplay = this.reconstructedWaveformDisplay;
 
         this.reconstructedWaveformDisplay.replaceSamples(this.reconstructedCanvas, program.reconstructedSamples);
@@ -324,9 +330,9 @@ export class TapeBrowser {
 
                 {
                     const screen = document.createElement("div");
-                    screen.style.display = "none";
+                    screen.classList.add("hidden");
                     const progressBar = document.createElement("progress");
-                    progressBar.style.display = "none";
+                    progressBar.classList.add("hidden");
                     const trs80 = new Trs80(screen, new TapeCassette(this.tape, program, progressBar));
                     trs80.reset();
                     this.emulatorScreens.appendChild(screen);
@@ -338,9 +344,9 @@ export class TapeBrowser {
 
                 {
                     const screen = document.createElement("div");
-                    screen.style.display = "none";
+                    screen.classList.add("hidden");
                     const progressBar = document.createElement("progress");
-                    progressBar.style.display = "none";
+                    progressBar.classList.add("hidden");
                     const trs80 = new Trs80(screen, new ReconstructedCassette(program, progressBar));
                     trs80.reset();
                     this.emulatorScreens.appendChild(screen);
