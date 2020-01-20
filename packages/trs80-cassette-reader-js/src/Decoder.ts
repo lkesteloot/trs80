@@ -119,7 +119,9 @@ export class Decoder {
                     const program = new Program(trackNumber, copyNumber, programStartFrame, frame,
                         tapeDecoders[0].getName(), binary, tapeDecoders[0].getBits(),
                         encodeHighSpeed(highSpeedBytes));
-                    this.tape.addProgram(program);
+                    if (!program.isTooShort()) {
+                        this.tape.addProgram(program);
+                    }
                     break;
             }
 

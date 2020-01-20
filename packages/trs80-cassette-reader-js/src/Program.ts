@@ -1,6 +1,7 @@
 
 import {BitData} from "./BitData";
 import {DisplaySamples} from "./DisplaySamples";
+import {HZ} from "./AudioUtils";
 
 export class Program {
     public trackNumber: number;
@@ -24,6 +25,13 @@ export class Program {
         this.binary = binary;
         this.bits = bits;
         this.reconstructedSamples = new DisplaySamples(reconstructedSamples);
+    }
+
+    /**
+     * Whether this program is really too short to be a real recording.
+     */
+    public isTooShort(): boolean {
+        return this.endFrame - this.startFrame < HZ/10;
     }
 
     /**
