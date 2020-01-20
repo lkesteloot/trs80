@@ -46,11 +46,8 @@ function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
         document.getElementById("original_canvas") as HTMLCanvasElement,
         document.getElementById("filtered_canvas") as HTMLCanvasElement,
         document.getElementById("low_speed_canvas") as HTMLCanvasElement,
-        document.getElementById("program_text") as HTMLElement,
-        document.getElementById("emulator_screens") as HTMLElement,
-        document.getElementById("reconstructed_waveforms") as HTMLElement,
-        document.getElementById("reconstructed_canvas") as HTMLCanvasElement,
-        document.getElementById("tape_contents") as HTMLElement);
+        document.getElementById("tape_contents") as HTMLElement,
+        document.getElementById("top_data") as HTMLElement);
 
     // Switch screens.
     const dropScreen = document.getElementById("drop_screen") as HTMLElement;
@@ -71,6 +68,12 @@ function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
         sizes: [20,80],
         minSize: [200, 200],
         snapOffset: 0,
+    });
+    Split(["#top_data", "#waveforms"], {
+        sizes: [50,50],
+        minSize: [100, 100],
+        snapOffset: 0,
+        direction: "vertical",
     });
 }
 

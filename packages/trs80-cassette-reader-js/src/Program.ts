@@ -44,11 +44,9 @@ export class Program {
      */
     public isEdtasmProgram(): boolean {
         function isValidProgramNameChar(n: number) {
-            console.log("isValidProgramNameChar: " + n);
             return (n >= 0x41 && n <= 0x5A) || n === 0x20;
         }
         function isValidLineNumberChar(n: number) {
-            console.log("isValidLineNumberChar: " + n);
             return n >= 0xB0 && n <= 0xB9;
         }
         return this.binary != null &&

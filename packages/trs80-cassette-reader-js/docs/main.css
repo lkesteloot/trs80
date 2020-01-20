@@ -10,16 +10,17 @@ body {
     display: none !important;
 }
 .gutter {
-    cursor: col-resize;
     height: 100vh;
     background-color: #EEEEEE;
     background-repeat: no-repeat;
     background-position: 50%;
 }
 .gutter.gutter-vertical {
+    cursor: row-resize;
     background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
 }
 .gutter.gutter-horizontal {
+    cursor: col-resize;
     background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
 }
 
@@ -121,54 +122,72 @@ body {
     background-color: #eee;
 }
 #data_screen > main {
-    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+#top_data {
+    /*
+     * This sets this element to not be affected by children. Children can then absolutely position
+     * relative to this one, force their size to match exactly, and overflow with scrollbars.
+     */
+    position: relative;
+}
+#waveforms {
     overflow-x: auto;
     overflow-y: scroll;
     padding: 1em;
 }
-#program_text {
+.pane {
+    padding: 10px 20px;
+    position: absolute;
+    overflow-x: auto;
+    overflow-y: scroll;
+    /*
+     * Force our size and position to be exactly equal to the nearest "position: relative"
+     * ancestor, which then allows us to overflow without affecting our parents' sizes.
+     */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+.program {
     font-family: monospace;
     background-color: #1E1E1E;
     color: #D4D4D4;
     white-space: pre;
-    padding: 10px 20px;
 }
-#program_text.binary .address {
+.binary .address {
     color: #858585;
 }
-#program_text.binary .hex {
+.binary .hex {
     color: #D4D4D4;
 }
-#program_text.binary .ascii {
+.binary .ascii {
     color: #D4D4D4;
 }
-#program_text.binary .ascii-unprintable {
+.binary .ascii-unprintable {
     color: #858585;
 }
-#program_text.basic,
-#program_text.edtasm {
-    display: pre;
-}
-#program_text.basic .error,
-#program_text.edtasm .error {
+.program .error {
     color: #aa0000;
 }
-#program_text.basic .line_number,
-#program_text.edtasm .line_number {
+.program .line_number {
     color: #858585;
 }
-#program_text.basic .punctuation {
+.program .punctuation {
     color: #D4D4D4;
 }
-#program_text.basic .keyword {
+.program .keyword {
     color: #C586C0;
 }
-#program_text.basic .regular {
+.program .regular {
     color: #9CDCFE;
 }
-#program_text.basic .string {
+.program .string {
     color: #CE9178;
 }
-#program_text.basic .comment {
+.program .comment {
     color: #6A9955;
 }
