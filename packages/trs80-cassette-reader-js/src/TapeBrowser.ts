@@ -368,7 +368,7 @@ export class TapeBrowser {
             const div = document.createElement("div");
             div.classList.add("tape_contents_row");
             div.innerText = text;
-            if (onClick != undefined) {
+            if (onClick !== undefined) {
                 div.classList.add("selectable_row");
                 div.onclick = onClick;
             }
@@ -378,14 +378,13 @@ export class TapeBrowser {
 
         // Show the name of the whole tape.
         const title = addRow(this.tape.name);
-        title.style.fontWeight = "100";
-        title.style.fontSize = "24pt";
+        title.classList.add("tape_title");
 
         // Create panes for each program.
         for (const program of this.tape.programs) {
             // Header for program.
             const row = addRow("Track " + program.trackNumber + ", copy " + program.copyNumber + ", " + program.decoderName);
-            row.style.marginTop = "1em";
+            row.classList.add("program_title");
 
             // Add a pane to the top-right, register it, and add it to table of contents.
             const addPane = (label: string, pane: Pane) => {

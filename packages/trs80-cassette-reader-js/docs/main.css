@@ -112,14 +112,26 @@ body {
 #data_screen > nav {
     max-height: 100vh;
     overflow-x: auto;
-    overflow-y: scroll;
-    padding: 0.5em;
+    overflow-y: auto;
 }
 .tape_contents_row {
     cursor: default;
     white-space: pre;
     font-weight: bold;
-    padding: 3px 0;
+    padding: 3px 10px;
+}
+.tape_contents_row.tape_title {
+    font-weight: 100;
+    font-size: 24pt;
+    text-align: center;
+}
+.tape_contents_row.program_title {
+    text-transform: uppercase;
+    border-top: 1px solid #CCCCCC;
+    margin-top: 0.5em;
+    padding-top: 0.5em;
+    margin-bottom: 0.2em;
+    color: #666666;
 }
 .tape_contents_row.selectable_row {
     font-weight: normal;
@@ -165,6 +177,7 @@ body {
 }
 .metadata h1 {
     font-weight: 100;
+    margin-top: 10px;
 }
 .metadata table {
     padding: 0;
