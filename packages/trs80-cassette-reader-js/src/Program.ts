@@ -2,6 +2,7 @@
 import {BitData} from "./BitData";
 import {DisplaySamples} from "./DisplaySamples";
 import {HZ} from "./AudioUtils";
+import {ByteData} from "./ByteData";
 
 export class Program {
     public trackNumber: number;
@@ -10,11 +11,13 @@ export class Program {
     public endFrame: number;
     public decoderName: string;
     public binary: Uint8Array;
-    public bits: BitData[];
+    public bitData: BitData[];
+    // Index by byte index in the "binary" array.
+    public byteData: ByteData[];
     public reconstructedSamples: DisplaySamples;
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
-                decoderName: string, binary: Uint8Array, bits: BitData[],
+                decoderName: string, binary: Uint8Array, bitData: BitData[], byteData: ByteData[],
                 reconstructedSamples: Float32Array) {
 
         this.trackNumber = trackNumber;
@@ -23,7 +26,8 @@ export class Program {
         this.endFrame = endFrame;
         this.decoderName = decoderName;
         this.binary = binary;
-        this.bits = bits;
+        this.bitData = bitData;
+        this.byteData = byteData;
         this.reconstructedSamples = new DisplaySamples(reconstructedSamples);
     }
 

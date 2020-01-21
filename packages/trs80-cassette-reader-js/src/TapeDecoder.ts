@@ -4,6 +4,7 @@
 import {BitData} from "./BitData";
 import {Tape} from "./Tape";
 import {TapeDecoderState} from "./TapeDecoderState";
+import {ByteData} from "./ByteData";
 
 export interface TapeDecoder {
     /**
@@ -27,7 +28,12 @@ export interface TapeDecoder {
     getBinary(): Uint8Array;
 
     /**
-     * Get the bits for the decoded program. Only called if the state is FINISHED or ERROR.
+     * Get the bit information for the decoded program. Only called if the state is FINISHED or ERROR.
      */
-    getBits(): BitData[];
+    getBitData(): BitData[];
+
+    /**
+     * Get the byte information for the decoded program. Only called if the state is FINISHED or ERROR.
+     */
+    getByteData(): ByteData[];
 }

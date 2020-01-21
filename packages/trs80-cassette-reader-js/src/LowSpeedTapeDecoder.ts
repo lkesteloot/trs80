@@ -5,6 +5,7 @@ import {BitType} from "./BitType";
 import {Tape} from "./Tape";
 import {TapeDecoder} from "./TapeDecoder";
 import {TapeDecoderState} from "./TapeDecoderState";
+import {ByteData} from "./ByteData";
 
 /**
  * Number of samples between the top of the pulse and the bottom of it.
@@ -49,9 +50,9 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         return out;
     }
 
-    private invert: boolean;
+    private readonly invert: boolean;
     private state: TapeDecoderState;
-    private programBytes: number[];
+    private readonly programBytes: number[] = [];
     private lastPulseFrame: number;
     private eatNextPulse: boolean;
     private bitCount: number;
@@ -59,13 +60,13 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     private lenientFirstBit: boolean;
     private detectedZeros: number;
     private pulseHeight: number;
-    private bits: BitData[];
+    private readonly bitData: BitData[];
+    private readonly byteData: ByteData[] = [];
     private pulseCount: number;
 
     constructor(invert: boolean) {
         this.invert = invert;
         this.state = TapeDecoderState.UNDECIDED;
-        this.programBytes = [];
         // The frame where we last detected a pulse.
         this.lastPulseFrame = 0;
         this.eatNextPulse = false;
@@ -76,7 +77,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         // Height of the previous pulse. We set each pulse's threshold
         // to 1/3 of the previous pulse's height.
         this.pulseHeight = 0;
-        this.bits = [];
+        this.bitData = [];
         this.pulseCount = 0;
     }
 
@@ -110,9 +111,9 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                     console.log("Warning: At bit of wrong value at " +
                         frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
                         frameToTimestamp(this.lastPulseFrame));
-                    this.bits.push(new BitData(this.lastPulseFrame, frame, BitType.BAD));
+                    this.bitData.push(new BitData(this.lastPulseFrame, frame, BitType.BAD));
                 } else {
-                    const lastBit = this.bits[this.bits.length - 1];
+                    const lastBit = this.bitData[this.bitData.length - 1];
                     if (lastBit && lastBit.bitType === BitType.ONE && lastBit.endFrame === this.lastPulseFrame) {
                         // Merge with previous 1 bit.
                         lastBit.endFrame = frame;
@@ -133,7 +134,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                     }
                     this.recentBits = (this.recentBits << 1) | (bit ? 1 : 0);
                     if (this.lastPulseFrame !== 0) {
-                        this.bits.push(new BitData(this.lastPulseFrame, frame, bit ? BitType.ONE : BitType.ZERO));
+                        this.bitData.push(new BitData(this.lastPulseFrame, frame, bit ? BitType.ONE : BitType.ZERO));
                     }
                     if (this.state === TapeDecoderState.UNDECIDED) {
                         // Haven't found end of header yet. Look for it, preceded by zeros.
@@ -147,6 +148,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                         this.bitCount += 1;
                         if (this.bitCount === 8) {
                             this.programBytes.push(this.recentBits & 0xFF);
+                            this.byteData.push(new ByteData(this.bitData[this.bitData.length - 8].startFrame, frame));
                             this.bitCount = 0;
                         }
                     }
@@ -169,7 +171,11 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         return bytes;
     }
 
-    public getBits(): BitData[] {
-        return this.bits;
+    public getBitData(): BitData[] {
+        return this.bitData;
+    }
+
+    public getByteData(): ByteData[] {
+        return this.byteData;
     }
 }

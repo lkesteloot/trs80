@@ -7,6 +7,7 @@ import {Cassette, Trs80} from "trs80-emulator";
 import {WaveformDisplay} from "./WaveformDisplay";
 import {decodeEdtasm} from "./Edtasm";
 import {BitType} from "./BitType";
+import {Highlight} from "./Highlight";
 
 /**
  * Generic cassette that reads from a Float32Array.
@@ -87,6 +88,8 @@ class Pane {
     waveformDisplay?: WaveformDisplay;
     trs80?: Trs80;
     edtasmName?: string;
+    onHighlight?: (highlight: Highlight | undefined) => void;
+    onSelect?: (selection: Highlight | undefined) => void;
 
     constructor(element: HTMLElement) {
         this.element = element;
@@ -113,6 +116,111 @@ function clearElement(e: HTMLElement): void {
 }
 
 /**
+ * Helper class to highlight or select elements.
+ */
+class Highlighter {
+    /**
+     * The TapeBrowser object, for updating highlights and selections.
+     */
+    private readonly tapeBrowser: TapeBrowser;
+    /**
+     * The program that all these elements belong to. In principle they could
+     * belong to more than one, but not in our current UI.
+     */
+    private readonly program: Program;
+    /**
+     * All elements, index by the byte index.
+     */
+    readonly elements: HTMLElement[] = [];
+    /**
+     * Currently-highlighted elements.
+     */
+    readonly highlightedElements: HTMLElement[] = [];
+    /**
+     * Currently-selected elements.
+     */
+    readonly selectedElements: HTMLElement[] = [];
+
+    /**
+     * The start of the selection, if we're currently selecting.
+     */
+    private selectionBeginIndex: number | undefined;
+
+    constructor(tapeBrowser: TapeBrowser, program: Program) {
+        this.tapeBrowser = tapeBrowser;
+        this.program = program;
+    }
+
+    /**
+     * Add an element to be highlighted.
+     */
+    public addElement(byteIndex: number, element: HTMLElement): void {
+        this.elements[byteIndex] = element;
+
+        // Set up event listeners for highlighting.
+        element.addEventListener("mouseenter", () => {
+            if (this.selectionBeginIndex === undefined) {
+                this.tapeBrowser.setHighlight(new Highlight(this.program, byteIndex))
+            } else {
+                this.tapeBrowser.setSelection(new Highlight(this.program, this.selectionBeginIndex, byteIndex));
+            }
+        });
+        element.addEventListener("mouseleave", () => {
+            if (this.selectionBeginIndex === undefined) {
+                this.tapeBrowser.setHighlight(undefined)
+            }
+        });
+
+        // Set up event listeners for selecting.
+        element.addEventListener("mousedown", event => {
+            this.tapeBrowser.setSelection(new Highlight(this.program, byteIndex));
+            this.selectionBeginIndex = byteIndex;
+            event.preventDefault();
+        });
+        element.addEventListener("mouseup", event => {
+            this.selectionBeginIndex = undefined;
+            event.preventDefault();
+        });
+    }
+
+    /**
+     * Highlight the specified elements.
+     */
+    public highlight(highlight: Highlight | undefined, program: Program): void {
+        for (const e of this.highlightedElements) {
+            e.classList.remove("highlighted");
+        }
+        this.highlightedElements.splice(0);
+        if (highlight !== undefined && highlight.program === program) {
+            const e = this.elements[highlight.firstIndex];
+            if (e !== undefined) {
+                e.classList.add("highlighted");
+                this.highlightedElements.push(e);
+            }
+        }
+    }
+
+    /**
+     * Select the specified elements.
+     */
+    public select(highlight: Highlight | undefined, program: Program): void {
+        for (const e of this.selectedElements) {
+            e.classList.remove("selected");
+        }
+        this.selectedElements.splice(0);
+        if (highlight !== undefined && highlight.program === program) {
+            for (let byteIndex = highlight.firstIndex; byteIndex <= highlight.lastIndex; byteIndex++) {
+                const e = this.elements[byteIndex];
+                if (e !== undefined) {
+                    e.classList.add("selected");
+                    this.selectedElements.push(e);
+                }
+            }
+        }
+    }
+}
+
+/**
  * UI for browsing a tape interactively.
  */
 export class TapeBrowser {
@@ -121,10 +229,6 @@ export class TapeBrowser {
     private readonly tapeContents: HTMLElement;
     private readonly topData: HTMLElement;
     private readonly originalWaveformDisplay = new WaveformDisplay();
-    /**
-     * Keep track of which waveform display is showing, if any.
-     */
-    private currentWaveformDisplay: WaveformDisplay | undefined;
     /**
      * All the panes we created in the upper-right (program, etc.).
      */
@@ -153,7 +257,6 @@ export class TapeBrowser {
         this.originalWaveformDisplay.addWaveform(lowSpeedCanvas, tape.lowSpeedSamples);
         this.tape.programs.forEach(program => this.originalWaveformDisplay.addProgram(program));
         this.originalWaveformDisplay.zoomToFitAll();
-        this.currentWaveformDisplay = this.originalWaveformDisplay;
 
         zoomInButton.onclick = () => this.originalWaveformDisplay.zoomIn();
         zoomOutButton.onclick = () => this.originalWaveformDisplay.zoomOut();
@@ -161,7 +264,34 @@ export class TapeBrowser {
         // Update left-side panel.
         this.updateTapeContents();
 
-        this.currentWaveformDisplay.draw();
+        this.originalWaveformDisplay.draw();
+    }
+
+    /**
+     * Update the highlighted byte.
+     */
+    public setHighlight(highlight: Highlight | undefined): void {
+        // Alert panes.
+        for (const pane of this.panes) {
+            pane.onHighlight?.(highlight);
+        }
+
+        // Update waveform.
+        this.originalWaveformDisplay.setHighlight(highlight);
+    }
+
+    /**
+     * Update the selected byte.
+     */
+    public setSelection(selection: Highlight | undefined): void {
+        console.log(selection);
+        // Alert panes.
+        for (const pane of this.panes) {
+            pane.onSelect?.(selection);
+        }
+
+        // Update waveform.
+        this.originalWaveformDisplay.setSelection(selection);
     }
 
     private makeMetadataPane(program: Program, basicPane?: Pane, edtasmPane?: Pane): Pane {
@@ -211,7 +341,7 @@ export class TapeBrowser {
         }
 
         let count = 1;
-        for (const bitData of program.bits) {
+        for (const bitData of program.bitData) {
             if (bitData.bitType === BitType.BAD) {
                 addKeyValue("Bit error " + count++, frameToTimestamp(bitData.startFrame), () =>
                     this.originalWaveformDisplay.zoomToBitData(bitData));
@@ -226,6 +356,9 @@ export class TapeBrowser {
         div.classList.add("program");
         div.classList.add("binary");
 
+        const hexHighlighter = new Highlighter(this, program);
+        const asciiHighlighter = new Highlighter(this, program);
+
         const binary = program.binary;
         for (let addr = 0; addr < binary.length; addr += 16) {
             const line = document.createElement("div");
@@ -236,17 +369,19 @@ export class TapeBrowser {
             line.appendChild(e);
 
             // Hex.
-            let subAddr;
-            e = document.createElement("span");
-            e.classList.add("hex");
+            let subAddr: number;
             for (subAddr = addr; subAddr < binary.length && subAddr < addr + 16; subAddr++) {
-                e.innerText += pad(binary[subAddr], 16, 2) + " ";
+                e = document.createElement("span");
+                e.classList.add("hex");
+                e.innerText = pad(binary[subAddr], 16, 2);
+                line.appendChild(e);
+                hexHighlighter.addElement(subAddr, e);
+                line.appendChild(document.createTextNode(" "));
             }
             for (; subAddr < addr + 16; subAddr++) {
-                e.innerText += "   ";
+                line.appendChild(document.createTextNode("   "));
             }
-            e.innerText += "  ";
-            line.appendChild(e);
+            line.appendChild(document.createTextNode("  "));
 
             // ASCII.
             for (subAddr = addr; subAddr < binary.length && subAddr < addr + 16; subAddr++) {
@@ -254,17 +389,27 @@ export class TapeBrowser {
                 e = document.createElement("span");
                 if (c >= 32 && c < 127) {
                     e.classList.add("ascii");
-                    e.innerText += String.fromCharCode(c);
+                    e.innerText = String.fromCharCode(c);
                 } else {
                     e.classList.add("ascii-unprintable");
-                    e.innerText += ".";
+                    e.innerText = ".";
                 }
                 line.appendChild(e);
+                asciiHighlighter.addElement(subAddr, e);
             }
             div.appendChild(line);
         }
 
-        return new Pane(div);
+        let pane = new Pane(div);
+        pane.onHighlight = highlight => {
+            hexHighlighter.highlight(highlight, program);
+            asciiHighlighter.highlight(highlight, program);
+        };
+        pane.onSelect = selection => {
+            hexHighlighter.select(selection, program);
+            asciiHighlighter.select(selection, program);
+        };
+        return pane;
     }
 
     private makeReconstructedPane(program: Program): Pane {
@@ -306,9 +451,26 @@ export class TapeBrowser {
         div.classList.add("program");
         div.classList.add("basic");
 
-        fromTokenized(program.binary, div);
+        const elements = fromTokenized(program.binary, div);
 
-        return new Pane(div);
+        const highlighter = new Highlighter(this, program);
+
+        let byteIndex = 0;
+        for (const e of elements) {
+            if (e !== undefined) {
+                highlighter.addElement(byteIndex, e);
+            }
+            byteIndex += 1;
+        }
+
+        let pane = new Pane(div);
+        pane.onHighlight = highlight => {
+            highlighter.highlight(highlight, program);
+        };
+        pane.onSelect = selection => {
+            highlighter.select(selection, program);
+        };
+        return pane;
     }
 
     private makeEdtasmPane(program: Program): Pane {

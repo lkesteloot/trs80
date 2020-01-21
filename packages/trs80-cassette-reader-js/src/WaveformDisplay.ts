@@ -2,6 +2,7 @@ import {DisplaySamples} from "./DisplaySamples";
 import {BitType} from "./BitType";
 import {BitData} from "./BitData";
 import {Program} from "./Program";
+import {Highlight} from "./Highlight";
 
 /**
  * An individual waveform to be displayed.
@@ -20,11 +21,36 @@ class Waveform {
  * Displays a list of different waveforms, synchronizing their pan and zoom.
  */
 export class WaveformDisplay {
+    /**
+     * The width of the canvases, in pixels.
+     */
     private displayWidth: number = 0;
+    /**
+     * The zoom level, where 0 means all the way zoomed in and each original
+     * audio sample maps to one column of pixels on the screen; 1 means
+     * zoomed out from that by a factor of two, etc.
+     */
     private displayLevel: number = 0; // Initialized in zoomToFitAll()
+    /**
+     * The sample in the middle of the display, in original samples.
+     */
     private centerSample: number = 0; // Initialized in zoomToFitAll()
+    /**
+     * All the waveforms we're displaying, and their canvases.
+     */
     private waveforms: Waveform[] = [];
+    /**
+     * All the programs represented on these waveforms.
+     */
     private programs: Program[] = [];
+    /**
+     * Start of current highlight, if any, in original samples, inclusive.
+     */
+    private startHighlightFrame: number | undefined;
+    /**
+     * End of current highlight, if any, in original samples, inclusive.
+     */
+    private endHighlightFrame: number | undefined;
 
     /**
      * Add a waveform to display.
@@ -46,6 +72,31 @@ export class WaveformDisplay {
      */
     public addProgram(program: Program) {
         this.programs.push(program);
+    }
+
+    /**
+     * Update the current highlight.
+     */
+    public setHighlight(highlight: Highlight | undefined): void {
+        this.startHighlightFrame = undefined;
+        this.endHighlightFrame = undefined;
+
+        if (highlight !== undefined) {
+            const byteData = highlight.program.byteData[highlight.firstIndex];
+            if (byteData !== undefined) {
+                this.startHighlightFrame = byteData.startFrame;
+                this.endHighlightFrame = byteData.endFrame;
+            }
+        }
+
+        this.draw();
+    }
+
+    /**
+     * Update the current highlight.
+     */
+    public setSelection(selection: Highlight | undefined): void {
+        // TODO.
     }
 
     /**
@@ -137,7 +188,7 @@ export class WaveformDisplay {
         // Programs.
         for (const program of this.programs) {
             if (drawingLine) {
-                for (const bitInfo of program.bits) {
+                for (const bitInfo of program.bitData) {
                     if (bitInfo.endFrame >= firstOrigSample && bitInfo.startFrame <= lastOrigSample) {
                         const x1 = frameToX(bitInfo.startFrame / mag);
                         const x2 = frameToX(bitInfo.endFrame / mag);
@@ -160,13 +211,24 @@ export class WaveformDisplay {
                     }
                 }
             } else {
-                ctx.fillStyle = "rgb(50, 50, 50)";
-                const x1 = frameToX(program.startFrame / mag);
-                const x2 = frameToX(program.endFrame / mag);
-                ctx.fillRect(x1, 0, x2 - x1, height);
+                // Disable highlighting of programs, it's not very useful and interferes
+                // with byte highlighting.
+                // ctx.fillStyle = "rgb(50, 50, 50)";
+                // const x1 = frameToX(program.startFrame / mag);
+                // const x2 = frameToX(program.endFrame / mag);
+                // ctx.fillRect(x1, 0, x2 - x1, height);
             }
         }
 
+        // Highlight.
+        if (this.startHighlightFrame !== undefined && this.endHighlightFrame !== undefined) {
+            ctx.fillStyle = "rgb(150, 150, 150)";
+            const x1 = frameToX(this.startHighlightFrame/ mag);
+            const x2 = frameToX(this.endHighlightFrame / mag);
+            ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
+        }
+
+        // Draw waveform.
         ctx.strokeStyle = "rgb(255, 255, 255)";
         if (drawingLine) {
             ctx.beginPath();

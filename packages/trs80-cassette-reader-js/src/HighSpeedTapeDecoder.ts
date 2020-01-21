@@ -5,6 +5,7 @@ import {BitType} from "./BitType";
 import {Tape} from "./Tape";
 import {TapeDecoder} from "./TapeDecoder";
 import {TapeDecoderState} from "./TapeDecoderState";
+import {ByteData} from "./ByteData";
 
 // What distance away from 0 counts as "positive" (or, when negative, "negative").
 const THRESHOLD = 500/32768.0;
@@ -24,6 +25,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
     private bitCount: number = 0;
     private lastCrossingFrame: number = 0;
     private bits: BitData[] = [];
+    private readonly byteData: ByteData[] = [];
 
     public getName(): string {
         return "High speed";
@@ -120,7 +122,11 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
         return bytes;
     }
 
-    public getBits(): BitData[] {
+    public getBitData(): BitData[] {
         return this.bits;
+    }
+
+    public getByteData(): ByteData[] {
+        return this.byteData;
     }
 }

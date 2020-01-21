@@ -56,8 +56,15 @@ class ByteReader {
      *
      * @returns {number}
      */
-    public read() {
+    public read(): number {
         return this.pos < this.b.length ? this.b[this.pos++] : EOF;
+    }
+
+    /**
+     * Return the byte address of the next byte to be read.
+     */
+    public addr(): number {
+        return this.pos;
     }
 
     /**
@@ -87,25 +94,28 @@ class ByteReader {
  * @param text the text to add.
  * @param className the name of the class for the item.
  */
-function add(out: HTMLElement, text: string, className: string) {
+function add(out: HTMLElement, text: string, className: string): HTMLElement {
     const e = document.createElement("span");
     e.innerText = text;
     e.classList.add(className);
     out.appendChild(e);
+    return e;
 }
 
 /**
  * Decode a tokenized Basic program.
  * @param bytes tokenized program.
  * @param out div to write result into.
+ * @return array of generated HTML elements, index by byte index.
  */
-export function fromTokenized(bytes: Uint8Array, out: HTMLElement) {
+export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[] {
     const b = new ByteReader(bytes);
     let state;
+    const elements: HTMLElement[] = [];
 
     if (b.read() !== 0xD3 || b.read() !== 0xD3 || b.read() !== 0xD3) {
         add(out, "Basic: missing magic -- not a BASIC file.", "error");
-        return;
+        return elements;
     }
 
     // One-byte ASCII program name. This is nearly always meaningless, so we do nothing with it.
@@ -133,7 +143,10 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement) {
             add(line, "[EOF in line number]", "error");
             break;
         }
-        add(line, lineNumber.toString() + " ", "line_number");
+        let e = add(line, lineNumber.toString(), "line_number");
+        elements[b.addr() - 2] = e;
+        elements[b.addr() - 1] = e;
+        add(line, " ", "regular");
 
         // Read rest of line.
         let c; // Uint8 value.
@@ -152,20 +165,25 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement) {
             if (ch === ":" && state === NORMAL) {
                 state = COLON;
             } else if (ch === ":" && state === COLON) {
-                add(line, ":", "punctuation");
+                e = add(line, ":", "punctuation");
+                elements[b.addr() - 1] = e;
             } else if (c === REM && state === COLON) {
                 state = COLON_REM;
             } else if (c === REMQUOT && state === COLON_REM) {
-                add(line, "'", "comment");
+                e = add(line, "'", "comment");
+                elements[b.addr() - 1] = e;
                 state = RAW;
             } else if (c === ELSE && state === COLON) {
-                add(line, "ELSE", "keyword");
+                e = add(line, "ELSE", "keyword");
+                elements[b.addr() - 1] = e;
                 state = NORMAL;
             } else {
                 if (state === COLON || state === COLON_REM) {
-                    add(line, ":", "punctuation");
+                    e = add(line, ":", "punctuation");
+                    elements[b.addr() - 1] = e;
                     if (state === COLON_REM) {
-                        add(line, "REM", "comment");
+                        e = add(line, "REM", "comment");
+                        elements[b.addr() - 1] = e;
                         state = RAW;
                     } else {
                         state = NORMAL;
@@ -176,13 +194,14 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement) {
                     case NORMAL:
                         if (c >= 128 && c < 128 + TOKENS.length) {
                             const token = TOKENS[c - 128];
-                            add(line, token,
+                            e = add(line, token,
                                 c === DATA || c === REM ? "comment"
                                 : token.length === 1 ? "punctuation"
                                 : "keyword");
                         } else {
-                            add(line, ch, ch === '"' ? "string" : "regular");
+                            e = add(line, ch, ch === '"' ? "string" : "regular");
                         }
+                        elements[b.addr() - 1] = e;
 
                         if (c === DATA || c === REM) {
                             state = RAW;
@@ -193,14 +212,15 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement) {
 
                     case STRING_LITERAL:
                         if (ch === "\r") {
-                            add(line, "\\n", "punctuation");
+                            e = add(line, "\\n", "punctuation");
                         } else if (ch === "\\") {
-                            add(line, "\\" + pad(c, 8, 3), "punctuation");
+                            e = add(line, "\\" + pad(c, 8, 3), "punctuation");
                         } else if (c >= 32 && c < 128) {
-                            add(line, ch, "string");
+                            e = add(line, ch, "string");
                         } else {
-                            add(line, "\\" + pad(c, 8, 3), "punctuation");
+                            e = add(line, "\\" + pad(c, 8, 3), "punctuation");
                         }
+                        elements[b.addr() - 1] = e;
                         if (ch === '"') {
                             // End of string.
                             state = NORMAL;
@@ -208,7 +228,8 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement) {
                         break;
 
                     case RAW:
-                        add(line, ch, "comment");
+                        e = add(line, ch, "comment");
+                        elements[b.addr() - 1] = e;
                         break;
                 }
             }
@@ -220,13 +241,18 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement) {
 
         // Deal with eaten tokens.
         if (state === COLON || state === COLON_REM) {
-            add(line, ":", "punctuation");
+            e = add(line, ":", "punctuation");
+            elements[b.addr() - 1] = e;
             if (state === COLON_REM) {
-                add(line, "REM", "comment");
+                e = add(line, "REM", "comment");
             }
+            elements[b.addr() - 1] = e;
             /// state = NORMAL;
         }
 
+        // Append last line.
         out.appendChild(line);
     }
+
+    return elements;
 }
