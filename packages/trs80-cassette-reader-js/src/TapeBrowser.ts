@@ -1,8 +1,8 @@
 import {frameToTimestamp, HZ} from "./AudioUtils";
-import {fromTokenized} from "./Basic";
+import * as Basic from "./Basic";
+import * as Hexdump from "./Hexdump";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
-import {pad} from "./Utils";
 import {Cassette, Trs80} from "trs80-emulator";
 import {WaveformDisplay} from "./WaveformDisplay";
 import {decodeEdtasm} from "./Edtasm";
@@ -154,7 +154,12 @@ class Highlighter {
     /**
      * Add an element to be highlighted.
      */
-    public addElement(byteIndex: number, element: HTMLElement): void {
+    public addElement(byteIndex: number, element: HTMLElement | undefined): void {
+        // Allow undefined element for convenience of caller. Just ignore it.
+        if (element === undefined) {
+            return;
+        }
+
         this.elements[byteIndex] = element;
 
         // Set up event listeners for highlighting.
@@ -186,15 +191,15 @@ class Highlighter {
     /**
      * Highlight the specified elements.
      */
-    public highlight(highlight: Highlight | undefined, program: Program): void {
+    public highlight(highlight: Highlight | undefined, program: Program, highlightClassName: string): void {
         for (const e of this.highlightedElements) {
-            e.classList.remove("highlighted");
+            e.classList.remove(highlightClassName);
         }
         this.highlightedElements.splice(0);
         if (highlight !== undefined && highlight.program === program) {
             const e = this.elements[highlight.firstIndex];
             if (e !== undefined) {
-                e.classList.add("highlighted");
+                e.classList.add(highlightClassName);
                 this.highlightedElements.push(e);
             }
         }
@@ -203,16 +208,16 @@ class Highlighter {
     /**
      * Select the specified elements.
      */
-    public select(highlight: Highlight | undefined, program: Program): void {
+    public select(highlight: Highlight | undefined, program: Program, selectClassName: string): void {
         for (const e of this.selectedElements) {
-            e.classList.remove("selected");
+            e.classList.remove(selectClassName);
         }
         this.selectedElements.splice(0);
         if (highlight !== undefined && highlight.program === program) {
             for (let byteIndex = highlight.firstIndex; byteIndex <= highlight.lastIndex; byteIndex++) {
                 const e = this.elements[byteIndex];
                 if (e !== undefined) {
-                    e.classList.add("selected");
+                    e.classList.add(selectClassName);
                     this.selectedElements.push(e);
                 }
             }
@@ -354,60 +359,23 @@ export class TapeBrowser {
     private makeBinaryPane(program: Program): Pane {
         const div = document.createElement("div");
         div.classList.add("program");
-        div.classList.add("binary");
 
         const hexHighlighter = new Highlighter(this, program);
         const asciiHighlighter = new Highlighter(this, program);
 
-        const binary = program.binary;
-        for (let addr = 0; addr < binary.length; addr += 16) {
-            const line = document.createElement("div");
+        const [hexElements, asciiElements] = Hexdump.create(program.binary, div);
 
-            let e = document.createElement("span");
-            e.classList.add("address");
-            e.innerText = pad(addr, 16, 4) + "  ";
-            line.appendChild(e);
-
-            // Hex.
-            let subAddr: number;
-            for (subAddr = addr; subAddr < binary.length && subAddr < addr + 16; subAddr++) {
-                e = document.createElement("span");
-                e.classList.add("hex");
-                e.innerText = pad(binary[subAddr], 16, 2);
-                line.appendChild(e);
-                hexHighlighter.addElement(subAddr, e);
-                line.appendChild(document.createTextNode(" "));
-            }
-            for (; subAddr < addr + 16; subAddr++) {
-                line.appendChild(document.createTextNode("   "));
-            }
-            line.appendChild(document.createTextNode("  "));
-
-            // ASCII.
-            for (subAddr = addr; subAddr < binary.length && subAddr < addr + 16; subAddr++) {
-                const c = binary[subAddr];
-                e = document.createElement("span");
-                if (c >= 32 && c < 127) {
-                    e.classList.add("ascii");
-                    e.innerText = String.fromCharCode(c);
-                } else {
-                    e.classList.add("ascii-unprintable");
-                    e.innerText = ".";
-                }
-                line.appendChild(e);
-                asciiHighlighter.addElement(subAddr, e);
-            }
-            div.appendChild(line);
-        }
+        hexElements.forEach((e, byteIndex) => hexHighlighter.addElement(byteIndex, e));
+        asciiElements.forEach((e, byteIndex) => asciiHighlighter.addElement(byteIndex, e));
 
         let pane = new Pane(div);
         pane.onHighlight = highlight => {
-            hexHighlighter.highlight(highlight, program);
-            asciiHighlighter.highlight(highlight, program);
+            hexHighlighter.highlight(highlight, program, Hexdump.highlightClassName);
+            asciiHighlighter.highlight(highlight, program, Hexdump.highlightClassName);
         };
         pane.onSelect = selection => {
-            hexHighlighter.select(selection, program);
-            asciiHighlighter.select(selection, program);
+            hexHighlighter.select(selection, program, Hexdump.selectClassName);
+            asciiHighlighter.select(selection, program, Hexdump.selectClassName);
         };
         return pane;
     }
@@ -449,26 +417,19 @@ export class TapeBrowser {
     private makeBasicPane(program: Program): Pane {
         const div = document.createElement("div");
         div.classList.add("program");
-        div.classList.add("basic");
 
-        const elements = fromTokenized(program.binary, div);
+        const elements = Basic.fromTokenized(program.binary, div);
 
         const highlighter = new Highlighter(this, program);
 
-        let byteIndex = 0;
-        for (const e of elements) {
-            if (e !== undefined) {
-                highlighter.addElement(byteIndex, e);
-            }
-            byteIndex += 1;
-        }
+        elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
 
         let pane = new Pane(div);
         pane.onHighlight = highlight => {
-            highlighter.highlight(highlight, program);
+            highlighter.highlight(highlight, program, Basic.highlightClassName);
         };
         pane.onSelect = selection => {
-            highlighter.select(selection, program);
+            highlighter.select(selection, program, Basic.selectClassName);
         };
         return pane;
     }

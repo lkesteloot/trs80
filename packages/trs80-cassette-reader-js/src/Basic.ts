@@ -2,6 +2,7 @@
 // Tools for decoding Basic programs.
 
 import { pad } from "./Utils";
+import jss from './Jss'
 
 // Starts at 0x80.
 const TOKENS = [
@@ -102,6 +103,69 @@ function add(out: HTMLElement, text: string, className: string): HTMLElement {
     return e;
 }
 
+// Stylesheet.
+const BACKGROUND_COLOR = "#1E1E1E";
+const STYLE = {
+    error: {
+        color: "#aa0000",
+        "&$highlighted": {
+            backgroundColor: "#aa0000",
+            color: BACKGROUND_COLOR,
+        },
+    },
+    lineNumber: {
+        color: "#858585",
+        "&$highlighted": {
+            backgroundColor: "#858585",
+            color: BACKGROUND_COLOR,
+        },
+    },
+    punctuation: {
+        color: "#D4D4D4",
+        "&$highlighted": {
+            backgroundColor: "#D4D4D4",
+            color: BACKGROUND_COLOR,
+        },
+    },
+    keyword: {
+        color: "#C586C0",
+        "&$highlighted": {
+            backgroundColor: "#C586C0",
+            color: BACKGROUND_COLOR,
+        },
+    },
+    regular: {
+        color: "#9CDCFE",
+        "&$highlighted": {
+            backgroundColor: "#9CDCFE",
+            color: BACKGROUND_COLOR,
+        },
+    },
+    string: {
+        color: "#CE9178",
+        "&$highlighted": {
+            backgroundColor: "#CE9178",
+            color: BACKGROUND_COLOR,
+        },
+    },
+    comment: {
+        color: "#6A9955",
+        "&$highlighted": {
+            backgroundColor: "#6A9955",
+            color: BACKGROUND_COLOR,
+        },
+    },
+    selected: {
+        backgroundColor: "#555555",
+    },
+    highlighted: {
+        // Empty style that's referenced above as $highlighted.
+    },
+};
+const sheet = jss.createStyleSheet(STYLE);
+export const highlightClassName = sheet.classes.highlighted;
+export const selectClassName = sheet.classes.selected;
+
 /**
  * Decode a tokenized Basic program.
  * @param bytes tokenized program.
@@ -109,12 +173,15 @@ function add(out: HTMLElement, text: string, className: string): HTMLElement {
  * @return array of generated HTML elements, index by byte index.
  */
 export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[] {
+    sheet.attach();
+    const classes = sheet.classes;
+
     const b = new ByteReader(bytes);
     let state;
     const elements: HTMLElement[] = [];
 
     if (b.read() !== 0xD3 || b.read() !== 0xD3 || b.read() !== 0xD3) {
-        add(out, "Basic: missing magic -- not a BASIC file.", "error");
+        add(out, "Basic: missing magic -- not a BASIC file.", classes.error);
         return elements;
     }
 
@@ -129,7 +196,7 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
         // Basic these are regenerated after loading.)
         const address = b.readShort(true);
         if (address === EOF) {
-            add(line, "[EOF in next line's address]", "error");
+            add(line, "[EOF in next line's address]", classes.error);
             break;
         }
         // Zero address indicates end of program.
@@ -140,13 +207,13 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
         // Read current line number.
         const lineNumber = b.readShort(false);
         if (lineNumber === EOF) {
-            add(line, "[EOF in line number]", "error");
+            add(line, "[EOF in line number]", classes.error);
             break;
         }
-        let e = add(line, lineNumber.toString(), "line_number");
+        let e = add(line, lineNumber.toString(), classes.lineNumber);
         elements[b.addr() - 2] = e;
         elements[b.addr() - 1] = e;
-        add(line, " ", "regular");
+        add(line, " ", classes.regular);
 
         // Read rest of line.
         let c; // Uint8 value.
@@ -165,24 +232,24 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
             if (ch === ":" && state === NORMAL) {
                 state = COLON;
             } else if (ch === ":" && state === COLON) {
-                e = add(line, ":", "punctuation");
+                e = add(line, ":", classes.punctuation);
                 elements[b.addr() - 1] = e;
             } else if (c === REM && state === COLON) {
                 state = COLON_REM;
             } else if (c === REMQUOT && state === COLON_REM) {
-                e = add(line, "'", "comment");
+                e = add(line, "'", classes.comment);
                 elements[b.addr() - 1] = e;
                 state = RAW;
             } else if (c === ELSE && state === COLON) {
-                e = add(line, "ELSE", "keyword");
+                e = add(line, "ELSE", classes.keyword);
                 elements[b.addr() - 1] = e;
                 state = NORMAL;
             } else {
                 if (state === COLON || state === COLON_REM) {
-                    e = add(line, ":", "punctuation");
+                    e = add(line, ":", classes.punctuation);
                     elements[b.addr() - 1] = e;
                     if (state === COLON_REM) {
-                        e = add(line, "REM", "comment");
+                        e = add(line, "REM", classes.comment);
                         elements[b.addr() - 1] = e;
                         state = RAW;
                     } else {
@@ -195,11 +262,11 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
                         if (c >= 128 && c < 128 + TOKENS.length) {
                             const token = TOKENS[c - 128];
                             e = add(line, token,
-                                c === DATA || c === REM ? "comment"
-                                : token.length === 1 ? "punctuation"
-                                : "keyword");
+                                c === DATA || c === REM ? classes.comment
+                                : token.length === 1 ? classes.punctuation
+                                : classes.keyword);
                         } else {
-                            e = add(line, ch, ch === '"' ? "string" : "regular");
+                            e = add(line, ch, ch === '"' ? classes.string : classes.regular);
                         }
                         elements[b.addr() - 1] = e;
 
@@ -212,13 +279,13 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
 
                     case STRING_LITERAL:
                         if (ch === "\r") {
-                            e = add(line, "\\n", "punctuation");
+                            e = add(line, "\\n", classes.punctuation);
                         } else if (ch === "\\") {
-                            e = add(line, "\\" + pad(c, 8, 3), "punctuation");
+                            e = add(line, "\\" + pad(c, 8, 3), classes.punctuation);
                         } else if (c >= 32 && c < 128) {
-                            e = add(line, ch, "string");
+                            e = add(line, ch, classes.string);
                         } else {
-                            e = add(line, "\\" + pad(c, 8, 3), "punctuation");
+                            e = add(line, "\\" + pad(c, 8, 3), classes.punctuation);
                         }
                         elements[b.addr() - 1] = e;
                         if (ch === '"') {
@@ -228,23 +295,23 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
                         break;
 
                     case RAW:
-                        e = add(line, ch, "comment");
+                        e = add(line, ch, classes.comment);
                         elements[b.addr() - 1] = e;
                         break;
                 }
             }
         }
         if (c === EOF) {
-            add(line, "[EOF in line]", "error");
+            add(line, "[EOF in line]", classes.error);
             break;
         }
 
         // Deal with eaten tokens.
         if (state === COLON || state === COLON_REM) {
-            e = add(line, ":", "punctuation");
+            e = add(line, ":", classes.punctuation);
             elements[b.addr() - 1] = e;
             if (state === COLON_REM) {
-                e = add(line, "REM", "comment");
+                e = add(line, "REM", classes.comment);
             }
             elements[b.addr() - 1] = e;
             /// state = NORMAL;

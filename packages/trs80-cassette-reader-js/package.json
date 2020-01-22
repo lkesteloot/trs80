@@ -33,6 +33,8 @@
     "webpack-cli": "^3.3.10"
   },
   "dependencies": {
+    "jss": "^10.0.3",
+    "jss-preset-default": "^10.0.3",
     "split.js": "^1.5.11",
     "trs80-emulator": "^1.0.5"
   }
