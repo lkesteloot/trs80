@@ -156,9 +156,11 @@ class Highlighter {
         this.container = container;
 
         container.addEventListener("mousedown", event => event.preventDefault());
-        container.addEventListener("mouseup", event => {
-            this.selectionBeginIndex = undefined;
-            event.preventDefault();
+        window.addEventListener("mouseup", event => {
+            if (this.selectionBeginIndex !== undefined) {
+                this.selectionBeginIndex = undefined;
+                event.preventDefault();
+            }
         });
     }
 
@@ -190,10 +192,6 @@ class Highlighter {
         element.addEventListener("mousedown", event => {
             this.tapeBrowser.setSelection(new Highlight(this.program, byteIndex));
             this.selectionBeginIndex = byteIndex;
-            event.preventDefault();
-        });
-        element.addEventListener("mouseup", event => {
-            this.selectionBeginIndex = undefined;
             event.preventDefault();
         });
     }

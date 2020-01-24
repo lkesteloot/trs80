@@ -114,9 +114,11 @@ export class WaveformDisplay {
             canvas.style.cursor = "grab";
         });
 
-        canvas.addEventListener("mouseup", () => {
-            dragging = false;
-            canvas.style.cursor = "auto";
+        window.addEventListener("mouseup", () => {
+            if (dragging) {
+                dragging = false;
+                canvas.style.cursor = "auto";
+            }
         });
 
         canvas.addEventListener("mousemove", event => {
