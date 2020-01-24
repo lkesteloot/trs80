@@ -212,8 +212,8 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
         }
         let e = add(line, lineNumber.toString(), classes.lineNumber);
         elements[b.addr() - 2] = e;
+        e = add(line, " ", classes.regular);
         elements[b.addr() - 1] = e;
-        add(line, " ", classes.regular);
 
         // Read rest of line.
         let c; // Uint8 value.

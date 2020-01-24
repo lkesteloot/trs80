@@ -53,25 +53,29 @@ export const selectClassName = sheet.classes.selected;
  * @param out the enclosing element to add to.
  * @param text the text to add.
  * @param className the name of the class for the item.
+ * @return the new element.
  */
-function add(out: HTMLElement, text: string, className: string) {
+function add(out: HTMLElement, text: string, className: string): HTMLElement {
     const e = document.createElement("span");
     e.innerText = text;
     e.classList.add(className);
     out.appendChild(e);
+    return e;
 }
 
 /**
- * Decoded the program into the DIV, returning the program name.
+ * Decoded the program into the DIV, returning the program name and array of created elements.
  */
-export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement): string {
+export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement): [string, HTMLElement[]] {
     sheet.attach();
     const classes = sheet.classes;
+    const elements: HTMLElement[] = [];
+    let e: HTMLElement;
 
     // Check magic.
     if (bytes.length < 7 || bytes[0] !== 0xD3) {
         add(out, "EDTASM: missing magic -- not a EDTASM file.", classes.error);
-        return "Error";
+        return ["Error", elements];
     }
 
     // Read name of program.
@@ -87,36 +91,43 @@ export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement): string {
     while (true) {
         if (bytes.length - i < 5) {
             // End of program.
-            return name;
+            return [name, elements];
         }
 
         const line = document.createElement("div");
 
         // Read line number.
-        const lineNumber = "" +
-            (bytes[i] - 0xB0) +
-            (bytes[i + 1] - 0xB0) +
-            (bytes[i + 2] - 0xB0) +
-            (bytes[i + 3] - 0xB0) +
-            (bytes[i + 4] - 0xB0);
-        i += 5;
-        add(line, lineNumber, classes.lineNumber);
-
-        // Parse line.
-        let lineText = "";
-        while (i < bytes.length && bytes[i] != 0x0D && bytes[i] !== 0x0A && bytes[i] !== 0x1A) {
-            if (bytes[i] === 0x09) {
-                // Tab.
-                do {
-                    lineText += " ";
-                } while (lineText.length % 8 !== 0);
-            } else {
-                // Non-tab.
-                lineText += String.fromCodePoint(bytes[i]);
-            }
+        for (let j = 0; j < 5; j++) {
+            e = add(line, (bytes[i] - 0xB0).toString(), classes.lineNumber);
+            elements[i] = e;
             i++;
         }
-        add(line, lineText, classes.regular);
+
+        // Parse line.
+        let pos = 0;
+        let className = classes.regular;
+        while (i < bytes.length && bytes[i] != 0x0D && bytes[i] !== 0x0A && bytes[i] !== 0x1A) {
+            let text: string;
+            if (bytes[i] === 0x09) {
+                // Tab.
+                text = "";
+                do {
+                    text += " ";
+                    pos++;
+                } while (pos % 8 !== 0);
+            } else {
+                // Non-tab.
+                text = String.fromCodePoint(bytes[i]);
+                if (text === ";") {
+                    // Semicolon to end of line is comment.
+                    className = classes.comment;
+                }
+                pos++;
+            }
+            e = add(line, text, className);
+            elements[i] = e;
+            i++;
+        }
 
         // Skip EOL.
         while (i < bytes.length && (bytes[i] === 0x0D || bytes[i] === 0x0A)) {

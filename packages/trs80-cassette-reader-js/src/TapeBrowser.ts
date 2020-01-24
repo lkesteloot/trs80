@@ -5,7 +5,7 @@ import {Program} from "./Program";
 import {Tape} from "./Tape";
 import {Cassette, Trs80} from "trs80-emulator";
 import {WaveformDisplay} from "./WaveformDisplay";
-import {decodeEdtasm} from "./Edtasm";
+import * as Edtasm from "./Edtasm";
 import {BitType} from "./BitType";
 import {Highlight} from "./Highlight";
 
@@ -429,7 +429,6 @@ export class TapeBrowser {
         const elements = Basic.fromTokenized(program.binary, div);
 
         const highlighter = new Highlighter(this, program, div);
-
         elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
 
         let pane = new Pane(div);
@@ -445,12 +444,20 @@ export class TapeBrowser {
     private makeEdtasmPane(program: Program): Pane {
         const div = document.createElement("div");
         div.classList.add("program");
-        div.classList.add("edtasm");
 
-        const name = decodeEdtasm(program.binary, div);
+        const [name, elements] = Edtasm.decodeEdtasm(program.binary, div);
+
+        const highlighter = new Highlighter(this, program, div);
+        elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
 
         const pane = new Pane(div);
         pane.edtasmName = name;
+        pane.onHighlight = highlight => {
+            highlighter.highlight(highlight, program, Edtasm.highlightClassName);
+        };
+        pane.onSelect = selection => {
+            highlighter.select(selection, program, Edtasm.selectClassName);
+        };
         return pane;
     }
 
