@@ -86,22 +86,14 @@ class ReconstructedCassette extends Float32Cassette {
 class Pane {
     element: HTMLElement;
     row?: HTMLElement;
-    waveformDisplay?: WaveformDisplay;
-    trs80?: Trs80;
     edtasmName?: string;
+    willHide?: () => void;
+    didHide?: () => void;
+    willShow?: () => void;
+    didShow?: () => void;
 
     constructor(element: HTMLElement) {
         this.element = element;
-    }
-
-    setWaveformDisplay(waveformDisplay: WaveformDisplay): Pane {
-        this.waveformDisplay = waveformDisplay;
-        return this;
-    }
-
-    setTrs80(trs80: Trs80): Pane {
-        this.trs80 = trs80;
-        return this;
     }
 }
 
@@ -147,6 +139,10 @@ class Highlighter {
      * The start of the selection, if we're currently selecting.
      */
     private selectionBeginIndex: number | undefined;
+    /**
+     * An element we should scroll to after we become visible.
+     */
+    private scrollToElement: HTMLElement | undefined;
 
     constructor(tapeBrowser: TapeBrowser, program: Program, container: HTMLElement) {
         this.tapeBrowser = tapeBrowser;
@@ -157,7 +153,7 @@ class Highlighter {
         window.addEventListener("mouseup", event => {
             if (this.selectionBeginIndex !== undefined) {
                 this.selectionBeginIndex = undefined;
-                this.tapeBrowser.doneSelecting();
+                this.tapeBrowser.doneSelecting(this);
                 event.preventDefault();
             }
         });
@@ -176,7 +172,7 @@ class Highlighter {
 
         // Set up event listeners for highlighting.
         element.addEventListener("mouseenter", () => {
-            this.tapeBrowser.setHighlight(new Highlight(this.program, byteIndex))
+            this.tapeBrowser.setHighlight(new Highlight(this.program, byteIndex));
             if (this.selectionBeginIndex !== undefined) {
                 this.tapeBrowser.setSelection(new Highlight(this.program, this.selectionBeginIndex, byteIndex));
             }
@@ -230,6 +226,38 @@ class Highlighter {
             }
         }
     }
+
+    /**
+     * Called when the user is done selecting and we should scroll to the selection.
+     */
+    public doneSelecting(): void {
+        // Bring the middle element into view.
+        if (this.selectedElements.length > 0) {
+            const midElement = this.selectedElements[Math.floor(this.selectedElements.length / 2)];
+            if (midElement.offsetHeight === 0) {
+                // Not visible, do this later.
+                this.scrollToElement = midElement;
+            } else {
+                midElement.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                });
+            }
+        }
+    }
+
+    /**
+     * This set of elements was just shown.
+     */
+    public didShow(): void {
+        if (this.scrollToElement !== undefined) {
+            this.scrollToElement.scrollIntoView({
+                behavior: "auto",
+                block: "center",
+            });
+            this.scrollToElement = undefined;
+        }
+    }
 }
 
 /**
@@ -262,9 +290,9 @@ export class TapeBrowser {
      */
     private onSelection = new SimpleEventDispatcher<Highlight | undefined>();
     /**
-     * Dispatcher for the selection being done.
+     * Dispatcher for the selection being done. Value is the source of the selecting process.
      */
-    private onDoneSelecting = new SimpleEventDispatcher<Highlight | undefined>();
+    private onDoneSelecting = new SimpleEventDispatcher<any>();
 
     constructor(tape: Tape,
                 waveforms: HTMLElement,
@@ -312,8 +340,8 @@ export class TapeBrowser {
     /**
      * Called when the user has finished selecting part of the data (releases the mouse button).
      */
-    public doneSelecting(): void {
-        this.onDoneSelecting.dispatch(this.selection);
+    public doneSelecting(source: any): void {
+        this.onDoneSelecting.dispatch(source);
     }
 
     /**
@@ -358,7 +386,7 @@ export class TapeBrowser {
 
         this.onHighlight.subscribe(highlight => this.originalWaveformDisplay.setHighlight(highlight));
         this.onSelection.subscribe(selection => this.originalWaveformDisplay.setSelection(selection));
-        this.onDoneSelecting.subscribe(selection => this.originalWaveformDisplay.doneSelecting());
+        this.onDoneSelecting.subscribe(() => this.originalWaveformDisplay.doneSelecting());
     }
 
     /**
@@ -441,8 +469,19 @@ export class TapeBrowser {
             hexHighlighter.select(selection, program, Hexdump.selectClassName);
             asciiHighlighter.select(selection, program, Hexdump.selectClassName);
         });
+        this.onDoneSelecting.subscribe(source => {
+            if (source !== hexHighlighter && source !== asciiHighlighter) {
+                hexHighlighter.doneSelecting();
+                asciiHighlighter.doneSelecting();
+            }
+        });
 
-        return new Pane(div);
+        let pane = new Pane(div);
+        pane.didShow = () => {
+            hexHighlighter.didShow();
+            asciiHighlighter.didShow();
+        };
+        return pane;
     }
 
     private makeReconstructedPane(program: Program): Pane {
@@ -467,7 +506,7 @@ export class TapeBrowser {
         waveformDisplay.addWaveform(canvas, program.reconstructedSamples);
         waveformDisplay.zoomToFitAll();
 
-        return new Pane(div).setWaveformDisplay(waveformDisplay);
+        return new Pane(div);
     }
 
     private makeBasicPane(program: Program): Pane {
@@ -485,8 +524,17 @@ export class TapeBrowser {
         this.onSelection.subscribe(selection => {
             highlighter.select(selection, program, Basic.selectClassName);
         });
+        this.onDoneSelecting.subscribe(source => {
+            if (source !== highlighter) {
+                highlighter.doneSelecting();
+            }
+        });
 
-        return new Pane(div);
+        let pane = new Pane(div);
+        pane.didShow = () => {
+            highlighter.didShow();
+        };
+        return pane;
     }
 
     private makeEdtasmPane(program: Program): Pane {
@@ -504,9 +552,17 @@ export class TapeBrowser {
         this.onSelection.subscribe(selection => {
             highlighter.select(selection, program, Edtasm.selectClassName);
         });
+        this.onDoneSelecting.subscribe(source => {
+            if (source !== highlighter) {
+                highlighter.doneSelecting();
+            }
+        });
 
         const pane = new Pane(div);
         pane.edtasmName = name;
+        pane.didShow = () => {
+            highlighter.didShow();
+        };
         return pane;
     }
 
@@ -524,7 +580,10 @@ export class TapeBrowser {
         const trs80 = new Trs80(screen, cassette);
         trs80.reset();
 
-        return new Pane(div).setTrs80(trs80);
+        let pane = new Pane(div);
+        pane.didShow = () => trs80.start();
+        pane.didHide = () => trs80.stop();
+        return pane;
     }
 
     /**
@@ -534,16 +593,18 @@ export class TapeBrowser {
         // Hide all others.
         for (const otherPane of this.panes) {
             if (otherPane !== pane) {
+                otherPane.willHide?.();
                 otherPane.element.classList.add("hidden");
                 otherPane.row?.classList.remove("selected");
-                otherPane.trs80?.stop();
+                otherPane.didHide?.();
             }
         }
 
         // Show this one.
+        pane.willShow?.();
         pane.element.classList.remove("hidden");
         pane.row?.classList.add("selected");
-        pane.trs80?.start();
+        pane.didShow?.();
     }
 
     /**
