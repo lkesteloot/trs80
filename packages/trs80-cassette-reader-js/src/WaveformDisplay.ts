@@ -101,9 +101,14 @@ export class WaveformDisplay {
         this.endHighlightFrame = undefined;
 
         if (highlight !== undefined) {
-            const byteData = highlight.program.byteData[highlight.firstIndex];
+            let byteData = highlight.program.byteData[highlight.firstIndex];
             if (byteData !== undefined) {
                 this.startHighlightFrame = byteData.startFrame;
+                this.endHighlightFrame = byteData.endFrame;
+            }
+
+            byteData = highlight.program.byteData[highlight.lastIndex];
+            if (byteData !== undefined) {
                 this.endHighlightFrame = byteData.endFrame;
             }
         }
@@ -115,7 +120,17 @@ export class WaveformDisplay {
      * Update the current highlight.
      */
     public setSelection(selection: Highlight | undefined): void {
-        // TODO.
+        // Selection and highlight are the same for us.
+        this.setHighlight(selection);
+    }
+
+    /**
+     * Zoom to fit the current selection, if any.
+     */
+    public doneSelecting(): void {
+        if (this.startHighlightFrame !== undefined && this.endHighlightFrame !== undefined) {
+            this.zoomToFit(this.startHighlightFrame, this.endHighlightFrame);
+        }
     }
 
     /**

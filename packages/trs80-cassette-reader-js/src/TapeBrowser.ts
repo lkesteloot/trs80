@@ -8,6 +8,7 @@ import {WaveformDisplay} from "./WaveformDisplay";
 import * as Edtasm from "./Edtasm";
 import {BitType} from "./BitType";
 import {Highlight} from "./Highlight";
+import {SimpleEventDispatcher} from "strongly-typed-events";
 
 /**
  * Generic cassette that reads from a Float32Array.
@@ -88,8 +89,6 @@ class Pane {
     waveformDisplay?: WaveformDisplay;
     trs80?: Trs80;
     edtasmName?: string;
-    onHighlight?: (highlight: Highlight | undefined) => void;
-    onSelect?: (selection: Highlight | undefined) => void;
 
     constructor(element: HTMLElement) {
         this.element = element;
@@ -144,7 +143,6 @@ class Highlighter {
      * Currently-selected elements.
      */
     readonly selectedElements: HTMLElement[] = [];
-
     /**
      * The start of the selection, if we're currently selecting.
      */
@@ -159,6 +157,7 @@ class Highlighter {
         window.addEventListener("mouseup", event => {
             if (this.selectionBeginIndex !== undefined) {
                 this.selectionBeginIndex = undefined;
+                this.tapeBrowser.doneSelecting();
                 event.preventDefault();
             }
         });
@@ -246,6 +245,26 @@ export class TapeBrowser {
      * All the panes we created in the upper-right (program, etc.).
      */
     private panes: Pane[] = [];
+    /**
+     * Current highlight, or undefined if none.
+     */
+    private highlight: Highlight | undefined;
+    /**
+     * Current selection, or undefined if none.
+     */
+    private selection: Highlight | undefined;
+    /**
+     * Dispatcher for highlight property.
+     */
+    private onHighlight = new SimpleEventDispatcher<Highlight | undefined>();
+    /**
+     * Dispatcher for selection property.
+     */
+    private onSelection = new SimpleEventDispatcher<Highlight | undefined>();
+    /**
+     * Dispatcher for the selection being done.
+     */
+    private onDoneSelecting = new SimpleEventDispatcher<Highlight | undefined>();
 
     constructor(tape: Tape,
                 waveforms: HTMLElement,
@@ -278,29 +297,28 @@ export class TapeBrowser {
      * Update the highlighted byte.
      */
     public setHighlight(highlight: Highlight | undefined): void {
-        // Alert panes.
-        for (const pane of this.panes) {
-            pane.onHighlight?.(highlight);
-        }
-
-        // Update waveform.
-        this.originalWaveformDisplay.setHighlight(highlight);
+        this.highlight = highlight;
+        this.onHighlight.dispatch(this.highlight);
     }
 
     /**
      * Update the selected byte.
      */
     public setSelection(selection: Highlight | undefined): void {
-        console.log(selection);
-        // Alert panes.
-        for (const pane of this.panes) {
-            pane.onSelect?.(selection);
-        }
-
-        // Update waveform.
-        this.originalWaveformDisplay.setSelection(selection);
+        this.selection = selection;
+        this.onSelection.dispatch(this.selection);
     }
 
+    /**
+     * Called when the user has finished selecting part of the data (releases the mouse button).
+     */
+    public doneSelecting(): void {
+        this.onDoneSelecting.dispatch(this.selection);
+    }
+
+    /**
+     * Make the lower-right pane of original waveforms.
+     */
     private makeWaveforms(waveforms: HTMLElement): void {
         clearElement(waveforms);
 
@@ -337,8 +355,15 @@ export class TapeBrowser {
         canvas.height = 400;
         this.originalWaveformDisplay.addWaveform(canvas, this.tape.lowSpeedSamples);
         waveforms.appendChild(canvas);
+
+        this.onHighlight.subscribe(highlight => this.originalWaveformDisplay.setHighlight(highlight));
+        this.onSelection.subscribe(selection => this.originalWaveformDisplay.setSelection(selection));
+        this.onDoneSelecting.subscribe(selection => this.originalWaveformDisplay.doneSelecting());
     }
 
+    /**
+     * Make pane of metadata for a program.
+     */
     private makeMetadataPane(program: Program, basicPane?: Pane, edtasmPane?: Pane): Pane {
         const div = document.createElement("div");
         div.classList.add("metadata");
@@ -408,16 +433,16 @@ export class TapeBrowser {
         hexElements.forEach((e, byteIndex) => hexHighlighter.addElement(byteIndex, e));
         asciiElements.forEach((e, byteIndex) => asciiHighlighter.addElement(byteIndex, e));
 
-        let pane = new Pane(div);
-        pane.onHighlight = highlight => {
+        this.onHighlight.subscribe(highlight => {
             hexHighlighter.highlight(highlight, program, Hexdump.highlightClassName);
             asciiHighlighter.highlight(highlight, program, Hexdump.highlightClassName);
-        };
-        pane.onSelect = selection => {
+        });
+        this.onSelection.subscribe(selection => {
             hexHighlighter.select(selection, program, Hexdump.selectClassName);
             asciiHighlighter.select(selection, program, Hexdump.selectClassName);
-        };
-        return pane;
+        });
+
+        return new Pane(div);
     }
 
     private makeReconstructedPane(program: Program): Pane {
@@ -454,14 +479,14 @@ export class TapeBrowser {
         const highlighter = new Highlighter(this, program, div);
         elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
 
-        let pane = new Pane(div);
-        pane.onHighlight = highlight => {
+        this.onHighlight.subscribe(highlight => {
             highlighter.highlight(highlight, program, Basic.highlightClassName);
-        };
-        pane.onSelect = selection => {
+        });
+        this.onSelection.subscribe(selection => {
             highlighter.select(selection, program, Basic.selectClassName);
-        };
-        return pane;
+        });
+
+        return new Pane(div);
     }
 
     private makeEdtasmPane(program: Program): Pane {
@@ -473,14 +498,15 @@ export class TapeBrowser {
         const highlighter = new Highlighter(this, program, div);
         elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
 
+        this.onHighlight.subscribe(highlight => {
+            highlighter.highlight(highlight, program, Edtasm.highlightClassName);
+        });
+        this.onSelection.subscribe(selection => {
+            highlighter.select(selection, program, Edtasm.selectClassName);
+        });
+
         const pane = new Pane(div);
         pane.edtasmName = name;
-        pane.onHighlight = highlight => {
-            highlighter.highlight(highlight, program, Edtasm.highlightClassName);
-        };
-        pane.onSelect = selection => {
-            highlighter.select(selection, program, Edtasm.selectClassName);
-        };
         return pane;
     }
 
