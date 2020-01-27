@@ -248,8 +248,6 @@ export class TapeBrowser {
     private panes: Pane[] = [];
 
     constructor(tape: Tape,
-                zoomInButton: HTMLButtonElement,
-                zoomOutButton: HTMLButtonElement,
                 waveforms: HTMLElement,
                 originalCanvas: HTMLCanvasElement,
                 filteredCanvas: HTMLCanvasElement,
@@ -265,14 +263,10 @@ export class TapeBrowser {
         clearElement(tapeContents);
         clearElement(topData);
 
-        this.originalWaveformDisplay.addWaveform(originalCanvas, tape.originalSamples);
-        this.originalWaveformDisplay.addWaveform(filteredCanvas, tape.filteredSamples);
-        this.originalWaveformDisplay.addWaveform(lowSpeedCanvas, tape.lowSpeedSamples);
+        this.makeWaveforms(waveforms);
+
         this.tape.programs.forEach(program => this.originalWaveformDisplay.addProgram(program));
         this.originalWaveformDisplay.zoomToFitAll();
-
-        zoomInButton.onclick = () => this.originalWaveformDisplay.zoomIn();
-        zoomOutButton.onclick = () => this.originalWaveformDisplay.zoomOut();
 
         // Update left-side panel.
         this.updateTapeContents();
@@ -305,6 +299,44 @@ export class TapeBrowser {
 
         // Update waveform.
         this.originalWaveformDisplay.setSelection(selection);
+    }
+
+    private makeWaveforms(waveforms: HTMLElement): void {
+        clearElement(waveforms);
+
+        const zoomControls = document.createElement("div");
+        zoomControls.appendChild(this.originalWaveformDisplay.makeZoomControls());
+        waveforms.appendChild(zoomControls);
+
+        let label = document.createElement("p");
+        label.innerText = "Original waveform:";
+        waveforms.appendChild(label);
+
+        let canvas = document.createElement("canvas");
+        canvas.width = 800;
+        canvas.height = 400;
+        this.originalWaveformDisplay.addWaveform(canvas, this.tape.originalSamples);
+        waveforms.appendChild(canvas);
+
+        label = document.createElement("p");
+        label.innerText = "High-pass filtered to get rid of DC:";
+        waveforms.appendChild(label);
+
+        canvas = document.createElement("canvas");
+        canvas.width = 800;
+        canvas.height = 400;
+        this.originalWaveformDisplay.addWaveform(canvas, this.tape.filteredSamples);
+        waveforms.appendChild(canvas);
+
+        label = document.createElement("p");
+        label.innerText = "Differentiated for low-speed decoding:";
+        waveforms.appendChild(label);
+
+        canvas = document.createElement("canvas");
+        canvas.width = 800;
+        canvas.height = 400;
+        this.originalWaveformDisplay.addWaveform(canvas, this.tape.lowSpeedSamples);
+        waveforms.appendChild(canvas);
     }
 
     private makeMetadataPane(program: Program, basicPane?: Pane, edtasmPane?: Pane): Pane {
@@ -389,22 +421,14 @@ export class TapeBrowser {
     }
 
     private makeReconstructedPane(program: Program): Pane {
+        const waveformDisplay = new WaveformDisplay();
+
         const div = document.createElement("div");
         div.classList.add("reconstructed_waveform");
 
-        const zoomInButton = document.createElement("button");
-        zoomInButton.innerText = "Zoom In";
-        zoomInButton.classList.add("nice_button");
-        zoomInButton.addEventListener("click", () => waveformDisplay.zoomIn());
-        div.appendChild(zoomInButton);
-
-        div.appendChild(document.createTextNode(" "));
-
-        const zoomOutButton = document.createElement("button");
-        zoomOutButton.innerText = "Zoom Out";
-        zoomOutButton.classList.add("nice_button");
-        zoomOutButton.addEventListener("click", () => waveformDisplay.zoomOut());
-        div.appendChild(zoomOutButton);
+        const zoomControls = document.createElement("div");
+        zoomControls.appendChild(waveformDisplay.makeZoomControls());
+        div.appendChild(zoomControls);
 
         const p = document.createElement("p");
         p.innerText = "Reconstructed high-speed waveform:";
@@ -415,7 +439,6 @@ export class TapeBrowser {
         canvas.height = 400;
         div.appendChild(canvas);
 
-        const waveformDisplay = new WaveformDisplay();
         waveformDisplay.addWaveform(canvas, program.reconstructedSamples);
         waveformDisplay.zoomToFitAll();
 

@@ -40,8 +40,6 @@ function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
     const decoder = new Decoder(tape);
     decoder.decode();
     const tapeBrowser = new TapeBrowser(tape,
-        document.getElementById("zoom_in_button") as HTMLButtonElement,
-        document.getElementById("zoom_out_button") as HTMLButtonElement,
         document.getElementById("waveforms") as HTMLElement,
         document.getElementById("original_canvas") as HTMLCanvasElement,
         document.getElementById("filtered_canvas") as HTMLCanvasElement,
@@ -55,6 +53,7 @@ function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
     dropScreen.classList.add("hidden");
     dataScreen.classList.remove("hidden");
 
+    /*
     const loadAnotherButton = document.getElementById("load_another_button") as HTMLButtonElement;
     loadAnotherButton.onclick = () => {
         dropScreen.classList.remove("hidden");
@@ -63,6 +62,7 @@ function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
             uploader.reset();
         }
     };
+    */
 
     Split(["#data_screen > nav", "#data_screen > main"], {
         sizes: [20,80],

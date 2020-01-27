@@ -30,7 +30,11 @@ export class WaveformDisplay {
      * audio sample maps to one column of pixels on the screen; 1 means
      * zoomed out from that by a factor of two, etc.
      */
-    private displayLevel: number = 0; // Initialized in zoomToFitAll()
+    private zoom: number = 0; // Initialized in zoomToFitAll()
+    /**
+     * The max value that zoom can have.
+     */
+    private maxZoom: number = 0;
     /**
      * The sample in the middle of the display, in original samples.
      */
@@ -51,16 +55,31 @@ export class WaveformDisplay {
      * End of current highlight, if any, in original samples, inclusive.
      */
     private endHighlightFrame: number | undefined;
+    /**
+     * Listeners of the maxZoom property.
+     */
+    private onMaxZoom: ((maxZoom: number) => void)[] = [];
+    /**
+     * Listeners of the zoom property.
+     */
+    private onZoom: ((zoom: number) => void)[] = [];
 
     /**
      * Add a waveform to display.
      */
-    public addWaveform(canvas: HTMLCanvasElement, samples?: DisplaySamples) {
+    public addWaveform(canvas: HTMLCanvasElement, samples: DisplaySamples) {
         const displayWidth = canvas.width;
         if (this.displayWidth === 0) {
             this.displayWidth = displayWidth;
         } else if (this.displayWidth !== displayWidth) {
             throw new Error("Widths of the canvases must match");
+        }
+
+        // Compute max display level.
+        let newMaxZoom = samples.samplesList.length - 1;
+        if (newMaxZoom !== this.maxZoom) {
+            this.maxZoom = newMaxZoom;
+            this.onMaxZoom.forEach(callback => callback(newMaxZoom));
         }
 
         this.waveforms.push(new Waveform(canvas, samples));
@@ -100,6 +119,33 @@ export class WaveformDisplay {
     }
 
     /**
+     * Create zoom control elements, bind them to this waveform display, and return them.
+     * These are not guaranteed to be a block element. Caller should warp them in
+     * a div if that's what they want.
+     */
+    public makeZoomControls(): HTMLElement {
+        const label = document.createElement("label") as HTMLLabelElement;
+        label.innerText = "Zoom: ";
+
+        const input = document.createElement("input") as HTMLInputElement;
+        input.type = "range";
+        label.appendChild(input);
+
+        // We want to flip this horizontally, so make the slider's value
+        // the negative of the real zoom.
+        input.min = (-this.maxZoom).toString();
+        input.max = "0";
+        this.onMaxZoom.push(maxZoom => input.min = (-maxZoom).toString());
+        this.onZoom.push(zoom => input.value = (-zoom).toString());
+
+        input.addEventListener("input", () => {
+            this.setZoom(-parseInt(input.value));
+        });
+
+        return label;
+    }
+
+    /**
      * Configure the mouse events in the canvas.
      */
     private configureCanvas(canvas: HTMLCanvasElement) {
@@ -124,7 +170,7 @@ export class WaveformDisplay {
         canvas.addEventListener("mousemove", event => {
             if (dragging) {
                 const dx = event.x - dragInitialX;
-                const mag = Math.pow(2, this.displayLevel);
+                const mag = Math.pow(2, this.zoom);
                 this.centerSample = Math.round(dragInitialCenterSample - dx * mag);
                 this.draw();
             }
@@ -146,10 +192,10 @@ export class WaveformDisplay {
      * @param sampleCount number of samples we want to display.
      */
     private computeFitLevel(sampleCount: number): number {
-        let displayLevel = Math.ceil(Math.log2(sampleCount / this.displayWidth));
-        displayLevel = Math.max(displayLevel, 0);
-        displayLevel = Math.min(displayLevel, sampleCount - 1);
-        return displayLevel;
+        let zoom = Math.ceil(Math.log2(sampleCount / this.displayWidth));
+        zoom = Math.max(zoom, 0);
+        zoom = Math.min(zoom, sampleCount - 1);
+        return zoom;
     }
 
     /**
@@ -170,8 +216,8 @@ export class WaveformDisplay {
         }
 
         const samplesList = displaySamples.samplesList;
-        const samples = samplesList[this.displayLevel];
-        const mag = Math.pow(2, this.displayLevel);
+        const samples = samplesList[this.zoom];
+        const mag = Math.pow(2, this.zoom);
         const centerSample = Math.floor(this.centerSample / mag);
 
         const frameToX = (i: number) => Math.floor(width / 2) + (i - centerSample);
@@ -185,7 +231,7 @@ export class WaveformDisplay {
         const lastOrigSample = Math.ceil(lastSample * mag);
 
         // Whether we're zoomed in enough to draw and line and individual bits.
-        const drawingLine: boolean = this.displayLevel < 3;
+        const drawingLine: boolean = this.zoom < 3;
 
         // Programs.
         for (const program of this.programs) {
@@ -259,26 +305,29 @@ export class WaveformDisplay {
     }
 
     /**
+     * Set the zoom level to a particular value.
+     */
+    public setZoom(zoom: number): void {
+        const newZoom = Math.min(Math.max(0, zoom), this.maxZoom);
+        if (newZoom !== this.zoom) {
+            this.zoom = newZoom;
+            this.onZoom.forEach(callback => callback(newZoom));
+            this.draw();
+        }
+    }
+
+    /**
      * Zoom in one level.
      */
     public zoomIn() {
-        if (this.displayLevel > 0) {
-            this.displayLevel -= 1;
-            this.draw();
-        }
+        this.setZoom(this.zoom - 1);
     }
 
     /**
      * Zoom out one level.
      */
     public zoomOut() {
-        if (this.waveforms.length > 0 &&
-            this.waveforms[0].samples !== undefined &&
-            this.displayLevel < this.waveforms[0].samples.samplesList.length - 1) {
-
-            this.displayLevel += 1;
-            this.draw();
-        }
+        this.setZoom(this.zoom + 1);
     }
 
     /**
@@ -298,11 +347,11 @@ export class WaveformDisplay {
     public zoomToFit(startFrame: number, endFrame: number) {
         const sampleCount = endFrame - startFrame;
 
-        // Find appropriate zoom.
-        this.displayLevel = this.computeFitLevel(sampleCount);
-
         // Visually centered sample (in level 0).
         this.centerSample = Math.floor((startFrame + endFrame)/2);
+
+        // Find appropriate zoom.
+        this.setZoom(this.computeFitLevel(sampleCount));
 
         this.draw();
     }
