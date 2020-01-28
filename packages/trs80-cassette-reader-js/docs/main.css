@@ -1,6 +1,6 @@
 /* Global settings. */
 body {
-    font-family: "Helvetica Neue", sans-serif;
+    font-family: "Roboto", "Helvetica Neue", sans-serif;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -121,7 +121,8 @@ body {
     padding: 3px 10px;
 }
 .tape_contents_row.tape_title {
-    font-weight: 100;
+    font-family: 'Roboto Condensed', sans-serif;
+    font-weight: 300;
     font-size: 24pt;
     text-align: center;
     margin: 0.5em 0;
@@ -201,7 +202,7 @@ body {
     background-color: #EEEEEE;
 }
 .program {
-    font-family: monospace;
+    font-family: "Roboto Mono", monospace;
     background-color: #1E1E1E;
     color: #D4D4D4;
     white-space: pre;
