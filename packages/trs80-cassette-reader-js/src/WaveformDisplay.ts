@@ -394,7 +394,7 @@ export class WaveformDisplay {
                         const x2 = frameToX(byteInfo.endFrame / mag);
                         let byteValue = byteInfo.value;
                         const basicToken = Basic.getToken(byteValue);
-                        const label = byteValue < 32 ? "\\" + String.fromCodePoint(byteValue + 64).toLowerCase()
+                        const label = byteValue < 32 ? "^" + String.fromCodePoint(byteValue + 64)
                             : byteValue === 32 ? '\u2423' // Open box to represent space.
                             : byteValue < 128 ? String.fromCodePoint(byteValue)
                             : program.isBasicProgram() && basicToken !== undefined ? basicToken
