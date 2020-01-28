@@ -192,18 +192,19 @@ export class WaveformDisplay {
         let dragging = false;
         let dragInitialX = 0;
         let dragInitialCenterSample = 0;
+        canvas.style.cursor = "grab";
 
         canvas.addEventListener("mousedown", event => {
             dragging = true;
             dragInitialX = event.x;
             dragInitialCenterSample = this.centerSample;
-            canvas.style.cursor = "grab";
+            canvas.style.cursor = "grabbing";
         });
 
         window.addEventListener("mouseup", () => {
             if (dragging) {
                 dragging = false;
-                canvas.style.cursor = "auto";
+                canvas.style.cursor = "grab";
             }
         });
 
