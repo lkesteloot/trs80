@@ -17,7 +17,7 @@ export class DisplaySamples {
      * Sample down for quick display.
      */
     private filterDown() {
-        while (this.samplesList[this.samplesList.length - 1].length > 1) {
+        while (this.samplesList[this.samplesList.length - 1].length > 500) {
             const samples = this.samplesList[this.samplesList.length - 1];
             const half = Math.ceil(samples.length / 2);
             const down = new Float32Array(half);

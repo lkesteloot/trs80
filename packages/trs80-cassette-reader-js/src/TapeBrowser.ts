@@ -9,6 +9,7 @@ import * as Edtasm from "./Edtasm";
 import {BitType} from "./BitType";
 import {Highlight} from "./Highlight";
 import {SimpleEventDispatcher} from "strongly-typed-events";
+import {DisplaySamples} from "./DisplaySamples";
 
 /**
  * Generic cassette that reads from a Float32Array.
@@ -310,15 +311,13 @@ export class TapeBrowser {
         clearElement(tapeContents);
         clearElement(topData);
 
-        this.makeWaveforms(waveforms);
-
+        this.makeOriginalSamplesWaveforms(waveforms);
         this.tape.programs.forEach(program => this.originalWaveformDisplay.addProgram(program));
-        this.originalWaveformDisplay.zoomToFitAll();
+        this.originalWaveformDisplay.draw();
 
         // Update left-side panel.
         this.updateTapeContents();
 
-        this.originalWaveformDisplay.draw();
     }
 
     /**
@@ -345,48 +344,55 @@ export class TapeBrowser {
     }
 
     /**
-     * Make the lower-right pane of original waveforms.
+     * Fill the parent with the labels and canvases to display the specified waveforms
+     * and their labels.
      */
-    private makeWaveforms(waveforms: HTMLElement): void {
-        clearElement(waveforms);
+    private makeWaveforms(parent: HTMLElement, waveformDisplay: WaveformDisplay,
+                         sampleSets: { label: string, samples: DisplaySamples }[]): void {
+
+        clearElement(parent);
 
         const zoomControls = document.createElement("div");
-        zoomControls.appendChild(this.originalWaveformDisplay.makeZoomControls());
-        waveforms.appendChild(zoomControls);
+        zoomControls.appendChild(waveformDisplay.makeZoomControls());
+        parent.appendChild(zoomControls);
 
-        let label = document.createElement("p");
-        label.innerText = "Original waveform:";
-        waveforms.appendChild(label);
+        for (const sampleSet of sampleSets) {
+            let label = document.createElement("p");
+            label.innerText = sampleSet.label;
+            parent.appendChild(label);
 
-        let canvas = document.createElement("canvas");
-        canvas.width = 800;
-        canvas.height = 400;
-        this.originalWaveformDisplay.addWaveform(canvas, this.tape.originalSamples);
-        waveforms.appendChild(canvas);
+            let canvas = document.createElement("canvas");
+            canvas.width = 800;
+            canvas.height = 400;
+            waveformDisplay.addWaveform(canvas, sampleSet.samples);
+            parent.appendChild(canvas);
+        }
 
-        label = document.createElement("p");
-        label.innerText = "High-pass filtered to get rid of DC:";
-        waveforms.appendChild(label);
+        this.onHighlight.subscribe(highlight => waveformDisplay.setHighlight(highlight));
+        this.onSelection.subscribe(selection => waveformDisplay.setSelection(selection));
+        this.onDoneSelecting.subscribe(() => waveformDisplay.doneSelecting());
 
-        canvas = document.createElement("canvas");
-        canvas.width = 800;
-        canvas.height = 400;
-        this.originalWaveformDisplay.addWaveform(canvas, this.tape.filteredSamples);
-        waveforms.appendChild(canvas);
+        waveformDisplay.zoomToFitAll();
+    }
 
-        label = document.createElement("p");
-        label.innerText = "Differentiated for low-speed decoding:";
-        waveforms.appendChild(label);
-
-        canvas = document.createElement("canvas");
-        canvas.width = 800;
-        canvas.height = 400;
-        this.originalWaveformDisplay.addWaveform(canvas, this.tape.lowSpeedSamples);
-        waveforms.appendChild(canvas);
-
-        this.onHighlight.subscribe(highlight => this.originalWaveformDisplay.setHighlight(highlight));
-        this.onSelection.subscribe(selection => this.originalWaveformDisplay.setSelection(selection));
-        this.onDoneSelecting.subscribe(() => this.originalWaveformDisplay.doneSelecting());
+    /**
+     * Make the lower-right pane of original waveforms.
+     */
+    private makeOriginalSamplesWaveforms(waveforms: HTMLElement): void {
+        this.makeWaveforms(waveforms, this.originalWaveformDisplay, [
+            {
+                label: "Original waveform:",
+                samples: this.tape.originalSamples,
+            },
+            {
+                label: "High-pass filtered to get rid of DC:",
+                samples: this.tape.filteredSamples,
+            },
+            {
+                label: "Differentiated for low-speed decoding:",
+                samples: this.tape.lowSpeedSamples,
+            },
+        ]);
     }
 
     /**
@@ -484,27 +490,19 @@ export class TapeBrowser {
         return pane;
     }
 
+    /**
+     * Make the pane of the audio sample we reconstruct from the bits.
+     */
     private makeReconstructedPane(program: Program): Pane {
-        const waveformDisplay = new WaveformDisplay();
-
         const div = document.createElement("div");
         div.classList.add("reconstructed_waveform");
 
-        const zoomControls = document.createElement("div");
-        zoomControls.appendChild(waveformDisplay.makeZoomControls());
-        div.appendChild(zoomControls);
-
-        const p = document.createElement("p");
-        p.innerText = "Reconstructed high-speed waveform:";
-        div.appendChild(p);
-
-        const canvas = document.createElement("canvas");
-        canvas.width = 800;
-        canvas.height = 400;
-        div.appendChild(canvas);
-
-        waveformDisplay.addWaveform(canvas, program.reconstructedSamples);
-        waveformDisplay.zoomToFitAll();
+        this.makeWaveforms(div, new WaveformDisplay(), [
+            {
+                label: "Reconstructed high-speed waveform:",
+                samples: program.reconstructedSamples,
+            }
+        ]);
 
         return new Pane(div);
     }
