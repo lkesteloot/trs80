@@ -118,6 +118,11 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                         // Merge with previous 1 bit.
                         lastBit.endFrame = frame;
                     }
+                    const lastByte = this.byteData[this.byteData.length - 1];
+                    if (lastByte && lastByte.endFrame === this.lastPulseFrame) {
+                        // Adjust last bit.
+                        lastByte.endFrame = frame;
+                    }
                 }
                 this.eatNextPulse = false;
                 this.lenientFirstBit = false;
@@ -147,8 +152,9 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                     } else {
                         this.bitCount += 1;
                         if (this.bitCount === 8) {
-                            this.programBytes.push(this.recentBits & 0xFF);
-                            this.byteData.push(new ByteData(this.bitData[this.bitData.length - 8].startFrame, frame));
+                            let byteValue = this.recentBits & 0xFF;
+                            this.programBytes.push(byteValue);
+                            this.byteData.push(new ByteData(byteValue, this.bitData[this.bitData.length - 8].startFrame, frame));
                             this.bitCount = 0;
                         }
                     }

@@ -3,6 +3,7 @@ import {BitType} from "./BitType";
 import {BitData} from "./BitData";
 import {Program} from "./Program";
 import {Highlight} from "./Highlight";
+import * as Basic from "./Basic";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 
 /**
@@ -272,44 +273,9 @@ export class WaveformDisplay {
         // Whether we're zoomed in enough to draw and line and individual bits.
         const drawingLine: boolean = this.zoom < 3;
 
-        // Programs.
-        for (const program of this.programs) {
-            if (drawingLine) {
-                for (const bitInfo of program.bitData) {
-                    if (bitInfo.endFrame >= firstOrigSample && bitInfo.startFrame <= lastOrigSample) {
-                        const x1 = frameToX(bitInfo.startFrame / mag);
-                        const x2 = frameToX(bitInfo.endFrame / mag);
-                        // console.log(bitInfo, x1, x2);
-                        switch (bitInfo.bitType) {
-                            case BitType.ZERO:
-                                ctx.fillStyle = "rgb(50, 50, 50)";
-                                break;
-                            case BitType.ONE:
-                                ctx.fillStyle = "rgb(100, 100, 100)";
-                                break;
-                            case BitType.START:
-                                ctx.fillStyle = "rgb(20, 150, 20)";
-                                break;
-                            case BitType.BAD:
-                                ctx.fillStyle = "rgb(150, 20, 20)";
-                                break;
-                        }
-                        ctx.fillRect(x1, 0, x2 - x1 - 1, height);
-                    }
-                }
-            } else {
-                // Disable highlighting of programs, it's not very useful and interferes
-                // with byte highlighting.
-                // ctx.fillStyle = "rgb(50, 50, 50)";
-                // const x1 = frameToX(program.startFrame / mag);
-                // const x2 = frameToX(program.endFrame / mag);
-                // ctx.fillRect(x1, 0, x2 - x1, height);
-            }
-        }
-
         // Selection.
         if (this.startSelectionFrame !== undefined && this.endSelectionFrame !== undefined) {
-            ctx.fillStyle = "#555555";
+            ctx.fillStyle = "rgb(50, 50, 50)";
             const x1 = frameToX(this.startSelectionFrame/ mag);
             const x2 = frameToX(this.endSelectionFrame / mag);
             ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
@@ -317,10 +283,68 @@ export class WaveformDisplay {
 
         // Highlight.
         if (this.startHighlightFrame !== undefined && this.endHighlightFrame !== undefined) {
-            ctx.fillStyle = "rgb(150, 150, 150)";
+            ctx.fillStyle = "rgb(75, 75, 75)";
             const x1 = frameToX(this.startHighlightFrame/ mag);
             const x2 = frameToX(this.endHighlightFrame / mag);
             ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
+        }
+
+        // Programs and bits.
+        for (const program of this.programs) {
+            if (drawingLine) {
+                // Highlight bits.
+                for (const bitInfo of program.bitData) {
+                    if (bitInfo.endFrame >= firstOrigSample && bitInfo.startFrame <= lastOrigSample) {
+                        const x1 = frameToX(bitInfo.startFrame / mag);
+                        const x2 = frameToX(bitInfo.endFrame / mag);
+
+                        let label: string;
+                        let color: string;
+                        switch (bitInfo.bitType) {
+                            case BitType.ZERO:
+                                color = "rgb(150, 150, 150)";
+                                label = "0";
+                                break;
+                            case BitType.ONE:
+                                color = "rgb(150, 150, 150)";
+                                label = "1";
+                                break;
+                            case BitType.START:
+                                color = "rgb(50, 200, 50)";
+                                label = "START";
+                                break;
+                            case BitType.BAD:
+                                color = "rgb(200, 50, 50)";
+                                label = "BAD";
+                                break;
+                        }
+
+                        this.drawBraceAndLabel(ctx, x1, x2, label, color);
+                    }
+                }
+            } else if (this.zoom < 5) {
+                // Highlight bytes.
+                for (const byteInfo of program.byteData) {
+                    if (byteInfo.endFrame >= firstOrigSample && byteInfo.startFrame <= lastOrigSample) {
+                        const x1 = frameToX(byteInfo.startFrame / mag);
+                        const x2 = frameToX(byteInfo.endFrame / mag);
+                        let byteValue = byteInfo.value;
+                        const basicToken = Basic.getToken(byteValue);
+                        const label = byteValue < 32 ? "\\" + String.fromCodePoint(byteValue + 64).toLowerCase()
+                            : byteValue === 32 ? '\u2423' // Open box to represent space.
+                            : byteValue < 128 ? String.fromCodePoint(byteValue)
+                            : program.isBasicProgram() && basicToken !== undefined ? basicToken
+                            : "0x" + byteValue.toString(16).padStart(2, "0").toUpperCase();
+
+                        this.drawBraceAndLabel(ctx, x1, x2, label, "rgb(150, 150, 150)");
+                    }
+                }
+            } else {
+                // Highlight the whole program.
+                const x1 = frameToX(program.startFrame / mag);
+                const x2 = frameToX(program.endFrame / mag);
+                this.drawBraceAndLabel(ctx, x1, x2, program.getProgramLabel(), "rgb(150, 150, 150)");
+            }
         }
 
         // Draw waveform.
@@ -410,6 +434,49 @@ export class WaveformDisplay {
         if (this.waveforms.length > 0 && this.waveforms[0].samples !== undefined) {
             this.zoomToFit(0, this.waveforms[0].samples.samplesList[0].length);
         }
+    }
+
+    /**
+     * Draw a down-facing brace withe specified label.
+     */
+    private drawBraceAndLabel(ctx: CanvasRenderingContext2D,
+                              left: number, right: number,
+                              label: string, color: string): void {
+
+        const middle = (left + right)/2;
+
+        // Don't use a custom font here, they load asynchronously and we're not told when they
+        // finish loading, so we can't redraw and the initial draw uses some default serif font.
+        ctx.font = '10pt monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText(label, middle, 38);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        this.drawBrace(ctx, left, middle, right, 40, 380);
+    }
+
+    /**
+     * Draw a horizontal brace, pointing up, facing down.
+     */
+    private drawBrace(ctx: CanvasRenderingContext2D,
+                      left: number, middle: number, right: number,
+                      top: number, bottom: number): void {
+
+        const radius = Math.min(10, (right - left)/4);
+        const lineY = top + 20;
+
+        ctx.beginPath();
+        ctx.moveTo(left, bottom);
+        ctx.arcTo(left, lineY, left + radius, lineY, radius);
+        ctx.arcTo(middle, lineY, middle, top, radius);
+        ctx.arcTo(middle, lineY, middle + radius, lineY, radius);
+        ctx.arcTo(right, lineY, right, lineY + radius, radius);
+        ctx.lineTo(right, bottom);
+
+        ctx.stroke();
     }
 }
 

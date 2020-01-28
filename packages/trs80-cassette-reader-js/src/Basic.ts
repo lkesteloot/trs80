@@ -167,6 +167,14 @@ export const highlightClassName = sheet.classes.highlighted;
 export const selectClassName = sheet.classes.selected;
 
 /**
+ * Get the token for the byte value, or undefined if the value does
+ * not map to a token.
+ */
+export function getToken(c: number): string | undefined {
+    return c >= 128 && c < 128 + TOKENS.length ? TOKENS[c - 128] : undefined;
+}
+
+/**
  * Decode a tokenized Basic program.
  * @param bytes tokenized program.
  * @param out div to write result into.
@@ -259,8 +267,8 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
 
                 switch (state) {
                     case NORMAL:
-                        if (c >= 128 && c < 128 + TOKENS.length) {
-                            const token = TOKENS[c - 128];
+                        const token = getToken(c);
+                        if (token !== undefined) {
                             e = add(line, token,
                                 c === DATA || c === REM ? classes.comment
                                 : token.length === 1 ? classes.punctuation

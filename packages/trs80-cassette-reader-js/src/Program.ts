@@ -32,6 +32,13 @@ export class Program {
     }
 
     /**
+     * Get a generic label for the program.
+     */
+    public getProgramLabel(): string {
+        return "Track " + this.trackNumber + ", copy " + this.copyNumber + ", " + this.decoderName;
+    }
+
+    /**
      * Whether this program is really too short to be a real recording.
      */
     public isTooShort(): boolean {
