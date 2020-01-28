@@ -24,6 +24,12 @@ class Waveform {
  */
 export class WaveformDisplay {
     /**
+     * Dispatchers when the user highlights or selects in the canvas.
+     */
+    public readonly onHighlight = new SimpleEventDispatcher<Highlight | undefined>();
+    public readonly onSelection = new SimpleEventDispatcher<Highlight | undefined>();
+    public readonly onDoneSelecting = new SimpleEventDispatcher<any>();
+    /**
      * The width of the canvases, in pixels.
      */
     private displayWidth: number = 0;
@@ -192,28 +198,85 @@ export class WaveformDisplay {
         let dragging = false;
         let dragInitialX = 0;
         let dragInitialCenterSample = 0;
-        canvas.style.cursor = "grab";
+        let inCanvas = false;
+        let holdingAlt = false;
+        let selectionStart: Highlight | undefined = undefined;
 
-        canvas.addEventListener("mousedown", event => {
-            dragging = true;
-            dragInitialX = event.x;
-            dragInitialCenterSample = this.centerSample;
-            canvas.style.cursor = "grabbing";
+        const updateCursor = () => {
+            canvas.style.cursor = holdingAlt ? "auto" : dragging ? "grabbing" : "grab";
+        };
+        updateCursor();
+
+        // Mouse enter/leave events.
+        canvas.addEventListener("mouseenter", event => {
+            inCanvas = true;
+            holdingAlt = event.altKey;
+            updateCursor();
+        });
+        canvas.addEventListener("mouseleave", () => {
+            inCanvas = false;
         });
 
+        // Mouse click events.
+        canvas.addEventListener("mousedown", event => {
+            if (holdingAlt) {
+                const frame = this.screenXToOriginalFrame(event.offsetX);
+                const highlight = this.highlightAt(frame);
+                if (highlight !== undefined) {
+                    selectionStart = highlight;
+                    this.onSelection.dispatch(highlight);
+                }
+            } else {
+                dragging = true;
+                dragInitialX = event.offsetX;
+                dragInitialCenterSample = this.centerSample;
+                updateCursor();
+            }
+        });
         window.addEventListener("mouseup", () => {
             if (dragging) {
                 dragging = false;
-                canvas.style.cursor = "grab";
+                updateCursor();
+            } else if (selectionStart !== undefined) {
+                this.onDoneSelecting.dispatch(this);
+                selectionStart = undefined;
             }
         });
-
         canvas.addEventListener("mousemove", event => {
             if (dragging) {
-                const dx = event.x - dragInitialX;
+                const dx = event.offsetX - dragInitialX;
                 const mag = Math.pow(2, this.zoom);
                 this.centerSample = Math.round(dragInitialCenterSample - dx * mag);
                 this.draw();
+            } else if (selectionStart !== undefined) {
+                const frame = this.screenXToOriginalFrame(event.offsetX);
+                const highlight = this.highlightAt(frame);
+                if (highlight !== undefined && highlight.program === selectionStart.program) {
+                    this.onSelection.dispatch(new Highlight(highlight.program,
+                        selectionStart.firstIndex, highlight.lastIndex));
+                }
+            } else if (holdingAlt) {
+                const frame = this.screenXToOriginalFrame(event.offsetX);
+                const highlight = this.highlightAt(frame);
+                this.onHighlight.dispatch(highlight);
+            }
+        });
+
+        // Keyboard events.
+        document.addEventListener("keydown", event => {
+            if (inCanvas) {
+                if (event.key === "Alt") {
+                    holdingAlt = true;
+                    updateCursor();
+                }
+            }
+        });
+        document.addEventListener("keyup", event => {
+            if (inCanvas) {
+                if (event.key === "Alt") {
+                    holdingAlt = false;
+                    updateCursor();
+                }
             }
         });
     }
@@ -478,6 +541,35 @@ export class WaveformDisplay {
         ctx.lineTo(right, bottom);
 
         ctx.stroke();
+    }
+
+    /**
+     * Convert a screen (pixel) X location to the frame number in the original waveform.
+     */
+    private screenXToOriginalFrame(screenX: number): number {
+        const mag = Math.pow(2, this.zoom);
+
+        // Offset in pixels from center of canvas.
+        const pixelOffset = screenX - Math.floor(this.displayWidth / 2);
+
+        return this.centerSample + pixelOffset*mag;
+    }
+
+    /**
+     * Return a highlight for the specified frame (in original samples), or undefined
+     * if not found.
+     */
+    private highlightAt(frame: number): Highlight | undefined {
+        for (const program of this.programs) {
+            for (let byteIndex = 0; byteIndex < program.byteData.length; byteIndex++) {
+                const byteData = program.byteData[byteIndex];
+                if (frame >= byteData.startFrame && frame <= byteData.endFrame) {
+                    return new Highlight(program, byteIndex);
+                }
+            }
+        }
+
+        return undefined;
     }
 }
 

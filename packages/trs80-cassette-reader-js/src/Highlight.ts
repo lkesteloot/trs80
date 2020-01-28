@@ -17,14 +17,14 @@ export class Highlight {
      */
     readonly lastIndex: number;
 
-    constructor(program: Program, beginIndex: number, endIndex?: number) {
+    constructor(program: Program, firstIndex: number, lastIndex?: number) {
         this.program = program;
 
         // Default to one byte.
-        endIndex = endIndex ?? beginIndex;
+        lastIndex = lastIndex ?? firstIndex;
 
         // Re-order so that begin <= end.
-        this.firstIndex = Math.min(beginIndex, endIndex);
-        this.lastIndex = Math.max(beginIndex, endIndex);
+        this.firstIndex = Math.min(firstIndex, lastIndex);
+        this.lastIndex = Math.max(firstIndex, lastIndex);
     }
 }

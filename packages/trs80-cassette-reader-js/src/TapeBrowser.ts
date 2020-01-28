@@ -285,15 +285,15 @@ export class TapeBrowser {
     /**
      * Dispatcher for highlight property.
      */
-    private onHighlight = new SimpleEventDispatcher<Highlight | undefined>();
+    private readonly onHighlight = new SimpleEventDispatcher<Highlight | undefined>();
     /**
      * Dispatcher for selection property.
      */
-    private onSelection = new SimpleEventDispatcher<Highlight | undefined>();
+    private readonly onSelection = new SimpleEventDispatcher<Highlight | undefined>();
     /**
      * Dispatcher for the selection being done. Value is the source of the selecting process.
      */
-    private onDoneSelecting = new SimpleEventDispatcher<any>();
+    private readonly onDoneSelecting = new SimpleEventDispatcher<any>();
 
     constructor(tape: Tape,
                 waveforms: HTMLElement,
@@ -370,7 +370,15 @@ export class TapeBrowser {
 
         this.onHighlight.subscribe(highlight => waveformDisplay.setHighlight(highlight));
         this.onSelection.subscribe(selection => waveformDisplay.setSelection(selection));
-        this.onDoneSelecting.subscribe(() => waveformDisplay.doneSelecting());
+        this.onDoneSelecting.subscribe(source => {
+            if (source !== waveformDisplay) {
+                waveformDisplay.doneSelecting()
+            }
+        });
+
+        waveformDisplay.onHighlight.subscribe(highlight => this.setHighlight(highlight));
+        waveformDisplay.onSelection.subscribe(selection => this.setSelection(selection));
+        waveformDisplay.onDoneSelecting.subscribe(source => this.doneSelecting(source));
 
         waveformDisplay.zoomToFitAll();
     }
