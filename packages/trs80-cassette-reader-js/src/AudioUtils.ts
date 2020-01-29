@@ -15,11 +15,14 @@ export function highPassFilter(samples: Float32Array, size: number): Float32Arra
     const out = new Float32Array(samples.length);
     let sum = 0;
 
-    for (let i = 0; i < samples.length; i++) {
+    for (let i = 0; i < size; i++) {
         sum += samples[i];
-        if (i >= size) {
-            sum -= samples[i - size];
-        }
+
+        // Subtract out the average of the last "size" samples (to estimate local DC component).
+        out[i] = samples[i] - sum / size;
+    }
+    for (let i = size; i < samples.length; i++) {
+        sum += samples[i] - samples[i - size];
 
         // Subtract out the average of the last "size" samples (to estimate local DC component).
         out[i] = samples[i] - sum / size;

@@ -414,7 +414,7 @@ export class WaveformDisplay {
                 const x1 = frameToX(program.startFrame / mag);
                 const x2 = frameToX(program.endFrame / mag);
                 this.drawBraceAndLabel(ctx, x1, x2, "rgb(150, 150, 150)",
-                    program.getProgramLabel(), "rgb(255, 255, 255)");
+                    program.getShortLabel(), "rgb(255, 255, 255)");
             }
         }
 

@@ -19,11 +19,10 @@ export class DisplaySamples {
     private filterDown() {
         while (this.samplesList[this.samplesList.length - 1].length > 500) {
             const samples = this.samplesList[this.samplesList.length - 1];
-            const half = Math.ceil(samples.length / 2);
+            const half = Math.floor(samples.length / 2);
             const down = new Float32Array(half);
-            for (let i = 0; i < half; i++) {
-                const j = i * 2;
-                down[i] = j === samples.length - 1 ? samples[j] : Math.max(samples[j], samples[j + 1]);
+            for (let i = 0, j = 0; i < half; i++, j += 2) {
+                down[i] = Math.max(samples[j], samples[j + 1]);
             }
             this.samplesList.push(down);
         }

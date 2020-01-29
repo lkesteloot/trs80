@@ -34,8 +34,15 @@ export class Program {
     /**
      * Get a generic label for the program.
      */
-    public getProgramLabel(): string {
+    public getLabel(): string {
         return "Track " + this.trackNumber + ", copy " + this.copyNumber + ", " + this.decoderName;
+    }
+
+    /**
+     * Get a generic short label for the program.
+     */
+    public getShortLabel(): string {
+        return "T" + this.trackNumber + " C" + this.copyNumber;
     }
 
     /**

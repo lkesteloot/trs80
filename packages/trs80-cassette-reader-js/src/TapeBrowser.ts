@@ -638,7 +638,7 @@ export class TapeBrowser {
         // Create panes for each program.
         for (const program of this.tape.programs) {
             // Header for program.
-            const row = addRow(program.getProgramLabel());
+            const row = addRow(program.getLabel());
             row.classList.add("program_title");
 
             // Add a pane to the top-right, register it, and add it to table of contents.
