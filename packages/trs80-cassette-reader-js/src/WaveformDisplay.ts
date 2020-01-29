@@ -362,28 +362,33 @@ export class WaveformDisplay {
                         const x1 = frameToX(bitInfo.startFrame / mag);
                         const x2 = frameToX(bitInfo.endFrame / mag);
 
+                        let braceColor: string;
                         let label: string;
-                        let color: string;
+                        let labelColor: string;
                         switch (bitInfo.bitType) {
                             case BitType.ZERO:
-                                color = "rgb(150, 150, 150)";
+                                braceColor = "rgb(150, 150, 150)";
+                                labelColor = "rgb(255, 255, 255)";
                                 label = "0";
                                 break;
                             case BitType.ONE:
-                                color = "rgb(150, 150, 150)";
+                                braceColor = "rgb(150, 150, 150)";
+                                labelColor = "rgb(255, 255, 255)";
                                 label = "1";
                                 break;
                             case BitType.START:
-                                color = "rgb(50, 200, 50)";
+                                braceColor = "rgb(50, 200, 50)";
+                                labelColor = "rgb(100, 255, 100)";
                                 label = "START";
                                 break;
                             case BitType.BAD:
-                                color = "rgb(200, 50, 50)";
+                                braceColor = "rgb(200, 50, 50)";
+                                labelColor = "rgb(255, 100, 100)";
                                 label = "BAD";
                                 break;
                         }
 
-                        this.drawBraceAndLabel(ctx, x1, x2, label, color);
+                        this.drawBraceAndLabel(ctx, x1, x2, braceColor, label, labelColor);
                     }
                 }
             } else if (this.zoom < 5) {
@@ -400,14 +405,16 @@ export class WaveformDisplay {
                             : program.isBasicProgram() && basicToken !== undefined ? basicToken
                             : "0x" + byteValue.toString(16).padStart(2, "0").toUpperCase();
 
-                        this.drawBraceAndLabel(ctx, x1, x2, label, "rgb(150, 150, 150)");
+                        this.drawBraceAndLabel(ctx, x1, x2, "rgb(150, 150, 150)",
+                            label, "rgb(255, 255, 255)");
                     }
                 }
             } else {
                 // Highlight the whole program.
                 const x1 = frameToX(program.startFrame / mag);
                 const x2 = frameToX(program.endFrame / mag);
-                this.drawBraceAndLabel(ctx, x1, x2, program.getProgramLabel(), "rgb(150, 150, 150)");
+                this.drawBraceAndLabel(ctx, x1, x2, "rgb(150, 150, 150)",
+                    program.getProgramLabel(), "rgb(255, 255, 255)");
             }
         }
 
@@ -504,20 +511,20 @@ export class WaveformDisplay {
      * Draw a down-facing brace withe specified label.
      */
     private drawBraceAndLabel(ctx: CanvasRenderingContext2D,
-                              left: number, right: number,
-                              label: string, color: string): void {
+                              left: number, right: number, braceColor: string,
+                              label: string, labelColor: string): void {
 
         const middle = (left + right)/2;
 
         // Don't use a custom font here, they load asynchronously and we're not told when they
         // finish loading, so we can't redraw and the initial draw uses some default serif font.
         ctx.font = '10pt monospace';
-        ctx.fillStyle = color;
+        ctx.fillStyle = labelColor;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         ctx.fillText(label, middle, 38);
 
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = braceColor;
         ctx.lineWidth = 1;
         this.drawBrace(ctx, left, middle, right, 40, 380);
     }
