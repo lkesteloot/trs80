@@ -5,10 +5,12 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
+    "build-test": "tsc --build tsconfig.node.json",
     "lint": "tslint --project . --format codeFrame",
     "lint:fix": "npm run lint -- --fix",
     "start": "npm run build && http-server docs",
-    "watch": "webpack --watch"
+    "watch": "webpack --watch",
+    "watch-test": "tsc --build tsconfig.node.json --watch"
   },
   "repository": {
     "type": "git",
@@ -21,7 +23,8 @@
   },
   "homepage": "https://github.com/lkesteloot/trs80-cassette-reader-js#readme",
   "devDependencies": {
-    "@types/node": "^13.1.4",
+    "@types/node": "^13.5.2",
+    "@types/progress": "^2.0.3",
     "@types/split.js": "^1.4.0",
     "http-server": "^0.12.0",
     "source-map-loader": "^0.2.4",
@@ -35,6 +38,7 @@
   "dependencies": {
     "jss": "^10.0.3",
     "jss-preset-default": "^10.0.3",
+    "progress": "^2.0.3",
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.6.7",
     "trs80-emulator": "^1.0.5"

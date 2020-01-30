@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "target": "ES2015",
+        "sourceMap": false,
+        "moduleResolution": "Node",
+        "strict": true,
+        "allowSyntheticDefaultImports": true,
+        "outDir": "build"
+    },
+    "include": [
+        "src/**/*.ts"
+    ]
+}
