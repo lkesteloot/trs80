@@ -18,7 +18,7 @@ export class Program {
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
                 decoderName: string, binary: Uint8Array, bitData: BitData[], byteData: ByteData[],
-                reconstructedSamples: Float32Array) {
+                reconstructedSamples: Int16Array) {
 
         this.trackNumber = trackNumber;
         this.copyNumber = copyNumber;

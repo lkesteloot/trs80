@@ -426,7 +426,7 @@ export class WaveformDisplay {
         for (let i = firstSample; i <= lastSample; i++) {
             const value = samples[i];
             const x = frameToX(i);
-            const y = value * height / 2;
+            const y = value * height / 65536;
 
             if (drawingLine) {
                 if (i === firstSample) {

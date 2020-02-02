@@ -1,9 +1,11 @@
 
 // Handles uploading WAV files and decoding them.
+import {AudioFile} from "./AudioUtils";
+import {readWavFile} from "./WavReader";
 
 export class Uploader {
     private readonly uploadInput: HTMLInputElement;
-    private readonly handleAudioBuffer: (pathname: string, audioBuffer: AudioBuffer) => void;
+    private readonly handleAudioBuffer: (pathname: string, audioFile: AudioFile) => void;
     private progressBar: HTMLProgressElement;
 
     /**
@@ -17,7 +19,7 @@ export class Uploader {
                 inputElement: HTMLInputElement,
                 dropS3: NodeList,
                 dropProgress: HTMLProgressElement,
-                handleAudioBuffer: (pathname: string, audioBuffer: AudioBuffer) => void) {
+                handleAudioBuffer: (pathname: string, audioFile: AudioFile) => void) {
 
         this.uploadInput = inputElement;
         this.handleAudioBuffer = handleAudioBuffer;
@@ -85,8 +87,8 @@ export class Uploader {
     }
 
     private handleArrayBuffer(pathname: string, arrayBuffer: ArrayBuffer) {
-        const audioCtx = new window.AudioContext();
-        audioCtx.decodeAudioData(arrayBuffer).then((b) => this.handleAudioBuffer(pathname, b));
+        const audioFile = readWavFile(arrayBuffer);
+        this.handleAudioBuffer(pathname, audioFile);
     }
 
     private dropHandler(ev: DragEvent) {

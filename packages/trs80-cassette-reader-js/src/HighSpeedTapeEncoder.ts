@@ -41,14 +41,14 @@ const FINAL_HALF_CYCLE = generateFinalHalfCycle(ZERO_LENGTH*3, ZERO);
  * @param length number of samples in the full cycle.
  * @return audio samples for one cycle.
  */
-function generateCycle(length: number): Float32Array {
-    const audio = new Float32Array(length);
+function generateCycle(length: number): Int16Array {
+    const audio = new Int16Array(length);
 
     for (let i = 0; i < length; i++) {
         const t = 2*Math.PI*i/length;
 
         // -0.5 to 0.5, matches recorded audio.
-        audio[i] = Math.sin(t) / 2
+        audio[i] = Math.sin(t)*16384;
     }
 
     return audio;
@@ -60,7 +60,7 @@ function generateCycle(length: number): Float32Array {
  * @param length number of samples to generate.
  * @param previousBit the previous cycle, so we copy the ending slope.
  */
-function generateFinalHalfCycle(length: number, previousBit: Float32Array): Float32Array {
+function generateFinalHalfCycle(length: number, previousBit: Int16Array): Int16Array {
     // Copy the slope of the end of the zero bit.
     const slope = previousBit[previousBit.length - 1] - previousBit[previousBit.length - 2];
 
@@ -75,7 +75,7 @@ function generateFinalHalfCycle(length: number, previousBit: Float32Array): Floa
     const y4 = 0;
 
     // Generated audio;
-    const audio = new Float32Array(length);
+    const audio = new Int16Array(length);
 
     // Go through Bezier in small steps.
     let position = 0;
@@ -120,7 +120,7 @@ function generateFinalHalfCycle(length: number, previousBit: Float32Array): Floa
  * @param samplesList list of samples we're adding to.
  * @param b byte to generate.
  */
-function addByte(samplesList: Float32Array[], b: number) {
+function addByte(samplesList: Int16Array[], b: number) {
     // MSb first.
     for (let i = 7; i >= 0; i--) {
         if ((b & (1 << i)) != 0) {
@@ -134,12 +134,12 @@ function addByte(samplesList: Float32Array[], b: number) {
 /**
  * Encode the sequence of bytes as an array of audio samples for high-speed (1500 baud) cassettes.
  */
-export function encodeHighSpeed(bytes: Uint8Array): Float32Array {
+export function encodeHighSpeed(bytes: Uint8Array): Int16Array {
     // List of samples.
-    const samplesList: Float32Array[] = [];
+    const samplesList: Int16Array[] = [];
 
     // Start with half a second of silence.
-    samplesList.push(new Float32Array(HZ / 2));
+    samplesList.push(new Int16Array(HZ / 2));
 
     // Header of 0x55.
     for (let i = 0; i < 256; i++) {
@@ -165,7 +165,7 @@ export function encodeHighSpeed(bytes: Uint8Array): Float32Array {
     samplesList.push(FINAL_HALF_CYCLE);
 
     // End with half a second of silence.
-    samplesList.push(new Float32Array(HZ / 2));
+    samplesList.push(new Int16Array(HZ / 2));
 
     // Concatenate all samples.
     return concatAudio(samplesList);

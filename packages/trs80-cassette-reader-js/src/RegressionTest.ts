@@ -1,8 +1,9 @@
-
 import * as fs from "fs";
 import * as path from "path";
 import * as https from "https";
 import * as ProgressBar from "progress";
+import {AudioFile} from "./AudioUtils";
+import {readWavFile} from "./WavReader";
 
 const CACHE_DIR = "cache";
 
@@ -57,17 +58,22 @@ async function downloadFile(url: string): Promise<string> {
 }
 
 async function main() {
-    const pathname = await downloadFile("https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav");
-    console.log(pathname);
+    const urls = [
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s1.wav",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s2.wav",
+    ];
 
-    const buf = fs.readFileSync(pathname);
+    for (const url of urls) {
+        console.log("------------------------");
+        console.log(url);
+        const pathname = await downloadFile(url);
+        console.log(pathname);
 
-    const audioCtx = new AudioContext();
-    const audioBuffer = await audioCtx.decodeAudioData(buf);
-
-    console.log("Audio is " + audioBuffer.duration + " seconds, " +
-        audioBuffer.numberOfChannels + " channels, " +
-        audioBuffer.sampleRate + " Hz");
+        const buffer = fs.readFileSync(pathname);
+        const audioFile = readWavFile(buffer.buffer);
+        console.log("Audio file has sample rate " + audioFile.rate);
+    }
 }
 
 main().then(() => console.log("All done"));

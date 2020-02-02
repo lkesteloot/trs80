@@ -4,6 +4,7 @@ import {Tape} from "./Tape";
 import {TapeBrowser} from "./TapeBrowser";
 import {Uploader} from "./Uploader";
 import Split from "split.js";
+import {AudioFile} from "./AudioUtils";
 
 const dropZone = document.getElementById("drop_zone") as HTMLElement;
 const dropUpload = document.getElementById("drop_upload") as HTMLInputElement;
@@ -29,14 +30,11 @@ function nameFromPathname(pathname: string): string {
     return name;
 }
 
-function handleAudioBuffer(pathname: string, audioBuffer: AudioBuffer) {
-    console.log("Audio is " + audioBuffer.duration + " seconds, " +
-        audioBuffer.numberOfChannels + " channels, " +
-        audioBuffer.sampleRate + " Hz");
+function handleAudioBuffer(pathname: string, audioFile: AudioFile) {
+    console.log("Audio is " + audioFile.rate + " Hz");
     // TODO check that there's 1 channel.
 
-    const samples = audioBuffer.getChannelData(0);
-    const tape = new Tape(nameFromPathname(pathname), samples, audioBuffer.sampleRate);
+    const tape = new Tape(nameFromPathname(pathname), audioFile);
     const decoder = new Decoder(tape);
     decoder.decode();
     const tapeBrowser = new TapeBrowser(tape,

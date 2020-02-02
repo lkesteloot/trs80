@@ -12,14 +12,14 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {DisplaySamples} from "./DisplaySamples";
 
 /**
- * Generic cassette that reads from a Float32Array.
+ * Generic cassette that reads from a Int16Array.
  */
-class Float32Cassette extends Cassette {
-    private readonly samples: Float32Array;
+class Int16Cassette extends Cassette {
+    private readonly samples: Int16Array;
     private frame: number = 0;
     private progressBar: HTMLProgressElement | undefined;
 
-    constructor(samples: Float32Array, samplesPerSecond: number) {
+    constructor(samples: Int16Array, samplesPerSecond: number) {
         super();
         this.samples = samples;
         this.samplesPerSecond = samplesPerSecond;
@@ -44,7 +44,7 @@ class Float32Cassette extends Cassette {
             this.progressBar.value = this.frame;
         }
 
-        return this.frame < this.samples.length ? this.samples[this.frame++] : 0;
+        return this.frame < this.samples.length ? this.samples[this.frame++]/32768 : 0;
     }
 
     public onMotorStop(): void {
@@ -57,7 +57,7 @@ class Float32Cassette extends Cassette {
 /**
  * Implementation of Cassette that reads from our displayed data.
  */
-class TapeCassette extends Float32Cassette {
+class TapeCassette extends Int16Cassette {
     constructor(tape: Tape, program: Program) {
         const samples = tape.originalSamples.samplesList[0];
 
@@ -75,7 +75,7 @@ class TapeCassette extends Float32Cassette {
 /**
  * Implementation of Cassette that reads from our high-speed reconstruction.
  */
-class ReconstructedCassette extends Float32Cassette {
+class ReconstructedCassette extends Int16Cassette {
     constructor(program: Program) {
         super(program.reconstructedSamples.samplesList[0], HZ);
     }
@@ -573,7 +573,7 @@ export class TapeBrowser {
         return pane;
     }
 
-    private makeEmulatorPane(program: Program, cassette: Float32Cassette): Pane {
+    private makeEmulatorPane(program: Program, cassette: Int16Cassette): Pane {
         const div = document.createElement("div");
 
         const screen = document.createElement("div");

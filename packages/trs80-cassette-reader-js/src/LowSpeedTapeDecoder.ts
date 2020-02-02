@@ -1,5 +1,5 @@
 
-import {frameToTimestamp, HZ} from "./AudioUtils";
+import {frameToTimestamp, HZ, clampToInt16} from "./AudioUtils";
 import {BitData} from "./BitData";
 import {BitType} from "./BitType";
 import {Tape} from "./Tape";
@@ -37,14 +37,15 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
      * @param samples samples to filter.
      * @returns filtered samples.
      */
-    public static filterSamples(samples: Float32Array): Float32Array {
-        const out = new Float32Array(samples.length);
+    public static filterSamples(samples: Int16Array): Int16Array {
+        const out = new Int16Array(samples.length);
 
         for (let i = 0; i < samples.length; i++) {
             // Differentiate to accentuate a pulse. Pulse go positive, then negative,
             // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
             // positive value at the bottom of the pulse.
-            out[i] = i >= PULSE_PEAK_DISTANCE ? samples[i - PULSE_PEAK_DISTANCE] - samples[i] : 0;
+            const newSample = i >= PULSE_PEAK_DISTANCE ? samples[i - PULSE_PEAK_DISTANCE] - samples[i] : 0;
+            out[i] = clampToInt16(newSample);
         }
 
         return out;

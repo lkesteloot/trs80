@@ -4,6 +4,17 @@ import { pad } from "./Utils";
 // Expected HZ on tape.
 export const HZ = 48000;
 
+export class AudioFile {
+    // In samples per second.
+    rate: number;
+    samples: Int16Array;
+
+    constructor(rate: number, samples: Int16Array) {
+        this.rate = rate;
+        this.samples = samples;
+    }
+}
+
 /**
  * Simple high-pass filter.
  *
@@ -11,8 +22,8 @@ export const HZ = 48000;
  * @param size size of filter
  * @returns filtered samples.
  */
-export function highPassFilter(samples: Float32Array, size: number): Float32Array {
-    const out = new Float32Array(samples.length);
+export function highPassFilter(samples: Int16Array, size: number): Int16Array {
+    const out = new Int16Array(samples.length);
     let sum = 0;
 
     for (let i = 0; i < size; i++) {
@@ -56,9 +67,9 @@ export function frameToTimestamp(frame: number, brief?: boolean) {
 /**
  * Concatenate a list of audio samples into one.
  */
-export function concatAudio(samplesList: Float32Array[]): Float32Array {
+export function concatAudio(samplesList: Int16Array[]): Int16Array {
     const length = samplesList.reduce((sum, samples) => sum + samples.length, 0);
-    const allSamples = new Float32Array(length);
+    const allSamples = new Int16Array(length);
 
     let offset = 0;
     for (const samples of samplesList) {
@@ -67,4 +78,11 @@ export function concatAudio(samplesList: Float32Array[]): Float32Array {
     }
 
     return allSamples;
+}
+
+/**
+ * Clamp the number to the range of signed 16-bit int.
+ */
+export function clampToInt16(x: number): number {
+    return Math.max(Math.min(x, 32767), -32768);
 }
