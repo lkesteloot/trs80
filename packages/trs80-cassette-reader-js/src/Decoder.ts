@@ -11,7 +11,7 @@ import {TapeDecoderState} from "./TapeDecoderState";
 import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
 
 export class Decoder {
-    private tape: Tape;
+    private readonly tape: Tape;
 
     constructor(tape: Tape) {
         this.tape = tape;
@@ -25,8 +25,6 @@ export class Decoder {
         let frame = 0;
         let programStartFrame = -1;
         while (frame < samples.length) {
-            console.log("--------------------------------------- " + instanceNumber);
-
             // Start out trying all decoders.
             let tapeDecoders: TapeDecoder[] = [
                 new LowSpeedTapeDecoder(true),
@@ -65,10 +63,6 @@ export class Decoder {
                         }
 
                         programStartFrame = frame;
-                        console.log("Decoder \"" + tapeDecoder.getName() + "\" detected " +
-                                    trackNumber + "-" + copyNumber + " at " +
-                                    frameToTimestamp(frame) + " after " +
-                                    leadTime.toFixed(3) + " seconds.");
 
                         // Throw away the other decoders.
                         tapeDecoders = [
@@ -85,19 +79,17 @@ export class Decoder {
 
             switch (state) {
                 case TapeDecoderState.UNDECIDED:
-                    console.log("Reached end of tape without finding track.");
                     break;
 
                 case TapeDecoderState.DETECTED:
-                    console.log("Reached end of tape while still reading track.");
                     break;
 
                 case TapeDecoderState.ERROR:
                 case TapeDecoderState.FINISHED:
                     if (state === TapeDecoderState.ERROR) {
-                        console.log("Decoder detected an error; skipping program.");
+                        // Error, keep program anyway?
                     } else {
-                        console.log("Found end of program at " + frameToTimestamp(frame) + ".");
+                        // Finished, keep program.
                     }
                     let binary = tapeDecoders[0].getBinary();
                     // Low-speed programs end in two 0x00, but high-speed programs

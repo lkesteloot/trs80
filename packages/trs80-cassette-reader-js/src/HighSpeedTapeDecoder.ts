@@ -59,8 +59,6 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
                         let bitType: BitType;
                         if (this.bitCount === 1) {
                             if (bit) {
-                                console.log("Bad start bit at byte " + this.programBytes.length + ", " +
-                                    frameToTimestamp(frame) + ", cycle size " + this.cycleSize + ".");
                                 this.state = TapeDecoderState.ERROR;
                                 bitType = BitType.BAD;
                             } else {

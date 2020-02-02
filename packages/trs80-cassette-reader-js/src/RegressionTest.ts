@@ -4,6 +4,8 @@ import * as https from "https";
 import * as ProgressBar from "progress";
 import {AudioFile} from "./AudioUtils";
 import {readWavFile} from "./WavReader";
+import {Tape} from "./Tape";
+import {Decoder} from "./Decoder";
 
 const CACHE_DIR = "cache";
 
@@ -57,23 +59,28 @@ async function downloadFile(url: string): Promise<string> {
     });
 }
 
-async function main() {
-    const urls = [
-        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav",
-        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s1.wav",
-        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s2.wav",
-    ];
+async function main(testPathname: string) {
+    const testJson = fs.readFileSync(testPathname, {encoding: "utf-8"});
+    const test = JSON.parse(testJson);
 
-    for (const url of urls) {
-        console.log("------------------------");
-        console.log(url);
-        const pathname = await downloadFile(url);
-        console.log(pathname);
+    console.log(test.url);
+    const pathname = await downloadFile(test.url);
+    console.log(pathname);
 
-        const buffer = fs.readFileSync(pathname);
-        const audioFile = readWavFile(buffer.buffer);
-        console.log("Audio file has sample rate " + audioFile.rate);
+    const buffer = fs.readFileSync(pathname);
+    const audioFile = readWavFile(buffer.buffer);
+    console.log("Audio file has sample rate " + audioFile.rate);
+    const tape = new Tape(pathname, audioFile);
+    const decoder = new Decoder(tape);
+    decoder.decode();
+    for (let i = 0; i < tape.programs.length; i++) {
+        const program = tape.programs[i];
+        const expectedBinary = fs.readFileSync(path.resolve(path.dirname(testPathname), test.binaries[i].pathname));
+        const actualBinary = program.binary;
+
+        console.log("%s: Got %d bytes, expected %d bytes",
+            program.getShortLabel(), actualBinary.length, expectedBinary.length);
     }
 }
 
-main().then(() => console.log("All done"));
+main("tests/C-1-1.json").then(() => console.log("All done"));

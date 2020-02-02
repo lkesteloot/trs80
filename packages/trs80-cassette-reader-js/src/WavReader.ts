@@ -71,7 +71,6 @@ class ArrayBufferReader {
      * Read a buffer of Int16 numbers.
      */
     public readInt16Array(byteLength: number): Int16Array {
-        console.log("Total = %d, index = %d, asking = %d", this.arrayBuffer.byteLength, this.index, byteLength);
         const array = new Int16Array(this.arrayBuffer, this.index, byteLength/2);
         this.index += byteLength;
         return array;
@@ -90,10 +89,8 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
     // Read ID.
     const riffId = reader.readString(4);
     if (riffId === "RIFF") {
-        console.log("detected little-endian WAVE file");
         reader.littleEndian = true;
     } else if (riffId === "RIFX") {
-        console.log("detected big-endian WAVE file");
         reader.littleEndian = false;
     } else {
         throw new Error('bad "chunk id": expected "RIFF" or "RIFX", got ' + riffId);
@@ -147,7 +144,6 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
                 // determined from the length of the data and the container size as determined
                 // from the Format chunk.
                 const numSamples = reader.readUint32();
-                console.log('number of samples: %o', numSamples);
                 break;
             }
 

@@ -109,9 +109,6 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
             }
             if (this.eatNextPulse) {
                 if (this.state === TapeDecoderState.DETECTED && !bit && !this.lenientFirstBit) {
-                    console.log("Warning: At bit of wrong value at " +
-                        frameToTimestamp(frame) + ", diff = " + timeDiff + ", last = " +
-                        frameToTimestamp(this.lastPulseFrame));
                     this.bitData.push(new BitData(this.lastPulseFrame, frame, BitType.BAD));
                 } else {
                     const lastBit = this.bitData[this.bitData.length - 1];
