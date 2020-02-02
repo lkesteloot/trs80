@@ -20,3 +20,12 @@ export function pad(n: number, base: number, size: number) {
 
     return s;
 }
+
+/**
+ * Converts a Uint8Array to base64. Not super efficient, don't use on a huge array.
+ */
+export function base64EncodeUint8Array(array: Uint8Array): string {
+    let s = "";
+    array.forEach(c => s += String.fromCharCode(c));
+    return btoa(s);
+}
