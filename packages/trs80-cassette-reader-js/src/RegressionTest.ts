@@ -112,7 +112,21 @@ async function makeJsonFile(wavUrl: string) {
     console.log("Generated " + path.relative(".", jsonPathname));
 }
 
+async function makeJsonFiles(urls: string[]) {
+    let first = true;
+
+    for (const url of urls) {
+        if (!first) {
+            console.log("------------------------------------------------------------------");
+        }
+        await makeJsonFile(url);
+        first = false;
+    }
+}
+
 async function testJsonFile(jsonPathname: string) {
+    console.log("Running test: " + jsonPathname);
+
     const json = fs.readFileSync(jsonPathname, {encoding: "utf-8"});
     const test = JSON.parse(json);
 
@@ -128,15 +142,27 @@ async function testJsonFile(jsonPathname: string) {
     }
 }
 
+async function testJsonFiles(jsonPathnames: string[]) {
+    let first = true;
+
+    for (const jsonPathname of jsonPathnames) {
+        if (!first) {
+            console.log("------------------------------------------------------------------");
+        }
+        await testJsonFile(jsonPathname);
+        first = false;
+    }
+}
+
 function main() {
     program
-        .command("make <url>")
+        .command("make <url...>")
         .description("make test JSON file from WAV file at URL")
-        .action(makeJsonFile);
+        .action(makeJsonFiles);
     program
-        .command("test <jsonFile>")
+        .command("test <jsonFile...>")
         .description("run the test in the JSON file")
-        .action(testJsonFile);
+        .action(testJsonFiles);
 
     program.on('command:*', function () {
         console.error('Invalid command: %s\nSee --help for a list of available commands.', program.args.join(' '));
