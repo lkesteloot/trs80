@@ -45,13 +45,6 @@ export class Program {
     }
 
     /**
-     * Whether this program is really too short to be a real recording.
-     */
-    public isTooShort(sampleRate: number): boolean {
-        return this.endFrame - this.startFrame < sampleRate/10;
-    }
-
-    /**
      * Whether the binary represents a Basic program.
      */
     public isBasicProgram(): boolean {
