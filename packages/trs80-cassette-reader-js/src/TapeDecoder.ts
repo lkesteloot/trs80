@@ -2,7 +2,6 @@
 // Interface for tape decoders.
 
 import {BitData} from "./BitData";
-import {Tape} from "./Tape";
 import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
 
@@ -15,7 +14,7 @@ export interface TapeDecoder {
     /**
      * Handle the sample at "frame".
      */
-    handleSample(tape: Tape, frame: number): void;
+    handleSample(frame: number): void;
 
     /**
      * Get the state of the decoder. See the enum for valid state transitions.

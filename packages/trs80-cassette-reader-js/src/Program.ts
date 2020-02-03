@@ -1,7 +1,6 @@
 
 import {BitData} from "./BitData";
 import {DisplaySamples} from "./DisplaySamples";
-import {HZ} from "./AudioUtils";
 import {ByteData} from "./ByteData";
 
 export class Program {
@@ -48,8 +47,8 @@ export class Program {
     /**
      * Whether this program is really too short to be a real recording.
      */
-    public isTooShort(): boolean {
-        return this.endFrame - this.startFrame < HZ/10;
+    public isTooShort(sampleRate: number): boolean {
+        return this.endFrame - this.startFrame < sampleRate/10;
     }
 
     /**

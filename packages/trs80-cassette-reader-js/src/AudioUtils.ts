@@ -1,9 +1,6 @@
 
 import { pad } from "./Utils";
 
-// Expected HZ on tape.
-export const HZ = 48000;
-
 export class AudioFile {
     // In samples per second.
     rate: number;
@@ -44,10 +41,11 @@ export function highPassFilter(samples: Int16Array, size: number): Int16Array {
 
 /**
  * @param frame the frame number to be described as a timestamp.
+ * @param hz number of frames per second in original recording.
  * @param brief omit hour if zero, omit milliseconds and frame itself.
  */
-export function frameToTimestamp(frame: number, brief?: boolean) {
-    const time = frame / HZ;
+export function frameToTimestamp(frame: number, hz: number, brief?: boolean) {
+    const time = frame / hz;
 
     let ms = Math.floor(time * 1000);
     let sec = Math.floor(ms / 1000);

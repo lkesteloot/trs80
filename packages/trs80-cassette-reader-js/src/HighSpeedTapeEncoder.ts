@@ -1,40 +1,5 @@
 
-import {HZ, concatAudio} from "./AudioUtils";
-
-/**
- * Length of a zero bit, in samples.
- */
-const ZERO_LENGTH = Math.round(0.00072*HZ);
-
-/**
- * Length of a one bit, in samples.
- */
-const ONE_LENGTH = Math.round(0.00034*HZ);
-
-/**
- * Samples representing a zero bit.
- */
-const ZERO = generateCycle(ZERO_LENGTH);
-
-/**
- * Samples representing a one bit.
- */
-const ONE = generateCycle(ONE_LENGTH);
-
-/**
- * Samples representing a long zero bit. This is the first start bit
- * after the end of the header. It's 1 ms longer than a regular zero.
- */
-const LONG_ZERO = generateCycle(ZERO_LENGTH + HZ/1000);
-
-/**
- * The final cycle in the entire waveform, which is necessary
- * to force that last negative-to-positive transition (and interrupt).
- * We could just use a simple half cycle here, but it's nicer to do
- * something like the original analog.
- */
-const FINAL_HALF_CYCLE = generateFinalHalfCycle(ZERO_LENGTH*3, ZERO);
-
+import {concatAudio} from "./AudioUtils";
 
 /**
  * Generate one cycle of a sine wave.
@@ -119,14 +84,16 @@ function generateFinalHalfCycle(length: number, previousBit: Int16Array): Int16A
  * Adds the byte "b" to the samples list, most significant bit first.
  * @param samplesList list of samples we're adding to.
  * @param b byte to generate.
+ * @param zero samples for a zero bit.
+ * @param one samples for a one bit.
  */
-function addByte(samplesList: Int16Array[], b: number) {
+function addByte(samplesList: Int16Array[], b: number, zero: Int16Array, one: Int16Array) {
     // MSb first.
     for (let i = 7; i >= 0; i--) {
         if ((b & (1 << i)) != 0) {
-            samplesList.push(ONE);
+            samplesList.push(one);
         } else {
-            samplesList.push(ZERO);
+            samplesList.push(zero);
         }
     }
 }
@@ -134,19 +101,41 @@ function addByte(samplesList: Int16Array[], b: number) {
 /**
  * Encode the sequence of bytes as an array of audio samples for high-speed (1500 baud) cassettes.
  */
-export function encodeHighSpeed(bytes: Uint8Array): Int16Array {
+export function encodeHighSpeed(bytes: Uint8Array, sampleRate: number): Int16Array {
+    // Length of a zero bit, in samples.
+    const ZERO_LENGTH = Math.round(0.00072*sampleRate);
+
+    // Length of a one bit, in samples.
+    const ONE_LENGTH = Math.round(0.00034*sampleRate);
+
+    // Samples representing a zero bit.
+    const zero = generateCycle(ZERO_LENGTH);
+
+    // Samples representing a one bit.
+    const one = generateCycle(ONE_LENGTH);
+
+    // Samples representing a long zero bit. This is the first start bit
+    // after the end of the header. It's 1 ms longer than a regular zero.
+    const LONG_ZERO = generateCycle(ZERO_LENGTH + sampleRate/1000);
+
+    // The final cycle in the entire waveform, which is necessary
+    // to force that last negative-to-positive transition (and interrupt).
+    // We could just use a simple half cycle here, but it's nicer to do
+    // something like the original analog.
+    const FINAL_HALF_CYCLE = generateFinalHalfCycle(ZERO_LENGTH*3, zero);
+
     // List of samples.
     const samplesList: Int16Array[] = [];
 
     // Start with half a second of silence.
-    samplesList.push(new Int16Array(HZ / 2));
+    samplesList.push(new Int16Array(sampleRate / 2));
 
     // Header of 0x55.
     for (let i = 0; i < 256; i++) {
-        addByte(samplesList, 0x55);
+        addByte(samplesList, 0x55, zero, one);
     }
     // End of header.
-    addByte(samplesList, 0x7F);
+    addByte(samplesList, 0x7F, zero, one);
 
     // Write program.
     let firstStartBit = true;
@@ -156,16 +145,16 @@ export function encodeHighSpeed(bytes: Uint8Array): Int16Array {
             samplesList.push(LONG_ZERO);
             firstStartBit = false;
         } else {
-            samplesList.push(ZERO);
+            samplesList.push(zero);
         }
-        addByte(samplesList, b);
+        addByte(samplesList, b, zero, one);
     }
 
     // Finish off the last cycle, so that it generates an interrupt.
     samplesList.push(FINAL_HALF_CYCLE);
 
     // End with half a second of silence.
-    samplesList.push(new Int16Array(HZ / 2));
+    samplesList.push(new Int16Array(sampleRate / 2));
 
     // Concatenate all samples.
     return concatAudio(samplesList);

@@ -1,4 +1,4 @@
-import {frameToTimestamp, HZ} from "./AudioUtils";
+import {frameToTimestamp} from "./AudioUtils";
 import * as Basic from "./Basic";
 import * as Hexdump from "./Hexdump";
 import {Program} from "./Program";
@@ -20,10 +20,10 @@ class Int16Cassette extends Cassette {
     private frame: number = 0;
     private progressBar: HTMLProgressElement | undefined;
 
-    constructor(samples: Int16Array, samplesPerSecond: number) {
+    constructor(samples: Int16Array, sampleRate: number) {
         super();
         this.samples = samples;
-        this.samplesPerSecond = samplesPerSecond;
+        this.samplesPerSecond = sampleRate;
     }
 
     public setProgressBar(progressBar: HTMLProgressElement): void {
@@ -39,7 +39,7 @@ class Int16Cassette extends Cassette {
 
     public readSample(): number {
         if (this.frame % this.samplesPerSecond === 0) {
-            console.log("Reading tape at " + frameToTimestamp(this.frame));
+            console.log("Reading tape at " + frameToTimestamp(this.frame, this.samplesPerSecond));
         }
         if (this.progressBar !== undefined && this.frame % Math.floor(this.samplesPerSecond / 10) === 0) {
             this.progressBar.value = this.frame;
@@ -77,8 +77,8 @@ class TapeCassette extends Int16Cassette {
  * Implementation of Cassette that reads from our high-speed reconstruction.
  */
 class ReconstructedCassette extends Int16Cassette {
-    constructor(program: Program) {
-        super(program.reconstructedSamples.samplesList[0], HZ);
+    constructor(program: Program, sampleRate: number) {
+        super(program.reconstructedSamples.samplesList[0], sampleRate);
     }
 }
 
@@ -439,11 +439,11 @@ export class TapeBrowser {
         };
 
         addKeyValue("Decoder", program.decoderName);
-        addKeyValue("Start time", frameToTimestamp(program.startFrame), () =>
+        addKeyValue("Start time", frameToTimestamp(program.startFrame, this.tape.sampleRate), () =>
             this.originalWaveformDisplay.zoomToFit(program.startFrame - 100, program.startFrame + 100));
-        addKeyValue("End time", frameToTimestamp(program.endFrame), () =>
+        addKeyValue("End time", frameToTimestamp(program.endFrame, this.tape.sampleRate), () =>
             this.originalWaveformDisplay.zoomToFit(program.endFrame - 100, program.endFrame + 100));
-        addKeyValue("Duration", frameToTimestamp(program.endFrame - program.startFrame, true), () =>
+        addKeyValue("Duration", frameToTimestamp(program.endFrame - program.startFrame, this.tape.sampleRate, true), () =>
             this.originalWaveformDisplay.zoomToFit(program.startFrame, program.endFrame));
         addKeyValue("Binary", "Download " + program.binary.length + " bytes", () => {
             // Download binary.
@@ -464,7 +464,7 @@ export class TapeBrowser {
         let count = 1;
         for (const bitData of program.bitData) {
             if (bitData.bitType === BitType.BAD) {
-                addKeyValue("Bit error " + count++, frameToTimestamp(bitData.startFrame), () =>
+                addKeyValue("Bit error " + count++, frameToTimestamp(bitData.startFrame, this.tape.sampleRate), () =>
                     this.originalWaveformDisplay.zoomToBitData(bitData));
             }
         }
@@ -665,9 +665,9 @@ export class TapeBrowser {
             const edtasmPane = program.isEdtasmProgram() ? this.makeEdtasmPane(program) : undefined;
 
             // Metadata pane.
-            let metadataLabel = frameToTimestamp(program.startFrame, true) + " to " +
-                frameToTimestamp(program.endFrame, true) + " (" +
-                frameToTimestamp(program.endFrame - program.startFrame, true) + ")";
+            let metadataLabel = frameToTimestamp(program.startFrame, this.tape.sampleRate, true) + " to " +
+                frameToTimestamp(program.endFrame, this.tape.sampleRate, true) + " (" +
+                frameToTimestamp(program.endFrame - program.startFrame, this.tape.sampleRate, true) + ")";
             addPane(metadataLabel, this.makeMetadataPane(program, basicPane, edtasmPane));
 
             // Make the various panes.
@@ -676,7 +676,7 @@ export class TapeBrowser {
             if (basicPane !== undefined) {
                 addPane("Basic", basicPane);
                 addPane("Emulator (original)", this.makeEmulatorPane(program, new TapeCassette(this.tape, program)));
-                addPane("Emulator (reconstructed)", this.makeEmulatorPane(program, new ReconstructedCassette(program)));
+                addPane("Emulator (reconstructed)", this.makeEmulatorPane(program, new ReconstructedCassette(program, this.tape.sampleRate)));
             }
             if (edtasmPane !== undefined) {
                 addPane("Assembly" + (edtasmPane.edtasmName ? " (" + edtasmPane.edtasmName + ")" : ""), edtasmPane);

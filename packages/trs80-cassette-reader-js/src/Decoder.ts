@@ -1,7 +1,6 @@
 
 // Uses tape decoders to work through the tape, finding programs and decoding them.
 
-import {frameToTimestamp, HZ} from "./AudioUtils";
 import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
 import {Program} from "./Program";
@@ -27,9 +26,9 @@ export class Decoder {
         while (frame < samples.length) {
             // Start out trying all decoders.
             let tapeDecoders: TapeDecoder[] = [
-                new LowSpeedTapeDecoder(true),
-                new LowSpeedTapeDecoder(false),
-                new HighSpeedTapeDecoder(),
+                new LowSpeedTapeDecoder(this.tape, true),
+                new LowSpeedTapeDecoder(this.tape, false),
+                new HighSpeedTapeDecoder(this.tape),
             ];
 
             const searchFrameStart = frame;
@@ -42,7 +41,7 @@ export class Decoder {
                 for (let i = 0; i < tapeDecoders.length; i++) {
                     const tapeDecoder = tapeDecoders[i];
 
-                    tapeDecoder.handleSample(this.tape, frame);
+                    tapeDecoder.handleSample(frame);
 
                     // See if it detected its encoding.
                     if (tapeDecoder.getState() !== TapeDecoderState.UNDECIDED) {
@@ -56,7 +55,7 @@ export class Decoder {
                         const tapeDecoder = tapeDecoders[detectedIndex];
 
                         // See how long it took to find it. A large gap means a new track.
-                        const leadTime = (frame - searchFrameStart) / HZ;
+                        const leadTime = (frame - searchFrameStart) / this.tape.sampleRate;
                         if (leadTime > 10 || programStartFrame === -1) {
                             trackNumber += 1;
                             copyNumber = 1;
@@ -110,8 +109,8 @@ export class Decoder {
 
                     const program = new Program(trackNumber, copyNumber, programStartFrame, frame,
                         tapeDecoders[0].getName(), binary, tapeDecoders[0].getBitData(), tapeDecoders[0].getByteData(),
-                        encodeHighSpeed(highSpeedBytes));
-                    if (!program.isTooShort()) {
+                        encodeHighSpeed(highSpeedBytes, this.tape.sampleRate));
+                    if (!program.isTooShort(this.tape.sampleRate)) {
                         this.tape.addProgram(program);
                     }
                     break;

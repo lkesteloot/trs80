@@ -1,5 +1,3 @@
-
-import {frameToTimestamp} from "./AudioUtils";
 import {BitData} from "./BitData";
 import {BitType} from "./BitType";
 import {Tape} from "./Tape";
@@ -17,6 +15,7 @@ const MIN_SILENCE_FRAMES = 1000;
  * Decodes high-speed (1500 baud) cassettes.
  */
 export class HighSpeedTapeDecoder implements TapeDecoder {
+    private readonly tape: Tape;
     private state: TapeDecoderState = TapeDecoderState.UNDECIDED;
     private programBytes: number[] = [];
     private oldSign: number = 0;
@@ -27,12 +26,16 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
     private bits: BitData[] = [];
     private readonly byteData: ByteData[] = [];
 
+    constructor(tape: Tape) {
+        this.tape = tape;
+    }
+
     public getName(): string {
         return "High speed";
     }
 
-    public handleSample(tape: Tape, frame: number) {
-        const samples = tape.lowSpeedSamples.samplesList[0];
+    public handleSample(frame: number) {
+        const samples = this.tape.lowSpeedSamples.samplesList[0];
         const sample = samples[frame];
 
         const newSign = sample > THRESHOLD ? 1 : sample < -THRESHOLD ? -1 : 0;

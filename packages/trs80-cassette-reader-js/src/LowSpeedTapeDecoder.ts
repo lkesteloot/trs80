@@ -1,5 +1,5 @@
 
-import {frameToTimestamp, HZ, clampToInt16} from "./AudioUtils";
+import {clampToInt16} from "./AudioUtils";
 import {BitData} from "./BitData";
 import {BitType} from "./BitType";
 import {Tape} from "./Tape";
@@ -7,23 +7,6 @@ import {TapeDecoder} from "./TapeDecoder";
 import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
 
-/**
- * Number of samples between the top of the pulse and the bottom of it.
- */
-const PULSE_PEAK_DISTANCE = 7;
-/**
- * Number of samples between start of pulse detection and end of pulse. Once
- * we detect a pulse, we ignore this number of samples.
- */
-const PULSE_WIDTH = 22;
-/**
- * Number of samples that determines a zero (longer) or one (shorter) bit.
- */
-const BIT_DETERMINATOR = 68;
-/**
- * Number of quiet samples that would indicate the end of the program.
- */
-const END_OF_PROGRAM_SILENCE = HZ / 10;
 /**
  * Number of consecutive zero bits we require in the header before we're pretty
  * sure this is a low speed program.
@@ -40,18 +23,26 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     public static filterSamples(samples: Int16Array): Int16Array {
         const out = new Int16Array(samples.length);
 
+        // Number of samples between the top of the pulse and the bottom of it.
+        // TODO make tape.sampleRate-sensitive.
+        const pulsePeakDistance = 7;
+
         for (let i = 0; i < samples.length; i++) {
             // Differentiate to accentuate a pulse. Pulse go positive, then negative,
-            // with a space of PULSE_PEAK_DISTANCE, so subtracting those generates a large
+            // with a space of pulsePeakDistance, so subtracting those generates a large
             // positive value at the bottom of the pulse.
-            const newSample = i >= PULSE_PEAK_DISTANCE ? samples[i - PULSE_PEAK_DISTANCE] - samples[i] : 0;
+            const newSample = i >= pulsePeakDistance ? samples[i - pulsePeakDistance] - samples[i] : 0;
             out[i] = clampToInt16(newSample);
         }
 
         return out;
     }
 
+    private readonly tape: Tape;
     private readonly invert: boolean;
+    private readonly pulseWidth: number;
+    private readonly bitDeterminator: number;
+    private readonly endOfProgramSilence: number;
     private state: TapeDecoderState;
     private readonly programBytes: number[] = [];
     private lastPulseFrame: number;
@@ -65,7 +56,8 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     private readonly byteData: ByteData[] = [];
     private pulseCount: number;
 
-    constructor(invert: boolean) {
+    constructor(tape: Tape, invert: boolean) {
+        this.tape = tape;
         this.invert = invert;
         this.state = TapeDecoderState.UNDECIDED;
         // The frame where we last detected a pulse.
@@ -80,29 +72,39 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         this.pulseHeight = 0;
         this.bitData = [];
         this.pulseCount = 0;
+
+        // Number of samples between start of pulse detection and end of pulse. Once
+        // we detect a pulse, we ignore this number of samples.
+        // TODO make tape.sampleRate-sensitive.
+        this.pulseWidth = 22;
+        // Number of samples that determines a zero (longer) or one (shorter) bit.
+        // TODO make tape.sampleRate-sensitive.
+        this.bitDeterminator = 68;
+        // Number of quiet samples that would indicate the end of the program.
+        this.endOfProgramSilence = tape.sampleRate / 10;
     }
 
     public getName(): string {
         return "Low speed";
     }
 
-    public handleSample(tape: Tape, frame: number) {
-        const samples = tape.lowSpeedSamples.samplesList[0];
+    public handleSample(frame: number) {
+        const samples = this.tape.lowSpeedSamples.samplesList[0];
         const pulse = this.invert ? -samples[frame] : samples[frame];
 
         const timeDiff = frame - this.lastPulseFrame;
-        const pulsing: boolean = timeDiff > PULSE_WIDTH && pulse >= this.pulseHeight / 3;
+        const pulsing: boolean = timeDiff > this.pulseWidth && pulse >= this.pulseHeight / 3;
 
         // Keep track of the height of this pulse, to calibrate for the next one.
-        if (timeDiff < PULSE_WIDTH) {
+        if (timeDiff < this.pulseWidth) {
             this.pulseHeight = Math.max(this.pulseHeight, pulse);
         }
 
-        if (this.state === TapeDecoderState.DETECTED && timeDiff > END_OF_PROGRAM_SILENCE) {
+        if (this.state === TapeDecoderState.DETECTED && timeDiff > this.endOfProgramSilence) {
             // End of program.
             this.state = TapeDecoderState.FINISHED;
         } else if (pulsing) {
-            const bit: boolean = timeDiff < BIT_DETERMINATOR;
+            const bit: boolean = timeDiff < this.bitDeterminator;
             if (this.pulseCount++ === 1000) {
                 // For debugging, forces a detection so we can inspect the bits.
                 /// this.state = TapeDecoderState.DETECTED;
