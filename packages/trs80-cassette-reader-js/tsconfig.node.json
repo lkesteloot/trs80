@@ -6,7 +6,8 @@
         "moduleResolution": "Node",
         "strict": true,
         "allowSyntheticDefaultImports": true,
-        "outDir": "build"
+        "outDir": "build",
+        "noImplicitReturns": true
     },
     "include": [
         "src/**/*.ts"

@@ -2,10 +2,10 @@ import * as fs from "fs";
 import * as path from "path";
 import * as https from "https";
 import * as ProgressBar from "progress";
-import {AudioFile} from "./AudioUtils";
 import {readWavFile} from "./WavReader";
 import {Tape} from "./Tape";
 import {Decoder} from "./Decoder";
+import * as program from "commander";
 
 const CACHE_DIR = "cache";
 
@@ -15,7 +15,8 @@ const CACHE_DIR = "cache";
 async function downloadFile(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const filename = path.basename(url);
-        const cachePathname = path.resolve(CACHE_DIR, filename);
+        const cacheFilename = url.replace(/[/:@]/g, "-");
+        const cachePathname = path.resolve(CACHE_DIR, cacheFilename);
 
         // See if it's in the cache. We assume that it doesn't ever change
         // on the server.
@@ -59,23 +60,67 @@ async function downloadFile(url: string): Promise<string> {
     });
 }
 
-async function main(testPathname: string) {
-    const testJson = fs.readFileSync(testPathname, {encoding: "utf-8"});
-    const test = JSON.parse(testJson);
-
-    console.log(test.url);
-    const pathname = await downloadFile(test.url);
-    console.log(pathname);
+/**
+ * Load the tape from the WAV file at the URL.
+ */
+async function loadTape(wavUrl: string) {
+    const pathname = await downloadFile(wavUrl);
 
     const buffer = fs.readFileSync(pathname);
     const audioFile = readWavFile(buffer.buffer);
-    console.log("Audio file has sample rate " + audioFile.rate);
     const tape = new Tape(pathname, audioFile);
     const decoder = new Decoder(tape);
     decoder.decode();
+
+    return tape;
+}
+
+/**
+ * Generate a new JSON test file from a WAV file.
+ */
+async function makeJsonFile(wavUrl: string) {
+    // Various names and pathnames.
+    const jsonName = path.parse(wavUrl).name;
+    const jsonFilename = jsonName + ".json";
+    const jsonPathname = path.resolve("tests", jsonFilename);
+
+    // Load the tape from the WAV file.
+    const tape = await loadTape(wavUrl);
+
+    // Generate binary files.
+    const binaries: any[] = [];
+    for (const program of tape.programs) {
+        const relativeBinaryPathname = path.join(jsonName, program.getShortLabel().replace(" ", "-")) + ".bin";
+        // Pathname in JSON file is relative to JSON file.
+        const absoluteBinaryPathname = path.resolve(path.dirname(jsonPathname), relativeBinaryPathname);
+        fs.mkdirSync(path.dirname(absoluteBinaryPathname), { recursive: true });
+        fs.writeFileSync(absoluteBinaryPathname, program.binary);
+
+        binaries.push({
+            pathname: relativeBinaryPathname
+        });
+    }
+
+    // Generate JSON file.
+    const test = {
+        url: wavUrl,
+        binaries: binaries,
+    };
+    const json = JSON.stringify(test, null, 4) + "\n";
+    fs.writeFileSync(jsonPathname, json);
+
+    console.log("Generated " + path.relative(".", jsonPathname));
+}
+
+async function testJsonFile(jsonPathname: string) {
+    const json = fs.readFileSync(jsonPathname, {encoding: "utf-8"});
+    const test = JSON.parse(json);
+
+    const tape = await loadTape(test.url);
+
     for (let i = 0; i < tape.programs.length; i++) {
         const program = tape.programs[i];
-        const expectedBinary = fs.readFileSync(path.resolve(path.dirname(testPathname), test.binaries[i].pathname));
+        const expectedBinary = fs.readFileSync(path.resolve(path.dirname(jsonPathname), test.binaries[i].pathname));
         const actualBinary = program.binary;
 
         console.log("%s: Got %d bytes, expected %d bytes",
@@ -83,4 +128,26 @@ async function main(testPathname: string) {
     }
 }
 
-main("tests/C-1-1.json").then(() => console.log("All done"));
+function main() {
+    program
+        .command("make <url>")
+        .description("make test JSON file from WAV file at URL")
+        .action(makeJsonFile);
+    program
+        .command("test <jsonFile>")
+        .description("run the test in the JSON file")
+        .action(testJsonFile);
+
+    program.on('command:*', function () {
+        console.error('Invalid command: %s\nSee --help for a list of available commands.', program.args.join(' '));
+        process.exit(1);
+    });
+
+    program.parseAsync(process.argv).then(() => {
+        if (!process.argv.slice(2).length) {
+            program.outputHelp();
+        }
+    });
+}
+
+main();

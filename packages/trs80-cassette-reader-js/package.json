@@ -10,7 +10,8 @@
     "lint:fix": "npm run lint -- --fix",
     "start": "npm run build && http-server docs",
     "watch": "webpack --watch",
-    "watch-test": "tsc --build tsconfig.node.json --watch"
+    "watch-test": "tsc --build tsconfig.node.json --watch",
+    "test": "node build/RegressionTest.js"
   },
   "repository": {
     "type": "git",
@@ -36,6 +37,7 @@
     "webpack-cli": "^3.3.10"
   },
   "dependencies": {
+    "commander": "^4.1.0",
     "jss": "^10.0.3",
     "jss-preset-default": "^10.0.3",
     "progress": "^2.0.3",
