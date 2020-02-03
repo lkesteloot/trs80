@@ -270,8 +270,7 @@ export class Trs80 implements Hal {
                 // Various controls.
                 this.modeImage = value;
                 this.setCassetteMotor((value & 0x02) !== 0);
-                // TODO
-                // this.setExpandedCharacters((value & 0x04) !== 0);
+                this.setExpandedCharacters((value & 0x04) !== 0);
                 break;
 
             case 0xF0:
@@ -478,6 +477,17 @@ export class Trs80 implements Hal {
     // What to do when the hardware timer goes off.
     private handleTimer(): void {
         this.setTimerInterrupt(true);
+    }
+
+    // Enable or disable expanded character set.
+    private setExpandedCharacters(expanded: boolean): void {
+        if (expanded) {
+            this.node.classList.remove(CSS_PREFIX + "-narrow");
+            this.node.classList.add(CSS_PREFIX + "-expanded");
+        } else {
+            this.node.classList.remove(CSS_PREFIX + "-expanded");
+            this.node.classList.add(CSS_PREFIX + "-narrow");
+        }
     }
 
     // Reset the controller to a known state.
