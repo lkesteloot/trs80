@@ -94,32 +94,29 @@ async function loadTape(wavUrl: string) {
 /**
  * Generate a new JSON test file from a WAV file.
  */
-async function makeJsonFile(wavUrl: string) {
-    // Various names and pathnames.
-    const jsonName = path.parse(wavUrl).name;
-    const jsonFilename = jsonName + ".json";
-    const jsonPathname = path.resolve("tests", jsonFilename);
+async function makeJsonFile(wavPathname: string) {
+    const parsed = path.parse(wavPathname);
+    const baseName = parsed.name;
+    const jsonPathname = path.join(parsed.dir, baseName + ".json");
 
     // Load the tape from the WAV file.
-    const tape = await loadTape(wavUrl);
+    const tape = await loadTape(wavPathname);
 
     // Generate binary files.
     const binaries: any[] = [];
     for (const program of tape.programs) {
-        const relativeBinaryPathname = path.join(jsonName, program.getShortLabel().replace(" ", "-")) + ".bin";
-        // Pathname in JSON file is relative to JSON file.
-        const absoluteBinaryPathname = path.resolve(path.dirname(jsonPathname), relativeBinaryPathname);
-        fs.mkdirSync(path.dirname(absoluteBinaryPathname), { recursive: true });
-        fs.writeFileSync(absoluteBinaryPathname, program.binary);
+        const binaryFilename = program.getShortLabel().replace(" ", "-") + ".bin";
+        const binaryPathname = path.resolve(parsed.dir, binaryFilename);
+        fs.writeFileSync(binaryPathname, program.binary);
 
         binaries.push({
-            pathname: relativeBinaryPathname
+            url: binaryFilename
         });
     }
 
     // Generate JSON file.
     const test = {
-        url: wavUrl,
+        url: path.basename(wavPathname),
         binaries: binaries,
     };
     const json = JSON.stringify(test, null, 4) + "\n";
@@ -128,14 +125,14 @@ async function makeJsonFile(wavUrl: string) {
     console.log("Generated " + path.relative(".", jsonPathname));
 }
 
-async function makeJsonFiles(urls: string[]) {
+async function makeJsonFiles(wavPathnames: string[]) {
     let first = true;
 
-    for (const url of urls) {
+    for (const wavPathname of wavPathnames) {
         if (!first) {
             console.log("------------------------------------------------------------------");
         }
-        await makeJsonFile(url);
+        await makeJsonFile(wavPathname);
         first = false;
     }
 }
