@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as url from "url";
 import * as https from "https";
 import * as ProgressBar from "progress";
 import {readWavFile} from "./WavReader";
@@ -135,24 +136,24 @@ async function testJsonFile(jsonPathname: string) {
 
     for (let i = 0; i < tape.programs.length; i++) {
         const program = tape.programs[i];
-        const binaryPathname = test.binaries[i].pathname;
-        const expectedBinary = fs.readFileSync(path.resolve(path.dirname(jsonPathname), binaryPathname));
+        const binaryUrl = test.binaries[i].url;
+        const expectedBinary = fs.readFileSync(await downloadFile(url.resolve(test.url, binaryUrl)));
         const actualBinary = program.binary;
 
         let failed = false;
         for (let i = 0; i < Math.min(actualBinary.length, expectedBinary.length) && !failed; i++) {
             if (actualBinary[i] !== expectedBinary[i]) {
                 console.log("%s: bytes differ at index %d (0x%s vs 0x%s)",
-                    binaryPathname, i, toHexByte(actualBinary[i]), toHexByte(expectedBinary[i]));
+                    binaryUrl, i, toHexByte(actualBinary[i]), toHexByte(expectedBinary[i]));
                 failed = true;
             }
         }
         if (!failed) {
             if (actualBinary.length !== expectedBinary.length) {
                 console.log("%s: prefix matches, but sizes differ (%d cs %d)",
-                    binaryPathname, actualBinary.length, expectedBinary.length);
+                    binaryUrl, actualBinary.length, expectedBinary.length);
             } else {
-                console.log("%s: files match", binaryPathname);
+                console.log("%s: files match", binaryUrl);
             }
         }
     }

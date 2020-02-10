@@ -2,10 +2,10 @@
     "url": "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1.wav",
     "binaries": [
         {
-            "pathname": "C-1-1/T1-C1.bin"
+            "url": "C-1-1/T1-C1.bin"
         },
         {
-            "pathname": "C-1-1/T1-C3.bin"
+            "url": "C-1-1/T1-C3.bin"
         }
     ]
 }
