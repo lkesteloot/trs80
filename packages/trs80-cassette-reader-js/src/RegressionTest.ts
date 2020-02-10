@@ -14,10 +14,16 @@ const CACHE_DIR = "cache";
 /**
  * Downloads a file if not already cached. Returns the full pathname of the local file.
  */
-async function downloadFile(url: string): Promise<string> {
+async function downloadFile(fileUrl: string): Promise<string> {
     return new Promise((resolve, reject) => {
-        const filename = path.basename(url);
-        const cacheFilename = url.replace(/[/:@]/g, "-");
+        if (url.parse(fileUrl).protocol === null) {
+            // It's a pathname, just use it.
+            resolve(fileUrl);
+            return;
+        }
+
+        const filename = path.basename(fileUrl);
+        const cacheFilename = fileUrl.replace(/[/:@]/g, "-");
         const cachePathname = path.resolve(CACHE_DIR, cacheFilename);
 
         // See if it's in the cache. We assume that it doesn't ever change
@@ -36,7 +42,12 @@ async function downloadFile(url: string): Promise<string> {
         const fd = fs.openSync(cachePathname, "w");
 
         // Stream file.
-        https.get(url, res => {
+        https.get(fileUrl, res => {
+            if (res.statusCode !== 200) {
+                reject(new Error("Got response code " + res.statusCode + ": " + fileUrl));
+                return;
+            }
+
             let totalSizeString = res.headers["content-length"];
             // TODO Handle unspecified length (the 0 here).
             let totalSize = totalSizeString === undefined ? 0 : parseInt(totalSizeString);
@@ -49,14 +60,17 @@ async function downloadFile(url: string): Promise<string> {
                 total: totalSize
             });
 
-            res.on("data", function (chunk) {
+            res.on("data",  chunk => {
                 bar.tick(chunk.length);
                 fs.writeSync(fd, chunk);
             });
-            res.on("end", function () {
+            res.on("end", () => {
                 fs.closeSync(fd);
                 resolve(cachePathname);
             });
+            res.on("error",  error => {
+                console.log(error);
+            })
             // TODO handle network/HTTP error.
         });
     });
@@ -126,34 +140,43 @@ async function makeJsonFiles(urls: string[]) {
     }
 }
 
-async function testJsonFile(jsonPathname: string) {
-    console.log("Running test: " + jsonPathname);
+async function testJsonFile(jsonUrl: string) {
+    console.log("Running test: " + jsonUrl);
 
+    const jsonPathname = await downloadFile(jsonUrl);
     const json = fs.readFileSync(jsonPathname, {encoding: "utf-8"});
     const test = JSON.parse(json);
 
-    const tape = await loadTape(test.url);
-
-    for (let i = 0; i < tape.programs.length; i++) {
-        const program = tape.programs[i];
-        const binaryUrl = test.binaries[i].url;
-        const expectedBinary = fs.readFileSync(await downloadFile(url.resolve(test.url, binaryUrl)));
-        const actualBinary = program.binary;
-
-        let failed = false;
-        for (let i = 0; i < Math.min(actualBinary.length, expectedBinary.length) && !failed; i++) {
-            if (actualBinary[i] !== expectedBinary[i]) {
-                console.log("%s: bytes differ at index %d (0x%s vs 0x%s)",
-                    binaryUrl, i, toHexByte(actualBinary[i]), toHexByte(expectedBinary[i]));
-                failed = true;
-            }
+    if (test.tests) {
+        // File pointing to other tests.
+        for (const testUrl of test.tests) {
+            await testJsonFile(url.resolve(jsonUrl, testUrl));
         }
-        if (!failed) {
-            if (actualBinary.length !== expectedBinary.length) {
-                console.log("%s: prefix matches, but sizes differ (%d cs %d)",
-                    binaryUrl, actualBinary.length, expectedBinary.length);
-            } else {
-                console.log("%s: files match", binaryUrl);
+    } else {
+        // Single test.
+        const tape = await loadTape(url.resolve(jsonUrl, test.url));
+
+        for (let i = 0; i < tape.programs.length; i++) {
+            const program = tape.programs[i];
+            const binaryUrl = test.binaries[i].url;
+            const expectedBinary = fs.readFileSync(await downloadFile(url.resolve(jsonUrl, binaryUrl)));
+            const actualBinary = program.binary;
+
+            let failed = false;
+            for (let i = 0; i < Math.min(actualBinary.length, expectedBinary.length) && !failed; i++) {
+                if (actualBinary[i] !== expectedBinary[i]) {
+                    console.log("%s: bytes differ at index %d (0x%s vs 0x%s)",
+                        binaryUrl, i, toHexByte(actualBinary[i]), toHexByte(expectedBinary[i]));
+                    failed = true;
+                }
+            }
+            if (!failed) {
+                if (actualBinary.length !== expectedBinary.length) {
+                    console.log("%s: prefix matches, but sizes differ (%d cs %d)",
+                        binaryUrl, actualBinary.length, expectedBinary.length);
+                } else {
+                    console.log("%s: files match", binaryUrl);
+                }
             }
         }
     }
@@ -177,7 +200,7 @@ function main() {
         .description("make test JSON file from WAV file at URL")
         .action(makeJsonFiles);
     program
-        .command("test <jsonFile...>")
+        .command("run <jsonFile...>")
         .description("run the test in the JSON file")
         .action(testJsonFiles);
 
