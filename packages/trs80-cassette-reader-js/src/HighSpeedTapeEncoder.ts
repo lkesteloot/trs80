@@ -32,7 +32,7 @@ function generateFinalHalfCycle(length: number, previousBit: Int16Array): Int16A
     // Points on the Bezier.
     const x1 = 0;
     const y1 = 0;
-    const y2 = 1.0;
+    const y2 = 32767;
     const x2 = (y2 - y1 + x1*slope)/slope;
     const x3 = length/2;
     const y3 = 0;

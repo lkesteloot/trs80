@@ -114,6 +114,9 @@ body {
     overflow-x: auto;
     overflow-y: auto;
 }
+.duplicate_copy {
+    color: #BBBBBB;
+}
 .tape_contents_row {
     cursor: default;
     white-space: pre;
@@ -129,11 +132,16 @@ body {
 }
 .tape_contents_row.program_title {
     text-transform: uppercase;
-    border-top: 1px solid #CCCCCC;
-    margin-top: 0.5em;
     padding-top: 0.5em;
     margin-bottom: 0.2em;
     color: #666666;
+}
+.duplicate_copy .tape_contents_row.program_title {
+    color: #BBBBBB;
+}
+.tape_contents_row.program_title.new_track {
+    margin-top: 0.5em;
+    border-top: 1px solid #888888;
 }
 .tape_contents_row.selectable_row {
     font-weight: normal;

@@ -626,17 +626,26 @@ export class TapeBrowser {
      * Create the panes and the table of contents for them on the left.
      */
     private updateTapeContents() {
+        // Add a new section that we can style all at once.
+        const addSection = () => {
+            const sectionDiv = document.createElement("div");
+            this.tapeContents.appendChild(sectionDiv);
+            return sectionDiv;
+        };
+
+        let sectionDiv: HTMLDivElement = addSection();
+
         // Add a row to the table of contents.
         const addRow = (text: string, onClick?: ((this: GlobalEventHandlers, ev: MouseEvent) => any)) => {
-            const div = document.createElement("div");
-            div.classList.add("tape_contents_row");
-            div.innerText = text;
+            const rowDiv = document.createElement("div");
+            rowDiv.classList.add("tape_contents_row");
+            rowDiv.innerText = text;
             if (onClick !== undefined) {
-                div.classList.add("selectable_row");
-                div.onclick = onClick;
+                rowDiv.classList.add("selectable_row");
+                rowDiv.onclick = onClick;
             }
-            this.tapeContents.appendChild(div);
-            return div;
+            sectionDiv.appendChild(rowDiv);
+            return rowDiv;
         };
 
         // Show the name of the whole tape.
@@ -644,10 +653,30 @@ export class TapeBrowser {
         title.classList.add("tape_title");
 
         // Create panes for each program.
+        let previousTrackNumber = -1;
+        let firstCopyOfTrack: Program | undefined = undefined;
+
         for (const program of this.tape.programs) {
+            let duplicateCopy = false;
+
+            sectionDiv = addSection();
+
             // Header for program.
             const row = addRow(program.getLabel());
             row.classList.add("program_title");
+
+            // Dividing line for new tracks.
+            if (program.trackNumber !== previousTrackNumber) {
+                row.classList.add("new_track");
+                previousTrackNumber = program.trackNumber;
+                firstCopyOfTrack = program;
+            } else if (firstCopyOfTrack !== undefined) {
+                // Non-first copies.
+                if (program.sameBinaryAs(firstCopyOfTrack)) {
+                    sectionDiv.classList.add("duplicate_copy");
+                    duplicateCopy = true;
+                }
+            }
 
             // Add a pane to the top-right, register it, and add it to table of contents.
             const addPane = (label: string, pane: Pane) => {
@@ -671,7 +700,8 @@ export class TapeBrowser {
             addPane(metadataLabel, this.makeMetadataPane(program, basicPane, edtasmPane));
 
             // Make the various panes.
-            addPane("Binary", this.makeBinaryPane(program));
+            addPane("Binary" + (duplicateCopy ? " (same as copy " + firstCopyOfTrack?.copyNumber + ")" : ""),
+                this.makeBinaryPane(program));
             addPane("Reconstructed", this.makeReconstructedPane(program));
             if (basicPane !== undefined) {
                 addPane("Basic", basicPane);

@@ -83,4 +83,21 @@ export class Program {
             isValidLineNumberChar(this.binary[11]) &&
             this.binary[12] === 0x20;
     }
+
+    /**
+     * Whether these two programs have the same binaries.
+     */
+    public sameBinaryAs(other: Program): boolean {
+        if (this.binary.length !== other.binary.length) {
+            return false;
+        }
+
+        for (let i = 0; i < this.binary.length; i++) {
+            if (this.binary[i] !== other.binary[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

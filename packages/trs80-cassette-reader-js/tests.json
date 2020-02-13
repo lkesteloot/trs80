@@ -1,6 +1,7 @@
 {
     "tests": [
         "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1/C-1-1.json",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/B-2/B-2.json",
         "https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s1/LOAD80-Feb82-s1.json",
         "https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s2/LOAD80-Feb82-s2.json"
     ]
