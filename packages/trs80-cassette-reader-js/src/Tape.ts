@@ -8,6 +8,8 @@ import {DisplaySamples} from "./DisplaySamples";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
 import {Program} from "./Program";
 
+const LOCAL_DATA_KEY = "tapes";
+
 export class Tape {
     public name: string;
     public originalSamples: DisplaySamples;
@@ -32,5 +34,60 @@ export class Tape {
 
     public addProgram(program: Program) {
         this.programs.push(program);
+    }
+
+    /**
+     * Listen for changes to local storage and apply them.
+     */
+    public listenForStorageChanges(): void {
+        window.addEventListener("storage", event => {
+            if (event.key === LOCAL_DATA_KEY) {
+                this.loadUserData();
+            }
+        });
+    }
+
+    /**
+     * Load the saved user data and apply to existing programs.
+     */
+    public loadUserData(): void {
+        const jsonData = window.localStorage.getItem(LOCAL_DATA_KEY);
+        if (jsonData === null) {
+            return;
+        }
+
+        const data = JSON.parse(jsonData);
+        const tapeData = data.tapes[this.name];
+        if (tapeData) {
+            for (const programData of tapeData.programs) {
+                for (const program of this.programs) {
+                    if (program.isForTimestamp(programData.timestamp, this.sampleRate)) {
+                        program.setName(programData.name);
+                        program.setNotes(programData.notes);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Synchronously saves all user data (names and notes) to local storage.
+     */
+    public saveUserData(): void {
+        const data = {
+            tapes: {
+                [this.name]: {
+                    name: this.name,
+                    notes: "",
+                    programs: this.programs.map(program => ({
+                        name: program.name,
+                        notes: program.notes,
+                        timestamp: program.getTimestamp(this.sampleRate),
+                    })),
+                },
+            },
+        };
+
+        window.localStorage.setItem(LOCAL_DATA_KEY, JSON.stringify(data));
     }
 }

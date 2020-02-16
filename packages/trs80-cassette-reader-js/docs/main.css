@@ -1,10 +1,13 @@
 /* Global settings. */
 body {
-    font-family: "Roboto", "Helvetica Neue", sans-serif;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     height: 100vh;
+}
+body, input, textarea {
+    font-family: "Roboto", "Helvetica Neue", sans-serif;
+    font-size: 16px;
 }
 .hidden {
     display: none !important;
@@ -197,7 +200,11 @@ body {
 .metadata .key {
     font-weight: bold;
     padding-left: 0;
-    padding-right: 2em;
+    padding-right: 1em;
+    text-align: right;
+}
+.metadata .key.top {
+    vertical-align: top;
 }
 .metadata .value {
     padding: 4px 8px;
@@ -208,6 +215,12 @@ body {
 }
 .metadata .value.clickable:hover {
     background-color: #EEEEEE;
+}
+.metadata td input.name {
+    width: 100%;
+}
+.metadata td textarea.notes {
+    width: 100%;
 }
 .program {
     font-family: "Roboto Mono", monospace;

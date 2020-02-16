@@ -37,6 +37,8 @@ function handleAudioBuffer(pathname: string, audioFile: AudioFile) {
     const tape = new Tape(nameFromPathname(pathname), audioFile);
     const decoder = new Decoder(tape);
     decoder.decode();
+    tape.listenForStorageChanges();
+    tape.loadUserData();
     const tapeBrowser = new TapeBrowser(tape,
         document.getElementById("waveforms") as HTMLElement,
         document.getElementById("original_canvas") as HTMLCanvasElement,

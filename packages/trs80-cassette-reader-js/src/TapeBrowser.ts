@@ -418,7 +418,8 @@ export class TapeBrowser {
         const table = document.createElement("table");
         div.appendChild(table);
 
-        const addKeyValue = (key: string, value: string, click?: () => void) => {
+        // Add entry with any data cell for value. Returns the key element.
+        const addKeyElement = (key: string, valueElement: HTMLTableDataCellElement) => {
             const row = document.createElement("tr");
 
             const keyElement = document.createElement("td");
@@ -426,6 +427,15 @@ export class TapeBrowser {
             keyElement.innerText = key + ":";
             row.appendChild(keyElement);
 
+            row.appendChild(valueElement);
+
+            table.appendChild(row);
+
+            return keyElement;
+        };
+
+        // Add entry with text (possibly clickable) for value.
+        const addKeyValue = (key: string, value: string, click?: () => void) => {
             const valueElement = document.createElement("td");
             valueElement.classList.add("value");
             valueElement.innerText = value;
@@ -433,9 +443,8 @@ export class TapeBrowser {
                 valueElement.classList.add("clickable");
                 valueElement.addEventListener("click", click);
             }
-            row.appendChild(valueElement);
 
-            table.appendChild(row);
+            addKeyElement(key, valueElement);
         };
 
         addKeyValue("Decoder", program.decoderName);
@@ -461,6 +470,45 @@ export class TapeBrowser {
             addKeyValue("Type", "Unknown");
         }
 
+        // Add editable fields.
+        {
+            const td = document.createElement("td");
+            td.classList.add("value");
+
+            const input = document.createElement("input");
+            input.classList.add("name");
+            program.onName.subscribe(name => input.value = name);
+            input.value = program.name;
+            td.appendChild(input);
+
+            addKeyElement("Name", td);
+
+            input.addEventListener("input", event => {
+                program.setName(input.value);
+                this.tape.saveUserData();
+            });
+        }
+        {
+            const td = document.createElement("td");
+            td.classList.add("value");
+
+            const input = document.createElement("textarea");
+            input.classList.add("notes");
+            input.rows = 5;
+            program.onNotes.subscribe(notes => input.value = notes);
+            input.value = program.notes;
+            td.appendChild(input);
+
+            const keyElement = addKeyElement("Notes", td);
+            keyElement.classList.add("top");
+
+            input.addEventListener("input", event => {
+                program.setNotes(input.value);
+                this.tape.saveUserData();
+            });
+        }
+
+        // Add bit errors.
         let count = 1;
         for (const bitData of program.bitData) {
             if (bitData.bitType === BitType.BAD) {
@@ -662,7 +710,8 @@ export class TapeBrowser {
             sectionDiv = addSection();
 
             // Header for program.
-            const row = addRow(program.getLabel());
+            const row = addRow(program.name || program.getLabel());
+            program.onName.subscribe(name => row.innerText = program.name || program.getLabel());
             row.classList.add("program_title");
 
             // Dividing line for new tracks.

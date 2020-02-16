@@ -2,6 +2,7 @@
 import {BitData} from "./BitData";
 import {DisplaySamples} from "./DisplaySamples";
 import {ByteData} from "./ByteData";
+import {SimpleEventDispatcher} from "strongly-typed-events";
 
 export class Program {
     public trackNumber: number;
@@ -14,6 +15,10 @@ export class Program {
     // Index by byte index in the "binary" array.
     public byteData: ByteData[];
     public reconstructedSamples: DisplaySamples;
+    public name: string = "";
+    public notes: string = "";
+    public readonly onName = new SimpleEventDispatcher<string>();
+    public readonly onNotes = new SimpleEventDispatcher<string>();
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
                 decoderName: string, binary: Uint8Array, bitData: BitData[], byteData: ByteData[],
@@ -53,6 +58,43 @@ export class Program {
             this.binary[0] === 0xD3 &&
             this.binary[1] === 0xD3 &&
             this.binary[2] === 0xD3;
+    }
+
+    /**
+     * Set the name of the program, as set by the user.
+     */
+    public setName(name: string): void {
+        if (name !== this.name) {
+            this.name = name;
+            this.onName.dispatch(name);
+        }
+    }
+
+    /**
+     * Set the notes for the program, as set by the user.
+     */
+    public setNotes(notes: string): void {
+        if (notes !== this.notes) {
+            this.notes = notes;
+            this.onNotes.dispatch(notes);
+        }
+    }
+
+    /**
+     * Get a representative timestamp for this program, in seconds.
+     */
+    public getTimestamp(sampleRate: number): number {
+        return (this.startFrame + this.endFrame)/2/sampleRate;
+    }
+
+    /**
+     * Whether the given timestamp (in seconds) could apply to this program.
+     */
+    public isForTimestamp(timestamp: number, sampleRate: number): boolean {
+        const startTimestamp = this.startFrame/sampleRate;
+        const endTimestamp = this.endFrame/sampleRate;
+
+        return startTimestamp <= timestamp && timestamp <= endTimestamp;
     }
 
     /**
