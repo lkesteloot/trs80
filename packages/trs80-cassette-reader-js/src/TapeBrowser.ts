@@ -410,13 +410,17 @@ export class TapeBrowser {
     private makeMetadataPane(program: Program, basicPane?: Pane, edtasmPane?: Pane): Pane {
         const div = document.createElement("div");
         div.classList.add("metadata");
+        div.style.display = "flex";
+
+        const textInfoDiv = document.createElement("div");
+        div.appendChild(textInfoDiv);
 
         const h1 = document.createElement("h1");
         h1.innerText = "Track " + program.trackNumber + ", copy " + program.copyNumber;
-        div.appendChild(h1);
+        textInfoDiv.appendChild(h1);
 
         const table = document.createElement("table");
-        div.appendChild(table);
+        textInfoDiv.appendChild(table);
 
         // Add entry with any data cell for value. Returns the key element.
         const addKeyElement = (key: string, valueElement: HTMLTableDataCellElement) => {
@@ -516,6 +520,13 @@ export class TapeBrowser {
                     this.originalWaveformDisplay.zoomToBitData(bitData));
             }
         }
+
+        // Add screenshot.
+        const screenshotDiv = document.createElement("div");
+        screenshotDiv.style.marginLeft = "20pt";
+        div.appendChild(screenshotDiv);
+        Trs80.displayScreenshot(screenshotDiv, program.screenshot);
+        program.onScreenshot.subscribe(screenshot => Trs80.displayScreenshot(screenshotDiv, screenshot));
 
         return new Pane(div);
     }
@@ -639,6 +650,15 @@ export class TapeBrowser {
         progressBar.classList.add("hidden");
         cassette.setProgressBar(progressBar);
         div.appendChild(progressBar);
+
+        const screenshotButton = document.createElement("button");
+        screenshotButton.innerText = "Take Screenshot";
+        screenshotButton.addEventListener("click", event => {
+            const screenshot = trs80.getScreenshot();
+            program.setScreenshot(screenshot);
+            this.tape.saveUserData();
+        });
+        div.appendChild(screenshotButton);
 
         const trs80 = new Trs80(screen, cassette);
         trs80.reset();

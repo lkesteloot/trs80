@@ -62,8 +62,9 @@ export class Tape {
             for (const programData of tapeData.programs) {
                 for (const program of this.programs) {
                     if (program.isForTimestamp(programData.timestamp, this.sampleRate)) {
-                        program.setName(programData.name);
-                        program.setNotes(programData.notes);
+                        program.setName(programData.name ?? "");
+                        program.setNotes(programData.notes ?? "");
+                        program.setScreenshot(programData.screenshot ?? "");
                     }
                 }
             }
@@ -82,6 +83,7 @@ export class Tape {
                     programs: this.programs.map(program => ({
                         name: program.name,
                         notes: program.notes,
+                        screenshot: program.screenshot,
                         timestamp: program.getTimestamp(this.sampleRate),
                     })),
                 },

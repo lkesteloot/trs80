@@ -17,8 +17,10 @@ export class Program {
     public reconstructedSamples: DisplaySamples;
     public name: string = "";
     public notes: string = "";
+    public screenshot: string = "";
     public readonly onName = new SimpleEventDispatcher<string>();
     public readonly onNotes = new SimpleEventDispatcher<string>();
+    public readonly onScreenshot = new SimpleEventDispatcher<string>();
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
                 decoderName: string, binary: Uint8Array, bitData: BitData[], byteData: ByteData[],
@@ -77,6 +79,16 @@ export class Program {
         if (notes !== this.notes) {
             this.notes = notes;
             this.onNotes.dispatch(notes);
+        }
+    }
+
+    /**
+     * Set the screenshot for the program.
+     */
+    public setScreenshot(screenshot: string): void {
+        if (screenshot !== this.screenshot) {
+            this.screenshot = screenshot;
+            this.onScreenshot.dispatch(screenshot);
         }
     }
 
