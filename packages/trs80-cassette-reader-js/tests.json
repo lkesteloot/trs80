@@ -2,6 +2,13 @@
     "tests": [
         "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1/C-1-1.json",
         "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/B-2/B-2.json",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/G-1/G-1.json",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/I-2/I-2.json",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/J-2/J-2.json",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/K-2/K-2.json",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/L-2/L-2.json",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/M-2/M-2.json",
+        "https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/Z-2/Z-2.json",
         "https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s1/LOAD80-Feb82-s1.json",
         "https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s2/LOAD80-Feb82-s2.json"
     ]

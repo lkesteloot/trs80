@@ -11,7 +11,7 @@
     "start": "npm run build && http-server docs",
     "watch": "webpack --watch",
     "watch-test": "tsc --build tsconfig.node.json --watch",
-    "test": "node build/RegressionTest.js"
+    "test": "node build/RegressionTest.js run tests.json"
   },
   "repository": {
     "type": "git",
