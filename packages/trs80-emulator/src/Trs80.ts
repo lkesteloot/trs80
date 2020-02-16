@@ -25,7 +25,10 @@ const TIMER_HZ = 30;
 
 const ROM_SIZE = 14*1024;
 const RAM_START = 16*1024;
-const SCREEN_ADDRESS = 15*1024;
+
+// RAM address range of screen.
+const SCREEN_BEGIN = 15*1024;
+const SCREEN_END = 16*1024;
 
 // https://en.wikipedia.org/wiki/TRS-80#Model_III
 const CLOCK_HZ = 2_030_000;
@@ -46,8 +49,11 @@ enum CassetteValue {
     NEGATIVE, NEUTRAL, POSITIVE,
 }
 
+/**
+ * Whether the memory address maps to a screen location.
+ */
 function isScreenAddress(address: number): boolean {
-    return address >= SCREEN_ADDRESS && address < SCREEN_ADDRESS + 1024;
+    return address >= SCREEN_BEGIN && address < SCREEN_END;
 }
 
 /**
@@ -95,10 +101,7 @@ export class Trs80 implements Hal {
     private cassetteFallInterruptCount = 0;
 
     constructor(parentNode: HTMLElement, cassette: Cassette) {
-        // Make our own sub-node that we have control over.
-        const node = document.createElement("div");
-        parentNode.appendChild(node);
-        this.node = node;
+        this.node = Trs80.createScreenNode(parentNode);
         this.cassette = cassette;
         this.memory.fill(0);
         const raw = window.atob(model3Rom);
@@ -108,8 +111,7 @@ export class Trs80 implements Hal {
         this.tStateCount = 0;
         this.keyboard.configureKeyboard();
 
-        this.configureNode();
-        this.configureStyle();
+        Trs80.configureStyle();
     }
 
     public reset(): void {
@@ -270,7 +272,7 @@ export class Trs80 implements Hal {
                 // Various controls.
                 this.modeImage = value;
                 this.setCassetteMotor((value & 0x02) !== 0);
-                this.setExpandedCharacters((value & 0x04) !== 0);
+                Trs80.setExpandedCharacters(this.node, (value & 0x04) !== 0);
                 break;
 
             case 0xF0:
@@ -312,22 +314,8 @@ export class Trs80 implements Hal {
         if (address < ROM_SIZE) {
             console.log("Warning: Writing to ROM location 0x" + toHex(address, 4));
         } else {
-            if (address >= 15360 && address < 16384) {
-                const chList = this.node.getElementsByClassName(CSS_PREFIX + "-c" + address);
-                if (chList.length > 0) {
-                    const ch = chList[0] as HTMLSpanElement;
-                    // It'd be nice to put the character there so that copy-and-paste works.
-                    /// ch.innerText = String.fromCharCode(value);
-                    for (let i = 0; i < ch.classList.length; i++) {
-                        const className = ch.classList[i];
-                        if (className.startsWith(CSS_PREFIX + "-char-")) {
-                            ch.classList.remove(className);
-                            // There should only be one.
-                            break;
-                        }
-                    }
-                    ch.classList.add(CSS_PREFIX + "-char-" + value);
-                }
+            if (address >= SCREEN_BEGIN && address < SCREEN_END) {
+                Trs80.writeScreenChar(this.node, address, value);
             } else if (address < RAM_START) {
                 console.log("Writing to unmapped memory at 0x" + toHex(address, 4));
             }
@@ -345,6 +333,153 @@ export class Trs80 implements Hal {
         return (this.irqMask & CASSETTE_IRQ_MASKS) !== 0;
     }
 
+    /**
+     * Get an opaque string that represents the state of the screen. Flashes the screen.
+     */
+    public getScreenshot(): string {
+        const buf: number[] = [];
+
+        // First byte is screen mode, where 0 means normal (64 columns) and 1 means wide (32 columns).
+        buf.push(this.isExpandedCharacters() ? 1 : 0);
+
+        // Run-length encode bytes with (value,count) pairs, with a max count of 255. Bytes
+        // in the range 33 to 127 inclusive have an implicit count of 1.
+        for (let address = SCREEN_BEGIN; address < SCREEN_END; address++) {
+            const value = this.memory[address];
+            if (value > 32 && value < 128) {
+                // Bytes in this range don't store a count.
+                buf.push(value);
+            } else if (buf.length < 2 || buf[buf.length - 1] === 255 || buf[buf.length - 2] !== value) {
+                // New entry.
+                buf.push(value);
+                buf.push(1);
+            } else {
+                // Increment existing count.
+                buf[buf.length - 1] += 1;
+            }
+        }
+
+        // Convert to a binary string.
+        let s = buf.map(n => String.fromCharCode(n)).join("");
+
+        // Start visual flash effect.
+        Trs80.flashNode(this.node);
+
+        // Base-64 encode and prefix with version number.
+        return "0:" + btoa(s);
+    }
+
+    /**
+     * Flash the node as if a photo were taken.
+     */
+    private static flashNode(node: HTMLElement): void {
+        // Position a semi-transparent white div over the screen, and reduce its transparency over time.
+        const oldNodePosition = node.style.position;
+        node.style.position = "relative";
+
+        const overlay = document.createElement("div");
+        overlay.style.position = "absolute";
+        overlay.style.left = "0";
+        overlay.style.top = "0";
+        overlay.style.right = "0";
+        overlay.style.bottom = "0";
+        overlay.style.backgroundColor = "#ffffff";
+
+        // Fade out.
+        let opacity = 1;
+        const updateOpacity = () => {
+            overlay.style.opacity = opacity.toString();
+            opacity -= 0.1;
+            if (opacity >= 0) {
+                window.requestAnimationFrame(updateOpacity);
+            } else {
+                node.removeChild(overlay);
+                node.style.position = oldNodePosition;
+            }
+        };
+        updateOpacity();
+        node.appendChild(overlay);
+    }
+
+    /**
+     * Write a character to the screen.
+     */
+    public static writeScreenChar(node: HTMLElement, address: number, value: number): void {
+        const chList = node.getElementsByClassName(CSS_PREFIX + "-c" + address);
+        if (chList.length > 0) {
+            const ch = chList[0] as HTMLSpanElement;
+            // It'd be nice to put the character there so that copy-and-paste works.
+            /// ch.innerText = String.fromCharCode(value);
+            for (let i = 0; i < ch.classList.length; i++) {
+                const className = ch.classList[i];
+                if (className.startsWith(CSS_PREFIX + "-char-")) {
+                    ch.classList.remove(className);
+                    // There should only be one.
+                    break;
+                }
+            }
+            ch.classList.add(CSS_PREFIX + "-char-" + value);
+        }
+    }
+
+    /**
+     * Create a screen in the parent node and fill it with the screenshot.
+     */
+    public static displayScreenshot(parentNode: HTMLElement, screenshot: string): void {
+        // Empty parent.
+        while (parentNode.firstChild) {
+            parentNode.removeChild(parentNode.firstChild);
+        }
+
+        // Leave it blank if screenshot string is blank.
+        if (screenshot === "") {
+            return;
+        }
+
+        // Create a node for ourselves below the parent.
+        const node = Trs80.createScreenNode(parentNode);
+
+        // Make global CSS if necessary.
+        Trs80.configureStyle();
+
+        if (!screenshot.startsWith("0:")) {
+            throw new Error("Invalid screenshot version number");
+        }
+
+        // Decode screenshot.
+        const s = atob(screenshot.substring(2));
+        if (s.length === 0) {
+            throw new Error("Screenshot string is empty");
+        }
+
+        // Set expanded mode.
+        Trs80.setExpandedCharacters(node, s.charCodeAt(0) === 1);
+
+        let address = SCREEN_BEGIN;
+        for (let i = 1; i < s.length; i++) {
+            const value = s.charCodeAt(i);
+            let count = 1;
+            if (value > 32 && value < 128) {
+                // Implicit count of 1.
+            } else {
+                i++;
+                if (i === s.length) {
+                    throw new Error("Missing count in RLE");
+                }
+                count = s.charCodeAt(i);
+            }
+
+            // Emit "count" values.
+            while (count--) {
+                Trs80.writeScreenChar(node, address++, value);
+            }
+        }
+
+        if (address !== SCREEN_END) {
+            throw new Error("Screenshot was of the wrong length");
+        }
+    }
+
     // Reset whether we've seen this NMI interrupt if the mask and latch no longer overlap.
     private updateNmiSeen(): void {
         if ((this.nmiLatch & this.nmiMask) === 0) {
@@ -352,16 +487,19 @@ export class Trs80 implements Hal {
         }
     }
 
-    private configureNode(): void {
-        if (this.node.classList.contains(CSS_PREFIX)) {
-            // Already configured.
-            return;
-        }
-        this.node.classList.add(CSS_PREFIX);
-        this.node.classList.add(CSS_PREFIX + "-narrow");
+    /**
+     * Create and configure the DOM node that we're rendering into.
+     */
+    private static createScreenNode(parentNode: HTMLElement): HTMLElement {
+        // Make our own sub-node that we have control over.
+        const node = document.createElement("div");
+        parentNode.appendChild(node);
+
+        node.classList.add(CSS_PREFIX);
+        node.classList.add(CSS_PREFIX + "-narrow");
 
         for (let offset = 0; offset < 1024; offset++) {
-            const address = SCREEN_ADDRESS + offset;
+            const address = SCREEN_BEGIN + offset;
             const c = document.createElement("span");
             c.classList.add(CSS_PREFIX + "-c" + address);
             if (offset % 2 === 0) {
@@ -370,16 +508,21 @@ export class Trs80 implements Hal {
                 c.classList.add(CSS_PREFIX + "-odd-column");
             }
             c.innerText = " ";
-            this.node.appendChild(c);
+            node.appendChild(c);
 
             // Newlines.
             if (offset % 64 === 63) {
-                this.node.appendChild(document.createElement("br"));
+                node.appendChild(document.createElement("br"));
             }
         }
+
+        return node;
     }
 
-    private configureStyle(): void {
+    /**
+     * Make a global stylesheet for all TRS-80 emulators on this page.
+     */
+    private static configureStyle(): void {
         const styleId = CSS_PREFIX + "-style";
         if (document.getElementById(styleId) !== null) {
             // Already created.
@@ -480,14 +623,21 @@ export class Trs80 implements Hal {
     }
 
     // Enable or disable expanded character set.
-    private setExpandedCharacters(expanded: boolean): void {
+    private static setExpandedCharacters(node: HTMLElement, expanded: boolean): void {
         if (expanded) {
-            this.node.classList.remove(CSS_PREFIX + "-narrow");
-            this.node.classList.add(CSS_PREFIX + "-expanded");
+            node.classList.remove(CSS_PREFIX + "-narrow");
+            node.classList.add(CSS_PREFIX + "-expanded");
         } else {
-            this.node.classList.remove(CSS_PREFIX + "-expanded");
-            this.node.classList.add(CSS_PREFIX + "-narrow");
+            node.classList.remove(CSS_PREFIX + "-expanded");
+            node.classList.add(CSS_PREFIX + "-narrow");
         }
+    }
+
+    /**
+     * Whether the screen node is currently set for expanded characters.
+     */
+    private isExpandedCharacters(): boolean {
+        return this.node.classList.contains(CSS_PREFIX + "-expanded");
     }
 
     // Reset the controller to a known state.
