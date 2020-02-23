@@ -10,7 +10,7 @@ import {BitType} from "./BitType";
 import {Highlight} from "./Highlight";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {DisplaySamples} from "./DisplaySamples";
-import {base64EncodeUint8Array} from "./Utils";
+import {base64EncodeUint8Array, clearElement} from "./Utils";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -96,15 +96,6 @@ class Pane {
 
     constructor(element: HTMLElement) {
         this.element = element;
-    }
-}
-
-/**
- * Remove all children from element.
- */
-function clearElement(e: HTMLElement): void {
-    while (e.firstChild) {
-        e.removeChild(e.firstChild);
     }
 }
 

@@ -28,7 +28,7 @@ body, input, textarea {
 }
 .nice_button {
     border-radius: 4px;
-    background-color: #5C646A;
+    background-color: #7c858b;
     color: white;
     padding: 6px 12px;
     cursor: pointer;
@@ -83,17 +83,17 @@ body, input, textarea {
 #drop_progress {
     margin: 1em auto;
 }
-#test_files {
+.button_group {
     display: flex;
     justify-content: center;
     align-items: baseline;
     margin-top: 2em;
     font-size: 18px;
 }
-#test_files > * {
+.button_group > * {
     margin: 10px;
 }
-#test_files .nice_button {
+.button_group .nice_button {
     font-size: 18px;
 }
 #about {
@@ -104,6 +104,11 @@ body, input, textarea {
 }
 #about a {
     color: #aaa;
+}
+
+/* Browse screen. */
+#browse_screen {
+    margin: 20px 40px;
 }
 
 /* Data (main) screen. */

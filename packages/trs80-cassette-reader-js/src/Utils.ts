@@ -1,4 +1,3 @@
-
 /**
  * Convert a number to a string.
  *
@@ -28,4 +27,13 @@ export function base64EncodeUint8Array(array: Uint8Array): string {
     let s = "";
     array.forEach(c => s += String.fromCharCode(c));
     return btoa(s);
+}
+
+/**
+ * Remove all children from element.
+ */
+export function clearElement(e: HTMLElement): void {
+    while (e.firstChild) {
+        e.removeChild(e.firstChild);
+    }
 }

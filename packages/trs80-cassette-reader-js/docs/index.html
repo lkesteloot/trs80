@@ -13,7 +13,7 @@
 </head>
 
 <body>
-    <div id="drop_screen">
+    <div id="drop_screen" class="screen">
         <h1>TRS-80 Cassette Reader</h1>
         <label id="drop_zone" for="drop_upload">
             <div id="drop_instructions">
@@ -22,27 +22,34 @@
                 </div>
                 <p>Drop a WAV file here<br>or click to select a file</p>
             </div>
+            <div id="test_files" class="button_group">
+                Or use one of these test files:
+                <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1/C-1-1.wav" class="nice_button">C-1-1</button>
+                <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s1/LOAD80-Feb82-s1.wav" class="nice_button">LOAD80 Feb 82, side 1</button>
+                <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s2/LOAD80-Feb82-s2.wav" class="nice_button">LOAD80 Feb 82, side 2</button>
+            </div>
             <progress id="drop_progress" class="hidden"></progress>
         </label>
-        <input id="drop_upload" class="hidden" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav">
-        <div id="test_files">
-            Or use one of these test files:
-            <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/lk/C-1-1/C-1-1.wav" class="nice_button">C-1-1</button>
-            <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s1/LOAD80-Feb82-s1.wav" class="nice_button">LOAD80 Feb 82, side 1</button>
-            <button data-src="https://trs80-cassettes.s3.us-east-2.amazonaws.com/qbarnes/LOAD80-Feb82-s2/LOAD80-Feb82-s2.wav" class="nice_button">LOAD80 Feb 82, side 2</button>
+        <div class="button_group">
+            <button id="export_data_button" class="nice_button">Export Data</button>
+            <button id="import_data_button" class="nice_button">Import Data</button>
+            <button id="browse_data_button" class="nice_button">Browse Data</button>
         </div>
+        <input id="drop_upload" class="hidden" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav">
         <p id="about">
             This app parses and cleans up TRS-80 Model I and Model III cassette audio
             files, and generates clean audio for importing into emulators.
             <a href="https://github.com/lkesteloot/trs80-cassette-reader-js">Source code</a>
         </p>
     </div>
-    <div id="data_screen" class="hidden">
+    <div id="data_screen" class="screen hidden">
         <nav id="tape_contents"></nav>
         <main>
             <div id="top_data"></div>
             <div id="waveforms"></div>
         </main>
+    </div>
+    <div id="browse_screen" class="screen hidden">
     </div>
     <script type="module">
         import "./dist/main.js";

@@ -10,6 +10,23 @@ import {Program} from "./Program";
 
 const LOCAL_DATA_KEY = "tapes";
 
+export interface SavedProgram {
+    name: string,
+    notes: string,
+    timestamp: number,
+    screenshot: string,
+}
+
+export interface SavedTape {
+    name: string,
+    notes: string,
+    programs: SavedProgram[],
+}
+
+export interface SavedData {
+    tapes: SavedTape[],
+}
+
 export class Tape {
     public name: string;
     public originalSamples: DisplaySamples;
@@ -51,20 +68,17 @@ export class Tape {
      * Load the saved user data and apply to existing programs.
      */
     public loadUserData(): void {
-        const jsonData = window.localStorage.getItem(LOCAL_DATA_KEY);
-        if (jsonData === null) {
-            return;
-        }
+        const data = Tape.loadAllData();
 
-        const data = JSON.parse(jsonData);
-        const tapeData = data.tapes[this.name];
-        if (tapeData) {
-            for (const programData of tapeData.programs) {
-                for (const program of this.programs) {
-                    if (program.isForTimestamp(programData.timestamp, this.sampleRate)) {
-                        program.setName(programData.name ?? "");
-                        program.setNotes(programData.notes ?? "");
-                        program.setScreenshot(programData.screenshot ?? "");
+        for (const tapeData of data.tapes) {
+            if (tapeData.name === this.name) {
+                for (const programData of tapeData.programs) {
+                    for (const program of this.programs) {
+                        if (program.isForTimestamp(programData.timestamp, this.sampleRate)) {
+                            program.setName(programData.name ?? "");
+                            program.setNotes(programData.notes ?? "");
+                            program.setScreenshot(programData.screenshot ?? "");
+                        }
                     }
                 }
             }
@@ -76,8 +90,8 @@ export class Tape {
      */
     public saveUserData(): void {
         const data = {
-            tapes: {
-                [this.name]: {
+            tapes: [
+                {
                     name: this.name,
                     notes: "",
                     programs: this.programs.map(program => ({
@@ -87,9 +101,18 @@ export class Tape {
                         timestamp: program.getTimestamp(this.sampleRate),
                     })),
                 },
-            },
+            ],
         };
 
         window.localStorage.setItem(LOCAL_DATA_KEY, JSON.stringify(data));
+    }
+
+    public static loadAllData(): SavedData {
+        const jsonData = window.localStorage.getItem(LOCAL_DATA_KEY);
+        if (jsonData === null) {
+            return { tapes: [] };
+        }
+
+        return JSON.parse(jsonData);
     }
 }
