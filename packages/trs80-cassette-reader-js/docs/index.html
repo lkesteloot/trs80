@@ -35,6 +35,15 @@
             <button id="import_data_button" class="nice_button">Import Data</button>
             <button id="browse_data_button" class="nice_button">Browse Data</button>
         </div>
+        <div id="export_import" class="hidden">
+            <textarea id="user_data_field" rows="10"></textarea>
+            <div id="export_buttons" class="button_group">
+                <button id="copy_to_clipboard_button" class="nice_button">Copy to Clipboard</button>
+            </div>
+            <div id="import_buttons" class="button_group">
+                <button id="import_button" class="nice_button">Import</button>
+            </div>
+        </div>
         <input id="drop_upload" class="hidden" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav">
         <p id="about">
             This app parses and cleans up TRS-80 Model I and Model III cassette audio

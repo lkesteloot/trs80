@@ -5,8 +5,9 @@ import {TapeBrowser} from "./TapeBrowser";
 import {Uploader} from "./Uploader";
 import Split from "split.js";
 import {AudioFile} from "./AudioUtils";
-import {clearElement} from "./Utils";
+import {clearElement, flashNode} from "./Utils";
 import {Trs80} from "trs80-emulator";
+import exp from "constants";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -89,6 +90,58 @@ function populateBrowseScreen(browseScreen: HTMLElement): void {
     }
 }
 
+/**
+ * Show the export/import panel and the appropriate set of buttons.
+ */
+function showExportImport(action: "import" | "export"): void {
+    const exportImport = document.getElementById("export_import") as HTMLDivElement;
+    exportImport.classList.remove("hidden");
+
+    // Hide all button groups.
+    for (const buttonGroup of exportImport.getElementsByClassName("button_group")) {
+        buttonGroup.classList.add("hidden");
+    }
+
+    // Show our button group.
+    const buttonGroup = document.getElementById(action == "export" ? "export_buttons" : "import_buttons") as HTMLElement;
+    buttonGroup.classList.remove("hidden");
+}
+
+function showExportData(): void {
+    showExportImport("export");
+    const textArea = document.getElementById("user_data_field") as HTMLTextAreaElement;
+    textArea.placeholder = "";
+    textArea.value = Tape.getAllDataAsJson();
+    textArea.select();
+}
+
+function showImportData(): void {
+    showExportImport("import");
+    const textArea = document.getElementById("user_data_field") as HTMLTextAreaElement;
+    textArea.value = "";
+    textArea.placeholder = "Paste exported data here, then click “Import”.";
+    textArea.focus();
+}
+
+function copyToClipboard(): void {
+    const textArea = document.getElementById("user_data_field") as HTMLTextAreaElement;
+    textArea.select();
+    document.execCommand("copy");
+
+    const exportImport = document.getElementById("export_import") as HTMLDivElement;
+    flashNode(exportImport);
+}
+
+function importData(): void {
+    const textArea = document.getElementById("user_data_field") as HTMLTextAreaElement;
+    if (textArea) {
+        Tape.saveAllDataAsJson(textArea.value);
+
+        const exportImport = document.getElementById("export_import") as HTMLDivElement;
+        flashNode(exportImport);
+    }
+}
+
 function handleAudioBuffer(pathname: string, audioFile: AudioFile) {
     console.log("Audio is " + audioFile.rate + " Hz");
     // TODO check that there's 1 channel.
@@ -146,11 +199,16 @@ export function main() {
     const exportDataButton = document.getElementById("export_data_button") as HTMLButtonElement;
     const importDataButton = document.getElementById("import_data_button") as HTMLButtonElement;
     const browseDataButton = document.getElementById("browse_data_button") as HTMLButtonElement;
+    const copyToClipboardButton = document.getElementById("copy_to_clipboard_button") as HTMLButtonElement;
+    const importButton = document.getElementById("import_button") as HTMLButtonElement;
 
-    exportDataButton.addEventListener("click", event => 0);
-    importDataButton.addEventListener("click", event => 0);
+    exportDataButton.addEventListener("click", event => showExportData());
+    importDataButton.addEventListener("click", event => showImportData());
     browseDataButton.addEventListener("click", event => {
         const browseScreen = showScreen("browse_screen");
         populateBrowseScreen(browseScreen);
     });
+
+    copyToClipboardButton.addEventListener("click", event => copyToClipboard());
+    importButton.addEventListener("click", event => importData());
 }

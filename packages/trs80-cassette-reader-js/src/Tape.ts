@@ -104,9 +104,12 @@ export class Tape {
             ],
         };
 
-        window.localStorage.setItem(LOCAL_DATA_KEY, JSON.stringify(data));
+        Tape.saveAllDataAsJson(JSON.stringify(data))
     }
 
+    /**
+     * Get user data as a SavedData object.
+     */
     public static loadAllData(): SavedData {
         const jsonData = window.localStorage.getItem(LOCAL_DATA_KEY);
         if (jsonData === null) {
@@ -114,5 +117,20 @@ export class Tape {
         }
 
         return JSON.parse(jsonData);
+    }
+
+    /**
+     * Get user data as a formatted JSON object.
+     */
+    public static getAllDataAsJson(): string {
+        // Re-format it nicely.
+        return JSON.stringify(this.loadAllData(), null, 2);
+    }
+
+    /**
+     * Set the full data from a JSON string.
+     */
+    public static saveAllDataAsJson(jsonData: string): void {
+        window.localStorage.setItem(LOCAL_DATA_KEY, jsonData);
     }
 }

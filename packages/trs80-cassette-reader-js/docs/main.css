@@ -106,6 +106,16 @@ body, input, textarea {
     color: #aaa;
 }
 
+#user_data_field {
+    display: block;
+    width: 50%;
+    margin: 20px auto 0 auto;
+}
+
+#export_import .button_group {
+    margin-top: 0;
+}
+
 /* Browse screen. */
 #browse_screen {
     margin: 20px 40px;
