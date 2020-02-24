@@ -7,7 +7,7 @@ To run a local build:
 
     % npm install
     % npm run build
-    % npm run serve
+    % npm run start
 
 Then visit http://127.0.0.1:8080/
 

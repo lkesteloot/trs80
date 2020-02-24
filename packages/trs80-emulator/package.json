@@ -11,7 +11,8 @@
     "build:module": "tsc -p tsconfig.module.json",
     "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
     "lint:fix": "npm run lint -- --fix",
-    "serve": "rollup -c && http-server docs"
+    "start": "rollup -c && http-server docs",
+    "watch": "rollup -c --watch"
   },
   "keywords": [
     "trs-80",
