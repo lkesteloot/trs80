@@ -1,0 +1,16 @@
+{
+  "name": "z80-asm",
+  "version": "1.0.0",
+  "description": "Z80 assembler and IDE",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate": "tsc --project opcodes && node opcodes/dist/GenerateJson.js"
+  },
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^13.9.5",
+    "typescript": "^3.8.3"
+  }
+}
