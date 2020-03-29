@@ -17,15 +17,15 @@ function main() {
         let address = 0;
         lines.forEach((line: string) => {
             const parser = new Parser(line, address, constants, pass === 0);
-            parser.assemble();
+            const results = parser.assemble();
             if (pass !== 0) {
-                if (parser.binary.length !== 0) {
+                if (results.binary.length !== 0) {
                     // Show four bytes at a time.
-                    let displayAddress = address;
-                    for (let i = 0; i < parser.binary.length; i += 4) {
+                    let displayAddress = results.address;
+                    for (let i = 0; i < results.binary.length; i += 4) {
                         let result = toHex(displayAddress, 4) + ":";
-                        for (let j = 0; j < 4 && i + j < parser.binary.length; j++) {
-                            result += " " + toHex(parser.binary[i + j], 2);
+                        for (let j = 0; j < 4 && i + j < results.binary.length; j++) {
+                            result += " " + toHex(results.binary[i + j], 2);
                             displayAddress++;
                         }
                         if (i === 0) {
@@ -34,22 +34,22 @@ function main() {
                         fs.writeSync(lstFd, result + "\n");
                     }
 
-                    fs.writeSync(binFd, new Uint8Array(parser.binary));
+                    fs.writeSync(binFd, new Uint8Array(results.binary));
                 } else {
                     fs.writeSync(lstFd, " ".repeat(24) + line + "\n");
                 }
-                if (parser.error !== undefined) {
-                    fs.writeSync(lstFd, "error: " + parser.error + "\n");
+                if (results.error !== undefined) {
+                    fs.writeSync(lstFd, "error: " + results.error + "\n");
                 }
 
-                if (parser.error !== undefined) {
+                if (results.error !== undefined) {
                     console.log(chalk.gray(line));
-                    console.log(chalk.red("error: " + parser.error));
+                    console.log(chalk.red("error: " + results.error));
                     console.log();
                     errorCount += 1;
                 }
             }
-            address += parser.binary.length;
+            address = results.nextAddress;
         });
         if (pass !== 0 && errorCount !== 0) {
             console.log(errorCount + " errors");

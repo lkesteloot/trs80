@@ -6,6 +6,32 @@ import {toHex, hi, lo, isByteReg, isWordReg} from "z80-base";
  */
 const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 
+export class ParseResults {
+    // Original line.
+    public line: string;
+    // Address of this line.
+    public address: number;
+    // Decoded opcodes and parameters:
+    public binary: number[] = [];
+    // Any error found in the line.
+    public error: string | undefined;
+    private specifiedNextAddress: number | undefined;
+
+    constructor(line: string, address: number) {
+        this.line = line;
+        this.address = address;
+    }
+
+    set nextAddress(nextAddress: number) {
+        this.specifiedNextAddress = nextAddress;
+    }
+
+    get nextAddress(): number {
+        // Return explicit if provided, otherwise compute.
+        return this.specifiedNextAddress ?? (this.address + this.binary.length);
+    }
+}
+
 /**
  * Parses one line of assembly language.
  */
@@ -22,21 +48,25 @@ export class Parser {
     private i: number = 0;
     // Pointer to the token we just parsed.
     private previousToken = 0;
-    // Decoded opcodes and parameters:
-    public binary: number[] = [];
-    // Any error found in the line.
-    public error: string | undefined;
+    private results: ParseResults;
 
     constructor(line: string, address: number, constants: any, ignoreUnknownIdentifiers: boolean) {
         this.line = line;
         this.address = address;
         this.constants = constants;
         this.ignoreUnknownIdentifiers = ignoreUnknownIdentifiers;
+        this.results = new ParseResults(line, address);
     }
 
-    public assemble(): void {
+    public assemble(): ParseResults {
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
+
+        // Look for compiler directive.
+        if (this.line.trim().startsWith("#")) {
+            this.parseDirective();
+            return this.results;
+        }
 
         // Look for label in column 1.
         this.i = 0;
@@ -59,20 +89,20 @@ export class Parser {
                     const s = this.readString();
                     if (s !== undefined) {
                         for (let i = 0; i < s.length; i++) {
-                            this.binary.push(s.charCodeAt(i));
+                            this.results.binary.push(s.charCodeAt(i));
                         }
-                    } else if (this.error !== undefined) {
+                    } else if (this.results.error !== undefined) {
                         // Error parsing string.
-                        return;
+                        return this.results;
                     } else {
                         const value = this.readExpression();
                         if (value === undefined) {
-                            if (this.error === undefined) {
-                                this.error = "invalid .byte expression";
+                            if (this.results.error === undefined) {
+                                this.results.error = "invalid .byte expression";
                             }
-                            return;
+                            return this.results;
                         }
-                        this.binary.push(value);
+                        this.results.binary.push(value);
                     }
                     if (!this.foundChar(',')) {
                         break;
@@ -82,13 +112,13 @@ export class Parser {
                 while (true) {
                     const value = this.readExpression();
                     if (value === undefined) {
-                        if (this.error === undefined) {
-                            this.error = "invalid .word expression";
+                        if (this.results.error === undefined) {
+                            this.results.error = "invalid .word expression";
                         }
-                        return;
+                        return this.results;
                     }
-                    this.binary.push(lo(value));
-                    this.binary.push(hi(value));
+                    this.results.binary.push(lo(value));
+                    this.results.binary.push(hi(value));
                     if (!this.foundChar(',')) {
                         break;
                     }
@@ -96,9 +126,9 @@ export class Parser {
             } else if (mnemonic === ".equ") {
                 const value = this.readExpression();
                 if (value === undefined) {
-                    this.error = "bad value for constant";
+                    this.results.error = "bad value for constant";
                 } else if (label === undefined) {
-                    this.error = "must have label for constant";
+                    this.results.error = "must have label for constant";
                 } else {
                     // Remember constant.
                     labelValue = value;
@@ -108,14 +138,8 @@ export class Parser {
             }
         }
 
-        // Make sure there's no junk at the end of the line.
-        if (this.isChar(';')) {
-            // Skip rest of line.
-            this.i = this.line.length;
-        }
-        if (this.i != this.line.length) {
-            this.error = "syntax error";
-        }
+        // Make sure there's no extra junk.
+        this.ensureEndOfLine();
 
         if (label !== undefined && labelValue !== undefined) {
             const oldValue = this.constants[label];
@@ -126,6 +150,57 @@ export class Parser {
             }
             this.constants[label] = labelValue;
         }
+
+        return this.results;
+    }
+
+    // Make sure there's no junk at the end of the line.
+    private ensureEndOfLine(): void {
+        // Check for comment.
+        if (this.isChar(';')) {
+            // Skip rest of line.
+            this.i = this.line.length;
+        }
+        if (this.i != this.line.length) {
+            this.results.error = "syntax error";
+        }
+    }
+
+    private parseDirective(): void {
+        this.skipWhitespace();
+        if (!this.foundChar('#')) {
+            // Logic error.
+            throw new Error("did not find # for directive");
+        }
+        const directive = this.readIdentifier(true, true);
+        if (directive === undefined || directive === "") {
+            this.results.error = "must specify directive after #";
+            return;
+        }
+
+        switch (directive) {
+            case "code":
+                const segmentName = this.readIdentifier(true, false);
+                if (segmentName === undefined) {
+                    this.results.error = "segment name expected";
+                } else if (this.foundChar(',')) {
+                    const startAddress = this.readExpression();
+                    if (startAddress === undefined) {
+                        this.results.error = "start address expected";
+                    } else {
+                        this.results.nextAddress = startAddress;
+                        // TODO parse length of segment.
+                    }
+                }
+                break;
+
+            default:
+                this.results.error = "unknown directive #" + directive;
+                break;
+        }
+
+        // Make sure there's no extra junk.
+        this.ensureEndOfLine();
     }
 
     private processOpCode(mnemonic: string): void {
@@ -179,7 +254,7 @@ export class Parser {
                 }
 
                 if (match) {
-                    this.binary = [];
+                    this.results.binary = [];
                     for (const op of variant.opcode) {
                         if (typeof(op) === "string") {
                             const value = args[op];
@@ -188,21 +263,21 @@ export class Parser {
                             }
                             switch (op) {
                                 case "nnnn":
-                                    this.binary.push(lo(value));
-                                    this.binary.push(hi(value));
+                                    this.results.binary.push(lo(value));
+                                    this.results.binary.push(hi(value));
                                     break;
 
                                 case "nn":
                                 case "dd":
                                 case "offset": // TODO actually offset.
-                                    this.binary.push(value);
+                                    this.results.binary.push(value);
                                     break;
 
                                 default:
                                     throw new Error("Unknown arg type " + op);
                             }
                         } else {
-                            this.binary.push(op);
+                            this.results.binary.push(op);
                         }
                     }
                     break;
@@ -213,16 +288,16 @@ export class Parser {
             }
 
             if (!match) {
-                this.error = "no variant found for " + mnemonic;
+                this.results.error = "no variant found for " + mnemonic;
             }
         } else {
-            this.error = "unknown mnemonic: " + mnemonic;
+            this.results.error = "unknown mnemonic: " + mnemonic;
         }
     }
 
     /**
      * Reads a string like "abc", or undefined if didn't find a string.
-     * If found the beginning of a string but not the end, sets this.error
+     * If found the beginning of a string but not the end, sets this.results.error
      * and returns undefined.
      */
     private readString(): string | undefined {
@@ -240,7 +315,7 @@ export class Parser {
 
         if (this.i === this.line.length) {
             // No end quote.
-            this.error = "no end quote in string";
+            this.results.error = "no end quote in string";
             return undefined;
         }
 
@@ -307,6 +382,8 @@ export class Parser {
     }
 
     private readAtom(): number | undefined {
+        const startIndex = this.i;
+
         // Parenthesized expression.
         if (this.foundChar('(')) {
             const value = this.readExpression();
@@ -323,7 +400,7 @@ export class Parser {
             let value = this.constants[identifier];
             if (value === undefined) {
                 if (!this.ignoreUnknownIdentifiers) {
-                    this.error = "unknown identifier \"" + identifier + "\"";
+                    this.results.error = "unknown identifier \"" + identifier + "\"";
                 }
                 value = 0;
             }
@@ -380,6 +457,21 @@ export class Parser {
             this.i = beforeIndex;
         }
 
+        // Look for 0x or 0b prefix. Must do this after above checks so that we correctly
+        // mark "0B1H" as hex and not binary.
+        if (base === 10 && this.i + 2 < this.line.length && this.line[this.i] === '0') {
+            if (this.line[this.i + 1].toLowerCase() == 'x') {
+                base = 16;
+                this.i += 2;
+            } else if (this.line[this.i + 1].toLowerCase() == 'b' &&
+                // Must check next digit to distinguish from just "0B".
+                this.parseHexDigit(this.line[this.i + 2], 2) !== undefined) {
+
+                base = 2;
+                this.i += 2;
+            }
+        }
+
         // Parse number.
         let value = 0;
         while (true) {
@@ -408,13 +500,13 @@ export class Parser {
             if (baseChar === "H") {
                 // Check for programmer errors.
                 if (base !== 16) {
-                    throw new Error("found H at end of non-hex number");
+                    throw new Error("found H at end of non-hex number: " + this.line.substring(startIndex, this.i + 1));
                 }
                 this.i++;
             } else if (baseChar === "B") {
                 // Check for programmer errors.
                 if (base !== 2) {
-                    throw new Error("found B at end of non-binary number");
+                    throw new Error("found B at end of non-binary number: " + this.line.substring(startIndex, this.i + 1));
                 }
                 this.i++;
             }
