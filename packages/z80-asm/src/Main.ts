@@ -37,7 +37,7 @@ class Parser {
     public assemble(): void {
         // Look for label in column 1.
         this.i = 0;
-        let label = this.readIdentifier(false);
+        let label = this.readIdentifier(false, false);
         if (label !== undefined && this.previousToken === 0) {
             // console.log("Found label \"" + label + "\"");
             if (this.foundChar(':')) {
@@ -50,7 +50,7 @@ class Parser {
         }
 
         this.skipWhitespace();
-        let mnemonic = this.readIdentifier(false);
+        let mnemonic = this.readIdentifier(false, true);
         if (mnemonic !== undefined && this.previousToken > 0) {
             if (mnemonic === ".byte") {
                 while (true) {
@@ -114,7 +114,7 @@ class Parser {
                         }
                     } else {
                         // Register or flag.
-                        const identifier = this.readIdentifier(true);
+                        const identifier = this.readIdentifier(true, true);
                         if (identifier !== token) {
                             match = false;
                         }
@@ -219,7 +219,7 @@ class Parser {
         }
 
         // Try identifier.
-        const identifier = this.readIdentifier(false);
+        const identifier = this.readIdentifier(false, false);
         if (identifier !== undefined) {
             // Get address of identifier or value of constant.
             let value = this.constants[identifier];
@@ -328,7 +328,7 @@ class Parser {
         }
     }
 
-    private readIdentifier(allowRegister: boolean): string | undefined {
+    private readIdentifier(allowRegister: boolean, toLowerCase: boolean): string | undefined {
         const startIndex = this.i;
 
         while (this.i < this.line.length && this.isLegalIdentifierCharacter(this.line[this.i], this.i == startIndex)) {
@@ -336,7 +336,10 @@ class Parser {
         }
 
         if (this.i > startIndex) {
-            const identifier = this.line.substring(startIndex, this.i).toLowerCase();
+            let identifier = this.line.substring(startIndex, this.i);
+            if (toLowerCase) {
+                identifier = identifier.toLowerCase();
+            }
             if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || this.isFlag(identifier))) {
                 // Register names can't be identifiers.
                 this.i = startIndex;
