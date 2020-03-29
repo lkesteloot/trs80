@@ -10,6 +10,9 @@ const srcPathname = "sio_basic.asm";
  */
 const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 
+/**
+ * Parses one line of assembly language.
+ */
 class Parser {
     // Full text of line being parsed.
     private readonly line: string;
@@ -288,13 +291,10 @@ class Parser {
             // Get address of identifier or value of constant.
             let value = this.constants[identifier];
             if (value === undefined) {
-                if (this.ignoreUnknownIdentifiers) {
-                    // Shouldn't appear anywhere in final output.
-                    value = 0xBEEF;
-                } else {
-                    this.error = "unknown constant \"" + identifier + "\"";
-                    return undefined;
+                if (!this.ignoreUnknownIdentifiers) {
+                    this.error = "unknown identifier \"" + identifier + "\"";
                 }
+                value = 0;
             }
             return value;
         }
@@ -468,11 +468,7 @@ function main() {
             const parser = new Parser(line, address, constants, pass === 0);
             parser.assemble();
             if (pass !== 0) {
-                if (parser.error !== undefined) {
-                    console.log("                    " + chalk.red(line));
-                    console.log("                    " + chalk.red("error: " + parser.error));
-                    errorCount += 1;
-                } else if (parser.binary.length !== 0) {
+                if (parser.binary.length !== 0) {
                     // Show four bytes at a time.
                     let displayAddress = address;
                     for (let i = 0; i < parser.binary.length; i += 4) {
@@ -488,6 +484,10 @@ function main() {
                     }
                 } else {
                     console.log("                    " + chalk.gray(line));
+                }
+                if (parser.error !== undefined) {
+                    console.log("                    " + chalk.red("error: " + parser.error));
+                    errorCount += 1;
                 }
             }
             address += parser.binary.length;
