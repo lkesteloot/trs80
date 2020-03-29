@@ -25,6 +25,7 @@ class Parser {
     private previousToken = 0;
     // Decoded opcodes and parameters:
     public binary: number[] = [];
+    // Any error found in the line.
     public error: string | undefined;
 
     constructor(line: string, address: number, constants: any, ignoreUnknownIdentifiers: boolean) {
@@ -35,10 +36,13 @@ class Parser {
     }
 
     public assemble(): void {
+        // What value to assign to the label we parse, if any.
+        let labelValue: number | undefined;
+
         // Look for label in column 1.
         this.i = 0;
         let label = this.readIdentifier(false, false);
-        if (label !== undefined && this.previousToken === 0) {
+        if (label !== undefined) {
             // console.log("Found label \"" + label + "\"");
             if (this.foundChar(':')) {
                 // Optional colon.
@@ -46,7 +50,7 @@ class Parser {
 
             // By default assign it to current address, but can be overwritten
             // by .equ below.
-            this.constants[label] = this.address;
+            labelValue = this.address;
         }
 
         this.skipWhitespace();
@@ -54,23 +58,41 @@ class Parser {
         if (mnemonic !== undefined && this.previousToken > 0) {
             if (mnemonic === ".byte") {
                 while (true) {
-                    const value = this.readExpression();
-                    if (value !== undefined) {
-                        this.binary.push(value);
-                        if (!this.foundChar(',')) {
-                            break;
+                    const s = this.readString();
+                    if (s !== undefined) {
+                        for (let i = 0; i < s.length; i++) {
+                            this.binary.push(s.charCodeAt(i));
                         }
+                    } else if (this.error !== undefined) {
+                        // Error parsing string.
+                        return;
+                    } else {
+                        const value = this.readExpression();
+                        if (value === undefined) {
+                            if (this.error === undefined) {
+                                this.error = "invalid .byte expression";
+                            }
+                            return;
+                        }
+                        this.binary.push(value);
+                    }
+                    if (!this.foundChar(',')) {
+                        break;
                     }
                 }
             } else if (mnemonic === ".word") {
                 while (true) {
                     const value = this.readExpression();
-                    if (value !== undefined) {
-                        this.binary.push(lo(value));
-                        this.binary.push(hi(value));
-                        if (!this.foundChar(',')) {
-                            break;
+                    if (value === undefined) {
+                        if (this.error === undefined) {
+                            this.error = "invalid .word expression";
                         }
+                        return;
+                    }
+                    this.binary.push(lo(value));
+                    this.binary.push(hi(value));
+                    if (!this.foundChar(',')) {
+                        break;
                     }
                 }
             } else if (mnemonic === ".equ") {
@@ -81,11 +103,21 @@ class Parser {
                     this.error = "must have label for constant";
                 } else {
                     // Remember constant.
-                    this.constants[label] = value;
+                    labelValue = value;
                 }
             } else {
                 this.processOpCode(mnemonic);
             }
+        }
+
+        if (label !== undefined && labelValue !== undefined) {
+            const oldValue = this.constants[label];
+            if (oldValue !== undefined && labelValue !== oldValue) {
+                // TODO should be programmer error.
+                console.log("warning: changing value of \"" + label + "\" from " + toHex(oldValue, 4) +
+                    " to " + toHex(labelValue, 4));
+            }
+            this.constants[label] = labelValue;
         }
     }
 
@@ -152,6 +184,38 @@ class Parser {
         } else {
             this.error = "unknown mnemonic: " + mnemonic;
         }
+    }
+
+    /**
+     * Reads a string like "abc", or undefined if didn't find a string.
+     * If found the beginning of a string but not the end, sets this.error
+     * and returns undefined.
+     */
+    private readString(): string | undefined {
+        // Find beginning of string.
+        if (this.i === this.line.length || this.line[this.i] != '"') {
+            return undefined;
+        }
+        this.i++;
+
+        // Find end of string.
+        const startIndex = this.i;
+        while (this.i < this.line.length && this.line[this.i] !== '"') {
+            this.i++;
+        }
+
+        if (this.i === this.line.length) {
+            // No end quote.
+            this.error = "no end quote in string";
+            return undefined;
+        }
+
+        // Clip out string contents.
+        const value = this.line.substring(startIndex, this.i);
+        this.i++;
+        this.skipWhitespace();
+
+        return value;
     }
 
     private readExpression(): number | undefined {
@@ -225,7 +289,8 @@ class Parser {
             let value = this.constants[identifier];
             if (value === undefined) {
                 if (this.ignoreUnknownIdentifiers) {
-                    value = 0;
+                    // Shouldn't appear anywhere in final output.
+                    value = 0xBEEF;
                 } else {
                     this.error = "unknown constant \"" + identifier + "\"";
                     return undefined;
@@ -249,6 +314,7 @@ class Parser {
         // Try numeric literal.
         let base = 10;
         let sign = 1;
+        let gotDigit = false;
 
         // Hex numbers can start with $, like $FF.
         if (this.foundChar('$')) {
@@ -296,7 +362,13 @@ class Parser {
                 break;
             }
             value = value*base + chValue;
+            gotDigit = true;
             this.i++;
+        }
+
+        if (!gotDigit) {
+            // Didn't parse anything.
+            return undefined;
         }
 
         // Check for base suffix.
@@ -387,32 +459,43 @@ class Parser {
 }
 
 function main() {
-    let address = 0;
-    let errorCount = 0;
     const constants: any = {};
     const lines = fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/);
     for (let pass = 0; pass < 2; pass++) {
+        let errorCount = 0;
+        let address = 0;
         lines.forEach((line: string) => {
             const parser = new Parser(line, address, constants, pass === 0);
             parser.assemble();
-            if (parser.error !== undefined) {
-                console.log("                    " + chalk.red(line));
-                console.log("                    " + chalk.red("error: " + parser.error));
-                errorCount += 1;
-            } else if (parser.binary.length !== 0 && false) {
-                let result = toHex(address, 4) + " ";
-                for (const byte of parser.binary) {
-                    result += " " + toHex(byte, 2);
+            if (pass !== 0) {
+                if (parser.error !== undefined) {
+                    console.log("                    " + chalk.red(line));
+                    console.log("                    " + chalk.red("error: " + parser.error));
+                    errorCount += 1;
+                } else if (parser.binary.length !== 0) {
+                    // Show four bytes at a time.
+                    let displayAddress = address;
+                    for (let i = 0; i < parser.binary.length; i += 4) {
+                        let result = toHex(displayAddress, 4) + ":";
+                        for (let j = 0; j < 4 && i + j < parser.binary.length; j++) {
+                            result += " " + toHex(parser.binary[i + j], 2);
+                            displayAddress++;
+                        }
+                        if (i === 0) {
+                            result = result.padEnd(20, " ") + line;
+                        }
+                        console.log(result);
+                    }
+                } else {
+                    console.log("                    " + chalk.gray(line));
                 }
-                result = result.padEnd(20, " ") + line;
-                console.log(result);
-                address += parser.binary.length;
-            } else if (false) {
-                console.log("                    " + chalk.gray(line));
             }
+            address += parser.binary.length;
         });
+        if (pass !== 0) {
+            console.log(errorCount + " errors");
+        }
     }
-    console.log(errorCount + " errors");
 }
 
 main();
