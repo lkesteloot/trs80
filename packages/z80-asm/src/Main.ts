@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import chalk from "chalk";
 import mnemonicData from "./Opcodes.json";
-import {toHex} from "z80-base";
+import {toHex, hi, lo} from "z80-base";
 
 const srcPathname = "sio_basic.asm";
 
@@ -35,6 +35,17 @@ class Parser {
                     const value = this.readExpression();
                     if (value !== undefined) {
                         this.binary.push(value);
+                        if (!this.foundChar(',')) {
+                            break;
+                        }
+                    }
+                }
+            } else if (mnemonicOrLabel === ".word") {
+                while (true) {
+                    const value = this.readExpression();
+                    if (value !== undefined) {
+                        this.binary.push(lo(value));
+                        this.binary.push(hi(value));
                         if (!this.foundChar(',')) {
                             break;
                         }
@@ -327,12 +338,10 @@ fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
     const parser = new Parser(line);
     parser.assemble();
     if (parser.error !== undefined) {
-        if (parser.error.startsWith("no variant")) {
-            console.log("                    " + chalk.red(line));
-            console.log("                    " + chalk.red(parser.error));
-            errorCount += 1;
-        }
-    } else if (parser.binary.length !== 0 && false) {
+        console.log("                    " + chalk.red(line));
+        console.log("                    " + chalk.red(parser.error));
+        errorCount += 1;
+    } else if (parser.binary.length !== 0) {
         let result = toHex(address, 4) + " ";
         for (const byte of parser.binary) {
             result += " " + toHex(byte, 2);
