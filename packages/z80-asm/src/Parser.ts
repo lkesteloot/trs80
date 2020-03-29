@@ -337,6 +337,12 @@ export class Parser {
     }
 
     private readExpression(): number | undefined {
+        // Expressions can't start with an open parenthesis because that's ambiguous
+        // with dereferencing.
+        if (this.line[this.i] === '(') {
+            return undefined;
+        }
+
         return this.readSum();
     }
 
@@ -395,7 +401,7 @@ export class Parser {
 
         // Parenthesized expression.
         if (this.foundChar('(')) {
-            const value = this.readExpression();
+            const value = this.readSum();
             if (value === undefined || !this.foundChar(')')) {
                 return undefined;
             }
