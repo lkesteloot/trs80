@@ -1,14 +1,24 @@
 import * as fs from "fs";
 import chalk from "chalk";
 import mnemonicData from "./Opcodes.json";
-import {toHex, hi, lo} from "z80-base";
+import {toHex, hi, lo, isByteReg, isWordReg} from "z80-base";
 
 const srcPathname = "sio_basic.asm";
 
+/**
+ * List of all flags.
+ */
+const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
+
 class Parser {
+    // Full text of line being parsed.
     private readonly line: string;
+    // Address of line being parsed.
+    private readonly address: number;
     // Map from constant name to value.
     private readonly constants: any;
+    // Whether to ignore identifiers that we don't know about (for the first pass).
+    private readonly ignoreUnknownIdentifiers: boolean;
     // Parsing index into the line.
     private i: number = 0;
     // Pointer to the token we just parsed.
@@ -17,24 +27,30 @@ class Parser {
     public binary: number[] = [];
     public error: string | undefined;
 
-    constructor(line: string, constants: any) {
+    constructor(line: string, address: number, constants: any, ignoreUnknownIdentifiers: boolean) {
         this.line = line;
+        this.address = address;
         this.constants = constants;
+        this.ignoreUnknownIdentifiers = ignoreUnknownIdentifiers;
     }
 
     public assemble(): void {
         // Look for label in column 1.
         this.i = 0;
-        let label = this.readIdentifier();
+        let label = this.readIdentifier(false);
         if (label !== undefined && this.previousToken === 0) {
             // console.log("Found label \"" + label + "\"");
             if (this.foundChar(':')) {
                 // Optional colon.
             }
+
+            // By default assign it to current address, but can be overwritten
+            // by .equ below.
+            this.constants[label] = this.address;
         }
 
         this.skipWhitespace();
-        let mnemonic = this.readIdentifier();
+        let mnemonic = this.readIdentifier(false);
         if (mnemonic !== undefined && this.previousToken > 0) {
             if (mnemonic === ".byte") {
                 while (true) {
@@ -98,7 +114,7 @@ class Parser {
                         }
                     } else {
                         // Register or flag.
-                        const identifier = this.readIdentifier();
+                        const identifier = this.readIdentifier(true);
                         if (identifier !== token) {
                             match = false;
                         }
@@ -203,13 +219,17 @@ class Parser {
         }
 
         // Try identifier.
-        const identifier = this.readIdentifier();
+        const identifier = this.readIdentifier(false);
         if (identifier !== undefined) {
             // Get address of identifier or value of constant.
-            const value = this.constants[identifier];
+            let value = this.constants[identifier];
             if (value === undefined) {
-                this.error = "unknown constant \"" + identifier + "\"";
-                return undefined;
+                if (this.ignoreUnknownIdentifiers) {
+                    value = 0;
+                } else {
+                    this.error = "unknown constant \"" + identifier + "\"";
+                    return undefined;
+                }
             }
             return value;
         }
@@ -308,16 +328,22 @@ class Parser {
         }
     }
 
-    private readIdentifier(): string | undefined {
-        this.previousToken = this.i;
+    private readIdentifier(allowRegister: boolean): string | undefined {
+        const startIndex = this.i;
 
-        while (this.i < this.line.length && this.isLegalIdentifierCharacter(this.line[this.i], this.i == this.previousToken)) {
+        while (this.i < this.line.length && this.isLegalIdentifierCharacter(this.line[this.i], this.i == startIndex)) {
             this.i++;
         }
 
-        if (this.i > this.previousToken) {
-            const identifier = this.line.substring(this.previousToken, this.i).toLowerCase();
+        if (this.i > startIndex) {
+            const identifier = this.line.substring(startIndex, this.i).toLowerCase();
+            if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || this.isFlag(identifier))) {
+                // Register names can't be identifiers.
+                this.i = startIndex;
+                return undefined;
+            }
             this.skipWhitespace();
+            this.previousToken = startIndex;
             return identifier;
         } else {
             return undefined;
@@ -351,28 +377,39 @@ class Parser {
 
         return value === undefined || value >= base ? undefined : value;
     }
+
+    private isFlag(s: string): boolean {
+        return FLAGS.has(s.toLowerCase());
+    }
 }
 
-let address = 0;
-let errorCount = 0;
-const constants: any = {};
-fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
-    const parser = new Parser(line, constants);
-    parser.assemble();
-    if (parser.error !== undefined) {
-        console.log("                    " + chalk.red(line));
-        console.log("                    " + chalk.red("error: " + parser.error));
-        errorCount += 1;
-    } else if (parser.binary.length !== 0) {
-        let result = toHex(address, 4) + " ";
-        for (const byte of parser.binary) {
-            result += " " + toHex(byte, 2);
-        }
-        result = result.padEnd(20, " ") + line;
-        console.log(result);
-        address += parser.binary.length;
-    } else {
-        console.log("                    " + chalk.gray(line));
+function main() {
+    let address = 0;
+    let errorCount = 0;
+    const constants: any = {};
+    const lines = fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/);
+    for (let pass = 0; pass < 2; pass++) {
+        lines.forEach((line: string) => {
+            const parser = new Parser(line, address, constants, pass === 0);
+            parser.assemble();
+            if (parser.error !== undefined) {
+                console.log("                    " + chalk.red(line));
+                console.log("                    " + chalk.red("error: " + parser.error));
+                errorCount += 1;
+            } else if (parser.binary.length !== 0 && false) {
+                let result = toHex(address, 4) + " ";
+                for (const byte of parser.binary) {
+                    result += " " + toHex(byte, 2);
+                }
+                result = result.padEnd(20, " ") + line;
+                console.log(result);
+                address += parser.binary.length;
+            } else if (false) {
+                console.log("                    " + chalk.gray(line));
+            }
+        });
     }
-});
-console.log(errorCount + " errors");
+    console.log(errorCount + " errors");
+}
+
+main();
