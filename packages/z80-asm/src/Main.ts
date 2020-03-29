@@ -27,12 +27,15 @@ function main() {
                             displayAddress++;
                         }
                         if (i === 0) {
-                            result = result.padEnd(20, " ") + line;
+                            result = result.padEnd(24, " ") + line;
                         }
                         fs.writeSync(lstFd, result + "\n");
                     }
                 } else {
-                    fs.writeSync(lstFd, " ".repeat(20) + line + "\n");
+                    fs.writeSync(lstFd, " ".repeat(24) + line + "\n");
+                }
+                if (parser.error !== undefined) {
+                    fs.writeSync(lstFd, "error: " + parser.error + "\n");
                 }
 
                 if (parser.error !== undefined) {
