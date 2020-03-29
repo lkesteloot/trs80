@@ -23,77 +23,93 @@ class Parser {
 
     public assemble(): void {
         this.skipWhitespace();
-        let opOrlabel = this.readIdentifier();
-        if (opOrlabel !== undefined) {
+        let mnemonicOrLabel = this.readIdentifier();
+        if (mnemonicOrLabel !== undefined) {
             if (this.foundChar(':')) {
                 // console.log("Found label \"" + opOrlabel + "\"");
-                opOrlabel = this.readIdentifier();
+                mnemonicOrLabel = this.readIdentifier();
             }
         }
 
-        if (opOrlabel !== undefined) {
-            // TODO: I don't know why I need that any:
-            const mnemonicInfo = (mnemonicData as any).mnemonics[opOrlabel];
-            if (mnemonicInfo !== undefined) {
-                const argStart = this.i;
-                let match = false;
-
-                for (const variant of mnemonicInfo.variants) {
-                    match = true;
-
-                    for (const token of variant.tokens) {
-                        if (token === "," || token === "(" || token === ")" || token === "+") {
-                            if (!this.foundChar(token)) {
-                                match = false;
-                            }
-                        } else if (token === "nn" || token === "nnnn" || token === "dd" || token === "offset") {
-                            // Parse.
-                            const value = this.readExpression();
-                            if (value === undefined) {
-                                match = false;
-                            } else {
-                                // Add value to binary.
-                            }
-                        } else {
-                            // Register or flag.
-                            const identifier = this.readIdentifier();
-                            if (identifier !== token) {
-                                match = false;
-                            }
-                        }
-
-                        if (!match) {
+        if (mnemonicOrLabel !== undefined) {
+            if (mnemonicOrLabel === ".byte") {
+                while (true) {
+                    const value = this.readExpression();
+                    if (value !== undefined) {
+                        this.binary.push(value);
+                        if (!this.foundChar(',')) {
                             break;
                         }
                     }
+                }
+            } else {
+                this.processOpCode(mnemonicOrLabel);
+            }
+        }
+    }
 
-                    if (match) {
-                        // See if it's the end of the line.
-                        if (this.isChar(';')) {
-                            // Skip rest of line.
-                            this.i = this.line.length;
+    private processOpCode(mnemonic: string): void {
+        // TODO: I don't know why I need that any:
+        const mnemonicInfo = (mnemonicData as any).mnemonics[mnemonic];
+        if (mnemonicInfo !== undefined) {
+            const argStart = this.i;
+            let match = false;
+
+            for (const variant of mnemonicInfo.variants) {
+                match = true;
+
+                for (const token of variant.tokens) {
+                    if (token === "," || token === "(" || token === ")" || token === "+") {
+                        if (!this.foundChar(token)) {
+                            match = false;
                         }
-
-                        if (this.i != this.line.length) {
+                    } else if (token === "nn" || token === "nnnn" || token === "dd" || token === "offset") {
+                        // Parse.
+                        const value = this.readExpression();
+                        if (value === undefined) {
+                            match = false;
+                        } else {
+                            // Add value to binary.
+                        }
+                    } else {
+                        // Register or flag.
+                        const identifier = this.readIdentifier();
+                        if (identifier !== token) {
                             match = false;
                         }
                     }
 
-                    if (match) {
-                        this.binary = variant.opcode;
+                    if (!match) {
                         break;
-                    } else {
-                        // Reset reader.
-                        this.i = argStart;
                     }
                 }
 
-                if (!match) {
-                    this.error = "no variant found for " + opOrlabel;
+                if (match) {
+                    // See if it's the end of the line.
+                    if (this.isChar(';')) {
+                        // Skip rest of line.
+                        this.i = this.line.length;
+                    }
+
+                    if (this.i != this.line.length) {
+                        match = false;
+                    }
                 }
-            } else {
-                this.error = "unknown mnemonic: " + opOrlabel;
+
+                if (match) {
+                    this.binary = variant.opcode;
+                    break;
+                } else {
+                    // Reset reader.
+                    this.i = argStart;
+                }
             }
+
+            if (!match) {
+                this.error = "no variant found for " + mnemonic;
+            }
+        } else {
+            this.error = "unknown mnemonic: " + mnemonic;
         }
     }
 
@@ -279,10 +295,10 @@ class Parser {
             return ch.charCodeAt(0) - 0x30;
         }
         if (ch >= 'A' && ch <= 'F') {
-            return ch.charCodeAt(0) - 0x40;
+            return ch.charCodeAt(0) - 0x41 + 10;
         }
         if (ch >= 'a' && ch <= 'f') {
-            return ch.charCodeAt(0) - 0x60;
+            return ch.charCodeAt(0) - 0x61 + 10;
         }
         return undefined;
     }
