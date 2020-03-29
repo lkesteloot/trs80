@@ -166,6 +166,15 @@ class Parser {
     }
 
     private readAtom(): number | undefined {
+        // Parenthesized expression.
+        if (this.foundChar('(')) {
+            const value = this.readExpression();
+            if (value === undefined || !this.foundChar(')')) {
+                return undefined;
+            }
+            return value;
+        }
+
         // Try identifier.
         const identifier = this.readIdentifier();
         if (identifier !== undefined) {
