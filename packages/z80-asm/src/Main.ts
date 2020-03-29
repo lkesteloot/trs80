@@ -7,30 +7,36 @@ const srcPathname = "sio_basic.asm";
 
 class Parser {
     private readonly line: string;
+    // Map from constant name to value.
+    private readonly constants: any;
     // Parsing index into the line.
     private i: number = 0;
     // Pointer to the token we just parsed.
-    private previousToken: number | undefined;
+    private previousToken = 0;
     // Decoded opcodes and parameters:
     public binary: number[] = [];
     public error: string | undefined;
 
-    constructor(line: string) {
+    constructor(line: string, constants: any) {
         this.line = line;
+        this.constants = constants;
     }
 
     public assemble(): void {
-        this.skipWhitespace();
-        let mnemonicOrLabel = this.readIdentifier();
-        if (mnemonicOrLabel !== undefined) {
+        // Look for label in column 1.
+        this.i = 0;
+        let label = this.readIdentifier();
+        if (label !== undefined && this.previousToken === 0) {
+            // console.log("Found label \"" + label + "\"");
             if (this.foundChar(':')) {
-                // console.log("Found label \"" + opOrlabel + "\"");
-                mnemonicOrLabel = this.readIdentifier();
+                // Optional colon.
             }
         }
 
-        if (mnemonicOrLabel !== undefined) {
-            if (mnemonicOrLabel === ".byte") {
+        this.skipWhitespace();
+        let mnemonic = this.readIdentifier();
+        if (mnemonic !== undefined && this.previousToken > 0) {
+            if (mnemonic === ".byte") {
                 while (true) {
                     const value = this.readExpression();
                     if (value !== undefined) {
@@ -40,7 +46,7 @@ class Parser {
                         }
                     }
                 }
-            } else if (mnemonicOrLabel === ".word") {
+            } else if (mnemonic === ".word") {
                 while (true) {
                     const value = this.readExpression();
                     if (value !== undefined) {
@@ -51,8 +57,18 @@ class Parser {
                         }
                     }
                 }
+            } else if (mnemonic === ".equ") {
+                const value = this.readExpression();
+                if (value === undefined) {
+                    this.error = "bad value for constant";
+                } else if (label === undefined) {
+                    this.error = "must have label for constant";
+                } else {
+                    // Remember constant.
+                    this.constants[label] = value;
+                }
             } else {
-                this.processOpCode(mnemonicOrLabel);
+                this.processOpCode(mnemonic);
             }
         }
     }
@@ -189,8 +205,13 @@ class Parser {
         // Try identifier.
         const identifier = this.readIdentifier();
         if (identifier !== undefined) {
-            // TODO Get address of identifier.
-            return 0;
+            // Get address of identifier or value of constant.
+            const value = this.constants[identifier];
+            if (value === undefined) {
+                this.error = "unknown constant \"" + identifier + "\"";
+                return undefined;
+            }
+            return value;
         }
 
         // Try literal character, like 'a'.
@@ -334,12 +355,13 @@ class Parser {
 
 let address = 0;
 let errorCount = 0;
+const constants: any = {};
 fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
-    const parser = new Parser(line);
+    const parser = new Parser(line, constants);
     parser.assemble();
     if (parser.error !== undefined) {
         console.log("                    " + chalk.red(line));
-        console.log("                    " + chalk.red(parser.error));
+        console.log("                    " + chalk.red("error: " + parser.error));
         errorCount += 1;
     } else if (parser.binary.length !== 0) {
         let result = toHex(address, 4) + " ";
@@ -349,6 +371,8 @@ fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
         result = result.padEnd(20, " ") + line;
         console.log(result);
         address += parser.binary.length;
+    } else {
+        console.log("                    " + chalk.gray(line));
     }
 });
 console.log(errorCount + " errors");
