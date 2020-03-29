@@ -128,6 +128,9 @@ export class Parser {
             let match = false;
 
             for (const variant of mnemonicInfo.variants) {
+                // Map from something like "nn" to its value.
+                const args: any = {};
+
                 match = true;
 
                 for (const token of variant.tokens) {
@@ -142,6 +145,10 @@ export class Parser {
                             match = false;
                         } else {
                             // Add value to binary.
+                            if (args[token] !== undefined) {
+                                throw new Error("duplicate arg: " + this.line);
+                            }
+                            args[token] = value;
                         }
                     } else {
                         // Register or flag.
@@ -169,7 +176,32 @@ export class Parser {
                 }
 
                 if (match) {
-                    this.binary = variant.opcode;
+                    this.binary = [];
+                    for (const op of variant.opcode) {
+                        if (typeof(op) === "string") {
+                            const value = args[op];
+                            if (value === undefined) {
+                                throw new Error("arg " + op + " not found for " + this.line);
+                            }
+                            switch (op) {
+                                case "nnnn":
+                                    this.binary.push(lo(value));
+                                    this.binary.push(hi(value));
+                                    break;
+
+                                case "nn":
+                                case "dd":
+                                case "offset":
+                                    this.binary.push(value);
+                                    break;
+
+                                default:
+                                    throw new Error("Unknown arg type " + op);
+                            }
+                        } else {
+                            this.binary.push(op);
+                        }
+                    }
                     break;
                 } else {
                     // Reset reader.

@@ -33,9 +33,8 @@ function tokenize(s: string | undefined): string[] {
     return tokens;
 }
 
-function parseOpcodes(dirname: string, prefix: string, opcodes: number[], mnemonicMap: any): any {
+function parseOpcodes(dirname: string, prefix: string, opcodes: (number | string)[], mnemonicMap: any): void {
     const pathname = path.join(dirname, "opcodes_" + prefix.toLowerCase() + ".dat");
-    const opcodeMap: any = {};
 
     fs.readFileSync(pathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
         line = line.trim();
@@ -61,54 +60,52 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: number[], mnemon
         const opcode = parseInt(opcodeString, 16);
         const tokens = tokenize(params).concat(tokenize(extra));
 
-        let value: any;
+        const fullOpcodes = opcodes.concat([opcode]);
 
         if (mnemonic === undefined) {
-            // Fallthrough to next line.
+            // Fallthrough to next line. These are for different opcodes that map to the
+            // same instruction. Just use the last one, any will do.
         } else {
             if (mnemonic === "shift") {
-                opcodes.push(opcode);
+                // Recurse for shifted instructions.
                 if (params === undefined) {
                     throw new Error("Shift must have params");
                 }
-                value = {
-                    shift: parseOpcodes(dirname, params, opcodes, mnemonicMap),
-                }
-                opcodes.pop();
+                parseOpcodes(dirname, params, fullOpcodes, mnemonicMap);
             } else {
-                value = {
-                    mnemonic: mnemonic,
-                    params: params,
-                    extra: extra,
+                // Add parameters.
+                for (const token of tokens) {
+                    if (token === "nn" || token === "nnnn" || token === "dd" || token === "offset") {
+                        fullOpcodes.push(token);
+                    }
                 }
-            }
 
-            opcodeMap[opcode.toString(16)] = value;
+                // Find mnemonic in map, adding if necessary.
+                let mnemonicInfo = mnemonicMap[mnemonic] as any;
+                if (mnemonicInfo === undefined) {
+                    mnemonicInfo = {
+                        variants: [],
+                    };
+                    mnemonicMap[mnemonic] = mnemonicInfo;
+                }
 
-            let mnemonicInfo = mnemonicMap[mnemonic] as any;
-            if (mnemonicInfo === undefined) {
-                mnemonicInfo = {
-                    variants: [],
+                // Generate this variant.
+                let variant = {
+                    tokens: tokens,
+                    opcode: fullOpcodes,
                 };
-                mnemonicMap[mnemonic] = mnemonicInfo;
-            }
-            let variant = {
-                tokens: tokens,
-                opcode: opcodes.concat([opcode]),
-            };
-            mnemonicInfo.variants.push(variant);
-
-            // For instructions like "ADD A,C", also produce "ADD C" with an implicit "A".
-            if (tokens.length > 2 && tokens[0] === "a" && tokens[1] === ",") {
-                variant = Object.assign({}, variant, {
-                    tokens: tokens.slice(2),
-                });
                 mnemonicInfo.variants.push(variant);
+
+                // For instructions like "ADD A,C", also produce "ADD C" with an implicit "A".
+                if (tokens.length > 2 && tokens[0] === "a" && tokens[1] === ",") {
+                    variant = Object.assign({}, variant, {
+                        tokens: tokens.slice(2),
+                    });
+                    mnemonicInfo.variants.push(variant);
+                }
             }
         }
     });
-
-    return opcodeMap;
 }
 
 function generateOpcodes(): void {
