@@ -92,11 +92,19 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: number[], mnemon
                 };
                 mnemonicMap[mnemonic] = mnemonicInfo;
             }
-            const variant = {
+            let variant = {
                 tokens: tokens,
                 opcode: opcodes.concat([opcode]),
             };
             mnemonicInfo.variants.push(variant);
+
+            // For instructions like "ADD A,C", also produce "ADD C" with an implicit "A".
+            if (tokens.length > 2 && tokens[0] === "a" && tokens[1] === ",") {
+                variant = Object.assign({}, variant, {
+                    tokens: tokens.slice(2),
+                });
+                mnemonicInfo.variants.push(variant);
+            }
         }
     });
 
