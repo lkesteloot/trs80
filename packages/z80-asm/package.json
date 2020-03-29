@@ -23,6 +23,7 @@
   "dependencies": {
     "@types/node": "^13.9.5",
     "chalk": "^3.0.0",
-    "typescript": "^3.8.3"
+    "typescript": "^3.8.3",
+    "z80-base": "^1.0.4"
   }
 }
