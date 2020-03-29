@@ -4,9 +4,11 @@ import {toHex} from "z80-base";
 import {Parser} from "./Parser";
 
 const srcPathname = "sio_basic.asm";
+const lstPathname = "sio_basic.lst";
 
 function main() {
     const constants: any = {};
+    const lstFd = fs.openSync(lstPathname, "w");
     const lines = fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/);
     for (let pass = 0; pass < 2; pass++) {
         let errorCount = 0;
@@ -27,22 +29,26 @@ function main() {
                         if (i === 0) {
                             result = result.padEnd(20, " ") + line;
                         }
-                        console.log(result);
+                        fs.writeSync(lstFd, result + "\n");
                     }
                 } else {
-                    console.log("                    " + chalk.gray(line));
+                    fs.writeSync(lstFd, " ".repeat(20) + line + "\n");
                 }
+
                 if (parser.error !== undefined) {
-                    console.log("                    " + chalk.red("error: " + parser.error));
+                    console.log(chalk.gray(line));
+                    console.log(chalk.red("error: " + parser.error));
+                    console.log();
                     errorCount += 1;
                 }
             }
             address += parser.binary.length;
         });
-        if (pass !== 0) {
+        if (pass !== 0 && errorCount !== 0) {
             console.log(errorCount + " errors");
         }
     }
+    fs.closeSync(lstFd);
 }
 
 main();
