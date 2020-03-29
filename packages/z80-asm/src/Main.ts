@@ -318,10 +318,12 @@ fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
     const parser = new Parser(line);
     parser.assemble();
     if (parser.error !== undefined) {
-        console.log("                    " + chalk.red(line));
-        console.log("                    " + chalk.red(parser.error));
-        errorCount += 1;
-    } else if (parser.binary.length !== 0) {
+        if (parser.error.startsWith("no variant")) {
+            console.log("                    " + chalk.red(line));
+            console.log("                    " + chalk.red(parser.error));
+            errorCount += 1;
+        }
+    } else if (parser.binary.length !== 0 && false) {
         let result = toHex(address, 4) + " ";
         for (const byte of parser.binary) {
             result += " " + toHex(byte, 2);
