@@ -82,5 +82,12 @@ describe("assemble", () => {
         expect(parser.binary).to.deep.equal([0x3E, 0x00]);
         expect(parser.error).to.not.be.undefined;
     });
+
+    it("parse error", () => {
+        const parser = new Parser("#target bin", 0, {}, false);
+        parser.assemble();
+        expect(parser.binary).to.deep.equal([]);
+        expect(parser.error).to.not.be.undefined;
+    });
 });
 

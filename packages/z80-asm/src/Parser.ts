@@ -42,7 +42,6 @@ export class Parser {
         this.i = 0;
         let label = this.readIdentifier(false, false);
         if (label !== undefined) {
-            // console.log("Found label \"" + label + "\"");
             if (this.foundChar(':')) {
                 // Optional colon.
             }
@@ -109,6 +108,15 @@ export class Parser {
             }
         }
 
+        // Make sure there's no junk at the end of the line.
+        if (this.isChar(';')) {
+            // Skip rest of line.
+            this.i = this.line.length;
+        }
+        if (this.i != this.line.length) {
+            this.error = "syntax error";
+        }
+
         if (label !== undefined && labelValue !== undefined) {
             const oldValue = this.constants[label];
             if (oldValue !== undefined && labelValue !== oldValue) {
@@ -165,12 +173,7 @@ export class Parser {
 
                 if (match) {
                     // See if it's the end of the line.
-                    if (this.isChar(';')) {
-                        // Skip rest of line.
-                        this.i = this.line.length;
-                    }
-
-                    if (this.i != this.line.length) {
+                    if (this.i < this.line.length && !this.isChar(';')) {
                         match = false;
                     }
                 }
@@ -191,7 +194,7 @@ export class Parser {
 
                                 case "nn":
                                 case "dd":
-                                case "offset":
+                                case "offset": // TODO actually offset.
                                     this.binary.push(value);
                                     break;
 
