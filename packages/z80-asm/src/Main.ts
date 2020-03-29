@@ -1,9 +1,7 @@
-
 import * as fs from "fs";
 import chalk from "chalk";
 import mnemonicData from "./Opcodes.json";
 import {toHex} from "z80-base";
-import {createBrotliDecompress} from "zlib";
 
 const srcPathname = "sio_basic.asm";
 
@@ -203,7 +201,7 @@ class Parser {
         // if it ends with H, like 0FFH.
         if (base === 10) {
             const beforeIndex = this.i;
-            while (this.i < this.line.length && this.parseHexDigit(this.line[this.i]) !== undefined) {
+            while (this.i < this.line.length && this.parseHexDigit(this.line[this.i], 16) !== undefined) {
                 this.i++;
             }
             if (this. i < this.line.length && this.line[this.i].toUpperCase() === "H") {
@@ -211,37 +209,51 @@ class Parser {
             }
             this.i = beforeIndex;
         }
+        // And again we need to look for B, like 010010101B. We can't fold this into the
+        // above look since a "B" is a legal hex number!
+        if (base === 10) {
+            const beforeIndex = this.i;
+            while (this.i < this.line.length && this.parseHexDigit(this.line[this.i], 2) !== undefined) {
+                this.i++;
+            }
+            if (this. i < this.line.length && this.line[this.i].toUpperCase() === "B") {
+                base = 2;
+            }
+            this.i = beforeIndex;
+        }
 
+        // Parse number.
         let value = 0;
-
         while (true) {
             if (this.i == this.line.length) {
                 break;
             }
 
             const ch = this.line[this.i];
-            let chValue;
-            if (base === 16) {
-                chValue = this.parseHexDigit(ch);
-                if (chValue === undefined) {
-                    break;
-                }
-            } else {
-                if (ch >= '0' && ch <= '9') {
-                    chValue = ch.charCodeAt(0) - 0x30;
-                } else {
-                    break;
-                }
+            let chValue = this.parseHexDigit(ch, base);
+            if (chValue === undefined) {
+                break;
             }
             value = value*base + chValue;
             this.i++;
         }
 
-        if (this. i < this.line.length && this.line[this.i].toUpperCase() === "H") {
-            if (base !== 16) {
-                throw new Error("found H at end of non-hex number");
+        // Check for base suffix.
+        if (this.i < this.line.length) {
+            const baseChar = this.line[this.i].toUpperCase();
+            if (baseChar === "H") {
+                // Check for programmer errors.
+                if (base !== 16) {
+                    throw new Error("found H at end of non-hex number");
+                }
+                this.i++;
+            } else if (baseChar === "B") {
+                // Check for programmer errors.
+                if (base !== 2) {
+                    throw new Error("found B at end of non-binary number");
+                }
+                this.i++;
             }
-            this.i++;
         }
 
         this.skipWhitespace();
@@ -290,17 +302,13 @@ class Parser {
         return this.i < this.line.length && this.line[this.i] === ch;
     }
 
-    private parseHexDigit(ch: string): number | undefined {
-        if (ch >= '0' && ch <= '9') {
-            return ch.charCodeAt(0) - 0x30;
-        }
-        if (ch >= 'A' && ch <= 'F') {
-            return ch.charCodeAt(0) - 0x41 + 10;
-        }
-        if (ch >= 'a' && ch <= 'f') {
-            return ch.charCodeAt(0) - 0x61 + 10;
-        }
-        return undefined;
+    private parseHexDigit(ch: string, base: number): number | undefined {
+        let value = ch >= '0' && ch <= '9' ? ch.charCodeAt(0) - 0x30
+            : ch >= 'A' && ch <= 'F' ? ch.charCodeAt(0) - 0x41 + 10
+            : ch >= 'a' && ch <= 'f' ? ch.charCodeAt(0) - 0x61 + 10
+            : undefined;
+
+        return value === undefined || value >= base ? undefined : value;
     }
 }
 
@@ -310,15 +318,15 @@ fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
     const parser = new Parser(line);
     parser.assemble();
     if (parser.error !== undefined) {
-        console.log("                 " + chalk.red(line));
-        console.log("                 " + chalk.red(parser.error));
+        console.log("                    " + chalk.red(line));
+        console.log("                    " + chalk.red(parser.error));
         errorCount += 1;
     } else if (parser.binary.length !== 0) {
         let result = toHex(address, 4) + " ";
         for (const byte of parser.binary) {
             result += " " + toHex(byte, 2);
         }
-        result = result.padEnd(17, " ") + line;
+        result = result.padEnd(20, " ") + line;
         console.log(result);
         address += parser.binary.length;
     }
