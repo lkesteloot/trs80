@@ -107,3 +107,54 @@ describe("assemble", () => {
     });
 });
 
+describe("number parsing", () => {
+    const tests = [
+        // Decimal.
+        [ '0', 0 ],
+        [ '00', 0 ],
+        [ '5', 5 ],
+        [ '123', 123 ],
+        [ '0123', 123 ],
+
+        // Hex.
+        [ '$AB', 0xAB ],
+        [ '0xAB', 0xAB ], // Looks like B suffix.
+        [ '0ABH', 0xAB ],
+        [ '0B1H', 0xB1 ], // Looks like 0x start.
+
+        // Binary.
+        [ '%1010', 0b1010 ],
+        [ '0b1010', 0b1010 ],
+        [ '1010B', 0b1010 ],
+
+        // Current address.
+        [ '$', 0x1234 ],
+        [ '$+1', 0x1235 ],
+        [ '$-1', 0x1233 ],
+
+        // Negative numbers.
+        [ '-5', -5 ],
+        [ '-0xAB', -0xAB ],
+        [ '-0b1010', -0b1010 ],
+        [ '-0ABH', -0xAB ],
+        [ '-1010B', -0b1010 ],
+        [ '-$AB', -0xAB ],
+        [ '-%1010', -0b1010 ],
+        [ '-$', -0x1234 ],
+    ];
+
+    for (const test of tests) {
+        const input = test[0];
+        const expected = test[1];
+
+        it("parsing " + input, () => {
+            const line = "foo .equ " + input;
+            const constants: any = {};
+            const parser = new Parser(line, 0x1234, constants, false);
+            const results = parser.assemble();
+            expect(results.binary).to.deep.equal([]);
+            expect(results.error).to.be.undefined;
+            expect(constants.foo).to.be.equal(expected);
+        });
+    }
+});

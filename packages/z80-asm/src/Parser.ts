@@ -442,12 +442,20 @@ export class Parser {
         let sign = 1;
         let gotDigit = false;
 
-        // Hex numbers can start with $, like $FF.
-        if (this.foundChar('$')) {
-            base = 16;
-        }
         if (this.foundChar('-')) {
             sign = -1;
+        }
+
+        // Hex numbers can start with $, like $FF.
+        if (this.foundChar('$')) {
+            if (this.i === this.line.length || this.parseHexDigit(this.line[this.i], 16) === undefined) {
+                // It's a reference to the current address, not a hex prefix.
+                return sign*this.results.address;
+            }
+
+            base = 16;
+        } else if (this.foundChar('%')) {
+            base = 2;
         }
 
         // Before we parse the number, we need to look ahead to see
@@ -469,7 +477,10 @@ export class Parser {
             while (this.i < this.line.length && this.parseHexDigit(this.line[this.i], 2) !== undefined) {
                 this.i++;
             }
-            if (this.i < this.line.length && this.line[this.i].toUpperCase() === "B") {
+            if (this.i < this.line.length && this.line[this.i].toUpperCase() === "B" &&
+                // "B" can't be followed by hex digit, or it's not the final character.
+                (this.i === this.line.length || this.parseHexDigit(this.line[this.i + 1], 16) === undefined)) {
+
                 base = 2;
             }
             this.i = beforeIndex;
