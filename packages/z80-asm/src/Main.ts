@@ -3,6 +3,7 @@ import * as fs from "fs";
 import chalk from "chalk";
 import mnemonicData from "./Opcodes.json";
 import {toHex} from "z80-base";
+import {createBrotliDecompress} from "zlib";
 
 const srcPathname = "sio_basic.asm";
 
@@ -25,7 +26,7 @@ class Parser {
         let opOrlabel = this.readIdentifier();
         if (opOrlabel !== undefined) {
             if (this.foundChar(':')) {
-                console.log("Found label \"" + opOrlabel + "\"");
+                // console.log("Found label \"" + opOrlabel + "\"");
                 opOrlabel = this.readIdentifier();
             }
         }
@@ -45,9 +46,14 @@ class Parser {
                             if (!this.foundChar(token)) {
                                 match = false;
                             }
-                        } else if (token === "nn" || token === "nnnn" || token === "dd") {
+                        } else if (token === "nn" || token === "nnnn" || token === "dd" || token === "offset") {
                             // Parse.
-                            match = false;
+                            const value = this.readExpression();
+                            if (value === undefined) {
+                                match = false;
+                            } else {
+                                // Add value to binary.
+                            }
                         } else {
                             // Register or flag.
                             const identifier = this.readIdentifier();
@@ -91,6 +97,142 @@ class Parser {
         }
     }
 
+    private readExpression(): number | undefined {
+        return this.readSum();
+    }
+
+    private readSum(): number | undefined {
+        let value = 0;
+        let sign = 1;
+
+        while (true) {
+            const subValue = this.readProduct();
+            if (subValue === undefined) {
+                return undefined;
+            }
+            value += sign * subValue;
+
+            if (this.foundChar('+')) {
+                sign = 1;
+            } else if (this.foundChar('-')) {
+                sign = -1;
+            } else {
+                break;
+            }
+        }
+
+        return value;
+    }
+
+    private readProduct(): number | undefined {
+        let value = 1;
+        let isMultiply = true;
+
+        while (true) {
+            const subValue = this.readAtom();
+            if (subValue === undefined) {
+                return undefined;
+            }
+            if (isMultiply) {
+                value *= subValue;
+            } else {
+                value /= subValue;
+            }
+
+            if (this.foundChar('*')) {
+                isMultiply = true;
+            } else if (this.foundChar('/')) {
+                isMultiply = false;
+            } else {
+                break;
+            }
+        }
+
+        return value;
+    }
+
+    private readAtom(): number | undefined {
+        // Try identifier.
+        const identifier = this.readIdentifier();
+        if (identifier !== undefined) {
+            // TODO Get address of identifier.
+            return 0;
+        }
+
+        // Try literal character, like 'a'.
+        if (this.isChar("'")) {
+            if (this.i > this.line.length - 3 || this.line[this.i + 2] !== "'") {
+                // TODO invalid character constant, show error.
+                return undefined;
+            }
+            const value = this.line.charCodeAt(this.i + 1);
+            this.i += 3;
+            this.skipWhitespace();
+            return value;
+        }
+
+        // Try numeric literal.
+        let base = 10;
+        let sign = 1;
+
+        // Hex numbers can start with $, like $FF.
+        if (this.foundChar('$')) {
+            base = 16;
+        }
+        if (this.foundChar('-')) {
+            sign = -1;
+        }
+
+        // Before we parse the number, we need to look ahead to see
+        // if it ends with H, like 0FFH.
+        if (base === 10) {
+            const beforeIndex = this.i;
+            while (this.i < this.line.length && this.parseHexDigit(this.line[this.i]) !== undefined) {
+                this.i++;
+            }
+            if (this. i < this.line.length && this.line[this.i].toUpperCase() === "H") {
+                base = 16;
+            }
+            this.i = beforeIndex;
+        }
+
+        let value = 0;
+
+        while (true) {
+            if (this.i == this.line.length) {
+                break;
+            }
+
+            const ch = this.line[this.i];
+            let chValue;
+            if (base === 16) {
+                chValue = this.parseHexDigit(ch);
+                if (chValue === undefined) {
+                    break;
+                }
+            } else {
+                if (ch >= '0' && ch <= '9') {
+                    chValue = ch.charCodeAt(0) - 0x30;
+                } else {
+                    break;
+                }
+            }
+            value = value*base + chValue;
+            this.i++;
+        }
+
+        if (this. i < this.line.length && this.line[this.i].toUpperCase() === "H") {
+            if (base !== 16) {
+                throw new Error("found H at end of non-hex number");
+            }
+            this.i++;
+        }
+
+        this.skipWhitespace();
+
+        return sign*value;
+    }
+
     private skipWhitespace(): void {
         while (this.i < this.line.length && (this.line[this.i] === ' ' || this.line[this.i] === '\t')) {
             this.i++;
@@ -131,15 +273,30 @@ class Parser {
     private isChar(ch: string): boolean {
         return this.i < this.line.length && this.line[this.i] === ch;
     }
+
+    private parseHexDigit(ch: string): number | undefined {
+        if (ch >= '0' && ch <= '9') {
+            return ch.charCodeAt(0) - 0x30;
+        }
+        if (ch >= 'A' && ch <= 'F') {
+            return ch.charCodeAt(0) - 0x40;
+        }
+        if (ch >= 'a' && ch <= 'f') {
+            return ch.charCodeAt(0) - 0x60;
+        }
+        return undefined;
+    }
 }
 
 let address = 0;
+let errorCount = 0;
 fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
-    console.log("                 " + chalk.gray(line));
     const parser = new Parser(line);
     parser.assemble();
     if (parser.error !== undefined) {
+        console.log("                 " + chalk.red(line));
         console.log("                 " + chalk.red(parser.error));
+        errorCount += 1;
     } else if (parser.binary.length !== 0) {
         let result = toHex(address, 4) + " ";
         for (const byte of parser.binary) {
@@ -150,3 +307,4 @@ fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
         address += parser.binary.length;
     }
 });
+console.log(errorCount + " errors");
