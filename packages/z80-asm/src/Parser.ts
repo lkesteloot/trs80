@@ -233,6 +233,15 @@ export class Parser {
                             }
                             args[token] = value;
                         }
+                    } else if (this.parseHexDigit(token[0], 10) !== undefined) {
+                        // If the token is a number, then we must parse an expression and
+                        // compare the values. This is used for BIT, SET, RES, RST, IM, and one
+                        // variant of OUT (OUT (C), 0).
+                        const expectedValue = parseInt(token, 10);
+                        const actualValue = this.readExpression();
+                        if (expectedValue !== actualValue) {
+                            match = false;
+                        }
                     } else {
                         // Register or flag.
                         const identifier = this.readIdentifier(true, true);
