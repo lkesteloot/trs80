@@ -5,10 +5,12 @@ import {Parser} from "./Parser";
 
 const srcPathname = "sio_basic.asm";
 const lstPathname = "sio_basic.lst";
+const binPathname = "sio_basic.bin";
 
 function main() {
     const constants: any = {};
     const lstFd = fs.openSync(lstPathname, "w");
+    const binFd = fs.openSync(binPathname, "w");
     const lines = fs.readFileSync(srcPathname, "utf-8").split(/\r?\n/);
     for (let pass = 0; pass < 2; pass++) {
         let errorCount = 0;
@@ -31,6 +33,8 @@ function main() {
                         }
                         fs.writeSync(lstFd, result + "\n");
                     }
+
+                    fs.writeSync(binFd, new Uint8Array(parser.binary));
                 } else {
                     fs.writeSync(lstFd, " ".repeat(24) + line + "\n");
                 }
@@ -52,6 +56,7 @@ function main() {
         }
     }
     fs.closeSync(lstFd);
+    fs.closeSync(binFd);
 }
 
 main();
