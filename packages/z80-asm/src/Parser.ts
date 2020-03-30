@@ -390,7 +390,7 @@ export class Parser {
         let isMultiply = true;
 
         while (true) {
-            const subValue = this.readAtom();
+            const subValue = this.readShift();
             if (subValue === undefined) {
                 return undefined;
             }
@@ -404,6 +404,36 @@ export class Parser {
                 isMultiply = true;
             } else if (this.foundChar('/')) {
                 isMultiply = false;
+            } else {
+                break;
+            }
+        }
+
+        return value;
+    }
+
+    private readShift(): number | undefined {
+        let value = 0;
+        let op = "";
+
+        while (true) {
+            const subValue = this.readAtom();
+            if (subValue === undefined) {
+                return undefined;
+            }
+
+            if (op === "<<") {
+                value <<= subValue;
+            } else if (op === ">>") {
+                value >>= subValue;
+            } else {
+                value = subValue;
+            }
+
+            op = this.line.substr(this.i, 2);
+            if (op === "<<" || op === ">>") {
+                this.i += 2;
+                this.skipWhitespace();
             } else {
                 break;
             }

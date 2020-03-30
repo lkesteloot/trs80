@@ -149,6 +149,10 @@ describe("number parsing", () => {
         [ '-$AB', -0xAB ],
         [ '-%1010', -0b1010 ],
         [ '-$', -0x1234 ],
+
+        // Operators.
+        [ '2 << 3', 16 ],
+        [ '16 >> 3', 2 ],
     ];
 
     for (const test of tests) {
