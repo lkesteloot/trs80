@@ -127,7 +127,7 @@ export class Parser {
                         break;
                     }
                 }
-            } else if (mnemonic === ".equ") {
+            } else if (mnemonic === ".equ" || mnemonic === "equ") {
                 const value = this.readExpression();
                 if (value === undefined) {
                     this.results.error = "bad value for constant";
