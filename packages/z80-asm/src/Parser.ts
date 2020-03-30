@@ -15,6 +15,9 @@ export class ParseResults {
     public binary: number[] = [];
     // Any error found in the line.
     public error: string | undefined;
+    // If it's an include, the filename.
+    public includeFilename: string | undefined;
+    // The next address, if it was explicitly specified.
     private specifiedNextAddress: number | undefined;
 
     constructor(line: string, address: number) {
@@ -44,11 +47,12 @@ export class Parser {
     private readonly constants: any;
     // Whether to ignore identifiers that we don't know about (for the first pass).
     private readonly ignoreUnknownIdentifiers: boolean;
+    // Results to the caller.
+    private readonly results: ParseResults;
     // Parsing index into the line.
     private i: number = 0;
     // Pointer to the token we just parsed.
     private previousToken = 0;
-    private results: ParseResults;
 
     constructor(line: string, address: number, constants: any, ignoreUnknownIdentifiers: boolean) {
         this.line = line;
@@ -191,6 +195,15 @@ export class Parser {
                         this.results.nextAddress = startAddress;
                         // TODO parse length of segment.
                     }
+                }
+                break;
+
+            case "include":
+                const filename = this.readString();
+                if (filename === undefined) {
+                    this.results.error = "missing included filename";
+                } else {
+                    this.results.includeFilename = filename;
                 }
                 break;
 

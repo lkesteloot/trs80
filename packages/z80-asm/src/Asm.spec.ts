@@ -99,6 +99,14 @@ describe("assemble", () => {
         expect(results.nextAddress).to.be.equal(0x4000);
     });
 
+    it("#include", () => {
+        const parser = new Parser("#include \"foo/bar.asm\"", 0, {}, false);
+        const results = parser.assemble();
+        expect(results.binary).to.deep.equal([]);
+        expect(results.error).to.be.undefined;
+        expect(results.includeFilename).to.be.equal("foo/bar.asm");
+    });
+
     it("parse error", () => {
         const parser = new Parser("#target bin", 0, {}, false);
             const results = parser.assemble();
