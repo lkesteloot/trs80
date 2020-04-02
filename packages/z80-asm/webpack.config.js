@@ -1,11 +1,14 @@
 const path = require("path");
-var WebpackBuildNotifierPlugin = require("webpack-build-notifier");
+const WebpackBuildNotifierPlugin = require("webpack-build-notifier");
+const webpack = require("webpack");
 
 module.exports = {
     mode: "production",
 
+    entry: "./src/index.ts",
+
     output: {
-        path: path.resolve(__dirname, 'docs/dist'),
+        path: path.resolve(__dirname, "docs/dist"),
         filename: "main.js"
     },
 
@@ -60,6 +63,12 @@ module.exports = {
                 timeout: 1,
             },
         }),
+        // Make sure we ignore generated files or the --watch flag will go into a loop.
+        new webpack.WatchIgnorePlugin([
+                              /\.js$/,
+                              /\.d\.ts$/,
+                              /node_modules/,
+        ]),
     ],
 
     // Quiet warnings about code size:
