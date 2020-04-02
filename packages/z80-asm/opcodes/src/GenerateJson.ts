@@ -117,7 +117,8 @@ function generateOpcodes(): void {
         mnemonics: mnemonics,
     };
     parseOpcodes(opcodesDir, "base", [], top.mnemonics);
-    fs.writeFileSync("src/Opcodes.json", JSON.stringify(top, null, 2));
+    fs.writeFileSync("src/assembler/Opcodes.ts",
+                     "export default " + JSON.stringify(top, null, 2) + ";");
 }
 
 generateOpcodes();

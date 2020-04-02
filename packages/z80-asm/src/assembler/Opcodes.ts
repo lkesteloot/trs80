@@ -1,4 +1,4 @@
-{
+export default {
   "mnemonics": {
     "nop": {
       "variants": [
@@ -17745,4 +17745,4 @@
       ]
     }
   }
-}
+};

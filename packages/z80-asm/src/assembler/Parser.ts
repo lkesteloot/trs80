@@ -1,4 +1,4 @@
-import mnemonicData from "./Opcodes.json";
+import mnemonicData from "./Opcodes";
 import {toHex, hi, lo, isByteReg, isWordReg} from "z80-base";
 
 /**

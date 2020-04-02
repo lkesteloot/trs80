@@ -1,0 +1,15 @@
+{
+    "extends": "../../tsconfig-base.json",
+    "compilerOptions": {
+        "rootDir": ".",
+        "outDir": "../../gen/zasm"
+    },
+    "references": [
+        {
+            "path": "../assembler"
+        }
+    ],
+    "include": [
+        "**/*.ts"
+    ]
+}

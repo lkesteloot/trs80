@@ -1,22 +1,14 @@
 {
-  "compilerOptions": {
-    "target": "es6",
-    "module": "commonjs",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "dist/main",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true,
-    "resolveJsonModule": true,
-    "moduleResolution": "Node"
-  },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "src/**/*.template.ts"
-  ]
+    "files": [],
+    "references": [
+        {
+            "path": "./src/assembler"
+        },
+        {
+            "path": "./src/zasm"
+        },
+        {
+            "path": "./src/ide"
+        }
+    ]
 }

@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import chalk from "chalk";
 import {toHex} from "z80-base";
-import {Parser} from "./Parser";
+import {Parser} from "../assembler/Parser";
 
 const srcPathname = "sio_basic.asm";
 const lstPathname = "sio_basic.lst";
