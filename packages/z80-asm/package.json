@@ -2,7 +2,6 @@
   "name": "z80-asm",
   "version": "1.0.0",
   "description": "Z80 assembler and IDE",
-  "main": "index.js",
   "scripts": {
     "build": "npm run build:main && npm run build:module",
     "build:main": "tsc -p tsconfig.json",
@@ -22,14 +21,18 @@
   "bin": {
     "zasm": "bin/zasm"
   },
+  "private": true,
   "dependencies": {
+    "chalk": "^3.0.0",
+    "codemirror": "^5.52.2",
+    "z80-base": "^1.0.4"
+  },
+  "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/codemirror": "0.0.88",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.9.5",
     "chai": "^4.2.0",
-    "chalk": "^3.0.0",
-    "codemirror": "^5.52.2",
     "css-loader": "^3.4.2",
     "mocha": "^7.1.1",
     "source-map-loader": "^0.2.4",
@@ -39,7 +42,6 @@
     "typescript": "^3.8.3",
     "webpack": "^4.42.1",
     "webpack-build-notifier": "^2.0.0",
-    "webpack-cli": "^3.3.11",
-    "z80-base": "^1.0.4"
+    "webpack-cli": "^3.3.11"
   }
 }

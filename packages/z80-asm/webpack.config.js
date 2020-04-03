@@ -9,7 +9,6 @@ module.exports = {
 
     output: {
         path: path.resolve(__dirname, "docs/dist"),
-        filename: "main.js"
     },
 
     // Enable sourcemaps for debugging webpack's output.
@@ -49,7 +48,16 @@ module.exports = {
     },
 
     optimization: {
-        minimize: false
+        minimize: false,
+        splitChunks: {
+            cacheGroups: {
+                commons: {
+                    test: /\/node_modules\//,
+                    name: "vendor",
+                    chunks: "initial",
+                },
+            },
+        },
     },
 
     plugins: [

@@ -16,8 +16,6 @@ export function main() {
     };
     const cm = CodeMirror(element, config);
 
-
-
     setTimeout(() => {
         let address = 0;
         const constants = {};

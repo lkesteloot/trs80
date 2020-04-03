@@ -1,7 +1,4 @@
 node_modules
-/dist
-/dist-tests
-/opcodes/dist
 /.idea
 *.iml
-/docs/dist
+/gen
