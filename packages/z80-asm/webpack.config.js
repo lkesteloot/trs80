@@ -1,6 +1,7 @@
 const path = require("path");
 const WebpackBuildNotifierPlugin = require("webpack-build-notifier");
 const webpack = require("webpack");
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     mode: "production",
@@ -38,15 +39,10 @@ module.exports = {
                 test: /\.js$/,
                 loader: "source-map-loader"
             },
-
-            // Handle CSS files.
-            {
-                test: /\.css$/,
-                use: ['style-loader', 'css-loader']
-            },
         ]
     },
 
+    // Put node_modules files in their own dist file, since they rarely change.
     optimization: {
         minimize: false,
         splitChunks: {
@@ -61,6 +57,7 @@ module.exports = {
     },
 
     plugins: [
+        // Make a sound when compile finishes.
         new WebpackBuildNotifierPlugin({
             logo: path.resolve(__dirname, "docs/favicon.ico"),
             // List of sounds: https://github.com/mikaelbr/node-notifier
@@ -71,11 +68,22 @@ module.exports = {
                 timeout: 1,
             },
         }),
+
         // Make sure we ignore generated files or the --watch flag will go into a loop.
         new webpack.WatchIgnorePlugin([
                               /\.js$/,
                               /\.d\.ts$/,
                               /node_modules/,
+        ]),
+
+        // Copy CSS files.
+        new CopyPlugin([
+            {
+                from: "node_modules/codemirror/lib/codemirror.css",
+            },
+            {
+                from: "node_modules/codemirror/theme/mbo.css",
+            },
         ]),
     ],
 

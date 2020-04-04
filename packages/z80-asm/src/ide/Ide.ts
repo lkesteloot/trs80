@@ -1,7 +1,5 @@
 
 import CodeMirror from "codemirror";
-import "codemirror/lib/codemirror.css";
-import "codemirror/theme/mbo.css";
 import sample from "./Sample";
 import {Parser} from "../assembler/Parser";
 
@@ -27,11 +25,17 @@ function assembleAll(cm: CodeMirror.Editor) {
         const results = parser.assemble();
 
         const addressString = results.binary.length > 0 ? results.address.toString(16).toUpperCase().padStart(4, "0") : "";
-        const addressElement = document.createTextNode(addressString) as any as HTMLElement;
+        const addressTextElement = document.createTextNode(addressString);
+        const addressElement = document.createElement("span");
+        addressElement.appendChild(addressTextElement);
+        addressElement.classList.add("gutter-style");
         cm.setGutterMarker(i, "gutter-address", addressElement);
 
         const opcodeString = results.binary.map(opcode => opcode.toString(16).toUpperCase().padStart(2, "0")).join(" ");
-        const opcodeElement = document.createTextNode(opcodeString) as any as HTMLElement;
+        const opcodeTextElement = document.createTextNode(opcodeString);
+        const opcodeElement = document.createElement("span");
+        opcodeElement.appendChild(opcodeTextElement);
+        opcodeElement.classList.add("gutter-style");
         cm.setGutterMarker(i, "gutter-opcodes", opcodeElement);
 
         address = results.nextAddress;
