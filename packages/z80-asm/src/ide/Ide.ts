@@ -23,19 +23,18 @@ function assembleAll(cm: CodeMirror.Editor) {
         const parser = new Parser(line, address, constants, false);
         const results = parser.assemble();
 
-        const addressString = results.binary.length > 0 ? results.address.toString(16).toUpperCase().padStart(4, "0") : "";
-        const addressTextElement = document.createTextNode(addressString);
-        const addressElement = document.createElement("span");
-        addressElement.appendChild(addressTextElement);
-        addressElement.classList.add("gutter-style");
-        cm.setGutterMarker(i, "gutter-address", addressElement);
-
-        const opcodeString = results.binary.map(opcode => opcode.toString(16).toUpperCase().padStart(2, "0")).join(" ");
-        const opcodeTextElement = document.createTextNode(opcodeString);
-        const opcodeElement = document.createElement("span");
-        opcodeElement.appendChild(opcodeTextElement);
-        opcodeElement.classList.add("gutter-style");
-        cm.setGutterMarker(i, "gutter-opcodes", opcodeElement);
+        let addressElement: HTMLElement | null;
+        if (results.binary.length > 0) {
+            const addressString = results.address.toString(16).toUpperCase().padStart(4, "0") +
+                " " + results.binary.map(opcode => opcode.toString(16).toUpperCase().padStart(2, "0")).join(" ");
+            const addressTextElement = document.createTextNode(addressString);
+            addressElement = document.createElement("span");
+            addressElement.appendChild(addressTextElement);
+            addressElement.classList.add("gutter-style");
+        } else {
+            addressElement = null;
+        }
+        cm.setGutterMarker(i, "gutter-assembled", addressElement);
 
         address = results.nextAddress;
     }
@@ -51,7 +50,7 @@ export function main() {
         lineNumbers: true,
         tabSize: 8,
         theme: 'mbo',
-        gutters: ["CodeMirror-linenumbers", "gutter-address", "gutter-opcodes"],
+        gutters: ["CodeMirror-linenumbers", "gutter-assembled"],
     };
     const cm = CodeMirror(element, config);
 
