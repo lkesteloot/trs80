@@ -1,6 +1,5 @@
 
 import CodeMirror from "codemirror";
-import sample from "./Sample";
 import {Parser} from "../assembler/Parser";
 
 function assembleAll(cm: CodeMirror.Editor) {
@@ -48,7 +47,7 @@ function assembleAll(cm: CodeMirror.Editor) {
 export function main() {
     const element = document.getElementById("editor") as HTMLElement;
     const config = {
-        value: sample,
+        value: "",
         lineNumbers: true,
         tabSize: 8,
         theme: 'mbo',
@@ -63,8 +62,8 @@ export function main() {
         assembleAll(cm);
     });
 
-    setTimeout(() => {
-        assembleAll(cm);
-    }, 100);
+    fetch("samples/sio_basic.asm")
+        .then(response => response.text())
+        .then(text => cm.setValue(text));
 }
 

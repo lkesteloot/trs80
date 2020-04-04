@@ -52,6 +52,11 @@ module.exports = {
                     name: "vendor",
                     chunks: "initial",
                 },
+                opcodes: {
+                    test: /Opcodes.ts/,
+                    name: "opcodes",
+                    chunks: "initial",
+                },
             },
         },
     },
