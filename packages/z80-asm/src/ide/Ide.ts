@@ -36,6 +36,12 @@ function assembleAll(cm: CodeMirror.Editor) {
         }
         cm.setGutterMarker(i, "gutter-assembled", addressElement);
 
+        if (results.error === undefined) {
+            cm.removeLineClass(i, "text", "error-line");
+        } else {
+            cm.addLineClass(i, "text", "error-line");
+        }
+
         address = results.nextAddress;
     }
 
