@@ -60,6 +60,11 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: (number | string
         const opcode = parseInt(opcodeString, 16);
         const tokens = tokenize(params).concat(tokenize(extra));
 
+        // Special case: "RST 10" really means 10 hex, so convert it to decimal.
+        if (mnemonic === "rst") {
+            tokens[0] = parseInt(tokens[0], 16).toString(10);
+        }
+
         const fullOpcodes = opcodes.concat([opcode]);
 
         if (mnemonic === undefined) {

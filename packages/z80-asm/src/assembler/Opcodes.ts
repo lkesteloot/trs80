@@ -13283,7 +13283,7 @@ export default {
       "variants": [
         {
           "tokens": [
-            "00"
+            "0"
           ],
           "opcode": [
             199
@@ -13299,7 +13299,7 @@ export default {
         },
         {
           "tokens": [
-            "10"
+            "16"
           ],
           "opcode": [
             215
@@ -13307,7 +13307,7 @@ export default {
         },
         {
           "tokens": [
-            "18"
+            "24"
           ],
           "opcode": [
             223
@@ -13315,7 +13315,7 @@ export default {
         },
         {
           "tokens": [
-            "20"
+            "32"
           ],
           "opcode": [
             231
@@ -13323,7 +13323,7 @@ export default {
         },
         {
           "tokens": [
-            "28"
+            "40"
           ],
           "opcode": [
             239
@@ -13331,7 +13331,7 @@ export default {
         },
         {
           "tokens": [
-            "30"
+            "48"
           ],
           "opcode": [
             247
@@ -13339,7 +13339,7 @@ export default {
         },
         {
           "tokens": [
-            "38"
+            "56"
           ],
           "opcode": [
             255
