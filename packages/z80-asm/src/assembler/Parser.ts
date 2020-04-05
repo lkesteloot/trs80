@@ -291,11 +291,11 @@ export class Parser {
 
                                 case "nn":
                                 case "dd":
-                                    this.results.binary.push(value);
+                                    this.results.binary.push(lo(value));
                                     break;
 
                                 case "offset":
-                                    this.results.binary.push(value - this.results.address - this.results.binary.length - 1);
+                                    this.results.binary.push(lo(value - this.results.address - this.results.binary.length - 1));
                                     break;
 
                                 default:
