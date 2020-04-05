@@ -49,7 +49,7 @@ function assembleAll(cm: CodeMirror.Editor) {
                  offset += BYTES_PER_SUBLINE, numLines++) {
 
                 const addressString = toHexWord(results.address + offset) +
-                    " " + results.binary.slice(offset, offset + BYTES_PER_SUBLINE).map(toHexByte).join(" ");
+                    "  " + results.binary.slice(offset, offset + BYTES_PER_SUBLINE).map(toHexByte).join(" ");
                 const addressTextElement = document.createTextNode(addressString);
                 if (offset > 0) {
                     addressElement.appendChild(document.createElement("br"));
