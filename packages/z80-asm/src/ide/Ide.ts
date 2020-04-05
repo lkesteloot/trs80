@@ -7,6 +7,7 @@ import "codemirror/addon/dialog/dialog";
 import "codemirror/addon/search/search";
 import "codemirror/addon/search/jump-to-line";
 import "codemirror/addon/edit/closebrackets";
+import "codemirror/mode/z80/z80";
 
 // Max number of sub-lines per line. These are lines where we display the
 // opcodes for a single source line.
@@ -89,6 +90,7 @@ export function main() {
         theme: 'mbo',
         gutters: ["CodeMirror-linenumbers", "gutter-assembled"],
         autoCloseBrackets: true,
+        mode: "text/x-z80",
     };
     const cm = CodeMirror(element, config);
 
