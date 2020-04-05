@@ -137,6 +137,13 @@ export class Parser {
                     // Remember constant.
                     labelValue = value;
                 }
+            } else if (mnemonic === ".org") {
+                const startAddress = this.readExpression();
+                if (startAddress === undefined) {
+                    this.results.error = "start address expected";
+                } else {
+                    this.results.nextAddress = startAddress;
+                }
             } else {
                 this.processOpCode(mnemonic);
             }
