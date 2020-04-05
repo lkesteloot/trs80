@@ -89,6 +89,9 @@ module.exports = {
             {
                 from: "node_modules/codemirror/theme/mbo.css",
             },
+            {
+                from: "node_modules/codemirror/addon/dialog/dialog.css",
+            },
         ]),
     ],
 

@@ -3,6 +3,11 @@ import CodeMirror from "codemirror";
 import {Parser} from "../assembler/Parser";
 import {toHexByte, toHexWord} from "z80-base";
 
+import "codemirror/addon/dialog/dialog";
+import "codemirror/addon/search/search";
+import "codemirror/addon/search/jump-to-line";
+import "codemirror/addon/edit/closebrackets";
+
 // Max number of sub-lines per line. These are lines where we display the
 // opcodes for a single source line.
 const MAX_SUBLINES = 100;
@@ -83,6 +88,7 @@ export function main() {
         tabSize: 8,
         theme: 'mbo',
         gutters: ["CodeMirror-linenumbers", "gutter-assembled"],
+        autoCloseBrackets: true,
     };
     const cm = CodeMirror(element, config);
 
