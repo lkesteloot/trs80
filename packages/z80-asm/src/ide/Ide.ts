@@ -3,11 +3,14 @@ import CodeMirror from "codemirror";
 import {Parser} from "../assembler/Parser";
 import {toHexByte, toHexWord} from "z80-base";
 
+// Load these for their side-effects (they register themselves).
 import "codemirror/addon/dialog/dialog";
 import "codemirror/addon/search/search";
 import "codemirror/addon/search/jump-to-line";
 import "codemirror/addon/edit/closebrackets";
 import "codemirror/mode/z80/z80";
+
+import {initIpc} from "./ElectronIpc";
 
 // Max number of sub-lines per line. These are lines where we display the
 // opcodes for a single source line.
@@ -111,8 +114,11 @@ export function main() {
         assembleAll(cm);
     });
 
+    initIpc(cm);
+
+    /*
     fetch("samples/basic.asm")
         .then(response => response.text())
         .then(text => cm.setValue(text));
+     */
 }
-
