@@ -82,7 +82,7 @@ const template = [
                         if (result.filePaths.length > 0) {
                             const pathname = result.filePaths[0];
                             const text = fs.readFileSync(pathname, "utf-8");
-                            focusedWindow.webContents.send("set-text", text);
+                            focusedWindow.webContents.send("set-text", pathname, text);
                         }
                     }).catch(err => {
                         console.log(err)

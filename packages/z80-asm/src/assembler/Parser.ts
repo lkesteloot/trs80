@@ -190,6 +190,13 @@ export class Parser {
         }
 
         switch (directive) {
+            case "target":
+                const target = this.readIdentifier(false, true);
+                // Ignore for now. Target can be "bin" or "rom", which basically mean raw
+                // binary with a different default for unspecified bytes (0x00 and 0xFF
+                // respectively), and plenty of other types we have no interest in.
+                break;
+
             case "code":
                 const segmentName = this.readIdentifier(true, false);
                 if (segmentName === undefined) {
@@ -200,7 +207,13 @@ export class Parser {
                         this.results.error = "start address expected";
                     } else {
                         this.results.nextAddress = startAddress;
-                        // TODO parse length of segment.
+
+                        if (this.foundChar(',')) {
+                            const length = this.readExpression();
+                            if (length === undefined) {
+                                this.results.error = "length expected";
+                            }
+                        }
                     }
                 }
                 break;

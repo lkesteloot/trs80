@@ -1,5 +1,5 @@
 
 export default interface IdeController {
-    setText(text: string): void;
+    setText(pathname: string, text: string): void;
     nextError(): void;
 }

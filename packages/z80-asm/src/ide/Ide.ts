@@ -12,6 +12,8 @@ import "codemirror/addon/edit/closebrackets";
 import "codemirror/mode/z80/z80";
 
 import {initIpc} from "./ElectronIpc";
+import * as fs from "fs";
+import * as path from "path";
 
 // Max number of sub-lines per line. These are lines where we display the
 // opcodes for a single source line.
@@ -21,9 +23,19 @@ const MAX_SUBLINES = 100;
 // that lays out the gutter.
 const BYTES_PER_SUBLINE = 3;
 
+class File {
+    public readonly lines: string[];
+    public lineNumber: number = 0;
+
+    constructor(lines: string[]) {
+        this.lines = lines;
+    }
+}
+
 class Ide implements IdeController {
     private readonly cm: CodeMirror.Editor;
     private readonly assembled: ParseResults[] = [];
+    private pathname: string = "";
 
     constructor(parent: HTMLElement) {
         const config = {
@@ -67,7 +79,8 @@ class Ide implements IdeController {
         this.cm.focus();
     }
 
-    setText(text: string): void {
+    setText(pathname: string, text: string): void {
+        this.pathname = pathname;
         this.cm.setValue(text);
     }
 
@@ -96,23 +109,39 @@ class Ide implements IdeController {
 
         const before = Date.now();
 
-        // First pass.
-        let address = 0;
-        for (let lineNumber = 0; lineNumber < this.cm.lineCount(); lineNumber++) {
-            const line = this.cm.getLine(lineNumber);
-            const parser = new Parser(line, address, constants, true);
-            const results = parser.assemble();
-            address = results.nextAddress;
-        }
+        for (let pass = 0; pass < 2; pass++) {
+            let address = 0;
 
-        // Second pass.
-        address = 0;
-        for (let lineNumber = 0; lineNumber < this.cm.lineCount(); lineNumber++) {
-            const line = this.cm.getLine(lineNumber);
-            const parser = new Parser(line, address, constants, false);
-            const results = parser.assemble();
-            this.assembled.push(results);
-            address = results.nextAddress;
+            const lines: string[] = [];
+            for (let lineNumber = 0; lineNumber < this.cm.lineCount(); lineNumber++) {
+                const line = this.cm.getLine(lineNumber);
+                lines.push(line);
+            }
+            const fileStack = [new File(lines)];
+
+            while (fileStack.length > 0) {
+                const top = fileStack[fileStack.length - 1];
+                if (top.lineNumber >= top.lines.length) {
+                    fileStack.pop();
+                    continue;
+                }
+
+                const line = top.lines[top.lineNumber++];
+                const parser = new Parser(line, address, constants, pass === 0);
+                const results = parser.assemble();
+                address = results.nextAddress;
+
+                if (pass === 1 && fileStack.length === 1) {
+                    this.assembled.push(results);
+                }
+
+                // Include file.
+                if (results.includeFilename !== undefined) {
+                    const filename = path.resolve(path.dirname(this.pathname), results.includeFilename);
+                    const includedLines = fs.readFileSync(filename, "utf-8").split(/\r?\n/);
+                    fileStack.push(new File(includedLines));
+                }
+            }
         }
 
         // Update UI.
@@ -152,6 +181,7 @@ class Ide implements IdeController {
             if (results.error === undefined) {
                 this.cm.removeLineClass(lineNumber, "background", "error-line");
             } else {
+                console.log(results.error);
                 this.cm.addLineClass(lineNumber, "background", "error-line");
             }
 
