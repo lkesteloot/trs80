@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { app, BrowserWindow, Menu, dialog, TouchBar } = require('electron')
+const { app, BrowserWindow, Menu, dialog, TouchBar } = require('electron');
 const { TouchBarButton } = TouchBar;
 
 function createWindow() {
@@ -10,22 +10,23 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: true
         }
-    })
+    });
 
     // and load the index.html of the app.
-    win.loadFile('docs/index.html')
+    win.loadFile('docs/index.html');
 
     // Open the DevTools.
     /// win.webContents.openDevTools()
-
-    setupMenus();
-    setupTouchBar(win);
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+    createWindow();
+    setupMenus();
+    setupTouchBar();
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
@@ -34,7 +35,7 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit()
     }
-})
+});
 
 app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
@@ -42,9 +43,28 @@ app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow()
     }
-})
+});
 
-const isMac = process.platform === 'darwin'
+function openFile(win, pathname) {
+    if (!win) {
+        win = BrowserWindow.getFocusedWindow();
+    }
+    if (!win) {
+        return;
+    }
+
+    // TODO: handle exception in this call:
+    const text = fs.readFileSync(pathname, "utf-8");
+    win.webContents.send("set-text", pathname, text);
+    app.addRecentDocument(pathname);
+}
+
+app.on('open-file', (event, pathname) => {
+    event.preventDefault();
+    openFile(null, pathname);
+});
+
+const isMac = process.platform === 'darwin';
 
 const template = [
     // { role: 'appMenu' }
@@ -80,9 +100,7 @@ const template = [
                         ]
                     }).then(result => {
                         if (result.filePaths.length > 0) {
-                            const pathname = result.filePaths[0];
-                            const text = fs.readFileSync(pathname, "utf-8");
-                            focusedWindow.webContents.send("set-text", pathname, text);
+                            openFile(focusedWindow, result.filePaths[0]);
                         }
                     }).catch(err => {
                         console.log(err)
@@ -90,8 +108,10 @@ const template = [
                 },
                 accelerator: "CmdOrCtrl+O",
                 registerAccelerator: true,
+
             },
-            { role: 'recentDocuments' },
+            // Doesn't seem to work:
+            // { role: 'recentDocuments' },
             isMac ? { role: 'close' } : { role: 'quit' }
         ]
     },
@@ -161,8 +181,8 @@ const template = [
             {
             label: 'Learn More',
             click: async () => {
-                const { shell } = require('electron')
-                await shell.openExternal('https://electronjs.org')
+                const { shell } = require('electron');
+                await shell.openExternal('https://electronjs.org');
             }
         }
         ]
@@ -170,11 +190,16 @@ const template = [
 ];
 
 function setupMenus() {
-    const menu = Menu.buildFromTemplate(template)
+    const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu)
 }
 
-function setupTouchBar(win) {
+function setupTouchBar() {
+    const win = BrowserWindow.getFocusedWindow();
+    if (!win) {
+        return;
+    }
+
     const nextErrorButton = new TouchBarButton({
         label: 'Next Error',
         click: () => {
