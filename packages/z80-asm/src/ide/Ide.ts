@@ -34,6 +34,8 @@ class Ide implements IdeController {
             gutters: ["CodeMirror-linenumbers", "gutter-assembled"],
             autoCloseBrackets: true,
             mode: "text/x-z80",
+            // Doesn't work, I call focus() explicitly later.
+            autoFocus: true,
         };
         this.cm = CodeMirror(parent, config);
 
@@ -61,6 +63,8 @@ class Ide implements IdeController {
             .then(response => response.text())
             .then(text => cm.setValue(text));
          */
+
+        this.cm.focus();
     }
 
     setText(text: string): void {
