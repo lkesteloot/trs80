@@ -150,9 +150,9 @@ class Ide implements IdeController {
             this.cm.setGutterMarker(lineNumber, "gutter-assembled", addressElement);
 
             if (results.error === undefined) {
-                this.cm.removeLineClass(lineNumber, "text", "error-line");
+                this.cm.removeLineClass(lineNumber, "background", "error-line");
             } else {
-                this.cm.addLineClass(lineNumber, "text", "error-line");
+                this.cm.addLineClass(lineNumber, "background", "error-line");
             }
 
         }

@@ -88,7 +88,7 @@ export class Parser {
         this.skipWhitespace();
         let mnemonic = this.readIdentifier(false, true);
         if (mnemonic !== undefined && this.previousToken > 0) {
-            if (mnemonic === ".byte") {
+            if (mnemonic === ".byte" || mnemonic === "defb") {
                 while (true) {
                     const s = this.readString();
                     if (s !== undefined) {
@@ -112,7 +112,7 @@ export class Parser {
                         break;
                     }
                 }
-            } else if (mnemonic === ".word") {
+            } else if (mnemonic === ".word" || mnemonic === "defw") {
                 while (true) {
                     const value = this.readExpression();
                     if (value === undefined) {
@@ -334,14 +334,15 @@ export class Parser {
      */
     private readString(): string | undefined {
         // Find beginning of string.
-        if (this.i === this.line.length || this.line[this.i] != '"') {
+        if (this.i === this.line.length || (this.line[this.i] !== '"' && this.line[this.i] !== "'")) {
             return undefined;
         }
+        const quoteChar = this.line[this.i];
         this.i++;
 
         // Find end of string.
         const startIndex = this.i;
-        while (this.i < this.line.length && this.line[this.i] !== '"') {
+        while (this.i < this.line.length && this.line[this.i] !== quoteChar) {
             this.i++;
         }
 
