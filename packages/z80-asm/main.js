@@ -1,7 +1,8 @@
 const fs = require("fs");
-const { app, BrowserWindow, Menu, dialog } = require('electron')
+const { app, BrowserWindow, Menu, dialog, TouchBar } = require('electron')
+const { TouchBarButton } = TouchBar;
 
-function createWindow () {
+function createWindow() {
     // Create the browser window.
     const win = new BrowserWindow({
         width: 1200,
@@ -16,6 +17,9 @@ function createWindow () {
 
     // Open the DevTools.
     /// win.webContents.openDevTools()
+
+    setupMenus();
+    setupTouchBar(win);
 }
 
 // This method will be called when Electron has finished
@@ -165,6 +169,22 @@ const template = [
     }
 ];
 
-const menu = Menu.buildFromTemplate(template)
-Menu.setApplicationMenu(menu)
+function setupMenus() {
+    const menu = Menu.buildFromTemplate(template)
+    Menu.setApplicationMenu(menu)
+}
 
+function setupTouchBar(win) {
+    const nextErrorButton = new TouchBarButton({
+        label: 'Next Error',
+        click: () => {
+            win.webContents.send("next-error");
+        },
+    });
+    const touchBar = new TouchBar({
+        items: [
+            nextErrorButton,
+        ],
+    });
+    win.setTouchBar(touchBar);
+}

@@ -1,10 +1,10 @@
 
-import CodeMirror from "codemirror";
 import {ipcRenderer as ipc} from "electron";
+import IdeController from "./IdeController";
 
-export function initIpc(cm: CodeMirror.Editor) {
-    console.log("Initialized IPC");
-    ipc.on("set-text", (event, text) => cm.setValue(text));
+export function initIpc(ide: IdeController) {
+    ipc.on("set-text", (event, text) => ide.setText(text));
+    ipc.on("next-error", () => ide.nextError());
 }
 
 
