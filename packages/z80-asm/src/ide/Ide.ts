@@ -14,6 +14,7 @@ import "codemirror/mode/z80/z80";
 import {initIpc} from "./ElectronIpc";
 import * as fs from "fs";
 import * as path from "path";
+import Store from "electron-store";
 
 // Max number of sub-lines per line. These are lines where we display the
 // opcodes for a single source line.
@@ -22,6 +23,8 @@ const MAX_SUBLINES = 100;
 // Max number of opcode bytes we display per subline. Sync this with the CSS
 // that lays out the gutter.
 const BYTES_PER_SUBLINE = 3;
+
+const CURRENT_PATHNAME_KEY = "current-pathname";
 
 class File {
     public readonly lines: string[];
@@ -32,12 +35,29 @@ class File {
     }
 }
 
+function readFile(pathname: string): string | undefined {
+    try {
+        return fs.readFileSync(pathname, "utf-8");
+    } catch (e) {
+        console.log("readFile(" + pathname + "): " + e);
+        return undefined;
+    }
+}
+
+function readFileLines(pathname: string): string[] | undefined {
+    const text = readFile(pathname);
+    return text === undefined ? undefined : text.split(/\r?\n/);
+}
+
 class Ide implements IdeController {
+    private store: Store;
     private readonly cm: CodeMirror.Editor;
     private readonly assembled: ParseResults[] = [];
     private pathname: string = "";
 
     constructor(parent: HTMLElement) {
+        this.store = new Store();
+
         const config = {
             value: "",
             lineNumbers: true,
@@ -70,18 +90,24 @@ class Ide implements IdeController {
 
         initIpc(this);
 
-        /*
-        fetch("samples/basic.asm")
-            .then(response => response.text())
-            .then(text => cm.setValue(text));
-         */
-
         this.cm.focus();
+
+        // Read file from last time.
+        const pathname = this.store.get(CURRENT_PATHNAME_KEY);
+        if (pathname !== undefined) {
+            const text = readFile(pathname);
+            if (text !== undefined) {
+                this.pathname = pathname;
+                this.cm.setValue(text);
+            }
+        }
     }
 
     setText(pathname: string, text: string): void {
         this.pathname = pathname;
         this.cm.setValue(text);
+
+        this.store.set(CURRENT_PATHNAME_KEY, pathname);
     }
 
     nextError(): void {
@@ -137,9 +163,14 @@ class Ide implements IdeController {
 
                 // Include file.
                 if (results.includeFilename !== undefined) {
-                    const filename = path.resolve(path.dirname(this.pathname), results.includeFilename);
-                    const includedLines = fs.readFileSync(filename, "utf-8").split(/\r?\n/);
-                    fileStack.push(new File(includedLines));
+                    const pathname = path.resolve(path.dirname(this.pathname), results.includeFilename);
+                    const includedLines = readFileLines(pathname);
+                    if (includedLines === undefined) {
+                        // TODO report error.
+                        results.error = "cannot read file " + pathname;
+                    } else {
+                        fileStack.push(new File(includedLines));
+                    }
                 }
             }
         }
