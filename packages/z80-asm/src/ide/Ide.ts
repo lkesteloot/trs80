@@ -10,6 +10,7 @@ import "codemirror/addon/search/search";
 import "codemirror/addon/search/jump-to-line";
 import "codemirror/addon/edit/closebrackets";
 import "codemirror/addon/hint/show-hint";
+import "codemirror/addon/scroll/annotatescrollbar";
 import "codemirror/mode/z80/z80";
 
 import {initIpc} from "./ElectronIpc";
@@ -55,6 +56,7 @@ class Ide implements IdeController {
     private readonly cm: CodeMirror.Editor;
     private readonly assembled: ParseResults[] = [];
     private pathname: string = "";
+    private scrollbarAnnotator: any;
 
     constructor(parent: HTMLElement) {
         this.store = new Store();
@@ -94,6 +96,9 @@ class Ide implements IdeController {
             // This way a large re-assemble takes 40ms instead of 300ms.
             this.assembleAll();
         });
+
+        // The type definition doesn't include this extension.
+        this.scrollbarAnnotator = (this.cm as any).annotateScrollbar("scrollbar-error");
 
         initIpc(this);
 
@@ -183,6 +188,7 @@ class Ide implements IdeController {
         }
 
         // Update UI.
+        const annotationMarks: any[] = [];
         for (let lineNumber = 0; lineNumber < this.assembled.length; lineNumber++) {
             const results = this.assembled[lineNumber];
 
@@ -219,11 +225,16 @@ class Ide implements IdeController {
             if (results.error === undefined) {
                 this.cm.removeLineClass(lineNumber, "background", "error-line");
             } else {
-                console.log(results.error);
+                // console.log(results.error);
                 this.cm.addLineClass(lineNumber, "background", "error-line");
+                annotationMarks.push({
+                    from: { line: lineNumber, ch: 0 },
+                    to: { line: lineNumber + 1, ch: 0 },
+                });
             }
-
         }
+
+        this.scrollbarAnnotator.update(annotationMarks);
 
         const after = Date.now();
         console.log("Assembly time: " + (after - before));
