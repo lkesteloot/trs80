@@ -237,8 +237,7 @@ export class Parser {
     }
 
     private processOpCode(mnemonic: string): void {
-        // TODO: I don't know why I need that any:
-        const mnemonicInfo = (mnemonicData as any).mnemonics[mnemonic];
+        const mnemonicInfo = mnemonicData.mnemonics[mnemonic];
         if (mnemonicInfo !== undefined) {
             const argStart = this.i;
             let match = false;

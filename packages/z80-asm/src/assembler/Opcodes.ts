@@ -1,4 +1,6 @@
-export default {
+import {Instructions} from "./OpcodesTypes";
+
+const opcodes: Instructions = {
   "mnemonics": {
     "nop": {
       "variants": [
@@ -17746,3 +17748,5 @@ export default {
     }
   }
 };
+
+export default opcodes;

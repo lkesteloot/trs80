@@ -122,8 +122,11 @@ function generateOpcodes(): void {
         mnemonics: mnemonics,
     };
     parseOpcodes(opcodesDir, "base", [], top.mnemonics);
-    fs.writeFileSync("src/assembler/Opcodes.ts",
-                     "export default " + JSON.stringify(top, null, 2) + ";");
+
+    const text = 'import {Instructions} from "./OpcodesTypes";\n\n' +
+        'const opcodes: Instructions = ' + JSON.stringify(top, null, 2) + ";\n\n" +
+        'export default opcodes;\n';
+    fs.writeFileSync("src/assembler/Opcodes.ts", text);
 }
 
 generateOpcodes();
