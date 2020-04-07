@@ -9,6 +9,7 @@ import "codemirror/addon/dialog/dialog";
 import "codemirror/addon/search/search";
 import "codemirror/addon/search/jump-to-line";
 import "codemirror/addon/edit/closebrackets";
+import "codemirror/addon/hint/show-hint";
 import "codemirror/mode/z80/z80";
 
 import {initIpc} from "./ElectronIpc";
@@ -68,6 +69,12 @@ class Ide implements IdeController {
             mode: "text/x-z80",
             // Doesn't work, I call focus() explicitly later.
             autoFocus: true,
+            extraKeys: {
+                // "Ctrl-Space": "autocomplete"
+            },
+            hintOptions: {
+                hint: () => this.hint(),
+            }
         };
         this.cm = CodeMirror(parent, config);
 
@@ -220,6 +227,19 @@ class Ide implements IdeController {
 
         const after = Date.now();
         console.log("Assembly time: " + (after - before));
+    }
+
+    private hint(): any {
+        const cursor = this.cm.getCursor();
+        const line = this.cm.getLine(cursor.line);
+        const start = cursor.ch;
+        const end = cursor.ch;
+
+        return {
+            list: ["aaaaa", "bbbbb", "ccccc"],
+            from: CodeMirror.Pos(cursor.line, start - 3),
+            to: CodeMirror.Pos(cursor.line, start),
+        };
     }
 }
 

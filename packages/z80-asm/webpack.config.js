@@ -92,6 +92,9 @@ module.exports = {
             {
                 from: "node_modules/codemirror/addon/dialog/dialog.css",
             },
+            {
+                from: "node_modules/codemirror/addon/hint/show-hint.css",
+            },
         ]),
     ],
 
