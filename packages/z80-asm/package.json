@@ -8,7 +8,7 @@
     "build:module": "tsc -p tsconfig.module.json",
     "build:test": "tsc -p tsconfig.test.json",
     "electron": "webpack --target electron-renderer && electron main.js",
-    "generate": "tsc --project opcodes && node opcodes/dist/GenerateJson.js",
+    "generate": "tsc --project opcodes && node opcodes/dist/opcodes/src/GenerateJson.js",
     "test": "npm run build:test && mocha -r ts-node/register src/**/*.spec.ts",
     "watch": "webpack --watch",
     "clean": "rm -rf dist dist-tests"

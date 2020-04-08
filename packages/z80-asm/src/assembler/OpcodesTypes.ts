@@ -1,9 +1,18 @@
 
 // Each opcode template can be a literal byte value or a variable like "nn".
-import opcodes from "./Opcodes";
-
 export type OpcodeTemplate = number | "nnnn" | "nn" | "offset" | "dd";
-export default opcodes;
+
+// Information from clr.
+export interface ClrInstruction {
+    opcodes: string;
+    undocumented: boolean;
+    flags: string;
+    byte_count: number;
+    with_jump_clock_count: number;
+    without_jump_clock_count: number;
+    description: string;
+    instruction: string;
+}
 
 // A particular variant of a mnemonic, such as "ld a,(hl)".
 export interface Variant {
@@ -12,6 +21,9 @@ export interface Variant {
 
     // The sequence of literal byte values or templates (like "nn").
     opcode: OpcodeTemplate[];
+
+    // Optional clr information. TODO: Make not optional.
+    clr: ClrInstruction | null;
 }
 
 // All information about a particular mnemonic, lke "ld".
