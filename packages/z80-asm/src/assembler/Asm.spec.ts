@@ -62,6 +62,13 @@ describe("assemble", () => {
         expect(results.error).to.be.undefined;
     });
 
+    it("ddcb param", () => {
+        const parser = new Parser(" rlc (ix+0x56)", 0, {}, false);
+        const results = parser.assemble();
+        expect(results.binary).to.deep.equal([0xDD, 0xCB, 0x56, 0x06]);
+        expect(results.error).to.be.undefined;
+    });
+
     it("bad mnemonic", () => {
         const parser = new Parser(" foo", 0, {}, false);
         const results = parser.assemble();
@@ -107,8 +114,15 @@ describe("assemble", () => {
         expect(results.includeFilename).to.be.equal("foo/bar.asm");
     });
 
-    it("parse error", () => {
+    it("target bin", () => {
         const parser = new Parser("#target bin", 0, {}, false);
+            const results = parser.assemble();
+        expect(results.binary).to.deep.equal([]);
+        expect(results.error).to.be.undefined;
+    });
+
+    it("parse error", () => {
+        const parser = new Parser("#foo", 0, {}, false);
             const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.not.be.undefined;

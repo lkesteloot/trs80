@@ -3057,8 +3057,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            0,
-            "dd"
+            "dd",
+            0
           ],
           "clr": {
             "opcodes": "DDCB**00",
@@ -3085,8 +3085,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            1,
-            "dd"
+            "dd",
+            1
           ],
           "clr": {
             "opcodes": "DDCB**01",
@@ -3113,8 +3113,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            2,
-            "dd"
+            "dd",
+            2
           ],
           "clr": {
             "opcodes": "DDCB**02",
@@ -3141,8 +3141,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            3,
-            "dd"
+            "dd",
+            3
           ],
           "clr": {
             "opcodes": "DDCB**03",
@@ -3169,8 +3169,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            4,
-            "dd"
+            "dd",
+            4
           ],
           "clr": {
             "opcodes": "DDCB**04",
@@ -3197,8 +3197,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            5,
-            "dd"
+            "dd",
+            5
           ],
           "clr": {
             "opcodes": "DDCB**05",
@@ -3225,8 +3225,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            7,
-            "dd"
+            "dd",
+            7
           ],
           "clr": {
             "opcodes": "DDCB**07",
@@ -3251,8 +3251,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            7,
-            "dd"
+            "dd",
+            7
           ],
           "clr": {
             "opcodes": "DDCB**07",
@@ -3279,8 +3279,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            8,
-            "dd"
+            "dd",
+            8
           ],
           "clr": {
             "opcodes": "DDCB**08",
@@ -3307,8 +3307,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            9,
-            "dd"
+            "dd",
+            9
           ],
           "clr": {
             "opcodes": "DDCB**09",
@@ -3335,8 +3335,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            10,
-            "dd"
+            "dd",
+            10
           ],
           "clr": {
             "opcodes": "DDCB**0A",
@@ -3363,8 +3363,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            11,
-            "dd"
+            "dd",
+            11
           ],
           "clr": {
             "opcodes": "DDCB**0B",
@@ -3391,8 +3391,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            12,
-            "dd"
+            "dd",
+            12
           ],
           "clr": {
             "opcodes": "DDCB**0C",
@@ -3419,8 +3419,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            13,
-            "dd"
+            "dd",
+            13
           ],
           "clr": {
             "opcodes": "DDCB**0D",
@@ -3447,8 +3447,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            15,
-            "dd"
+            "dd",
+            15
           ],
           "clr": {
             "opcodes": "DDCB**0F",
@@ -3473,8 +3473,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            15,
-            "dd"
+            "dd",
+            15
           ],
           "clr": {
             "opcodes": "DDCB**0F",
@@ -3501,8 +3501,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            16,
-            "dd"
+            "dd",
+            16
           ],
           "clr": {
             "opcodes": "DDCB**10",
@@ -3529,8 +3529,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            17,
-            "dd"
+            "dd",
+            17
           ],
           "clr": {
             "opcodes": "DDCB**11",
@@ -3557,8 +3557,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            18,
-            "dd"
+            "dd",
+            18
           ],
           "clr": {
             "opcodes": "DDCB**12",
@@ -3585,8 +3585,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            19,
-            "dd"
+            "dd",
+            19
           ],
           "clr": {
             "opcodes": "DDCB**13",
@@ -3613,8 +3613,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            20,
-            "dd"
+            "dd",
+            20
           ],
           "clr": {
             "opcodes": "DDCB**14",
@@ -3641,8 +3641,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            21,
-            "dd"
+            "dd",
+            21
           ],
           "clr": {
             "opcodes": "DDCB**15",
@@ -3669,8 +3669,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            23,
-            "dd"
+            "dd",
+            23
           ],
           "clr": {
             "opcodes": "DDCB**17",
@@ -3695,8 +3695,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            23,
-            "dd"
+            "dd",
+            23
           ],
           "clr": {
             "opcodes": "DDCB**17",
@@ -3723,8 +3723,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            24,
-            "dd"
+            "dd",
+            24
           ],
           "clr": {
             "opcodes": "DDCB**18",
@@ -3751,8 +3751,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            25,
-            "dd"
+            "dd",
+            25
           ],
           "clr": {
             "opcodes": "DDCB**19",
@@ -3779,8 +3779,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            26,
-            "dd"
+            "dd",
+            26
           ],
           "clr": {
             "opcodes": "DDCB**1A",
@@ -3807,8 +3807,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            27,
-            "dd"
+            "dd",
+            27
           ],
           "clr": {
             "opcodes": "DDCB**1B",
@@ -3835,8 +3835,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            28,
-            "dd"
+            "dd",
+            28
           ],
           "clr": {
             "opcodes": "DDCB**1C",
@@ -3863,8 +3863,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            29,
-            "dd"
+            "dd",
+            29
           ],
           "clr": {
             "opcodes": "DDCB**1D",
@@ -3891,8 +3891,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            31,
-            "dd"
+            "dd",
+            31
           ],
           "clr": {
             "opcodes": "DDCB**1F",
@@ -3917,8 +3917,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            31,
-            "dd"
+            "dd",
+            31
           ],
           "clr": {
             "opcodes": "DDCB**1F",
@@ -3945,8 +3945,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            32,
-            "dd"
+            "dd",
+            32
           ],
           "clr": {
             "opcodes": "DDCB**20",
@@ -3973,8 +3973,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            33,
-            "dd"
+            "dd",
+            33
           ],
           "clr": {
             "opcodes": "DDCB**21",
@@ -4001,8 +4001,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            34,
-            "dd"
+            "dd",
+            34
           ],
           "clr": {
             "opcodes": "DDCB**22",
@@ -4029,8 +4029,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            35,
-            "dd"
+            "dd",
+            35
           ],
           "clr": {
             "opcodes": "DDCB**23",
@@ -4057,8 +4057,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            36,
-            "dd"
+            "dd",
+            36
           ],
           "clr": {
             "opcodes": "DDCB**24",
@@ -4085,8 +4085,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            37,
-            "dd"
+            "dd",
+            37
           ],
           "clr": {
             "opcodes": "DDCB**25",
@@ -4113,8 +4113,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            39,
-            "dd"
+            "dd",
+            39
           ],
           "clr": {
             "opcodes": "DDCB**27",
@@ -4139,8 +4139,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            39,
-            "dd"
+            "dd",
+            39
           ],
           "clr": {
             "opcodes": "DDCB**27",
@@ -4167,8 +4167,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            40,
-            "dd"
+            "dd",
+            40
           ],
           "clr": {
             "opcodes": "DDCB**28",
@@ -4195,8 +4195,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            41,
-            "dd"
+            "dd",
+            41
           ],
           "clr": {
             "opcodes": "DDCB**29",
@@ -4223,8 +4223,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            42,
-            "dd"
+            "dd",
+            42
           ],
           "clr": {
             "opcodes": "DDCB**2A",
@@ -4251,8 +4251,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            43,
-            "dd"
+            "dd",
+            43
           ],
           "clr": {
             "opcodes": "DDCB**2B",
@@ -4279,8 +4279,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            44,
-            "dd"
+            "dd",
+            44
           ],
           "clr": {
             "opcodes": "DDCB**2C",
@@ -4307,8 +4307,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            45,
-            "dd"
+            "dd",
+            45
           ],
           "clr": {
             "opcodes": "DDCB**2D",
@@ -4335,8 +4335,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            47,
-            "dd"
+            "dd",
+            47
           ],
           "clr": {
             "opcodes": "DDCB**2F",
@@ -4361,8 +4361,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            47,
-            "dd"
+            "dd",
+            47
           ],
           "clr": {
             "opcodes": "DDCB**2F",
@@ -4389,8 +4389,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            48,
-            "dd"
+            "dd",
+            48
           ],
           "clr": {
             "opcodes": "DDCB**30",
@@ -4417,8 +4417,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            49,
-            "dd"
+            "dd",
+            49
           ],
           "clr": {
             "opcodes": "DDCB**31",
@@ -4445,8 +4445,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            50,
-            "dd"
+            "dd",
+            50
           ],
           "clr": {
             "opcodes": "DDCB**32",
@@ -4473,8 +4473,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            51,
-            "dd"
+            "dd",
+            51
           ],
           "clr": {
             "opcodes": "DDCB**33",
@@ -4501,8 +4501,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            52,
-            "dd"
+            "dd",
+            52
           ],
           "clr": {
             "opcodes": "DDCB**34",
@@ -4529,8 +4529,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            53,
-            "dd"
+            "dd",
+            53
           ],
           "clr": {
             "opcodes": "DDCB**35",
@@ -4557,8 +4557,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            55,
-            "dd"
+            "dd",
+            55
           ],
           "clr": {
             "opcodes": "DDCB**37",
@@ -4583,8 +4583,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            55,
-            "dd"
+            "dd",
+            55
           ],
           "clr": {
             "opcodes": "DDCB**37",
@@ -4611,8 +4611,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            56,
-            "dd"
+            "dd",
+            56
           ],
           "clr": {
             "opcodes": "DDCB**38",
@@ -4639,8 +4639,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            57,
-            "dd"
+            "dd",
+            57
           ],
           "clr": {
             "opcodes": "DDCB**39",
@@ -4667,8 +4667,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            58,
-            "dd"
+            "dd",
+            58
           ],
           "clr": {
             "opcodes": "DDCB**3A",
@@ -4695,8 +4695,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            59,
-            "dd"
+            "dd",
+            59
           ],
           "clr": {
             "opcodes": "DDCB**3B",
@@ -4723,8 +4723,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            60,
-            "dd"
+            "dd",
+            60
           ],
           "clr": {
             "opcodes": "DDCB**3C",
@@ -4751,8 +4751,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            61,
-            "dd"
+            "dd",
+            61
           ],
           "clr": {
             "opcodes": "DDCB**3D",
@@ -4779,8 +4779,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            63,
-            "dd"
+            "dd",
+            63
           ],
           "clr": {
             "opcodes": "DDCB**3F",
@@ -4805,8 +4805,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            63,
-            "dd"
+            "dd",
+            63
           ],
           "clr": {
             "opcodes": "DDCB**3F",
@@ -4835,8 +4835,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            128,
-            "dd"
+            "dd",
+            128
           ],
           "clr": {
             "opcodes": "DDCB**80",
@@ -4865,8 +4865,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            129,
-            "dd"
+            "dd",
+            129
           ],
           "clr": {
             "opcodes": "DDCB**81",
@@ -4895,8 +4895,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            130,
-            "dd"
+            "dd",
+            130
           ],
           "clr": {
             "opcodes": "DDCB**82",
@@ -4925,8 +4925,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            131,
-            "dd"
+            "dd",
+            131
           ],
           "clr": {
             "opcodes": "DDCB**83",
@@ -4955,8 +4955,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            132,
-            "dd"
+            "dd",
+            132
           ],
           "clr": {
             "opcodes": "DDCB**84",
@@ -4985,8 +4985,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            133,
-            "dd"
+            "dd",
+            133
           ],
           "clr": {
             "opcodes": "DDCB**85",
@@ -5015,8 +5015,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            135,
-            "dd"
+            "dd",
+            135
           ],
           "clr": {
             "opcodes": "DDCB**87",
@@ -5043,8 +5043,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            135,
-            "dd"
+            "dd",
+            135
           ],
           "clr": {
             "opcodes": "DDCB**87",
@@ -5073,8 +5073,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            136,
-            "dd"
+            "dd",
+            136
           ],
           "clr": {
             "opcodes": "DDCB**88",
@@ -5103,8 +5103,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            137,
-            "dd"
+            "dd",
+            137
           ],
           "clr": {
             "opcodes": "DDCB**89",
@@ -5133,8 +5133,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            138,
-            "dd"
+            "dd",
+            138
           ],
           "clr": {
             "opcodes": "DDCB**8A",
@@ -5163,8 +5163,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            139,
-            "dd"
+            "dd",
+            139
           ],
           "clr": {
             "opcodes": "DDCB**8B",
@@ -5193,8 +5193,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            140,
-            "dd"
+            "dd",
+            140
           ],
           "clr": {
             "opcodes": "DDCB**8C",
@@ -5223,8 +5223,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            141,
-            "dd"
+            "dd",
+            141
           ],
           "clr": {
             "opcodes": "DDCB**8D",
@@ -5253,8 +5253,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            143,
-            "dd"
+            "dd",
+            143
           ],
           "clr": {
             "opcodes": "DDCB**8F",
@@ -5281,8 +5281,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            143,
-            "dd"
+            "dd",
+            143
           ],
           "clr": {
             "opcodes": "DDCB**8F",
@@ -5311,8 +5311,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            144,
-            "dd"
+            "dd",
+            144
           ],
           "clr": {
             "opcodes": "DDCB**90",
@@ -5341,8 +5341,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            145,
-            "dd"
+            "dd",
+            145
           ],
           "clr": {
             "opcodes": "DDCB**91",
@@ -5371,8 +5371,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            146,
-            "dd"
+            "dd",
+            146
           ],
           "clr": {
             "opcodes": "DDCB**92",
@@ -5401,8 +5401,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            147,
-            "dd"
+            "dd",
+            147
           ],
           "clr": {
             "opcodes": "DDCB**93",
@@ -5431,8 +5431,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            148,
-            "dd"
+            "dd",
+            148
           ],
           "clr": {
             "opcodes": "DDCB**94",
@@ -5461,8 +5461,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            149,
-            "dd"
+            "dd",
+            149
           ],
           "clr": {
             "opcodes": "DDCB**95",
@@ -5491,8 +5491,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            151,
-            "dd"
+            "dd",
+            151
           ],
           "clr": {
             "opcodes": "DDCB**97",
@@ -5519,8 +5519,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            151,
-            "dd"
+            "dd",
+            151
           ],
           "clr": {
             "opcodes": "DDCB**97",
@@ -5549,8 +5549,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            152,
-            "dd"
+            "dd",
+            152
           ],
           "clr": {
             "opcodes": "DDCB**98",
@@ -5579,8 +5579,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            153,
-            "dd"
+            "dd",
+            153
           ],
           "clr": {
             "opcodes": "DDCB**99",
@@ -5609,8 +5609,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            154,
-            "dd"
+            "dd",
+            154
           ],
           "clr": {
             "opcodes": "DDCB**9A",
@@ -5639,8 +5639,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            155,
-            "dd"
+            "dd",
+            155
           ],
           "clr": {
             "opcodes": "DDCB**9B",
@@ -5669,8 +5669,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            156,
-            "dd"
+            "dd",
+            156
           ],
           "clr": {
             "opcodes": "DDCB**9C",
@@ -5699,8 +5699,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            157,
-            "dd"
+            "dd",
+            157
           ],
           "clr": {
             "opcodes": "DDCB**9D",
@@ -5729,8 +5729,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            159,
-            "dd"
+            "dd",
+            159
           ],
           "clr": {
             "opcodes": "DDCB**9F",
@@ -5757,8 +5757,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            159,
-            "dd"
+            "dd",
+            159
           ],
           "clr": {
             "opcodes": "DDCB**9F",
@@ -5787,8 +5787,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            160,
-            "dd"
+            "dd",
+            160
           ],
           "clr": {
             "opcodes": "DDCB**A0",
@@ -5817,8 +5817,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            161,
-            "dd"
+            "dd",
+            161
           ],
           "clr": {
             "opcodes": "DDCB**A1",
@@ -5847,8 +5847,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            162,
-            "dd"
+            "dd",
+            162
           ],
           "clr": {
             "opcodes": "DDCB**A2",
@@ -5877,8 +5877,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            163,
-            "dd"
+            "dd",
+            163
           ],
           "clr": {
             "opcodes": "DDCB**A3",
@@ -5907,8 +5907,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            164,
-            "dd"
+            "dd",
+            164
           ],
           "clr": {
             "opcodes": "DDCB**A4",
@@ -5937,8 +5937,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            165,
-            "dd"
+            "dd",
+            165
           ],
           "clr": {
             "opcodes": "DDCB**A5",
@@ -5967,8 +5967,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            167,
-            "dd"
+            "dd",
+            167
           ],
           "clr": {
             "opcodes": "DDCB**A7",
@@ -5995,8 +5995,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            167,
-            "dd"
+            "dd",
+            167
           ],
           "clr": {
             "opcodes": "DDCB**A7",
@@ -6025,8 +6025,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            168,
-            "dd"
+            "dd",
+            168
           ],
           "clr": {
             "opcodes": "DDCB**A8",
@@ -6055,8 +6055,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            169,
-            "dd"
+            "dd",
+            169
           ],
           "clr": {
             "opcodes": "DDCB**A9",
@@ -6085,8 +6085,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            170,
-            "dd"
+            "dd",
+            170
           ],
           "clr": {
             "opcodes": "DDCB**AA",
@@ -6115,8 +6115,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            171,
-            "dd"
+            "dd",
+            171
           ],
           "clr": {
             "opcodes": "DDCB**AB",
@@ -6145,8 +6145,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            172,
-            "dd"
+            "dd",
+            172
           ],
           "clr": {
             "opcodes": "DDCB**AC",
@@ -6175,8 +6175,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            173,
-            "dd"
+            "dd",
+            173
           ],
           "clr": {
             "opcodes": "DDCB**AD",
@@ -6205,8 +6205,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            175,
-            "dd"
+            "dd",
+            175
           ],
           "clr": {
             "opcodes": "DDCB**AF",
@@ -6233,8 +6233,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            175,
-            "dd"
+            "dd",
+            175
           ],
           "clr": {
             "opcodes": "DDCB**AF",
@@ -6263,8 +6263,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            176,
-            "dd"
+            "dd",
+            176
           ],
           "clr": {
             "opcodes": "DDCB**B0",
@@ -6293,8 +6293,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            177,
-            "dd"
+            "dd",
+            177
           ],
           "clr": {
             "opcodes": "DDCB**B1",
@@ -6323,8 +6323,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            178,
-            "dd"
+            "dd",
+            178
           ],
           "clr": {
             "opcodes": "DDCB**B2",
@@ -6353,8 +6353,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            179,
-            "dd"
+            "dd",
+            179
           ],
           "clr": {
             "opcodes": "DDCB**B3",
@@ -6383,8 +6383,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            180,
-            "dd"
+            "dd",
+            180
           ],
           "clr": {
             "opcodes": "DDCB**B4",
@@ -6413,8 +6413,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            181,
-            "dd"
+            "dd",
+            181
           ],
           "clr": {
             "opcodes": "DDCB**B5",
@@ -6443,8 +6443,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            183,
-            "dd"
+            "dd",
+            183
           ],
           "clr": {
             "opcodes": "DDCB**B7",
@@ -6471,8 +6471,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            183,
-            "dd"
+            "dd",
+            183
           ],
           "clr": {
             "opcodes": "DDCB**B7",
@@ -6501,8 +6501,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            184,
-            "dd"
+            "dd",
+            184
           ],
           "clr": {
             "opcodes": "DDCB**B8",
@@ -6531,8 +6531,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            185,
-            "dd"
+            "dd",
+            185
           ],
           "clr": {
             "opcodes": "DDCB**B9",
@@ -6561,8 +6561,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            186,
-            "dd"
+            "dd",
+            186
           ],
           "clr": {
             "opcodes": "DDCB**BA",
@@ -6591,8 +6591,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            187,
-            "dd"
+            "dd",
+            187
           ],
           "clr": {
             "opcodes": "DDCB**BB",
@@ -6621,8 +6621,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            188,
-            "dd"
+            "dd",
+            188
           ],
           "clr": {
             "opcodes": "DDCB**BC",
@@ -6651,8 +6651,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            189,
-            "dd"
+            "dd",
+            189
           ],
           "clr": {
             "opcodes": "DDCB**BD",
@@ -6681,8 +6681,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            191,
-            "dd"
+            "dd",
+            191
           ],
           "clr": {
             "opcodes": "DDCB**BF",
@@ -6709,8 +6709,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            191,
-            "dd"
+            "dd",
+            191
           ],
           "clr": {
             "opcodes": "DDCB**BF",
@@ -6739,8 +6739,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            192,
-            "dd"
+            "dd",
+            192
           ],
           "clr": {
             "opcodes": "DDCB**C0",
@@ -6769,8 +6769,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            193,
-            "dd"
+            "dd",
+            193
           ],
           "clr": {
             "opcodes": "DDCB**C1",
@@ -6799,8 +6799,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            194,
-            "dd"
+            "dd",
+            194
           ],
           "clr": {
             "opcodes": "DDCB**C2",
@@ -6829,8 +6829,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            195,
-            "dd"
+            "dd",
+            195
           ],
           "clr": {
             "opcodes": "DDCB**C3",
@@ -6859,8 +6859,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            196,
-            "dd"
+            "dd",
+            196
           ],
           "clr": {
             "opcodes": "DDCB**C4",
@@ -6889,8 +6889,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            197,
-            "dd"
+            "dd",
+            197
           ],
           "clr": {
             "opcodes": "DDCB**C5",
@@ -6919,8 +6919,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            199,
-            "dd"
+            "dd",
+            199
           ],
           "clr": {
             "opcodes": "DDCB**C7",
@@ -6947,8 +6947,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            199,
-            "dd"
+            "dd",
+            199
           ],
           "clr": {
             "opcodes": "DDCB**C7",
@@ -6977,8 +6977,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            200,
-            "dd"
+            "dd",
+            200
           ],
           "clr": {
             "opcodes": "DDCB**C8",
@@ -7007,8 +7007,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            201,
-            "dd"
+            "dd",
+            201
           ],
           "clr": {
             "opcodes": "DDCB**C9",
@@ -7037,8 +7037,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            202,
-            "dd"
+            "dd",
+            202
           ],
           "clr": {
             "opcodes": "DDCB**CA",
@@ -7067,8 +7067,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            203,
-            "dd"
+            "dd",
+            203
           ],
           "clr": {
             "opcodes": "DDCB**CB",
@@ -7097,8 +7097,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            204,
-            "dd"
+            "dd",
+            204
           ],
           "clr": {
             "opcodes": "DDCB**CC",
@@ -7127,8 +7127,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            205,
-            "dd"
+            "dd",
+            205
           ],
           "clr": {
             "opcodes": "DDCB**CD",
@@ -7157,8 +7157,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            207,
-            "dd"
+            "dd",
+            207
           ],
           "clr": {
             "opcodes": "DDCB**CF",
@@ -7185,8 +7185,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            207,
-            "dd"
+            "dd",
+            207
           ],
           "clr": {
             "opcodes": "DDCB**CF",
@@ -7215,8 +7215,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            208,
-            "dd"
+            "dd",
+            208
           ],
           "clr": {
             "opcodes": "DDCB**D0",
@@ -7245,8 +7245,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            209,
-            "dd"
+            "dd",
+            209
           ],
           "clr": {
             "opcodes": "DDCB**D1",
@@ -7275,8 +7275,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            210,
-            "dd"
+            "dd",
+            210
           ],
           "clr": {
             "opcodes": "DDCB**D2",
@@ -7305,8 +7305,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            211,
-            "dd"
+            "dd",
+            211
           ],
           "clr": {
             "opcodes": "DDCB**D3",
@@ -7335,8 +7335,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            212,
-            "dd"
+            "dd",
+            212
           ],
           "clr": {
             "opcodes": "DDCB**D4",
@@ -7365,8 +7365,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            213,
-            "dd"
+            "dd",
+            213
           ],
           "clr": {
             "opcodes": "DDCB**D5",
@@ -7395,8 +7395,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            215,
-            "dd"
+            "dd",
+            215
           ],
           "clr": {
             "opcodes": "DDCB**D7",
@@ -7423,8 +7423,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            215,
-            "dd"
+            "dd",
+            215
           ],
           "clr": {
             "opcodes": "DDCB**D7",
@@ -7453,8 +7453,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            216,
-            "dd"
+            "dd",
+            216
           ],
           "clr": {
             "opcodes": "DDCB**D8",
@@ -7483,8 +7483,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            217,
-            "dd"
+            "dd",
+            217
           ],
           "clr": {
             "opcodes": "DDCB**D9",
@@ -7513,8 +7513,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            218,
-            "dd"
+            "dd",
+            218
           ],
           "clr": {
             "opcodes": "DDCB**DA",
@@ -7543,8 +7543,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            219,
-            "dd"
+            "dd",
+            219
           ],
           "clr": {
             "opcodes": "DDCB**DB",
@@ -7573,8 +7573,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            220,
-            "dd"
+            "dd",
+            220
           ],
           "clr": {
             "opcodes": "DDCB**DC",
@@ -7603,8 +7603,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            221,
-            "dd"
+            "dd",
+            221
           ],
           "clr": {
             "opcodes": "DDCB**DD",
@@ -7633,8 +7633,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            223,
-            "dd"
+            "dd",
+            223
           ],
           "clr": {
             "opcodes": "DDCB**DF",
@@ -7661,8 +7661,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            223,
-            "dd"
+            "dd",
+            223
           ],
           "clr": {
             "opcodes": "DDCB**DF",
@@ -7691,8 +7691,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            224,
-            "dd"
+            "dd",
+            224
           ],
           "clr": {
             "opcodes": "DDCB**E0",
@@ -7721,8 +7721,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            225,
-            "dd"
+            "dd",
+            225
           ],
           "clr": {
             "opcodes": "DDCB**E1",
@@ -7751,8 +7751,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            226,
-            "dd"
+            "dd",
+            226
           ],
           "clr": {
             "opcodes": "DDCB**E2",
@@ -7781,8 +7781,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            227,
-            "dd"
+            "dd",
+            227
           ],
           "clr": {
             "opcodes": "DDCB**E3",
@@ -7811,8 +7811,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            228,
-            "dd"
+            "dd",
+            228
           ],
           "clr": {
             "opcodes": "DDCB**E4",
@@ -7841,8 +7841,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            229,
-            "dd"
+            "dd",
+            229
           ],
           "clr": {
             "opcodes": "DDCB**E5",
@@ -7871,8 +7871,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            231,
-            "dd"
+            "dd",
+            231
           ],
           "clr": {
             "opcodes": "DDCB**E7",
@@ -7899,8 +7899,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            231,
-            "dd"
+            "dd",
+            231
           ],
           "clr": {
             "opcodes": "DDCB**E7",
@@ -7929,8 +7929,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            232,
-            "dd"
+            "dd",
+            232
           ],
           "clr": {
             "opcodes": "DDCB**E8",
@@ -7959,8 +7959,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            233,
-            "dd"
+            "dd",
+            233
           ],
           "clr": {
             "opcodes": "DDCB**E9",
@@ -7989,8 +7989,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            234,
-            "dd"
+            "dd",
+            234
           ],
           "clr": {
             "opcodes": "DDCB**EA",
@@ -8019,8 +8019,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            235,
-            "dd"
+            "dd",
+            235
           ],
           "clr": {
             "opcodes": "DDCB**EB",
@@ -8049,8 +8049,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            236,
-            "dd"
+            "dd",
+            236
           ],
           "clr": {
             "opcodes": "DDCB**EC",
@@ -8079,8 +8079,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            237,
-            "dd"
+            "dd",
+            237
           ],
           "clr": {
             "opcodes": "DDCB**ED",
@@ -8109,8 +8109,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            239,
-            "dd"
+            "dd",
+            239
           ],
           "clr": {
             "opcodes": "DDCB**EF",
@@ -8137,8 +8137,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            239,
-            "dd"
+            "dd",
+            239
           ],
           "clr": {
             "opcodes": "DDCB**EF",
@@ -8167,8 +8167,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            240,
-            "dd"
+            "dd",
+            240
           ],
           "clr": {
             "opcodes": "DDCB**F0",
@@ -8197,8 +8197,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            241,
-            "dd"
+            "dd",
+            241
           ],
           "clr": {
             "opcodes": "DDCB**F1",
@@ -8227,8 +8227,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            242,
-            "dd"
+            "dd",
+            242
           ],
           "clr": {
             "opcodes": "DDCB**F2",
@@ -8257,8 +8257,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            243,
-            "dd"
+            "dd",
+            243
           ],
           "clr": {
             "opcodes": "DDCB**F3",
@@ -8287,8 +8287,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            244,
-            "dd"
+            "dd",
+            244
           ],
           "clr": {
             "opcodes": "DDCB**F4",
@@ -8317,8 +8317,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            245,
-            "dd"
+            "dd",
+            245
           ],
           "clr": {
             "opcodes": "DDCB**F5",
@@ -8347,8 +8347,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            247,
-            "dd"
+            "dd",
+            247
           ],
           "clr": {
             "opcodes": "DDCB**F7",
@@ -8375,8 +8375,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            247,
-            "dd"
+            "dd",
+            247
           ],
           "clr": {
             "opcodes": "DDCB**F7",
@@ -8405,8 +8405,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            248,
-            "dd"
+            "dd",
+            248
           ],
           "clr": {
             "opcodes": "DDCB**F8",
@@ -8435,8 +8435,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            249,
-            "dd"
+            "dd",
+            249
           ],
           "clr": {
             "opcodes": "DDCB**F9",
@@ -8465,8 +8465,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            250,
-            "dd"
+            "dd",
+            250
           ],
           "clr": {
             "opcodes": "DDCB**FA",
@@ -8495,8 +8495,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            251,
-            "dd"
+            "dd",
+            251
           ],
           "clr": {
             "opcodes": "DDCB**FB",
@@ -8525,8 +8525,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            252,
-            "dd"
+            "dd",
+            252
           ],
           "clr": {
             "opcodes": "DDCB**FC",
@@ -8555,8 +8555,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            253,
-            "dd"
+            "dd",
+            253
           ],
           "clr": {
             "opcodes": "DDCB**FD",
@@ -8585,8 +8585,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            255,
-            "dd"
+            "dd",
+            255
           ],
           "clr": {
             "opcodes": "DDCB**FF",
@@ -8613,8 +8613,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            255,
-            "dd"
+            "dd",
+            255
           ],
           "clr": {
             "opcodes": "DDCB**FF",
@@ -10067,8 +10067,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            0,
-            "dd"
+            "dd",
+            0
           ],
           "clr": {
             "opcodes": "FDCB**00",
@@ -10095,8 +10095,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            1,
-            "dd"
+            "dd",
+            1
           ],
           "clr": {
             "opcodes": "FDCB**01",
@@ -10123,8 +10123,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            2,
-            "dd"
+            "dd",
+            2
           ],
           "clr": {
             "opcodes": "FDCB**02",
@@ -10151,8 +10151,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            3,
-            "dd"
+            "dd",
+            3
           ],
           "clr": {
             "opcodes": "FDCB**03",
@@ -10179,8 +10179,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            4,
-            "dd"
+            "dd",
+            4
           ],
           "clr": {
             "opcodes": "FDCB**04",
@@ -10207,8 +10207,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            5,
-            "dd"
+            "dd",
+            5
           ],
           "clr": {
             "opcodes": "FDCB**05",
@@ -10235,8 +10235,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            7,
-            "dd"
+            "dd",
+            7
           ],
           "clr": {
             "opcodes": "FDCB**07",
@@ -10261,8 +10261,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            7,
-            "dd"
+            "dd",
+            7
           ],
           "clr": {
             "opcodes": "FDCB**07",
@@ -10289,8 +10289,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            8,
-            "dd"
+            "dd",
+            8
           ],
           "clr": {
             "opcodes": "FDCB**08",
@@ -10317,8 +10317,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            9,
-            "dd"
+            "dd",
+            9
           ],
           "clr": {
             "opcodes": "FDCB**09",
@@ -10345,8 +10345,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            10,
-            "dd"
+            "dd",
+            10
           ],
           "clr": {
             "opcodes": "FDCB**0A",
@@ -10373,8 +10373,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            11,
-            "dd"
+            "dd",
+            11
           ],
           "clr": {
             "opcodes": "FDCB**0B",
@@ -10401,8 +10401,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            12,
-            "dd"
+            "dd",
+            12
           ],
           "clr": {
             "opcodes": "FDCB**0C",
@@ -10429,8 +10429,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            13,
-            "dd"
+            "dd",
+            13
           ],
           "clr": {
             "opcodes": "FDCB**0D",
@@ -10457,8 +10457,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            15,
-            "dd"
+            "dd",
+            15
           ],
           "clr": {
             "opcodes": "FDCB**0F",
@@ -10483,8 +10483,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            15,
-            "dd"
+            "dd",
+            15
           ],
           "clr": {
             "opcodes": "FDCB**0F",
@@ -10511,8 +10511,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            16,
-            "dd"
+            "dd",
+            16
           ],
           "clr": {
             "opcodes": "FDCB**10",
@@ -10539,8 +10539,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            17,
-            "dd"
+            "dd",
+            17
           ],
           "clr": {
             "opcodes": "FDCB**11",
@@ -10567,8 +10567,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            18,
-            "dd"
+            "dd",
+            18
           ],
           "clr": {
             "opcodes": "FDCB**12",
@@ -10595,8 +10595,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            19,
-            "dd"
+            "dd",
+            19
           ],
           "clr": {
             "opcodes": "FDCB**13",
@@ -10623,8 +10623,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            20,
-            "dd"
+            "dd",
+            20
           ],
           "clr": {
             "opcodes": "FDCB**14",
@@ -10651,8 +10651,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            21,
-            "dd"
+            "dd",
+            21
           ],
           "clr": {
             "opcodes": "FDCB**15",
@@ -10679,8 +10679,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            23,
-            "dd"
+            "dd",
+            23
           ],
           "clr": {
             "opcodes": "FDCB**17",
@@ -10705,8 +10705,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            23,
-            "dd"
+            "dd",
+            23
           ],
           "clr": {
             "opcodes": "FDCB**17",
@@ -10733,8 +10733,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            24,
-            "dd"
+            "dd",
+            24
           ],
           "clr": {
             "opcodes": "FDCB**18",
@@ -10761,8 +10761,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            25,
-            "dd"
+            "dd",
+            25
           ],
           "clr": {
             "opcodes": "FDCB**19",
@@ -10789,8 +10789,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            26,
-            "dd"
+            "dd",
+            26
           ],
           "clr": {
             "opcodes": "FDCB**1A",
@@ -10817,8 +10817,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            27,
-            "dd"
+            "dd",
+            27
           ],
           "clr": {
             "opcodes": "FDCB**1B",
@@ -10845,8 +10845,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            28,
-            "dd"
+            "dd",
+            28
           ],
           "clr": {
             "opcodes": "FDCB**1C",
@@ -10873,8 +10873,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            29,
-            "dd"
+            "dd",
+            29
           ],
           "clr": {
             "opcodes": "FDCB**1D",
@@ -10901,8 +10901,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            31,
-            "dd"
+            "dd",
+            31
           ],
           "clr": {
             "opcodes": "FDCB**1F",
@@ -10927,8 +10927,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            31,
-            "dd"
+            "dd",
+            31
           ],
           "clr": {
             "opcodes": "FDCB**1F",
@@ -10955,8 +10955,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            32,
-            "dd"
+            "dd",
+            32
           ],
           "clr": {
             "opcodes": "FDCB**20",
@@ -10983,8 +10983,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            33,
-            "dd"
+            "dd",
+            33
           ],
           "clr": {
             "opcodes": "FDCB**21",
@@ -11011,8 +11011,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            34,
-            "dd"
+            "dd",
+            34
           ],
           "clr": {
             "opcodes": "FDCB**22",
@@ -11039,8 +11039,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            35,
-            "dd"
+            "dd",
+            35
           ],
           "clr": {
             "opcodes": "FDCB**23",
@@ -11067,8 +11067,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            36,
-            "dd"
+            "dd",
+            36
           ],
           "clr": {
             "opcodes": "FDCB**24",
@@ -11095,8 +11095,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            37,
-            "dd"
+            "dd",
+            37
           ],
           "clr": {
             "opcodes": "FDCB**25",
@@ -11123,8 +11123,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            39,
-            "dd"
+            "dd",
+            39
           ],
           "clr": {
             "opcodes": "FDCB**27",
@@ -11149,8 +11149,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            39,
-            "dd"
+            "dd",
+            39
           ],
           "clr": {
             "opcodes": "FDCB**27",
@@ -11177,8 +11177,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            40,
-            "dd"
+            "dd",
+            40
           ],
           "clr": {
             "opcodes": "FDCB**28",
@@ -11205,8 +11205,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            41,
-            "dd"
+            "dd",
+            41
           ],
           "clr": {
             "opcodes": "FDCB**29",
@@ -11233,8 +11233,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            42,
-            "dd"
+            "dd",
+            42
           ],
           "clr": {
             "opcodes": "FDCB**2A",
@@ -11261,8 +11261,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            43,
-            "dd"
+            "dd",
+            43
           ],
           "clr": {
             "opcodes": "FDCB**2B",
@@ -11289,8 +11289,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            44,
-            "dd"
+            "dd",
+            44
           ],
           "clr": {
             "opcodes": "FDCB**2C",
@@ -11317,8 +11317,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            45,
-            "dd"
+            "dd",
+            45
           ],
           "clr": {
             "opcodes": "FDCB**2D",
@@ -11345,8 +11345,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            47,
-            "dd"
+            "dd",
+            47
           ],
           "clr": {
             "opcodes": "FDCB**2F",
@@ -11371,8 +11371,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            47,
-            "dd"
+            "dd",
+            47
           ],
           "clr": {
             "opcodes": "FDCB**2F",
@@ -11399,8 +11399,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            48,
-            "dd"
+            "dd",
+            48
           ],
           "clr": {
             "opcodes": "FDCB**30",
@@ -11427,8 +11427,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            49,
-            "dd"
+            "dd",
+            49
           ],
           "clr": {
             "opcodes": "FDCB**31",
@@ -11455,8 +11455,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            50,
-            "dd"
+            "dd",
+            50
           ],
           "clr": {
             "opcodes": "FDCB**32",
@@ -11483,8 +11483,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            51,
-            "dd"
+            "dd",
+            51
           ],
           "clr": {
             "opcodes": "FDCB**33",
@@ -11511,8 +11511,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            52,
-            "dd"
+            "dd",
+            52
           ],
           "clr": {
             "opcodes": "FDCB**34",
@@ -11539,8 +11539,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            53,
-            "dd"
+            "dd",
+            53
           ],
           "clr": {
             "opcodes": "FDCB**35",
@@ -11567,8 +11567,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            55,
-            "dd"
+            "dd",
+            55
           ],
           "clr": {
             "opcodes": "FDCB**37",
@@ -11593,8 +11593,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            55,
-            "dd"
+            "dd",
+            55
           ],
           "clr": {
             "opcodes": "FDCB**37",
@@ -11621,8 +11621,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            56,
-            "dd"
+            "dd",
+            56
           ],
           "clr": {
             "opcodes": "FDCB**38",
@@ -11649,8 +11649,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            57,
-            "dd"
+            "dd",
+            57
           ],
           "clr": {
             "opcodes": "FDCB**39",
@@ -11677,8 +11677,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            58,
-            "dd"
+            "dd",
+            58
           ],
           "clr": {
             "opcodes": "FDCB**3A",
@@ -11705,8 +11705,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            59,
-            "dd"
+            "dd",
+            59
           ],
           "clr": {
             "opcodes": "FDCB**3B",
@@ -11733,8 +11733,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            60,
-            "dd"
+            "dd",
+            60
           ],
           "clr": {
             "opcodes": "FDCB**3C",
@@ -11761,8 +11761,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            61,
-            "dd"
+            "dd",
+            61
           ],
           "clr": {
             "opcodes": "FDCB**3D",
@@ -11789,8 +11789,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            63,
-            "dd"
+            "dd",
+            63
           ],
           "clr": {
             "opcodes": "FDCB**3F",
@@ -11815,8 +11815,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            63,
-            "dd"
+            "dd",
+            63
           ],
           "clr": {
             "opcodes": "FDCB**3F",
@@ -11845,8 +11845,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            128,
-            "dd"
+            "dd",
+            128
           ],
           "clr": {
             "opcodes": "FDCB**80",
@@ -11875,8 +11875,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            129,
-            "dd"
+            "dd",
+            129
           ],
           "clr": {
             "opcodes": "FDCB**81",
@@ -11905,8 +11905,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            130,
-            "dd"
+            "dd",
+            130
           ],
           "clr": {
             "opcodes": "FDCB**82",
@@ -11935,8 +11935,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            131,
-            "dd"
+            "dd",
+            131
           ],
           "clr": {
             "opcodes": "FDCB**83",
@@ -11965,8 +11965,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            132,
-            "dd"
+            "dd",
+            132
           ],
           "clr": {
             "opcodes": "FDCB**84",
@@ -11995,8 +11995,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            133,
-            "dd"
+            "dd",
+            133
           ],
           "clr": {
             "opcodes": "FDCB**85",
@@ -12025,8 +12025,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            135,
-            "dd"
+            "dd",
+            135
           ],
           "clr": {
             "opcodes": "FDCB**87",
@@ -12053,8 +12053,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            135,
-            "dd"
+            "dd",
+            135
           ],
           "clr": {
             "opcodes": "FDCB**87",
@@ -12083,8 +12083,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            136,
-            "dd"
+            "dd",
+            136
           ],
           "clr": {
             "opcodes": "FDCB**88",
@@ -12113,8 +12113,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            137,
-            "dd"
+            "dd",
+            137
           ],
           "clr": {
             "opcodes": "FDCB**89",
@@ -12143,8 +12143,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            138,
-            "dd"
+            "dd",
+            138
           ],
           "clr": {
             "opcodes": "FDCB**8A",
@@ -12173,8 +12173,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            139,
-            "dd"
+            "dd",
+            139
           ],
           "clr": {
             "opcodes": "FDCB**8B",
@@ -12203,8 +12203,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            140,
-            "dd"
+            "dd",
+            140
           ],
           "clr": {
             "opcodes": "FDCB**8C",
@@ -12233,8 +12233,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            141,
-            "dd"
+            "dd",
+            141
           ],
           "clr": {
             "opcodes": "FDCB**8D",
@@ -12263,8 +12263,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            143,
-            "dd"
+            "dd",
+            143
           ],
           "clr": {
             "opcodes": "FDCB**8F",
@@ -12291,8 +12291,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            143,
-            "dd"
+            "dd",
+            143
           ],
           "clr": {
             "opcodes": "FDCB**8F",
@@ -12321,8 +12321,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            144,
-            "dd"
+            "dd",
+            144
           ],
           "clr": {
             "opcodes": "FDCB**90",
@@ -12351,8 +12351,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            145,
-            "dd"
+            "dd",
+            145
           ],
           "clr": {
             "opcodes": "FDCB**91",
@@ -12381,8 +12381,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            146,
-            "dd"
+            "dd",
+            146
           ],
           "clr": {
             "opcodes": "FDCB**92",
@@ -12411,8 +12411,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            147,
-            "dd"
+            "dd",
+            147
           ],
           "clr": {
             "opcodes": "FDCB**93",
@@ -12441,8 +12441,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            148,
-            "dd"
+            "dd",
+            148
           ],
           "clr": {
             "opcodes": "FDCB**94",
@@ -12471,8 +12471,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            149,
-            "dd"
+            "dd",
+            149
           ],
           "clr": {
             "opcodes": "FDCB**95",
@@ -12501,8 +12501,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            151,
-            "dd"
+            "dd",
+            151
           ],
           "clr": {
             "opcodes": "FDCB**97",
@@ -12529,8 +12529,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            151,
-            "dd"
+            "dd",
+            151
           ],
           "clr": {
             "opcodes": "FDCB**97",
@@ -12559,8 +12559,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            152,
-            "dd"
+            "dd",
+            152
           ],
           "clr": {
             "opcodes": "FDCB**98",
@@ -12589,8 +12589,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            153,
-            "dd"
+            "dd",
+            153
           ],
           "clr": {
             "opcodes": "FDCB**99",
@@ -12619,8 +12619,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            154,
-            "dd"
+            "dd",
+            154
           ],
           "clr": {
             "opcodes": "FDCB**9A",
@@ -12649,8 +12649,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            155,
-            "dd"
+            "dd",
+            155
           ],
           "clr": {
             "opcodes": "FDCB**9B",
@@ -12679,8 +12679,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            156,
-            "dd"
+            "dd",
+            156
           ],
           "clr": {
             "opcodes": "FDCB**9C",
@@ -12709,8 +12709,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            157,
-            "dd"
+            "dd",
+            157
           ],
           "clr": {
             "opcodes": "FDCB**9D",
@@ -12739,8 +12739,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            159,
-            "dd"
+            "dd",
+            159
           ],
           "clr": {
             "opcodes": "FDCB**9F",
@@ -12767,8 +12767,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            159,
-            "dd"
+            "dd",
+            159
           ],
           "clr": {
             "opcodes": "FDCB**9F",
@@ -12797,8 +12797,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            160,
-            "dd"
+            "dd",
+            160
           ],
           "clr": {
             "opcodes": "FDCB**A0",
@@ -12827,8 +12827,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            161,
-            "dd"
+            "dd",
+            161
           ],
           "clr": {
             "opcodes": "FDCB**A1",
@@ -12857,8 +12857,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            162,
-            "dd"
+            "dd",
+            162
           ],
           "clr": {
             "opcodes": "FDCB**A2",
@@ -12887,8 +12887,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            163,
-            "dd"
+            "dd",
+            163
           ],
           "clr": {
             "opcodes": "FDCB**A3",
@@ -12917,8 +12917,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            164,
-            "dd"
+            "dd",
+            164
           ],
           "clr": {
             "opcodes": "FDCB**A4",
@@ -12947,8 +12947,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            165,
-            "dd"
+            "dd",
+            165
           ],
           "clr": {
             "opcodes": "FDCB**A5",
@@ -12977,8 +12977,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            167,
-            "dd"
+            "dd",
+            167
           ],
           "clr": {
             "opcodes": "FDCB**A7",
@@ -13005,8 +13005,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            167,
-            "dd"
+            "dd",
+            167
           ],
           "clr": {
             "opcodes": "FDCB**A7",
@@ -13035,8 +13035,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            168,
-            "dd"
+            "dd",
+            168
           ],
           "clr": {
             "opcodes": "FDCB**A8",
@@ -13065,8 +13065,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            169,
-            "dd"
+            "dd",
+            169
           ],
           "clr": {
             "opcodes": "FDCB**A9",
@@ -13095,8 +13095,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            170,
-            "dd"
+            "dd",
+            170
           ],
           "clr": {
             "opcodes": "FDCB**AA",
@@ -13125,8 +13125,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            171,
-            "dd"
+            "dd",
+            171
           ],
           "clr": {
             "opcodes": "FDCB**AB",
@@ -13155,8 +13155,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            172,
-            "dd"
+            "dd",
+            172
           ],
           "clr": {
             "opcodes": "FDCB**AC",
@@ -13185,8 +13185,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            173,
-            "dd"
+            "dd",
+            173
           ],
           "clr": {
             "opcodes": "FDCB**AD",
@@ -13215,8 +13215,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            175,
-            "dd"
+            "dd",
+            175
           ],
           "clr": {
             "opcodes": "FDCB**AF",
@@ -13243,8 +13243,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            175,
-            "dd"
+            "dd",
+            175
           ],
           "clr": {
             "opcodes": "FDCB**AF",
@@ -13273,8 +13273,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            176,
-            "dd"
+            "dd",
+            176
           ],
           "clr": {
             "opcodes": "FDCB**B0",
@@ -13303,8 +13303,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            177,
-            "dd"
+            "dd",
+            177
           ],
           "clr": {
             "opcodes": "FDCB**B1",
@@ -13333,8 +13333,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            178,
-            "dd"
+            "dd",
+            178
           ],
           "clr": {
             "opcodes": "FDCB**B2",
@@ -13363,8 +13363,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            179,
-            "dd"
+            "dd",
+            179
           ],
           "clr": {
             "opcodes": "FDCB**B3",
@@ -13393,8 +13393,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            180,
-            "dd"
+            "dd",
+            180
           ],
           "clr": {
             "opcodes": "FDCB**B4",
@@ -13423,8 +13423,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            181,
-            "dd"
+            "dd",
+            181
           ],
           "clr": {
             "opcodes": "FDCB**B5",
@@ -13453,8 +13453,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            183,
-            "dd"
+            "dd",
+            183
           ],
           "clr": {
             "opcodes": "FDCB**B7",
@@ -13481,8 +13481,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            183,
-            "dd"
+            "dd",
+            183
           ],
           "clr": {
             "opcodes": "FDCB**B7",
@@ -13511,8 +13511,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            184,
-            "dd"
+            "dd",
+            184
           ],
           "clr": {
             "opcodes": "FDCB**B8",
@@ -13541,8 +13541,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            185,
-            "dd"
+            "dd",
+            185
           ],
           "clr": {
             "opcodes": "FDCB**B9",
@@ -13571,8 +13571,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            186,
-            "dd"
+            "dd",
+            186
           ],
           "clr": {
             "opcodes": "FDCB**BA",
@@ -13601,8 +13601,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            187,
-            "dd"
+            "dd",
+            187
           ],
           "clr": {
             "opcodes": "FDCB**BB",
@@ -13631,8 +13631,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            188,
-            "dd"
+            "dd",
+            188
           ],
           "clr": {
             "opcodes": "FDCB**BC",
@@ -13661,8 +13661,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            189,
-            "dd"
+            "dd",
+            189
           ],
           "clr": {
             "opcodes": "FDCB**BD",
@@ -13691,8 +13691,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            191,
-            "dd"
+            "dd",
+            191
           ],
           "clr": {
             "opcodes": "FDCB**BF",
@@ -13719,8 +13719,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            191,
-            "dd"
+            "dd",
+            191
           ],
           "clr": {
             "opcodes": "FDCB**BF",
@@ -13749,8 +13749,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            192,
-            "dd"
+            "dd",
+            192
           ],
           "clr": {
             "opcodes": "FDCB**C0",
@@ -13779,8 +13779,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            193,
-            "dd"
+            "dd",
+            193
           ],
           "clr": {
             "opcodes": "FDCB**C1",
@@ -13809,8 +13809,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            194,
-            "dd"
+            "dd",
+            194
           ],
           "clr": {
             "opcodes": "FDCB**C2",
@@ -13839,8 +13839,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            195,
-            "dd"
+            "dd",
+            195
           ],
           "clr": {
             "opcodes": "FDCB**C3",
@@ -13869,8 +13869,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            196,
-            "dd"
+            "dd",
+            196
           ],
           "clr": {
             "opcodes": "FDCB**C4",
@@ -13899,8 +13899,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            197,
-            "dd"
+            "dd",
+            197
           ],
           "clr": {
             "opcodes": "FDCB**C5",
@@ -13929,8 +13929,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            199,
-            "dd"
+            "dd",
+            199
           ],
           "clr": {
             "opcodes": "FDCB**C7",
@@ -13957,8 +13957,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            199,
-            "dd"
+            "dd",
+            199
           ],
           "clr": {
             "opcodes": "FDCB**C7",
@@ -13987,8 +13987,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            200,
-            "dd"
+            "dd",
+            200
           ],
           "clr": {
             "opcodes": "FDCB**C8",
@@ -14017,8 +14017,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            201,
-            "dd"
+            "dd",
+            201
           ],
           "clr": {
             "opcodes": "FDCB**C9",
@@ -14047,8 +14047,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            202,
-            "dd"
+            "dd",
+            202
           ],
           "clr": {
             "opcodes": "FDCB**CA",
@@ -14077,8 +14077,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            203,
-            "dd"
+            "dd",
+            203
           ],
           "clr": {
             "opcodes": "FDCB**CB",
@@ -14107,8 +14107,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            204,
-            "dd"
+            "dd",
+            204
           ],
           "clr": {
             "opcodes": "FDCB**CC",
@@ -14137,8 +14137,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            205,
-            "dd"
+            "dd",
+            205
           ],
           "clr": {
             "opcodes": "FDCB**CD",
@@ -14167,8 +14167,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            207,
-            "dd"
+            "dd",
+            207
           ],
           "clr": {
             "opcodes": "FDCB**CF",
@@ -14195,8 +14195,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            207,
-            "dd"
+            "dd",
+            207
           ],
           "clr": {
             "opcodes": "FDCB**CF",
@@ -14225,8 +14225,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            208,
-            "dd"
+            "dd",
+            208
           ],
           "clr": {
             "opcodes": "FDCB**D0",
@@ -14255,8 +14255,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            209,
-            "dd"
+            "dd",
+            209
           ],
           "clr": {
             "opcodes": "FDCB**D1",
@@ -14285,8 +14285,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            210,
-            "dd"
+            "dd",
+            210
           ],
           "clr": {
             "opcodes": "FDCB**D2",
@@ -14315,8 +14315,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            211,
-            "dd"
+            "dd",
+            211
           ],
           "clr": {
             "opcodes": "FDCB**D3",
@@ -14345,8 +14345,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            212,
-            "dd"
+            "dd",
+            212
           ],
           "clr": {
             "opcodes": "FDCB**D4",
@@ -14375,8 +14375,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            213,
-            "dd"
+            "dd",
+            213
           ],
           "clr": {
             "opcodes": "FDCB**D5",
@@ -14405,8 +14405,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            215,
-            "dd"
+            "dd",
+            215
           ],
           "clr": {
             "opcodes": "FDCB**D7",
@@ -14433,8 +14433,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            215,
-            "dd"
+            "dd",
+            215
           ],
           "clr": {
             "opcodes": "FDCB**D7",
@@ -14463,8 +14463,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            216,
-            "dd"
+            "dd",
+            216
           ],
           "clr": {
             "opcodes": "FDCB**D8",
@@ -14493,8 +14493,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            217,
-            "dd"
+            "dd",
+            217
           ],
           "clr": {
             "opcodes": "FDCB**D9",
@@ -14523,8 +14523,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            218,
-            "dd"
+            "dd",
+            218
           ],
           "clr": {
             "opcodes": "FDCB**DA",
@@ -14553,8 +14553,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            219,
-            "dd"
+            "dd",
+            219
           ],
           "clr": {
             "opcodes": "FDCB**DB",
@@ -14583,8 +14583,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            220,
-            "dd"
+            "dd",
+            220
           ],
           "clr": {
             "opcodes": "FDCB**DC",
@@ -14613,8 +14613,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            221,
-            "dd"
+            "dd",
+            221
           ],
           "clr": {
             "opcodes": "FDCB**DD",
@@ -14643,8 +14643,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            223,
-            "dd"
+            "dd",
+            223
           ],
           "clr": {
             "opcodes": "FDCB**DF",
@@ -14671,8 +14671,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            223,
-            "dd"
+            "dd",
+            223
           ],
           "clr": {
             "opcodes": "FDCB**DF",
@@ -14701,8 +14701,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            224,
-            "dd"
+            "dd",
+            224
           ],
           "clr": {
             "opcodes": "FDCB**E0",
@@ -14731,8 +14731,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            225,
-            "dd"
+            "dd",
+            225
           ],
           "clr": {
             "opcodes": "FDCB**E1",
@@ -14761,8 +14761,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            226,
-            "dd"
+            "dd",
+            226
           ],
           "clr": {
             "opcodes": "FDCB**E2",
@@ -14791,8 +14791,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            227,
-            "dd"
+            "dd",
+            227
           ],
           "clr": {
             "opcodes": "FDCB**E3",
@@ -14821,8 +14821,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            228,
-            "dd"
+            "dd",
+            228
           ],
           "clr": {
             "opcodes": "FDCB**E4",
@@ -14851,8 +14851,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            229,
-            "dd"
+            "dd",
+            229
           ],
           "clr": {
             "opcodes": "FDCB**E5",
@@ -14881,8 +14881,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            231,
-            "dd"
+            "dd",
+            231
           ],
           "clr": {
             "opcodes": "FDCB**E7",
@@ -14909,8 +14909,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            231,
-            "dd"
+            "dd",
+            231
           ],
           "clr": {
             "opcodes": "FDCB**E7",
@@ -14939,8 +14939,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            232,
-            "dd"
+            "dd",
+            232
           ],
           "clr": {
             "opcodes": "FDCB**E8",
@@ -14969,8 +14969,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            233,
-            "dd"
+            "dd",
+            233
           ],
           "clr": {
             "opcodes": "FDCB**E9",
@@ -14999,8 +14999,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            234,
-            "dd"
+            "dd",
+            234
           ],
           "clr": {
             "opcodes": "FDCB**EA",
@@ -15029,8 +15029,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            235,
-            "dd"
+            "dd",
+            235
           ],
           "clr": {
             "opcodes": "FDCB**EB",
@@ -15059,8 +15059,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            236,
-            "dd"
+            "dd",
+            236
           ],
           "clr": {
             "opcodes": "FDCB**EC",
@@ -15089,8 +15089,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            237,
-            "dd"
+            "dd",
+            237
           ],
           "clr": {
             "opcodes": "FDCB**ED",
@@ -15119,8 +15119,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            239,
-            "dd"
+            "dd",
+            239
           ],
           "clr": {
             "opcodes": "FDCB**EF",
@@ -15147,8 +15147,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            239,
-            "dd"
+            "dd",
+            239
           ],
           "clr": {
             "opcodes": "FDCB**EF",
@@ -15177,8 +15177,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            240,
-            "dd"
+            "dd",
+            240
           ],
           "clr": {
             "opcodes": "FDCB**F0",
@@ -15207,8 +15207,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            241,
-            "dd"
+            "dd",
+            241
           ],
           "clr": {
             "opcodes": "FDCB**F1",
@@ -15237,8 +15237,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            242,
-            "dd"
+            "dd",
+            242
           ],
           "clr": {
             "opcodes": "FDCB**F2",
@@ -15267,8 +15267,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            243,
-            "dd"
+            "dd",
+            243
           ],
           "clr": {
             "opcodes": "FDCB**F3",
@@ -15297,8 +15297,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            244,
-            "dd"
+            "dd",
+            244
           ],
           "clr": {
             "opcodes": "FDCB**F4",
@@ -15327,8 +15327,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            245,
-            "dd"
+            "dd",
+            245
           ],
           "clr": {
             "opcodes": "FDCB**F5",
@@ -15357,8 +15357,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            247,
-            "dd"
+            "dd",
+            247
           ],
           "clr": {
             "opcodes": "FDCB**F7",
@@ -15385,8 +15385,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            247,
-            "dd"
+            "dd",
+            247
           ],
           "clr": {
             "opcodes": "FDCB**F7",
@@ -15415,8 +15415,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            248,
-            "dd"
+            "dd",
+            248
           ],
           "clr": {
             "opcodes": "FDCB**F8",
@@ -15445,8 +15445,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            249,
-            "dd"
+            "dd",
+            249
           ],
           "clr": {
             "opcodes": "FDCB**F9",
@@ -15475,8 +15475,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            250,
-            "dd"
+            "dd",
+            250
           ],
           "clr": {
             "opcodes": "FDCB**FA",
@@ -15505,8 +15505,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            251,
-            "dd"
+            "dd",
+            251
           ],
           "clr": {
             "opcodes": "FDCB**FB",
@@ -15535,8 +15535,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            252,
-            "dd"
+            "dd",
+            252
           ],
           "clr": {
             "opcodes": "FDCB**FC",
@@ -15565,8 +15565,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            253,
-            "dd"
+            "dd",
+            253
           ],
           "clr": {
             "opcodes": "FDCB**FD",
@@ -15595,8 +15595,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            255,
-            "dd"
+            "dd",
+            255
           ],
           "clr": {
             "opcodes": "FDCB**FF",
@@ -15623,8 +15623,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            255,
-            "dd"
+            "dd",
+            255
           ],
           "clr": {
             "opcodes": "FDCB**FF",
@@ -22966,8 +22966,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            6,
-            "dd"
+            "dd",
+            6
           ],
           "clr": {
             "opcodes": "DDCB**06",
@@ -22991,8 +22991,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            6,
-            "dd"
+            "dd",
+            6
           ],
           "clr": {
             "opcodes": "FDCB**06",
@@ -23174,8 +23174,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            14,
-            "dd"
+            "dd",
+            14
           ],
           "clr": {
             "opcodes": "DDCB**0E",
@@ -23199,8 +23199,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            14,
-            "dd"
+            "dd",
+            14
           ],
           "clr": {
             "opcodes": "FDCB**0E",
@@ -23382,8 +23382,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            22,
-            "dd"
+            "dd",
+            22
           ],
           "clr": {
             "opcodes": "DDCB**16",
@@ -23407,8 +23407,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            22,
-            "dd"
+            "dd",
+            22
           ],
           "clr": {
             "opcodes": "FDCB**16",
@@ -23590,8 +23590,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            30,
-            "dd"
+            "dd",
+            30
           ],
           "clr": {
             "opcodes": "DDCB**1E",
@@ -23615,8 +23615,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            30,
-            "dd"
+            "dd",
+            30
           ],
           "clr": {
             "opcodes": "FDCB**1E",
@@ -23798,8 +23798,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            38,
-            "dd"
+            "dd",
+            38
           ],
           "clr": {
             "opcodes": "DDCB**26",
@@ -23823,8 +23823,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            38,
-            "dd"
+            "dd",
+            38
           ],
           "clr": {
             "opcodes": "FDCB**26",
@@ -24006,8 +24006,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            46,
-            "dd"
+            "dd",
+            46
           ],
           "clr": {
             "opcodes": "DDCB**2E",
@@ -24031,8 +24031,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            46,
-            "dd"
+            "dd",
+            46
           ],
           "clr": {
             "opcodes": "FDCB**2E",
@@ -24214,8 +24214,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            54,
-            "dd"
+            "dd",
+            54
           ],
           "clr": {
             "opcodes": "DDCB**36",
@@ -24239,8 +24239,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            54,
-            "dd"
+            "dd",
+            54
           ],
           "clr": {
             "opcodes": "FDCB**36",
@@ -24422,8 +24422,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            62,
-            "dd"
+            "dd",
+            62
           ],
           "clr": {
             "opcodes": "DDCB**3E",
@@ -24447,8 +24447,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            62,
-            "dd"
+            "dd",
+            62
           ],
           "clr": {
             "opcodes": "FDCB**3E",
@@ -25838,8 +25838,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            71,
-            "dd"
+            "dd",
+            71
           ],
           "clr": {
             "opcodes": "DDCB**47",
@@ -25865,8 +25865,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            79,
-            "dd"
+            "dd",
+            79
           ],
           "clr": {
             "opcodes": "DDCB**4F",
@@ -25892,8 +25892,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            87,
-            "dd"
+            "dd",
+            87
           ],
           "clr": {
             "opcodes": "DDCB**57",
@@ -25919,8 +25919,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            95,
-            "dd"
+            "dd",
+            95
           ],
           "clr": {
             "opcodes": "DDCB**5F",
@@ -25946,8 +25946,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            103,
-            "dd"
+            "dd",
+            103
           ],
           "clr": {
             "opcodes": "DDCB**67",
@@ -25973,8 +25973,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            111,
-            "dd"
+            "dd",
+            111
           ],
           "clr": {
             "opcodes": "DDCB**6F",
@@ -26000,8 +26000,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            119,
-            "dd"
+            "dd",
+            119
           ],
           "clr": {
             "opcodes": "DDCB**77",
@@ -26027,8 +26027,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            127,
-            "dd"
+            "dd",
+            127
           ],
           "clr": {
             "opcodes": "DDCB**7F",
@@ -26054,8 +26054,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            71,
-            "dd"
+            "dd",
+            71
           ],
           "clr": {
             "opcodes": "FDCB**47",
@@ -26081,8 +26081,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            79,
-            "dd"
+            "dd",
+            79
           ],
           "clr": {
             "opcodes": "FDCB**4F",
@@ -26108,8 +26108,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            87,
-            "dd"
+            "dd",
+            87
           ],
           "clr": {
             "opcodes": "FDCB**57",
@@ -26135,8 +26135,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            95,
-            "dd"
+            "dd",
+            95
           ],
           "clr": {
             "opcodes": "FDCB**5F",
@@ -26162,8 +26162,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            103,
-            "dd"
+            "dd",
+            103
           ],
           "clr": {
             "opcodes": "FDCB**67",
@@ -26189,8 +26189,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            111,
-            "dd"
+            "dd",
+            111
           ],
           "clr": {
             "opcodes": "FDCB**6F",
@@ -26216,8 +26216,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            119,
-            "dd"
+            "dd",
+            119
           ],
           "clr": {
             "opcodes": "FDCB**77",
@@ -26243,8 +26243,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            127,
-            "dd"
+            "dd",
+            127
           ],
           "clr": {
             "opcodes": "FDCB**7F",
@@ -27634,8 +27634,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            134,
-            "dd"
+            "dd",
+            134
           ],
           "clr": {
             "opcodes": "DDCB**86",
@@ -27661,8 +27661,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            142,
-            "dd"
+            "dd",
+            142
           ],
           "clr": {
             "opcodes": "DDCB**8E",
@@ -27688,8 +27688,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            150,
-            "dd"
+            "dd",
+            150
           ],
           "clr": {
             "opcodes": "DDCB**96",
@@ -27715,8 +27715,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            158,
-            "dd"
+            "dd",
+            158
           ],
           "clr": {
             "opcodes": "DDCB**9E",
@@ -27742,8 +27742,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            166,
-            "dd"
+            "dd",
+            166
           ],
           "clr": {
             "opcodes": "DDCB**A6",
@@ -27769,8 +27769,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            174,
-            "dd"
+            "dd",
+            174
           ],
           "clr": {
             "opcodes": "DDCB**AE",
@@ -27796,8 +27796,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            182,
-            "dd"
+            "dd",
+            182
           ],
           "clr": {
             "opcodes": "DDCB**B6",
@@ -27823,8 +27823,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            190,
-            "dd"
+            "dd",
+            190
           ],
           "clr": {
             "opcodes": "DDCB**BE",
@@ -27850,8 +27850,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            134,
-            "dd"
+            "dd",
+            134
           ],
           "clr": {
             "opcodes": "FDCB**86",
@@ -27877,8 +27877,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            142,
-            "dd"
+            "dd",
+            142
           ],
           "clr": {
             "opcodes": "FDCB**8E",
@@ -27904,8 +27904,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            150,
-            "dd"
+            "dd",
+            150
           ],
           "clr": {
             "opcodes": "FDCB**96",
@@ -27931,8 +27931,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            158,
-            "dd"
+            "dd",
+            158
           ],
           "clr": {
             "opcodes": "FDCB**9E",
@@ -27958,8 +27958,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            166,
-            "dd"
+            "dd",
+            166
           ],
           "clr": {
             "opcodes": "FDCB**A6",
@@ -27985,8 +27985,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            174,
-            "dd"
+            "dd",
+            174
           ],
           "clr": {
             "opcodes": "FDCB**AE",
@@ -28012,8 +28012,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            182,
-            "dd"
+            "dd",
+            182
           ],
           "clr": {
             "opcodes": "FDCB**B6",
@@ -28039,8 +28039,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            190,
-            "dd"
+            "dd",
+            190
           ],
           "clr": {
             "opcodes": "FDCB**BE",
@@ -29430,8 +29430,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            198,
-            "dd"
+            "dd",
+            198
           ],
           "clr": {
             "opcodes": "DDCB**C6",
@@ -29457,8 +29457,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            206,
-            "dd"
+            "dd",
+            206
           ],
           "clr": {
             "opcodes": "DDCB**CE",
@@ -29484,8 +29484,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            214,
-            "dd"
+            "dd",
+            214
           ],
           "clr": {
             "opcodes": "DDCB**D6",
@@ -29511,8 +29511,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            222,
-            "dd"
+            "dd",
+            222
           ],
           "clr": {
             "opcodes": "DDCB**DE",
@@ -29538,8 +29538,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            230,
-            "dd"
+            "dd",
+            230
           ],
           "clr": {
             "opcodes": "DDCB**E6",
@@ -29565,8 +29565,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            238,
-            "dd"
+            "dd",
+            238
           ],
           "clr": {
             "opcodes": "DDCB**EE",
@@ -29592,8 +29592,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            246,
-            "dd"
+            "dd",
+            246
           ],
           "clr": {
             "opcodes": "DDCB**F6",
@@ -29619,8 +29619,8 @@ const opcodes: Instructions = {
           "opcode": [
             221,
             203,
-            254,
-            "dd"
+            "dd",
+            254
           ],
           "clr": {
             "opcodes": "DDCB**FE",
@@ -29646,8 +29646,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            198,
-            "dd"
+            "dd",
+            198
           ],
           "clr": {
             "opcodes": "FDCB**C6",
@@ -29673,8 +29673,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            206,
-            "dd"
+            "dd",
+            206
           ],
           "clr": {
             "opcodes": "FDCB**CE",
@@ -29700,8 +29700,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            214,
-            "dd"
+            "dd",
+            214
           ],
           "clr": {
             "opcodes": "FDCB**D6",
@@ -29727,8 +29727,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            222,
-            "dd"
+            "dd",
+            222
           ],
           "clr": {
             "opcodes": "FDCB**DE",
@@ -29754,8 +29754,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            230,
-            "dd"
+            "dd",
+            230
           ],
           "clr": {
             "opcodes": "FDCB**E6",
@@ -29781,8 +29781,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            238,
-            "dd"
+            "dd",
+            238
           ],
           "clr": {
             "opcodes": "FDCB**EE",
@@ -29808,8 +29808,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            246,
-            "dd"
+            "dd",
+            246
           ],
           "clr": {
             "opcodes": "FDCB**F6",
@@ -29835,8 +29835,8 @@ const opcodes: Instructions = {
           "opcode": [
             253,
             203,
-            254,
-            "dd"
+            "dd",
+            254
           ],
           "clr": {
             "opcodes": "FDCB**FE",

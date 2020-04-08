@@ -6,7 +6,6 @@
     "outDir": "dist-tests"
   },
   "include": [
-    "src/**/*.ts",
-    "tests/**/*.ts"
+    "src/assembler/*.ts"
   ]
 }

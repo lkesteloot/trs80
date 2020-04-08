@@ -105,7 +105,8 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                 // Add parameters.
                 for (const token of tokens) {
                     if (token === "nn" || token === "nnnn" || token === "dd" || token === "offset") {
-                        if (opcodes.length === 3 && (opcodes[0] === 0xDD || opcodes[0] === 0xFD) && opcodes[1] === 0xCB) {
+                        // For DDCB and FDCB instructions, the parameter is in the third position, not at the end.
+                        if (fullOpcodes.length === 3 && (fullOpcodes[0] === 0xDD || fullOpcodes[0] === 0xFD) && fullOpcodes[1] === 0xCB) {
                             fullOpcodes.splice(2, 0, token);
                         } else {
                             fullOpcodes.push(token);
