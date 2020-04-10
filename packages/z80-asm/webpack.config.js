@@ -1,5 +1,6 @@
 const path = require("path");
 const WebpackBuildNotifierPlugin = require("webpack-build-notifier");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 const webpack = require("webpack");
 const CopyPlugin = require('copy-webpack-plugin');
 
@@ -89,15 +90,17 @@ module.exports = {
         // Copy CSS files.
         new CopyPlugin([
             {
-                from: "src/ide/index.html",
-            },
-            {
                 from: "src/main/electron-main.js",
             },
             {
                 from: "src/main/preload.js",
             },
         ]),
+
+        new HtmlWebpackPlugin({
+            template: "src/ide/index.html",
+            minify: false,
+        }),
     ],
 
     // Quiet warnings about code size:
