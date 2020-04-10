@@ -1,6 +1,7 @@
 
 # Converts the HTML of http://clrhome.org/table/ to a JSON file.
-# Run with python3.
+#
+# python3 clr2json.py clr.html > clr.json
 
 import sys
 import re

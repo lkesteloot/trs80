@@ -15,7 +15,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import {toHexByte} from "z80-base";
-import {Variant, OpcodeTemplate, ClrInstruction} from "../../src/assembler/OpcodesTypes";
+import {Variant, OpcodeTemplate, ClrInstruction} from "../assembler/OpcodesTypes";
 
 // Break args into sequences of letters, digits, or single punctuation.
 const TOKENIZING_REGEXP = /([a-z]+)|([,+()])|([0-9]+)|(;.*)/g;
@@ -144,7 +144,7 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
 }
 
 function generateOpcodes(): void {
-    const opcodesDir = path.join(__dirname, "..", "..", "..");
+    const opcodesDir = path.join(__dirname, "..", "..");
     const clr = JSON.parse(fs.readFileSync(path.join(opcodesDir, "clr.json"), "utf-8")) as ClrFile;
 
     const mnemonics = {
