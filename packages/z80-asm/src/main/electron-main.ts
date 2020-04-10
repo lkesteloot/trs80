@@ -1,5 +1,7 @@
-const fs = require("fs");
-const { app, BrowserWindow, Menu, dialog, TouchBar } = require('electron');
+
+
+import * as fs from "fs";
+import { app, BrowserWindow, Menu, dialog, TouchBar } from 'electron';
 const { TouchBarButton } = TouchBar;
 
 function createWindow() {
@@ -46,7 +48,7 @@ app.on('activate', () => {
     }
 });
 
-function openFile(win, pathname) {
+function openFile(win: BrowserWindow | null, pathname: string) {
     if (!win) {
         win = BrowserWindow.getFocusedWindow();
     }
@@ -89,7 +91,7 @@ const template = [
         submenu: [
             {
                 label: 'Open',
-                click: (event, focusedWindow, focusedWebContents) => {
+                click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {
                     dialog.showOpenDialog(focusedWindow, {
                         defaultPath: "/Users/lk/mine/ZED-80/src/zed-80",
                         filters: [
@@ -191,7 +193,7 @@ const template = [
 ];
 
 function setupMenus() {
-    const menu = Menu.buildFromTemplate(template);
+    const menu = Menu.buildFromTemplate(template as any);
     Menu.setApplicationMenu(menu)
 }
 
@@ -214,3 +216,4 @@ function setupTouchBar() {
     });
     win.setTouchBar(touchBar);
 }
+

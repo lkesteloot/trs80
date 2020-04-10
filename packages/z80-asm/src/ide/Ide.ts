@@ -260,7 +260,9 @@ class Ide implements IdeController {
     }
 }
 
-export function main() {
+function main() {
     const element = document.getElementById("editor") as HTMLElement;
     new Ide(element);
 }
+
+main();

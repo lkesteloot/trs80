@@ -7,7 +7,11 @@ const CopyPlugin = require('copy-webpack-plugin');
 module.exports = {
     mode: "production",
 
-    entry: "./src/index.ts",
+    entry: {
+        // "electron-renderer": "./src/ide/Ide.ts",
+        // zasm: "./src/zasm/Main.ts",
+        "electron-main": "./src/main/electron-main.ts",
+    },
 
     output: {
         path: path.resolve(__dirname, "dist"),
@@ -48,25 +52,6 @@ module.exports = {
         ]
     },
 
-    // Put node_modules files in their own dist file, since they rarely change.
-    optimization: {
-        minimize: false,
-        splitChunks: {
-            cacheGroups: {
-                commons: {
-                    test: /\/node_modules\//,
-                    name: "vendor",
-                    chunks: "initial",
-                },
-                opcodes: {
-                    test: /Opcodes.ts/,
-                    name: "opcodes",
-                    chunks: "initial",
-                },
-            },
-        },
-    },
-
     plugins: [
         // Make a sound when compile finishes.
         new WebpackBuildNotifierPlugin({
@@ -89,9 +74,9 @@ module.exports = {
 
         // Copy CSS files.
         new CopyPlugin([
-            {
-                from: "src/main/electron-main.js",
-            },
+            //{
+                //from: "src/main/electron-main.js",
+            //},
             {
                 from: "src/main/preload.js",
             },
