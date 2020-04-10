@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "Z80 assembler and IDE",
   "scripts": {
-    "build": "webpack --target electron-renderer",
+    "build": "webpack",
     "build:test": "tsc -p tsconfig.test.json",
     "electron": "electron dist/electron-main.js",
     "generate": "tsc --project src/opcodes && node src/opcodes/dist/opcodes/GenerateJson.js",
     "test": "npm run build:test && mocha -r ts-node/register src/**/*.spec.ts",
-    "watch": "webpack --watch electron-renderer",
+    "watch": "webpack --watch",
     "clean": "rm -rf dist dist-tests"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
