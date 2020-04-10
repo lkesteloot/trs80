@@ -12,8 +12,5 @@
         "noImplicitReturns": true,
         "resolveJsonModule": true,
         "moduleResolution": "Node"
-    },
-    "include": [
-        "src/**/*.ts"
-    ]
+    }
 }

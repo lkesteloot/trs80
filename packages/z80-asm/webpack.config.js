@@ -9,7 +9,7 @@ module.exports = {
     entry: "./src/index.ts",
 
     output: {
-        path: path.resolve(__dirname, "docs/dist"),
+        path: path.resolve(__dirname, "dist"),
     },
 
     // Enable sourcemaps for debugging webpack's output.
@@ -38,6 +38,11 @@ module.exports = {
                 enforce: "pre",
                 test: /\.js$/,
                 loader: "source-map-loader"
+            },
+            // Handle CSS files.
+            {
+                test: /\.css$/,
+                use: ['style-loader', 'css-loader']
             },
         ]
     },
@@ -84,16 +89,13 @@ module.exports = {
         // Copy CSS files.
         new CopyPlugin([
             {
-                from: "node_modules/codemirror/lib/codemirror.css",
+                from: "src/ide/index.html",
             },
             {
-                from: "node_modules/codemirror/theme/mbo.css",
+                from: "src/main/electron-main.js",
             },
             {
-                from: "node_modules/codemirror/addon/dialog/dialog.css",
-            },
-            {
-                from: "node_modules/codemirror/addon/hint/show-hint.css",
+                from: "src/main/preload.js",
             },
         ]),
     ],

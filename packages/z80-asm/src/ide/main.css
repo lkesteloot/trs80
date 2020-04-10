@@ -1,0 +1,29 @@
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.CodeMirror {
+    font-family: "Andale Mono", "Menlo", "Lucida Console", monospace;
+    height: 100vh;
+}
+
+.gutter-assembled {
+    width: 11em;
+}
+.gutter-style {
+    color: #AAA;
+    padding-left: 1em;
+    white-space: pre;
+}
+.error-line {
+    background-color: #400;
+    /* text-decoration: #C00 wavy underline; */
+}
+.CodeMirror-linenumber {
+    color: #585 !important;
+}
+.scrollbar-error {
+    background-color: #C00;
+}

@@ -4,6 +4,12 @@ import {Parser, ParseResults} from "../assembler/Parser";
 import {toHexByte, toHexWord} from "z80-base";
 import IdeController from "./IdeController";
 
+import "codemirror/lib/codemirror.css";
+import "codemirror/theme/mbo.css";
+import "codemirror/addon/dialog/dialog.css";
+import "codemirror/addon/hint/show-hint.css";
+import "./main.css";
+
 // Load these for their side-effects (they register themselves).
 import "codemirror/addon/dialog/dialog";
 import "codemirror/addon/search/search";
