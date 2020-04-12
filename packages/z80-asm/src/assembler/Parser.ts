@@ -7,6 +7,24 @@ import {Variant} from "./OpcodesTypes";
  */
 const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 
+// Information about a symbol (label, constant).
+export class SymbolInfo {
+    public name: string;
+    public value: number;
+    public lineNumber: number;
+    public column: number;
+
+    constructor(name: string, value: number, lineNumber: number, column: number) {
+        this.name = name;
+        this.value = value;
+        this.lineNumber = lineNumber;
+        this.column = column;
+    }
+}
+
+// Map from symbol name to info about the symbol.
+export type SymbolMap = Map<string,SymbolInfo>;
+
 export class ParseResults {
     // Original line.
     public line: string;
@@ -46,8 +64,8 @@ export class Parser {
     private readonly line: string;
     // Address of line being parsed.
     private readonly address: number;
-    // Map from constant name to value.
-    private readonly constants: any;
+    // Map from symbol name to SymbolInfo.
+    private readonly symbols: SymbolMap;
     // Whether to ignore identifiers that we don't know about (for the first pass).
     private readonly ignoreUnknownIdentifiers: boolean;
     // Results to the caller.
@@ -57,10 +75,10 @@ export class Parser {
     // Pointer to the token we just parsed.
     private previousToken = 0;
 
-    constructor(line: string, address: number, constants: any, ignoreUnknownIdentifiers: boolean) {
+    constructor(line: string, address: number, symbols: SymbolMap, ignoreUnknownIdentifiers: boolean) {
         this.line = line;
         this.address = address;
-        this.constants = constants;
+        this.symbols = symbols;
         this.ignoreUnknownIdentifiers = ignoreUnknownIdentifiers;
         this.results = new ParseResults(line, address);
     }
@@ -156,13 +174,13 @@ export class Parser {
         this.ensureEndOfLine();
 
         if (label !== undefined && labelValue !== undefined) {
-            const oldValue = this.constants[label];
-            if (oldValue !== undefined && labelValue !== oldValue) {
+            const oldSymbolInfo = this.symbols.get(label);
+            if (oldSymbolInfo !== undefined && labelValue !== oldSymbolInfo.value) {
                 // TODO should be programmer error.
-                console.log("warning: changing value of \"" + label + "\" from " + toHex(oldValue, 4) +
+                console.log("warning: changing value of \"" + label + "\" from " + toHex(oldSymbolInfo.value, 4) +
                     " to " + toHex(labelValue, 4));
             }
-            this.constants[label] = labelValue;
+            this.symbols.set(label, new SymbolInfo(label, labelValue, 0, 0));
         }
 
         return this.results;
@@ -482,14 +500,15 @@ export class Parser {
         const identifier = this.readIdentifier(false, false);
         if (identifier !== undefined) {
             // Get address of identifier or value of constant.
-            let value = this.constants[identifier];
-            if (value === undefined) {
+            const symbolInfo = this.symbols.get(identifier);
+            if (symbolInfo === undefined) {
                 if (!this.ignoreUnknownIdentifiers) {
                     this.results.error = "unknown identifier \"" + identifier + "\"";
                 }
-                value = 0;
+                return 0;
+            } else {
+                return symbolInfo.value;
             }
-            return value;
         }
 
         // Try literal character, like 'a'.

@@ -1,6 +1,6 @@
 
 import CodeMirror from "codemirror";
-import {Parser, ParseResults} from "../assembler/Parser";
+import {Parser, ParseResults, SymbolInfo} from "../assembler/Parser";
 import {toHexByte, toHexWord} from "z80-base";
 import IdeController from "./IdeController";
 import tippy from 'tippy.js';
@@ -62,7 +62,10 @@ function readFileLines(pathname: string): string[] | undefined {
 class Ide implements IdeController {
     private store: Store;
     private readonly cm: CodeMirror.Editor;
+    // The index of this array is the line number in the file (zero-based).
     private readonly assembled: ParseResults[] = [];
+    // Map from symbol name to SymbolInfo object.
+    private readonly symbols = new Map<string, SymbolInfo>();
     private pathname: string = "";
     private scrollbarAnnotator: any;
 
@@ -150,7 +153,7 @@ class Ide implements IdeController {
     }
 
     private assembleAll() {
-        const constants = {};
+        this.symbols.clear();
         this.assembled.splice(0, this.assembled.length);
 
         const before = Date.now();
@@ -173,7 +176,7 @@ class Ide implements IdeController {
                 }
 
                 const line = top.lines[top.lineNumber++];
-                const parser = new Parser(line, address, constants, pass === 0);
+                const parser = new Parser(line, address, this.symbols, pass === 0);
                 const results = parser.assemble();
                 address = results.nextAddress;
 
