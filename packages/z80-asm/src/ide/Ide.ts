@@ -2,7 +2,6 @@
 import CodeMirror from "codemirror";
 import {Parser, ParseResults, SymbolInfo} from "../assembler/Parser";
 import {toHexByte, toHexWord} from "z80-base";
-import IdeController from "./IdeController";
 import tippy from 'tippy.js';
 
 import 'tippy.js/dist/tippy.css';
@@ -22,7 +21,6 @@ import "codemirror/addon/scroll/annotatescrollbar";
 import "codemirror/addon/selection/active-line";
 import "codemirror/mode/z80/z80";
 
-import {initIpc} from "./ElectronIpc";
 import * as fs from "fs";
 import * as path from "path";
 import Store from "electron-store";
@@ -60,7 +58,7 @@ function readFileLines(pathname: string): string[] | undefined {
     return text === undefined ? undefined : text.split(/\r?\n/);
 }
 
-class Ide implements IdeController {
+class Ide {
     private store: Store;
     private readonly cm: CodeMirror.Editor;
     // The index of this array is the line number in the file (zero-based).
@@ -83,10 +81,11 @@ class Ide implements IdeController {
             mode: "text/x-z80",
             // Doesn't work, I call focus() explicitly later.
             autoFocus: true,
-            extraKeys: {
+            extraKeys: (CodeMirror as any).normalizeKeyMap({
                 // "Ctrl-Space": "autocomplete"
-                "Cmd-B": () => this.jumpToDefinition(),
-            },
+                "Cmd-B": () => this.jumpToDefinition(false),
+                "Shift-Cmd-B": () => this.jumpToDefinition(true),
+            }),
             hintOptions: {
                 hint: () => this.hint(),
             },
@@ -114,7 +113,12 @@ class Ide implements IdeController {
         // The type definition doesn't include this extension.
         this.scrollbarAnnotator = (this.cm as any).annotateScrollbar("scrollbar-error");
 
-        initIpc(this);
+        // Configure IPC with the main process of Electron.
+        const ipcRenderer = (window as any).ipcRenderer;
+        ipcRenderer.on("set-text", (event: any, pathname: string, text: string) => this.setText(pathname, text));
+        ipcRenderer.on("next-error", () => this.nextError());
+        ipcRenderer.on("declaration-or-usages", () => this.jumpToDefinition(false));
+        ipcRenderer.on("next-usage", () => this.jumpToDefinition(true));
 
         this.cm.focus();
 
@@ -129,14 +133,14 @@ class Ide implements IdeController {
         }
     }
 
-    setText(pathname: string, text: string): void {
+    private setText(pathname: string, text: string): void {
         this.pathname = pathname;
         this.cm.setValue(text);
 
         this.store.set(CURRENT_PATHNAME_KEY, pathname);
     }
 
-    nextError(): void {
+    private nextError(): void {
         if (this.assembled.length === 0) {
             return;
         }
@@ -161,22 +165,35 @@ class Ide implements IdeController {
     }
 
     // Jump from a use to its definition and vice versa.
-    private jumpToDefinition() {
+    //
+    // @param nextUse whether to jump to the next use if we're on one (true) or go to the definition (false).
+    private jumpToDefinition(nextUse: boolean) {
         const pos = this.cm.getCursor();
         const lineNumber = pos.line;
         const column = pos.ch;
 
         for (const symbol of this.symbols.values()) {
+            // See if we're at the definition.
             if (lineNumber === symbol.lineNumber && column >= symbol.column && column <= symbol.column + symbol.name.length) {
                 if (symbol.references.length > 0) {
-                    // TODO: show pop-up, or cycle through them.
+                    // Jump to first use.
                     const reference = symbol.references[0];
                     this.setCursor(reference.lineNumber, reference.column);
+                } else {
+                    // TODO display error.
                 }
             } else {
-                for (const reference of symbol.references) {
+                // See if we're at a use.
+                for (let i = 0; i < symbol.references.length; i++) {
+                    let reference = symbol.references[i];
+
                     if (lineNumber === reference.lineNumber && column >= reference.column && column <= reference.column + symbol.name.length) {
-                        this.setCursor(symbol.lineNumber, symbol.column);
+                        if (nextUse) {
+                            reference = symbol.references[(i + 1) % symbol.references.length];
+                            this.setCursor(reference.lineNumber, reference.column);
+                        } else {
+                            this.setCursor(symbol.lineNumber, symbol.column);
+                        }
                     }
                 }
             }

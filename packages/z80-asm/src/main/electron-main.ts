@@ -70,7 +70,6 @@ app.on('open-file', (event, pathname) => {
 const isMac = process.platform === 'darwin';
 
 const template = [
-    // { role: 'appMenu' }
     ...(isMac ? [{
         label: app.name,
         submenu: [
@@ -85,7 +84,6 @@ const template = [
             { role: 'quit' }
         ]
     }] : []),
-    // { role: 'fileMenu' }
     {
         label: 'File',
         submenu: [
@@ -118,7 +116,6 @@ const template = [
             isMac ? { role: 'close' } : { role: 'quit' }
         ]
     },
-    // { role: 'editMenu' }
     {
         label: 'Edit',
         submenu: [
@@ -147,7 +144,6 @@ const template = [
             ])
         ]
     },
-    // { role: 'viewMenu' }
     {
         label: 'View',
         submenu: [
@@ -162,7 +158,27 @@ const template = [
             { role: 'togglefullscreen' }
         ]
     },
-    // { role: 'windowMenu' }
+    {
+        label: "Navigate",
+        submenu: [
+            {
+                label: "Declaration or Usages",
+                accelerator: "CmdOrCtrl+B",
+                registerAccelerator: true,
+                click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {
+                    focusedWindow.webContents.send("declaration-or-usages");
+                },
+            },
+            {
+                label: "Next Usage",
+                accelerator: "Shift+CmdOrCtrl+B",
+                registerAccelerator: true,
+                click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {
+                    focusedWindow.webContents.send("next-usage");
+                },
+            },
+        ],
+    },
     {
         label: 'Window',
         submenu: [
