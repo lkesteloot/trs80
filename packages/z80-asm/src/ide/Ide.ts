@@ -84,6 +84,7 @@ class Ide implements IdeController {
             autoFocus: true,
             extraKeys: {
                 // "Ctrl-Space": "autocomplete"
+                "Cmd-B": () => this.jumpToDefinition(),
             },
             hintOptions: {
                 hint: () => this.hint(),
@@ -146,9 +147,36 @@ class Ide implements IdeController {
         } while (nextErrorLineNumber !== currentLineNumber && this.assembled[nextErrorLineNumber].error === undefined);
 
         if (nextErrorLineNumber !== currentLineNumber) {
-            // Use the separate scrollInfoView() so we can provide a visible margin around the error.
-            this.cm.setCursor({ line: nextErrorLineNumber, ch: 0 }, undefined, { scroll: false });
-            this.cm.scrollIntoView(null, 200);
+            this.setCursor(nextErrorLineNumber, 0);
+        }
+    }
+
+    private setCursor(lineNumber: number, column: number): void {
+        // Use the separate scrollInfoView() so we can provide a visible margin around the error.
+        this.cm.setCursor(lineNumber, column, { scroll: false });
+        this.cm.scrollIntoView(null, 200);
+    }
+
+    // Jump from a use to its definition and vice versa.
+    private jumpToDefinition() {
+        const pos = this.cm.getCursor();
+        const lineNumber = pos.line;
+        const column = pos.ch;
+
+        for (const symbol of this.symbols.values()) {
+            if (lineNumber === symbol.lineNumber && column >= symbol.column && column <= symbol.column + symbol.name.length) {
+                if (symbol.references.length > 0) {
+                    // TODO: show pop-up, or cycle through them.
+                    const reference = symbol.references[0];
+                    this.setCursor(reference.lineNumber, reference.column);
+                }
+            } else {
+                for (const reference of symbol.references) {
+                    if (lineNumber === reference.lineNumber && column >= reference.column && column <= reference.column + symbol.name.length) {
+                        this.setCursor(symbol.lineNumber, symbol.column);
+                    }
+                }
+            }
         }
     }
 
@@ -175,8 +203,9 @@ class Ide implements IdeController {
                     continue;
                 }
 
-                const line = top.lines[top.lineNumber++];
-                const parser = new Parser(line, address, this.symbols, pass === 0);
+                const lineNumber = top.lineNumber++;
+                const line = top.lines[lineNumber];
+                const parser = new Parser(line, lineNumber, address, this.symbols, pass === 0);
                 const results = parser.assemble();
                 address = results.nextAddress;
 

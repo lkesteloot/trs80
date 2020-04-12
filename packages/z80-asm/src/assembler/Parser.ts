@@ -7,12 +7,24 @@ import {Variant} from "./OpcodesTypes";
  */
 const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 
+// A reference to a symbol.
+export class SymbolReference {
+    public lineNumber: number;
+    public column: number;
+
+    constructor(lineNumber: number, column: number) {
+        this.lineNumber = lineNumber;
+        this.column = column;
+    }
+}
+
 // Information about a symbol (label, constant).
 export class SymbolInfo {
     public name: string;
     public value: number;
     public lineNumber: number;
     public column: number;
+    public references: SymbolReference[] = [];
 
     constructor(name: string, value: number, lineNumber: number, column: number) {
         this.name = name;
@@ -62,6 +74,8 @@ export class ParseResults {
 export class Parser {
     // Full text of line being parsed.
     private readonly line: string;
+    // Line number we're parsing, zero-based.
+    private readonly lineNumber: number;
     // Address of line being parsed.
     private readonly address: number;
     // Map from symbol name to SymbolInfo.
@@ -71,12 +85,13 @@ export class Parser {
     // Results to the caller.
     private readonly results: ParseResults;
     // Parsing index into the line.
-    private i: number = 0;
+    private column: number = 0;
     // Pointer to the token we just parsed.
     private previousToken = 0;
 
-    constructor(line: string, address: number, symbols: SymbolMap, ignoreUnknownIdentifiers: boolean) {
+    constructor(line: string, lineNumber: number, address: number, symbols: SymbolMap, ignoreUnknownIdentifiers: boolean) {
         this.line = line;
+        this.lineNumber = lineNumber;
         this.address = address;
         this.symbols = symbols;
         this.ignoreUnknownIdentifiers = ignoreUnknownIdentifiers;
@@ -94,7 +109,8 @@ export class Parser {
         }
 
         // Look for label in column 1.
-        this.i = 0;
+        this.column = 0;
+        let symbolColumn = 0;
         let label = this.readIdentifier(false, false);
         if (label !== undefined) {
             if (this.foundChar(':')) {
@@ -104,6 +120,7 @@ export class Parser {
             // By default assign it to current address, but can be overwritten
             // by .equ below.
             labelValue = this.address;
+            symbolColumn = this.previousToken;
         }
 
         this.skipWhitespace();
@@ -173,14 +190,19 @@ export class Parser {
         // Make sure there's no extra junk.
         this.ensureEndOfLine();
 
+        // If we're defining a new symbol, record it.
         if (label !== undefined && labelValue !== undefined) {
             const oldSymbolInfo = this.symbols.get(label);
-            if (oldSymbolInfo !== undefined && labelValue !== oldSymbolInfo.value) {
-                // TODO should be programmer error.
-                console.log("warning: changing value of \"" + label + "\" from " + toHex(oldSymbolInfo.value, 4) +
-                    " to " + toHex(labelValue, 4));
+            if (oldSymbolInfo !== undefined) {
+                // Sanity check.
+                if (labelValue !== oldSymbolInfo.value || this.lineNumber !== oldSymbolInfo.lineNumber || this.column !== symbolColumn) {
+                    // TODO should be programmer error.
+                    console.log("error: changing value of \"" + label + "\" from " + toHex(oldSymbolInfo.value, 4) +
+                        " to " + toHex(labelValue, 4));
+                }
+            } else {
+                this.symbols.set(label, new SymbolInfo(label, labelValue, this.lineNumber, symbolColumn));
             }
-            this.symbols.set(label, new SymbolInfo(label, labelValue, 0, 0));
         }
 
         return this.results;
@@ -191,9 +213,9 @@ export class Parser {
         // Check for comment.
         if (this.isChar(';')) {
             // Skip rest of line.
-            this.i = this.line.length;
+            this.column = this.line.length;
         }
-        if (this.i != this.line.length) {
+        if (this.column != this.line.length) {
             this.results.error = "syntax error";
         }
     }
@@ -260,7 +282,7 @@ export class Parser {
     private processOpCode(mnemonic: string): void {
         const mnemonicInfo = mnemonicData.mnemonics[mnemonic];
         if (mnemonicInfo !== undefined) {
-            const argStart = this.i;
+            const argStart = this.column;
             let match = false;
 
             for (const variant of mnemonicInfo.variants) {
@@ -310,7 +332,7 @@ export class Parser {
 
                 if (match) {
                     // See if it's the end of the line.
-                    if (this.i < this.line.length && !this.isChar(';')) {
+                    if (this.column < this.line.length && !this.isChar(';')) {
                         match = false;
                     }
                 }
@@ -349,7 +371,7 @@ export class Parser {
                     break;
                 } else {
                     // Reset reader.
-                    this.i = argStart;
+                    this.column = argStart;
                 }
             }
 
@@ -368,27 +390,27 @@ export class Parser {
      */
     private readString(): string | undefined {
         // Find beginning of string.
-        if (this.i === this.line.length || (this.line[this.i] !== '"' && this.line[this.i] !== "'")) {
+        if (this.column === this.line.length || (this.line[this.column] !== '"' && this.line[this.column] !== "'")) {
             return undefined;
         }
-        const quoteChar = this.line[this.i];
-        this.i++;
+        const quoteChar = this.line[this.column];
+        this.column++;
 
         // Find end of string.
-        const startIndex = this.i;
-        while (this.i < this.line.length && this.line[this.i] !== quoteChar) {
-            this.i++;
+        const startIndex = this.column;
+        while (this.column < this.line.length && this.line[this.column] !== quoteChar) {
+            this.column++;
         }
 
-        if (this.i === this.line.length) {
+        if (this.column === this.line.length) {
             // No end quote.
             this.results.error = "no end quote in string";
             return undefined;
         }
 
         // Clip out string contents.
-        const value = this.line.substring(startIndex, this.i);
-        this.i++;
+        const value = this.line.substring(startIndex, this.column);
+        this.column++;
         this.skipWhitespace();
 
         return value;
@@ -397,7 +419,7 @@ export class Parser {
     private readExpression(): number | undefined {
         // Expressions can't start with an open parenthesis because that's ambiguous
         // with dereferencing.
-        if (this.line[this.i] === '(') {
+        if (this.line[this.column] === '(') {
             return undefined;
         }
 
@@ -472,9 +494,9 @@ export class Parser {
                 value = subValue;
             }
 
-            op = this.line.substr(this.i, 2);
+            op = this.line.substr(this.column, 2);
             if (op === "<<" || op === ">>") {
-                this.i += 2;
+                this.column += 2;
                 this.skipWhitespace();
             } else {
                 break;
@@ -485,7 +507,7 @@ export class Parser {
     }
 
     private readAtom(): number | undefined {
-        const startIndex = this.i;
+        const startIndex = this.column;
 
         // Parenthesized expression.
         if (this.foundChar('(')) {
@@ -507,18 +529,21 @@ export class Parser {
                 }
                 return 0;
             } else {
+                if (!this.ignoreUnknownIdentifiers) {
+                    symbolInfo.references.push(new SymbolReference(this.lineNumber, startIndex));
+                }
                 return symbolInfo.value;
             }
         }
 
         // Try literal character, like 'a'.
         if (this.isChar("'")) {
-            if (this.i > this.line.length - 3 || this.line[this.i + 2] !== "'") {
+            if (this.column > this.line.length - 3 || this.line[this.column + 2] !== "'") {
                 // TODO invalid character constant, show error.
                 return undefined;
             }
-            const value = this.line.charCodeAt(this.i + 1);
-            this.i += 3;
+            const value = this.line.charCodeAt(this.column + 1);
+            this.column += 3;
             this.skipWhitespace();
             return value;
         }
@@ -534,7 +559,7 @@ export class Parser {
 
         // Hex numbers can start with $, like $FF.
         if (this.foundChar('$')) {
-            if (this.i === this.line.length || this.parseHexDigit(this.line[this.i], 16) === undefined) {
+            if (this.column === this.line.length || this.parseHexDigit(this.line[this.column], 16) === undefined) {
                 // It's a reference to the current address, not a hex prefix.
                 return sign*this.results.address;
             }
@@ -547,61 +572,61 @@ export class Parser {
         // Before we parse the number, we need to look ahead to see
         // if it ends with H, like 0FFH.
         if (base === 10) {
-            const beforeIndex = this.i;
-            while (this.i < this.line.length && this.parseHexDigit(this.line[this.i], 16) !== undefined) {
-                this.i++;
+            const beforeIndex = this.column;
+            while (this.column < this.line.length && this.parseHexDigit(this.line[this.column], 16) !== undefined) {
+                this.column++;
             }
-            if (this.i < this.line.length && this.line[this.i].toUpperCase() === "H") {
+            if (this.column < this.line.length && this.line[this.column].toUpperCase() === "H") {
                 base = 16;
             }
-            this.i = beforeIndex;
+            this.column = beforeIndex;
         }
         // And again we need to look for B, like 010010101B. We can't fold this into the
         // above look since a "B" is a legal hex number!
         if (base === 10) {
-            const beforeIndex = this.i;
-            while (this.i < this.line.length && this.parseHexDigit(this.line[this.i], 2) !== undefined) {
-                this.i++;
+            const beforeIndex = this.column;
+            while (this.column < this.line.length && this.parseHexDigit(this.line[this.column], 2) !== undefined) {
+                this.column++;
             }
-            if (this.i < this.line.length && this.line[this.i].toUpperCase() === "B" &&
+            if (this.column < this.line.length && this.line[this.column].toUpperCase() === "B" &&
                 // "B" can't be followed by hex digit, or it's not the final character.
-                (this.i === this.line.length || this.parseHexDigit(this.line[this.i + 1], 16) === undefined)) {
+                (this.column === this.line.length || this.parseHexDigit(this.line[this.column + 1], 16) === undefined)) {
 
                 base = 2;
             }
-            this.i = beforeIndex;
+            this.column = beforeIndex;
         }
 
         // Look for 0x or 0b prefix. Must do this after above checks so that we correctly
         // mark "0B1H" as hex and not binary.
-        if (base === 10 && this.i + 2 < this.line.length && this.line[this.i] === '0') {
-            if (this.line[this.i + 1].toLowerCase() == 'x') {
+        if (base === 10 && this.column + 2 < this.line.length && this.line[this.column] === '0') {
+            if (this.line[this.column + 1].toLowerCase() == 'x') {
                 base = 16;
-                this.i += 2;
-            } else if (this.line[this.i + 1].toLowerCase() == 'b' &&
+                this.column += 2;
+            } else if (this.line[this.column + 1].toLowerCase() == 'b' &&
                 // Must check next digit to distinguish from just "0B".
-                this.parseHexDigit(this.line[this.i + 2], 2) !== undefined) {
+                this.parseHexDigit(this.line[this.column + 2], 2) !== undefined) {
 
                 base = 2;
-                this.i += 2;
+                this.column += 2;
             }
         }
 
         // Parse number.
         let value = 0;
         while (true) {
-            if (this.i == this.line.length) {
+            if (this.column == this.line.length) {
                 break;
             }
 
-            const ch = this.line[this.i];
+            const ch = this.line[this.column];
             let chValue = this.parseHexDigit(ch, base);
             if (chValue === undefined) {
                 break;
             }
             value = value * base + chValue;
             gotDigit = true;
-            this.i++;
+            this.column++;
         }
 
         if (!gotDigit) {
@@ -610,20 +635,20 @@ export class Parser {
         }
 
         // Check for base suffix.
-        if (this.i < this.line.length) {
-            const baseChar = this.line[this.i].toUpperCase();
+        if (this.column < this.line.length) {
+            const baseChar = this.line[this.column].toUpperCase();
             if (baseChar === "H") {
                 // Check for programmer errors.
                 if (base !== 16) {
-                    throw new Error("found H at end of non-hex number: " + this.line.substring(startIndex, this.i + 1));
+                    throw new Error("found H at end of non-hex number: " + this.line.substring(startIndex, this.column + 1));
                 }
-                this.i++;
+                this.column++;
             } else if (baseChar === "B") {
                 // Check for programmer errors.
                 if (base !== 2) {
-                    throw new Error("found B at end of non-binary number: " + this.line.substring(startIndex, this.i + 1));
+                    throw new Error("found B at end of non-binary number: " + this.line.substring(startIndex, this.column + 1));
                 }
-                this.i++;
+                this.column++;
             }
         }
 
@@ -633,26 +658,26 @@ export class Parser {
     }
 
     private skipWhitespace(): void {
-        while (this.i < this.line.length && (this.line[this.i] === ' ' || this.line[this.i] === '\t')) {
-            this.i++;
+        while (this.column < this.line.length && (this.line[this.column] === ' ' || this.line[this.column] === '\t')) {
+            this.column++;
         }
     }
 
     private readIdentifier(allowRegister: boolean, toLowerCase: boolean): string | undefined {
-        const startIndex = this.i;
+        const startIndex = this.column;
 
-        while (this.i < this.line.length && this.isLegalIdentifierCharacter(this.line[this.i], this.i == startIndex)) {
-            this.i++;
+        while (this.column < this.line.length && this.isLegalIdentifierCharacter(this.line[this.column], this.column == startIndex)) {
+            this.column++;
         }
 
-        if (this.i > startIndex) {
-            let identifier = this.line.substring(startIndex, this.i);
+        if (this.column > startIndex) {
+            let identifier = this.line.substring(startIndex, this.column);
             if (toLowerCase) {
                 identifier = identifier.toLowerCase();
             }
             if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || this.isFlag(identifier))) {
                 // Register names can't be identifiers.
-                this.i = startIndex;
+                this.column = startIndex;
                 return undefined;
             }
             this.skipWhitespace();
@@ -670,7 +695,7 @@ export class Parser {
 
     private foundChar(ch: string): boolean {
         if (this.isChar(ch)) {
-            this.i++;
+            this.column++;
             this.skipWhitespace();
             return true;
         } else {
@@ -679,7 +704,7 @@ export class Parser {
     }
 
     private isChar(ch: string): boolean {
-        return this.i < this.line.length && this.line[this.i] === ch;
+        return this.column < this.line.length && this.line[this.column] === ch;
     }
 
     private parseHexDigit(ch: string, base: number): number | undefined {

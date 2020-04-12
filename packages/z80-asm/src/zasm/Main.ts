@@ -38,8 +38,9 @@ function main() {
                 continue;
             }
 
-            const line = top.lines[top.lineNumber++];
-            const parser = new Parser(line, address, constants, pass === 0);
+            const lineNumber = top.lineNumber++;
+            const line = top.lines[lineNumber];
+            const parser = new Parser(line, lineNumber, address, constants, pass === 0);
             const results = parser.assemble();
 
             // Show results.
