@@ -3,7 +3,9 @@ import CodeMirror from "codemirror";
 import {Parser, ParseResults} from "../assembler/Parser";
 import {toHexByte, toHexWord} from "z80-base";
 import IdeController from "./IdeController";
+import tippy from 'tippy.js';
 
+import 'tippy.js/dist/tippy.css';
 import "codemirror/lib/codemirror.css";
 import "codemirror/theme/mbo.css";
 import "codemirror/addon/dialog/dialog.css";
@@ -222,6 +224,73 @@ class Ide implements IdeController {
                 this.cm.removeLineClass(lineNumber, "wrap", undefined);
                 if (numLines !== 1) {
                     this.cm.addLineClass(lineNumber, "wrap", "line-height-" + numLines);
+                }
+
+                if (results.variant !== undefined && results.variant.clr !== null) {
+                    const clr = results.variant.clr;
+                    let popup = "<b>" + clr.instruction.toUpperCase() + "</b><br><br>";
+                    if (clr.description) {
+                        popup += clr.description + "<br><br>";
+                    }
+                    popup += clr.byte_count + " bytes, ";
+                    if (clr.with_jump_clock_count === clr.without_jump_clock_count) {
+                        popup += clr.with_jump_clock_count + " clocks.<br><br>";
+                    } else {
+                        popup += clr.with_jump_clock_count + "/" + clr.without_jump_clock_count + " clocks.<br><br>";
+                    }
+
+                    if (clr.flags === "------") {
+                        popup += "Flags are unaffected.</br>";
+                    } else {
+                        const flagLabels = ['C', 'N', 'P/V', 'H', 'Z', 'S'];
+
+                        for (let i = 0; i < 6; i++) {
+                            popup += "<b>" + flagLabels[i] + ":</b> ";
+
+                            switch (clr.flags.charAt(i)) {
+                                case '-':
+                                    popup += 'unaffected';
+                                    break;
+                                case '+':
+                                    popup += 'affected as defined';
+                                    break;
+                                case 'P':
+                                    popup += 'detects parity';
+                                    break;
+                                case 'V':
+                                    popup += 'detects overflow';
+                                    break;
+                                case '1':
+                                    popup += 'set';
+                                    break;
+                                case '0':
+                                    popup += 'reset';
+                                    break;
+                                case '*':
+                                    popup += 'exceptional';
+                                    break;
+                                default:
+                                    popup += 'unknown';
+                                    break;
+                            }
+                            popup += "<br>";
+                        }
+                    }
+
+                    if (clr.undocumented) {
+                        popup += "<br>Undocumented instructions.<br>";
+                    }
+                    addressElement.addEventListener("mouseenter", event => {
+                        console.log("mouseenter");
+                        if (addressElement !== null && (addressElement as any)._tippy === undefined) {
+                            console.log("defining");
+                            const instance = tippy(addressElement, {
+                                content: popup,
+                                allowHTML: true,
+                            });
+                            instance.show();
+                        }
+                    });
                 }
             } else {
                 addressElement = null;

@@ -1,5 +1,6 @@
 import mnemonicData from "./Opcodes";
 import {toHex, hi, lo, isByteReg, isWordReg} from "z80-base";
+import {Variant} from "./OpcodesTypes";
 
 /**
  * List of all flags.
@@ -17,6 +18,8 @@ export class ParseResults {
     public error: string | undefined;
     // If it's an include, the filename.
     public includeFilename: string | undefined;
+    // The variant of the instruction, if any.
+    public variant: Variant | undefined;
     // The next address, if it was explicitly specified.
     private specifiedNextAddress: number | undefined;
 
@@ -324,6 +327,7 @@ export class Parser {
                             this.results.binary.push(op);
                         }
                     }
+                    this.results.variant = variant;
                     break;
                 } else {
                     // Reset reader.

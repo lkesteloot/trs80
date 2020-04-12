@@ -25,6 +25,7 @@
     "chalk": "^3.0.0",
     "codemirror": "^5.52.2",
     "electron-store": "^5.1.1",
+    "tippy.js": "^6.1.1",
     "z80-base": "^1.0.4"
   },
   "devDependencies": {
