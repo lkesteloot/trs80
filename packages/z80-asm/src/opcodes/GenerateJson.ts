@@ -51,6 +51,39 @@ function findClrInstruction(clr: ClrFile, opcodes: string): ClrInstruction | und
     return undefined;
 }
 
+function fixClrDescription(desc: string): string {
+    return desc
+        .replace(/\bpc\b/gi, "PC")
+        .replace(/\bsp\b/gi, "SP")
+        .replace(/\bhl\b/gi, "HL")
+        .replace(/\bbc\b/gi, "BC")
+        .replace(/\bde\b/gi, "DE")
+        .replace(/\baf\b/gi, "AF")
+        .replace(/\ba\b/gi, "A")
+        .replace(/\bb\b/gi, "B")
+        .replace(/\bc\b/gi, "C")
+        .replace(/\bd\b/gi, "D")
+        .replace(/\be\b/gi, "E")
+        .replace(/\bix\b/gi, "IX")
+        .replace(/\biy\b/gi, "IY")
+        .replace(/\bixl\b/gi, "IXL")
+        .replace(/\biyl\b/gi, "IYL")
+        .replace(/\bixh\b/gi, "IXH")
+        .replace(/\biyh\b/gi, "IYH")
+        .replace(/\bz\b/gi, "Z")
+        .replace(/\bF\b/gi, "F")
+        .replace(/\bh\b/gi, "H")
+        .replace(/\bl\b/gi, "L")
+        .replace(/\bcc\b/gi, "CC")
+
+        // Fix mistakes from the "a" conversion above.
+        .replace(/\bA byte\b/g, "a byte")
+        .replace(/\bA zero\b/g, "a zero")
+        .replace(/\bA one\b/g, "a one")
+        .replace(/\bA non-maskable\b/g, "a non-maskable")
+
+}
+
 function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[], mnemonicMap: any, clr: ClrFile): void {
     const pathname = path.join(dirname, "opcodes_" + prefix.toLowerCase() + ".dat");
 
@@ -100,6 +133,9 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                 const clrInst = findClrInstruction(clr, fullOpcodesString);
                 if (clrInst === undefined) {
                     console.log("Didn't find " + fullOpcodesString + " in clr");
+                } else {
+                    // Fix up description to convert register names to upper case.
+                    clrInst.description = fixClrDescription(clrInst.description);
                 }
 
                 // Add parameters.

@@ -41,7 +41,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Loads ** into bc.",
+            "description": "Loads ** into BC.",
             "instruction": "ld bc,**"
           }
         },
@@ -63,7 +63,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Stores a into the memory location pointed to by bc.",
+            "description": "Stores A into the memory location pointed to by BC.",
             "instruction": "ld (bc),a"
           }
         },
@@ -84,7 +84,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads * into b.",
+            "description": "Loads * into B.",
             "instruction": "ld b,*"
           }
         },
@@ -106,7 +106,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads the value pointed to by bc into a.",
+            "description": "Loads the value pointed to by BC into A.",
             "instruction": "ld a,(bc)"
           }
         },
@@ -126,7 +126,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads the value pointed to by bc into a.",
+            "description": "Loads the value pointed to by BC into A.",
             "instruction": "ld a,(bc)"
           }
         },
@@ -147,7 +147,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads * into c.",
+            "description": "Loads * into C.",
             "instruction": "ld c,*"
           }
         },
@@ -168,7 +168,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Loads ** into de.",
+            "description": "Loads ** into DE.",
             "instruction": "ld de,**"
           }
         },
@@ -190,7 +190,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Stores a into the memory location pointed to by de.",
+            "description": "Stores A into the memory location pointed to by DE.",
             "instruction": "ld (de),a"
           }
         },
@@ -211,7 +211,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads * into d.",
+            "description": "Loads * into D.",
             "instruction": "ld d,*"
           }
         },
@@ -233,7 +233,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads the value pointed to by de into a.",
+            "description": "Loads the value pointed to by DE into A.",
             "instruction": "ld a,(de)"
           }
         },
@@ -253,7 +253,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads the value pointed to by de into a.",
+            "description": "Loads the value pointed to by DE into A.",
             "instruction": "ld a,(de)"
           }
         },
@@ -274,7 +274,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads * into e.",
+            "description": "Loads * into E.",
             "instruction": "ld e,*"
           }
         },
@@ -295,7 +295,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Loads ** into hl.",
+            "description": "Loads ** into HL.",
             "instruction": "ld hl,**"
           }
         },
@@ -318,7 +318,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "Stores hl into the memory location pointed to by **.",
+            "description": "Stores HL into the memory location pointed to by **.",
             "instruction": "ld (**),hl"
           }
         },
@@ -339,7 +339,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads * into h.",
+            "description": "Loads * into H.",
             "instruction": "ld h,*"
           }
         },
@@ -362,7 +362,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "Loads the value pointed to by ** into hl.",
+            "description": "Loads the value pointed to by ** into HL.",
             "instruction": "ld hl,(**)"
           }
         },
@@ -383,7 +383,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads * into l.",
+            "description": "Loads * into L.",
             "instruction": "ld l,*"
           }
         },
@@ -404,7 +404,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Loads ** into sp.",
+            "description": "Loads ** into SP.",
             "instruction": "ld sp,**"
           }
         },
@@ -427,7 +427,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 13,
             "without_jump_clock_count": 13,
-            "description": "Stores a into the memory location pointed to by **.",
+            "description": "Stores A into the memory location pointed to by **.",
             "instruction": "ld (**),a"
           }
         },
@@ -450,7 +450,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Loads * into (hl).",
+            "description": "Loads * into (HL).",
             "instruction": "ld (hl),*"
           }
         },
@@ -473,7 +473,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 13,
             "without_jump_clock_count": 13,
-            "description": "Loads the value pointed to by ** into a.",
+            "description": "Loads the value pointed to by ** into A.",
             "instruction": "ld a,(**)"
           }
         },
@@ -494,7 +494,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 13,
             "without_jump_clock_count": 13,
-            "description": "Loads the value pointed to by ** into a.",
+            "description": "Loads the value pointed to by ** into A.",
             "instruction": "ld a,(**)"
           }
         },
@@ -515,7 +515,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads * into a.",
+            "description": "Loads * into A.",
             "instruction": "ld a,*"
           }
         },
@@ -534,7 +534,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Loads * into a.",
+            "description": "Loads * into A.",
             "instruction": "ld a,*"
           }
         },
@@ -554,7 +554,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of b are loaded into b.",
+            "description": "The contents of B are loaded into B.",
             "instruction": "ld b,b"
           }
         },
@@ -574,7 +574,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of c are loaded into b.",
+            "description": "The contents of C are loaded into B.",
             "instruction": "ld b,c"
           }
         },
@@ -594,7 +594,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of d are loaded into b.",
+            "description": "The contents of D are loaded into B.",
             "instruction": "ld b,d"
           }
         },
@@ -614,7 +614,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of e are loaded into b.",
+            "description": "The contents of E are loaded into B.",
             "instruction": "ld b,e"
           }
         },
@@ -634,7 +634,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of h are loaded into b.",
+            "description": "The contents of H are loaded into B.",
             "instruction": "ld b,h"
           }
         },
@@ -654,7 +654,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of l are loaded into b.",
+            "description": "The contents of L are loaded into B.",
             "instruction": "ld b,l"
           }
         },
@@ -676,7 +676,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of (hl) are loaded into b.",
+            "description": "The contents of (HL) are loaded into B.",
             "instruction": "ld b,(hl)"
           }
         },
@@ -696,7 +696,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are loaded into b.",
+            "description": "The contents of A are loaded into B.",
             "instruction": "ld b,a"
           }
         },
@@ -716,7 +716,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of b are loaded into c.",
+            "description": "The contents of B are loaded into C.",
             "instruction": "ld c,b"
           }
         },
@@ -736,7 +736,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of c are loaded into c.",
+            "description": "The contents of C are loaded into C.",
             "instruction": "ld c,c"
           }
         },
@@ -756,7 +756,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of d are loaded into c.",
+            "description": "The contents of D are loaded into C.",
             "instruction": "ld c,d"
           }
         },
@@ -776,7 +776,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of e are loaded into c.",
+            "description": "The contents of E are loaded into C.",
             "instruction": "ld c,e"
           }
         },
@@ -796,7 +796,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of h are loaded into c.",
+            "description": "The contents of H are loaded into C.",
             "instruction": "ld c,h"
           }
         },
@@ -816,7 +816,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of l are loaded into c.",
+            "description": "The contents of L are loaded into C.",
             "instruction": "ld c,l"
           }
         },
@@ -838,7 +838,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of (hl) are loaded into c.",
+            "description": "The contents of (HL) are loaded into C.",
             "instruction": "ld c,(hl)"
           }
         },
@@ -858,7 +858,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are loaded into c.",
+            "description": "The contents of A are loaded into C.",
             "instruction": "ld c,a"
           }
         },
@@ -878,7 +878,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of b are loaded into d.",
+            "description": "The contents of B are loaded into D.",
             "instruction": "ld d,b"
           }
         },
@@ -898,7 +898,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of c are loaded into d.",
+            "description": "The contents of C are loaded into D.",
             "instruction": "ld d,c"
           }
         },
@@ -918,7 +918,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of d are loaded into d.",
+            "description": "The contents of D are loaded into D.",
             "instruction": "ld d,d"
           }
         },
@@ -938,7 +938,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of e are loaded into d.",
+            "description": "The contents of E are loaded into D.",
             "instruction": "ld d,e"
           }
         },
@@ -958,7 +958,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of h are loaded into d.",
+            "description": "The contents of H are loaded into D.",
             "instruction": "ld d,h"
           }
         },
@@ -978,7 +978,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of l are loaded into d.",
+            "description": "The contents of L are loaded into D.",
             "instruction": "ld d,l"
           }
         },
@@ -1000,7 +1000,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of (hl) are loaded into d.",
+            "description": "The contents of (HL) are loaded into D.",
             "instruction": "ld d,(hl)"
           }
         },
@@ -1020,7 +1020,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are loaded into d.",
+            "description": "The contents of A are loaded into D.",
             "instruction": "ld d,a"
           }
         },
@@ -1040,7 +1040,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of b are loaded into e.",
+            "description": "The contents of B are loaded into E.",
             "instruction": "ld e,b"
           }
         },
@@ -1060,7 +1060,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of c are loaded into e.",
+            "description": "The contents of C are loaded into E.",
             "instruction": "ld e,c"
           }
         },
@@ -1080,7 +1080,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of d are loaded into e.",
+            "description": "The contents of D are loaded into E.",
             "instruction": "ld e,d"
           }
         },
@@ -1100,7 +1100,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of e are loaded into e.",
+            "description": "The contents of E are loaded into E.",
             "instruction": "ld e,e"
           }
         },
@@ -1120,7 +1120,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of h are loaded into e.",
+            "description": "The contents of H are loaded into E.",
             "instruction": "ld e,h"
           }
         },
@@ -1140,7 +1140,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of l are loaded into e.",
+            "description": "The contents of L are loaded into E.",
             "instruction": "ld e,l"
           }
         },
@@ -1162,7 +1162,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of (hl) are loaded into e.",
+            "description": "The contents of (HL) are loaded into E.",
             "instruction": "ld e,(hl)"
           }
         },
@@ -1182,7 +1182,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are loaded into e.",
+            "description": "The contents of A are loaded into E.",
             "instruction": "ld e,a"
           }
         },
@@ -1202,7 +1202,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of b are loaded into h.",
+            "description": "The contents of B are loaded into H.",
             "instruction": "ld h,b"
           }
         },
@@ -1222,7 +1222,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of c are loaded into h.",
+            "description": "The contents of C are loaded into H.",
             "instruction": "ld h,c"
           }
         },
@@ -1242,7 +1242,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of d are loaded into h.",
+            "description": "The contents of D are loaded into H.",
             "instruction": "ld h,d"
           }
         },
@@ -1262,7 +1262,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of e are loaded into h.",
+            "description": "The contents of E are loaded into H.",
             "instruction": "ld h,e"
           }
         },
@@ -1282,7 +1282,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of h are loaded into h.",
+            "description": "The contents of H are loaded into H.",
             "instruction": "ld h,h"
           }
         },
@@ -1302,7 +1302,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of l are loaded into h.",
+            "description": "The contents of L are loaded into H.",
             "instruction": "ld h,l"
           }
         },
@@ -1324,7 +1324,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of (hl) are loaded into h.",
+            "description": "The contents of (HL) are loaded into H.",
             "instruction": "ld h,(hl)"
           }
         },
@@ -1344,7 +1344,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are loaded into h.",
+            "description": "The contents of A are loaded into H.",
             "instruction": "ld h,a"
           }
         },
@@ -1364,7 +1364,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of b are loaded into l.",
+            "description": "The contents of B are loaded into L.",
             "instruction": "ld l,b"
           }
         },
@@ -1384,7 +1384,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of c are loaded into l.",
+            "description": "The contents of C are loaded into L.",
             "instruction": "ld l,c"
           }
         },
@@ -1404,7 +1404,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of d are loaded into l.",
+            "description": "The contents of D are loaded into L.",
             "instruction": "ld l,d"
           }
         },
@@ -1424,7 +1424,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of e are loaded into l.",
+            "description": "The contents of E are loaded into L.",
             "instruction": "ld l,e"
           }
         },
@@ -1444,7 +1444,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of h are loaded into l.",
+            "description": "The contents of H are loaded into L.",
             "instruction": "ld l,h"
           }
         },
@@ -1464,7 +1464,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of l are loaded into l.",
+            "description": "The contents of L are loaded into L.",
             "instruction": "ld l,l"
           }
         },
@@ -1486,7 +1486,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of (hl) are loaded into l.",
+            "description": "The contents of (HL) are loaded into L.",
             "instruction": "ld l,(hl)"
           }
         },
@@ -1506,7 +1506,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are loaded into l.",
+            "description": "The contents of A are loaded into L.",
             "instruction": "ld l,a"
           }
         },
@@ -1528,7 +1528,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of b are loaded into (hl).",
+            "description": "The contents of B are loaded into (HL).",
             "instruction": "ld (hl),b"
           }
         },
@@ -1550,7 +1550,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of c are loaded into (hl).",
+            "description": "The contents of C are loaded into (HL).",
             "instruction": "ld (hl),c"
           }
         },
@@ -1572,7 +1572,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of d are loaded into (hl).",
+            "description": "The contents of D are loaded into (HL).",
             "instruction": "ld (hl),d"
           }
         },
@@ -1594,7 +1594,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of e are loaded into (hl).",
+            "description": "The contents of E are loaded into (HL).",
             "instruction": "ld (hl),e"
           }
         },
@@ -1616,7 +1616,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of h are loaded into (hl).",
+            "description": "The contents of H are loaded into (HL).",
             "instruction": "ld (hl),h"
           }
         },
@@ -1638,7 +1638,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of l are loaded into (hl).",
+            "description": "The contents of L are loaded into (HL).",
             "instruction": "ld (hl),l"
           }
         },
@@ -1660,7 +1660,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of a are loaded into (hl).",
+            "description": "The contents of A are loaded into (HL).",
             "instruction": "ld (hl),a"
           }
         },
@@ -1680,7 +1680,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of b are loaded into a.",
+            "description": "The contents of B are loaded into A.",
             "instruction": "ld a,b"
           }
         },
@@ -1698,7 +1698,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of b are loaded into a.",
+            "description": "The contents of B are loaded into A.",
             "instruction": "ld a,b"
           }
         },
@@ -1718,7 +1718,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of c are loaded into a.",
+            "description": "The contents of C are loaded into A.",
             "instruction": "ld a,c"
           }
         },
@@ -1736,7 +1736,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of c are loaded into a.",
+            "description": "The contents of C are loaded into A.",
             "instruction": "ld a,c"
           }
         },
@@ -1756,7 +1756,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of d are loaded into a.",
+            "description": "The contents of D are loaded into A.",
             "instruction": "ld a,d"
           }
         },
@@ -1774,7 +1774,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of d are loaded into a.",
+            "description": "The contents of D are loaded into A.",
             "instruction": "ld a,d"
           }
         },
@@ -1794,7 +1794,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of e are loaded into a.",
+            "description": "The contents of E are loaded into A.",
             "instruction": "ld a,e"
           }
         },
@@ -1812,7 +1812,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of e are loaded into a.",
+            "description": "The contents of E are loaded into A.",
             "instruction": "ld a,e"
           }
         },
@@ -1832,7 +1832,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of h are loaded into a.",
+            "description": "The contents of H are loaded into A.",
             "instruction": "ld a,h"
           }
         },
@@ -1850,7 +1850,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of h are loaded into a.",
+            "description": "The contents of H are loaded into A.",
             "instruction": "ld a,h"
           }
         },
@@ -1870,7 +1870,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of l are loaded into a.",
+            "description": "The contents of L are loaded into A.",
             "instruction": "ld a,l"
           }
         },
@@ -1888,7 +1888,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of l are loaded into a.",
+            "description": "The contents of L are loaded into A.",
             "instruction": "ld a,l"
           }
         },
@@ -1910,7 +1910,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of (hl) are loaded into a.",
+            "description": "The contents of (HL) are loaded into A.",
             "instruction": "ld a,(hl)"
           }
         },
@@ -1930,7 +1930,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "The contents of (hl) are loaded into a.",
+            "description": "The contents of (HL) are loaded into A.",
             "instruction": "ld a,(hl)"
           }
         },
@@ -1950,7 +1950,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are loaded into a.",
+            "description": "The contents of A are loaded into A.",
             "instruction": "ld a,a"
           }
         },
@@ -1968,7 +1968,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are loaded into a.",
+            "description": "The contents of A are loaded into A.",
             "instruction": "ld a,a"
           }
         },
@@ -1990,7 +1990,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 14,
             "without_jump_clock_count": 14,
-            "description": "Loads ** into register ix.",
+            "description": "Loads ** into register IX.",
             "instruction": "ld ix,**"
           }
         },
@@ -2014,7 +2014,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Stores ix into the memory location pointed to by **.",
+            "description": "Stores IX into the memory location pointed to by **.",
             "instruction": "ld (**),ix"
           }
         },
@@ -2036,7 +2036,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "Loads * into ixh.",
+            "description": "Loads * into IXH.",
             "instruction": "ld ixh,*"
           }
         },
@@ -2060,7 +2060,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Loads the value pointed to by ** into ix.",
+            "description": "Loads the value pointed to by ** into IX.",
             "instruction": "ld ix,(**)"
           }
         },
@@ -2082,7 +2082,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "Loads * into ixl.",
+            "description": "Loads * into IXL.",
             "instruction": "ld ixl,*"
           }
         },
@@ -2109,7 +2109,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores * to the memory location pointed to by ix plus *.",
+            "description": "Stores * to the memory location pointed to by IX plus *.",
             "instruction": "ld (ix+*),*"
           }
         },
@@ -2130,7 +2130,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixh are loaded into b.",
+            "description": "The contents of IXH are loaded into B.",
             "instruction": "ld b,ixh"
           }
         },
@@ -2151,7 +2151,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixl are loaded into b.",
+            "description": "The contents of IXL are loaded into B.",
             "instruction": "ld b,ixl"
           }
         },
@@ -2177,7 +2177,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by ix plus * into b.",
+            "description": "Loads the value pointed to by IX plus * into B.",
             "instruction": "ld b,(ix+*)"
           }
         },
@@ -2198,7 +2198,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixh are loaded into c.",
+            "description": "The contents of IXH are loaded into C.",
             "instruction": "ld c,ixh"
           }
         },
@@ -2219,7 +2219,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixl are loaded into c.",
+            "description": "The contents of IXL are loaded into C.",
             "instruction": "ld c,ixl"
           }
         },
@@ -2245,7 +2245,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by ix plus * into c.",
+            "description": "Loads the value pointed to by IX plus * into C.",
             "instruction": "ld c,(ix+*)"
           }
         },
@@ -2266,7 +2266,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixh are loaded into d.",
+            "description": "The contents of IXH are loaded into D.",
             "instruction": "ld d,ixh"
           }
         },
@@ -2287,7 +2287,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixl are loaded into d.",
+            "description": "The contents of IXL are loaded into D.",
             "instruction": "ld d,ixl"
           }
         },
@@ -2313,7 +2313,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by ix plus * into d.",
+            "description": "Loads the value pointed to by IX plus * into D.",
             "instruction": "ld d,(ix+*)"
           }
         },
@@ -2334,7 +2334,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixh are loaded into e.",
+            "description": "The contents of IXH are loaded into E.",
             "instruction": "ld e,ixh"
           }
         },
@@ -2355,7 +2355,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixl are loaded into e.",
+            "description": "The contents of IXL are loaded into E.",
             "instruction": "ld e,ixl"
           }
         },
@@ -2381,7 +2381,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by ix plus * into e.",
+            "description": "Loads the value pointed to by IX plus * into E.",
             "instruction": "ld e,(ix+*)"
           }
         },
@@ -2402,7 +2402,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are loaded into ixh.",
+            "description": "The contents of B are loaded into IXH.",
             "instruction": "ld ixh,b"
           }
         },
@@ -2423,7 +2423,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are loaded into ixh.",
+            "description": "The contents of C are loaded into IXH.",
             "instruction": "ld ixh,c"
           }
         },
@@ -2444,7 +2444,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are loaded into ixh.",
+            "description": "The contents of D are loaded into IXH.",
             "instruction": "ld ixh,d"
           }
         },
@@ -2465,7 +2465,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are loaded into ixh.",
+            "description": "The contents of E are loaded into IXH.",
             "instruction": "ld ixh,e"
           }
         },
@@ -2486,7 +2486,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixh are loaded into ixh.",
+            "description": "The contents of IXH are loaded into IXH.",
             "instruction": "ld ixh,ixh"
           }
         },
@@ -2507,7 +2507,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixl are loaded into ixh.",
+            "description": "The contents of IXL are loaded into IXH.",
             "instruction": "ld ixh,ixl"
           }
         },
@@ -2533,7 +2533,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by ix plus * into h.",
+            "description": "Loads the value pointed to by IX plus * into H.",
             "instruction": "ld h,(ix+*)"
           }
         },
@@ -2554,7 +2554,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are loaded into ixh.",
+            "description": "The contents of A are loaded into IXH.",
             "instruction": "ld ixh,a"
           }
         },
@@ -2575,7 +2575,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are loaded into ixl.",
+            "description": "The contents of B are loaded into IXL.",
             "instruction": "ld ixl,b"
           }
         },
@@ -2596,7 +2596,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are loaded into ixl.",
+            "description": "The contents of C are loaded into IXL.",
             "instruction": "ld ixl,c"
           }
         },
@@ -2617,7 +2617,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are loaded into ixl.",
+            "description": "The contents of D are loaded into IXL.",
             "instruction": "ld ixl,d"
           }
         },
@@ -2638,7 +2638,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are loaded into ixl.",
+            "description": "The contents of E are loaded into IXL.",
             "instruction": "ld ixl,e"
           }
         },
@@ -2659,7 +2659,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixh are loaded into ixl.",
+            "description": "The contents of IXH are loaded into IXL.",
             "instruction": "ld ixl,ixh"
           }
         },
@@ -2680,7 +2680,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixl are loaded into ixl.",
+            "description": "The contents of IXL are loaded into IXL.",
             "instruction": "ld ixl,ixl"
           }
         },
@@ -2706,7 +2706,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by ix plus * into l.",
+            "description": "Loads the value pointed to by IX plus * into L.",
             "instruction": "ld l,(ix+*)"
           }
         },
@@ -2727,7 +2727,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are loaded into ixl.",
+            "description": "The contents of A are loaded into IXL.",
             "instruction": "ld ixl,a"
           }
         },
@@ -2753,7 +2753,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores b to the memory location pointed to by ix plus *.",
+            "description": "Stores B to the memory location pointed to by IX plus *.",
             "instruction": "ld (ix+*),b"
           }
         },
@@ -2779,7 +2779,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores c to the memory location pointed to by ix plus *.",
+            "description": "Stores C to the memory location pointed to by IX plus *.",
             "instruction": "ld (ix+*),c"
           }
         },
@@ -2805,7 +2805,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores d to the memory location pointed to by ix plus *.",
+            "description": "Stores D to the memory location pointed to by IX plus *.",
             "instruction": "ld (ix+*),d"
           }
         },
@@ -2831,7 +2831,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores e to the memory location pointed to by ix plus *.",
+            "description": "Stores E to the memory location pointed to by IX plus *.",
             "instruction": "ld (ix+*),e"
           }
         },
@@ -2857,7 +2857,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores h to the memory location pointed to by ix plus *.",
+            "description": "Stores H to the memory location pointed to by IX plus *.",
             "instruction": "ld (ix+*),h"
           }
         },
@@ -2883,7 +2883,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores l to the memory location pointed to by ix plus *.",
+            "description": "Stores L to the memory location pointed to by IX plus *.",
             "instruction": "ld (ix+*),l"
           }
         },
@@ -2909,7 +2909,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores a to the memory location pointed to by ix plus *.",
+            "description": "Stores A to the memory location pointed to by IX plus *.",
             "instruction": "ld (ix+*),a"
           }
         },
@@ -2930,7 +2930,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixh are loaded into a.",
+            "description": "The contents of IXH are loaded into A.",
             "instruction": "ld a,ixh"
           }
         },
@@ -2949,7 +2949,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixh are loaded into a.",
+            "description": "The contents of IXH are loaded into A.",
             "instruction": "ld a,ixh"
           }
         },
@@ -2970,7 +2970,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixl are loaded into a.",
+            "description": "The contents of IXL are loaded into A.",
             "instruction": "ld a,ixl"
           }
         },
@@ -2989,7 +2989,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of ixl are loaded into a.",
+            "description": "The contents of IXL are loaded into A.",
             "instruction": "ld a,ixl"
           }
         },
@@ -3015,7 +3015,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by ix plus * into a.",
+            "description": "Loads the value pointed to by IX plus * into A.",
             "instruction": "ld a,(ix+*)"
           }
         },
@@ -3039,7 +3039,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by ix plus * into a.",
+            "description": "Loads the value pointed to by IX plus * into A.",
             "instruction": "ld a,(ix+*)"
           }
         },
@@ -3067,7 +3067,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in B.",
             "instruction": "rlc (ix+*),b"
           }
         },
@@ -3095,7 +3095,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in C.",
             "instruction": "rlc (ix+*),c"
           }
         },
@@ -3123,7 +3123,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in D.",
             "instruction": "rlc (ix+*),d"
           }
         },
@@ -3151,7 +3151,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in E.",
             "instruction": "rlc (ix+*),e"
           }
         },
@@ -3179,7 +3179,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in H.",
             "instruction": "rlc (ix+*),h"
           }
         },
@@ -3207,7 +3207,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in L.",
             "instruction": "rlc (ix+*),l"
           }
         },
@@ -3235,7 +3235,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
             "instruction": "rlc (ix+*),a"
           }
         },
@@ -3261,7 +3261,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
             "instruction": "rlc (ix+*),a"
           }
         },
@@ -3289,7 +3289,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in B.",
             "instruction": "rrc (ix+*),b"
           }
         },
@@ -3317,7 +3317,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in C.",
             "instruction": "rrc (ix+*),c"
           }
         },
@@ -3345,7 +3345,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in D.",
             "instruction": "rrc (ix+*),d"
           }
         },
@@ -3373,7 +3373,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in E.",
             "instruction": "rrc (ix+*),e"
           }
         },
@@ -3401,7 +3401,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in H.",
             "instruction": "rrc (ix+*),h"
           }
         },
@@ -3429,7 +3429,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in L.",
             "instruction": "rrc (ix+*),l"
           }
         },
@@ -3457,7 +3457,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
             "instruction": "rrc (ix+*),a"
           }
         },
@@ -3483,7 +3483,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
             "instruction": "rrc (ix+*),a"
           }
         },
@@ -3511,7 +3511,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in B.",
             "instruction": "rl (ix+*),b"
           }
         },
@@ -3539,7 +3539,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in C.",
             "instruction": "rl (ix+*),c"
           }
         },
@@ -3567,7 +3567,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in D.",
             "instruction": "rl (ix+*),d"
           }
         },
@@ -3595,7 +3595,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in E.",
             "instruction": "rl (ix+*),e"
           }
         },
@@ -3623,7 +3623,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in H.",
             "instruction": "rl (ix+*),h"
           }
         },
@@ -3651,7 +3651,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in L.",
             "instruction": "rl (ix+*),l"
           }
         },
@@ -3679,7 +3679,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
             "instruction": "rl (ix+*),a"
           }
         },
@@ -3705,7 +3705,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
             "instruction": "rl (ix+*),a"
           }
         },
@@ -3733,7 +3733,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in B.",
             "instruction": "rr (ix+*),b"
           }
         },
@@ -3761,7 +3761,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in C.",
             "instruction": "rr (ix+*),c"
           }
         },
@@ -3789,7 +3789,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in D.",
             "instruction": "rr (ix+*),d"
           }
         },
@@ -3817,7 +3817,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in E.",
             "instruction": "rr (ix+*),e"
           }
         },
@@ -3845,7 +3845,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in H.",
             "instruction": "rr (ix+*),h"
           }
         },
@@ -3873,7 +3873,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in L.",
             "instruction": "rr (ix+*),l"
           }
         },
@@ -3901,7 +3901,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
             "instruction": "rr (ix+*),a"
           }
         },
@@ -3927,7 +3927,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
             "instruction": "rr (ix+*),a"
           }
         },
@@ -3955,7 +3955,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in B.",
             "instruction": "sla (ix+*),b"
           }
         },
@@ -3983,7 +3983,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in C.",
             "instruction": "sla (ix+*),c"
           }
         },
@@ -4011,7 +4011,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in D.",
             "instruction": "sla (ix+*),d"
           }
         },
@@ -4039,7 +4039,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in E.",
             "instruction": "sla (ix+*),e"
           }
         },
@@ -4067,7 +4067,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in H.",
             "instruction": "sla (ix+*),h"
           }
         },
@@ -4095,7 +4095,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in L.",
             "instruction": "sla (ix+*),l"
           }
         },
@@ -4123,7 +4123,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
             "instruction": "sla (ix+*),a"
           }
         },
@@ -4149,7 +4149,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
             "instruction": "sla (ix+*),a"
           }
         },
@@ -4177,7 +4177,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in B.",
             "instruction": "sra (ix+*),b"
           }
         },
@@ -4205,7 +4205,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in C.",
             "instruction": "sra (ix+*),c"
           }
         },
@@ -4233,7 +4233,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in D.",
             "instruction": "sra (ix+*),d"
           }
         },
@@ -4261,7 +4261,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in E.",
             "instruction": "sra (ix+*),e"
           }
         },
@@ -4289,7 +4289,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in H.",
             "instruction": "sra (ix+*),h"
           }
         },
@@ -4317,7 +4317,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in L.",
             "instruction": "sra (ix+*),l"
           }
         },
@@ -4345,7 +4345,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
             "instruction": "sra (ix+*),a"
           }
         },
@@ -4371,7 +4371,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
             "instruction": "sra (ix+*),a"
           }
         },
@@ -4399,7 +4399,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in B.",
             "instruction": "sll (ix+*),b"
           }
         },
@@ -4427,7 +4427,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in C.",
             "instruction": "sll (ix+*),c"
           }
         },
@@ -4455,7 +4455,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in D.",
             "instruction": "sll (ix+*),d"
           }
         },
@@ -4483,7 +4483,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in E.",
             "instruction": "sll (ix+*),e"
           }
         },
@@ -4511,7 +4511,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in H.",
             "instruction": "sll (ix+*),h"
           }
         },
@@ -4539,7 +4539,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in L.",
             "instruction": "sll (ix+*),l"
           }
         },
@@ -4567,7 +4567,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
             "instruction": "sll (ix+*),a"
           }
         },
@@ -4593,7 +4593,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
             "instruction": "sll (ix+*),a"
           }
         },
@@ -4621,7 +4621,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in B.",
             "instruction": "srl (ix+*),b"
           }
         },
@@ -4649,7 +4649,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in C.",
             "instruction": "srl (ix+*),c"
           }
         },
@@ -4677,7 +4677,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in D.",
             "instruction": "srl (ix+*),d"
           }
         },
@@ -4705,7 +4705,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in E.",
             "instruction": "srl (ix+*),e"
           }
         },
@@ -4733,7 +4733,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in H.",
             "instruction": "srl (ix+*),h"
           }
         },
@@ -4761,7 +4761,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in L.",
             "instruction": "srl (ix+*),l"
           }
         },
@@ -4789,7 +4789,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
             "instruction": "srl (ix+*),a"
           }
         },
@@ -4815,7 +4815,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
             "instruction": "srl (ix+*),a"
           }
         },
@@ -4845,7 +4845,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "res 0,(ix+*),b"
           }
         },
@@ -4875,7 +4875,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "res 0,(ix+*),c"
           }
         },
@@ -4905,7 +4905,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "res 0,(ix+*),d"
           }
         },
@@ -4935,7 +4935,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "res 0,(ix+*),e"
           }
         },
@@ -4965,7 +4965,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "res 0,(ix+*),h"
           }
         },
@@ -4995,7 +4995,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "res 0,(ix+*),l"
           }
         },
@@ -5025,7 +5025,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "res 0,(ix+*),a"
           }
         },
@@ -5053,7 +5053,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "res 0,(ix+*),a"
           }
         },
@@ -5083,7 +5083,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "res 1,(ix+*),b"
           }
         },
@@ -5113,7 +5113,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "res 1,(ix+*),c"
           }
         },
@@ -5143,7 +5143,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "res 1,(ix+*),d"
           }
         },
@@ -5173,7 +5173,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "res 1,(ix+*),e"
           }
         },
@@ -5203,7 +5203,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "res 1,(ix+*),h"
           }
         },
@@ -5233,7 +5233,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "res 1,(ix+*),l"
           }
         },
@@ -5263,7 +5263,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "res 1,(ix+*),a"
           }
         },
@@ -5291,7 +5291,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "res 1,(ix+*),a"
           }
         },
@@ -5321,7 +5321,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "res 2,(ix+*),b"
           }
         },
@@ -5351,7 +5351,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "res 2,(ix+*),c"
           }
         },
@@ -5381,7 +5381,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "res 2,(ix+*),d"
           }
         },
@@ -5411,7 +5411,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "res 2,(ix+*),e"
           }
         },
@@ -5441,7 +5441,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "res 2,(ix+*),h"
           }
         },
@@ -5471,7 +5471,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "res 2,(ix+*),l"
           }
         },
@@ -5501,7 +5501,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "res 2,(ix+*),a"
           }
         },
@@ -5529,7 +5529,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "res 2,(ix+*),a"
           }
         },
@@ -5559,7 +5559,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "res 3,(ix+*),b"
           }
         },
@@ -5589,7 +5589,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "res 3,(ix+*),c"
           }
         },
@@ -5619,7 +5619,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "res 3,(ix+*),d"
           }
         },
@@ -5649,7 +5649,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "res 3,(ix+*),e"
           }
         },
@@ -5679,7 +5679,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "res 3,(ix+*),h"
           }
         },
@@ -5709,7 +5709,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "res 3,(ix+*),l"
           }
         },
@@ -5739,7 +5739,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "res 3,(ix+*),a"
           }
         },
@@ -5767,7 +5767,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "res 3,(ix+*),a"
           }
         },
@@ -5797,7 +5797,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "res 4,(ix+*),b"
           }
         },
@@ -5827,7 +5827,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "res 4,(ix+*),c"
           }
         },
@@ -5857,7 +5857,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "res 4,(ix+*),d"
           }
         },
@@ -5887,7 +5887,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "res 4,(ix+*),e"
           }
         },
@@ -5917,7 +5917,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "res 4,(ix+*),h"
           }
         },
@@ -5947,7 +5947,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "res 4,(ix+*),l"
           }
         },
@@ -5977,7 +5977,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "res 4,(ix+*),a"
           }
         },
@@ -6005,7 +6005,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "res 4,(ix+*),a"
           }
         },
@@ -6035,7 +6035,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "res 5,(ix+*),b"
           }
         },
@@ -6065,7 +6065,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "res 5,(ix+*),c"
           }
         },
@@ -6095,7 +6095,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "res 5,(ix+*),d"
           }
         },
@@ -6125,7 +6125,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "res 5,(ix+*),e"
           }
         },
@@ -6155,7 +6155,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "res 5,(ix+*),h"
           }
         },
@@ -6185,7 +6185,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "res 5,(ix+*),l"
           }
         },
@@ -6215,7 +6215,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "res 5,(ix+*),a"
           }
         },
@@ -6243,7 +6243,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "res 5,(ix+*),a"
           }
         },
@@ -6273,7 +6273,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "res 6,(ix+*),b"
           }
         },
@@ -6303,7 +6303,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "res 6,(ix+*),c"
           }
         },
@@ -6333,7 +6333,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "res 6,(ix+*),d"
           }
         },
@@ -6363,7 +6363,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "res 6,(ix+*),e"
           }
         },
@@ -6393,7 +6393,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "res 6,(ix+*),h"
           }
         },
@@ -6423,7 +6423,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "res 6,(ix+*),l"
           }
         },
@@ -6453,7 +6453,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "res 6,(ix+*),a"
           }
         },
@@ -6481,7 +6481,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "res 6,(ix+*),a"
           }
         },
@@ -6511,7 +6511,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "res 7,(ix+*),b"
           }
         },
@@ -6541,7 +6541,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "res 7,(ix+*),c"
           }
         },
@@ -6571,7 +6571,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "res 7,(ix+*),d"
           }
         },
@@ -6601,7 +6601,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "res 7,(ix+*),e"
           }
         },
@@ -6631,7 +6631,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "res 7,(ix+*),h"
           }
         },
@@ -6661,7 +6661,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "res 7,(ix+*),l"
           }
         },
@@ -6691,7 +6691,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "res 7,(ix+*),a"
           }
         },
@@ -6719,7 +6719,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "res 7,(ix+*),a"
           }
         },
@@ -6749,7 +6749,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "set 0,(ix+*),b"
           }
         },
@@ -6779,7 +6779,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "set 0,(ix+*),c"
           }
         },
@@ -6809,7 +6809,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "set 0,(ix+*),d"
           }
         },
@@ -6839,7 +6839,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "set 0,(ix+*),e"
           }
         },
@@ -6869,7 +6869,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "set 0,(ix+*),h"
           }
         },
@@ -6899,7 +6899,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "set 0,(ix+*),l"
           }
         },
@@ -6929,7 +6929,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "set 0,(ix+*),a"
           }
         },
@@ -6957,7 +6957,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "set 0,(ix+*),a"
           }
         },
@@ -6987,7 +6987,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "set 1,(ix+*),b"
           }
         },
@@ -7017,7 +7017,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "set 1,(ix+*),c"
           }
         },
@@ -7047,7 +7047,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "set 1,(ix+*),d"
           }
         },
@@ -7077,7 +7077,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "set 1,(ix+*),e"
           }
         },
@@ -7107,7 +7107,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "set 1,(ix+*),h"
           }
         },
@@ -7137,7 +7137,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "set 1,(ix+*),l"
           }
         },
@@ -7167,7 +7167,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "set 1,(ix+*),a"
           }
         },
@@ -7195,7 +7195,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "set 1,(ix+*),a"
           }
         },
@@ -7225,7 +7225,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "set 2,(ix+*),b"
           }
         },
@@ -7255,7 +7255,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "set 2,(ix+*),c"
           }
         },
@@ -7285,7 +7285,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "set 2,(ix+*),d"
           }
         },
@@ -7315,7 +7315,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "set 2,(ix+*),e"
           }
         },
@@ -7345,7 +7345,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "set 2,(ix+*),h"
           }
         },
@@ -7375,7 +7375,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "set 2,(ix+*),l"
           }
         },
@@ -7405,7 +7405,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "set 2,(ix+*),a"
           }
         },
@@ -7433,7 +7433,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "set 2,(ix+*),a"
           }
         },
@@ -7463,7 +7463,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "set 3,(ix+*),b"
           }
         },
@@ -7493,7 +7493,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "set 3,(ix+*),c"
           }
         },
@@ -7523,7 +7523,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "set 3,(ix+*),d"
           }
         },
@@ -7553,7 +7553,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "set 3,(ix+*),e"
           }
         },
@@ -7583,7 +7583,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "set 3,(ix+*),h"
           }
         },
@@ -7613,7 +7613,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "set 3,(ix+*),l"
           }
         },
@@ -7643,7 +7643,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "set 3,(ix+*),a"
           }
         },
@@ -7671,7 +7671,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "set 3,(ix+*),a"
           }
         },
@@ -7701,7 +7701,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "set 4,(ix+*),b"
           }
         },
@@ -7731,7 +7731,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "set 4,(ix+*),c"
           }
         },
@@ -7761,7 +7761,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "set 4,(ix+*),d"
           }
         },
@@ -7791,7 +7791,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "set 4,(ix+*),e"
           }
         },
@@ -7821,7 +7821,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "set 4,(ix+*),h"
           }
         },
@@ -7851,7 +7851,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "set 4,(ix+*),l"
           }
         },
@@ -7881,7 +7881,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "set 4,(ix+*),a"
           }
         },
@@ -7909,7 +7909,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "set 4,(ix+*),a"
           }
         },
@@ -7939,7 +7939,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "set 5,(ix+*),b"
           }
         },
@@ -7969,7 +7969,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "set 5,(ix+*),c"
           }
         },
@@ -7999,7 +7999,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "set 5,(ix+*),d"
           }
         },
@@ -8029,7 +8029,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "set 5,(ix+*),e"
           }
         },
@@ -8059,7 +8059,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "set 5,(ix+*),h"
           }
         },
@@ -8089,7 +8089,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "set 5,(ix+*),l"
           }
         },
@@ -8119,7 +8119,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "set 5,(ix+*),a"
           }
         },
@@ -8147,7 +8147,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "set 5,(ix+*),a"
           }
         },
@@ -8177,7 +8177,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "set 6,(ix+*),b"
           }
         },
@@ -8207,7 +8207,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "set 6,(ix+*),c"
           }
         },
@@ -8237,7 +8237,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "set 6,(ix+*),d"
           }
         },
@@ -8267,7 +8267,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "set 6,(ix+*),e"
           }
         },
@@ -8297,7 +8297,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "set 6,(ix+*),h"
           }
         },
@@ -8327,7 +8327,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "set 6,(ix+*),l"
           }
         },
@@ -8357,7 +8357,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "set 6,(ix+*),a"
           }
         },
@@ -8385,7 +8385,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "set 6,(ix+*),a"
           }
         },
@@ -8415,7 +8415,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "set 7,(ix+*),b"
           }
         },
@@ -8445,7 +8445,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "set 7,(ix+*),c"
           }
         },
@@ -8475,7 +8475,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "set 7,(ix+*),d"
           }
         },
@@ -8505,7 +8505,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "set 7,(ix+*),e"
           }
         },
@@ -8535,7 +8535,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "set 7,(ix+*),h"
           }
         },
@@ -8565,7 +8565,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "set 7,(ix+*),l"
           }
         },
@@ -8595,7 +8595,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "set 7,(ix+*),a"
           }
         },
@@ -8623,7 +8623,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "set 7,(ix+*),a"
           }
         },
@@ -8644,7 +8644,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Loads the value of ix into sp.",
+            "description": "Loads the value of IX into SP.",
             "instruction": "ld sp,ix"
           }
         },
@@ -8668,7 +8668,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Stores bc into the memory location pointed to by **.",
+            "description": "Stores BC into the memory location pointed to by **.",
             "instruction": "ld (**),bc"
           }
         },
@@ -8689,7 +8689,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 9,
             "without_jump_clock_count": 9,
-            "description": "Stores the value of a into register i or r.",
+            "description": "Stores the value of A into register i or r.",
             "instruction": "ld i,a"
           }
         },
@@ -8713,7 +8713,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Loads the value pointed to by ** into bc.",
+            "description": "Loads the value pointed to by ** into BC.",
             "instruction": "ld bc,(**)"
           }
         },
@@ -8734,7 +8734,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 9,
             "without_jump_clock_count": 9,
-            "description": "Stores the value of a into register i or r.",
+            "description": "Stores the value of A into register i or r.",
             "instruction": "ld r,a"
           }
         },
@@ -8758,7 +8758,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Stores de into the memory location pointed to by **.",
+            "description": "Stores DE into the memory location pointed to by **.",
             "instruction": "ld (**),de"
           }
         },
@@ -8779,7 +8779,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 9,
             "without_jump_clock_count": 9,
-            "description": "Stores the value of register i or r into a.",
+            "description": "Stores the value of register i or r into A.",
             "instruction": "ld a,i"
           }
         },
@@ -8798,7 +8798,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 9,
             "without_jump_clock_count": 9,
-            "description": "Stores the value of register i or r into a.",
+            "description": "Stores the value of register i or r into A.",
             "instruction": "ld a,i"
           }
         },
@@ -8822,7 +8822,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Loads the value pointed to by ** into de.",
+            "description": "Loads the value pointed to by ** into DE.",
             "instruction": "ld de,(**)"
           }
         },
@@ -8843,7 +8843,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 9,
             "without_jump_clock_count": 9,
-            "description": "Stores the value of register i or r into a.",
+            "description": "Stores the value of register i or r into A.",
             "instruction": "ld a,r"
           }
         },
@@ -8862,7 +8862,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 9,
             "without_jump_clock_count": 9,
-            "description": "Stores the value of register i or r into a.",
+            "description": "Stores the value of register i or r into A.",
             "instruction": "ld a,r"
           }
         },
@@ -8886,7 +8886,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Stores hl into the memory location pointed to by **.",
+            "description": "Stores HL into the memory location pointed to by **.",
             "instruction": "ld (**),hl"
           }
         },
@@ -8910,7 +8910,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Loads the value pointed to by ** into hl.",
+            "description": "Loads the value pointed to by ** into HL.",
             "instruction": "ld hl,(**)"
           }
         },
@@ -8934,7 +8934,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Stores sp into the memory location pointed to by **.",
+            "description": "Stores SP into the memory location pointed to by **.",
             "instruction": "ld (**),sp"
           }
         },
@@ -8958,7 +8958,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Loads the value pointed to by ** into sp.",
+            "description": "Loads the value pointed to by ** into SP.",
             "instruction": "ld sp,(**)"
           }
         },
@@ -8978,7 +8978,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 6,
             "without_jump_clock_count": 6,
-            "description": "Loads the value of hl into sp.",
+            "description": "Loads the value of HL into SP.",
             "instruction": "ld sp,hl"
           }
         },
@@ -9000,7 +9000,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 14,
             "without_jump_clock_count": 14,
-            "description": "Loads ** into register iy.",
+            "description": "Loads ** into register IY.",
             "instruction": "ld iy,**"
           }
         },
@@ -9024,7 +9024,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Stores iy into the memory location pointed to by **.",
+            "description": "Stores IY into the memory location pointed to by **.",
             "instruction": "ld (**),iy"
           }
         },
@@ -9046,7 +9046,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "Loads * into iyh.",
+            "description": "Loads * into IYH.",
             "instruction": "ld iyh,*"
           }
         },
@@ -9070,7 +9070,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Loads the value pointed to by ** into iy.",
+            "description": "Loads the value pointed to by ** into IY.",
             "instruction": "ld iy,(**)"
           }
         },
@@ -9092,7 +9092,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "Loads * into iyl.",
+            "description": "Loads * into IYL.",
             "instruction": "ld iyl,*"
           }
         },
@@ -9119,7 +9119,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores * to the memory location pointed to by iy plus *.",
+            "description": "Stores * to the memory location pointed to by IY plus *.",
             "instruction": "ld (iy+*),*"
           }
         },
@@ -9140,7 +9140,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyh are loaded into b.",
+            "description": "The contents of IYH are loaded into B.",
             "instruction": "ld b,iyh"
           }
         },
@@ -9161,7 +9161,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyl are loaded into b.",
+            "description": "The contents of IYL are loaded into B.",
             "instruction": "ld b,iyl"
           }
         },
@@ -9187,7 +9187,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by iy plus * into b.",
+            "description": "Loads the value pointed to by IY plus * into B.",
             "instruction": "ld b,(iy+*)"
           }
         },
@@ -9208,7 +9208,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyh are loaded into c.",
+            "description": "The contents of IYH are loaded into C.",
             "instruction": "ld c,iyh"
           }
         },
@@ -9229,7 +9229,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyl are loaded into c.",
+            "description": "The contents of IYL are loaded into C.",
             "instruction": "ld c,iyl"
           }
         },
@@ -9255,7 +9255,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by iy plus * into c.",
+            "description": "Loads the value pointed to by IY plus * into C.",
             "instruction": "ld c,(iy+*)"
           }
         },
@@ -9276,7 +9276,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyh are loaded into d.",
+            "description": "The contents of IYH are loaded into D.",
             "instruction": "ld d,iyh"
           }
         },
@@ -9297,7 +9297,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyl are loaded into d.",
+            "description": "The contents of IYL are loaded into D.",
             "instruction": "ld d,iyl"
           }
         },
@@ -9323,7 +9323,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by iy plus * into d.",
+            "description": "Loads the value pointed to by IY plus * into D.",
             "instruction": "ld d,(iy+*)"
           }
         },
@@ -9344,7 +9344,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyh are loaded into e.",
+            "description": "The contents of IYH are loaded into E.",
             "instruction": "ld e,iyh"
           }
         },
@@ -9365,7 +9365,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyl are loaded into e.",
+            "description": "The contents of IYL are loaded into E.",
             "instruction": "ld e,iyl"
           }
         },
@@ -9391,7 +9391,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by iy plus * into e.",
+            "description": "Loads the value pointed to by IY plus * into E.",
             "instruction": "ld e,(iy+*)"
           }
         },
@@ -9412,7 +9412,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are loaded into iyh.",
+            "description": "The contents of B are loaded into IYH.",
             "instruction": "ld iyh,b"
           }
         },
@@ -9433,7 +9433,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are loaded into iyh.",
+            "description": "The contents of C are loaded into IYH.",
             "instruction": "ld iyh,c"
           }
         },
@@ -9454,7 +9454,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are loaded into iyh.",
+            "description": "The contents of D are loaded into IYH.",
             "instruction": "ld iyh,d"
           }
         },
@@ -9475,7 +9475,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are loaded into iyh.",
+            "description": "The contents of E are loaded into IYH.",
             "instruction": "ld iyh,e"
           }
         },
@@ -9496,7 +9496,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyh are loaded into iyh.",
+            "description": "The contents of IYH are loaded into IYH.",
             "instruction": "ld iyh,iyh"
           }
         },
@@ -9517,7 +9517,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyl are loaded into iyh.",
+            "description": "The contents of IYL are loaded into IYH.",
             "instruction": "ld iyh,iyl"
           }
         },
@@ -9543,7 +9543,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by iy plus * into h.",
+            "description": "Loads the value pointed to by IY plus * into H.",
             "instruction": "ld h,(iy+*)"
           }
         },
@@ -9564,7 +9564,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are loaded into iyh.",
+            "description": "The contents of A are loaded into IYH.",
             "instruction": "ld iyh,a"
           }
         },
@@ -9585,7 +9585,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are loaded into iyl.",
+            "description": "The contents of B are loaded into IYL.",
             "instruction": "ld iyl,b"
           }
         },
@@ -9606,7 +9606,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are loaded into iyl.",
+            "description": "The contents of C are loaded into IYL.",
             "instruction": "ld iyl,c"
           }
         },
@@ -9627,7 +9627,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are loaded into iyl.",
+            "description": "The contents of D are loaded into IYL.",
             "instruction": "ld iyl,d"
           }
         },
@@ -9648,7 +9648,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are loaded into iyl.",
+            "description": "The contents of E are loaded into IYL.",
             "instruction": "ld iyl,e"
           }
         },
@@ -9669,7 +9669,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyh are loaded into iyl.",
+            "description": "The contents of IYH are loaded into IYL.",
             "instruction": "ld iyl,iyh"
           }
         },
@@ -9690,7 +9690,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyl are loaded into iyl.",
+            "description": "The contents of IYL are loaded into IYL.",
             "instruction": "ld iyl,iyl"
           }
         },
@@ -9716,7 +9716,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by iy plus * into l.",
+            "description": "Loads the value pointed to by IY plus * into L.",
             "instruction": "ld l,(iy+*)"
           }
         },
@@ -9737,7 +9737,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are loaded into iyl.",
+            "description": "The contents of A are loaded into IYL.",
             "instruction": "ld iyl,a"
           }
         },
@@ -9763,7 +9763,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores b to the memory location pointed to by iy plus *.",
+            "description": "Stores B to the memory location pointed to by IY plus *.",
             "instruction": "ld (iy+*),b"
           }
         },
@@ -9789,7 +9789,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores c to the memory location pointed to by iy plus *.",
+            "description": "Stores C to the memory location pointed to by IY plus *.",
             "instruction": "ld (iy+*),c"
           }
         },
@@ -9815,7 +9815,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores d to the memory location pointed to by iy plus *.",
+            "description": "Stores D to the memory location pointed to by IY plus *.",
             "instruction": "ld (iy+*),d"
           }
         },
@@ -9841,7 +9841,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores e to the memory location pointed to by iy plus *.",
+            "description": "Stores E to the memory location pointed to by IY plus *.",
             "instruction": "ld (iy+*),e"
           }
         },
@@ -9867,7 +9867,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores h to the memory location pointed to by iy plus *.",
+            "description": "Stores H to the memory location pointed to by IY plus *.",
             "instruction": "ld (iy+*),h"
           }
         },
@@ -9893,7 +9893,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores l to the memory location pointed to by iy plus *.",
+            "description": "Stores L to the memory location pointed to by IY plus *.",
             "instruction": "ld (iy+*),l"
           }
         },
@@ -9919,7 +9919,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Stores a to the memory location pointed to by iy plus *.",
+            "description": "Stores A to the memory location pointed to by IY plus *.",
             "instruction": "ld (iy+*),a"
           }
         },
@@ -9940,7 +9940,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyh are loaded into a.",
+            "description": "The contents of IYH are loaded into A.",
             "instruction": "ld a,iyh"
           }
         },
@@ -9959,7 +9959,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyh are loaded into a.",
+            "description": "The contents of IYH are loaded into A.",
             "instruction": "ld a,iyh"
           }
         },
@@ -9980,7 +9980,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyl are loaded into a.",
+            "description": "The contents of IYL are loaded into A.",
             "instruction": "ld a,iyl"
           }
         },
@@ -9999,7 +9999,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of iyl are loaded into a.",
+            "description": "The contents of IYL are loaded into A.",
             "instruction": "ld a,iyl"
           }
         },
@@ -10025,7 +10025,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by iy plus * into a.",
+            "description": "Loads the value pointed to by IY plus * into A.",
             "instruction": "ld a,(iy+*)"
           }
         },
@@ -10049,7 +10049,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Loads the value pointed to by iy plus * into a.",
+            "description": "Loads the value pointed to by IY plus * into A.",
             "instruction": "ld a,(iy+*)"
           }
         },
@@ -10077,7 +10077,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in B.",
             "instruction": "rlc (iy+*),b"
           }
         },
@@ -10105,7 +10105,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in C.",
             "instruction": "rlc (iy+*),c"
           }
         },
@@ -10133,7 +10133,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in D.",
             "instruction": "rlc (iy+*),d"
           }
         },
@@ -10161,7 +10161,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in E.",
             "instruction": "rlc (iy+*),e"
           }
         },
@@ -10189,7 +10189,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in H.",
             "instruction": "rlc (iy+*),h"
           }
         },
@@ -10217,7 +10217,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in L.",
             "instruction": "rlc (iy+*),l"
           }
         },
@@ -10245,7 +10245,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
             "instruction": "rlc (iy+*),a"
           }
         },
@@ -10271,7 +10271,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
             "instruction": "rlc (iy+*),a"
           }
         },
@@ -10299,7 +10299,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in B.",
             "instruction": "rrc (iy+*),b"
           }
         },
@@ -10327,7 +10327,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in C.",
             "instruction": "rrc (iy+*),c"
           }
         },
@@ -10355,7 +10355,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in D.",
             "instruction": "rrc (iy+*),d"
           }
         },
@@ -10383,7 +10383,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in E.",
             "instruction": "rrc (iy+*),e"
           }
         },
@@ -10411,7 +10411,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in H.",
             "instruction": "rrc (iy+*),h"
           }
         },
@@ -10439,7 +10439,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in L.",
             "instruction": "rrc (iy+*),l"
           }
         },
@@ -10467,7 +10467,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
             "instruction": "rrc (iy+*),a"
           }
         },
@@ -10493,7 +10493,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
             "instruction": "rrc (iy+*),a"
           }
         },
@@ -10521,7 +10521,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in B.",
             "instruction": "rl (iy+*),b"
           }
         },
@@ -10549,7 +10549,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in C.",
             "instruction": "rl (iy+*),c"
           }
         },
@@ -10577,7 +10577,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in D.",
             "instruction": "rl (iy+*),d"
           }
         },
@@ -10605,7 +10605,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in E.",
             "instruction": "rl (iy+*),e"
           }
         },
@@ -10633,7 +10633,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in H.",
             "instruction": "rl (iy+*),h"
           }
         },
@@ -10661,7 +10661,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in L.",
             "instruction": "rl (iy+*),l"
           }
         },
@@ -10689,7 +10689,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
             "instruction": "rl (iy+*),a"
           }
         },
@@ -10715,7 +10715,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
             "instruction": "rl (iy+*),a"
           }
         },
@@ -10743,7 +10743,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in B.",
             "instruction": "rr (iy+*),b"
           }
         },
@@ -10771,7 +10771,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in C.",
             "instruction": "rr (iy+*),c"
           }
         },
@@ -10799,7 +10799,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in D.",
             "instruction": "rr (iy+*),d"
           }
         },
@@ -10827,7 +10827,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in E.",
             "instruction": "rr (iy+*),e"
           }
         },
@@ -10855,7 +10855,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in H.",
             "instruction": "rr (iy+*),h"
           }
         },
@@ -10883,7 +10883,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in L.",
             "instruction": "rr (iy+*),l"
           }
         },
@@ -10911,7 +10911,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
             "instruction": "rr (iy+*),a"
           }
         },
@@ -10937,7 +10937,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
             "instruction": "rr (iy+*),a"
           }
         },
@@ -10965,7 +10965,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in B.",
             "instruction": "sla (iy+*),b"
           }
         },
@@ -10993,7 +10993,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in C.",
             "instruction": "sla (iy+*),c"
           }
         },
@@ -11021,7 +11021,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in D.",
             "instruction": "sla (iy+*),d"
           }
         },
@@ -11049,7 +11049,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in E.",
             "instruction": "sla (iy+*),e"
           }
         },
@@ -11077,7 +11077,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in H.",
             "instruction": "sla (iy+*),h"
           }
         },
@@ -11105,7 +11105,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in L.",
             "instruction": "sla (iy+*),l"
           }
         },
@@ -11133,7 +11133,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
             "instruction": "sla (iy+*),a"
           }
         },
@@ -11159,7 +11159,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
             "instruction": "sla (iy+*),a"
           }
         },
@@ -11187,7 +11187,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in B.",
             "instruction": "sra (iy+*),b"
           }
         },
@@ -11215,7 +11215,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in C.",
             "instruction": "sra (iy+*),c"
           }
         },
@@ -11243,7 +11243,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in D.",
             "instruction": "sra (iy+*),d"
           }
         },
@@ -11271,7 +11271,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in E.",
             "instruction": "sra (iy+*),e"
           }
         },
@@ -11299,7 +11299,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in H.",
             "instruction": "sra (iy+*),h"
           }
         },
@@ -11327,7 +11327,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in L.",
             "instruction": "sra (iy+*),l"
           }
         },
@@ -11355,7 +11355,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
             "instruction": "sra (iy+*),a"
           }
         },
@@ -11381,7 +11381,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
             "instruction": "sra (iy+*),a"
           }
         },
@@ -11409,7 +11409,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in B.",
             "instruction": "sll (iy+*),b"
           }
         },
@@ -11437,7 +11437,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in C.",
             "instruction": "sll (iy+*),c"
           }
         },
@@ -11465,7 +11465,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in D.",
             "instruction": "sll (iy+*),d"
           }
         },
@@ -11493,7 +11493,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in E.",
             "instruction": "sll (iy+*),e"
           }
         },
@@ -11521,7 +11521,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in H.",
             "instruction": "sll (iy+*),h"
           }
         },
@@ -11549,7 +11549,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in L.",
             "instruction": "sll (iy+*),l"
           }
         },
@@ -11577,7 +11577,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
             "instruction": "sll (iy+*),a"
           }
         },
@@ -11603,7 +11603,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
             "instruction": "sll (iy+*),a"
           }
         },
@@ -11631,7 +11631,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in b.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in B.",
             "instruction": "srl (iy+*),b"
           }
         },
@@ -11659,7 +11659,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in c.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in C.",
             "instruction": "srl (iy+*),c"
           }
         },
@@ -11687,7 +11687,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in d.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in D.",
             "instruction": "srl (iy+*),d"
           }
         },
@@ -11715,7 +11715,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in e.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in E.",
             "instruction": "srl (iy+*),e"
           }
         },
@@ -11743,7 +11743,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in h.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in H.",
             "instruction": "srl (iy+*),h"
           }
         },
@@ -11771,7 +11771,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in l.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in L.",
             "instruction": "srl (iy+*),l"
           }
         },
@@ -11799,7 +11799,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
             "instruction": "srl (iy+*),a"
           }
         },
@@ -11825,7 +11825,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in a.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
             "instruction": "srl (iy+*),a"
           }
         },
@@ -11855,7 +11855,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "res 0,(iy+*),b"
           }
         },
@@ -11885,7 +11885,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "res 0,(iy+*),c"
           }
         },
@@ -11915,7 +11915,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "res 0,(iy+*),d"
           }
         },
@@ -11945,7 +11945,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "res 0,(iy+*),e"
           }
         },
@@ -11975,7 +11975,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "res 0,(iy+*),h"
           }
         },
@@ -12005,7 +12005,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "res 0,(iy+*),l"
           }
         },
@@ -12035,7 +12035,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "res 0,(iy+*),a"
           }
         },
@@ -12063,7 +12063,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "res 0,(iy+*),a"
           }
         },
@@ -12093,7 +12093,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "res 1,(iy+*),b"
           }
         },
@@ -12123,7 +12123,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "res 1,(iy+*),c"
           }
         },
@@ -12153,7 +12153,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "res 1,(iy+*),d"
           }
         },
@@ -12183,7 +12183,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "res 1,(iy+*),e"
           }
         },
@@ -12213,7 +12213,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "res 1,(iy+*),h"
           }
         },
@@ -12243,7 +12243,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "res 1,(iy+*),l"
           }
         },
@@ -12273,7 +12273,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "res 1,(iy+*),a"
           }
         },
@@ -12301,7 +12301,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "res 1,(iy+*),a"
           }
         },
@@ -12331,7 +12331,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "res 2,(iy+*),b"
           }
         },
@@ -12361,7 +12361,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "res 2,(iy+*),c"
           }
         },
@@ -12391,7 +12391,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "res 2,(iy+*),d"
           }
         },
@@ -12421,7 +12421,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "res 2,(iy+*),e"
           }
         },
@@ -12451,7 +12451,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "res 2,(iy+*),h"
           }
         },
@@ -12481,7 +12481,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "res 2,(iy+*),l"
           }
         },
@@ -12511,7 +12511,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "res 2,(iy+*),a"
           }
         },
@@ -12539,7 +12539,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "res 2,(iy+*),a"
           }
         },
@@ -12569,7 +12569,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "res 3,(iy+*),b"
           }
         },
@@ -12599,7 +12599,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "res 3,(iy+*),c"
           }
         },
@@ -12629,7 +12629,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "res 3,(iy+*),d"
           }
         },
@@ -12659,7 +12659,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "res 3,(iy+*),e"
           }
         },
@@ -12689,7 +12689,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "res 3,(iy+*),h"
           }
         },
@@ -12719,7 +12719,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "res 3,(iy+*),l"
           }
         },
@@ -12749,7 +12749,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "res 3,(iy+*),a"
           }
         },
@@ -12777,7 +12777,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "res 3,(iy+*),a"
           }
         },
@@ -12807,7 +12807,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "res 4,(iy+*),b"
           }
         },
@@ -12837,7 +12837,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "res 4,(iy+*),c"
           }
         },
@@ -12867,7 +12867,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "res 4,(iy+*),d"
           }
         },
@@ -12897,7 +12897,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "res 4,(iy+*),e"
           }
         },
@@ -12927,7 +12927,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "res 4,(iy+*),h"
           }
         },
@@ -12957,7 +12957,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "res 4,(iy+*),l"
           }
         },
@@ -12987,7 +12987,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "res 4,(iy+*),a"
           }
         },
@@ -13015,7 +13015,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "res 4,(iy+*),a"
           }
         },
@@ -13045,7 +13045,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "res 5,(iy+*),b"
           }
         },
@@ -13075,7 +13075,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "res 5,(iy+*),c"
           }
         },
@@ -13105,7 +13105,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "res 5,(iy+*),d"
           }
         },
@@ -13135,7 +13135,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "res 5,(iy+*),e"
           }
         },
@@ -13165,7 +13165,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "res 5,(iy+*),h"
           }
         },
@@ -13195,7 +13195,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "res 5,(iy+*),l"
           }
         },
@@ -13225,7 +13225,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "res 5,(iy+*),a"
           }
         },
@@ -13253,7 +13253,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "res 5,(iy+*),a"
           }
         },
@@ -13283,7 +13283,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "res 6,(iy+*),b"
           }
         },
@@ -13313,7 +13313,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "res 6,(iy+*),c"
           }
         },
@@ -13343,7 +13343,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "res 6,(iy+*),d"
           }
         },
@@ -13373,7 +13373,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "res 6,(iy+*),e"
           }
         },
@@ -13403,7 +13403,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "res 6,(iy+*),h"
           }
         },
@@ -13433,7 +13433,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "res 6,(iy+*),l"
           }
         },
@@ -13463,7 +13463,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "res 6,(iy+*),a"
           }
         },
@@ -13491,7 +13491,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "res 6,(iy+*),a"
           }
         },
@@ -13521,7 +13521,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "res 7,(iy+*),b"
           }
         },
@@ -13551,7 +13551,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "res 7,(iy+*),c"
           }
         },
@@ -13581,7 +13581,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "res 7,(iy+*),d"
           }
         },
@@ -13611,7 +13611,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "res 7,(iy+*),e"
           }
         },
@@ -13641,7 +13641,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "res 7,(iy+*),h"
           }
         },
@@ -13671,7 +13671,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "res 7,(iy+*),l"
           }
         },
@@ -13701,7 +13701,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "res 7,(iy+*),a"
           }
         },
@@ -13729,7 +13729,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "res 7,(iy+*),a"
           }
         },
@@ -13759,7 +13759,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "set 0,(iy+*),b"
           }
         },
@@ -13789,7 +13789,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "set 0,(iy+*),c"
           }
         },
@@ -13819,7 +13819,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "set 0,(iy+*),d"
           }
         },
@@ -13849,7 +13849,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "set 0,(iy+*),e"
           }
         },
@@ -13879,7 +13879,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "set 0,(iy+*),h"
           }
         },
@@ -13909,7 +13909,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "set 0,(iy+*),l"
           }
         },
@@ -13939,7 +13939,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "set 0,(iy+*),a"
           }
         },
@@ -13967,7 +13967,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "set 0,(iy+*),a"
           }
         },
@@ -13997,7 +13997,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "set 1,(iy+*),b"
           }
         },
@@ -14027,7 +14027,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "set 1,(iy+*),c"
           }
         },
@@ -14057,7 +14057,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "set 1,(iy+*),d"
           }
         },
@@ -14087,7 +14087,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "set 1,(iy+*),e"
           }
         },
@@ -14117,7 +14117,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "set 1,(iy+*),h"
           }
         },
@@ -14147,7 +14147,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "set 1,(iy+*),l"
           }
         },
@@ -14177,7 +14177,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "set 1,(iy+*),a"
           }
         },
@@ -14205,7 +14205,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "set 1,(iy+*),a"
           }
         },
@@ -14235,7 +14235,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "set 2,(iy+*),b"
           }
         },
@@ -14265,7 +14265,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "set 2,(iy+*),c"
           }
         },
@@ -14295,7 +14295,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "set 2,(iy+*),d"
           }
         },
@@ -14325,7 +14325,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "set 2,(iy+*),e"
           }
         },
@@ -14355,7 +14355,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "set 2,(iy+*),h"
           }
         },
@@ -14385,7 +14385,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "set 2,(iy+*),l"
           }
         },
@@ -14415,7 +14415,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "set 2,(iy+*),a"
           }
         },
@@ -14443,7 +14443,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "set 2,(iy+*),a"
           }
         },
@@ -14473,7 +14473,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "set 3,(iy+*),b"
           }
         },
@@ -14503,7 +14503,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "set 3,(iy+*),c"
           }
         },
@@ -14533,7 +14533,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "set 3,(iy+*),d"
           }
         },
@@ -14563,7 +14563,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "set 3,(iy+*),e"
           }
         },
@@ -14593,7 +14593,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "set 3,(iy+*),h"
           }
         },
@@ -14623,7 +14623,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "set 3,(iy+*),l"
           }
         },
@@ -14653,7 +14653,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "set 3,(iy+*),a"
           }
         },
@@ -14681,7 +14681,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "set 3,(iy+*),a"
           }
         },
@@ -14711,7 +14711,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "set 4,(iy+*),b"
           }
         },
@@ -14741,7 +14741,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "set 4,(iy+*),c"
           }
         },
@@ -14771,7 +14771,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "set 4,(iy+*),d"
           }
         },
@@ -14801,7 +14801,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "set 4,(iy+*),e"
           }
         },
@@ -14831,7 +14831,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "set 4,(iy+*),h"
           }
         },
@@ -14861,7 +14861,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "set 4,(iy+*),l"
           }
         },
@@ -14891,7 +14891,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "set 4,(iy+*),a"
           }
         },
@@ -14919,7 +14919,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "set 4,(iy+*),a"
           }
         },
@@ -14949,7 +14949,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "set 5,(iy+*),b"
           }
         },
@@ -14979,7 +14979,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "set 5,(iy+*),c"
           }
         },
@@ -15009,7 +15009,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "set 5,(iy+*),d"
           }
         },
@@ -15039,7 +15039,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "set 5,(iy+*),e"
           }
         },
@@ -15069,7 +15069,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "set 5,(iy+*),h"
           }
         },
@@ -15099,7 +15099,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "set 5,(iy+*),l"
           }
         },
@@ -15129,7 +15129,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "set 5,(iy+*),a"
           }
         },
@@ -15157,7 +15157,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "set 5,(iy+*),a"
           }
         },
@@ -15187,7 +15187,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "set 6,(iy+*),b"
           }
         },
@@ -15217,7 +15217,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "set 6,(iy+*),c"
           }
         },
@@ -15247,7 +15247,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "set 6,(iy+*),d"
           }
         },
@@ -15277,7 +15277,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "set 6,(iy+*),e"
           }
         },
@@ -15307,7 +15307,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "set 6,(iy+*),h"
           }
         },
@@ -15337,7 +15337,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "set 6,(iy+*),l"
           }
         },
@@ -15367,7 +15367,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "set 6,(iy+*),a"
           }
         },
@@ -15395,7 +15395,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "set 6,(iy+*),a"
           }
         },
@@ -15425,7 +15425,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "set 7,(iy+*),b"
           }
         },
@@ -15455,7 +15455,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "set 7,(iy+*),c"
           }
         },
@@ -15485,7 +15485,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "set 7,(iy+*),d"
           }
         },
@@ -15515,7 +15515,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "set 7,(iy+*),e"
           }
         },
@@ -15545,7 +15545,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "set 7,(iy+*),h"
           }
         },
@@ -15575,7 +15575,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "set 7,(iy+*),l"
           }
         },
@@ -15605,7 +15605,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "set 7,(iy+*),a"
           }
         },
@@ -15633,7 +15633,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "set 7,(iy+*),a"
           }
         },
@@ -15654,7 +15654,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Loads the value of iy into sp.",
+            "description": "Loads the value of IY into SP.",
             "instruction": "ld sp,iy"
           }
         }
@@ -15676,7 +15676,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 6,
             "without_jump_clock_count": 6,
-            "description": "Adds one to bc.",
+            "description": "Adds one to BC.",
             "instruction": "inc bc"
           }
         },
@@ -15694,7 +15694,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds one to b.",
+            "description": "Adds one to B.",
             "instruction": "inc b"
           }
         },
@@ -15712,7 +15712,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds one to c.",
+            "description": "Adds one to C.",
             "instruction": "inc c"
           }
         },
@@ -15730,7 +15730,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 6,
             "without_jump_clock_count": 6,
-            "description": "Adds one to de.",
+            "description": "Adds one to DE.",
             "instruction": "inc de"
           }
         },
@@ -15748,7 +15748,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds one to d.",
+            "description": "Adds one to D.",
             "instruction": "inc d"
           }
         },
@@ -15766,7 +15766,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds one to e.",
+            "description": "Adds one to E.",
             "instruction": "inc e"
           }
         },
@@ -15784,7 +15784,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 6,
             "without_jump_clock_count": 6,
-            "description": "Adds one to hl.",
+            "description": "Adds one to HL.",
             "instruction": "inc hl"
           }
         },
@@ -15802,7 +15802,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds one to h.",
+            "description": "Adds one to H.",
             "instruction": "inc h"
           }
         },
@@ -15820,7 +15820,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds one to l.",
+            "description": "Adds one to L.",
             "instruction": "inc l"
           }
         },
@@ -15838,7 +15838,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 6,
             "without_jump_clock_count": 6,
-            "description": "Adds one to sp.",
+            "description": "Adds one to SP.",
             "instruction": "inc sp"
           }
         },
@@ -15858,7 +15858,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "Adds one to (hl).",
+            "description": "Adds one to (HL).",
             "instruction": "inc (hl)"
           }
         },
@@ -15876,7 +15876,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds one to a.",
+            "description": "Adds one to A.",
             "instruction": "inc a"
           }
         },
@@ -15895,7 +15895,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Adds one to ix.",
+            "description": "Adds one to IX.",
             "instruction": "inc ix"
           }
         },
@@ -15914,7 +15914,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds one to ixh.",
+            "description": "Adds one to IXH.",
             "instruction": "inc ixh"
           }
         },
@@ -15933,7 +15933,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds one to ixl.",
+            "description": "Adds one to IXL.",
             "instruction": "inc ixl"
           }
         },
@@ -15957,7 +15957,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Adds one to the memory location pointed to by ix plus *.",
+            "description": "Adds one to the memory location pointed to by IX plus *.",
             "instruction": "inc (ix+*)"
           }
         },
@@ -15976,7 +15976,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Adds one to iy.",
+            "description": "Adds one to IY.",
             "instruction": "inc iy"
           }
         },
@@ -15995,7 +15995,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds one to iyh.",
+            "description": "Adds one to IYH.",
             "instruction": "inc iyh"
           }
         },
@@ -16014,7 +16014,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds one to iyl.",
+            "description": "Adds one to IYL.",
             "instruction": "inc iyl"
           }
         },
@@ -16038,7 +16038,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Adds one to the memory location pointed to by iy plus *.",
+            "description": "Adds one to the memory location pointed to by IY plus *.",
             "instruction": "inc (iy+*)"
           }
         }
@@ -16060,7 +16060,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts one from b.",
+            "description": "Subtracts one from B.",
             "instruction": "dec b"
           }
         },
@@ -16078,7 +16078,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 6,
             "without_jump_clock_count": 6,
-            "description": "Subtracts one from bc.",
+            "description": "Subtracts one from BC.",
             "instruction": "dec bc"
           }
         },
@@ -16096,7 +16096,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts one from c.",
+            "description": "Subtracts one from C.",
             "instruction": "dec c"
           }
         },
@@ -16114,7 +16114,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts one from d.",
+            "description": "Subtracts one from D.",
             "instruction": "dec d"
           }
         },
@@ -16132,7 +16132,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 6,
             "without_jump_clock_count": 6,
-            "description": "Subtracts one from de.",
+            "description": "Subtracts one from DE.",
             "instruction": "dec de"
           }
         },
@@ -16150,7 +16150,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts one from e.",
+            "description": "Subtracts one from E.",
             "instruction": "dec e"
           }
         },
@@ -16168,7 +16168,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts one from h.",
+            "description": "Subtracts one from H.",
             "instruction": "dec h"
           }
         },
@@ -16186,7 +16186,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 6,
             "without_jump_clock_count": 6,
-            "description": "Subtracts one from hl.",
+            "description": "Subtracts one from HL.",
             "instruction": "dec hl"
           }
         },
@@ -16204,7 +16204,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts one from l.",
+            "description": "Subtracts one from L.",
             "instruction": "dec l"
           }
         },
@@ -16224,7 +16224,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "Subtracts one from (hl).",
+            "description": "Subtracts one from (HL).",
             "instruction": "dec (hl)"
           }
         },
@@ -16242,7 +16242,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 6,
             "without_jump_clock_count": 6,
-            "description": "Subtracts one from sp.",
+            "description": "Subtracts one from SP.",
             "instruction": "dec sp"
           }
         },
@@ -16260,7 +16260,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts one from a.",
+            "description": "Subtracts one from A.",
             "instruction": "dec a"
           }
         },
@@ -16279,7 +16279,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts one from ixh.",
+            "description": "Subtracts one from IXH.",
             "instruction": "dec ixh"
           }
         },
@@ -16298,7 +16298,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Subtracts one from ix.",
+            "description": "Subtracts one from IX.",
             "instruction": "dec ix"
           }
         },
@@ -16317,7 +16317,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts one from ixl.",
+            "description": "Subtracts one from IXL.",
             "instruction": "dec ixl"
           }
         },
@@ -16341,7 +16341,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Subtracts one from the memory location pointed to by ix plus *.",
+            "description": "Subtracts one from the memory location pointed to by IX plus *.",
             "instruction": "dec (ix+*)"
           }
         },
@@ -16360,7 +16360,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts one from iyh.",
+            "description": "Subtracts one from IYH.",
             "instruction": "dec iyh"
           }
         },
@@ -16379,7 +16379,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "Subtracts one from iy.",
+            "description": "Subtracts one from IY.",
             "instruction": "dec iy"
           }
         },
@@ -16398,7 +16398,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts one from iyl.",
+            "description": "Subtracts one from IYL.",
             "instruction": "dec iyl"
           }
         },
@@ -16422,7 +16422,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Subtracts one from the memory location pointed to by iy plus *.",
+            "description": "Subtracts one from the memory location pointed to by IY plus *.",
             "instruction": "dec (iy+*)"
           }
         }
@@ -16442,7 +16442,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of A are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlca"
           }
         }
@@ -16466,7 +16466,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Exchanges the 16-bit contents of af and af'.",
+            "description": "Exchanges the 16-bit contents of AF and AF'.",
             "instruction": "ex af,af'"
           }
         },
@@ -16489,7 +16489,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Exchanges (sp) with the ixl, and (sp+1) with the ixh.",
+            "description": "Exchanges (SP) with the IXL, and (SP+1) with the IXH.",
             "instruction": "ex (sp),ix"
           }
         },
@@ -16511,7 +16511,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Exchanges (sp) with l, and (sp+1) with h.",
+            "description": "Exchanges (SP) with L, and (SP+1) with H.",
             "instruction": "ex (sp),hl"
           }
         },
@@ -16531,7 +16531,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Exchanges the 16-bit contents of de and hl.",
+            "description": "Exchanges the 16-bit contents of DE and HL.",
             "instruction": "ex de,hl"
           }
         },
@@ -16554,7 +16554,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Exchanges (sp) with the iyl, and (sp+1) with the iyh.",
+            "description": "Exchanges (SP) with the IYL, and (SP+1) with the IYH.",
             "instruction": "ex (sp),iy"
           }
         }
@@ -16578,7 +16578,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The value of bc is added to hl.",
+            "description": "The value of BC is added to HL.",
             "instruction": "add hl,bc"
           }
         },
@@ -16598,7 +16598,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The value of de is added to hl.",
+            "description": "The value of DE is added to HL.",
             "instruction": "add hl,de"
           }
         },
@@ -16618,7 +16618,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The value of hl is added to hl.",
+            "description": "The value of HL is added to HL.",
             "instruction": "add hl,hl"
           }
         },
@@ -16638,7 +16638,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The value of hl is added to hl.",
+            "description": "The value of HL is added to HL.",
             "instruction": "add hl,sp"
           }
         },
@@ -16658,7 +16658,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds b to a.",
+            "description": "Adds B to A.",
             "instruction": "add a,b"
           }
         },
@@ -16676,7 +16676,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds b to a.",
+            "description": "Adds B to A.",
             "instruction": "add a,b"
           }
         },
@@ -16696,7 +16696,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds c to a.",
+            "description": "Adds C to A.",
             "instruction": "add a,c"
           }
         },
@@ -16714,7 +16714,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds c to a.",
+            "description": "Adds C to A.",
             "instruction": "add a,c"
           }
         },
@@ -16734,7 +16734,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds d to a.",
+            "description": "Adds D to A.",
             "instruction": "add a,d"
           }
         },
@@ -16752,7 +16752,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds d to a.",
+            "description": "Adds D to A.",
             "instruction": "add a,d"
           }
         },
@@ -16772,7 +16772,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds e to a.",
+            "description": "Adds E to A.",
             "instruction": "add a,e"
           }
         },
@@ -16790,7 +16790,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds e to a.",
+            "description": "Adds E to A.",
             "instruction": "add a,e"
           }
         },
@@ -16810,7 +16810,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds h to a.",
+            "description": "Adds H to A.",
             "instruction": "add a,h"
           }
         },
@@ -16828,7 +16828,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds h to a.",
+            "description": "Adds H to A.",
             "instruction": "add a,h"
           }
         },
@@ -16848,7 +16848,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds l to a.",
+            "description": "Adds L to A.",
             "instruction": "add a,l"
           }
         },
@@ -16866,7 +16866,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds l to a.",
+            "description": "Adds L to A.",
             "instruction": "add a,l"
           }
         },
@@ -16888,7 +16888,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Adds (hl) to a.",
+            "description": "Adds (HL) to A.",
             "instruction": "add a,(hl)"
           }
         },
@@ -16908,7 +16908,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Adds (hl) to a.",
+            "description": "Adds (HL) to A.",
             "instruction": "add a,(hl)"
           }
         },
@@ -16928,7 +16928,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds a to a.",
+            "description": "Adds A to A.",
             "instruction": "add a,a"
           }
         },
@@ -16946,7 +16946,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds a to a.",
+            "description": "Adds A to A.",
             "instruction": "add a,a"
           }
         },
@@ -16967,7 +16967,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Adds * to a.",
+            "description": "Adds * to A.",
             "instruction": "add a,*"
           }
         },
@@ -16986,7 +16986,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Adds * to a.",
+            "description": "Adds * to A.",
             "instruction": "add a,*"
           }
         },
@@ -17007,7 +17007,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The value of bc is added to ix.",
+            "description": "The value of BC is added to IX.",
             "instruction": "add ix,bc"
           }
         },
@@ -17028,7 +17028,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The value of de is added to ix.",
+            "description": "The value of DE is added to IX.",
             "instruction": "add ix,de"
           }
         },
@@ -17049,7 +17049,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The value of ix is added to ix.",
+            "description": "The value of IX is added to IX.",
             "instruction": "add ix,ix"
           }
         },
@@ -17070,7 +17070,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The value of sp is added to ix.",
+            "description": "The value of SP is added to IX.",
             "instruction": "add ix,sp"
           }
         },
@@ -17091,7 +17091,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds ixh to a.",
+            "description": "Adds IXH to A.",
             "instruction": "add a,ixh"
           }
         },
@@ -17110,7 +17110,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds ixh to a.",
+            "description": "Adds IXH to A.",
             "instruction": "add a,ixh"
           }
         },
@@ -17131,7 +17131,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds ixl to a.",
+            "description": "Adds IXL to A.",
             "instruction": "add a,ixl"
           }
         },
@@ -17150,7 +17150,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds ixl to a.",
+            "description": "Adds IXL to A.",
             "instruction": "add a,ixl"
           }
         },
@@ -17176,7 +17176,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Adds the value pointed to by ix plus * to a.",
+            "description": "Adds the value pointed to by IX plus * to A.",
             "instruction": "add a,(ix+*)"
           }
         },
@@ -17200,7 +17200,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Adds the value pointed to by ix plus * to a.",
+            "description": "Adds the value pointed to by IX plus * to A.",
             "instruction": "add a,(ix+*)"
           }
         },
@@ -17221,7 +17221,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The value of bc is added to iy.",
+            "description": "The value of BC is added to IY.",
             "instruction": "add iy,bc"
           }
         },
@@ -17242,7 +17242,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The value of de is added to iy.",
+            "description": "The value of DE is added to IY.",
             "instruction": "add iy,de"
           }
         },
@@ -17263,7 +17263,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The value of ix is added to iy.",
+            "description": "The value of IX is added to IY.",
             "instruction": "add iy,iy"
           }
         },
@@ -17284,7 +17284,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The value of sp is added to iy.",
+            "description": "The value of SP is added to IY.",
             "instruction": "add iy,sp"
           }
         },
@@ -17305,7 +17305,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds iyh to a.",
+            "description": "Adds IYH to A.",
             "instruction": "add a,iyh"
           }
         },
@@ -17324,7 +17324,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds iyh to a.",
+            "description": "Adds IYH to A.",
             "instruction": "add a,iyh"
           }
         },
@@ -17345,7 +17345,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds iyl to a.",
+            "description": "Adds IYL to A.",
             "instruction": "add a,iyl"
           }
         },
@@ -17364,7 +17364,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds iyl to a.",
+            "description": "Adds IYL to A.",
             "instruction": "add a,iyl"
           }
         },
@@ -17390,7 +17390,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Adds the value pointed to by iy plus * to a.",
+            "description": "Adds the value pointed to by IY plus * to A.",
             "instruction": "add a,(iy+*)"
           }
         },
@@ -17414,7 +17414,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Adds the value pointed to by iy plus * to a.",
+            "description": "Adds the value pointed to by IY plus * to A.",
             "instruction": "add a,(iy+*)"
           }
         }
@@ -17434,7 +17434,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of A are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrca"
           }
         }
@@ -17457,7 +17457,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 13,
             "without_jump_clock_count": 8,
-            "description": "The b register is decremented, and if not zero, the signed value * is added to pc. The jump is measured from the start of the instruction opcode.",
+            "description": "The B register is decremented, and if not zero, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
             "instruction": "djnz *"
           }
         }
@@ -17477,7 +17477,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of A are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rla"
           }
         }
@@ -17500,7 +17500,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "The signed value * is added to pc. The jump is measured from the start of the instruction opcode.",
+            "description": "The signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
             "instruction": "jr *"
           }
         },
@@ -17521,7 +17521,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 7,
-            "description": "If condition cc is true, the signed value * is added to pc. The jump is measured from the start of the instruction opcode.",
+            "description": "If condition CC is true, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
             "instruction": "jr nz,*"
           }
         },
@@ -17542,7 +17542,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 7,
-            "description": "If condition cc is true, the signed value * is added to pc. The jump is measured from the start of the instruction opcode.",
+            "description": "If condition CC is true, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
             "instruction": "jr z,*"
           }
         },
@@ -17563,7 +17563,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 7,
-            "description": "If condition cc is true, the signed value * is added to pc. The jump is measured from the start of the instruction opcode.",
+            "description": "If condition CC is true, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
             "instruction": "jr nc,*"
           }
         },
@@ -17584,7 +17584,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 7,
-            "description": "If condition cc is true, the signed value * is added to pc. The jump is measured from the start of the instruction opcode.",
+            "description": "If condition CC is true, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
             "instruction": "jr c,*"
           }
         }
@@ -17604,7 +17604,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of A are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rra"
           }
         }
@@ -17624,7 +17624,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adjusts a for BCD addition and subtraction operations.",
+            "description": "Adjusts A for BCD addition and subtraction operations.",
             "instruction": "daa"
           }
         }
@@ -17644,7 +17644,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "The contents of a are inverted (one's complement).",
+            "description": "The contents of A are inverted (one's complement).",
             "instruction": "cpl"
           }
         }
@@ -17728,7 +17728,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds b and the carry flag to a.",
+            "description": "Adds B and the carry flag to A.",
             "instruction": "adc a,b"
           }
         },
@@ -17746,7 +17746,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds b and the carry flag to a.",
+            "description": "Adds B and the carry flag to A.",
             "instruction": "adc a,b"
           }
         },
@@ -17766,7 +17766,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds c and the carry flag to a.",
+            "description": "Adds C and the carry flag to A.",
             "instruction": "adc a,c"
           }
         },
@@ -17784,7 +17784,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds c and the carry flag to a.",
+            "description": "Adds C and the carry flag to A.",
             "instruction": "adc a,c"
           }
         },
@@ -17804,7 +17804,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds d and the carry flag to a.",
+            "description": "Adds D and the carry flag to A.",
             "instruction": "adc a,d"
           }
         },
@@ -17822,7 +17822,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds d and the carry flag to a.",
+            "description": "Adds D and the carry flag to A.",
             "instruction": "adc a,d"
           }
         },
@@ -17842,7 +17842,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds e and the carry flag to a.",
+            "description": "Adds E and the carry flag to A.",
             "instruction": "adc a,e"
           }
         },
@@ -17860,7 +17860,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds e and the carry flag to a.",
+            "description": "Adds E and the carry flag to A.",
             "instruction": "adc a,e"
           }
         },
@@ -17880,7 +17880,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds h and the carry flag to a.",
+            "description": "Adds H and the carry flag to A.",
             "instruction": "adc a,h"
           }
         },
@@ -17898,7 +17898,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds h and the carry flag to a.",
+            "description": "Adds H and the carry flag to A.",
             "instruction": "adc a,h"
           }
         },
@@ -17918,7 +17918,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds l and the carry flag to a.",
+            "description": "Adds L and the carry flag to A.",
             "instruction": "adc a,l"
           }
         },
@@ -17936,7 +17936,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds l and the carry flag to a.",
+            "description": "Adds L and the carry flag to A.",
             "instruction": "adc a,l"
           }
         },
@@ -17958,7 +17958,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Adds (hl) and the carry flag to a.",
+            "description": "Adds (HL) and the carry flag to A.",
             "instruction": "adc a,(hl)"
           }
         },
@@ -17978,7 +17978,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Adds (hl) and the carry flag to a.",
+            "description": "Adds (HL) and the carry flag to A.",
             "instruction": "adc a,(hl)"
           }
         },
@@ -17998,7 +17998,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds a and the carry flag to a.",
+            "description": "Adds A and the carry flag to A.",
             "instruction": "adc a,a"
           }
         },
@@ -18016,7 +18016,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Adds a and the carry flag to a.",
+            "description": "Adds A and the carry flag to A.",
             "instruction": "adc a,a"
           }
         },
@@ -18037,7 +18037,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Adds * and the carry flag to a.",
+            "description": "Adds * and the carry flag to A.",
             "instruction": "adc a,*"
           }
         },
@@ -18056,7 +18056,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Adds * and the carry flag to a.",
+            "description": "Adds * and the carry flag to A.",
             "instruction": "adc a,*"
           }
         },
@@ -18077,7 +18077,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds ixh and the carry flag to a.",
+            "description": "Adds IXH and the carry flag to A.",
             "instruction": "adc a,ixh"
           }
         },
@@ -18096,7 +18096,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds ixh and the carry flag to a.",
+            "description": "Adds IXH and the carry flag to A.",
             "instruction": "adc a,ixh"
           }
         },
@@ -18117,7 +18117,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds ixl and the carry flag to a.",
+            "description": "Adds IXL and the carry flag to A.",
             "instruction": "adc a,ixl"
           }
         },
@@ -18136,7 +18136,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds ixl and the carry flag to a.",
+            "description": "Adds IXL and the carry flag to A.",
             "instruction": "adc a,ixl"
           }
         },
@@ -18162,7 +18162,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Adds the value pointed to by ix plus * and the carry flag to a.",
+            "description": "Adds the value pointed to by IX plus * and the carry flag to A.",
             "instruction": "adc a,(ix+*)"
           }
         },
@@ -18186,7 +18186,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Adds the value pointed to by ix plus * and the carry flag to a.",
+            "description": "Adds the value pointed to by IX plus * and the carry flag to A.",
             "instruction": "adc a,(ix+*)"
           }
         },
@@ -18207,7 +18207,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Adds bc and the carry flag to hl.",
+            "description": "Adds BC and the carry flag to HL.",
             "instruction": "adc hl,bc"
           }
         },
@@ -18228,7 +18228,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Adds de and the carry flag to hl.",
+            "description": "Adds DE and the carry flag to HL.",
             "instruction": "adc hl,de"
           }
         },
@@ -18249,7 +18249,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Adds hl and the carry flag to hl.",
+            "description": "Adds HL and the carry flag to HL.",
             "instruction": "adc hl,hl"
           }
         },
@@ -18270,7 +18270,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Adds hl and the carry flag to hl.",
+            "description": "Adds HL and the carry flag to HL.",
             "instruction": "adc hl,sp"
           }
         },
@@ -18291,7 +18291,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds iyh and the carry flag to a.",
+            "description": "Adds IYH and the carry flag to A.",
             "instruction": "adc a,iyh"
           }
         },
@@ -18310,7 +18310,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds iyh and the carry flag to a.",
+            "description": "Adds IYH and the carry flag to A.",
             "instruction": "adc a,iyh"
           }
         },
@@ -18331,7 +18331,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds iyl and the carry flag to a.",
+            "description": "Adds IYL and the carry flag to A.",
             "instruction": "adc a,iyl"
           }
         },
@@ -18350,7 +18350,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Adds iyl and the carry flag to a.",
+            "description": "Adds IYL and the carry flag to A.",
             "instruction": "adc a,iyl"
           }
         },
@@ -18376,7 +18376,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Adds the value pointed to by iy plus * and the carry flag to a.",
+            "description": "Adds the value pointed to by IY plus * and the carry flag to A.",
             "instruction": "adc a,(iy+*)"
           }
         },
@@ -18400,7 +18400,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Adds the value pointed to by iy plus * and the carry flag to a.",
+            "description": "Adds the value pointed to by IY plus * and the carry flag to A.",
             "instruction": "adc a,(iy+*)"
           }
         }
@@ -18424,7 +18424,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts b from a.",
+            "description": "Subtracts B from A.",
             "instruction": "sub b"
           }
         },
@@ -18442,7 +18442,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts b from a.",
+            "description": "Subtracts B from A.",
             "instruction": "sub b"
           }
         },
@@ -18462,7 +18462,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts c from a.",
+            "description": "Subtracts C from A.",
             "instruction": "sub c"
           }
         },
@@ -18480,7 +18480,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts c from a.",
+            "description": "Subtracts C from A.",
             "instruction": "sub c"
           }
         },
@@ -18500,7 +18500,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts d from a.",
+            "description": "Subtracts D from A.",
             "instruction": "sub d"
           }
         },
@@ -18518,7 +18518,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts d from a.",
+            "description": "Subtracts D from A.",
             "instruction": "sub d"
           }
         },
@@ -18538,7 +18538,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts e from a.",
+            "description": "Subtracts E from A.",
             "instruction": "sub e"
           }
         },
@@ -18556,7 +18556,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts e from a.",
+            "description": "Subtracts E from A.",
             "instruction": "sub e"
           }
         },
@@ -18576,7 +18576,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts h from a.",
+            "description": "Subtracts H from A.",
             "instruction": "sub h"
           }
         },
@@ -18594,7 +18594,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts h from a.",
+            "description": "Subtracts H from A.",
             "instruction": "sub h"
           }
         },
@@ -18614,7 +18614,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts l from a.",
+            "description": "Subtracts L from A.",
             "instruction": "sub l"
           }
         },
@@ -18632,7 +18632,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts l from a.",
+            "description": "Subtracts L from A.",
             "instruction": "sub l"
           }
         },
@@ -18654,7 +18654,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts (hl) from a.",
+            "description": "Subtracts (HL) from A.",
             "instruction": "sub (hl)"
           }
         },
@@ -18674,7 +18674,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts (hl) from a.",
+            "description": "Subtracts (HL) from A.",
             "instruction": "sub (hl)"
           }
         },
@@ -18694,7 +18694,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts a from a.",
+            "description": "Subtracts A from A.",
             "instruction": "sub a"
           }
         },
@@ -18712,7 +18712,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts a from a.",
+            "description": "Subtracts A from A.",
             "instruction": "sub a"
           }
         },
@@ -18733,7 +18733,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts * from a.",
+            "description": "Subtracts * from A.",
             "instruction": "sub *"
           }
         },
@@ -18752,7 +18752,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts * from a.",
+            "description": "Subtracts * from A.",
             "instruction": "sub *"
           }
         },
@@ -18773,7 +18773,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixh from a.",
+            "description": "Subtracts IXH from A.",
             "instruction": "sub ixh"
           }
         },
@@ -18792,7 +18792,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixh from a.",
+            "description": "Subtracts IXH from A.",
             "instruction": "sub ixh"
           }
         },
@@ -18813,7 +18813,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixl from a.",
+            "description": "Subtracts IXL from A.",
             "instruction": "sub ixl"
           }
         },
@@ -18832,7 +18832,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixl from a.",
+            "description": "Subtracts IXL from A.",
             "instruction": "sub ixl"
           }
         },
@@ -18858,7 +18858,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by ix plus * from a.",
+            "description": "Subtracts the value pointed to by IX plus * from A.",
             "instruction": "sub (ix+*)"
           }
         },
@@ -18882,7 +18882,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by ix plus * from a.",
+            "description": "Subtracts the value pointed to by IX plus * from A.",
             "instruction": "sub (ix+*)"
           }
         },
@@ -18903,7 +18903,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyh from a.",
+            "description": "Subtracts IYH from A.",
             "instruction": "sub iyh"
           }
         },
@@ -18922,7 +18922,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyh from a.",
+            "description": "Subtracts IYH from A.",
             "instruction": "sub iyh"
           }
         },
@@ -18943,7 +18943,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyl from a.",
+            "description": "Subtracts IYL from A.",
             "instruction": "sub iyl"
           }
         },
@@ -18962,7 +18962,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyl from a.",
+            "description": "Subtracts IYL from A.",
             "instruction": "sub iyl"
           }
         },
@@ -18988,7 +18988,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by iy plus * from a.",
+            "description": "Subtracts the value pointed to by IY plus * from A.",
             "instruction": "sub (iy+*)"
           }
         },
@@ -19012,7 +19012,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by iy plus * from a.",
+            "description": "Subtracts the value pointed to by IY plus * from A.",
             "instruction": "sub (iy+*)"
           }
         }
@@ -19036,7 +19036,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts b and the carry flag from a.",
+            "description": "Subtracts B and the carry flag from A.",
             "instruction": "sbc a,b"
           }
         },
@@ -19054,7 +19054,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts b and the carry flag from a.",
+            "description": "Subtracts B and the carry flag from A.",
             "instruction": "sbc a,b"
           }
         },
@@ -19074,7 +19074,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts c and the carry flag from a.",
+            "description": "Subtracts C and the carry flag from A.",
             "instruction": "sbc a,c"
           }
         },
@@ -19092,7 +19092,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts c and the carry flag from a.",
+            "description": "Subtracts C and the carry flag from A.",
             "instruction": "sbc a,c"
           }
         },
@@ -19112,7 +19112,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts d and the carry flag from a.",
+            "description": "Subtracts D and the carry flag from A.",
             "instruction": "sbc a,d"
           }
         },
@@ -19130,7 +19130,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts d and the carry flag from a.",
+            "description": "Subtracts D and the carry flag from A.",
             "instruction": "sbc a,d"
           }
         },
@@ -19150,7 +19150,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts e and the carry flag from a.",
+            "description": "Subtracts E and the carry flag from A.",
             "instruction": "sbc a,e"
           }
         },
@@ -19168,7 +19168,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts e and the carry flag from a.",
+            "description": "Subtracts E and the carry flag from A.",
             "instruction": "sbc a,e"
           }
         },
@@ -19188,7 +19188,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts h and the carry flag from a.",
+            "description": "Subtracts H and the carry flag from A.",
             "instruction": "sbc a,h"
           }
         },
@@ -19206,7 +19206,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts h and the carry flag from a.",
+            "description": "Subtracts H and the carry flag from A.",
             "instruction": "sbc a,h"
           }
         },
@@ -19226,7 +19226,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts l and the carry flag from a.",
+            "description": "Subtracts L and the carry flag from A.",
             "instruction": "sbc a,l"
           }
         },
@@ -19244,7 +19244,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts l and the carry flag from a.",
+            "description": "Subtracts L and the carry flag from A.",
             "instruction": "sbc a,l"
           }
         },
@@ -19266,7 +19266,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts (hl) and the carry flag from a.",
+            "description": "Subtracts (HL) and the carry flag from A.",
             "instruction": "sbc a,(hl)"
           }
         },
@@ -19286,7 +19286,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts (hl) and the carry flag from a.",
+            "description": "Subtracts (HL) and the carry flag from A.",
             "instruction": "sbc a,(hl)"
           }
         },
@@ -19306,7 +19306,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts a and the carry flag from a.",
+            "description": "Subtracts A and the carry flag from A.",
             "instruction": "sbc a,a"
           }
         },
@@ -19324,7 +19324,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts a and the carry flag from a.",
+            "description": "Subtracts A and the carry flag from A.",
             "instruction": "sbc a,a"
           }
         },
@@ -19345,7 +19345,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixh and the carry flag from a.",
+            "description": "Subtracts IXH and the carry flag from A.",
             "instruction": "sbc a,ixh"
           }
         },
@@ -19364,7 +19364,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixh and the carry flag from a.",
+            "description": "Subtracts IXH and the carry flag from A.",
             "instruction": "sbc a,ixh"
           }
         },
@@ -19385,7 +19385,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixl and the carry flag from a.",
+            "description": "Subtracts IXL and the carry flag from A.",
             "instruction": "sbc a,ixl"
           }
         },
@@ -19404,7 +19404,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixl and the carry flag from a.",
+            "description": "Subtracts IXL and the carry flag from A.",
             "instruction": "sbc a,ixl"
           }
         },
@@ -19430,7 +19430,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by ix plus * and the carry flag from a.",
+            "description": "Subtracts the value pointed to by IX plus * and the carry flag from A.",
             "instruction": "sbc a,(ix+*)"
           }
         },
@@ -19454,7 +19454,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by ix plus * and the carry flag from a.",
+            "description": "Subtracts the value pointed to by IX plus * and the carry flag from A.",
             "instruction": "sbc a,(ix+*)"
           }
         },
@@ -19475,7 +19475,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts * and the carry flag from a.",
+            "description": "Subtracts * and the carry flag from A.",
             "instruction": "sbc a,*"
           }
         },
@@ -19494,7 +19494,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts * and the carry flag from a.",
+            "description": "Subtracts * and the carry flag from A.",
             "instruction": "sbc a,*"
           }
         },
@@ -19515,7 +19515,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Subtracts bc and the carry flag from hl.",
+            "description": "Subtracts BC and the carry flag from HL.",
             "instruction": "sbc hl,bc"
           }
         },
@@ -19536,7 +19536,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Subtracts de and the carry flag from hl.",
+            "description": "Subtracts DE and the carry flag from HL.",
             "instruction": "sbc hl,de"
           }
         },
@@ -19557,7 +19557,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Subtracts hl and the carry flag from hl.",
+            "description": "Subtracts HL and the carry flag from HL.",
             "instruction": "sbc hl,hl"
           }
         },
@@ -19578,7 +19578,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Subtracts hl and the carry flag from hl.",
+            "description": "Subtracts HL and the carry flag from HL.",
             "instruction": "sbc hl,sp"
           }
         },
@@ -19599,7 +19599,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyh and the carry flag from a.",
+            "description": "Subtracts IYH and the carry flag from A.",
             "instruction": "sbc a,iyh"
           }
         },
@@ -19618,7 +19618,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyh and the carry flag from a.",
+            "description": "Subtracts IYH and the carry flag from A.",
             "instruction": "sbc a,iyh"
           }
         },
@@ -19639,7 +19639,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyl and the carry flag from a.",
+            "description": "Subtracts IYL and the carry flag from A.",
             "instruction": "sbc a,iyl"
           }
         },
@@ -19658,7 +19658,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyl and the carry flag from a.",
+            "description": "Subtracts IYL and the carry flag from A.",
             "instruction": "sbc a,iyl"
           }
         },
@@ -19684,7 +19684,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by iy plus * and the carry flag from a.",
+            "description": "Subtracts the value pointed to by IY plus * and the carry flag from A.",
             "instruction": "sbc a,(iy+*)"
           }
         },
@@ -19708,7 +19708,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by iy plus * and the carry flag from a.",
+            "description": "Subtracts the value pointed to by IY plus * and the carry flag from A.",
             "instruction": "sbc a,(iy+*)"
           }
         }
@@ -19732,7 +19732,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with b.",
+            "description": "Bitwise AND on A with B.",
             "instruction": "and b"
           }
         },
@@ -19750,7 +19750,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with b.",
+            "description": "Bitwise AND on A with B.",
             "instruction": "and b"
           }
         },
@@ -19770,7 +19770,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with c.",
+            "description": "Bitwise AND on A with C.",
             "instruction": "and c"
           }
         },
@@ -19788,7 +19788,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with c.",
+            "description": "Bitwise AND on A with C.",
             "instruction": "and c"
           }
         },
@@ -19808,7 +19808,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with d.",
+            "description": "Bitwise AND on A with D.",
             "instruction": "and d"
           }
         },
@@ -19826,7 +19826,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with d.",
+            "description": "Bitwise AND on A with D.",
             "instruction": "and d"
           }
         },
@@ -19846,7 +19846,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with e.",
+            "description": "Bitwise AND on A with E.",
             "instruction": "and e"
           }
         },
@@ -19864,7 +19864,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with e.",
+            "description": "Bitwise AND on A with E.",
             "instruction": "and e"
           }
         },
@@ -19884,7 +19884,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with h.",
+            "description": "Bitwise AND on A with H.",
             "instruction": "and h"
           }
         },
@@ -19902,7 +19902,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with h.",
+            "description": "Bitwise AND on A with H.",
             "instruction": "and h"
           }
         },
@@ -19922,7 +19922,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with l.",
+            "description": "Bitwise AND on A with L.",
             "instruction": "and l"
           }
         },
@@ -19940,7 +19940,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with l.",
+            "description": "Bitwise AND on A with L.",
             "instruction": "and l"
           }
         },
@@ -19962,7 +19962,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise AND on a with (hl).",
+            "description": "Bitwise AND on A with (HL).",
             "instruction": "and (hl)"
           }
         },
@@ -19982,7 +19982,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise AND on a with (hl).",
+            "description": "Bitwise AND on A with (HL).",
             "instruction": "and (hl)"
           }
         },
@@ -20002,7 +20002,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with a.",
+            "description": "Bitwise AND on A with A.",
             "instruction": "and a"
           }
         },
@@ -20020,7 +20020,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise AND on a with a.",
+            "description": "Bitwise AND on A with A.",
             "instruction": "and a"
           }
         },
@@ -20041,7 +20041,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise AND on a with ixh.",
+            "description": "Bitwise AND on A with IXH.",
             "instruction": "and ixh"
           }
         },
@@ -20060,7 +20060,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise AND on a with ixh.",
+            "description": "Bitwise AND on A with IXH.",
             "instruction": "and ixh"
           }
         },
@@ -20081,7 +20081,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise AND on a with ixl.",
+            "description": "Bitwise AND on A with IXL.",
             "instruction": "and ixl"
           }
         },
@@ -20100,7 +20100,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise AND on a with ixl.",
+            "description": "Bitwise AND on A with IXL.",
             "instruction": "and ixl"
           }
         },
@@ -20126,7 +20126,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise AND on a with the value pointed to by ix plus *.",
+            "description": "Bitwise AND on A with the value pointed to by IX plus *.",
             "instruction": "and (ix+*)"
           }
         },
@@ -20150,7 +20150,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise AND on a with the value pointed to by ix plus *.",
+            "description": "Bitwise AND on A with the value pointed to by IX plus *.",
             "instruction": "and (ix+*)"
           }
         },
@@ -20169,7 +20169,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise AND on a with *.",
+            "description": "Bitwise AND on A with *.",
             "instruction": "and *"
           }
         },
@@ -20190,7 +20190,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise AND on a with iyh.",
+            "description": "Bitwise AND on A with IYH.",
             "instruction": "and iyh"
           }
         },
@@ -20209,7 +20209,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise AND on a with iyh.",
+            "description": "Bitwise AND on A with IYH.",
             "instruction": "and iyh"
           }
         },
@@ -20230,7 +20230,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise AND on a with iyl.",
+            "description": "Bitwise AND on A with IYL.",
             "instruction": "and iyl"
           }
         },
@@ -20249,7 +20249,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise AND on a with iyl.",
+            "description": "Bitwise AND on A with IYL.",
             "instruction": "and iyl"
           }
         },
@@ -20275,7 +20275,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise AND on a with the value pointed to by iy plus *.",
+            "description": "Bitwise AND on A with the value pointed to by IY plus *.",
             "instruction": "and (iy+*)"
           }
         },
@@ -20299,7 +20299,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise AND on a with the value pointed to by iy plus *.",
+            "description": "Bitwise AND on A with the value pointed to by IY plus *.",
             "instruction": "and (iy+*)"
           }
         }
@@ -20323,7 +20323,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with b.",
+            "description": "Bitwise XOR on A with B.",
             "instruction": "xor b"
           }
         },
@@ -20341,7 +20341,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with b.",
+            "description": "Bitwise XOR on A with B.",
             "instruction": "xor b"
           }
         },
@@ -20361,7 +20361,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with c.",
+            "description": "Bitwise XOR on A with C.",
             "instruction": "xor c"
           }
         },
@@ -20379,7 +20379,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with c.",
+            "description": "Bitwise XOR on A with C.",
             "instruction": "xor c"
           }
         },
@@ -20399,7 +20399,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with d.",
+            "description": "Bitwise XOR on A with D.",
             "instruction": "xor d"
           }
         },
@@ -20417,7 +20417,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with d.",
+            "description": "Bitwise XOR on A with D.",
             "instruction": "xor d"
           }
         },
@@ -20437,7 +20437,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with e.",
+            "description": "Bitwise XOR on A with E.",
             "instruction": "xor e"
           }
         },
@@ -20455,7 +20455,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with e.",
+            "description": "Bitwise XOR on A with E.",
             "instruction": "xor e"
           }
         },
@@ -20475,7 +20475,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with h.",
+            "description": "Bitwise XOR on A with H.",
             "instruction": "xor h"
           }
         },
@@ -20493,7 +20493,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with h.",
+            "description": "Bitwise XOR on A with H.",
             "instruction": "xor h"
           }
         },
@@ -20513,7 +20513,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with l.",
+            "description": "Bitwise XOR on A with L.",
             "instruction": "xor l"
           }
         },
@@ -20531,7 +20531,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with l.",
+            "description": "Bitwise XOR on A with L.",
             "instruction": "xor l"
           }
         },
@@ -20553,7 +20553,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise XOR on a with (hl).",
+            "description": "Bitwise XOR on A with (HL).",
             "instruction": "xor (hl)"
           }
         },
@@ -20573,7 +20573,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise XOR on a with (hl).",
+            "description": "Bitwise XOR on A with (HL).",
             "instruction": "xor (hl)"
           }
         },
@@ -20593,7 +20593,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with a.",
+            "description": "Bitwise XOR on A with A.",
             "instruction": "xor a"
           }
         },
@@ -20611,7 +20611,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise XOR on a with a.",
+            "description": "Bitwise XOR on A with A.",
             "instruction": "xor a"
           }
         },
@@ -20632,7 +20632,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise XOR on a with ixh.",
+            "description": "Bitwise XOR on A with IXH.",
             "instruction": "xor ixh"
           }
         },
@@ -20651,7 +20651,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise XOR on a with ixh.",
+            "description": "Bitwise XOR on A with IXH.",
             "instruction": "xor ixh"
           }
         },
@@ -20672,7 +20672,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise XOR on a with ixl.",
+            "description": "Bitwise XOR on A with IXL.",
             "instruction": "xor ixl"
           }
         },
@@ -20691,7 +20691,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise XOR on a with ixl.",
+            "description": "Bitwise XOR on A with IXL.",
             "instruction": "xor ixl"
           }
         },
@@ -20717,7 +20717,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise XOR on a with the value pointed to by ix plus *.",
+            "description": "Bitwise XOR on A with the value pointed to by IX plus *.",
             "instruction": "xor (ix+*)"
           }
         },
@@ -20741,7 +20741,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise XOR on a with the value pointed to by ix plus *.",
+            "description": "Bitwise XOR on A with the value pointed to by IX plus *.",
             "instruction": "xor (ix+*)"
           }
         },
@@ -20762,7 +20762,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise XOR on a with *.",
+            "description": "Bitwise XOR on A with *.",
             "instruction": "xor *"
           }
         },
@@ -20781,7 +20781,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise XOR on a with *.",
+            "description": "Bitwise XOR on A with *.",
             "instruction": "xor *"
           }
         },
@@ -20802,7 +20802,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise XOR on a with iyh.",
+            "description": "Bitwise XOR on A with IYH.",
             "instruction": "xor iyh"
           }
         },
@@ -20821,7 +20821,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise XOR on a with iyh.",
+            "description": "Bitwise XOR on A with IYH.",
             "instruction": "xor iyh"
           }
         },
@@ -20842,7 +20842,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise XOR on a with iyl.",
+            "description": "Bitwise XOR on A with IYL.",
             "instruction": "xor iyl"
           }
         },
@@ -20861,7 +20861,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise XOR on a with iyl.",
+            "description": "Bitwise XOR on A with IYL.",
             "instruction": "xor iyl"
           }
         },
@@ -20887,7 +20887,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise XOR on a with the value pointed to by iy plus *.",
+            "description": "Bitwise XOR on A with the value pointed to by IY plus *.",
             "instruction": "xor (iy+*)"
           }
         },
@@ -20911,7 +20911,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise XOR on a with the value pointed to by iy plus *.",
+            "description": "Bitwise XOR on A with the value pointed to by IY plus *.",
             "instruction": "xor (iy+*)"
           }
         }
@@ -20935,7 +20935,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with b.",
+            "description": "Bitwise OR on A with B.",
             "instruction": "or b"
           }
         },
@@ -20953,7 +20953,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with b.",
+            "description": "Bitwise OR on A with B.",
             "instruction": "or b"
           }
         },
@@ -20973,7 +20973,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with c.",
+            "description": "Bitwise OR on A with C.",
             "instruction": "or c"
           }
         },
@@ -20991,7 +20991,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with c.",
+            "description": "Bitwise OR on A with C.",
             "instruction": "or c"
           }
         },
@@ -21011,7 +21011,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with d.",
+            "description": "Bitwise OR on A with D.",
             "instruction": "or d"
           }
         },
@@ -21029,7 +21029,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with d.",
+            "description": "Bitwise OR on A with D.",
             "instruction": "or d"
           }
         },
@@ -21049,7 +21049,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with e.",
+            "description": "Bitwise OR on A with E.",
             "instruction": "or e"
           }
         },
@@ -21067,7 +21067,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with e.",
+            "description": "Bitwise OR on A with E.",
             "instruction": "or e"
           }
         },
@@ -21087,7 +21087,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with h.",
+            "description": "Bitwise OR on A with H.",
             "instruction": "or h"
           }
         },
@@ -21105,7 +21105,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with h.",
+            "description": "Bitwise OR on A with H.",
             "instruction": "or h"
           }
         },
@@ -21125,7 +21125,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with l.",
+            "description": "Bitwise OR on A with L.",
             "instruction": "or l"
           }
         },
@@ -21143,7 +21143,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with l.",
+            "description": "Bitwise OR on A with L.",
             "instruction": "or l"
           }
         },
@@ -21165,7 +21165,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise OR on a with (hl).",
+            "description": "Bitwise OR on A with (HL).",
             "instruction": "or (hl)"
           }
         },
@@ -21185,7 +21185,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise OR on a with (hl).",
+            "description": "Bitwise OR on A with (HL).",
             "instruction": "or (hl)"
           }
         },
@@ -21205,7 +21205,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with a.",
+            "description": "Bitwise OR on A with A.",
             "instruction": "or a"
           }
         },
@@ -21223,7 +21223,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Bitwise OR on a with a.",
+            "description": "Bitwise OR on A with A.",
             "instruction": "or a"
           }
         },
@@ -21244,7 +21244,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise OR on a with ixh.",
+            "description": "Bitwise OR on A with IXH.",
             "instruction": "or ixh"
           }
         },
@@ -21263,7 +21263,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise OR on a with ixh.",
+            "description": "Bitwise OR on A with IXH.",
             "instruction": "or ixh"
           }
         },
@@ -21284,7 +21284,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise OR on a with ixl.",
+            "description": "Bitwise OR on A with IXL.",
             "instruction": "or ixl"
           }
         },
@@ -21303,7 +21303,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise OR on a with ixl.",
+            "description": "Bitwise OR on A with IXL.",
             "instruction": "or ixl"
           }
         },
@@ -21329,7 +21329,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise OR on a with the value pointed to by ix plus *.",
+            "description": "Bitwise OR on A with the value pointed to by IX plus *.",
             "instruction": "or (ix+*)"
           }
         },
@@ -21353,7 +21353,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise OR on a with the value pointed to by ix plus *.",
+            "description": "Bitwise OR on A with the value pointed to by IX plus *.",
             "instruction": "or (ix+*)"
           }
         },
@@ -21372,7 +21372,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Bitwise OR on a with *.",
+            "description": "Bitwise OR on A with *.",
             "instruction": "or *"
           }
         },
@@ -21393,7 +21393,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise OR on a with iyh.",
+            "description": "Bitwise OR on A with IYH.",
             "instruction": "or iyh"
           }
         },
@@ -21412,7 +21412,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise OR on a with iyh.",
+            "description": "Bitwise OR on A with IYH.",
             "instruction": "or iyh"
           }
         },
@@ -21433,7 +21433,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise OR on a with iyl.",
+            "description": "Bitwise OR on A with IYL.",
             "instruction": "or iyl"
           }
         },
@@ -21452,7 +21452,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Bitwise OR on a with iyl.",
+            "description": "Bitwise OR on A with IYL.",
             "instruction": "or iyl"
           }
         },
@@ -21478,7 +21478,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise OR on a with the value pointed to by iy plus *.",
+            "description": "Bitwise OR on A with the value pointed to by IY plus *.",
             "instruction": "or (iy+*)"
           }
         },
@@ -21502,7 +21502,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Bitwise OR on a with the value pointed to by iy plus *.",
+            "description": "Bitwise OR on A with the value pointed to by IY plus *.",
             "instruction": "or (iy+*)"
           }
         }
@@ -21524,7 +21524,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts b from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts B from A and affects flags according to the result. A is not modified.",
             "instruction": "cp b"
           }
         },
@@ -21542,7 +21542,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts c from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts C from A and affects flags according to the result. A is not modified.",
             "instruction": "cp c"
           }
         },
@@ -21560,7 +21560,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts d from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts D from A and affects flags according to the result. A is not modified.",
             "instruction": "cp d"
           }
         },
@@ -21578,7 +21578,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts e from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts E from A and affects flags according to the result. A is not modified.",
             "instruction": "cp e"
           }
         },
@@ -21596,7 +21596,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts h from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts H from A and affects flags according to the result. A is not modified.",
             "instruction": "cp h"
           }
         },
@@ -21614,7 +21614,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts l from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts L from A and affects flags according to the result. A is not modified.",
             "instruction": "cp l"
           }
         },
@@ -21634,7 +21634,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts (hl) from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts (HL) from A and affects flags according to the result. A is not modified.",
             "instruction": "cp (hl)"
           }
         },
@@ -21652,7 +21652,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Subtracts a from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts A from A and affects flags according to the result. A is not modified.",
             "instruction": "cp a"
           }
         },
@@ -21671,7 +21671,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixh from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts IXH from A and affects flags according to the result. A is not modified.",
             "instruction": "cp ixh"
           }
         },
@@ -21690,7 +21690,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts ixl from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts IXL from A and affects flags according to the result. A is not modified.",
             "instruction": "cp ixl"
           }
         },
@@ -21714,7 +21714,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by ix plus * from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts the value pointed to by IX plus * from A and affects flags according to the result. A is not modified.",
             "instruction": "cp (ix+*)"
           }
         },
@@ -21733,7 +21733,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyh from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts IYH from A and affects flags according to the result. A is not modified.",
             "instruction": "cp iyh"
           }
         },
@@ -21752,7 +21752,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Subtracts iyl from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts IYL from A and affects flags according to the result. A is not modified.",
             "instruction": "cp iyl"
           }
         },
@@ -21776,7 +21776,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 19,
             "without_jump_clock_count": 19,
-            "description": "Subtracts the value pointed to by iy plus * from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts the value pointed to by IY plus * from A and affects flags according to the result. A is not modified.",
             "instruction": "cp (iy+*)"
           }
         },
@@ -21795,7 +21795,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 7,
             "without_jump_clock_count": 7,
-            "description": "Subtracts * from a and affects flags according to the result. a is not modified.",
+            "description": "Subtracts * from A and affects flags according to the result. A is not modified.",
             "instruction": "cp *"
           }
         }
@@ -21817,7 +21817,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 5,
-            "description": "If condition cc is true, the top stack entry is popped into pc.",
+            "description": "If condition CC is true, the top stack entry is popped into PC.",
             "instruction": "ret nz"
           }
         },
@@ -21835,7 +21835,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 5,
-            "description": "If condition cc is true, the top stack entry is popped into pc.",
+            "description": "If condition CC is true, the top stack entry is popped into PC.",
             "instruction": "ret z"
           }
         },
@@ -21851,7 +21851,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "The top stack entry is popped into pc.",
+            "description": "The top stack entry is popped into PC.",
             "instruction": "ret"
           }
         },
@@ -21869,7 +21869,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 5,
-            "description": "If condition cc is true, the top stack entry is popped into pc.",
+            "description": "If condition CC is true, the top stack entry is popped into PC.",
             "instruction": "ret nc"
           }
         },
@@ -21887,7 +21887,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 5,
-            "description": "If condition cc is true, the top stack entry is popped into pc.",
+            "description": "If condition CC is true, the top stack entry is popped into PC.",
             "instruction": "ret c"
           }
         },
@@ -21905,7 +21905,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 5,
-            "description": "If condition cc is true, the top stack entry is popped into pc.",
+            "description": "If condition CC is true, the top stack entry is popped into PC.",
             "instruction": "ret po"
           }
         },
@@ -21923,7 +21923,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 5,
-            "description": "If condition cc is true, the top stack entry is popped into pc.",
+            "description": "If condition CC is true, the top stack entry is popped into PC.",
             "instruction": "ret pe"
           }
         },
@@ -21941,7 +21941,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 5,
-            "description": "If condition cc is true, the top stack entry is popped into pc.",
+            "description": "If condition CC is true, the top stack entry is popped into PC.",
             "instruction": "ret p"
           }
         },
@@ -21959,7 +21959,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 5,
-            "description": "If condition cc is true, the top stack entry is popped into pc.",
+            "description": "If condition CC is true, the top stack entry is popped into PC.",
             "instruction": "ret m"
           }
         }
@@ -21981,7 +21981,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "The memory location pointed to by sp is stored into c and sp is incremented. The memory location pointed to by sp is stored into b and sp is incremented again.",
+            "description": "The memory location pointed to by SP is stored into C and SP is incremented. The memory location pointed to by SP is stored into B and SP is incremented again.",
             "instruction": "pop bc"
           }
         },
@@ -21999,7 +21999,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "The memory location pointed to by sp is stored into e and sp is incremented. The memory location pointed to by sp is stored into d and sp is incremented again.",
+            "description": "The memory location pointed to by SP is stored into E and SP is incremented. The memory location pointed to by SP is stored into D and SP is incremented again.",
             "instruction": "pop de"
           }
         },
@@ -22018,7 +22018,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 14,
             "without_jump_clock_count": 14,
-            "description": "The memory location pointed to by sp is stored into ixl and sp is incremented. The memory location pointed to by sp is stored into ixh and sp is incremented again.",
+            "description": "The memory location pointed to by SP is stored into IXL and SP is incremented. The memory location pointed to by SP is stored into IXH and SP is incremented again.",
             "instruction": "pop ix"
           }
         },
@@ -22036,7 +22036,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "The memory location pointed to by sp is stored into l and sp is incremented. The memory location pointed to by sp is stored into h and sp is incremented again.",
+            "description": "The memory location pointed to by SP is stored into L and SP is incremented. The memory location pointed to by SP is stored into H and SP is incremented again.",
             "instruction": "pop hl"
           }
         },
@@ -22054,7 +22054,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "The memory location pointed to by sp is stored into f and sp is incremented. The memory location pointed to by sp is stored into a and sp is incremented again.",
+            "description": "The memory location pointed to by SP is stored into F and SP is incremented. The memory location pointed to by SP is stored into A and SP is incremented again.",
             "instruction": "pop af"
           }
         },
@@ -22073,7 +22073,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 14,
             "without_jump_clock_count": 14,
-            "description": "The memory location pointed to by sp is stored into iyl and sp is incremented. The memory location pointed to by sp is stored into iyh and sp is incremented again.",
+            "description": "The memory location pointed to by SP is stored into IYL and SP is incremented. The memory location pointed to by SP is stored into IYH and SP is incremented again.",
             "instruction": "pop iy"
           }
         }
@@ -22098,7 +22098,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, ** is copied to pc.",
+            "description": "If condition CC is true, ** is copied to PC.",
             "instruction": "jp nz,**"
           }
         },
@@ -22117,7 +22117,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "** is copied to pc.",
+            "description": "** is copied to PC.",
             "instruction": "jp **"
           }
         },
@@ -22138,7 +22138,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, ** is copied to pc.",
+            "description": "If condition CC is true, ** is copied to PC.",
             "instruction": "jp z,**"
           }
         },
@@ -22159,7 +22159,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, ** is copied to pc.",
+            "description": "If condition CC is true, ** is copied to PC.",
             "instruction": "jp nc,**"
           }
         },
@@ -22180,7 +22180,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, ** is copied to pc.",
+            "description": "If condition CC is true, ** is copied to PC.",
             "instruction": "jp c,**"
           }
         },
@@ -22199,7 +22199,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Loads the value of ix into pc.",
+            "description": "Loads the value of IX into PC.",
             "instruction": "jp (ix)"
           }
         },
@@ -22220,7 +22220,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, ** is copied to pc.",
+            "description": "If condition CC is true, ** is copied to PC.",
             "instruction": "jp po,**"
           }
         },
@@ -22238,7 +22238,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Loads the value of hl into pc.",
+            "description": "Loads the value of HL into PC.",
             "instruction": "jp (hl)"
           }
         },
@@ -22258,7 +22258,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Loads the value of hl into pc.",
+            "description": "Loads the value of HL into PC.",
             "instruction": "jp (hl)"
           }
         },
@@ -22279,7 +22279,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, ** is copied to pc.",
+            "description": "If condition CC is true, ** is copied to PC.",
             "instruction": "jp pe,**"
           }
         },
@@ -22300,7 +22300,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, ** is copied to pc.",
+            "description": "If condition CC is true, ** is copied to PC.",
             "instruction": "jp p,**"
           }
         },
@@ -22321,7 +22321,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 10,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, ** is copied to pc.",
+            "description": "If condition CC is true, ** is copied to PC.",
             "instruction": "jp m,**"
           }
         },
@@ -22340,7 +22340,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Loads the value of iy into pc.",
+            "description": "Loads the value of IY into PC.",
             "instruction": "jp (iy)"
           }
         }
@@ -22365,7 +22365,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 17,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, the current pc value plus three is pushed onto the stack, then is loaded with **.",
+            "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
             "instruction": "call nz,**"
           }
         },
@@ -22386,7 +22386,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 17,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, the current pc value plus three is pushed onto the stack, then is loaded with **.",
+            "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
             "instruction": "call z,**"
           }
         },
@@ -22405,7 +22405,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 17,
             "without_jump_clock_count": 17,
-            "description": "The current pc value plus three is pushed onto the stack, then is loaded with **.",
+            "description": "The current PC value plus three is pushed onto the stack, then is loaded with **.",
             "instruction": "call **"
           }
         },
@@ -22426,7 +22426,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 17,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, the current pc value plus three is pushed onto the stack, then is loaded with **.",
+            "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
             "instruction": "call nc,**"
           }
         },
@@ -22447,7 +22447,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 17,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, the current pc value plus three is pushed onto the stack, then is loaded with **.",
+            "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
             "instruction": "call c,**"
           }
         },
@@ -22468,7 +22468,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 17,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, the current pc value plus three is pushed onto the stack, then is loaded with **.",
+            "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
             "instruction": "call po,**"
           }
         },
@@ -22489,7 +22489,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 17,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, the current pc value plus three is pushed onto the stack, then is loaded with **.",
+            "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
             "instruction": "call pe,**"
           }
         },
@@ -22510,7 +22510,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 17,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, the current pc value plus three is pushed onto the stack, then is loaded with **.",
+            "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
             "instruction": "call p,**"
           }
         },
@@ -22531,7 +22531,7 @@ const opcodes: Instructions = {
             "byte_count": 3,
             "with_jump_clock_count": 17,
             "without_jump_clock_count": 10,
-            "description": "If condition cc is true, the current pc value plus three is pushed onto the stack, then is loaded with **.",
+            "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
             "instruction": "call m,**"
           }
         }
@@ -22553,7 +22553,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "sp is decremented and b is stored into the memory location pointed to by sp. sp is decremented again and c is stored into the memory location pointed to by sp.",
+            "description": "SP is decremented and B is stored into the memory location pointed to by SP. SP is decremented again and C is stored into the memory location pointed to by SP.",
             "instruction": "push bc"
           }
         },
@@ -22571,7 +22571,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "sp is decremented and d is stored into the memory location pointed to by sp. sp is decremented again and e is stored into the memory location pointed to by sp.",
+            "description": "SP is decremented and D is stored into the memory location pointed to by SP. SP is decremented again and E is stored into the memory location pointed to by SP.",
             "instruction": "push de"
           }
         },
@@ -22590,7 +22590,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "sp is decremented and ixh is stored into the memory location pointed to by sp. sp is decremented again and ixl is stored into the memory location pointed to by sp.",
+            "description": "SP is decremented and IXH is stored into the memory location pointed to by SP. SP is decremented again and IXL is stored into the memory location pointed to by SP.",
             "instruction": "push ix"
           }
         },
@@ -22608,7 +22608,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "sp is decremented and h is stored into the memory location pointed to by sp. sp is decremented again and l is stored into the memory location pointed to by sp.",
+            "description": "SP is decremented and H is stored into the memory location pointed to by SP. SP is decremented again and L is stored into the memory location pointed to by SP.",
             "instruction": "push hl"
           }
         },
@@ -22626,7 +22626,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "sp is decremented and a is stored into the memory location pointed to by sp. sp is decremented again and f is stored into the memory location pointed to by sp.",
+            "description": "SP is decremented and A is stored into the memory location pointed to by SP. SP is decremented again and F is stored into the memory location pointed to by SP.",
             "instruction": "push af"
           }
         },
@@ -22645,7 +22645,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "sp is decremented and iyh is stored into the memory location pointed to by sp. sp is decremented again and iyl is stored into the memory location pointed to by sp.",
+            "description": "SP is decremented and IYH is stored into the memory location pointed to by SP. SP is decremented again and IYL is stored into the memory location pointed to by SP.",
             "instruction": "push iy"
           }
         }
@@ -22667,7 +22667,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The current pc value plus one is pushed onto the stack, then is loaded with 00h.",
+            "description": "The current PC value plus one is pushed onto the stack, then is loaded with 00h.",
             "instruction": "rst 00h"
           }
         },
@@ -22685,7 +22685,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The current pc value plus one is pushed onto the stack, then is loaded with 08h.",
+            "description": "The current PC value plus one is pushed onto the stack, then is loaded with 08h.",
             "instruction": "rst 08h"
           }
         },
@@ -22703,7 +22703,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The current pc value plus one is pushed onto the stack, then is loaded with 10h.",
+            "description": "The current PC value plus one is pushed onto the stack, then is loaded with 10h.",
             "instruction": "rst 10h"
           }
         },
@@ -22721,7 +22721,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The current pc value plus one is pushed onto the stack, then is loaded with 18h.",
+            "description": "The current PC value plus one is pushed onto the stack, then is loaded with 18h.",
             "instruction": "rst 18h"
           }
         },
@@ -22739,7 +22739,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The current pc value plus one is pushed onto the stack, then is loaded with 20h.",
+            "description": "The current PC value plus one is pushed onto the stack, then is loaded with 20h.",
             "instruction": "rst 20h"
           }
         },
@@ -22757,7 +22757,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The current pc value plus one is pushed onto the stack, then is loaded with 28h.",
+            "description": "The current PC value plus one is pushed onto the stack, then is loaded with 28h.",
             "instruction": "rst 28h"
           }
         },
@@ -22775,7 +22775,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The current pc value plus one is pushed onto the stack, then is loaded with 30h.",
+            "description": "The current PC value plus one is pushed onto the stack, then is loaded with 30h.",
             "instruction": "rst 30h"
           }
         },
@@ -22793,7 +22793,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The current pc value plus one is pushed onto the stack, then is loaded with 38h.",
+            "description": "The current PC value plus one is pushed onto the stack, then is loaded with 38h.",
             "instruction": "rst 38h"
           }
         }
@@ -22816,7 +22816,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of B are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc b"
           }
         },
@@ -22835,7 +22835,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of C are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc c"
           }
         },
@@ -22854,7 +22854,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of D are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc d"
           }
         },
@@ -22873,7 +22873,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of E are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc e"
           }
         },
@@ -22892,7 +22892,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of h are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of H are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc h"
           }
         },
@@ -22911,7 +22911,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of l are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of L are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc l"
           }
         },
@@ -22932,7 +22932,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The contents of (hl) are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of (HL) are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc (hl)"
           }
         },
@@ -22951,7 +22951,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of A are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc a"
           }
         },
@@ -22976,7 +22976,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc (ix+*)"
           }
         },
@@ -23001,7 +23001,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
             "instruction": "rlc (iy+*)"
           }
         }
@@ -23024,7 +23024,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of B are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc b"
           }
         },
@@ -23043,7 +23043,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of C are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc c"
           }
         },
@@ -23062,7 +23062,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of D are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc d"
           }
         },
@@ -23081,7 +23081,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of E are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc e"
           }
         },
@@ -23100,7 +23100,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of h are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of H are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc h"
           }
         },
@@ -23119,7 +23119,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of l are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of L are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc l"
           }
         },
@@ -23140,7 +23140,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The contents of (hl) are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of (HL) are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc (hl)"
           }
         },
@@ -23159,7 +23159,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of A are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc a"
           }
         },
@@ -23184,7 +23184,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc (ix+*)"
           }
         },
@@ -23209,7 +23209,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
             "instruction": "rrc (iy+*)"
           }
         }
@@ -23232,7 +23232,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of B are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl b"
           }
         },
@@ -23251,7 +23251,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of C are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl c"
           }
         },
@@ -23270,7 +23270,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of D are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl d"
           }
         },
@@ -23289,7 +23289,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of E are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl e"
           }
         },
@@ -23308,7 +23308,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of h are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of H are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl h"
           }
         },
@@ -23327,7 +23327,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of l are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of L are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl l"
           }
         },
@@ -23348,7 +23348,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The contents of (hl) are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of (HL) are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl (hl)"
           }
         },
@@ -23367,7 +23367,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of A are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl a"
           }
         },
@@ -23392,7 +23392,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl (ix+*)"
           }
         },
@@ -23417,7 +23417,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
             "instruction": "rl (iy+*)"
           }
         }
@@ -23440,7 +23440,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of B are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr b"
           }
         },
@@ -23459,7 +23459,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of C are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr c"
           }
         },
@@ -23478,7 +23478,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of D are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr d"
           }
         },
@@ -23497,7 +23497,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of E are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr e"
           }
         },
@@ -23516,7 +23516,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of h are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of H are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr h"
           }
         },
@@ -23535,7 +23535,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of l are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of L are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr l"
           }
         },
@@ -23556,7 +23556,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The contents of (hl) are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of (HL) are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr (hl)"
           }
         },
@@ -23575,7 +23575,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of A are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr a"
           }
         },
@@ -23600,7 +23600,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr (ix+*)"
           }
         },
@@ -23625,7 +23625,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+            "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
             "instruction": "rr (iy+*)"
           }
         }
@@ -23648,7 +23648,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of B are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla b"
           }
         },
@@ -23667,7 +23667,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of C are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla c"
           }
         },
@@ -23686,7 +23686,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of D are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla d"
           }
         },
@@ -23705,7 +23705,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of E are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla e"
           }
         },
@@ -23724,7 +23724,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of h are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of H are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla h"
           }
         },
@@ -23743,7 +23743,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of l are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of L are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla l"
           }
         },
@@ -23764,7 +23764,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The contents of (hl) are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of (HL) are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla (hl)"
           }
         },
@@ -23783,7 +23783,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of A are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla a"
           }
         },
@@ -23808,7 +23808,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla (ix+*)"
           }
         },
@@ -23833,7 +23833,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
             "instruction": "sla (iy+*)"
           }
         }
@@ -23856,7 +23856,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of B are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra b"
           }
         },
@@ -23875,7 +23875,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of C are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra c"
           }
         },
@@ -23894,7 +23894,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of D are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra d"
           }
         },
@@ -23913,7 +23913,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of E are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra e"
           }
         },
@@ -23932,7 +23932,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of h are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of H are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra h"
           }
         },
@@ -23951,7 +23951,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of l are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of L are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra l"
           }
         },
@@ -23972,7 +23972,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The contents of (hl) are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of (HL) are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra (hl)"
           }
         },
@@ -23991,7 +23991,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of A are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra a"
           }
         },
@@ -24016,7 +24016,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra (ix+*)"
           }
         },
@@ -24041,7 +24041,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
             "instruction": "sra (iy+*)"
           }
         }
@@ -24064,7 +24064,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of B are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll b"
           }
         },
@@ -24083,7 +24083,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of C are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll c"
           }
         },
@@ -24102,7 +24102,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of D are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll d"
           }
         },
@@ -24121,7 +24121,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of E are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll e"
           }
         },
@@ -24140,7 +24140,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of h are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of H are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll h"
           }
         },
@@ -24159,7 +24159,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of l are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of L are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll l"
           }
         },
@@ -24180,7 +24180,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The contents of (hl) are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of (HL) are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll (hl)"
           }
         },
@@ -24199,7 +24199,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of A are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll a"
           }
         },
@@ -24224,7 +24224,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll (ix+*)"
           }
         },
@@ -24249,7 +24249,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
             "instruction": "sll (iy+*)"
           }
         }
@@ -24272,7 +24272,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of b are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of B are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl b"
           }
         },
@@ -24291,7 +24291,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of c are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of C are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl c"
           }
         },
@@ -24310,7 +24310,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of d are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of D are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl d"
           }
         },
@@ -24329,7 +24329,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of e are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of E are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl e"
           }
         },
@@ -24348,7 +24348,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of h are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of H are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl h"
           }
         },
@@ -24367,7 +24367,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of l are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of L are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl l"
           }
         },
@@ -24388,7 +24388,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "The contents of (hl) are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of (HL) are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl (hl)"
           }
         },
@@ -24407,7 +24407,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of A are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl a"
           }
         },
@@ -24432,7 +24432,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by ix plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl (ix+*)"
           }
         },
@@ -24457,7 +24457,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "The contents of the memory location pointed to by iy plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+            "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
             "instruction": "srl (iy+*)"
           }
         }
@@ -24482,7 +24482,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 0 of b.",
+            "description": "Tests bit 0 of B.",
             "instruction": "bit 0,b"
           }
         },
@@ -24503,7 +24503,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 0 of c.",
+            "description": "Tests bit 0 of C.",
             "instruction": "bit 0,c"
           }
         },
@@ -24524,7 +24524,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 0 of d.",
+            "description": "Tests bit 0 of D.",
             "instruction": "bit 0,d"
           }
         },
@@ -24545,7 +24545,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 0 of e.",
+            "description": "Tests bit 0 of E.",
             "instruction": "bit 0,e"
           }
         },
@@ -24566,7 +24566,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 0 of h.",
+            "description": "Tests bit 0 of H.",
             "instruction": "bit 0,h"
           }
         },
@@ -24587,7 +24587,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 0 of l.",
+            "description": "Tests bit 0 of L.",
             "instruction": "bit 0,l"
           }
         },
@@ -24610,7 +24610,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Tests bit 0 of (hl).",
+            "description": "Tests bit 0 of (HL).",
             "instruction": "bit 0,(hl)"
           }
         },
@@ -24631,7 +24631,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 0 of a.",
+            "description": "Tests bit 0 of A.",
             "instruction": "bit 0,a"
           }
         },
@@ -24652,7 +24652,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 1 of b.",
+            "description": "Tests bit 1 of B.",
             "instruction": "bit 1,b"
           }
         },
@@ -24673,7 +24673,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 1 of c.",
+            "description": "Tests bit 1 of C.",
             "instruction": "bit 1,c"
           }
         },
@@ -24694,7 +24694,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 1 of d.",
+            "description": "Tests bit 1 of D.",
             "instruction": "bit 1,d"
           }
         },
@@ -24715,7 +24715,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 1 of e.",
+            "description": "Tests bit 1 of E.",
             "instruction": "bit 1,e"
           }
         },
@@ -24736,7 +24736,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 1 of h.",
+            "description": "Tests bit 1 of H.",
             "instruction": "bit 1,h"
           }
         },
@@ -24757,7 +24757,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 1 of l.",
+            "description": "Tests bit 1 of L.",
             "instruction": "bit 1,l"
           }
         },
@@ -24780,7 +24780,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Tests bit 1 of (hl).",
+            "description": "Tests bit 1 of (HL).",
             "instruction": "bit 1,(hl)"
           }
         },
@@ -24801,7 +24801,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 1 of a.",
+            "description": "Tests bit 1 of A.",
             "instruction": "bit 1,a"
           }
         },
@@ -24822,7 +24822,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 2 of b.",
+            "description": "Tests bit 2 of B.",
             "instruction": "bit 2,b"
           }
         },
@@ -24843,7 +24843,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 2 of c.",
+            "description": "Tests bit 2 of C.",
             "instruction": "bit 2,c"
           }
         },
@@ -24864,7 +24864,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 2 of d.",
+            "description": "Tests bit 2 of D.",
             "instruction": "bit 2,d"
           }
         },
@@ -24885,7 +24885,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 2 of e.",
+            "description": "Tests bit 2 of E.",
             "instruction": "bit 2,e"
           }
         },
@@ -24906,7 +24906,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 2 of h.",
+            "description": "Tests bit 2 of H.",
             "instruction": "bit 2,h"
           }
         },
@@ -24927,7 +24927,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 2 of l.",
+            "description": "Tests bit 2 of L.",
             "instruction": "bit 2,l"
           }
         },
@@ -24950,7 +24950,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Tests bit 2 of (hl).",
+            "description": "Tests bit 2 of (HL).",
             "instruction": "bit 2,(hl)"
           }
         },
@@ -24971,7 +24971,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 2 of a.",
+            "description": "Tests bit 2 of A.",
             "instruction": "bit 2,a"
           }
         },
@@ -24992,7 +24992,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 3 of b.",
+            "description": "Tests bit 3 of B.",
             "instruction": "bit 3,b"
           }
         },
@@ -25013,7 +25013,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 3 of c.",
+            "description": "Tests bit 3 of C.",
             "instruction": "bit 3,c"
           }
         },
@@ -25034,7 +25034,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 3 of d.",
+            "description": "Tests bit 3 of D.",
             "instruction": "bit 3,d"
           }
         },
@@ -25055,7 +25055,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 3 of e.",
+            "description": "Tests bit 3 of E.",
             "instruction": "bit 3,e"
           }
         },
@@ -25076,7 +25076,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 3 of h.",
+            "description": "Tests bit 3 of H.",
             "instruction": "bit 3,h"
           }
         },
@@ -25097,7 +25097,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 3 of l.",
+            "description": "Tests bit 3 of L.",
             "instruction": "bit 3,l"
           }
         },
@@ -25120,7 +25120,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Tests bit 3 of (hl).",
+            "description": "Tests bit 3 of (HL).",
             "instruction": "bit 3,(hl)"
           }
         },
@@ -25141,7 +25141,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 3 of a.",
+            "description": "Tests bit 3 of A.",
             "instruction": "bit 3,a"
           }
         },
@@ -25162,7 +25162,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 4 of b.",
+            "description": "Tests bit 4 of B.",
             "instruction": "bit 4,b"
           }
         },
@@ -25183,7 +25183,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 4 of c.",
+            "description": "Tests bit 4 of C.",
             "instruction": "bit 4,c"
           }
         },
@@ -25204,7 +25204,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 4 of d.",
+            "description": "Tests bit 4 of D.",
             "instruction": "bit 4,d"
           }
         },
@@ -25225,7 +25225,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 4 of e.",
+            "description": "Tests bit 4 of E.",
             "instruction": "bit 4,e"
           }
         },
@@ -25246,7 +25246,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 4 of h.",
+            "description": "Tests bit 4 of H.",
             "instruction": "bit 4,h"
           }
         },
@@ -25267,7 +25267,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 4 of l.",
+            "description": "Tests bit 4 of L.",
             "instruction": "bit 4,l"
           }
         },
@@ -25290,7 +25290,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Tests bit 4 of (hl).",
+            "description": "Tests bit 4 of (HL).",
             "instruction": "bit 4,(hl)"
           }
         },
@@ -25311,7 +25311,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 4 of a.",
+            "description": "Tests bit 4 of A.",
             "instruction": "bit 4,a"
           }
         },
@@ -25332,7 +25332,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 5 of b.",
+            "description": "Tests bit 5 of B.",
             "instruction": "bit 5,b"
           }
         },
@@ -25353,7 +25353,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 5 of c.",
+            "description": "Tests bit 5 of C.",
             "instruction": "bit 5,c"
           }
         },
@@ -25374,7 +25374,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 5 of d.",
+            "description": "Tests bit 5 of D.",
             "instruction": "bit 5,d"
           }
         },
@@ -25395,7 +25395,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 5 of e.",
+            "description": "Tests bit 5 of E.",
             "instruction": "bit 5,e"
           }
         },
@@ -25416,7 +25416,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 5 of h.",
+            "description": "Tests bit 5 of H.",
             "instruction": "bit 5,h"
           }
         },
@@ -25437,7 +25437,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 5 of l.",
+            "description": "Tests bit 5 of L.",
             "instruction": "bit 5,l"
           }
         },
@@ -25460,7 +25460,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Tests bit 5 of (hl).",
+            "description": "Tests bit 5 of (HL).",
             "instruction": "bit 5,(hl)"
           }
         },
@@ -25481,7 +25481,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 5 of a.",
+            "description": "Tests bit 5 of A.",
             "instruction": "bit 5,a"
           }
         },
@@ -25502,7 +25502,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 6 of b.",
+            "description": "Tests bit 6 of B.",
             "instruction": "bit 6,b"
           }
         },
@@ -25523,7 +25523,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 6 of c.",
+            "description": "Tests bit 6 of C.",
             "instruction": "bit 6,c"
           }
         },
@@ -25544,7 +25544,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 6 of d.",
+            "description": "Tests bit 6 of D.",
             "instruction": "bit 6,d"
           }
         },
@@ -25565,7 +25565,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 6 of e.",
+            "description": "Tests bit 6 of E.",
             "instruction": "bit 6,e"
           }
         },
@@ -25586,7 +25586,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 6 of h.",
+            "description": "Tests bit 6 of H.",
             "instruction": "bit 6,h"
           }
         },
@@ -25607,7 +25607,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 6 of l.",
+            "description": "Tests bit 6 of L.",
             "instruction": "bit 6,l"
           }
         },
@@ -25630,7 +25630,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Tests bit 6 of (hl).",
+            "description": "Tests bit 6 of (HL).",
             "instruction": "bit 6,(hl)"
           }
         },
@@ -25651,7 +25651,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 6 of a.",
+            "description": "Tests bit 6 of A.",
             "instruction": "bit 6,a"
           }
         },
@@ -25672,7 +25672,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 7 of b.",
+            "description": "Tests bit 7 of B.",
             "instruction": "bit 7,b"
           }
         },
@@ -25693,7 +25693,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 7 of c.",
+            "description": "Tests bit 7 of C.",
             "instruction": "bit 7,c"
           }
         },
@@ -25714,7 +25714,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 7 of d.",
+            "description": "Tests bit 7 of D.",
             "instruction": "bit 7,d"
           }
         },
@@ -25735,7 +25735,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 7 of e.",
+            "description": "Tests bit 7 of E.",
             "instruction": "bit 7,e"
           }
         },
@@ -25756,7 +25756,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 7 of h.",
+            "description": "Tests bit 7 of H.",
             "instruction": "bit 7,h"
           }
         },
@@ -25777,7 +25777,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 7 of l.",
+            "description": "Tests bit 7 of L.",
             "instruction": "bit 7,l"
           }
         },
@@ -25800,7 +25800,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Tests bit 7 of (hl).",
+            "description": "Tests bit 7 of (HL).",
             "instruction": "bit 7,(hl)"
           }
         },
@@ -25821,7 +25821,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Tests bit 7 of a.",
+            "description": "Tests bit 7 of A.",
             "instruction": "bit 7,a"
           }
         },
@@ -25848,7 +25848,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Tests bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "bit 0,(ix+*)"
           }
         },
@@ -25875,7 +25875,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Tests bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "bit 1,(ix+*)"
           }
         },
@@ -25902,7 +25902,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Tests bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "bit 2,(ix+*)"
           }
         },
@@ -25929,7 +25929,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Tests bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "bit 3,(ix+*)"
           }
         },
@@ -25956,7 +25956,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Tests bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "bit 4,(ix+*)"
           }
         },
@@ -25983,7 +25983,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Tests bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "bit 5,(ix+*)"
           }
         },
@@ -26010,7 +26010,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Tests bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "bit 6,(ix+*)"
           }
         },
@@ -26037,7 +26037,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Tests bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "bit 7,(ix+*)"
           }
         },
@@ -26064,7 +26064,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Tests bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "bit 0,(iy+*)"
           }
         },
@@ -26091,7 +26091,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Tests bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "bit 1,(iy+*)"
           }
         },
@@ -26118,7 +26118,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Tests bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "bit 2,(iy+*)"
           }
         },
@@ -26145,7 +26145,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Tests bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "bit 3,(iy+*)"
           }
         },
@@ -26172,7 +26172,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Tests bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "bit 4,(iy+*)"
           }
         },
@@ -26199,7 +26199,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Tests bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "bit 5,(iy+*)"
           }
         },
@@ -26226,7 +26226,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Tests bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "bit 6,(iy+*)"
           }
         },
@@ -26253,7 +26253,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 20,
             "without_jump_clock_count": 20,
-            "description": "Tests bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Tests bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "bit 7,(iy+*)"
           }
         }
@@ -26278,7 +26278,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 0 of b.",
+            "description": "Resets bit 0 of B.",
             "instruction": "res 0,b"
           }
         },
@@ -26299,7 +26299,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 0 of c.",
+            "description": "Resets bit 0 of C.",
             "instruction": "res 0,c"
           }
         },
@@ -26320,7 +26320,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 0 of d.",
+            "description": "Resets bit 0 of D.",
             "instruction": "res 0,d"
           }
         },
@@ -26341,7 +26341,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 0 of e.",
+            "description": "Resets bit 0 of E.",
             "instruction": "res 0,e"
           }
         },
@@ -26362,7 +26362,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 0 of h.",
+            "description": "Resets bit 0 of H.",
             "instruction": "res 0,h"
           }
         },
@@ -26383,7 +26383,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 0 of l.",
+            "description": "Resets bit 0 of L.",
             "instruction": "res 0,l"
           }
         },
@@ -26406,7 +26406,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Resets bit 0 of (hl).",
+            "description": "Resets bit 0 of (HL).",
             "instruction": "res 0,(hl)"
           }
         },
@@ -26427,7 +26427,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 0 of a.",
+            "description": "Resets bit 0 of A.",
             "instruction": "res 0,a"
           }
         },
@@ -26448,7 +26448,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 1 of b.",
+            "description": "Resets bit 1 of B.",
             "instruction": "res 1,b"
           }
         },
@@ -26469,7 +26469,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 1 of c.",
+            "description": "Resets bit 1 of C.",
             "instruction": "res 1,c"
           }
         },
@@ -26490,7 +26490,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 1 of d.",
+            "description": "Resets bit 1 of D.",
             "instruction": "res 1,d"
           }
         },
@@ -26511,7 +26511,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 1 of e.",
+            "description": "Resets bit 1 of E.",
             "instruction": "res 1,e"
           }
         },
@@ -26532,7 +26532,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 1 of h.",
+            "description": "Resets bit 1 of H.",
             "instruction": "res 1,h"
           }
         },
@@ -26553,7 +26553,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 1 of l.",
+            "description": "Resets bit 1 of L.",
             "instruction": "res 1,l"
           }
         },
@@ -26576,7 +26576,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Resets bit 1 of (hl).",
+            "description": "Resets bit 1 of (HL).",
             "instruction": "res 1,(hl)"
           }
         },
@@ -26597,7 +26597,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 1 of a.",
+            "description": "Resets bit 1 of A.",
             "instruction": "res 1,a"
           }
         },
@@ -26618,7 +26618,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 2 of b.",
+            "description": "Resets bit 2 of B.",
             "instruction": "res 2,b"
           }
         },
@@ -26639,7 +26639,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 2 of c.",
+            "description": "Resets bit 2 of C.",
             "instruction": "res 2,c"
           }
         },
@@ -26660,7 +26660,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 2 of d.",
+            "description": "Resets bit 2 of D.",
             "instruction": "res 2,d"
           }
         },
@@ -26681,7 +26681,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 2 of e.",
+            "description": "Resets bit 2 of E.",
             "instruction": "res 2,e"
           }
         },
@@ -26702,7 +26702,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 2 of h.",
+            "description": "Resets bit 2 of H.",
             "instruction": "res 2,h"
           }
         },
@@ -26723,7 +26723,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 2 of l.",
+            "description": "Resets bit 2 of L.",
             "instruction": "res 2,l"
           }
         },
@@ -26746,7 +26746,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Resets bit 2 of (hl).",
+            "description": "Resets bit 2 of (HL).",
             "instruction": "res 2,(hl)"
           }
         },
@@ -26767,7 +26767,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 2 of a.",
+            "description": "Resets bit 2 of A.",
             "instruction": "res 2,a"
           }
         },
@@ -26788,7 +26788,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 3 of b.",
+            "description": "Resets bit 3 of B.",
             "instruction": "res 3,b"
           }
         },
@@ -26809,7 +26809,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 3 of c.",
+            "description": "Resets bit 3 of C.",
             "instruction": "res 3,c"
           }
         },
@@ -26830,7 +26830,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 3 of d.",
+            "description": "Resets bit 3 of D.",
             "instruction": "res 3,d"
           }
         },
@@ -26851,7 +26851,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 3 of e.",
+            "description": "Resets bit 3 of E.",
             "instruction": "res 3,e"
           }
         },
@@ -26872,7 +26872,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 3 of h.",
+            "description": "Resets bit 3 of H.",
             "instruction": "res 3,h"
           }
         },
@@ -26893,7 +26893,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 3 of l.",
+            "description": "Resets bit 3 of L.",
             "instruction": "res 3,l"
           }
         },
@@ -26916,7 +26916,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Resets bit 3 of (hl).",
+            "description": "Resets bit 3 of (HL).",
             "instruction": "res 3,(hl)"
           }
         },
@@ -26937,7 +26937,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 3 of a.",
+            "description": "Resets bit 3 of A.",
             "instruction": "res 3,a"
           }
         },
@@ -26958,7 +26958,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 4 of b.",
+            "description": "Resets bit 4 of B.",
             "instruction": "res 4,b"
           }
         },
@@ -26979,7 +26979,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 4 of c.",
+            "description": "Resets bit 4 of C.",
             "instruction": "res 4,c"
           }
         },
@@ -27000,7 +27000,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 4 of d.",
+            "description": "Resets bit 4 of D.",
             "instruction": "res 4,d"
           }
         },
@@ -27021,7 +27021,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 4 of e.",
+            "description": "Resets bit 4 of E.",
             "instruction": "res 4,e"
           }
         },
@@ -27042,7 +27042,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 4 of h.",
+            "description": "Resets bit 4 of H.",
             "instruction": "res 4,h"
           }
         },
@@ -27063,7 +27063,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 4 of l.",
+            "description": "Resets bit 4 of L.",
             "instruction": "res 4,l"
           }
         },
@@ -27086,7 +27086,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Resets bit 4 of (hl).",
+            "description": "Resets bit 4 of (HL).",
             "instruction": "res 4,(hl)"
           }
         },
@@ -27107,7 +27107,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 4 of a.",
+            "description": "Resets bit 4 of A.",
             "instruction": "res 4,a"
           }
         },
@@ -27128,7 +27128,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 5 of b.",
+            "description": "Resets bit 5 of B.",
             "instruction": "res 5,b"
           }
         },
@@ -27149,7 +27149,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 5 of c.",
+            "description": "Resets bit 5 of C.",
             "instruction": "res 5,c"
           }
         },
@@ -27170,7 +27170,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 5 of d.",
+            "description": "Resets bit 5 of D.",
             "instruction": "res 5,d"
           }
         },
@@ -27191,7 +27191,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 5 of e.",
+            "description": "Resets bit 5 of E.",
             "instruction": "res 5,e"
           }
         },
@@ -27212,7 +27212,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 5 of h.",
+            "description": "Resets bit 5 of H.",
             "instruction": "res 5,h"
           }
         },
@@ -27233,7 +27233,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 5 of l.",
+            "description": "Resets bit 5 of L.",
             "instruction": "res 5,l"
           }
         },
@@ -27256,7 +27256,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Resets bit 5 of (hl).",
+            "description": "Resets bit 5 of (HL).",
             "instruction": "res 5,(hl)"
           }
         },
@@ -27277,7 +27277,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 5 of a.",
+            "description": "Resets bit 5 of A.",
             "instruction": "res 5,a"
           }
         },
@@ -27298,7 +27298,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 6 of b.",
+            "description": "Resets bit 6 of B.",
             "instruction": "res 6,b"
           }
         },
@@ -27319,7 +27319,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 6 of c.",
+            "description": "Resets bit 6 of C.",
             "instruction": "res 6,c"
           }
         },
@@ -27340,7 +27340,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 6 of d.",
+            "description": "Resets bit 6 of D.",
             "instruction": "res 6,d"
           }
         },
@@ -27361,7 +27361,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 6 of e.",
+            "description": "Resets bit 6 of E.",
             "instruction": "res 6,e"
           }
         },
@@ -27382,7 +27382,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 6 of h.",
+            "description": "Resets bit 6 of H.",
             "instruction": "res 6,h"
           }
         },
@@ -27403,7 +27403,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 6 of l.",
+            "description": "Resets bit 6 of L.",
             "instruction": "res 6,l"
           }
         },
@@ -27426,7 +27426,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Resets bit 6 of (hl).",
+            "description": "Resets bit 6 of (HL).",
             "instruction": "res 6,(hl)"
           }
         },
@@ -27447,7 +27447,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 6 of a.",
+            "description": "Resets bit 6 of A.",
             "instruction": "res 6,a"
           }
         },
@@ -27468,7 +27468,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 7 of b.",
+            "description": "Resets bit 7 of B.",
             "instruction": "res 7,b"
           }
         },
@@ -27489,7 +27489,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 7 of c.",
+            "description": "Resets bit 7 of C.",
             "instruction": "res 7,c"
           }
         },
@@ -27510,7 +27510,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 7 of d.",
+            "description": "Resets bit 7 of D.",
             "instruction": "res 7,d"
           }
         },
@@ -27531,7 +27531,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 7 of e.",
+            "description": "Resets bit 7 of E.",
             "instruction": "res 7,e"
           }
         },
@@ -27552,7 +27552,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 7 of h.",
+            "description": "Resets bit 7 of H.",
             "instruction": "res 7,h"
           }
         },
@@ -27573,7 +27573,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 7 of l.",
+            "description": "Resets bit 7 of L.",
             "instruction": "res 7,l"
           }
         },
@@ -27596,7 +27596,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Resets bit 7 of (hl).",
+            "description": "Resets bit 7 of (HL).",
             "instruction": "res 7,(hl)"
           }
         },
@@ -27617,7 +27617,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Resets bit 7 of a.",
+            "description": "Resets bit 7 of A.",
             "instruction": "res 7,a"
           }
         },
@@ -27644,7 +27644,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "res 0,(ix+*)"
           }
         },
@@ -27671,7 +27671,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "res 1,(ix+*)"
           }
         },
@@ -27698,7 +27698,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "res 2,(ix+*)"
           }
         },
@@ -27725,7 +27725,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "res 3,(ix+*)"
           }
         },
@@ -27752,7 +27752,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "res 4,(ix+*)"
           }
         },
@@ -27779,7 +27779,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "res 5,(ix+*)"
           }
         },
@@ -27806,7 +27806,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "res 6,(ix+*)"
           }
         },
@@ -27833,7 +27833,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "res 7,(ix+*)"
           }
         },
@@ -27860,7 +27860,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "res 0,(iy+*)"
           }
         },
@@ -27887,7 +27887,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "res 1,(iy+*)"
           }
         },
@@ -27914,7 +27914,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "res 2,(iy+*)"
           }
         },
@@ -27941,7 +27941,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "res 3,(iy+*)"
           }
         },
@@ -27968,7 +27968,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "res 4,(iy+*)"
           }
         },
@@ -27995,7 +27995,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "res 5,(iy+*)"
           }
         },
@@ -28022,7 +28022,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "res 6,(iy+*)"
           }
         },
@@ -28049,7 +28049,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Resets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "res 7,(iy+*)"
           }
         }
@@ -28074,7 +28074,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 0 of b.",
+            "description": "Sets bit 0 of B.",
             "instruction": "set 0,b"
           }
         },
@@ -28095,7 +28095,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 0 of c.",
+            "description": "Sets bit 0 of C.",
             "instruction": "set 0,c"
           }
         },
@@ -28116,7 +28116,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 0 of d.",
+            "description": "Sets bit 0 of D.",
             "instruction": "set 0,d"
           }
         },
@@ -28137,7 +28137,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 0 of e.",
+            "description": "Sets bit 0 of E.",
             "instruction": "set 0,e"
           }
         },
@@ -28158,7 +28158,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 0 of h.",
+            "description": "Sets bit 0 of H.",
             "instruction": "set 0,h"
           }
         },
@@ -28179,7 +28179,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 0 of l.",
+            "description": "Sets bit 0 of L.",
             "instruction": "set 0,l"
           }
         },
@@ -28202,7 +28202,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Sets bit 0 of (hl).",
+            "description": "Sets bit 0 of (HL).",
             "instruction": "set 0,(hl)"
           }
         },
@@ -28223,7 +28223,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 0 of a.",
+            "description": "Sets bit 0 of A.",
             "instruction": "set 0,a"
           }
         },
@@ -28244,7 +28244,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 1 of b.",
+            "description": "Sets bit 1 of B.",
             "instruction": "set 1,b"
           }
         },
@@ -28265,7 +28265,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 1 of c.",
+            "description": "Sets bit 1 of C.",
             "instruction": "set 1,c"
           }
         },
@@ -28286,7 +28286,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 1 of d.",
+            "description": "Sets bit 1 of D.",
             "instruction": "set 1,d"
           }
         },
@@ -28307,7 +28307,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 1 of e.",
+            "description": "Sets bit 1 of E.",
             "instruction": "set 1,e"
           }
         },
@@ -28328,7 +28328,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 1 of h.",
+            "description": "Sets bit 1 of H.",
             "instruction": "set 1,h"
           }
         },
@@ -28349,7 +28349,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 1 of l.",
+            "description": "Sets bit 1 of L.",
             "instruction": "set 1,l"
           }
         },
@@ -28372,7 +28372,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Sets bit 1 of (hl).",
+            "description": "Sets bit 1 of (HL).",
             "instruction": "set 1,(hl)"
           }
         },
@@ -28393,7 +28393,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 1 of a.",
+            "description": "Sets bit 1 of A.",
             "instruction": "set 1,a"
           }
         },
@@ -28414,7 +28414,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 2 of b.",
+            "description": "Sets bit 2 of B.",
             "instruction": "set 2,b"
           }
         },
@@ -28435,7 +28435,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 2 of c.",
+            "description": "Sets bit 2 of C.",
             "instruction": "set 2,c"
           }
         },
@@ -28456,7 +28456,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 2 of d.",
+            "description": "Sets bit 2 of D.",
             "instruction": "set 2,d"
           }
         },
@@ -28477,7 +28477,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 2 of e.",
+            "description": "Sets bit 2 of E.",
             "instruction": "set 2,e"
           }
         },
@@ -28498,7 +28498,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 2 of h.",
+            "description": "Sets bit 2 of H.",
             "instruction": "set 2,h"
           }
         },
@@ -28519,7 +28519,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 2 of l.",
+            "description": "Sets bit 2 of L.",
             "instruction": "set 2,l"
           }
         },
@@ -28542,7 +28542,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Sets bit 2 of (hl).",
+            "description": "Sets bit 2 of (HL).",
             "instruction": "set 2,(hl)"
           }
         },
@@ -28563,7 +28563,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 2 of a.",
+            "description": "Sets bit 2 of A.",
             "instruction": "set 2,a"
           }
         },
@@ -28584,7 +28584,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 3 of b.",
+            "description": "Sets bit 3 of B.",
             "instruction": "set 3,b"
           }
         },
@@ -28605,7 +28605,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 3 of c.",
+            "description": "Sets bit 3 of C.",
             "instruction": "set 3,c"
           }
         },
@@ -28626,7 +28626,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 3 of d.",
+            "description": "Sets bit 3 of D.",
             "instruction": "set 3,d"
           }
         },
@@ -28647,7 +28647,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 3 of e.",
+            "description": "Sets bit 3 of E.",
             "instruction": "set 3,e"
           }
         },
@@ -28668,7 +28668,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 3 of h.",
+            "description": "Sets bit 3 of H.",
             "instruction": "set 3,h"
           }
         },
@@ -28689,7 +28689,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 3 of l.",
+            "description": "Sets bit 3 of L.",
             "instruction": "set 3,l"
           }
         },
@@ -28712,7 +28712,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Sets bit 3 of (hl).",
+            "description": "Sets bit 3 of (HL).",
             "instruction": "set 3,(hl)"
           }
         },
@@ -28733,7 +28733,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 3 of a.",
+            "description": "Sets bit 3 of A.",
             "instruction": "set 3,a"
           }
         },
@@ -28754,7 +28754,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 4 of b.",
+            "description": "Sets bit 4 of B.",
             "instruction": "set 4,b"
           }
         },
@@ -28775,7 +28775,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 4 of c.",
+            "description": "Sets bit 4 of C.",
             "instruction": "set 4,c"
           }
         },
@@ -28796,7 +28796,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 4 of d.",
+            "description": "Sets bit 4 of D.",
             "instruction": "set 4,d"
           }
         },
@@ -28817,7 +28817,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 4 of e.",
+            "description": "Sets bit 4 of E.",
             "instruction": "set 4,e"
           }
         },
@@ -28838,7 +28838,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 4 of h.",
+            "description": "Sets bit 4 of H.",
             "instruction": "set 4,h"
           }
         },
@@ -28859,7 +28859,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 4 of l.",
+            "description": "Sets bit 4 of L.",
             "instruction": "set 4,l"
           }
         },
@@ -28882,7 +28882,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Sets bit 4 of (hl).",
+            "description": "Sets bit 4 of (HL).",
             "instruction": "set 4,(hl)"
           }
         },
@@ -28903,7 +28903,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 4 of a.",
+            "description": "Sets bit 4 of A.",
             "instruction": "set 4,a"
           }
         },
@@ -28924,7 +28924,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 5 of b.",
+            "description": "Sets bit 5 of B.",
             "instruction": "set 5,b"
           }
         },
@@ -28945,7 +28945,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 5 of c.",
+            "description": "Sets bit 5 of C.",
             "instruction": "set 5,c"
           }
         },
@@ -28966,7 +28966,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 5 of d.",
+            "description": "Sets bit 5 of D.",
             "instruction": "set 5,d"
           }
         },
@@ -28987,7 +28987,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 5 of e.",
+            "description": "Sets bit 5 of E.",
             "instruction": "set 5,e"
           }
         },
@@ -29008,7 +29008,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 5 of h.",
+            "description": "Sets bit 5 of H.",
             "instruction": "set 5,h"
           }
         },
@@ -29029,7 +29029,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 5 of l.",
+            "description": "Sets bit 5 of L.",
             "instruction": "set 5,l"
           }
         },
@@ -29052,7 +29052,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Sets bit 5 of (hl).",
+            "description": "Sets bit 5 of (HL).",
             "instruction": "set 5,(hl)"
           }
         },
@@ -29073,7 +29073,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 5 of a.",
+            "description": "Sets bit 5 of A.",
             "instruction": "set 5,a"
           }
         },
@@ -29094,7 +29094,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 6 of b.",
+            "description": "Sets bit 6 of B.",
             "instruction": "set 6,b"
           }
         },
@@ -29115,7 +29115,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 6 of c.",
+            "description": "Sets bit 6 of C.",
             "instruction": "set 6,c"
           }
         },
@@ -29136,7 +29136,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 6 of d.",
+            "description": "Sets bit 6 of D.",
             "instruction": "set 6,d"
           }
         },
@@ -29157,7 +29157,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 6 of e.",
+            "description": "Sets bit 6 of E.",
             "instruction": "set 6,e"
           }
         },
@@ -29178,7 +29178,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 6 of h.",
+            "description": "Sets bit 6 of H.",
             "instruction": "set 6,h"
           }
         },
@@ -29199,7 +29199,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 6 of l.",
+            "description": "Sets bit 6 of L.",
             "instruction": "set 6,l"
           }
         },
@@ -29222,7 +29222,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Sets bit 6 of (hl).",
+            "description": "Sets bit 6 of (HL).",
             "instruction": "set 6,(hl)"
           }
         },
@@ -29243,7 +29243,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 6 of a.",
+            "description": "Sets bit 6 of A.",
             "instruction": "set 6,a"
           }
         },
@@ -29264,7 +29264,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 7 of b.",
+            "description": "Sets bit 7 of B.",
             "instruction": "set 7,b"
           }
         },
@@ -29285,7 +29285,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 7 of c.",
+            "description": "Sets bit 7 of C.",
             "instruction": "set 7,c"
           }
         },
@@ -29306,7 +29306,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 7 of d.",
+            "description": "Sets bit 7 of D.",
             "instruction": "set 7,d"
           }
         },
@@ -29327,7 +29327,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 7 of e.",
+            "description": "Sets bit 7 of E.",
             "instruction": "set 7,e"
           }
         },
@@ -29348,7 +29348,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 7 of h.",
+            "description": "Sets bit 7 of H.",
             "instruction": "set 7,h"
           }
         },
@@ -29369,7 +29369,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 7 of l.",
+            "description": "Sets bit 7 of L.",
             "instruction": "set 7,l"
           }
         },
@@ -29392,7 +29392,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 15,
             "without_jump_clock_count": 15,
-            "description": "Sets bit 7 of (hl).",
+            "description": "Sets bit 7 of (HL).",
             "instruction": "set 7,(hl)"
           }
         },
@@ -29413,7 +29413,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "Sets bit 7 of a.",
+            "description": "Sets bit 7 of A.",
             "instruction": "set 7,a"
           }
         },
@@ -29440,7 +29440,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
             "instruction": "set 0,(ix+*)"
           }
         },
@@ -29467,7 +29467,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
             "instruction": "set 1,(ix+*)"
           }
         },
@@ -29494,7 +29494,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
             "instruction": "set 2,(ix+*)"
           }
         },
@@ -29521,7 +29521,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
             "instruction": "set 3,(ix+*)"
           }
         },
@@ -29548,7 +29548,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
             "instruction": "set 4,(ix+*)"
           }
         },
@@ -29575,7 +29575,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
             "instruction": "set 5,(ix+*)"
           }
         },
@@ -29602,7 +29602,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
             "instruction": "set 6,(ix+*)"
           }
         },
@@ -29629,7 +29629,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by ix plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
             "instruction": "set 7,(ix+*)"
           }
         },
@@ -29656,7 +29656,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 0 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
             "instruction": "set 0,(iy+*)"
           }
         },
@@ -29683,7 +29683,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 1 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
             "instruction": "set 1,(iy+*)"
           }
         },
@@ -29710,7 +29710,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 2 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
             "instruction": "set 2,(iy+*)"
           }
         },
@@ -29737,7 +29737,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 3 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
             "instruction": "set 3,(iy+*)"
           }
         },
@@ -29764,7 +29764,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 4 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
             "instruction": "set 4,(iy+*)"
           }
         },
@@ -29791,7 +29791,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 5 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
             "instruction": "set 5,(iy+*)"
           }
         },
@@ -29818,7 +29818,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 6 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
             "instruction": "set 6,(iy+*)"
           }
         },
@@ -29845,7 +29845,7 @@ const opcodes: Instructions = {
             "byte_count": 4,
             "with_jump_clock_count": 23,
             "without_jump_clock_count": 23,
-            "description": "Sets bit 7 of the memory location pointed to by iy plus *.",
+            "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
             "instruction": "set 7,(iy+*)"
           }
         }
@@ -29872,7 +29872,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "The value of a is written to port *.",
+            "description": "The value of A is written to port *.",
             "instruction": "out (*),a"
           }
         },
@@ -29895,7 +29895,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "The value of b is written to port c.",
+            "description": "The value of B is written to port C.",
             "instruction": "out (c),b"
           }
         },
@@ -29918,7 +29918,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "The value of c is written to port c.",
+            "description": "The value of C is written to port C.",
             "instruction": "out (c),c"
           }
         },
@@ -29941,7 +29941,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "The value of c is written to port c.",
+            "description": "The value of C is written to port C.",
             "instruction": "out (c),d"
           }
         },
@@ -29964,7 +29964,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "The value of e is written to port c.",
+            "description": "The value of E is written to port C.",
             "instruction": "out (c),e"
           }
         },
@@ -29987,7 +29987,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "The value of h is written to port c.",
+            "description": "The value of H is written to port C.",
             "instruction": "out (c),h"
           }
         },
@@ -30010,7 +30010,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "The value of l is written to port c.",
+            "description": "The value of L is written to port C.",
             "instruction": "out (c),l"
           }
         },
@@ -30033,7 +30033,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Outputs a zero to port c.",
+            "description": "Outputs a zero to port C.",
             "instruction": "out (c),0"
           }
         },
@@ -30056,7 +30056,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "The value of a is written to port c.",
+            "description": "The value of A is written to port C.",
             "instruction": "out (c),a"
           }
         }
@@ -30076,7 +30076,7 @@ const opcodes: Instructions = {
             "byte_count": 1,
             "with_jump_clock_count": 4,
             "without_jump_clock_count": 4,
-            "description": "Exchanges the 16-bit contents of bc, de, and hl with bc', de', and hl'.",
+            "description": "Exchanges the 16-bit contents of BC, DE, and HL with BC', DE', and HL'.",
             "instruction": "exx"
           }
         }
@@ -30103,7 +30103,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "A byte from port * is written to a.",
+            "description": "a byte from port * is written to A.",
             "instruction": "in a,(*)"
           }
         },
@@ -30124,7 +30124,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 11,
             "without_jump_clock_count": 11,
-            "description": "A byte from port * is written to a.",
+            "description": "a byte from port * is written to A.",
             "instruction": "in a,(*)"
           }
         },
@@ -30147,7 +30147,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "A byte from port c is written to b.",
+            "description": "a byte from port C is written to B.",
             "instruction": "in b,(c)"
           }
         },
@@ -30170,7 +30170,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "A byte from port c is written to c.",
+            "description": "a byte from port C is written to C.",
             "instruction": "in c,(c)"
           }
         },
@@ -30193,7 +30193,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "A byte from port c is written to c.",
+            "description": "a byte from port C is written to C.",
             "instruction": "in d,(c)"
           }
         },
@@ -30216,7 +30216,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "A byte from port c is written to e.",
+            "description": "a byte from port C is written to E.",
             "instruction": "in e,(c)"
           }
         },
@@ -30239,7 +30239,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "A byte from port c is written to h.",
+            "description": "a byte from port C is written to H.",
             "instruction": "in h,(c)"
           }
         },
@@ -30262,7 +30262,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "A byte from port c is written to l.",
+            "description": "a byte from port C is written to L.",
             "instruction": "in l,(c)"
           }
         },
@@ -30285,7 +30285,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "Inputs a byte from port c and affects flags only.",
+            "description": "Inputs a byte from port C and affects flags only.",
             "instruction": "in (c)"
           }
         },
@@ -30308,7 +30308,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "A byte from port c is written to a.",
+            "description": "a byte from port C is written to A.",
             "instruction": "in a,(c)"
           }
         },
@@ -30329,7 +30329,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 12,
             "without_jump_clock_count": 12,
-            "description": "A byte from port c is written to a.",
+            "description": "a byte from port C is written to A.",
             "instruction": "in a,(c)"
           }
         }
@@ -30350,7 +30350,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 8,
             "without_jump_clock_count": 8,
-            "description": "The contents of a are negated (two's complement). Operation is the same as subtracting a from zero.",
+            "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
             "instruction": "neg"
           }
         }
@@ -30453,7 +30453,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 18,
             "without_jump_clock_count": 18,
-            "description": "The contents of the low-order nibble of (hl) are copied to the low-order nibble of a. The previous contents are copied to the high-order nibble of (hl). The previous contents are copied to the low-order nibble of (hl).",
+            "description": "The contents of the low-order nibble of (HL) are copied to the low-order nibble of A. The previous contents are copied to the high-order nibble of (HL). The previous contents are copied to the low-order nibble of (HL).",
             "instruction": "rrd"
           }
         }
@@ -30474,7 +30474,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 18,
             "without_jump_clock_count": 18,
-            "description": "The contents of the low-order nibble of (hl) are copied to the high-order nibble of (hl). The previous contents are copied to the low-order nibble of a. The previous contents are copied to the low-order nibble of (hl).",
+            "description": "The contents of the low-order nibble of (HL) are copied to the high-order nibble of (HL). The previous contents are copied to the low-order nibble of A. The previous contents are copied to the low-order nibble of (HL).",
             "instruction": "rld"
           }
         }
@@ -30495,7 +30495,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "Transfers a byte of data from the memory location pointed to by hl to the memory location pointed to by de. Then hl and de are incremented and bc is decremented.",
+            "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL and DE are incremented and BC is decremented.",
             "instruction": "ldi"
           }
         }
@@ -30516,7 +30516,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "Compares the value of the memory location pointed to by hl with a. Then hl is incremented and bc is decremented.",
+            "description": "Compares the value of the memory location pointed to by HL with A. Then HL is incremented and BC is decremented.",
             "instruction": "cpi"
           }
         }
@@ -30537,7 +30537,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "A byte from port c is written to the memory location pointed to by hl. Then hl is incremented and b is decremented.",
+            "description": "a byte from port C is written to the memory location pointed to by HL. Then HL is incremented and B is decremented.",
             "instruction": "ini"
           }
         }
@@ -30558,7 +30558,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "A byte from the memory location pointed to by hl is written to port c. Then hl is incremented and b is decremented.",
+            "description": "a byte from the memory location pointed to by HL is written to port C. Then HL is incremented and B is decremented.",
             "instruction": "outi"
           }
         }
@@ -30579,7 +30579,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "Transfers a byte of data from the memory location pointed to by hl to the memory location pointed to by de. Then hl, de, and bc are decremented.",
+            "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL, DE, and BC are decremented.",
             "instruction": "ldd"
           }
         }
@@ -30600,7 +30600,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "Compares the value of the memory location pointed to by hl with a. Then hl and bc are decremented.",
+            "description": "Compares the value of the memory location pointed to by HL with A. Then HL and BC are decremented.",
             "instruction": "cpd"
           }
         }
@@ -30621,7 +30621,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "A byte from port c is written to the memory location pointed to by hl. Then hl and b are decremented.",
+            "description": "a byte from port C is written to the memory location pointed to by HL. Then HL and B are decremented.",
             "instruction": "ind"
           }
         }
@@ -30642,7 +30642,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 16,
             "without_jump_clock_count": 16,
-            "description": "A byte from the memory location pointed to by hl is written to port c. Then hl and b are decremented.",
+            "description": "a byte from the memory location pointed to by HL is written to port C. Then HL and B are decremented.",
             "instruction": "outd"
           }
         }
@@ -30663,7 +30663,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 21,
             "without_jump_clock_count": 16,
-            "description": "Transfers a byte of data from the memory location pointed to by hl to the memory location pointed to by de. Then hl and de are incremented and bc is decremented. If bc is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+            "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL and DE are incremented and BC is decremented. If BC is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
             "instruction": "ldir"
           }
         }
@@ -30684,7 +30684,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 21,
             "without_jump_clock_count": 16,
-            "description": "Compares the value of the memory location pointed to by hl with a. Then hl is incremented and bc is decremented. If bc is not zero and z is not set, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+            "description": "Compares the value of the memory location pointed to by HL with A. Then HL is incremented and BC is decremented. If BC is not zero and Z is not set, this operation is repeated. Interrupts can trigger while this instruction is processing.",
             "instruction": "cpir"
           }
         }
@@ -30705,7 +30705,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 21,
             "without_jump_clock_count": 16,
-            "description": "A byte from port c is written to the memory location pointed to by hl. Then hl is incremented and b is decremented. If b is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+            "description": "a byte from port C is written to the memory location pointed to by HL. Then HL is incremented and B is decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
             "instruction": "inir"
           }
         }
@@ -30726,7 +30726,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 21,
             "without_jump_clock_count": 16,
-            "description": "A byte from the memory location pointed to by hl is written to port c. Then hl is incremented and b is decremented. If b is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+            "description": "a byte from the memory location pointed to by HL is written to port C. Then HL is incremented and B is decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
             "instruction": "otir"
           }
         }
@@ -30747,7 +30747,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 21,
             "without_jump_clock_count": 16,
-            "description": "Transfers a byte of data from the memory location pointed to by hl to the memory location pointed to by de. Then hl, de, and bc are decremented. If bc is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+            "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL, DE, and BC are decremented. If BC is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
             "instruction": "lddr"
           }
         }
@@ -30768,7 +30768,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 21,
             "without_jump_clock_count": 16,
-            "description": "Compares the value of the memory location pointed to by hl with a. Then hl and bc are decremented. If bc is not zero and z is not set, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+            "description": "Compares the value of the memory location pointed to by HL with A. Then HL and BC are decremented. If BC is not zero and Z is not set, this operation is repeated. Interrupts can trigger while this instruction is processing.",
             "instruction": "cpdr"
           }
         }
@@ -30789,7 +30789,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 21,
             "without_jump_clock_count": 16,
-            "description": "A byte from port c is written to the memory location pointed to by hl. Then hl and b are decremented. If b is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+            "description": "a byte from port C is written to the memory location pointed to by HL. Then HL and B are decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
             "instruction": "indr"
           }
         }
@@ -30810,7 +30810,7 @@ const opcodes: Instructions = {
             "byte_count": 2,
             "with_jump_clock_count": 21,
             "without_jump_clock_count": 16,
-            "description": "A byte from the memory location pointed to by hl is written to port c. Then hl and b are decremented. If b is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+            "description": "a byte from the memory location pointed to by HL is written to port C. Then HL and B are decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
             "instruction": "otdr"
           }
         }
