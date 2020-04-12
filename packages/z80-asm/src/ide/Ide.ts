@@ -19,6 +19,7 @@ import "codemirror/addon/search/jump-to-line";
 import "codemirror/addon/edit/closebrackets";
 import "codemirror/addon/hint/show-hint";
 import "codemirror/addon/scroll/annotatescrollbar";
+import "codemirror/addon/selection/active-line";
 import "codemirror/mode/z80/z80";
 
 import {initIpc} from "./ElectronIpc";
@@ -88,7 +89,8 @@ class Ide implements IdeController {
             },
             hintOptions: {
                 hint: () => this.hint(),
-            }
+            },
+            styleActiveLine: true,
         };
         this.cm = CodeMirror(parent, config);
 
@@ -151,6 +153,7 @@ class Ide implements IdeController {
         }
     }
 
+    // Set the editor's cursor and make sure it's not right at the edge of the window.
     private setCursor(lineNumber: number, column: number): void {
         // Use the separate scrollInfoView() so we can provide a visible margin around the error.
         this.cm.setCursor(lineNumber, column, { scroll: false });
