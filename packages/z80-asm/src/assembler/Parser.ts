@@ -9,10 +9,12 @@ const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 
 // A reference to a symbol.
 export class SymbolReference {
+    public pathname: string;
     public lineNumber: number;
     public column: number;
 
-    constructor(lineNumber: number, column: number) {
+    constructor(pathname: string, lineNumber: number, column: number) {
+        this.pathname = pathname;
         this.lineNumber = lineNumber;
         this.column = column;
     }
@@ -22,13 +24,15 @@ export class SymbolReference {
 export class SymbolInfo {
     public name: string;
     public value: number;
+    public pathname: string;
     public lineNumber: number;
     public column: number;
     public references: SymbolReference[] = [];
 
-    constructor(name: string, value: number, lineNumber: number, column: number) {
+    constructor(name: string, value: number, pathname: string, lineNumber: number, column: number) {
         this.name = name;
         this.value = value;
+        this.pathname = pathname;
         this.lineNumber = lineNumber;
         this.column = column;
     }
@@ -74,6 +78,8 @@ export class ParseResults {
 export class Parser {
     // Full text of line being parsed.
     private readonly line: string;
+    // File we're parsing.
+    private readonly pathname: string;
     // Line number we're parsing, zero-based.
     private readonly lineNumber: number;
     // Address of line being parsed.
@@ -89,8 +95,9 @@ export class Parser {
     // Pointer to the token we just parsed.
     private previousToken = 0;
 
-    constructor(line: string, lineNumber: number, address: number, symbols: SymbolMap, ignoreUnknownIdentifiers: boolean) {
+    constructor(line: string, pathname: string, lineNumber: number, address: number, symbols: SymbolMap, ignoreUnknownIdentifiers: boolean) {
         this.line = line;
+        this.pathname = pathname;
         this.lineNumber = lineNumber;
         this.address = address;
         this.symbols = symbols;
@@ -195,13 +202,15 @@ export class Parser {
             const oldSymbolInfo = this.symbols.get(label);
             if (oldSymbolInfo !== undefined) {
                 // Sanity check.
-                if (labelValue !== oldSymbolInfo.value || this.lineNumber !== oldSymbolInfo.lineNumber || symbolColumn !== oldSymbolInfo.column) {
+                if (labelValue !== oldSymbolInfo.value || this.lineNumber !== oldSymbolInfo.lineNumber ||
+                    symbolColumn !== oldSymbolInfo.column || this.pathname !== oldSymbolInfo.pathname) {
+
                     // TODO should be programmer error.
                     console.log("error: changing value of \"" + label + "\" from " + toHex(oldSymbolInfo.value, 4) +
                         " to " + toHex(labelValue, 4));
                 }
             } else {
-                this.symbols.set(label, new SymbolInfo(label, labelValue, this.lineNumber, symbolColumn));
+                this.symbols.set(label, new SymbolInfo(label, labelValue, this.pathname, this.lineNumber, symbolColumn));
             }
         }
 
@@ -530,7 +539,7 @@ export class Parser {
                 return 0;
             } else {
                 if (!this.ignoreUnknownIdentifiers) {
-                    symbolInfo.references.push(new SymbolReference(this.lineNumber, startIndex));
+                    symbolInfo.references.push(new SymbolReference(this.pathname, this.lineNumber, startIndex));
                 }
                 return symbolInfo.value;
             }

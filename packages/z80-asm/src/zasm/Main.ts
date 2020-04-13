@@ -8,10 +8,12 @@ const lstPathname = "sio_basic.lst";
 const binPathname = "sio_basic.bin";
 
 class File {
+    public readonly pathname: string;
     public readonly lines: string[];
     public lineNumber: number = 0;
 
-    constructor(lines: string[]) {
+    constructor(pathname: string, lines: string[]) {
+        this.pathname = pathname;
         this.lines = lines;
     }
 }
@@ -29,7 +31,7 @@ function main() {
         let errorCount = 0;
         let address = 0;
 
-        const fileStack = [new File(lines)];
+        const fileStack = [new File(srcPathname, lines)];
 
         while (fileStack.length > 0) {
             const top = fileStack[fileStack.length - 1];
@@ -40,7 +42,7 @@ function main() {
 
             const lineNumber = top.lineNumber++;
             const line = top.lines[lineNumber];
-            const parser = new Parser(line, lineNumber, address, constants, pass === 0);
+            const parser = new Parser(line, top.pathname, lineNumber, address, constants, pass === 0);
             const results = parser.assemble();
 
             // Show results.
@@ -77,9 +79,10 @@ function main() {
             }
 
             // Include file.
-            if (results.includeFilename !== undefined) {
-                const includedLines = loadFile(results.includeFilename);
-                fileStack.push(new File(includedLines));
+            let pathname = results.includeFilename;
+            if (pathname !== undefined) {
+                const includedLines = loadFile(pathname);
+                fileStack.push(new File(pathname, includedLines));
                 continue;
             }
 

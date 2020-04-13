@@ -6,7 +6,7 @@ import {Parser, SymbolInfo} from "./Parser";
 describe("assemble", () => {
     it("nop", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser(" nop", 0, 0, symbols, false);
+        const parser = new Parser(" nop", "", 0, 0, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([0]);
         expect(results.error).to.be.undefined;
@@ -14,7 +14,7 @@ describe("assemble", () => {
 
     it("label", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser("main", 0, 5, symbols, false);
+        const parser = new Parser("main", "", 0, 5, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.be.undefined;
@@ -23,7 +23,7 @@ describe("assemble", () => {
 
     it("label w/colon", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser("main:", 0, 5, symbols, false);
+        const parser = new Parser("main:", "", 0, 5, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.be.undefined;
@@ -33,7 +33,7 @@ describe("assemble", () => {
     // Mnemonics are allowed as labels.
     it("nop (as label)", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser("nop", 0, 5, symbols, false);
+        const parser = new Parser("nop", "", 0, 5, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.be.undefined;
@@ -42,7 +42,7 @@ describe("assemble", () => {
 
     it("label w/inst", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser("main nop", 0, 5, symbols, false);
+        const parser = new Parser("main nop", "", 0, 5, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([0]);
         expect(results.error).to.be.undefined;
@@ -51,7 +51,7 @@ describe("assemble", () => {
 
     it("ld a,c", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser(" ld a,c", 0, 0, symbols, false);
+        const parser = new Parser(" ld a,c", "", 0, 0, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([0x79]);
         expect(results.error).to.be.undefined;
@@ -59,7 +59,7 @@ describe("assemble", () => {
 
     it("ld a,c w/spaces", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser(" ld a , c ", 0, 0, symbols, false);
+        const parser = new Parser(" ld a , c ", "", 0, 0, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([0x79]);
         expect(results.error).to.be.undefined;
@@ -67,7 +67,7 @@ describe("assemble", () => {
 
     it("ddcb param", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser(" rlc (ix+0x56)", 0, 0, symbols, false);
+        const parser = new Parser(" rlc (ix+0x56)", "", 0, 0, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([0xDD, 0xCB, 0x56, 0x06]);
         expect(results.error).to.be.undefined;
@@ -75,7 +75,7 @@ describe("assemble", () => {
 
     it("bad mnemonic", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser(" foo", 0, 0, symbols, false);
+        const parser = new Parser(" foo", "", 0, 0, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.not.be.undefined;
@@ -83,8 +83,8 @@ describe("assemble", () => {
 
     it("present identifier", () => {
         const symbols = new Map<string,SymbolInfo>();
-        symbols.set("foo", new SymbolInfo("foo", 6, 0, 0));
-        const parser = new Parser(" ld a,foo", 0, 0, symbols, false);
+        symbols.set("foo", new SymbolInfo("foo", 6, "", 0, 0));
+        const parser = new Parser(" ld a,foo", "", 0, 0, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([0x3E, 0x06]);
         expect(results.error).to.be.undefined;
@@ -92,7 +92,7 @@ describe("assemble", () => {
 
     it("missing identifier", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser(" ld a,foo", 0, 0, symbols, false);
+        const parser = new Parser(" ld a,foo", "", 0, 0, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([0x3E, 0x00]);
         expect(results.error).to.not.be.undefined;
@@ -100,7 +100,7 @@ describe("assemble", () => {
 
     it("#code without address", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser("#code FOO", 0, 10, symbols, false);
+        const parser = new Parser("#code FOO", "", 0, 10, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.be.undefined;
@@ -109,7 +109,7 @@ describe("assemble", () => {
 
     it("#code with address", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser("#code FOO, 0x4000", 0, 0, symbols, false);
+        const parser = new Parser("#code FOO, 0x4000", "", 0, 0, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.be.undefined;
@@ -118,7 +118,7 @@ describe("assemble", () => {
 
     it("#include", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser("#include \"foo/bar.asm\"", 0, 0, symbols, false);
+        const parser = new Parser("#include \"foo/bar.asm\"", "", 0, 0, symbols, false);
         const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.be.undefined;
@@ -127,7 +127,7 @@ describe("assemble", () => {
 
     it("target bin", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser("#target bin", 0, 0, symbols, false);
+        const parser = new Parser("#target bin", "", 0, 0, symbols, false);
             const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.be.undefined;
@@ -135,7 +135,7 @@ describe("assemble", () => {
 
     it("parse error", () => {
         const symbols = new Map<string,SymbolInfo>();
-        const parser = new Parser("#foo", 0, 0, symbols, false);
+        const parser = new Parser("#foo", "", 0, 0, symbols, false);
             const results = parser.assemble();
         expect(results.binary).to.deep.equal([]);
         expect(results.error).to.not.be.undefined;
@@ -189,7 +189,7 @@ describe("number parsing", () => {
         it("parsing " + input, () => {
             const line = "foo .equ " + input;
             const symbols = new Map<string,SymbolInfo>();
-            const parser = new Parser(line, 0, 0x1234, symbols, false);
+            const parser = new Parser(line, "", 0, 0x1234, symbols, false);
             const results = parser.assemble();
             expect(results.binary).to.deep.equal([]);
             expect(results.error).to.be.undefined;

@@ -38,10 +38,12 @@ const CURRENT_PATHNAME_KEY = "current-pathname";
 
 // File we're parsing.
 class File {
+    public readonly pathname: string;
     public readonly lines: string[];
     public lineNumber: number = 0;
 
-    constructor(lines: string[]) {
+    constructor(pathname: string, lines: string[]) {
+        this.pathname = pathname;
         this.lines = lines;
     }
 }
@@ -173,29 +175,36 @@ class Ide {
         } while (nextErrorLineNumber !== currentLineNumber && this.assembled[nextErrorLineNumber].error === undefined);
 
         if (nextErrorLineNumber !== currentLineNumber) {
-            this.setCursor(nextErrorLineNumber, 0);
+            // TODO error might not be in this file:
+            this.setCursor(this.pathname, nextErrorLineNumber, 0);
         }
     }
 
     // Set the editor's cursor and make sure it's not right at the edge of the window.
-    private setCursor(lineNumber: number, column: number): void {
-        // Use the separate scrollInfoView() so we can provide a visible margin around the error.
-        this.cm.setCursor(lineNumber, column, { scroll: false });
-        this.cm.scrollIntoView(null, 200);
+    private setCursor(pathname: string, lineNumber: number, column: number): void {
+        if (pathname === this.pathname) {
+            // Use the separate scrollInfoView() so we can provide a visible margin around the error.
+            this.cm.setCursor(lineNumber, column, {scroll: false});
+            this.cm.scrollIntoView(null, 200);
+        }
     }
 
     // Find symbol usage at a location, or undefined if we're not on a symbol.
     private findSymbolAt(lineNumber: number, column: number): SymbolHit | undefined {
         for (const symbol of this.symbols.values()) {
             // See if we're at the definition.
-            if (lineNumber === symbol.lineNumber && column >= symbol.column && column <= symbol.column + symbol.name.length) {
+            if (symbol.pathname === this.pathname && lineNumber === symbol.lineNumber &&
+                column >= symbol.column && column <= symbol.column + symbol.name.length) {
+
                 return new SymbolHit(symbol, undefined);
             } else {
                 // See if we're at a use.
                 for (let i = 0; i < symbol.references.length; i++) {
                     let reference = symbol.references[i];
 
-                    if (lineNumber === reference.lineNumber && column >= reference.column && column <= reference.column + symbol.name.length) {
+                    if (reference.pathname === this.pathname && lineNumber === reference.lineNumber
+                        && column >= reference.column && column <= reference.column + symbol.name.length) {
+
                         return new SymbolHit(symbol, i);
                     }
                 }
@@ -218,16 +227,16 @@ class Ide {
                 if (symbol.references.length > 0) {
                     // Jump to first use.
                     const reference = symbol.references[0];
-                    this.setCursor(reference.lineNumber, reference.column);
+                    this.setCursor(reference.pathname, reference.lineNumber, reference.column);
                 } else {
                     // TODO display error.
                 }
             } else {
                 if (nextUse) {
                     const reference = symbol.references[(symbolHit.referenceNumber + 1) % symbol.references.length];
-                    this.setCursor(reference.lineNumber, reference.column);
+                    this.setCursor(reference.pathname, reference.lineNumber, reference.column);
                 } else {
-                    this.setCursor(symbol.lineNumber, symbol.column);
+                    this.setCursor(symbol.pathname, symbol.lineNumber, symbol.column);
                 }
             }
         }
@@ -248,20 +257,26 @@ class Ide {
         const symbolHit = this.findSymbolAt(pos.line, pos.ch);
         if (symbolHit !== undefined) {
             const symbol = symbolHit.symbol;
-            const mark = this.cm.markText({line: symbol.lineNumber, ch: symbol.column},
-                {line: symbol.lineNumber, ch: symbol.column + symbol.name.length},
-                {
-                    className: "current-symbol",
-                });
-            this.symbolMarks.push(mark);
 
-            for (const reference of symbol.references) {
-                const mark = this.cm.markText({line: reference.lineNumber, ch: reference.column},
-                    {line: reference.lineNumber, ch: reference.column + symbol.name.length},
+            if (symbol.pathname === this.pathname) {
+                const mark = this.cm.markText({line: symbol.lineNumber, ch: symbol.column},
+                    {line: symbol.lineNumber, ch: symbol.column + symbol.name.length},
                     {
                         className: "current-symbol",
                     });
                 this.symbolMarks.push(mark);
+            }
+
+            for (const reference of symbol.references) {
+                console.log(reference.pathname, this.pathname);
+                if (reference.pathname === this.pathname) {
+                    const mark = this.cm.markText({line: reference.lineNumber, ch: reference.column},
+                        {line: reference.lineNumber, ch: reference.column + symbol.name.length},
+                        {
+                            className: "current-symbol",
+                        });
+                    this.symbolMarks.push(mark);
+                }
             }
         }
     }
@@ -280,7 +295,7 @@ class Ide {
                 const line = this.cm.getLine(lineNumber);
                 lines.push(line);
             }
-            const fileStack = [new File(lines)];
+            const fileStack = [new File(this.pathname, lines)];
 
             while (fileStack.length > 0) {
                 const top = fileStack[fileStack.length - 1];
@@ -291,7 +306,7 @@ class Ide {
 
                 const lineNumber = top.lineNumber++;
                 const line = top.lines[lineNumber];
-                const parser = new Parser(line, lineNumber, address, this.symbols, pass === 0);
+                const parser = new Parser(line, top.pathname, lineNumber, address, this.symbols, pass === 0);
                 const results = parser.assemble();
                 address = results.nextAddress;
 
@@ -307,7 +322,7 @@ class Ide {
                         // TODO report error.
                         results.error = "cannot read file " + pathname;
                     } else {
-                        fileStack.push(new File(includedLines));
+                        fileStack.push(new File(pathname, includedLines));
                     }
                 }
             }
@@ -434,6 +449,7 @@ class Ide {
     }
 
     private hint(): any {
+        // TODO remove.
         const cursor = this.cm.getCursor();
         const line = this.cm.getLine(cursor.line);
         const start = cursor.ch;
