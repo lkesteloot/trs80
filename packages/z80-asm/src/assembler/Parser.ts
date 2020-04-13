@@ -195,7 +195,7 @@ export class Parser {
             const oldSymbolInfo = this.symbols.get(label);
             if (oldSymbolInfo !== undefined) {
                 // Sanity check.
-                if (labelValue !== oldSymbolInfo.value || this.lineNumber !== oldSymbolInfo.lineNumber || this.column !== symbolColumn) {
+                if (labelValue !== oldSymbolInfo.value || this.lineNumber !== oldSymbolInfo.lineNumber || symbolColumn !== oldSymbolInfo.column) {
                     // TODO should be programmer error.
                     console.log("error: changing value of \"" + label + "\" from " + toHex(oldSymbolInfo.value, 4) +
                         " to " + toHex(labelValue, 4));

@@ -28,3 +28,6 @@ body {
 .scrollbar-error {
     background-color: #C00;
 }
+.current-symbol {
+    background-color: #036B13;
+}

@@ -19,6 +19,7 @@ import "codemirror/addon/edit/closebrackets";
 import "codemirror/addon/hint/show-hint";
 import "codemirror/addon/scroll/annotatescrollbar";
 import "codemirror/addon/selection/active-line";
+import "codemirror/addon/selection/mark-selection";
 import "codemirror/mode/z80/z80";
 
 import * as fs from "fs";
@@ -35,12 +36,25 @@ const BYTES_PER_SUBLINE = 3;
 
 const CURRENT_PATHNAME_KEY = "current-pathname";
 
+// File we're parsing.
 class File {
     public readonly lines: string[];
     public lineNumber: number = 0;
 
     constructor(lines: string[]) {
         this.lines = lines;
+    }
+}
+
+// Result of looking up what symbol we're on.
+class SymbolHit {
+    public readonly symbol: SymbolInfo;
+    // Undefined if it's the definition.
+    public readonly referenceNumber: number | undefined;
+
+    constructor(symbol: SymbolInfo, reference: number | undefined) {
+        this.symbol = symbol;
+        this.referenceNumber = reference;
     }
 }
 
@@ -67,6 +81,7 @@ class Ide {
     private readonly symbols = new Map<string, SymbolInfo>();
     private pathname: string = "";
     private scrollbarAnnotator: any;
+    private readonly symbolMarks: CodeMirror.TextMarker[] = [];
 
     constructor(parent: HTMLElement) {
         this.store = new Store();
@@ -90,6 +105,7 @@ class Ide {
                 hint: () => this.hint(),
             },
             styleActiveLine: true,
+            styleSelectedText: true,
         };
         this.cm = CodeMirror(parent, config);
 
@@ -108,6 +124,10 @@ class Ide {
             // after a timeout, because we want to be part of this operation.
             // This way a large re-assemble takes 40ms instead of 300ms.
             this.assembleAll();
+        });
+
+        this.cm.on("cursorActivity", (instance) => {
+            this.updateHighlight();
         });
 
         // The type definition doesn't include this extension.
@@ -164,17 +184,37 @@ class Ide {
         this.cm.scrollIntoView(null, 200);
     }
 
+    // Find symbol usage at a location, or undefined if we're not on a symbol.
+    private findSymbolAt(lineNumber: number, column: number): SymbolHit | undefined {
+        for (const symbol of this.symbols.values()) {
+            // See if we're at the definition.
+            if (lineNumber === symbol.lineNumber && column >= symbol.column && column <= symbol.column + symbol.name.length) {
+                return new SymbolHit(symbol, undefined);
+            } else {
+                // See if we're at a use.
+                for (let i = 0; i < symbol.references.length; i++) {
+                    let reference = symbol.references[i];
+
+                    if (lineNumber === reference.lineNumber && column >= reference.column && column <= reference.column + symbol.name.length) {
+                        return new SymbolHit(symbol, i);
+                    }
+                }
+            }
+        }
+
+        return undefined;
+    }
+
     // Jump from a use to its definition and vice versa.
     //
     // @param nextUse whether to jump to the next use if we're on one (true) or go to the definition (false).
     private jumpToDefinition(nextUse: boolean) {
         const pos = this.cm.getCursor();
-        const lineNumber = pos.line;
-        const column = pos.ch;
+        const symbolHit = this.findSymbolAt(pos.line, pos.ch);
+        if (symbolHit !== undefined) {
+            const symbol = symbolHit.symbol;
 
-        for (const symbol of this.symbols.values()) {
-            // See if we're at the definition.
-            if (lineNumber === symbol.lineNumber && column >= symbol.column && column <= symbol.column + symbol.name.length) {
+            if (symbolHit.referenceNumber === undefined) {
                 if (symbol.references.length > 0) {
                     // Jump to first use.
                     const reference = symbol.references[0];
@@ -183,19 +223,45 @@ class Ide {
                     // TODO display error.
                 }
             } else {
-                // See if we're at a use.
-                for (let i = 0; i < symbol.references.length; i++) {
-                    let reference = symbol.references[i];
-
-                    if (lineNumber === reference.lineNumber && column >= reference.column && column <= reference.column + symbol.name.length) {
-                        if (nextUse) {
-                            reference = symbol.references[(i + 1) % symbol.references.length];
-                            this.setCursor(reference.lineNumber, reference.column);
-                        } else {
-                            this.setCursor(symbol.lineNumber, symbol.column);
-                        }
-                    }
+                if (nextUse) {
+                    const reference = symbol.references[(symbolHit.referenceNumber + 1) % symbol.references.length];
+                    this.setCursor(reference.lineNumber, reference.column);
+                } else {
+                    this.setCursor(symbol.lineNumber, symbol.column);
                 }
+            }
+        }
+    }
+
+    private clearSymbolMarks(): void {
+        let mark;
+
+        while ((mark = this.symbolMarks.pop()) !== undefined) {
+            mark.clear();
+        }
+    }
+
+    private updateHighlight() {
+        this.clearSymbolMarks();
+
+        const pos = this.cm.getCursor();
+        const symbolHit = this.findSymbolAt(pos.line, pos.ch);
+        if (symbolHit !== undefined) {
+            const symbol = symbolHit.symbol;
+            const mark = this.cm.markText({line: symbol.lineNumber, ch: symbol.column},
+                {line: symbol.lineNumber, ch: symbol.column + symbol.name.length},
+                {
+                    className: "current-symbol",
+                });
+            this.symbolMarks.push(mark);
+
+            for (const reference of symbol.references) {
+                const mark = this.cm.markText({line: reference.lineNumber, ch: reference.column},
+                    {line: reference.lineNumber, ch: reference.column + symbol.name.length},
+                    {
+                        className: "current-symbol",
+                    });
+                this.symbolMarks.push(mark);
             }
         }
     }
