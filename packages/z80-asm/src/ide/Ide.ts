@@ -108,6 +108,7 @@ class Ide {
             },
             styleActiveLine: true,
             styleSelectedText: true,
+            cursorScrollMargin: 200,
         };
         this.cm = CodeMirror(parent, config);
 
@@ -180,12 +181,10 @@ class Ide {
         }
     }
 
-    // Set the editor's cursor and make sure it's not right at the edge of the window.
+    // Set the editor's cursor if it's for this file.
     private setCursor(pathname: string, lineNumber: number, column: number): void {
         if (pathname === this.pathname) {
-            // Use the separate scrollInfoView() so we can provide a visible margin around the error.
-            this.cm.setCursor(lineNumber, column, {scroll: false});
-            this.cm.scrollIntoView(null, 200);
+            this.cm.setCursor(lineNumber, column);
         }
     }
 
