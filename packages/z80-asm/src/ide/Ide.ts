@@ -327,7 +327,6 @@ class Ide {
                     const pathname = path.resolve(path.dirname(this.pathname), results.includeFilename);
                     const includedLines = readFileLines(pathname);
                     if (includedLines === undefined) {
-                        // TODO report error.
                         results.error = "cannot read file " + pathname;
                     } else {
                         fileStack.push(new File(pathname, includedLines));
@@ -442,15 +441,20 @@ class Ide {
                 this.cm.removeLineClass(lineNumber, "background", "error-line");
             } else {
                 // console.log(results.error);
-                this.cm.addLineClass(lineNumber, "background", "error-line");
+                // this.cm.addLineClass(lineNumber, "background", "error-line");
+
+                // Highlight error in scrollbar.
                 annotationMarks.push({
                     from: { line: lineNumber, ch: 0 },
                     to: { line: lineNumber + 1, ch: 0 },
                 });
 
+                // Write error below line.
                 const node = document.createElement("span");
                 node.appendChild(document.createTextNode(results.error));
-                this.lineWidgets.push(this.cm.addLineWidget(lineNumber, node));
+                this.lineWidgets.push(this.cm.addLineWidget(lineNumber, node, {
+                    className: "error-line",
+                }));
             }
         }
 

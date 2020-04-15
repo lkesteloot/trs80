@@ -144,7 +144,7 @@ export class Parser {
                         // Error parsing string.
                         return this.results;
                     } else {
-                        const value = this.readExpression();
+                        const value = this.readExpression(true);
                         if (value === undefined) {
                             if (this.results.error === undefined) {
                                 this.results.error = "invalid .byte expression";
@@ -159,7 +159,7 @@ export class Parser {
                 }
             } else if (mnemonic === ".word" || mnemonic === "defw") {
                 while (true) {
-                    const value = this.readExpression();
+                    const value = this.readExpression(true);
                     if (value === undefined) {
                         if (this.results.error === undefined) {
                             this.results.error = "invalid .word expression";
@@ -173,7 +173,7 @@ export class Parser {
                     }
                 }
             } else if (mnemonic === ".equ" || mnemonic === "equ") {
-                const value = this.readExpression();
+                const value = this.readExpression(true);
                 if (value === undefined) {
                     this.results.error = "bad value for constant";
                 } else if (label === undefined) {
@@ -183,7 +183,7 @@ export class Parser {
                     labelValue = value;
                 }
             } else if (mnemonic === ".org") {
-                const startAddress = this.readExpression();
+                const startAddress = this.readExpression(true);
                 if (startAddress === undefined) {
                     this.results.error = "start address expected";
                 } else {
@@ -254,14 +254,14 @@ export class Parser {
                 if (segmentName === undefined) {
                     this.results.error = "segment name expected";
                 } else if (this.foundChar(',')) {
-                    const startAddress = this.readExpression();
+                    const startAddress = this.readExpression(true);
                     if (startAddress === undefined) {
                         this.results.error = "start address expected";
                     } else {
                         this.results.nextAddress = startAddress;
 
                         if (this.foundChar(',')) {
-                            const length = this.readExpression();
+                            const length = this.readExpression(true);
                             if (length === undefined) {
                                 this.results.error = "length expected";
                             }
@@ -307,7 +307,7 @@ export class Parser {
                         }
                     } else if (token === "nn" || token === "nnnn" || token === "dd" || token === "offset") {
                         // Parse.
-                        const value = this.readExpression();
+                        const value = this.readExpression(false);
                         if (value === undefined) {
                             match = false;
                         } else {
@@ -322,7 +322,7 @@ export class Parser {
                         // compare the values. This is used for BIT, SET, RES, RST, IM, and one
                         // variant of OUT (OUT (C), 0).
                         const expectedValue = parseInt(token, 10);
-                        const actualValue = this.readExpression();
+                        const actualValue = this.readExpression(false);
                         if (expectedValue !== actualValue) {
                             match = false;
                         }
@@ -425,10 +425,17 @@ export class Parser {
         return value;
     }
 
-    private readExpression(): number | undefined {
-        // Expressions can't start with an open parenthesis because that's ambiguous
-        // with dereferencing.
-        if (this.line[this.column] === '(') {
+    /**
+     * Read an expression.
+     *
+     * @param canStartWithOpenParens whether to allow the expression to start with an open parenthesis.
+     *
+     * @return the value of the expression, or undefined if there was an error reading it.
+     */
+    private readExpression(canStartWithOpenParens: boolean): number | undefined {
+        if (!canStartWithOpenParens && this.line[this.column] === '(') {
+            // Expressions can't start with an open parenthesis because that's ambiguous
+            // with dereferencing.
             return undefined;
         }
 
