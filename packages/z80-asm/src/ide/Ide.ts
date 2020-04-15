@@ -1,4 +1,3 @@
-
 import CodeMirror from "codemirror";
 import {Parser, ParseResults, SymbolInfo} from "../assembler/Parser";
 import {toHexByte, toHexWord} from "z80-base";
@@ -10,7 +9,6 @@ import "codemirror/theme/mbo.css";
 import "codemirror/addon/dialog/dialog.css";
 import "codemirror/addon/hint/show-hint.css";
 import "./main.css";
-
 // Load these for their side-effects (they register themselves).
 import "codemirror/addon/dialog/dialog";
 import "codemirror/addon/search/search";
@@ -84,6 +82,7 @@ class Ide {
     private pathname: string = "";
     private scrollbarAnnotator: any;
     private readonly symbolMarks: CodeMirror.TextMarker[] = [];
+    private readonly lineWidgets: CodeMirror.LineWidget[] = [];
 
     constructor(parent: HTMLElement) {
         this.store = new Store();
@@ -241,6 +240,15 @@ class Ide {
         }
     }
 
+    // Delete all line widgets.
+    private clearLineWidgets(): void {
+        let lineWidget;
+
+        while ((lineWidget = this.lineWidgets.pop()) !== undefined) {
+            lineWidget.clear();
+        }
+    }
+
     private clearSymbolMarks(): void {
         let mark;
 
@@ -283,6 +291,7 @@ class Ide {
     private assembleAll() {
         this.symbols.clear();
         this.assembled.splice(0, this.assembled.length);
+        this.clearLineWidgets();
 
         const before = Date.now();
 
@@ -438,6 +447,10 @@ class Ide {
                     from: { line: lineNumber, ch: 0 },
                     to: { line: lineNumber + 1, ch: 0 },
                 });
+
+                const node = document.createElement("span");
+                node.appendChild(document.createTextNode(results.error));
+                this.lineWidgets.push(this.cm.addLineWidget(lineNumber, node));
             }
         }
 
