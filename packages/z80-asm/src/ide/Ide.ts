@@ -1,5 +1,5 @@
 import CodeMirror from "codemirror";
-import {Asm, AssembledLine, SymbolInfo, FileReader} from "../assembler/Asm";
+import {Asm, AssembledLine, SymbolInfo, FileReader, SymbolReference} from "../assembler/Asm";
 import {toHexByte, toHexWord} from "z80-base";
 import tippy from 'tippy.js';
 
@@ -167,6 +167,10 @@ class Ide {
         }
     }
 
+    private setCursorToReference(ref: SymbolReference): void {
+        this.setCursor(ref.pathname, ref.lineNumber, ref.column);
+    }
+
     // Set the editor's cursor if it's for this file.
     private setCursor(pathname: string, lineNumber: number, column: number): void {
         if (pathname === this.pathname) {
@@ -178,9 +182,7 @@ class Ide {
     private findSymbolAt(lineNumber: number, column: number): SymbolHit | undefined {
         for (const symbol of this.symbols.values()) {
             // See if we're at the definition.
-            if (symbol.pathname === this.pathname && lineNumber === symbol.lineNumber &&
-                column >= symbol.column && column <= symbol.column + symbol.name.length) {
-
+            if (symbol.matches(symbol.definition, this.pathname, lineNumber, column)) {
                 return new SymbolHit(symbol, undefined);
             } else {
                 // See if we're at a use.
@@ -212,16 +214,16 @@ class Ide {
                 if (symbol.references.length > 0) {
                     // Jump to first use.
                     const reference = symbol.references[0];
-                    this.setCursor(reference.pathname, reference.lineNumber, reference.column);
+                    this.setCursorToReference(reference);
                 } else {
                     // TODO display error.
                 }
             } else {
                 if (nextUse) {
                     const reference = symbol.references[(symbolHit.referenceNumber + 1) % symbol.references.length];
-                    this.setCursor(reference.pathname, reference.lineNumber, reference.column);
+                    this.setCursorToReference(reference);
                 } else {
-                    this.setCursor(symbol.pathname, symbol.lineNumber, symbol.column);
+                    this.setCursorToReference(symbol.definition);
                 }
             }
         }
@@ -252,9 +254,9 @@ class Ide {
         if (symbolHit !== undefined) {
             const symbol = symbolHit.symbol;
 
-            if (symbol.pathname === this.pathname) {
-                const mark = this.cm.markText({line: symbol.lineNumber, ch: symbol.column},
-                    {line: symbol.lineNumber, ch: symbol.column + symbol.name.length},
+            if (symbol.definition.pathname === this.pathname) {
+                const mark = this.cm.markText({line: symbol.definition.lineNumber, ch: symbol.definition.column},
+                    {line: symbol.definition.lineNumber, ch: symbol.definition.column + symbol.name.length},
                     {
                         className: "current-symbol",
                     });

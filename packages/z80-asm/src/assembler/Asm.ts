@@ -25,19 +25,19 @@ export class SymbolReference {
 export class SymbolInfo {
     public name: string;
     public value: number;
-
-    // Where it was defined. TODO: just use SymbolReference.
-    public pathname: string;
-    public lineNumber: number;
-    public column: number;
+    public definition: SymbolReference;
     public references: SymbolReference[] = [];
 
     constructor(name: string, value: number, pathname: string, lineNumber: number, column: number) {
         this.name = name;
         this.value = value;
-        this.pathname = pathname;
-        this.lineNumber = lineNumber;
-        this.column = column;
+        this.definition = new SymbolReference(pathname, lineNumber, column);
+    }
+
+    // Whether the specified point is in this reference.
+    public matches(ref: SymbolReference, pathname: string, lineNumber: number, column: number) {
+        return pathname === ref.pathname && lineNumber === ref.lineNumber &&
+            column >= ref.column && column <= ref.column + this.name.length;
     }
 }
 
@@ -180,6 +180,7 @@ export class Asm {
         return assembledLines;
     }
 
+    // Assemble a single line. Assumes the line has been set up.
     private assembleLine(): void {
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
@@ -276,8 +277,10 @@ export class Asm {
             const oldSymbolInfo = this.symbols.get(label);
             if (oldSymbolInfo !== undefined) {
                 // Sanity check.
-                if (labelValue !== oldSymbolInfo.value || this.lineNumber !== oldSymbolInfo.lineNumber ||
-                    symbolColumn !== oldSymbolInfo.column || this.pathname !== oldSymbolInfo.pathname) {
+                if (labelValue !== oldSymbolInfo.value ||
+                    this.lineNumber !== oldSymbolInfo.definition.lineNumber ||
+                    symbolColumn !== oldSymbolInfo.definition.column ||
+                    this.pathname !== oldSymbolInfo.definition.pathname) {
 
                     // TODO should be programmer error.
                     console.log("error: changing value of \"" + label + "\" from " + toHex(oldSymbolInfo.value, 4) +
