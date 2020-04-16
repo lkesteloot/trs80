@@ -8,6 +8,19 @@ import * as path from "path";
  */
 const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 
+// Byte-defining pseudo instructions.
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z54.htm
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z51.htm
+const PSEUDO_DEF_BYTES = new Set(["defb", "db", ".db", ".byte", "defm", "dm", ".dm", ".text", ".ascii"]);
+
+// Word-defining pseudo instructions.
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z52.htm
+const PSEUDO_DEF_WORDS = new Set(["defw", "dw", ".dw", ".word"]);
+
+// Org-setting pseudo instructions.
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z50.htm
+const PSEUDO_ORG = new Set(["org", ".org", ".loc"]);
+
 // A reference to a symbol.
 export class SymbolReference {
     public pathname: string;
@@ -217,7 +230,7 @@ export class Asm {
         this.skipWhitespace();
         let mnemonic = this.readIdentifier(false, true);
         if (mnemonic !== undefined && this.previousToken > 0) {
-            if (mnemonic === ".byte" || mnemonic === "defb") {
+            if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
                     const s = this.readString();
                     if (s !== undefined) {
@@ -241,7 +254,7 @@ export class Asm {
                         break;
                     }
                 }
-            } else if (mnemonic === ".word" || mnemonic === "defw") {
+            } else if (PSEUDO_DEF_WORDS.has(mnemonic)) {
                 while (true) {
                     const value = this.readExpression(true);
                     if (value === undefined) {
@@ -266,7 +279,7 @@ export class Asm {
                     // Remember constant.
                     labelValue = value;
                 }
-            } else if (mnemonic === ".org") {
+            } else if (PSEUDO_ORG.has(mnemonic)) {
                 const startAddress = this.readExpression(true);
                 if (startAddress === undefined) {
                     this.results.error = "start address expected";
