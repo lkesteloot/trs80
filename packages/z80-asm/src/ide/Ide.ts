@@ -406,7 +406,7 @@ class Ide {
             if (results.error === undefined) {
                 this.cm.removeLineClass(lineNumber, "background", "error-line");
             } else {
-                // console.log(results.error);
+                // console.log(results.error); // TODO cleanup
                 // this.cm.addLineClass(lineNumber, "background", "error-line");
 
                 // Highlight error in scrollbar.

@@ -103,6 +103,9 @@ export class Asm {
 
     // Address of line being parsed.
     private address: number = 0;
+    // Scope prefix (for #local areas).
+    private scopePrefix = "";
+    private scopeCounter = 1;
 
     // State for the particular line we're assembling.
 
@@ -139,8 +142,10 @@ export class Asm {
             // Stack of files we're parsing.
             const fileStack = [new File(pathname, topLines)];
 
-            // Address we're assembling to.
+            // Reset pass-specific fields.
             this.address = 0;
+            this.scopePrefix = "";
+            this.scopeCounter = 1;
 
             while (fileStack.length > 0) {
                 const top = fileStack[fileStack.length - 1];
@@ -194,9 +199,13 @@ export class Asm {
         // Look for label in column 1.
         let symbolColumn = 0;
         let label = this.readIdentifier(false, false);
+        let labelIsGlobal = false;
         if (label !== undefined) {
             if (this.foundChar(':')) {
-                // Optional colon.
+                if (this.foundChar(':')) {
+                    // Double colons indicate global symbols (not local to #local).
+                    labelIsGlobal = true;
+                }
             }
 
             // By default assign it to current address, but can be overwritten
@@ -274,7 +283,8 @@ export class Asm {
 
         // If we're defining a new symbol, record it.
         if (label !== undefined && labelValue !== undefined) {
-            const oldSymbolInfo = this.symbols.get(label);
+            const scopedLabel = (labelIsGlobal ? "" : this.scopePrefix) + label;
+            const oldSymbolInfo = this.symbols.get(scopedLabel);
             if (oldSymbolInfo !== undefined) {
                 // Sanity check.
                 if (labelValue !== oldSymbolInfo.value ||
@@ -287,7 +297,7 @@ export class Asm {
                         " to " + toHex(labelValue, 4));
                 }
             } else {
-                this.symbols.set(label, new SymbolInfo(label, labelValue, this.pathname, this.lineNumber, symbolColumn));
+                this.symbols.set(scopedLabel, new SymbolInfo(label, labelValue, this.pathname, this.lineNumber, symbolColumn));
             }
         }
     }
@@ -351,6 +361,23 @@ export class Asm {
                     this.results.error = "missing included filename";
                 } else {
                     this.results.includeFilename = filename;
+                }
+                break;
+
+            case "local":
+                if (this.scopePrefix !== "") {
+                    this.results.error = "can't have nested #local";
+                } else {
+                    // Pick characters that aren't normally allowed.
+                    this.scopePrefix = "#local" + this.scopeCounter++ + "-";
+                }
+                break;
+
+            case "endlocal":
+                if (this.scopePrefix === "") {
+                    this.results.error = "#endlocal without #local";
+                } else {
+                    this.scopePrefix = "";
                 }
                 break;
 
@@ -613,7 +640,15 @@ export class Asm {
         const identifier = this.readIdentifier(false, false);
         if (identifier !== undefined) {
             // Get address of identifier or value of constant.
-            const symbolInfo = this.symbols.get(identifier);
+            let symbolInfo = undefined;
+            if (this.scopePrefix !== "") {
+                // Prefer local to global.
+                symbolInfo = this.symbols.get(this.scopePrefix + identifier);
+            }
+            if (symbolInfo === undefined) {
+                // Check global.
+                symbolInfo = this.symbols.get(identifier);
+            }
             if (symbolInfo === undefined) {
                 if (!this.ignoreUnknownIdentifiers) {
                     this.results.error = "unknown identifier \"" + identifier + "\"";
