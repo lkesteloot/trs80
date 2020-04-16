@@ -241,14 +241,23 @@ export class Asm {
                         // Error parsing string.
                         return;
                     } else {
-                        const value = this.readExpression(true);
-                        if (value === undefined) {
-                            if (this.results.error === undefined) {
-                                this.results.error = "invalid .byte expression";
+                        // Try some pre-defined names. These are only valid here.
+                        const s = this.parsePredefinedName();
+                        if (s !== undefined) {
+                            for (let i = 0; i < s.length; i++) {
+                                this.results.binary.push(s.charCodeAt(i));
                             }
-                            return;
+                        } else {
+                            // Try a normal expression.
+                            const value = this.readExpression(true);
+                            if (value === undefined) {
+                                if (this.results.error === undefined) {
+                                    this.results.error = "invalid " + mnemonic + " expression";
+                                }
+                                return;
+                            }
+                            this.results.binary.push(value);
                         }
-                        this.results.binary.push(value);
                     }
                     if (!this.foundChar(',')) {
                         break;
@@ -259,7 +268,7 @@ export class Asm {
                     const value = this.readExpression(true);
                     if (value === undefined) {
                         if (this.results.error === undefined) {
-                            this.results.error = "invalid .word expression";
+                            this.results.error = "invalid " + mnemonic + " expression";
                         }
                         return;
                     }
@@ -313,6 +322,50 @@ export class Asm {
                 this.symbols.set(scopedLabel, new SymbolInfo(label, labelValue, this.pathname, this.lineNumber, symbolColumn));
             }
         }
+    }
+
+    // Parse a pre-defined name, returning its value.
+    private parsePredefinedName(): string | undefined {
+        const name = this.readIdentifier(false, true);
+        if (name === undefined) {
+            return undefined;
+        }
+
+        let value;
+
+        // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z54.htm
+        switch (name) {
+            case "__date__": {
+                const date = new Date();
+                value = date.getFullYear() + "-" + (date.getMonth() + 1).toString().padStart(2, "0") + "-" +
+                    date.getDate().toString().padStart(2, "0");
+                break;
+            }
+
+            case "__time__": {
+                const date = new Date();
+                value = date.getHours().toString().padStart(2, "0") + ":" +
+                    date.getMinutes().toString().padStart(2, "0") + ":" +
+                    date.getSeconds().toString().padStart(2, "0");
+                break;
+            }
+
+            case "__file__":
+                value = this.pathname;
+                break;
+
+            case "__line__":
+                // Zero-based.
+                value = this.lineNumber.toString();
+                break;
+        }
+
+        if (value === undefined) {
+            // Back up, it wasn't for us.
+            this.column = this.previousToken;
+        }
+
+        return value;
     }
 
     // Make sure there's no junk at the end of the line.
