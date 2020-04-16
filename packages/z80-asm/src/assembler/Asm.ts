@@ -1,9 +1,10 @@
 import mnemonicData from "./Opcodes";
 import {toHex, hi, lo, isByteReg, isWordReg} from "z80-base";
 import {Variant} from "./OpcodesTypes";
+import * as path from "path";
 
 /**
- * List of all flags.
+ * List of all flags that can be specified in an instruction.
  */
 const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 
@@ -24,6 +25,8 @@ export class SymbolReference {
 export class SymbolInfo {
     public name: string;
     public value: number;
+
+    // Where it was defined. TODO: just use SymbolReference.
     public pathname: string;
     public lineNumber: number;
     public column: number;
@@ -41,7 +44,7 @@ export class SymbolInfo {
 // Map from symbol name to info about the symbol.
 export type SymbolMap = Map<string,SymbolInfo>;
 
-export class ParseResults {
+export class AssembledLine {
     // Original line.
     public line: string;
     // Address of this line.
@@ -72,51 +75,122 @@ export class ParseResults {
     }
 }
 
+// Read the lines of a file, or undefined if the file cannot be read.
+export type FileReader = (pathname: string) => string[] | undefined;
+
+// File we're parsing.
+class File {
+    public readonly pathname: string;
+    public readonly lines: string[];
+    public lineNumber: number = 0;
+
+    constructor(pathname: string, lines: string[]) {
+        this.pathname = pathname;
+        this.lines = lines;
+    }
+}
+
 /**
- * Parses one line of assembly language.
+ * Assembler.
  */
-export class Parser {
-    // Full text of line being parsed.
-    private readonly line: string;
-    // File we're parsing.
-    private readonly pathname: string;
-    // Line number we're parsing, zero-based.
-    private readonly lineNumber: number;
-    // Address of line being parsed.
-    private readonly address: number;
+export class Asm {
+    // Interface for fetching a file's lines.
+    private readonly fileReader: FileReader;
     // Map from symbol name to SymbolInfo.
-    private readonly symbols: SymbolMap;
-    // Whether to ignore identifiers that we don't know about (for the first pass).
-    private readonly ignoreUnknownIdentifiers: boolean;
-    // Results to the caller.
-    private readonly results: ParseResults;
+    public symbols = new Map<string,SymbolInfo>();
+
+    // State for the entire assembler.
+
+    // Address of line being parsed.
+    private address: number = 0;
+
+    // State for the particular line we're assembling.
+
+    // Pathname we're assembling.
+    private pathname: string = "";
+    // Full text of line being parsed.
+    private line: string = "";
+    // Line number we're parsing, zero-based.
+    private lineNumber: number = 0;
     // Parsing index into the line.
     private column: number = 0;
     // Pointer to the token we just parsed.
     private previousToken = 0;
+    // Whether to ignore identifiers that we don't know about (for the first pass).
+    private ignoreUnknownIdentifiers: boolean = false;
+    // Results of parsing one line.
+    private results: AssembledLine = new AssembledLine("", 0);
 
-    constructor(line: string, pathname: string, lineNumber: number, address: number, symbols: SymbolMap, ignoreUnknownIdentifiers: boolean) {
-        this.line = line;
-        this.pathname = pathname;
-        this.lineNumber = lineNumber;
-        this.address = address;
-        this.symbols = symbols;
-        this.ignoreUnknownIdentifiers = ignoreUnknownIdentifiers;
-        this.results = new ParseResults(line, address);
+    constructor(fileReader: FileReader) {
+        this.fileReader = fileReader;
     }
 
-    public assemble(): ParseResults {
+    public assembleFile(pathname: string): AssembledLine[] {
+        const assembledLines: AssembledLine[] = [];
+
+        // read the top file.
+        const topLines = this.fileReader(pathname);
+        if (topLines === undefined) {
+            // We throw an error on the top-level file.
+            throw new Error("Cannot read file " + pathname);
+        }
+
+        for (let pass = 0; pass < 2; pass++) {
+            // Stack of files we're parsing.
+            const fileStack = [new File(pathname, topLines)];
+
+            // Address we're assembling to.
+            this.address = 0;
+
+            while (fileStack.length > 0) {
+                const top = fileStack[fileStack.length - 1];
+                if (top.lineNumber >= top.lines.length) {
+                    fileStack.pop();
+                    continue;
+                }
+
+                // Set line-specific state.
+                this.lineNumber = top.lineNumber++;
+                this.line = top.lines[this.lineNumber];
+                this.column = 0;
+                this.pathname = top.pathname;
+                this.ignoreUnknownIdentifiers = pass === 0;
+
+                // Assemble the line.
+                this.results = new AssembledLine(this.line, this.address);
+                this.assembleLine();
+                this.address = this.results.nextAddress;
+                if (pass === 1 && fileStack.length === 1) {
+                    assembledLines.push(this.results);
+                }
+
+                // Include file.
+                if (this.results.includeFilename !== undefined) {
+                    const pathname = path.resolve(path.dirname(this.pathname), this.results.includeFilename);
+                    const includedLines = this.fileReader(pathname);
+                    if (includedLines === undefined) {
+                        this.results.error = "cannot read file " + pathname;
+                    } else {
+                        fileStack.push(new File(pathname, includedLines));
+                    }
+                }
+            }
+        }
+
+        return assembledLines;
+    }
+
+    private assembleLine(): void {
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
 
         // Look for compiler directive.
         if (this.line.trim().startsWith("#")) {
             this.parseDirective();
-            return this.results;
+            return;
         }
 
         // Look for label in column 1.
-        this.column = 0;
         let symbolColumn = 0;
         let label = this.readIdentifier(false, false);
         if (label !== undefined) {
@@ -142,14 +216,14 @@ export class Parser {
                         }
                     } else if (this.results.error !== undefined) {
                         // Error parsing string.
-                        return this.results;
+                        return;
                     } else {
                         const value = this.readExpression(true);
                         if (value === undefined) {
                             if (this.results.error === undefined) {
                                 this.results.error = "invalid .byte expression";
                             }
-                            return this.results;
+                            return;
                         }
                         this.results.binary.push(value);
                     }
@@ -164,7 +238,7 @@ export class Parser {
                         if (this.results.error === undefined) {
                             this.results.error = "invalid .word expression";
                         }
-                        return this.results;
+                        return;
                     }
                     this.results.binary.push(lo(value));
                     this.results.binary.push(hi(value));
@@ -213,8 +287,6 @@ export class Parser {
                 this.symbols.set(label, new SymbolInfo(label, labelValue, this.pathname, this.lineNumber, symbolColumn));
             }
         }
-
-        return this.results;
     }
 
     // Make sure there's no junk at the end of the line.

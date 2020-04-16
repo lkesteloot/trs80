@@ -1,5 +1,5 @@
 import CodeMirror from "codemirror";
-import {Parser, ParseResults, SymbolInfo} from "../assembler/Parser";
+import {Asm, AssembledLine, SymbolInfo, FileReader} from "../assembler/Asm";
 import {toHexByte, toHexWord} from "z80-base";
 import tippy from 'tippy.js';
 
@@ -34,18 +34,6 @@ const BYTES_PER_SUBLINE = 3;
 
 const CURRENT_PATHNAME_KEY = "current-pathname";
 
-// File we're parsing.
-class File {
-    public readonly pathname: string;
-    public readonly lines: string[];
-    public lineNumber: number = 0;
-
-    constructor(pathname: string, lines: string[]) {
-        this.pathname = pathname;
-        this.lines = lines;
-    }
-}
-
 // Result of looking up what symbol we're on.
 class SymbolHit {
     public readonly symbol: SymbolInfo;
@@ -76,9 +64,8 @@ class Ide {
     private store: Store;
     private readonly cm: CodeMirror.Editor;
     // The index of this array is the line number in the file (zero-based).
-    private readonly assembled: ParseResults[] = [];
-    // Map from symbol name to SymbolInfo object.
-    private readonly symbols = new Map<string, SymbolInfo>();
+    private assembled: AssembledLine[] = [];
+    private symbols = new Map<string,SymbolInfo>();
     private pathname: string = "";
     private scrollbarAnnotator: any;
     private readonly symbolMarks: CodeMirror.TextMarker[] = [];
@@ -288,52 +275,29 @@ class Ide {
         }
     }
 
-    private assembleAll() {
-        this.symbols.clear();
-        this.assembled.splice(0, this.assembled.length);
-        this.clearLineWidgets();
-
-        const before = Date.now();
-
-        for (let pass = 0; pass < 2; pass++) {
-            let address = 0;
-
+    // Get the lines from a file, whether in memory or from disk.
+    private getFileLines(pathname: string): string[] | undefined {
+        if (pathname === this.pathname) {
+            // Return the lines from this file.
             const lines: string[] = [];
             for (let lineNumber = 0; lineNumber < this.cm.lineCount(); lineNumber++) {
                 const line = this.cm.getLine(lineNumber);
                 lines.push(line);
             }
-            const fileStack = [new File(this.pathname, lines)];
-
-            while (fileStack.length > 0) {
-                const top = fileStack[fileStack.length - 1];
-                if (top.lineNumber >= top.lines.length) {
-                    fileStack.pop();
-                    continue;
-                }
-
-                const lineNumber = top.lineNumber++;
-                const line = top.lines[lineNumber];
-                const parser = new Parser(line, top.pathname, lineNumber, address, this.symbols, pass === 0);
-                const results = parser.assemble();
-                address = results.nextAddress;
-
-                if (pass === 1 && fileStack.length === 1) {
-                    this.assembled.push(results);
-                }
-
-                // Include file.
-                if (results.includeFilename !== undefined) {
-                    const pathname = path.resolve(path.dirname(this.pathname), results.includeFilename);
-                    const includedLines = readFileLines(pathname);
-                    if (includedLines === undefined) {
-                        results.error = "cannot read file " + pathname;
-                    } else {
-                        fileStack.push(new File(pathname, includedLines));
-                    }
-                }
-            }
+            return lines;
+        } else {
+            // Load the file.
+            return readFileLines(pathname);
         }
+    }
+
+    private assembleAll() {
+        this.clearLineWidgets();
+
+        const before = Date.now();
+        const asm = new Asm((pathname) => this.getFileLines(pathname));
+        this.assembled = asm.assembleFile(this.pathname);
+        this.symbols = asm.symbols;
 
         // Update UI.
         const annotationMarks: any[] = [];
