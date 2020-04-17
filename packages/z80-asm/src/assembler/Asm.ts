@@ -17,6 +17,10 @@ const PSEUDO_DEF_BYTES = new Set(["defb", "db", ".db", ".byte", "defm", "dm", ".
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z52.htm
 const PSEUDO_DEF_WORDS = new Set(["defw", "dw", ".dw", ".word"]);
 
+// Long-defining pseudo instructions.
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z53.htm
+const PSEUDO_DEF_LONGS = new Set([".long"]);
+
 // Org-setting pseudo instructions.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z50.htm
 const PSEUDO_ORG = new Set(["org", ".org", ".loc"]);
@@ -313,6 +317,23 @@ export class Asm {
                     }
                     this.results.binary.push(lo(value));
                     this.results.binary.push(hi(value));
+                    if (!this.foundChar(',')) {
+                        break;
+                    }
+                }
+            } else if (PSEUDO_DEF_LONGS.has(mnemonic)) {
+                while (true) {
+                    const value = this.readExpression(true);
+                    if (value === undefined) {
+                        if (this.results.error === undefined) {
+                            this.results.error = "invalid " + mnemonic + " expression";
+                        }
+                        return;
+                    }
+                    this.results.binary.push(lo(value));
+                    this.results.binary.push(hi(value));
+                    this.results.binary.push(lo(value >> 16));
+                    this.results.binary.push(hi(value >> 16));
                     if (!this.foundChar(',')) {
                         break;
                     }
