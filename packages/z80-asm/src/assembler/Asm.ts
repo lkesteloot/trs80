@@ -234,8 +234,47 @@ export class Asm {
                 while (true) {
                     const s = this.readString();
                     if (s !== undefined) {
+                        const adjustOperator = this.foundOneOfChar(["+", "-", "&", "|", "^"]);
+                        let adjustValue: number | undefined;
+
+                        if (adjustOperator !== undefined) {
+                            adjustValue = this.readExpression(true);
+                            if (adjustValue === undefined) {
+                                if (this.results.error === undefined) {
+                                    this.results.error = "bad adjustment value";
+                                }
+                                return;
+                            }
+                        }
+
                         for (let i = 0; i < s.length; i++) {
-                            this.results.binary.push(s.charCodeAt(i));
+                            let value = s.charCodeAt(i);
+                            if (i === s.length - 1 && adjustOperator !== undefined && adjustValue !== undefined) {
+                                switch (adjustOperator) {
+                                    case "+":
+                                        value += adjustValue;
+                                        break;
+
+                                    case "-":
+                                        value -= adjustValue;
+                                        break;
+
+                                    case "&":
+                                        value &= adjustValue;
+                                        break;
+
+                                    case "|":
+                                        value |= adjustValue;
+                                        break;
+
+                                    case "^":
+                                        value ^= adjustValue;
+                                        break;
+                                }
+
+                                value = lo(value);
+                            }
+                            this.results.binary.push(value);
                         }
                     } else if (this.results.error !== undefined) {
                         // Error parsing string.
@@ -885,6 +924,10 @@ export class Asm {
             (!isFirst && (ch >= '0' && ch <= '9'));
     }
 
+    /**
+     * If the next character matches the parameter, skips it and subsequent whitespace and return true.
+     * Else returns false.
+     */
     private foundChar(ch: string): boolean {
         if (this.isChar(ch)) {
             this.column++;
@@ -895,6 +938,21 @@ export class Asm {
         }
     }
 
+    /**
+     * If any of the specified characters is next, it is skipped (and subsequent whitespace) and returned.
+     * Else undefined is returned.
+     */
+    private foundOneOfChar(chars: string[]): string | undefined {
+        for (const ch of chars) {
+            if (this.foundChar(ch)) {
+                return ch;
+            }
+        }
+
+        return undefined;
+    }
+
+    // Whether the next character matches the parameter. Does not advance.
     private isChar(ch: string): boolean {
         return this.column < this.line.length && this.line[this.column] === ch;
     }
