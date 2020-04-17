@@ -677,7 +677,7 @@ export class Asm {
         let isMultiply = true;
 
         while (true) {
-            const subValue = this.readShift();
+            const subValue = this.readLogic();
             if (subValue === undefined) {
                 return undefined;
             }
@@ -691,6 +691,37 @@ export class Asm {
                 isMultiply = true;
             } else if (this.foundChar('/')) {
                 isMultiply = false;
+            } else {
+                break;
+            }
+        }
+
+        return value;
+    }
+
+    private readLogic(): number | undefined {
+        let value = 0;
+        let op = "";
+
+        while (true) {
+            const subValue = this.readShift();
+            if (subValue === undefined) {
+                return undefined;
+            }
+
+            if (op === "&") {
+                value &= subValue;
+            } else if (op === "|") {
+                value |= subValue;
+            } else if (op === "^") {
+                value ^= subValue;
+            } else {
+                value = subValue;
+            }
+
+            const ch = this.foundOneOfChar(["&", "|", "^"]);
+            if (ch !== undefined) {
+                op = ch;
             } else {
                 break;
             }
