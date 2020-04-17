@@ -29,6 +29,10 @@ const PSEUDO_ORG = new Set(["org", ".org", ".loc"]);
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z57.htm
 const PSEUDO_ALIGN = new Set(["align", ".align"]);
 
+// Fill pseudo instructions.
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z56.htm
+const PSEUDO_FILL = new Set(["defs", "ds", ".ds", ".block", ".blkb", "data"]);
+
 // A reference to a symbol.
 export class SymbolReference {
     public pathname: string;
@@ -366,7 +370,7 @@ export class Asm {
                 if (align === undefined || align <= 0) {
                     this.results.error = "alignment value expected";
                 } else {
-                    let fillChar = this.fillForTarget();
+                    let fillChar: number | undefined;
                     if (this.foundChar(",")) {
                         const expr = this.readExpression(true);
                         if (expr === undefined) {
@@ -377,14 +381,44 @@ export class Asm {
                         }
                         fillChar = expr;
                     }
-                    fillChar = lo(fillChar);
 
-                    // Perhaps we should skip this if the fill char is the default char
-                    // for the target, and let the binary format be sparse.
-                    let address = this.address;
-                    while ((address % align) !== 0) {
-                        this.results.binary.push(fillChar);
-                        address++;
+                    if (fillChar === undefined) {
+                        this.results.nextAddress = this.address + (align - this.address%align)%align;
+                    } else {
+                        fillChar = lo(fillChar);
+
+                        let address = this.address;
+                        while ((address % align) !== 0) {
+                            this.results.binary.push(fillChar);
+                            address++;
+                        }
+                    }
+                }
+            } else if (PSEUDO_FILL.has(mnemonic)) {
+                const length = this.readExpression(true);
+                if (length === undefined || length <= 0) {
+                    this.results.error = "length value expected";
+                } else {
+                    let fillChar: number | undefined;
+                    if (this.foundChar(",")) {
+                        const expr = this.readExpression(true);
+                        if (expr === undefined) {
+                            if (this.results.error === undefined) {
+                                this.results.error = "error in fill byte";
+                            }
+                            return;
+                        }
+                        fillChar = expr;
+                    }
+
+                    if (fillChar === undefined) {
+                        this.results.nextAddress = this.address + length;
+                    } else {
+                        fillChar = lo(fillChar);
+
+                        for (let i = 0; i < length; i++) {
+                            this.results.binary.push(fillChar);
+                        }
                     }
                 }
             } else {
