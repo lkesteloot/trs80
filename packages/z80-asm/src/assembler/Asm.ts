@@ -25,6 +25,10 @@ const PSEUDO_DEF_LONGS = new Set([".long"]);
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z50.htm
 const PSEUDO_ORG = new Set(["org", ".org", ".loc"]);
 
+// Alignment pseudo instructions.
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z57.htm
+const PSEUDO_ALIGN = new Set(["align", ".align"]);
+
 // A reference to a symbol.
 export class SymbolReference {
     public pathname: string;
@@ -123,6 +127,8 @@ export class Asm {
     // Scope prefix (for #local areas).
     private scopePrefix = "";
     private scopeCounter = 1;
+    // Target type (bin, rom).
+    private target: "bin" | "rom" = "bin";
 
     // State for the particular line we're assembling.
 
@@ -355,6 +361,32 @@ export class Asm {
                 } else {
                     this.results.nextAddress = startAddress;
                 }
+            } else if (PSEUDO_ALIGN.has(mnemonic)) {
+                const align = this.readExpression(true);
+                if (align === undefined || align <= 0) {
+                    this.results.error = "alignment value expected";
+                } else {
+                    let fillChar = this.fillForTarget();
+                    if (this.foundChar(",")) {
+                        const expr = this.readExpression(true);
+                        if (expr === undefined) {
+                            if (this.results.error === undefined) {
+                                this.results.error = "error in fill byte";
+                            }
+                            return;
+                        }
+                        fillChar = expr;
+                    }
+                    fillChar = lo(fillChar);
+
+                    // Perhaps we should skip this if the fill char is the default char
+                    // for the target, and let the binary format be sparse.
+                    let address = this.address;
+                    while ((address % align) !== 0) {
+                        this.results.binary.push(fillChar);
+                        address++;
+                    }
+                }
             } else {
                 this.processOpCode(mnemonic);
             }
@@ -455,9 +487,12 @@ export class Asm {
         switch (directive) {
             case "target":
                 const target = this.readIdentifier(false, true);
-                // Ignore for now. Target can be "bin" or "rom", which basically mean raw
-                // binary with a different default for unspecified bytes (0x00 and 0xFF
-                // respectively), and plenty of other types we have no interest in.
+                if (target === "bin" || target === "rom") {
+                    this.target = target;
+                } else {
+                    this.results.error = "unknown target " + target;
+                    return;
+                }
                 break;
 
             case "code":
@@ -1020,5 +1055,18 @@ export class Asm {
 
     private isFlag(s: string): boolean {
         return FLAGS.has(s.toLowerCase());
+    }
+
+    /**
+     * Get the fill byte for the current target.
+     */
+    private fillForTarget(): number {
+        switch (this.target) {
+            case "bin":
+                return 0x00;
+
+            case "rom":
+                return 0xFF;
+        }
     }
 }
