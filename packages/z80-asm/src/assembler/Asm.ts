@@ -2,6 +2,7 @@ import mnemonicData from "./Opcodes";
 import {toHex, hi, lo, isByteReg, isWordReg} from "z80-base";
 import {Variant} from "./OpcodesTypes";
 import * as path from "path";
+import * as fs from "fs";
 
 /**
  * List of all flags that can be specified in an instruction.
@@ -42,11 +43,11 @@ const GATHER_PASS = 1;
 // The library pass is used to read library files from "#include library"
 // directives. This pass is used if the gather pass found such directives
 // and some symbols could not be resolved.
-/// const LIBRARY_PASS = 2;
+const LIBRARY_PASS = 2;
 
 // The final pass should be identical to the previous pass (gather or library)
 // but with full knowledge of all symbols, so we can generate final opcodes.
-const FINAL_PASS = 2;
+const FINAL_PASS = 3;
 
 // Type of target we can handle.
 type Target = "bin" | "rom";
@@ -129,6 +130,8 @@ export class AssembledLine {
     public error: string | undefined;
     // If it's an include, the filename.
     public includeFilename: string | undefined;
+    // If it's a library include, the directory.
+    public libraryIncludeDir: string | undefined;
     // The variant of the instruction, if any.
     public variant: Variant | undefined;
     // The next address, if it was explicitly specified.
@@ -160,6 +163,10 @@ export class Asm {
     public readonly fileReader: FileReader;
     // Map from symbol name to SymbolInfo.
     public readonly symbols = new Map<string, SymbolInfo>();
+    // At the end of a pass, this set has all the symbols that were used but not defined.
+    public readonly undefinedSymbols = new Set<string>();
+    // Symbols that should be read by the library include.
+    public libraryIncludeSymbols = new Set<string>();
 
     constructor(fileReader: FileReader) {
         this.fileReader = fileReader;
@@ -168,15 +175,31 @@ export class Asm {
     public assembleFile(pathname: string): AssembledLine[] | undefined {
         let assembledLines: AssembledLine[] | undefined;
 
+        // First pass shouldn't load libraries.
+        this.libraryIncludeSymbols.clear();
+
         for (let passNumber = GATHER_PASS; passNumber <= FINAL_PASS; passNumber++) {
             const pass = new Pass(this, passNumber);
             assembledLines = pass.assembleFile(pathname);
+            if (passNumber === GATHER_PASS) {
+                if (this.undefinedSymbols.size > 0 && pass.hasLibraryInclude) {
+                    // Need the library pass.
+                    console.log("Undefined symbols: ", this.undefinedSymbols); // TODO remove.
+                    this.libraryIncludeSymbols = new Set<string>(this.undefinedSymbols);
+                } else {
+                    // Skip the library pass.
+                    passNumber++;
+                }
+            }
         }
 
         return assembledLines;
     }
 }
 
+/**
+ * Represents a pass through all the files.
+ */
 class Pass {
     public readonly asm: Asm;
     public readonly passNumber: number;
@@ -187,6 +210,8 @@ class Pass {
     public scopeCounter = 1;
     // Target type (bin, rom).
     public target: Target = "bin";
+    // Whether any line is a library include.
+    public hasLibraryInclude = false;
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
@@ -207,6 +232,9 @@ class Pass {
     }
 }
 
+/**
+ * Parser for a particular file.
+ */
 class FileParser {
     public readonly pass: Pass;
     // Pathname we're assembling.
@@ -247,12 +275,38 @@ class FileParser {
                 }
             }
 
+            // Library include.
+            if (results.libraryIncludeDir !== undefined && this.pass.asm.libraryIncludeSymbols.size > 0) {
+                const libraryDir = path.resolve(path.dirname(this.pathname), results.libraryIncludeDir);
+                const filenames = fs.readdirSync(libraryDir);
+                // Map from symbol to full filename.
+                const filenameMap = new Map<string,string>();
+                for (const filename of filenames) {
+                    const symbol = path.parse(filename).name;
+                    filenameMap.set(symbol, filename);
+                }
+
+                for (const symbol of this.pass.asm.libraryIncludeSymbols) {
+                    const filename = filenameMap.get(symbol);
+                    if (filename !== undefined) {
+                        const includePathname = path.resolve(libraryDir, filename);
+                        console.log("Auto-including " + includePathname); // TODO remove.
+                        const includeAssembledLines = this.pass.assembleFile(includePathname);
+                        if (includeAssembledLines === undefined) {
+                            throw new Error("cannot read file " + includePathname);
+                        }
+                    }
+                }
+            }
         }
 
         return assembledLines;
     }
 }
 
+/**
+ * Parser for one single line.
+ */
 class LineParser {
     private readonly file: FileParser;
     // Full text of line being parsed.
@@ -515,6 +569,7 @@ class LineParser {
             } else {
                 this.file.pass.asm.symbols.set(scopedLabel,
                     new SymbolInfo(label, labelValue, this.file.pathname, this.lineNumber, symbolColumn));
+                this.file.pass.asm.undefinedSymbols.delete(label);
             }
         }
     }
@@ -623,14 +678,28 @@ class LineParser {
                 }
                 break;
 
-            case "include":
-                const filename = this.readString();
-                if (filename === undefined) {
-                    this.results.error = "missing included filename";
+            case "include": {
+                const previousColumn = this.column;
+                const token = this.readIdentifier(false, true);
+                if (token === "library") {
+                    const dir = this.readString();
+                    if (dir === undefined) {
+                        this.results.error = "missing library directory";
+                    } else {
+                        this.results.libraryIncludeDir = dir;
+                        this.file.pass.hasLibraryInclude = true;
+                    }
                 } else {
-                    this.results.includeFilename = filename;
+                    this.column = previousColumn;
+                    const filename = this.readString();
+                    if (filename === undefined) {
+                        this.results.error = "missing included filename";
+                    } else {
+                        this.results.includeFilename = filename;
+                    }
                 }
                 break;
+            }
 
             case "local":
                 if (this.file.pass.scopePrefix !== "") {
@@ -952,6 +1021,9 @@ class LineParser {
                 if (!this.file.pass.ignoreUnknownIdentifiers()) {
                     this.results.error = "unknown identifier \"" + identifier + "\"";
                 }
+                // TODO I don't like that the set here is mutated even though evaluating this expression
+                // might be speculative.
+                this.file.pass.asm.undefinedSymbols.add(identifier);
                 return 0;
             } else {
                 if (!this.file.pass.ignoreUnknownIdentifiers()) {
