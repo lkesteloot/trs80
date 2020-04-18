@@ -48,6 +48,39 @@ const GATHER_PASS = 1;
 // but with full knowledge of all symbols, so we can generate final opcodes.
 const FINAL_PASS = 2;
 
+// Type of target we can handle.
+type Target = "bin" | "rom";
+
+function parseDigit(ch: string, base: number): number | undefined {
+    let value = ch >= '0' && ch <= '9' ? ch.charCodeAt(0) - 0x30
+        : ch >= 'A' && ch <= 'F' ? ch.charCodeAt(0) - 0x41 + 10
+            : ch >= 'a' && ch <= 'f' ? ch.charCodeAt(0) - 0x61 + 10
+                : undefined;
+
+    return value === undefined || value >= base ? undefined : value;
+}
+
+function isFlag(s: string): boolean {
+    return FLAGS.has(s.toLowerCase());
+}
+
+function isLegalIdentifierCharacter(ch: string, isFirst: boolean) {
+    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '.' || ch == '_' ||
+        (!isFirst && (ch >= '0' && ch <= '9'));
+}
+
+/**
+ * Get the fill byte for the specified target.
+ */
+function fillForTarget(target: Target): number {
+    switch (target) {
+        case "bin":
+            return 0x00;
+
+        case "rom":
+            return 0xFF;
+    }
+}
 
 // A reference to a symbol.
 export class SymbolReference {
@@ -138,7 +171,7 @@ export class Asm {
     private scopePrefix = "";
     private scopeCounter = 1;
     // Target type (bin, rom).
-    private target: "bin" | "rom" = "bin";
+    private target: Target = "bin";
     // Whether to ignore identifiers that we don't know about (for the first pass).
     private ignoreUnknownIdentifiers: boolean = false;
 
@@ -627,7 +660,7 @@ export class Asm {
                             }
                             args[token] = value;
                         }
-                    } else if (this.parseHexDigit(token[0], 10) !== undefined) {
+                    } else if (parseDigit(token[0], 10) !== undefined) {
                         // If the token is a number, then we must parse an expression and
                         // compare the values. This is used for BIT, SET, RES, RST, IM, and one
                         // variant of OUT (OUT (C), 0).
@@ -924,7 +957,7 @@ export class Asm {
 
         // Hex numbers can start with $, like $FF.
         if (this.foundChar('$')) {
-            if (this.column === this.line.length || this.parseHexDigit(this.line[this.column], 16) === undefined) {
+            if (this.column === this.line.length || parseDigit(this.line[this.column], 16) === undefined) {
                 // It's a reference to the current address, not a hex prefix.
                 return sign*this.results.address;
             }
@@ -938,7 +971,7 @@ export class Asm {
         // if it ends with H, like 0FFH.
         if (base === 10) {
             const beforeIndex = this.column;
-            while (this.column < this.line.length && this.parseHexDigit(this.line[this.column], 16) !== undefined) {
+            while (this.column < this.line.length && parseDigit(this.line[this.column], 16) !== undefined) {
                 this.column++;
             }
             if (this.column < this.line.length && this.line[this.column].toUpperCase() === "H") {
@@ -950,12 +983,12 @@ export class Asm {
         // above look since a "B" is a legal hex number!
         if (base === 10) {
             const beforeIndex = this.column;
-            while (this.column < this.line.length && this.parseHexDigit(this.line[this.column], 2) !== undefined) {
+            while (this.column < this.line.length && parseDigit(this.line[this.column], 2) !== undefined) {
                 this.column++;
             }
             if (this.column < this.line.length && this.line[this.column].toUpperCase() === "B" &&
                 // "B" can't be followed by hex digit, or it's not the final character.
-                (this.column === this.line.length || this.parseHexDigit(this.line[this.column + 1], 16) === undefined)) {
+                (this.column === this.line.length || parseDigit(this.line[this.column + 1], 16) === undefined)) {
 
                 base = 2;
             }
@@ -970,7 +1003,7 @@ export class Asm {
                 this.column += 2;
             } else if (this.line[this.column + 1].toLowerCase() == 'b' &&
                 // Must check next digit to distinguish from just "0B".
-                this.parseHexDigit(this.line[this.column + 2], 2) !== undefined) {
+                parseDigit(this.line[this.column + 2], 2) !== undefined) {
 
                 base = 2;
                 this.column += 2;
@@ -985,7 +1018,7 @@ export class Asm {
             }
 
             const ch = this.line[this.column];
-            let chValue = this.parseHexDigit(ch, base);
+            let chValue = parseDigit(ch, base);
             if (chValue === undefined) {
                 break;
             }
@@ -1031,7 +1064,7 @@ export class Asm {
     private readIdentifier(allowRegister: boolean, toLowerCase: boolean): string | undefined {
         const startIndex = this.column;
 
-        while (this.column < this.line.length && this.isLegalIdentifierCharacter(this.line[this.column], this.column == startIndex)) {
+        while (this.column < this.line.length && isLegalIdentifierCharacter(this.line[this.column], this.column == startIndex)) {
             this.column++;
         }
 
@@ -1040,7 +1073,7 @@ export class Asm {
             if (toLowerCase) {
                 identifier = identifier.toLowerCase();
             }
-            if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || this.isFlag(identifier))) {
+            if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || isFlag(identifier))) {
                 // Register names can't be identifiers.
                 this.column = startIndex;
                 return undefined;
@@ -1051,11 +1084,6 @@ export class Asm {
         } else {
             return undefined;
         }
-    }
-
-    private isLegalIdentifierCharacter(ch: string, isFirst: boolean) {
-        return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '.' || ch == '_' ||
-            (!isFirst && (ch >= '0' && ch <= '9'));
     }
 
     /**
@@ -1089,31 +1117,5 @@ export class Asm {
     // Whether the next character matches the parameter. Does not advance.
     private isChar(ch: string): boolean {
         return this.column < this.line.length && this.line[this.column] === ch;
-    }
-
-    private parseHexDigit(ch: string, base: number): number | undefined {
-        let value = ch >= '0' && ch <= '9' ? ch.charCodeAt(0) - 0x30
-            : ch >= 'A' && ch <= 'F' ? ch.charCodeAt(0) - 0x41 + 10
-                : ch >= 'a' && ch <= 'f' ? ch.charCodeAt(0) - 0x61 + 10
-                    : undefined;
-
-        return value === undefined || value >= base ? undefined : value;
-    }
-
-    private isFlag(s: string): boolean {
-        return FLAGS.has(s.toLowerCase());
-    }
-
-    /**
-     * Get the fill byte for the current target.
-     */
-    private fillForTarget(): number {
-        switch (this.target) {
-            case "bin":
-                return 0x00;
-
-            case "rom":
-                return 0xFF;
-        }
     }
 }
