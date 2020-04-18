@@ -298,7 +298,7 @@ class Ide {
 
         const before = Date.now();
         const asm = new Asm((pathname) => this.getFileLines(pathname));
-        this.assembled = asm.assembleFile(this.pathname);
+        this.assembled = asm.assembleFile(this.pathname) ?? []; // TODO deal with file not existing.
         this.symbols = asm.symbols;
 
         // Update UI.

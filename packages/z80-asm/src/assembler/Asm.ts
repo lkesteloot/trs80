@@ -33,6 +33,22 @@ const PSEUDO_ALIGN = new Set(["align", ".align"]);
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z56.htm
 const PSEUDO_FILL = new Set(["defs", "ds", ".ds", ".block", ".blkb", "data"]);
 
+// In the gather pass we figure out what symbols are references and
+// the location and values of all symbols. If include libraries are not used,
+// then at the end of this pass we know the value of all symbols and we can jump
+// to the final pass.
+const GATHER_PASS = 1;
+
+// The library pass is used to read library files from "#include library"
+// directives. This pass is used if the gather pass found such directives
+// and some symbols could not be resolved.
+/// const LIBRARY_PASS = 2;
+
+// The final pass should be identical to the previous pass (gather or library)
+// but with full knowledge of all symbols, so we can generate final opcodes.
+const FINAL_PASS = 2;
+
+
 // A reference to a symbol.
 export class SymbolReference {
     public pathname: string;
@@ -66,7 +82,7 @@ export class SymbolInfo {
     }
 }
 
-// Map from symbol name to info about the symbol.
+// Map from symbol name to info about the symbol. TODO: Delete?
 export type SymbolMap = Map<string,SymbolInfo>;
 
 export class AssembledLine {
@@ -102,18 +118,6 @@ export class AssembledLine {
 
 // Read the lines of a file, or undefined if the file cannot be read.
 export type FileReader = (pathname: string) => string[] | undefined;
-
-// File we're parsing.
-class File {
-    public readonly pathname: string;
-    public readonly lines: string[];
-    public lineNumber: number = 0;
-
-    constructor(pathname: string, lines: string[]) {
-        this.pathname = pathname;
-        this.lines = lines;
-    }
-}
 
 /**
  * Assembler.
@@ -155,57 +159,57 @@ export class Asm {
         this.fileReader = fileReader;
     }
 
-    public assembleFile(pathname: string): AssembledLine[] {
-        const assembledLines: AssembledLine[] = [];
+    public assembleFile(pathname: string): AssembledLine[] | undefined {
+        let assembledLines: AssembledLine[] | undefined ;
 
-        // read the top file.
-        const topLines = this.fileReader(pathname);
-        if (topLines === undefined) {
-            // We throw an error on the top-level file.
-            throw new Error("Cannot read file " + pathname);
-        }
-
-        for (let pass = 0; pass < 2; pass++) {
-            // Stack of files we're parsing.
-            const fileStack = [new File(pathname, topLines)];
-
+        for (let pass = GATHER_PASS; pass <= FINAL_PASS; pass++) {
             // Reset pass-specific fields.
             this.address = 0;
             this.scopePrefix = "";
             this.scopeCounter = 1;
+            this.ignoreUnknownIdentifiers = pass !== FINAL_PASS;
 
-            while (fileStack.length > 0) {
-                const top = fileStack[fileStack.length - 1];
-                if (top.lineNumber >= top.lines.length) {
-                    fileStack.pop();
-                    continue;
+            assembledLines = this.includeFile(pathname, pass);
+        }
+
+        return assembledLines;
+    }
+
+    /**
+     * Assembles the lines of the file, returning an AssembledLine object for
+     * each line in the original file. Returns undefined if the file cannot be loaded.
+     */
+    private includeFile(pathname: string, pass: number): AssembledLine[] | undefined {
+        const lines = this.fileReader(pathname);
+        if (lines === undefined) {
+            return undefined;
+        }
+
+        const assembledLines: AssembledLine[] = [];
+        this.pathname = pathname;
+
+        for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
+            // Set line-specific state.
+            this.lineNumber = lineNumber;
+            this.line = lines[lineNumber];
+            this.column = 0;
+
+            // Assemble the line.
+            this.results = new AssembledLine(this.line, this.address);
+            this.assembleLine();
+            this.address = this.results.nextAddress;
+            if (pass === FINAL_PASS) {
+                assembledLines.push(this.results);
+            }
+
+            // Include file.
+            if (this.results.includeFilename !== undefined) {
+                const includePathname = path.resolve(path.dirname(this.pathname), this.results.includeFilename);
+                const includeAssembledLines = this.includeFile(includePathname, pass);
+                if (includeAssembledLines === undefined) {
+                    this.results.error = "cannot read file " + includePathname;
                 }
-
-                // Set line-specific state.
-                this.lineNumber = top.lineNumber++;
-                this.line = top.lines[this.lineNumber];
-                this.column = 0;
-                this.pathname = top.pathname;
-                this.ignoreUnknownIdentifiers = pass === 0;
-
-                // Assemble the line.
-                this.results = new AssembledLine(this.line, this.address);
-                this.assembleLine();
-                this.address = this.results.nextAddress;
-                if (pass === 1 && fileStack.length === 1) {
-                    assembledLines.push(this.results);
-                }
-
-                // Include file.
-                if (this.results.includeFilename !== undefined) {
-                    const pathname = path.resolve(path.dirname(this.pathname), this.results.includeFilename);
-                    const includedLines = this.fileReader(pathname);
-                    if (includedLines === undefined) {
-                        this.results.error = "cannot read file " + pathname;
-                    } else {
-                        fileStack.push(new File(pathname, includedLines));
-                    }
-                }
+                this.pathname = pathname; // TODO fix more elegantly.
             }
         }
 
@@ -524,7 +528,11 @@ export class Asm {
                 if (target === "bin" || target === "rom") {
                     this.target = target;
                 } else {
-                    this.results.error = "unknown target " + target;
+                    if (target === undefined) {
+                        this.results.error = "must specify target";
+                    } else {
+                        this.results.error = "unknown target " + target;
+                    }
                     return;
                 }
                 break;

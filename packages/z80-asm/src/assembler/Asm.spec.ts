@@ -11,7 +11,7 @@ interface TestLine {
 
 function runTest(testLines: TestLine[]): Asm {
     const asm = new Asm((pathname) => testLines.map(testLine => testLine.line));
-    const assembledLines = asm.assembleFile("unused.asm");
+    const assembledLines = asm.assembleFile("unused.asm") ?? [];
     expect(assembledLines.length).to.be.equal(testLines.length);
     for (let i = 0; i < testLines.length; i++) {
         expect(assembledLines[i].binary).to.deep.equal(testLines[i].opcodes ?? []);

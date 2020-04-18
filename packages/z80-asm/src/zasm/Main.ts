@@ -16,6 +16,10 @@ function main() {
     const binFd = fs.openSync(binPathname, "w");
     const asm = new Asm(loadFile);
     const assembledLines = asm.assembleFile(srcPathname);
+    if (assembledLines === undefined) {
+        console.log("Cannot read file " + srcPathname);
+        return;
+    }
 
     let errorCount = 0;
     for (const results of assembledLines) {
