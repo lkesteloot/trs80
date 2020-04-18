@@ -123,12 +123,14 @@ export type FileReader = (pathname: string) => string[] | undefined;
  * Assembler.
  */
 export class Asm {
+    // State for the entire assembler.
+
     // Interface for fetching a file's lines.
     private readonly fileReader: FileReader;
     // Map from symbol name to SymbolInfo.
     public symbols = new Map<string,SymbolInfo>();
 
-    // State for the entire assembler.
+    // State for the pass we're doing.
 
     // Address of line being parsed.
     private address: number = 0;
@@ -137,11 +139,16 @@ export class Asm {
     private scopeCounter = 1;
     // Target type (bin, rom).
     private target: "bin" | "rom" = "bin";
+    // Whether to ignore identifiers that we don't know about (for the first pass).
+    private ignoreUnknownIdentifiers: boolean = false;
 
-    // State for the particular line we're assembling.
+    // State for the file we're reading.
 
     // Pathname we're assembling.
     private pathname: string = "";
+
+    // State for the particular line we're assembling.
+
     // Full text of line being parsed.
     private line: string = "";
     // Line number we're parsing, zero-based.
@@ -150,8 +157,6 @@ export class Asm {
     private column: number = 0;
     // Pointer to the token we just parsed.
     private previousToken = 0;
-    // Whether to ignore identifiers that we don't know about (for the first pass).
-    private ignoreUnknownIdentifiers: boolean = false;
     // Results of parsing one line.
     private results: AssembledLine = new AssembledLine("", 0);
 
