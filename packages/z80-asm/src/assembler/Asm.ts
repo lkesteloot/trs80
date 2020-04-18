@@ -156,106 +156,132 @@ export type FileReader = (pathname: string) => string[] | undefined;
  * Assembler.
  */
 export class Asm {
-    // State for the entire assembler.
-
     // Interface for fetching a file's lines.
-    private readonly fileReader: FileReader;
+    public readonly fileReader: FileReader;
     // Map from symbol name to SymbolInfo.
-    public symbols = new Map<string,SymbolInfo>();
-
-    // State for the pass we're doing.
-
-    // Address of line being parsed.
-    private address: number = 0;
-    // Scope prefix (for #local areas).
-    private scopePrefix = "";
-    private scopeCounter = 1;
-    // Target type (bin, rom).
-    private target: Target = "bin";
-    // Whether to ignore identifiers that we don't know about (for the first pass).
-    private ignoreUnknownIdentifiers: boolean = false;
-
-    // State for the file we're reading.
-
-    // Pathname we're assembling.
-    private pathname: string = "";
-
-    // State for the particular line we're assembling.
-
-    // Full text of line being parsed.
-    private line: string = "";
-    // Line number we're parsing, zero-based.
-    private lineNumber: number = 0;
-    // Parsing index into the line.
-    private column: number = 0;
-    // Pointer to the token we just parsed.
-    private previousToken = 0;
-    // Results of parsing one line.
-    private results: AssembledLine = new AssembledLine("", 0);
+    public readonly symbols = new Map<string, SymbolInfo>();
 
     constructor(fileReader: FileReader) {
         this.fileReader = fileReader;
     }
 
     public assembleFile(pathname: string): AssembledLine[] | undefined {
-        let assembledLines: AssembledLine[] | undefined ;
+        let assembledLines: AssembledLine[] | undefined;
 
-        for (let pass = GATHER_PASS; pass <= FINAL_PASS; pass++) {
-            // Reset pass-specific fields.
-            this.address = 0;
-            this.scopePrefix = "";
-            this.scopeCounter = 1;
-            this.ignoreUnknownIdentifiers = pass !== FINAL_PASS;
-
-            assembledLines = this.includeFile(pathname, pass);
+        for (let passNumber = GATHER_PASS; passNumber <= FINAL_PASS; passNumber++) {
+            const pass = new Pass(this, passNumber);
+            assembledLines = pass.assembleFile(pathname);
         }
 
         return assembledLines;
+    }
+}
+
+class Pass {
+    public readonly asm: Asm;
+    public readonly passNumber: number;
+    // Address of line being parsed.
+    public address = 0;
+    // Scope prefix (for #local areas).
+    public scopePrefix = "";
+    public scopeCounter = 1;
+    // Target type (bin, rom).
+    public target: Target = "bin";
+
+    constructor(asm: Asm, passNumber: number) {
+        this.asm = asm;
+        this.passNumber = passNumber;
+    }
+
+    public ignoreUnknownIdentifiers(): boolean {
+        return this.passNumber !== FINAL_PASS;
     }
 
     /**
      * Assembles the lines of the file, returning an AssembledLine object for
      * each line in the original file. Returns undefined if the file cannot be loaded.
      */
-    private includeFile(pathname: string, pass: number): AssembledLine[] | undefined {
-        const lines = this.fileReader(pathname);
+    public assembleFile(pathname: string): AssembledLine[] | undefined {
+        const fileParser = new FileParser(this, pathname);
+        return fileParser.assemble();
+    }
+}
+
+class FileParser {
+    public readonly pass: Pass;
+    // Pathname we're assembling.
+    public readonly pathname: string;
+
+    constructor(pass: Pass, pathname: string) {
+        this.pass = pass;
+        this.pathname = pathname;
+    }
+
+    /**
+     * Assembles the lines of the file, returning an AssembledLine object for
+     * each line in the original file. Returns undefined if the file cannot be loaded.
+     */
+    public assemble(): AssembledLine[] | undefined {
+        const lines = this.pass.asm.fileReader(this.pathname);
         if (lines === undefined) {
             return undefined;
         }
 
         const assembledLines: AssembledLine[] = [];
-        this.pathname = pathname;
 
         for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
-            // Set line-specific state.
-            this.lineNumber = lineNumber;
-            this.line = lines[lineNumber];
-            this.column = 0;
+            const lineParser = new LineParser(this, lines[lineNumber], lineNumber);
+            const results = lineParser.assemble();
 
-            // Assemble the line.
-            this.results = new AssembledLine(this.line, this.address);
-            this.assembleLine();
-            this.address = this.results.nextAddress;
-            if (pass === FINAL_PASS) {
-                assembledLines.push(this.results);
+            this.pass.address = results.nextAddress;
+            if (this.pass.passNumber === FINAL_PASS) {
+                assembledLines.push(results);
             }
 
             // Include file.
-            if (this.results.includeFilename !== undefined) {
-                const includePathname = path.resolve(path.dirname(this.pathname), this.results.includeFilename);
-                const includeAssembledLines = this.includeFile(includePathname, pass);
+            if (results.includeFilename !== undefined) {
+                const includePathname = path.resolve(path.dirname(this.pathname), results.includeFilename);
+                const includeAssembledLines = this.pass.assembleFile(includePathname);
                 if (includeAssembledLines === undefined) {
-                    this.results.error = "cannot read file " + includePathname;
+                    results.error = "cannot read file " + includePathname;
                 }
-                this.pathname = pathname; // TODO fix more elegantly.
             }
+
         }
 
         return assembledLines;
     }
+}
 
-    // Assemble a single line. Assumes the line has been set up.
-    private assembleLine(): void {
+class LineParser {
+    private readonly file: FileParser;
+    // Full text of line being parsed.
+    private readonly line: string;
+    // Line number we're parsing, zero-based.
+    private readonly lineNumber: number;
+    // Parsing index into the line.
+    private column: number = 0;
+    // Pointer to the token we just parsed.
+    private previousToken = 0;
+    // Results of parsing one line.
+    private readonly results: AssembledLine;
+
+    constructor(file: FileParser, line: string, lineNumber: number) {
+        this.file = file;
+        this.line = line;
+        this.lineNumber = lineNumber;
+        this.results = new AssembledLine(line, file.pass.address);
+    }
+
+    public assemble(): AssembledLine {
+        this.parseLine();
+        return this.results;
+    }
+
+    private parseLine(): void {
+        // Convenience.
+        const thisAddress = this.file.pass.address;
+
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
 
@@ -279,7 +305,7 @@ export class Asm {
 
             // By default assign it to current address, but can be overwritten
             // by .equ below.
-            labelValue = this.address;
+            labelValue = this.file.pass.address;
             symbolColumn = this.previousToken;
         }
 
@@ -425,11 +451,11 @@ export class Asm {
                     }
 
                     if (fillChar === undefined) {
-                        this.results.nextAddress = this.address + (align - this.address%align)%align;
+                        this.results.nextAddress = thisAddress + (align - thisAddress%align)%align;
                     } else {
                         fillChar = lo(fillChar);
 
-                        let address = this.address;
+                        let address = thisAddress;
                         while ((address % align) !== 0) {
                             this.results.binary.push(fillChar);
                             address++;
@@ -454,7 +480,7 @@ export class Asm {
                     }
 
                     if (fillChar === undefined) {
-                        this.results.nextAddress = this.address + length;
+                        this.results.nextAddress = thisAddress + length;
                     } else {
                         fillChar = lo(fillChar);
 
@@ -473,21 +499,22 @@ export class Asm {
 
         // If we're defining a new symbol, record it.
         if (label !== undefined && labelValue !== undefined) {
-            const scopedLabel = (labelIsGlobal ? "" : this.scopePrefix) + label;
-            const oldSymbolInfo = this.symbols.get(scopedLabel);
+            const scopedLabel = (labelIsGlobal ? "" : this.file.pass.scopePrefix) + label;
+            const oldSymbolInfo = this.file.pass.asm.symbols.get(scopedLabel);
             if (oldSymbolInfo !== undefined) {
                 // Sanity check.
                 if (labelValue !== oldSymbolInfo.value ||
                     this.lineNumber !== oldSymbolInfo.definition.lineNumber ||
                     symbolColumn !== oldSymbolInfo.definition.column ||
-                    this.pathname !== oldSymbolInfo.definition.pathname) {
+                    this.file.pathname !== oldSymbolInfo.definition.pathname) {
 
                     // TODO should be programmer error.
                     console.log("error: changing value of \"" + label + "\" from " + toHex(oldSymbolInfo.value, 4) +
                         " to " + toHex(labelValue, 4));
                 }
             } else {
-                this.symbols.set(scopedLabel, new SymbolInfo(label, labelValue, this.pathname, this.lineNumber, symbolColumn));
+                this.file.pass.asm.symbols.set(scopedLabel,
+                    new SymbolInfo(label, labelValue, this.file.pathname, this.lineNumber, symbolColumn));
             }
         }
     }
@@ -519,7 +546,7 @@ export class Asm {
             }
 
             case "__file__":
-                value = this.pathname;
+                value = this.file.pathname;
                 break;
 
             case "__line__":
@@ -564,7 +591,7 @@ export class Asm {
             case "target":
                 const target = this.readIdentifier(false, true);
                 if (target === "bin" || target === "rom") {
-                    this.target = target;
+                    this.file.pass.target = target;
                 } else {
                     if (target === undefined) {
                         this.results.error = "must specify target";
@@ -606,19 +633,19 @@ export class Asm {
                 break;
 
             case "local":
-                if (this.scopePrefix !== "") {
+                if (this.file.pass.scopePrefix !== "") {
                     this.results.error = "can't have nested #local";
                 } else {
                     // Pick characters that aren't normally allowed.
-                    this.scopePrefix = "#local" + this.scopeCounter++ + "-";
+                    this.file.pass.scopePrefix = "#local" + this.file.pass.scopeCounter++ + "-";
                 }
                 break;
 
             case "endlocal":
-                if (this.scopePrefix === "") {
+                if (this.file.pass.scopePrefix === "") {
                     this.results.error = "#endlocal without #local";
                 } else {
-                    this.scopePrefix = "";
+                    this.file.pass.scopePrefix = "";
                 }
                 break;
 
@@ -913,22 +940,22 @@ export class Asm {
         if (identifier !== undefined) {
             // Get address of identifier or value of constant.
             let symbolInfo = undefined;
-            if (this.scopePrefix !== "") {
+            if (this.file.pass.scopePrefix !== "") {
                 // Prefer local to global.
-                symbolInfo = this.symbols.get(this.scopePrefix + identifier);
+                symbolInfo = this.file.pass.asm.symbols.get(this.file.pass.scopePrefix + identifier);
             }
             if (symbolInfo === undefined) {
                 // Check global.
-                symbolInfo = this.symbols.get(identifier);
+                symbolInfo = this.file.pass.asm.symbols.get(identifier);
             }
             if (symbolInfo === undefined) {
-                if (!this.ignoreUnknownIdentifiers) {
+                if (!this.file.pass.ignoreUnknownIdentifiers()) {
                     this.results.error = "unknown identifier \"" + identifier + "\"";
                 }
                 return 0;
             } else {
-                if (!this.ignoreUnknownIdentifiers) {
-                    symbolInfo.references.push(new SymbolReference(this.pathname, this.lineNumber, startIndex));
+                if (!this.file.pass.ignoreUnknownIdentifiers()) {
+                    symbolInfo.references.push(new SymbolReference(this.file.pathname, this.lineNumber, startIndex));
                 }
                 return symbolInfo.value;
             }
