@@ -67,12 +67,15 @@ class Ide {
     private assembled: AssembledLine[] = [];
     private symbols = new Map<string,SymbolInfo>();
     private pathname: string = "";
+    private ipcRenderer: any;
     private scrollbarAnnotator: any;
     private readonly symbolMarks: CodeMirror.TextMarker[] = [];
     private readonly lineWidgets: CodeMirror.LineWidget[] = [];
 
     constructor(parent: HTMLElement) {
-        this.store = new Store();
+        this.store = new Store({
+            name: "z80-ide",
+        });
 
         const config = {
             value: "",
@@ -125,12 +128,13 @@ class Ide {
         this.scrollbarAnnotator = (this.cm as any).annotateScrollbar("scrollbar-error");
 
         // Configure IPC with the main process of Electron.
-        const ipcRenderer = (window as any).ipcRenderer;
-        ipcRenderer.on("set-text", (event: any, pathname: string, text: string) => this.setText(pathname, text));
-        ipcRenderer.on("next-error", () => this.nextError());
-        ipcRenderer.on("declaration-or-usages", () => this.jumpToDefinition(false));
-        ipcRenderer.on("next-usage", () => this.jumpToDefinition(true));
-        ipcRenderer.on("save", () => this.saveForUser());
+        this.ipcRenderer = (window as any).ipcRenderer;
+        this.ipcRenderer.on("set-text", (event: any, pathname: string, text: string) => this.setText(pathname, text));
+        this.ipcRenderer.on("next-error", () => this.nextError());
+        this.ipcRenderer.on("declaration-or-usages", () => this.jumpToDefinition(false));
+        this.ipcRenderer.on("next-usage", () => this.jumpToDefinition(true));
+        this.ipcRenderer.on("save", () => this.saveOrAskPathname());
+        this.ipcRenderer.on("asked-for-filename", (event: any, pathname: string | undefined) => this.userSpecifiedPathname(pathname));
 
         this.cm.focus();
 
@@ -146,9 +150,12 @@ class Ide {
     }
 
     private setText(pathname: string, text: string): void {
-        this.pathname = pathname;
         this.cm.setValue(text);
+        this.setPathname(pathname);
+    }
 
+    private setPathname(pathname: string) {
+        this.pathname = pathname;
         this.store.set(CURRENT_PATHNAME_KEY, pathname);
     }
 
@@ -161,10 +168,20 @@ class Ide {
     }
 
     // User-initiated save.
-    private saveForUser(): void {
+    private saveOrAskPathname(): void {
         if (this.pathname === "") {
-            // TODO ask for filename.
+            this.ipcRenderer.send("ask-for-filename");
+            // Continues in "asked-for-filename".
         } else {
+            this.saveFile();
+        }
+    }
+
+    private userSpecifiedPathname(pathname: string | undefined): void {
+        if (pathname === undefined) {
+            // Ignore.
+        } else {
+            this.setPathname(pathname);
             this.saveFile();
         }
     }
@@ -182,7 +199,6 @@ class Ide {
         }
 
         const currentLineNumber = this.cm.getCursor().line;
-        console.log(currentLineNumber);
         let nextErrorLineNumber = currentLineNumber;
         do {
             nextErrorLineNumber = (nextErrorLineNumber + 1) % this.assembled.length;
@@ -291,7 +307,6 @@ class Ide {
             }
 
             for (const reference of symbol.references) {
-                console.log(reference.pathname, this.pathname);
                 if (reference.pathname === this.pathname) {
                     const mark = this.cm.markText({line: reference.lineNumber, ch: reference.column},
                         {line: reference.lineNumber, ch: reference.column + symbol.name.length},
@@ -414,9 +429,7 @@ class Ide {
                         popup += "<br>Undocumented instructions.<br>";
                     }
                     addressElement.addEventListener("mouseenter", event => {
-                        console.log("mouseenter");
                         if (addressElement !== null && (addressElement as any)._tippy === undefined) {
-                            console.log("defining");
                             const instance = tippy(addressElement, {
                                 content: popup,
                                 allowHTML: true,
@@ -433,9 +446,6 @@ class Ide {
             if (results.error === undefined) {
                 this.cm.removeLineClass(lineNumber, "background", "error-line");
             } else {
-                // console.log(results.error); // TODO cleanup
-                // this.cm.addLineClass(lineNumber, "background", "error-line");
-
                 // Highlight error in scrollbar.
                 annotationMarks.push({
                     from: { line: lineNumber, ch: 0 },

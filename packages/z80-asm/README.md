@@ -1,6 +1,6 @@
 # z80-asm
 
-This is a Z80 assembler written in TypeScript.
+This is a Z80 assembler IDE written in TypeScript.
 
     % npm install
     % npm test
@@ -8,7 +8,7 @@ This is a Z80 assembler written in TypeScript.
 
 Run IDE with:
 
-    % npm run electron
+    % npm start
 
 Run command-line assembler with:
 

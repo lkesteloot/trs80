@@ -5,7 +5,7 @@
   "scripts": {
     "build": "webpack",
     "build:test": "tsc -p tsconfig.test.json",
-    "electron": "electron dist/electron-main.js",
+    "start": "electron dist/electron-main.js",
     "generate": "tsc --project src/opcodes && node src/opcodes/dist/opcodes/GenerateJson.js",
     "test": "npm run build:test && mocha -r ts-node/register src/**/*.spec.ts",
     "watch": "webpack --watch",

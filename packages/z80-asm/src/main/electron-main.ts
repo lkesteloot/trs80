@@ -1,7 +1,7 @@
 
 
 import * as fs from "fs";
-import { app, BrowserWindow, Menu, dialog, TouchBar } from 'electron';
+import { app, BrowserWindow, Menu, dialog, TouchBar, ipcMain } from 'electron';
 const { TouchBarButton } = TouchBar;
 
 function createWindow() {
@@ -29,6 +29,7 @@ app.whenReady().then(() => {
     createWindow();
     setupMenus();
     setupTouchBar();
+    setupMessageListeners();
 });
 
 // Quit when all windows are closed.
@@ -240,3 +241,28 @@ function setupTouchBar() {
     win.setTouchBar(touchBar);
 }
 
+function setupMessageListeners() {
+    ipcMain.on("ask-for-filename", () => {
+        const win = BrowserWindow.getFocusedWindow();
+        if (!win) {
+            return;
+        }
+
+        dialog.showSaveDialog(win, {
+            defaultPath: "/Users/lk/mine/ZED-80/src/zed-80",
+            filters: [
+                { name: 'Assembly', extensions: ['asm', 'inc', 's'] },
+                { name: 'All Files', extensions: ['*'] }
+            ],
+            properties: [
+                "createDirectory",      // Allow creation of directory.
+                "showOverwriteConfirmation"
+            ]
+        }).then(result => {
+            win.webContents.send("asked-for-filename", result.filePath);
+        }).catch(err => {
+            console.log(err);
+            win.webContents.send("asked-for-filename", undefined);
+        });
+    });
+}
