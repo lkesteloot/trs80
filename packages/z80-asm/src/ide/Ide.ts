@@ -119,6 +119,8 @@ class Ide {
             this.updateHighlight();
         });
 
+        this.cm.on("blur", () => this.saveSilently());
+
         // The type definition doesn't include this extension.
         this.scrollbarAnnotator = (this.cm as any).annotateScrollbar("scrollbar-error");
 
@@ -128,6 +130,7 @@ class Ide {
         ipcRenderer.on("next-error", () => this.nextError());
         ipcRenderer.on("declaration-or-usages", () => this.jumpToDefinition(false));
         ipcRenderer.on("next-usage", () => this.jumpToDefinition(true));
+        ipcRenderer.on("save", () => this.saveForUser());
 
         this.cm.focus();
 
@@ -147,6 +150,30 @@ class Ide {
         this.cm.setValue(text);
 
         this.store.set(CURRENT_PATHNAME_KEY, pathname);
+    }
+
+    // Save if possible, else do nothing. This is for implicit saving like when the editor
+    // loses focus.
+    private saveSilently(): void {
+        if (this.pathname !== "") {
+            this.saveFile();
+        }
+    }
+
+    // User-initiated save.
+    private saveForUser(): void {
+        if (this.pathname === "") {
+            // TODO ask for filename.
+        } else {
+            this.saveFile();
+        }
+    }
+
+    // Save the file to disk.
+    private saveFile(): void {
+        fs.writeFile(this.pathname, this.cm.getValue(), () => {
+            // TODO mark file clean.
+        });
     }
 
     private nextError(): void {

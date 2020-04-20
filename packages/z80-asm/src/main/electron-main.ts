@@ -113,6 +113,13 @@ const template = [
             },
             // Doesn't seem to work:
             // { role: 'recentDocuments' },
+            {
+                label: "Save",
+                click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {
+                    focusedWindow.webContents.send("save");
+                },
+                accelerator: "CmdOrCtrl+S",
+            },
             isMac ? { role: 'close' } : { role: 'quit' }
         ]
     },
