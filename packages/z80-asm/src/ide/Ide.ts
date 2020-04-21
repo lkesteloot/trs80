@@ -1,5 +1,6 @@
 import CodeMirror from "codemirror";
-import {Asm, AssembledLine, SymbolInfo, FileReader, SymbolReference} from "../assembler/Asm";
+import {Asm, AssembledLine, SymbolInfo, SymbolReference} from "../assembler/Asm";
+import mnemonicData from "../assembler/Opcodes";
 import {toHexByte, toHexWord} from "z80-base";
 import tippy from 'tippy.js';
 
@@ -23,6 +24,7 @@ import "codemirror/mode/z80/z80";
 import * as fs from "fs";
 import * as path from "path";
 import Store from "electron-store";
+import {ClrInstruction, OpcodeTemplate, Variant} from "../assembler/OpcodesTypes";
 
 // Max number of sub-lines per line. These are lines where we display the
 // opcodes for a single source line.
@@ -58,6 +60,23 @@ function readFile(pathname: string): string | undefined {
 function readFileLines(pathname: string): string[] | undefined {
     const text = readFile(pathname);
     return text === undefined ? undefined : text.split(/\r?\n/);
+}
+
+/**
+ * Whether "prefix" is a prefix of "opcode". I.e., the opcode array starts with prefix.
+ */
+function isPrefix(prefix: OpcodeTemplate[], opcode: OpcodeTemplate[]): boolean {
+    if (prefix.length > opcode.length) {
+        return false;
+    }
+
+    for (let i = 0; i < prefix.length; i++) {
+        if (prefix[i] !== opcode[i]) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 class Ide {
@@ -374,69 +393,21 @@ class Ide {
                     this.cm.addLineClass(lineNumber, "wrap", "line-height-" + numLines);
                 }
 
-                if (results.variant !== undefined && results.variant.clr !== null) {
-                    const clr = results.variant.clr;
-                    let popup = "<b>" + clr.instruction.toUpperCase() + "</b><br><br>";
-                    if (clr.description) {
-                        popup += clr.description + "<br><br>";
-                    }
-                    popup += clr.byte_count + " bytes, ";
-                    if (clr.with_jump_clock_count === clr.without_jump_clock_count) {
-                        popup += clr.with_jump_clock_count + " clocks.<br><br>";
-                    } else {
-                        popup += clr.with_jump_clock_count + "/" + clr.without_jump_clock_count + " clocks.<br><br>";
-                    }
-
-                    if (clr.flags === "------") {
-                        popup += "Flags are unaffected.</br>";
-                    } else {
-                        const flagLabels = ['C', 'N', 'P/V', 'H', 'Z', 'S'];
-
-                        for (let i = 0; i < 6; i++) {
-                            popup += "<b>" + flagLabels[i] + ":</b> ";
-
-                            switch (clr.flags.charAt(i)) {
-                                case '-':
-                                    popup += 'unaffected';
-                                    break;
-                                case '+':
-                                    popup += 'affected as defined';
-                                    break;
-                                case 'P':
-                                    popup += 'detects parity';
-                                    break;
-                                case 'V':
-                                    popup += 'detects overflow';
-                                    break;
-                                case '1':
-                                    popup += 'set';
-                                    break;
-                                case '0':
-                                    popup += 'reset';
-                                    break;
-                                case '*':
-                                    popup += 'exceptional';
-                                    break;
-                                default:
-                                    popup += 'unknown';
-                                    break;
+                if (results.variant !== undefined) {
+                    let popup = results.variant.clr !== null
+                        ? this.getPopupForClr(results.variant.clr)
+                        : this.getPopupForPseudoInstruction(results.variant);
+                    if (popup !== undefined) {
+                        addressElement.addEventListener("mouseenter", event => {
+                            if (addressElement !== null && (addressElement as any)._tippy === undefined) {
+                                const instance = tippy(addressElement, {
+                                    content: popup,
+                                    allowHTML: true,
+                                });
+                                instance.show();
                             }
-                            popup += "<br>";
-                        }
+                        });
                     }
-
-                    if (clr.undocumented) {
-                        popup += "<br>Undocumented instructions.<br>";
-                    }
-                    addressElement.addEventListener("mouseenter", event => {
-                        if (addressElement !== null && (addressElement as any)._tippy === undefined) {
-                            const instance = tippy(addressElement, {
-                                content: popup,
-                                allowHTML: true,
-                            });
-                            instance.show();
-                        }
-                    });
                 }
             } else {
                 addressElement = null;
@@ -479,6 +450,113 @@ class Ide {
             from: CodeMirror.Pos(cursor.line, start - 3),
             to: CodeMirror.Pos(cursor.line, start),
         };
+    }
+
+    /**
+     * Generate a popup for an instruction that has clr info.
+     */
+    private getPopupForClr(clr: ClrInstruction) {
+        let popup = "<b>" + clr.instruction.toUpperCase() + "</b><br><br>";
+        if (clr.description) {
+            popup += clr.description + "<br><br>";
+        }
+        popup += clr.byte_count + " bytes, ";
+        if (clr.with_jump_clock_count === clr.without_jump_clock_count) {
+            popup += clr.with_jump_clock_count + " clocks.<br><br>";
+        } else {
+            popup += clr.with_jump_clock_count + "/" + clr.without_jump_clock_count + " clocks.<br><br>";
+        }
+
+        if (clr.flags === "------") {
+            popup += "Flags are unaffected.</br>";
+        } else {
+            const flagLabels = ['C', 'N', 'P/V', 'H', 'Z', 'S'];
+
+            for (let i = 0; i < 6; i++) {
+                popup += "<b>" + flagLabels[i] + ":</b> ";
+
+                switch (clr.flags.charAt(i)) {
+                    case '-':
+                        popup += 'unaffected';
+                        break;
+                    case '+':
+                        popup += 'affected as defined';
+                        break;
+                    case 'P':
+                        popup += 'detects parity';
+                        break;
+                    case 'V':
+                        popup += 'detects overflow';
+                        break;
+                    case '1':
+                        popup += 'set';
+                        break;
+                    case '0':
+                        popup += 'reset';
+                        break;
+                    case '*':
+                        popup += 'exceptional';
+                        break;
+                    default:
+                        popup += 'unknown';
+                        break;
+                }
+                popup += "<br>";
+            }
+        }
+
+        if (clr.undocumented) {
+            popup += "<br>Undocumented instructions.<br>";
+        }
+
+        return popup;
+    }
+
+    /**
+     * Generate popup for a pseudo instruction (composite of multiple instructions),
+     * or undefined if we can't find which instructions it's made of.
+     */
+    private getPopupForPseudoInstruction(variant: Variant): string | undefined {
+        if (variant.opcode.length === 0) {
+            return undefined;
+        }
+
+        let popup = "<b>Pseudo Instruction</b><br><br>";
+
+        // If this happens a lot we should make a reverse map.
+        let start = 0;
+        while (start < variant.opcode.length) {
+            const subVariant = this.getVariantForOpcode(variant.opcode.slice(start));
+            if (subVariant === undefined) {
+                return undefined;
+            }
+
+            if (subVariant.clr === null) {
+                popup += "Unknown instruction<br>";
+            } else {
+                popup += subVariant.clr.instruction.toUpperCase() + "<br>";
+            }
+
+            start += subVariant.opcode.length;
+        }
+
+        return popup;
+    }
+
+    /**
+     * Find the variant for whatever instruction is at the head of the sequence of opcodes,
+     * or undefined if it can't be found. Never returns pseudo-instructions.
+     */
+    private getVariantForOpcode(opcode: OpcodeTemplate[]): Variant | undefined {
+        for (const mnemonic of Object.keys(mnemonicData.mnemonics)) {
+            for (const variant of mnemonicData.mnemonics[mnemonic].variants) {
+                if (variant.clr !== null && isPrefix(variant.opcode, opcode)) {
+                    return variant;
+                }
+            }
+        }
+
+        return undefined;
     }
 }
 
