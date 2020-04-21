@@ -150,8 +150,8 @@ class Ide {
     }
 
     private setText(pathname: string, text: string): void {
-        this.cm.setValue(text);
         this.setPathname(pathname);
+        this.cm.setValue(text);
     }
 
     private setPathname(pathname: string) {

@@ -662,17 +662,21 @@ class LineParser {
                 if (segmentName === undefined) {
                     this.results.error = "segment name expected";
                 } else if (this.foundChar(',')) {
-                    const startAddress = this.readExpression(true);
-                    if (startAddress === undefined) {
-                        this.results.error = "start address expected";
+                    if (this.foundChar("*")) {
+                        // Keep start address unchanged.
                     } else {
-                        this.results.nextAddress = startAddress;
+                        const startAddress = this.readExpression(true);
+                        if (startAddress === undefined) {
+                            this.results.error = "start address expected";
+                        } else {
+                            this.results.nextAddress = startAddress;
+                        }
+                    }
 
-                        if (this.foundChar(',')) {
-                            const length = this.readExpression(true);
-                            if (length === undefined) {
-                                this.results.error = "length expected";
-                            }
+                    if (this.foundChar(',')) {
+                        const length = this.readExpression(true);
+                        if (length === undefined) {
+                            this.results.error = "length expected";
                         }
                     }
                 }
