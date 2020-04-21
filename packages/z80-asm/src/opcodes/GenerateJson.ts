@@ -15,7 +15,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import {toHexByte} from "z80-base";
-import {Variant, OpcodeTemplate, ClrInstruction} from "../assembler/OpcodesTypes";
+import {Variant, OpcodeTemplate, ClrInstruction, Mnemonics, Instructions} from "../assembler/OpcodesTypes";
 
 // Break args into sequences of letters, digits, or single punctuation.
 const TOKENIZING_REGEXP = /([a-z]+)|([,+()])|([0-9]+)|(;.*)/g;
@@ -84,7 +84,7 @@ function fixClrDescription(desc: string): string {
 
 }
 
-function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[], mnemonicMap: any, clr: ClrFile): void {
+function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[], mnemonicMap: Mnemonics, clr: ClrFile): void {
     const pathname = path.join(dirname, "opcodes_" + prefix.toLowerCase() + ".dat");
 
     fs.readFileSync(pathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
@@ -179,17 +179,31 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
     });
 }
 
+function addPseudoInstructions(mnemonics: Mnemonics) {
+    mnemonics["ld"].variants.push({
+        tokens: ["hl", ",", "bc"],
+        opcode: [0x60, 0x69],
+        clr: null,
+    });
+    mnemonics["ld"].variants.push({
+        tokens: ["bc", ",", "hl"],
+        opcode: [0x44, 0x4D],
+        clr: null,
+    });
+}
+
 function generateOpcodes(): void {
     const opcodesDir = path.join(__dirname, "..", "..");
     const clr = JSON.parse(fs.readFileSync(path.join(opcodesDir, "clr.json"), "utf-8")) as ClrFile;
 
-    const mnemonics = {
+    const mnemonics: Mnemonics = {
         // To be filled in later.
     };
-    const top = {
+    const top: Instructions = {
         mnemonics: mnemonics,
     };
     parseOpcodes(opcodesDir, "base", [], top.mnemonics, clr);
+    addPseudoInstructions(top.mnemonics);
 
     const text = 'import {Instructions} from "./OpcodesTypes";\n\n' +
         'const opcodes: Instructions = ' + JSON.stringify(top, null, 2, ) + ";\n\n" +

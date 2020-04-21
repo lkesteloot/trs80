@@ -15657,6 +15657,30 @@ const opcodes: Instructions = {
             "description": "Loads the value of IY into SP.",
             "instruction": "ld sp,iy"
           }
+        },
+        {
+          "tokens": [
+            "hl",
+            ",",
+            "bc"
+          ],
+          "opcode": [
+            96,
+            105
+          ],
+          "clr": null
+        },
+        {
+          "tokens": [
+            "bc",
+            ",",
+            "hl"
+          ],
+          "opcode": [
+            68,
+            77
+          ],
+          "clr": null
         }
       ]
     },
