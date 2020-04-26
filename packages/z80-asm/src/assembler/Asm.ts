@@ -116,14 +116,13 @@ export class SymbolInfo {
     }
 }
 
-// Map from symbol name to info about the symbol. TODO: Delete?
-export type SymbolMap = Map<string,SymbolInfo>;
-
 export class AssembledLine {
-    // Original line.
-    public line: string;
+    // Source of line.
+    public readonly pathname: string;
+    public readonly lineNumber: number;
+    public readonly line: string;
     // Address of this line.
-    public address: number;
+    public readonly address: number;
     // Decoded opcodes and parameters:
     public binary: number[] = [];
     // Any error found in the line.
@@ -137,7 +136,9 @@ export class AssembledLine {
     // The next address, if it was explicitly specified.
     private specifiedNextAddress: number | undefined;
 
-    constructor(line: string, address: number) {
+    constructor(pathname: string, lineNumber: number, line: string, address: number) {
+        this.pathname = pathname;
+        this.lineNumber = lineNumber;
         this.line = line;
         this.address = address;
     }
@@ -155,6 +156,27 @@ export class AssembledLine {
 // Read the lines of a file, or undefined if the file cannot be read.
 export type FileReader = (pathname: string) => string[] | undefined;
 
+// Information about each file that was read.
+export class FileInfo {
+    public readonly pathname: string;
+    // Line number in listing, inclusive.
+    public readonly beginLineNumber: number;
+    // Line number in listing, exclusive.
+    public readonly endLineNumber: number;
+    // Files included by this file.
+    public readonly childFiles: FileInfo[];
+    // Lines in listing that correspond to this file.
+    public readonly lineNumbers: number[];
+
+    constructor(pathname: string, beginLineNumber: number, endLineNumber: number, childFiles: FileInfo[], lineNumbers: number[]) {
+        this.pathname = pathname;
+        this.beginLineNumber = beginLineNumber;
+        this.endLineNumber = endLineNumber;
+        this.childFiles = childFiles;
+        this.lineNumbers = lineNumbers;
+    }
+}
+
 /**
  * Assembler.
  */
@@ -167,6 +189,8 @@ export class Asm {
     public readonly undefinedSymbols = new Set<string>();
     // Symbols that should be read by the library include.
     public libraryIncludeSymbols = new Set<string>();
+    // File info for the last pass that was done.
+    public fileInfo: FileInfo | undefined;
 
     constructor(fileReader: FileReader) {
         this.fileReader = fileReader;
@@ -180,7 +204,9 @@ export class Asm {
 
         for (let passNumber = GATHER_PASS; passNumber <= FINAL_PASS; passNumber++) {
             const pass = new Pass(this, passNumber);
-            assembledLines = pass.assembleFile(pathname);
+            // TODO check result:
+            this.fileInfo = pass.assembleFile(pathname);
+            assembledLines = pass.assembledLines;
             if (passNumber === GATHER_PASS) {
                 if (this.undefinedSymbols.size > 0 && pass.hasLibraryInclude) {
                     // Need the library pass.
@@ -203,6 +229,7 @@ export class Asm {
 class Pass {
     public readonly asm: Asm;
     public readonly passNumber: number;
+    public readonly assembledLines: AssembledLine[] = [];
     // Address of line being parsed.
     public address = 0;
     // Scope prefix (for #local areas).
@@ -223,12 +250,11 @@ class Pass {
     }
 
     /**
-     * Assembles the lines of the file, returning an AssembledLine object for
-     * each line in the original file. Returns undefined if the file cannot be loaded.
+     * Assembles the lines of the file. Returns a FileInfo object for this tree, or undefined
+     * if the file couldn't be read.
      */
-    public assembleFile(pathname: string): AssembledLine[] | undefined {
-        const fileParser = new FileParser(this, pathname);
-        return fileParser.assemble();
+    public assembleFile(pathname: string): FileInfo | undefined {
+        return new FileParser(this, pathname).assemble();
     }
 }
 
@@ -246,32 +272,35 @@ class FileParser {
     }
 
     /**
-     * Assembles the lines of the file, returning an AssembledLine object for
-     * each line in the original file. Returns undefined if the file cannot be loaded.
+     * Assembles the lines of the file. Returns a FileInfo object for this tree, or undefined
+     * if the file couldn't be read.
      */
-    public assemble(): AssembledLine[] | undefined {
+    public assemble(): FileInfo | undefined {
         const lines = this.pass.asm.fileReader(this.pathname);
         if (lines === undefined) {
             return undefined;
         }
 
-        const assembledLines: AssembledLine[] = [];
+        const beginLineNumber = this.pass.assembledLines.length;
+        const childFiles: FileInfo[] = [];
+        const lineNumbers: number[] = [];
 
         for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
             const lineParser = new LineParser(this, lines[lineNumber], lineNumber);
             const results = lineParser.assemble();
 
+            lineNumbers.push(this.pass.assembledLines.length);
             this.pass.address = results.nextAddress;
-            if (this.pass.passNumber === FINAL_PASS) {
-                assembledLines.push(results);
-            }
+            this.pass.assembledLines.push(results);
 
             // Include file.
             if (results.includeFilename !== undefined) {
                 const includePathname = path.resolve(path.dirname(this.pathname), results.includeFilename);
-                const includeAssembledLines = this.pass.assembleFile(includePathname);
-                if (includeAssembledLines === undefined) {
+                const childFile = this.pass.assembleFile(includePathname);
+                if (childFile === undefined) {
                     results.error = "cannot read file " + includePathname;
+                } else {
+                    childFiles.push(childFile);
                 }
             }
 
@@ -291,16 +320,20 @@ class FileParser {
                     if (filename !== undefined) {
                         const includePathname = path.resolve(libraryDir, filename);
                         console.log("Auto-including " + includePathname); // TODO remove.
-                        const includeAssembledLines = this.pass.assembleFile(includePathname);
-                        if (includeAssembledLines === undefined) {
+                        const childFile = this.pass.assembleFile(includePathname);
+                        if (childFile === undefined) {
                             throw new Error("cannot read file " + includePathname);
+                        } else {
+                            childFiles.push(childFile);
                         }
                     }
                 }
             }
         }
 
-        return assembledLines;
+        const endLineNumber = this.pass.assembledLines.length;
+
+        return new FileInfo(this.pathname, beginLineNumber, endLineNumber, childFiles, lineNumbers);
     }
 }
 
@@ -324,7 +357,7 @@ class LineParser {
         this.file = file;
         this.line = line;
         this.lineNumber = lineNumber;
-        this.results = new AssembledLine(line, file.pass.address);
+        this.results = new AssembledLine(file.pathname, lineNumber, line, file.pass.address);
     }
 
     public assemble(): AssembledLine {

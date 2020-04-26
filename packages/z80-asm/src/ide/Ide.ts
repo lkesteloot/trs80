@@ -1,5 +1,5 @@
 import CodeMirror from "codemirror";
-import {Asm, AssembledLine, SymbolInfo, SymbolReference} from "../assembler/Asm";
+import {Asm, AssembledLine, FileInfo, SymbolInfo, SymbolReference} from "../assembler/Asm";
 import mnemonicData from "../assembler/Opcodes";
 import {toHexByte, toHexWord} from "z80-base";
 import tippy from 'tippy.js';
@@ -25,6 +25,7 @@ import * as fs from "fs";
 import * as path from "path";
 import Store from "electron-store";
 import {ClrInstruction, OpcodeTemplate, Variant} from "../assembler/OpcodesTypes";
+import {toHex} from "z80-base/dist/main";
 
 // Max number of sub-lines per line. These are lines where we display the
 // opcodes for a single source line.
@@ -48,6 +49,40 @@ class SymbolHit {
     }
 }
 
+// In-memory cache of the disk file.
+class SourceFile {
+    public readonly pathname: string;
+    public readonly lines: string[];
+    public modified = false;
+
+    constructor(pathname: string, lines: string[]) {
+        this.pathname = pathname;
+        this.lines = lines;
+    }
+
+    public setLines(lines: string[]): void {
+        console.log("Pushing " + lines.length + " lines to " + this.pathname);
+        // See if they've changed.
+        let changed = this.lines.length !== lines.length;
+        if (!changed) {
+            const length = lines.length;
+            for (let i = 0; i < length; i++) {
+                if (this.lines[i] !== lines[i]) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        if (changed) {
+            console.log("Was modified");
+            this.lines.splice(0, this.lines.length, ...lines);
+            this.modified = true;
+        }
+    }
+}
+
+// Read a file raw text, or undefined if the file can't be opened.
 function readFile(pathname: string): string | undefined {
     try {
         return fs.readFileSync(pathname, "utf-8");
@@ -57,6 +92,7 @@ function readFile(pathname: string): string | undefined {
     }
 }
 
+// Read a file as an array of lines, or undefined if the file can't be opened.
 function readFileLines(pathname: string): string[] | undefined {
     const text = readFile(pathname);
     return text === undefined ? undefined : text.split(/\r?\n/);
@@ -88,8 +124,11 @@ class Ide {
     private pathname: string = "";
     private ipcRenderer: any;
     private scrollbarAnnotator: any;
+    private sourceFiles = new Map<string,SourceFile>();
     private readonly symbolMarks: CodeMirror.TextMarker[] = [];
     private readonly lineWidgets: CodeMirror.LineWidget[] = [];
+    private fileInfo: FileInfo | undefined;
+    private lineNumberToFileInfo = new Map<number,FileInfo>();
 
     constructor(parent: HTMLElement) {
         this.store = new Store({
@@ -134,7 +173,37 @@ class Ide {
             // It's important to call this in "change", and not in "changes" or
             // after a timeout, because we want to be part of this operation.
             // This way a large re-assemble takes 40ms instead of 300ms.
+
+            // We should be entirely within a file (otherwise we would have gotten
+            // canceled in the "beforeChange" event). Find which file we're in
+            // and update it all.
+            this.editorToCache(changeObj.from.line, changeObj.to.line + changeObj.text.length);
             this.assembleAll();
+        });
+        this.cm.on("beforeChange", (instance, changeObj) => {
+            const beginLine = changeObj.from.line;
+            const endLine = changeObj.to.ch === 0 ? changeObj.to.line : changeObj.to.line + 1;
+
+            if (this.fileInfo !== undefined) {
+                const spansFileInfo = (fileInfo: FileInfo): boolean => {
+                    if ((beginLine < fileInfo.beginLineNumber && endLine > fileInfo.beginLineNumber) ||
+                        (beginLine < fileInfo.endLineNumber && endLine > fileInfo.endLineNumber)) {
+
+                        return true;
+                    }
+                    for (const fi of fileInfo.childFiles) {
+                        if (spansFileInfo(fi)) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                };
+                const spanFile = spansFileInfo(this.fileInfo);
+                if (spanFile) {
+                    changeObj.cancel();
+                }
+            }
         });
 
         this.cm.on("cursorActivity", (instance) => {
@@ -163,14 +232,14 @@ class Ide {
             const text = readFile(pathname);
             if (text !== undefined) {
                 this.pathname = pathname;
-                this.cm.setValue(text);
+                this.assembleAll();
             }
         }
     }
 
     private setText(pathname: string, text: string): void {
         this.setPathname(pathname);
-        this.cm.setValue(text);
+        this.assembleAll();
     }
 
     private setPathname(pathname: string) {
@@ -207,9 +276,12 @@ class Ide {
 
     // Save the file to disk.
     private saveFile(): void {
+        /*
         fs.writeFile(this.pathname, this.cm.getValue(), () => {
             // TODO mark file clean.
         });
+
+         */
     }
 
     private nextError(): void {
@@ -338,20 +410,47 @@ class Ide {
         }
     }
 
-    // Get the lines from a file, whether in memory or from disk.
-    private getFileLines(pathname: string): string[] | undefined {
-        if (pathname === this.pathname) {
-            // Return the lines from this file.
-            const lines: string[] = [];
-            for (let lineNumber = 0; lineNumber < this.cm.lineCount(); lineNumber++) {
-                const line = this.cm.getLine(lineNumber);
-                lines.push(line);
-            }
-            return lines;
-        } else {
-            // Load the file.
-            return readFileLines(pathname);
+    // Push the lines in the editor back to the file cache.
+    private editorToCache(beginLineNumber: number, endLineNumber: number): void {
+        if (this.fileInfo === undefined) {
+            // Haven't assembled yet.
+            return;
         }
+
+        // Find the file we're in.
+        const fileInfo = this.lineNumberToFileInfo.get(beginLineNumber);
+        if (fileInfo === undefined) {
+            throw new Error("Can't find line info for line " + beginLineNumber);
+        }
+
+        const sourceFile = this.sourceFiles.get(fileInfo.pathname);
+        if (sourceFile === undefined) {
+            throw new Error("Can't find source file for " + fileInfo.pathname);
+        }
+
+        const newLines: string[] = [];
+        for (const lineNumber of fileInfo.lineNumbers) {
+            const text = this.cm.getLine(lineNumber);
+            newLines.push(text);
+        }
+
+        sourceFile.setLines(newLines);
+    }
+
+    // Get the lines from the file cache, reading from disk if necessary.
+    private getFileLines(pathname: string): string[] | undefined {
+        // Check the cache.
+        let sourceFile = this.sourceFiles.get(pathname);
+        if (sourceFile === undefined) {
+            const lines = readFileLines(pathname);
+            if (lines === undefined) {
+                // Don't cache the failure, just try again next time.
+                return undefined;
+            }
+            sourceFile = new SourceFile(pathname, lines);
+            this.sourceFiles.set(pathname, sourceFile);
+        }
+        return sourceFile.lines;
     }
 
     private assembleAll() {
@@ -361,6 +460,45 @@ class Ide {
         const asm = new Asm((pathname) => this.getFileLines(pathname));
         this.assembled = asm.assembleFile(this.pathname) ?? []; // TODO deal with file not existing.
         this.symbols = asm.symbols;
+
+        const lines: string[] = [];
+        for (const assembledLine of this.assembled) {
+            const sourceFile = this.sourceFiles.get(assembledLine.pathname);
+            // TODO fix ???
+            const line = sourceFile === undefined ? "???" : sourceFile.lines[assembledLine.lineNumber];
+            lines.push(line);
+        }
+
+        let newValue = lines.join("\n");
+        if (newValue !== this.cm.getValue()) {
+            console.log("Changing");
+            this.cm.setValue(newValue);
+        } else {
+            console.log("Unchanged");
+        }
+
+        // Update text markers.
+        this.fileInfo = asm.fileInfo;
+        const processFileInfo = (fileInfo: FileInfo, depth: number) => {
+            for (let lineNumber = fileInfo.beginLineNumber; lineNumber < fileInfo.endLineNumber; lineNumber++) {
+                this.lineNumberToFileInfo.set(lineNumber, fileInfo);
+            }
+            if (depth > 0) {
+                this.cm.markText(
+                    { line: fileInfo.beginLineNumber, ch: 0 },
+                    { line: fileInfo.endLineNumber, ch: 0 },
+                    {
+                        inclusiveLeft: true,
+                        inclusiveRight: true,
+                        css: "background: #00" + toHex(depth * 50, 2) + "00",
+                    });
+            }
+            fileInfo.childFiles.forEach(fi => processFileInfo(fi, depth + 1));
+        };
+        if (this.fileInfo != undefined) {
+            this.lineNumberToFileInfo.clear();
+            processFileInfo(this.fileInfo, 0);
+        }
 
         // Update UI.
         const annotationMarks: any[] = [];
