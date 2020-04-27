@@ -533,8 +533,11 @@ class Ide {
         const processFileInfo = (fileInfo: FileInfo, depth: number) => {
             for (let lineNumber = fileInfo.beginLineNumber; lineNumber < fileInfo.endLineNumber; lineNumber++) {
                 this.lineNumberToFileInfo.set(lineNumber, fileInfo);
+                if (depth > 0) {
+                    this.cm.addLineClass(lineNumber, "background", "include-" + depth);
+                }
             }
-            if (depth > 0) {
+            if (depth > 0 && false) {
                 fileInfo.mark = this.cm.markText(
                     { line: fileInfo.beginLineNumber, ch: 0 },
                     { line: fileInfo.endLineNumber, ch: 0 },

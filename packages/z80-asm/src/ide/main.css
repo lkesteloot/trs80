@@ -26,8 +26,19 @@ body {
     color: #585 !important;
 }
 .scrollbar-error {
-    background-color: #C00;
+    background-color: #B00;
 }
 .current-symbol {
     background-color: #036B13;
+}
+
+/* Normal background is #2c2c2c. */
+.include-1 {
+    background: #2c2c4c;
+}
+.include-2 {
+    background: #2c2c6c;
+}
+.include-3 {
+    background: #2c2c8c;
 }
