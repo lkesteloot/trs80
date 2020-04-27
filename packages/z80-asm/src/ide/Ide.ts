@@ -177,10 +177,20 @@ class Ide {
             // We should be entirely within a file (otherwise we would have gotten
             // canceled in the "beforeChange" event). Find which file we're in
             // and update it all.
-            this.editorToCache(changeObj.from.line, changeObj.to.line + changeObj.text.length);
+            if (changeObj.origin !== "setValue") {
+                console.log(changeObj);
+                const removed = changeObj.removed ?? [];
+                const linesAdded = changeObj.text.length - removed.length;
+                this.editorToCache(changeObj.from.line, linesAdded);
+            }
             this.assembleAll();
         });
         this.cm.on("beforeChange", (instance, changeObj) => {
+            if (changeObj.origin === "setValue") {
+                // Always allow setValue().
+                return;
+            }
+            console.log("beforeChange \"" + changeObj.origin + "\"");
             const beginLine = changeObj.from.line;
             const endLine = changeObj.to.ch === 0 ? changeObj.to.line : changeObj.to.line + 1;
 
@@ -201,6 +211,7 @@ class Ide {
                 };
                 const spanFile = spansFileInfo(this.fileInfo);
                 if (spanFile) {
+                    console.log("Canceling update");
                     changeObj.cancel();
                 }
             }
@@ -411,7 +422,7 @@ class Ide {
     }
 
     // Push the lines in the editor back to the file cache.
-    private editorToCache(beginLineNumber: number, endLineNumber: number): void {
+    private editorToCache(beginLineNumber: number, linesAdded: number): void {
         if (this.fileInfo === undefined) {
             // Haven't assembled yet.
             return;
@@ -428,8 +439,46 @@ class Ide {
             throw new Error("Can't find source file for " + fileInfo.pathname);
         }
 
+        let lineNumbers = new Array<number>(... fileInfo.lineNumbers);
+        if (linesAdded > 0) {
+            console.log(lineNumbers);
+            const index = lineNumbers.indexOf(beginLineNumber);
+            if (index === -1) {
+                throw new Error("Can't find line number " + beginLineNumber + " in array of lines");
+            }
+            for (let i = 0; i < linesAdded; i++) {
+                lineNumbers.splice(index + 1 + i, 0, beginLineNumber + i + 1);
+            }
+            console.log(lineNumbers);
+            for (let i = index + linesAdded + 1; i < lineNumbers.length; i++) {
+                lineNumbers[i] += linesAdded;
+            }
+            console.log(lineNumbers);
+        } else if (linesAdded < 0) {
+            const linesRemoved = -linesAdded;
+            console.log(lineNumbers);
+            const index = lineNumbers.indexOf(beginLineNumber);
+            if (index === -1) {
+                throw new Error("Can't find line number " + beginLineNumber + " in array of lines");
+            }
+            lineNumbers.splice(index + 1, linesRemoved);
+            console.log(lineNumbers);
+            for (let i = index + 1; i < lineNumbers.length; i++) {
+                lineNumbers[i] -= linesRemoved;
+            }
+            console.log(lineNumbers);
+
+        } else {
+            lineNumbers = fileInfo.lineNumbers;
+        }
+
+        if (this.fileInfo.mark !== undefined) {
+            // TODO delete.
+            console.log("mark: " + this.fileInfo.mark.find().from.line + " to " + this.fileInfo.mark.find().to.line);
+        }
+
         const newLines: string[] = [];
-        for (const lineNumber of fileInfo.lineNumbers) {
+        for (const lineNumber of lineNumbers) {
             const text = this.cm.getLine(lineNumber);
             newLines.push(text);
         }
@@ -460,6 +509,8 @@ class Ide {
         const asm = new Asm((pathname) => this.getFileLines(pathname));
         this.assembled = asm.assembleFile(this.pathname) ?? []; // TODO deal with file not existing.
         this.symbols = asm.symbols;
+        this.fileInfo = asm.fileInfo;
+        console.log("Number of assembled lines: " + this.assembled.length);
 
         const lines: string[] = [];
         for (const assembledLine of this.assembled) {
@@ -468,23 +519,23 @@ class Ide {
             const line = sourceFile === undefined ? "???" : sourceFile.lines[assembledLine.lineNumber];
             lines.push(line);
         }
+        console.log("Number of source lines: " + lines.length);
 
         let newValue = lines.join("\n");
         if (newValue !== this.cm.getValue()) {
-            console.log("Changing");
+            console.log("Changing " + newValue.length);
             this.cm.setValue(newValue);
         } else {
             console.log("Unchanged");
         }
 
         // Update text markers.
-        this.fileInfo = asm.fileInfo;
         const processFileInfo = (fileInfo: FileInfo, depth: number) => {
             for (let lineNumber = fileInfo.beginLineNumber; lineNumber < fileInfo.endLineNumber; lineNumber++) {
                 this.lineNumberToFileInfo.set(lineNumber, fileInfo);
             }
             if (depth > 0) {
-                this.cm.markText(
+                fileInfo.mark = this.cm.markText(
                     { line: fileInfo.beginLineNumber, ch: 0 },
                     { line: fileInfo.endLineNumber, ch: 0 },
                     {
