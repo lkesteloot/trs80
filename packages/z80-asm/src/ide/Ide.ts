@@ -22,7 +22,6 @@ import "codemirror/addon/selection/mark-selection";
 import "codemirror/mode/z80/z80";
 
 import * as fs from "fs";
-import * as path from "path";
 import Store from "electron-store";
 import {ClrInstruction, OpcodeTemplate, Variant} from "../assembler/OpcodesTypes";
 import {toHex} from "z80-base/dist/main";
@@ -308,35 +307,29 @@ class Ide {
 
         if (nextErrorLineNumber !== currentLineNumber) {
             // TODO error might not be in this file:
-            this.setCursor(this.pathname, nextErrorLineNumber, 0);
+            this.setCursor(nextErrorLineNumber, 0);
         }
     }
 
     private setCursorToReference(ref: SymbolReference): void {
-        this.setCursor(ref.pathname, ref.lineNumber, ref.column);
+        this.setCursor(ref.lineNumber, ref.column);
     }
 
     // Set the editor's cursor if it's for this file.
-    private setCursor(pathname: string, lineNumber: number, column: number): void {
-        if (pathname === this.pathname) {
-            this.cm.setCursor(lineNumber, column);
-        }
+    private setCursor(lineNumber: number, column: number): void {
+        this.cm.setCursor(lineNumber, column);
     }
 
     // Find symbol usage at a location, or undefined if we're not on a symbol.
     private findSymbolAt(lineNumber: number, column: number): SymbolHit | undefined {
         for (const symbol of this.symbols.values()) {
             // See if we're at the definition.
-            if (symbol.matches(symbol.definition, this.pathname, lineNumber, column)) {
+            if (symbol.matches(symbol.definition, lineNumber, column)) {
                 return new SymbolHit(symbol, undefined);
             } else {
                 // See if we're at a use.
                 for (let i = 0; i < symbol.references.length; i++) {
-                    let reference = symbol.references[i];
-
-                    if (reference.pathname === this.pathname && lineNumber === reference.lineNumber
-                        && column >= reference.column && column <= reference.column + symbol.name.length) {
-
+                    if (symbol.matches(symbol.references[i], lineNumber, column)) {
                         return new SymbolHit(symbol, i);
                     }
                 }
@@ -399,24 +392,20 @@ class Ide {
         if (symbolHit !== undefined) {
             const symbol = symbolHit.symbol;
 
-            if (symbol.definition.pathname === this.pathname) {
-                const mark = this.cm.markText({line: symbol.definition.lineNumber, ch: symbol.definition.column},
-                    {line: symbol.definition.lineNumber, ch: symbol.definition.column + symbol.name.length},
+            const mark = this.cm.markText({line: symbol.definition.lineNumber, ch: symbol.definition.column},
+                {line: symbol.definition.lineNumber, ch: symbol.definition.column + symbol.name.length},
+                {
+                    className: "current-symbol",
+                });
+            this.symbolMarks.push(mark);
+
+            for (const reference of symbol.references) {
+                const mark = this.cm.markText({line: reference.lineNumber, ch: reference.column},
+                    {line: reference.lineNumber, ch: reference.column + symbol.name.length},
                     {
                         className: "current-symbol",
                     });
                 this.symbolMarks.push(mark);
-            }
-
-            for (const reference of symbol.references) {
-                if (reference.pathname === this.pathname) {
-                    const mark = this.cm.markText({line: reference.lineNumber, ch: reference.column},
-                        {line: reference.lineNumber, ch: reference.column + symbol.name.length},
-                        {
-                            className: "current-symbol",
-                        });
-                    this.symbolMarks.push(mark);
-                }
             }
         }
     }

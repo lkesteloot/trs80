@@ -86,12 +86,11 @@ function fillForTarget(target: Target): number {
 
 // A reference to a symbol.
 export class SymbolReference {
-    public pathname: string;
+    // Line number in listing.
     public lineNumber: number;
     public column: number;
 
-    constructor(pathname: string, lineNumber: number, column: number) {
-        this.pathname = pathname;
+    constructor(lineNumber: number, column: number) {
         this.lineNumber = lineNumber;
         this.column = column;
     }
@@ -104,15 +103,15 @@ export class SymbolInfo {
     public definition: SymbolReference;
     public references: SymbolReference[] = [];
 
-    constructor(name: string, value: number, pathname: string, lineNumber: number, column: number) {
+    constructor(name: string, value: number, lineNumber: number, column: number) {
         this.name = name;
         this.value = value;
-        this.definition = new SymbolReference(pathname, lineNumber, column);
+        this.definition = new SymbolReference(lineNumber, column);
     }
 
     // Whether the specified point is in this reference.
-    public matches(ref: SymbolReference, pathname: string, lineNumber: number, column: number) {
-        return pathname === ref.pathname && lineNumber === ref.lineNumber &&
+    public matches(ref: SymbolReference, lineNumber: number, column: number) {
+        return lineNumber === ref.lineNumber &&
             column >= ref.column && column <= ref.column + this.name.length;
     }
 }
@@ -595,8 +594,7 @@ class LineParser {
                 // Sanity check.
                 if (labelValue !== oldSymbolInfo.value ||
                     this.lineNumber !== oldSymbolInfo.definition.lineNumber ||
-                    symbolColumn !== oldSymbolInfo.definition.column ||
-                    this.file.pathname !== oldSymbolInfo.definition.pathname) {
+                    symbolColumn !== oldSymbolInfo.definition.column) {
 
                     // TODO should be programmer error.
                     console.log("error: changing value of \"" + label + "\" from " + toHex(oldSymbolInfo.value, 4) +
@@ -604,7 +602,7 @@ class LineParser {
                 }
             } else {
                 this.file.pass.asm.symbols.set(scopedLabel,
-                    new SymbolInfo(label, labelValue, this.file.pathname, this.lineNumber, symbolColumn));
+                    new SymbolInfo(label, labelValue, this.file.pass.assembledLines.length, symbolColumn));
                 this.file.pass.asm.undefinedSymbols.delete(label);
             }
         }
@@ -1067,7 +1065,7 @@ class LineParser {
                 return 0;
             } else {
                 if (!this.file.pass.ignoreUnknownIdentifiers()) {
-                    symbolInfo.references.push(new SymbolReference(this.file.pathname, this.lineNumber, startIndex));
+                    symbolInfo.references.push(new SymbolReference(this.file.pass.assembledLines.length, startIndex));
                 }
                 return symbolInfo.value;
             }
