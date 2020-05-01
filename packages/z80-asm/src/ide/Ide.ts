@@ -9,7 +9,9 @@ import "codemirror/lib/codemirror.css";
 import "codemirror/theme/mbo.css";
 import "codemirror/addon/dialog/dialog.css";
 import "codemirror/addon/hint/show-hint.css";
+import "codemirror/addon/fold/foldgutter.css";
 import "./main.css";
+
 // Load these for their side-effects (they register themselves).
 import "codemirror/addon/dialog/dialog";
 import "codemirror/addon/search/search";
@@ -19,6 +21,8 @@ import "codemirror/addon/hint/show-hint";
 import "codemirror/addon/scroll/annotatescrollbar";
 import "codemirror/addon/selection/active-line";
 import "codemirror/addon/selection/mark-selection";
+import "codemirror/addon/fold/foldcode";
+import "codemirror/addon/fold/foldgutter";
 import "codemirror/mode/z80/z80";
 
 import * as fs from "fs";
@@ -35,6 +39,9 @@ const MAX_SUBLINES = 100;
 const BYTES_PER_SUBLINE = 3;
 
 const CURRENT_PATHNAME_KEY = "current-pathname";
+
+// Convenience for the result of a range finder function (for folding).
+type RangeFinderResult = {from: CodeMirror.Position, to: CodeMirror.Position} | undefined;
 
 // Result of looking up what symbol we're on.
 class SymbolHit {
@@ -139,7 +146,7 @@ class Ide {
             lineNumbers: true,
             tabSize: 8,
             theme: 'mbo',
-            gutters: ["CodeMirror-linenumbers", "gutter-assembled"],
+            gutters: ["CodeMirror-linenumbers", "gutter-assembled", "CodeMirror-foldgutter"],
             autoCloseBrackets: true,
             mode: "text/x-z80",
             // Doesn't work, I call focus() explicitly later.
@@ -155,6 +162,10 @@ class Ide {
             styleActiveLine: true,
             styleSelectedText: true,
             cursorScrollMargin: 200,
+            foldGutter: true,
+            foldOptions: {
+                rangeFinder: (cm: CodeMirror.Editor, start: CodeMirror.Position) => this.rangeFinder(start),
+            },
         };
         this.cm = CodeMirror(parent, config);
 
@@ -292,6 +303,41 @@ class Ide {
         });
 
          */
+    }
+
+    // Given a starting line, see if it starts a section that could be folded.
+    private rangeFinder(start: CodeMirror.Position): RangeFinderResult {
+        const checkFileInfo = (fi: FileInfo | undefined, depth: number): RangeFinderResult => {
+            if (fi !== undefined) {
+                // Prefer children, do those first.
+                for (const child of fi.childFiles) {
+                    const range = checkFileInfo(child, depth + 1);
+                    if (range !== undefined) {
+                        return range;
+                    }
+                }
+
+                // Don't need to fold entire top-level file.
+                if (fi.beginLineNumber === start.line && depth > 0) {
+                    // Assume that whatever is being folded, it's the result of an #include statement
+                    // on the previous line.
+                    const firstLineNumber = start.line - 1;
+                    const firstLine = this.cm.getLine(firstLineNumber);
+                    const lastLineNumber = fi.endLineNumber - 1;
+                    const lastLine = this.cm.getLine(lastLineNumber);
+                    if (firstLine !== undefined && lastLine !== undefined) {
+                        return {
+                            from: CodeMirror.Pos(firstLineNumber, firstLine.length),
+                            to: CodeMirror.Pos(lastLineNumber, lastLine.length),
+                        };
+                    }
+                }
+            }
+
+            return undefined;
+        };
+
+        return checkFileInfo(this.fileInfo, 0);
     }
 
     private nextError(): void {
