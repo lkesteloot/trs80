@@ -165,6 +165,10 @@ class Ide {
             foldGutter: true,
             foldOptions: {
                 rangeFinder: (cm: CodeMirror.Editor, start: CodeMirror.Position) => this.rangeFinder(start),
+                widget: (from: CodeMirror.Position, to: CodeMirror.Position) => {
+                    const count = to.line - from.line;
+                    return `\u21A4 ${count} \u21A6`;
+                },
             },
         };
         this.cm = CodeMirror(parent, config);
@@ -244,6 +248,8 @@ class Ide {
         this.ipcRenderer.on("next-usage", () => this.jumpToDefinition(true));
         this.ipcRenderer.on("save", () => this.saveOrAskPathname());
         this.ipcRenderer.on("asked-for-filename", (event: any, pathname: string | undefined) => this.userSpecifiedPathname(pathname));
+        this.ipcRenderer.on("fold-all", () => (CodeMirror.commands as any).foldAll(this.cm));
+        this.ipcRenderer.on("unfold-all", () => (CodeMirror.commands as any).unfoldAll(this.cm));
 
         this.cm.focus();
 
@@ -317,11 +323,10 @@ class Ide {
                     }
                 }
 
-                // Don't need to fold entire top-level file.
-                if (fi.beginLineNumber === start.line && depth > 0) {
-                    // Assume that whatever is being folded, it's the result of an #include statement
-                    // on the previous line.
-                    const firstLineNumber = start.line - 1;
+                // Assume that whatever is being folded, it's the result of an #include statement
+                // on the previous line. Don't need to fold entire top-level file.
+                if (fi.beginLineNumber - 1 === start.line && depth > 0) {
+                    const firstLineNumber = start.line;
                     const firstLine = this.cm.getLine(firstLineNumber);
                     const lastLineNumber = fi.endLineNumber - 1;
                     const lastLine = this.cm.getLine(lastLineNumber);

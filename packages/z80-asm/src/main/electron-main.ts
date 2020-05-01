@@ -188,6 +188,27 @@ const template = [
         ],
     },
     {
+        label: "Code",
+        submenu: [
+            {
+                label: "Fold All",
+                accelerator: "Shift+CmdOrCtrl+-",
+                registerAccelerator: true,
+                click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {
+                    focusedWindow.webContents.send("fold-all");
+                },
+            },
+            {
+                label: "Unfold All",
+                accelerator: "Shift+CmdOrCtrl+Plus",
+                registerAccelerator: true,
+                click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {
+                    focusedWindow.webContents.send("unfold-all");
+                },
+            },
+        ],
+    },
+    {
         label: 'Window',
         submenu: [
             { role: 'minimize' },
