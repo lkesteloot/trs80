@@ -57,9 +57,7 @@ function openFile(win: BrowserWindow | null, pathname: string) {
         return;
     }
 
-    // TODO: handle exception in this call:
-    const text = fs.readFileSync(pathname, "utf-8");
-    win.webContents.send("set-text", pathname, text);
+    win.webContents.send("set-pathname", pathname);
     app.addRecentDocument(pathname);
 }
 

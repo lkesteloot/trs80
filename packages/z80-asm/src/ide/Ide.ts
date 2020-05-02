@@ -100,8 +100,19 @@ function readFile(pathname: string): string | undefined {
 
 // Read a file as an array of lines, or undefined if the file can't be opened.
 function readFileLines(pathname: string): string[] | undefined {
-    const text = readFile(pathname);
-    return text === undefined ? undefined : text.split(/\r?\n/);
+    let text = readFile(pathname);
+    if (text === undefined) {
+        return undefined;
+    }
+
+    // Remove trailing newline, since we treat newlines as separators, not terminators.
+    // This means that a partial line at the end of a file is treated like a full line.
+    // TODO handle CR/NL too.
+    if (text.endsWith("\n")) {
+        text = text.substr(0, text.length - 1);
+    }
+
+    return text.split(/\r?\n/);
 }
 
 /**
@@ -242,31 +253,29 @@ class Ide {
 
         // Configure IPC with the main process of Electron.
         this.ipcRenderer = (window as any).ipcRenderer;
-        this.ipcRenderer.on("set-text", (event: any, pathname: string, text: string) => this.setText(pathname, text));
+        this.ipcRenderer.on("set-pathname", (event: any, pathname: string) => this.setText(pathname));
         this.ipcRenderer.on("next-error", () => this.nextError());
         this.ipcRenderer.on("declaration-or-usages", () => this.jumpToDefinition(false));
         this.ipcRenderer.on("next-usage", () => this.jumpToDefinition(true));
         this.ipcRenderer.on("save", () => this.saveOrAskPathname());
         this.ipcRenderer.on("asked-for-filename", (event: any, pathname: string | undefined) => this.userSpecifiedPathname(pathname));
-        this.ipcRenderer.on("fold-all", () => (CodeMirror.commands as any).foldAll(this.cm));
-        this.ipcRenderer.on("unfold-all", () => (CodeMirror.commands as any).unfoldAll(this.cm));
+        this.ipcRenderer.on("fold-all", () => this.cm.execCommand("foldAll"));
+        this.ipcRenderer.on("unfold-all", () => this.cm.execCommand("unfoldAll"));
 
         this.cm.focus();
 
         // Read file from last time.
         const pathname = this.store.get(CURRENT_PATHNAME_KEY);
         if (pathname !== undefined) {
-            const text = readFile(pathname);
-            if (text !== undefined) {
-                this.pathname = pathname;
-                this.assembleAll();
-            }
+            this.pathname = pathname;
+            this.assembleAll();
         }
     }
 
-    private setText(pathname: string, text: string): void {
+    private setText(pathname: string): void {
         this.setPathname(pathname);
         this.assembleAll();
+        this.cm.clearHistory();
     }
 
     private setPathname(pathname: string) {
