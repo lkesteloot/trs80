@@ -593,12 +593,15 @@ class LineParser {
             if (oldSymbolInfo !== undefined) {
                 // Sanity check.
                 if (labelValue !== oldSymbolInfo.value ||
-                    this.lineNumber !== oldSymbolInfo.definition.lineNumber ||
+                    this.file.pass.assembledLines.length !== oldSymbolInfo.definition.lineNumber ||
                     symbolColumn !== oldSymbolInfo.definition.column) {
 
                     // TODO should be programmer error.
-                    console.log("error: changing value of \"" + label + "\" from " + toHex(oldSymbolInfo.value, 4) +
-                        " to " + toHex(labelValue, 4));
+                    console.log("error: changing value of \"" + label + "\" from " +
+                        toHex(oldSymbolInfo.value, 4) + "," + oldSymbolInfo.definition.lineNumber + "," + oldSymbolInfo.definition.column +
+                        " to " +
+                        toHex(labelValue, 4) + "," + this.file.pass.assembledLines.length + "," + symbolColumn,
+                        this.file.pass.passNumber);
                 }
             } else {
                 this.file.pass.asm.symbols.set(scopedLabel,

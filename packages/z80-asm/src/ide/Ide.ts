@@ -207,8 +207,8 @@ class Ide {
                 const removed = changeObj.removed ?? [];
                 const linesAdded = changeObj.text.length - removed.length;
                 this.editorToCache(changeObj.from.line, linesAdded);
+                this.assembleAll();
             }
-            this.assembleAll();
         });
         this.cm.on("beforeChange", (instance, changeObj) => {
             if (changeObj.origin === "setValue") {
@@ -253,7 +253,7 @@ class Ide {
 
         // Configure IPC with the main process of Electron.
         this.ipcRenderer = (window as any).ipcRenderer;
-        this.ipcRenderer.on("set-pathname", (event: any, pathname: string) => this.setText(pathname));
+        this.ipcRenderer.on("set-pathname", (event: any, pathname: string) => this.setPathnameAndLoad(pathname));
         this.ipcRenderer.on("next-error", () => this.nextError());
         this.ipcRenderer.on("declaration-or-usages", () => this.jumpToDefinition(false));
         this.ipcRenderer.on("next-usage", () => this.jumpToDefinition(true));
@@ -272,12 +272,14 @@ class Ide {
         }
     }
 
-    private setText(pathname: string): void {
+    // Set pathname when we want to load that existing file from disk.
+    private setPathnameAndLoad(pathname: string): void {
         this.setPathname(pathname);
         this.assembleAll();
         this.cm.clearHistory();
     }
 
+    // Set the pathname of a previously-new document.
     private setPathname(pathname: string) {
         this.pathname = pathname;
         this.store.set(CURRENT_PATHNAME_KEY, pathname);
@@ -559,23 +561,18 @@ class Ide {
         this.assembled = asm.assembleFile(this.pathname) ?? []; // TODO deal with file not existing.
         this.symbols = asm.symbols;
         this.fileInfo = asm.fileInfo;
-        console.log("Number of assembled lines: " + this.assembled.length);
 
         const lines: string[] = [];
         for (const assembledLine of this.assembled) {
             const sourceFile = this.sourceFiles.get(assembledLine.pathname);
             // TODO fix ???
-            const line = sourceFile === undefined ? "???" : sourceFile.lines[assembledLine.lineNumber];
+            const line = sourceFile === undefined ? "; Unknown source file." : sourceFile.lines[assembledLine.lineNumber];
             lines.push(line);
         }
-        console.log("Number of source lines: " + lines.length);
 
         let newValue = lines.join("\n");
         if (newValue !== this.cm.getValue()) {
-            console.log("Changing " + newValue.length);
             this.cm.setValue(newValue);
-        } else {
-            console.log("Unchanged");
         }
 
         // Update text markers.
