@@ -283,8 +283,10 @@ class Ide {
     // Set the pathname of a previously-new document.
     private setPathname(pathname: string) {
         this.pathname = pathname;
-        this.ipcRenderer.send("set-window-title", pathname);
-        this.store.set(CURRENT_PATHNAME_KEY, pathname);
+        this.ipcRenderer.send("set-window-title", pathname === "" ? "New File" : pathname);
+        if (pathname !== "") {
+            this.store.set(CURRENT_PATHNAME_KEY, pathname);
+        }
     }
 
     // Save if possible, else do nothing. This is for implicit saving like when the editor
@@ -492,9 +494,8 @@ class Ide {
             throw new Error("Can't find source file for " + fileInfo.pathname);
         }
 
-        let lineNumbers = new Array<number>(... fileInfo.lineNumbers);
+        let lineNumbers = Array.from(fileInfo.lineNumbers);
         if (linesAdded > 0) {
-            console.log(lineNumbers);
             const index = lineNumbers.indexOf(beginLineNumber);
             if (index === -1) {
                 throw new Error("Can't find line number " + beginLineNumber + " in array of lines");
@@ -520,14 +521,6 @@ class Ide {
                 lineNumbers[i] -= linesRemoved;
             }
             console.log(lineNumbers);
-
-        } else {
-            lineNumbers = fileInfo.lineNumbers;
-        }
-
-        if (this.fileInfo.mark !== undefined) {
-            // TODO delete.
-            console.log("mark: " + this.fileInfo.mark.find().from.line + " to " + this.fileInfo.mark.find().to.line);
         }
 
         const newLines: string[] = [];
@@ -544,7 +537,7 @@ class Ide {
         // Check the cache.
         let sourceFile = this.sourceFiles.get(pathname);
         if (sourceFile === undefined) {
-            const lines = readFileLines(pathname);
+            const lines = pathname === "" ? [""] : readFileLines(pathname);
             if (lines === undefined) {
                 // Don't cache the failure, just try again next time.
                 return undefined;
@@ -580,20 +573,11 @@ class Ide {
         // Update text markers.
         const processFileInfo = (fileInfo: FileInfo, depth: number) => {
             for (let lineNumber = fileInfo.beginLineNumber; lineNumber < fileInfo.endLineNumber; lineNumber++) {
+                console.log("lineNumber", lineNumber);
                 this.lineNumberToFileInfo.set(lineNumber, fileInfo);
                 if (depth > 0) {
                     this.cm.addLineClass(lineNumber, "background", "include-" + depth);
                 }
-            }
-            if (depth > 0 && false) {
-                fileInfo.mark = this.cm.markText(
-                    { line: fileInfo.beginLineNumber, ch: 0 },
-                    { line: fileInfo.endLineNumber, ch: 0 },
-                    {
-                        inclusiveLeft: true,
-                        inclusiveRight: true,
-                        css: "background: #00" + toHex(depth * 50, 2) + "00",
-                    });
             }
             fileInfo.childFiles.forEach(fi => processFileInfo(fi, depth + 1));
         };

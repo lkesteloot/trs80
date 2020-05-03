@@ -85,6 +85,14 @@ const template = [
         label: 'File',
         submenu: [
             {
+                label: "New",
+                click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {
+                    focusedWindow.webContents.send("set-pathname", "");
+                },
+                accelerator: "CmdOrCtrl+N",
+                registerAccelerator: true,
+            },
+            {
                 label: 'Open',
                 click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {
                     dialog.showOpenDialog(focusedWindow, {

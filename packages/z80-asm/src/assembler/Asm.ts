@@ -3,7 +3,6 @@ import {toHex, hi, lo, isByteReg, isWordReg} from "z80-base";
 import {Variant} from "./OpcodesTypes";
 import * as path from "path";
 import * as fs from "fs";
-import {TextMarker} from "codemirror";
 
 /**
  * List of all flags that can be specified in an instruction.
@@ -167,8 +166,6 @@ export class FileInfo {
     public readonly childFiles: FileInfo[];
     // Lines in listing that correspond to this file.
     public readonly lineNumbers: number[];
-    // CM mark for this file info. If missing, then we're at the top level.
-    public mark: TextMarker | undefined;
 
     constructor(pathname: string, beginLineNumber: number, endLineNumber: number, childFiles: FileInfo[], lineNumbers: number[]) {
         this.pathname = pathname;
