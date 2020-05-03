@@ -463,7 +463,7 @@ class LineParser {
                                 }
                                 return;
                             }
-                            this.results.binary.push(value);
+                            this.results.binary.push(lo(value));
                         }
                     }
                     if (!this.foundChar(',')) {
