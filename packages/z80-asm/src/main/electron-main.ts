@@ -1,7 +1,5 @@
+import {app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, TouchBar} from 'electron';
 
-
-import * as fs from "fs";
-import { app, BrowserWindow, Menu, dialog, TouchBar, ipcMain } from 'electron';
 const { TouchBarButton } = TouchBar;
 
 function createWindow() {
@@ -283,5 +281,13 @@ function setupMessageListeners() {
             console.log(err);
             win.webContents.send("asked-for-filename", undefined);
         });
+    });
+    ipcMain.on("set-window-title", (event: IpcMainEvent, title: string) => {
+        const win = BrowserWindow.getFocusedWindow();
+        if (!win) {
+            return;
+        }
+
+        win.setTitle(title);
     });
 }

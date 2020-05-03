@@ -268,6 +268,7 @@ class Ide {
         const pathname = this.store.get(CURRENT_PATHNAME_KEY);
         if (pathname !== undefined) {
             this.pathname = pathname;
+            this.ipcRenderer.send("set-window-title", pathname);
             this.assembleAll();
         }
     }
@@ -282,6 +283,7 @@ class Ide {
     // Set the pathname of a previously-new document.
     private setPathname(pathname: string) {
         this.pathname = pathname;
+        this.ipcRenderer.send("set-window-title", pathname);
         this.store.set(CURRENT_PATHNAME_KEY, pathname);
     }
 
