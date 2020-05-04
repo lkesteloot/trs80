@@ -136,7 +136,7 @@ class Ide {
     private store: Store;
     private readonly cm: CodeMirror.Editor;
     // The index of this array is the line number in the file (zero-based).
-    private assembled: AssembledLine[] = [];
+    private assembledLines: AssembledLine[] = [];
     private symbols = new Map<string,SymbolInfo>();
     private pathname: string = "";
     private ipcRenderer: any;
@@ -145,7 +145,6 @@ class Ide {
     private readonly symbolMarks: CodeMirror.TextMarker[] = [];
     private readonly lineWidgets: CodeMirror.LineWidget[] = [];
     private fileInfo: FileInfo | undefined;
-    private lineNumberToFileInfo = new Map<number,FileInfo>();
 
     constructor(parent: HTMLElement) {
         this.store = new Store({
@@ -361,15 +360,15 @@ class Ide {
     }
 
     private nextError(): void {
-        if (this.assembled.length === 0) {
+        if (this.assembledLines.length === 0) {
             return;
         }
 
         const currentLineNumber = this.cm.getCursor().line;
         let nextErrorLineNumber = currentLineNumber;
         do {
-            nextErrorLineNumber = (nextErrorLineNumber + 1) % this.assembled.length;
-        } while (nextErrorLineNumber !== currentLineNumber && this.assembled[nextErrorLineNumber].error === undefined);
+            nextErrorLineNumber = (nextErrorLineNumber + 1) % this.assembledLines.length;
+        } while (nextErrorLineNumber !== currentLineNumber && this.assembledLines[nextErrorLineNumber].error === undefined);
 
         if (nextErrorLineNumber !== currentLineNumber) {
             // TODO error might not be in this file:
@@ -390,7 +389,7 @@ class Ide {
     private findSymbolAt(lineNumber: number, column: number): SymbolHit | undefined {
         for (const symbol of this.symbols.values()) {
             // See if we're at the definition.
-            if (symbol.matches(symbol.definition, lineNumber, column)) {
+            if (symbol.definition !== undefined && symbol.matches(symbol.definition, lineNumber, column)) {
                 return new SymbolHit(symbol, undefined);
             } else {
                 // See if we're at a use.
@@ -423,7 +422,7 @@ class Ide {
                     // TODO display error.
                 }
             } else {
-                if (nextUse) {
+                if (nextUse || symbol.definition === undefined) {
                     const reference = symbol.references[(symbolHit.referenceNumber + 1) % symbol.references.length];
                     this.setCursorToReference(reference);
                 } else {
@@ -458,12 +457,14 @@ class Ide {
         if (symbolHit !== undefined) {
             const symbol = symbolHit.symbol;
 
-            const mark = this.cm.markText({line: symbol.definition.lineNumber, ch: symbol.definition.column},
-                {line: symbol.definition.lineNumber, ch: symbol.definition.column + symbol.name.length},
-                {
-                    className: "current-symbol",
-                });
-            this.symbolMarks.push(mark);
+            if (symbol.definition !== undefined) {
+                const mark = this.cm.markText({line: symbol.definition.lineNumber, ch: symbol.definition.column},
+                    {line: symbol.definition.lineNumber, ch: symbol.definition.column + symbol.name.length},
+                    {
+                        className: "current-symbol",
+                    });
+                this.symbolMarks.push(mark);
+            }
 
             for (const reference of symbol.references) {
                 const mark = this.cm.markText({line: reference.lineNumber, ch: reference.column},
@@ -483,11 +484,11 @@ class Ide {
             return;
         }
 
+        // The line we're on.
+        const assembledLine = this.assembledLines[beginLineNumber];
+
         // Find the file we're in.
-        const fileInfo = this.lineNumberToFileInfo.get(beginLineNumber);
-        if (fileInfo === undefined) {
-            throw new Error("Can't find line info for line " + beginLineNumber);
-        }
+        const fileInfo = assembledLine.fileInfo;
 
         const sourceFile = this.sourceFiles.get(fileInfo.pathname);
         if (sourceFile === undefined) {
@@ -553,43 +554,38 @@ class Ide {
 
         const before = Date.now();
         const asm = new Asm((pathname) => this.getFileLines(pathname));
-        this.assembled = asm.assembleFile(this.pathname) ?? []; // TODO deal with file not existing.
-        this.symbols = asm.symbols;
-        this.fileInfo = asm.fileInfo;
-
-        const lines: string[] = [];
-        for (const assembledLine of this.assembled) {
-            const sourceFile = this.sourceFiles.get(assembledLine.pathname);
-            // TODO fix ???
-            const line = sourceFile === undefined ? "; Unknown source file." : sourceFile.lines[assembledLine.lineNumber];
-            lines.push(line);
+        const sourceFile = asm.assembleFile(this.pathname);
+        if (sourceFile === undefined) {
+            // TODO deal with file not existing.
+            return;
         }
+        this.assembledLines = sourceFile.assembledLines;
+        this.fileInfo = sourceFile.fileInfo;
+        this.symbols = asm.symbols;
 
+        // Compute new text for editor.
+        const lines: string[] = [];
+        for (const assembledLine of this.assembledLines) {
+            lines.push(assembledLine.line);
+        }
         let newValue = lines.join("\n");
         if (newValue !== this.cm.getValue()) {
             this.cm.setValue(newValue);
         }
 
         // Update text markers.
-        const processFileInfo = (fileInfo: FileInfo, depth: number) => {
-            for (let lineNumber = fileInfo.beginLineNumber; lineNumber < fileInfo.endLineNumber; lineNumber++) {
-                console.log("lineNumber", lineNumber);
-                this.lineNumberToFileInfo.set(lineNumber, fileInfo);
-                if (depth > 0) {
-                    this.cm.addLineClass(lineNumber, "background", "include-" + depth);
-                }
+        for (let lineNumber = 0; lineNumber < this.assembledLines.length; lineNumber++) {
+            const assembledLine = this.assembledLines[lineNumber];
+            const depth = assembledLine.fileInfo.depth;
+            if (depth > 0) {
+                this.cm.addLineClass(lineNumber, "background", "include-" + depth);
             }
-            fileInfo.childFiles.forEach(fi => processFileInfo(fi, depth + 1));
-        };
-        if (this.fileInfo != undefined) {
-            this.lineNumberToFileInfo.clear();
-            processFileInfo(this.fileInfo, 0);
         }
 
         // Update UI.
         const annotationMarks: any[] = [];
-        for (let lineNumber = 0; lineNumber < this.assembled.length; lineNumber++) {
-            const results = this.assembled[lineNumber];
+        for (let lineNumber = 0; lineNumber < this.assembledLines.length; lineNumber++) {
+            const results = this.assembledLines[lineNumber];
 
             let addressElement: HTMLElement | null;
             if (results.binary.length > 0) {
@@ -622,7 +618,7 @@ class Ide {
                         ? this.getPopupForClr(results.variant.clr)
                         : this.getPopupForPseudoInstruction(results.variant);
                     if (popup !== undefined) {
-                        addressElement.addEventListener("mouseenter", event => {
+                        addressElement.addEventListener("mouseenter", () => {
                             if (addressElement !== null && (addressElement as any)._tippy === undefined) {
                                 const instance = tippy(addressElement, {
                                     content: popup,

@@ -1,5 +1,5 @@
 import mnemonicData from "./Opcodes";
-import {toHex, hi, lo, isByteReg, isWordReg} from "z80-base";
+import {hi, isByteReg, isWordReg, lo, toHex} from "z80-base";
 import {Variant} from "./OpcodesTypes";
 import * as path from "path";
 import * as fs from "fs";
@@ -34,24 +34,16 @@ const PSEUDO_ALIGN = new Set(["align", ".align"]);
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z56.htm
 const PSEUDO_FILL = new Set(["defs", "ds", ".ds", ".block", ".blkb", "data"]);
 
-// In the gather pass we figure out what symbols are references and
-// the location and values of all symbols. If include libraries are not used,
-// then at the end of this pass we know the value of all symbols and we can jump
-// to the final pass.
-const GATHER_PASS = 1;
-
-// The library pass is used to read library files from "#include library"
-// directives. This pass is used if the gather pass found such directives
-// and some symbols could not be resolved.
-const LIBRARY_PASS = 2;
-
-// The final pass should be identical to the previous pass (gather or library)
-// but with full knowledge of all symbols, so we can generate final opcodes.
-const FINAL_PASS = 3;
+// Valid extensions for files in library directories. Use the same list as zasm.
+const LIBRARY_EXTS = new Set([".s", ".ass", ".asm"]);
 
 // Type of target we can handle.
 type Target = "bin" | "rom";
 
+/**
+ * Parse a single digit in the given base, or undefined if the digit does not
+ * belong to that base.
+ */
 function parseDigit(ch: string, base: number): number | undefined {
     let value = ch >= '0' && ch <= '9' ? ch.charCodeAt(0) - 0x30
         : ch >= 'A' && ch <= 'F' ? ch.charCodeAt(0) - 0x41 + 10
@@ -97,15 +89,14 @@ export class SymbolReference {
 
 // Information about a symbol (label, constant).
 export class SymbolInfo {
-    public name: string;
+    public readonly name: string;
     public value: number;
-    public definition: SymbolReference;
+    public definition: SymbolReference | undefined;
     public references: SymbolReference[] = [];
 
-    constructor(name: string, value: number, lineNumber: number, column: number) {
+    constructor(name: string, value: number) {
         this.name = name;
         this.value = value;
-        this.definition = new SymbolReference(lineNumber, column);
     }
 
     // Whether the specified point is in this reference.
@@ -115,31 +106,56 @@ export class SymbolInfo {
     }
 }
 
+// Information about each file that was read. Note that we may have more than one of these
+// objects for one physical file if the file is included more than once.
+export class FileInfo {
+    public readonly pathname: string;
+    // File that included this file, or undefined if it's the top file.
+    public readonly parentFileInfo: FileInfo | undefined;
+    // Depth of include, with 0 meaning top level.
+    public readonly depth: number;
+    // Line number in listing, inclusive.
+    public beginLineNumber = 0;
+    // Line number in listing, exclusive.
+    public endLineNumber = 0;
+    // Files included by this file.
+    public readonly childFiles: FileInfo[] = [];
+    // Lines in listing that correspond to this file.
+    public readonly lineNumbers: number[] = [];
+
+    constructor(pathname: string, parentFileInfo: FileInfo | undefined) {
+        this.pathname = pathname;
+        this.parentFileInfo = parentFileInfo;
+        this.depth = parentFileInfo === undefined ? 0 : parentFileInfo.depth + 1;
+
+        if (parentFileInfo !== undefined) {
+            parentFileInfo.childFiles.push(this);
+        }
+    }
+}
+
 export class AssembledLine {
     // Source of line.
-    public readonly pathname: string;
-    public readonly lineNumber: number;
+    public readonly fileInfo: FileInfo;
+    // Line number in original file, or undefined if it's a synthetic line.
+    public readonly lineNumber: number | undefined;
+    // Text of line.
     public readonly line: string;
     // Address of this line.
-    public readonly address: number;
+    public address = 0;
     // Decoded opcodes and parameters:
     public binary: number[] = [];
     // Any error found in the line.
     public error: string | undefined;
-    // If it's an include, the filename.
-    public includeFilename: string | undefined;
-    // If it's a library include, the directory.
-    public libraryIncludeDir: string | undefined;
     // The variant of the instruction, if any.
     public variant: Variant | undefined;
     // The next address, if it was explicitly specified.
     private specifiedNextAddress: number | undefined;
 
-    constructor(pathname: string, lineNumber: number, line: string, address: number) {
-        this.pathname = pathname;
+    constructor(fileInfo: FileInfo, lineNumber: number | undefined, line: string) {
+        this.fileInfo = fileInfo;
         this.lineNumber = lineNumber;
         this.line = line;
-        this.address = address;
     }
 
     set nextAddress(nextAddress: number) {
@@ -155,24 +171,13 @@ export class AssembledLine {
 // Read the lines of a file, or undefined if the file cannot be read.
 export type FileReader = (pathname: string) => string[] | undefined;
 
-// Information about each file that was read.
-export class FileInfo {
-    public readonly pathname: string;
-    // Line number in listing, inclusive.
-    public readonly beginLineNumber: number;
-    // Line number in listing, exclusive.
-    public readonly endLineNumber: number;
-    // Files included by this file.
-    public readonly childFiles: FileInfo[];
-    // Lines in listing that correspond to this file.
-    public readonly lineNumbers: number[];
+export class SourceFile {
+    public readonly fileInfo: FileInfo;
+    public readonly assembledLines: AssembledLine[];
 
-    constructor(pathname: string, beginLineNumber: number, endLineNumber: number, childFiles: FileInfo[], lineNumbers: number[]) {
-        this.pathname = pathname;
-        this.beginLineNumber = beginLineNumber;
-        this.endLineNumber = endLineNumber;
-        this.childFiles = childFiles;
-        this.lineNumbers = lineNumbers;
+    constructor(fileInfo: FileInfo, assembledLines: AssembledLine[]) {
+        this.fileInfo = fileInfo;
+        this.assembledLines = assembledLines;
     }
 }
 
@@ -184,41 +189,75 @@ export class Asm {
     public readonly fileReader: FileReader;
     // Map from symbol name to SymbolInfo.
     public readonly symbols = new Map<string, SymbolInfo>();
-    // At the end of a pass, this set has all the symbols that were used but not defined.
-    public readonly undefinedSymbols = new Set<string>();
-    // Symbols that should be read by the library include.
-    public libraryIncludeSymbols = new Set<string>();
-    // File info for the last pass that was done.
-    public fileInfo: FileInfo | undefined;
+    // All assembled lines.
+    public assembledLines: AssembledLine[] = [];
 
     constructor(fileReader: FileReader) {
         this.fileReader = fileReader;
     }
 
-    public assembleFile(pathname: string): AssembledLine[] | undefined {
-        let assembledLines: AssembledLine[] | undefined;
+    public assembleFile(pathname: string): SourceFile | undefined {
+        // Load the top-level file. This array will grow as we include files and expand macros.
+        const sourceFile = this.loadSourceFile(pathname, undefined);
+        if (sourceFile === undefined) {
+            return undefined;
+        }
+        this.assembledLines = sourceFile.assembledLines;
 
-        // First pass shouldn't load libraries.
-        this.libraryIncludeSymbols.clear();
+        // FIRST PASS. Expand include files and macros, assemble instructions so that each
+        // label knows where it'll be.
+        new Pass(this, 1).run();
 
-        for (let passNumber = GATHER_PASS; passNumber <= FINAL_PASS; passNumber++) {
-            const pass = new Pass(this, passNumber);
-            // TODO check result:
-            this.fileInfo = pass.assembleFile(pathname);
-            assembledLines = pass.assembledLines;
-            if (passNumber === GATHER_PASS) {
-                if (this.undefinedSymbols.size > 0 && pass.hasLibraryInclude) {
-                    // Need the library pass.
-                    console.log("Undefined symbols: ", this.undefinedSymbols); // TODO remove.
-                    this.libraryIncludeSymbols = new Set<string>(this.undefinedSymbols);
-                } else {
-                    // Skip the library pass.
-                    passNumber++;
-                }
+        // SECOND PASS.
+        new Pass(this, 2).run();
+
+        // Fix up line numbers in FileInfo structures.
+        for (let lineNumber = 0; lineNumber < this.assembledLines.length; lineNumber++) {
+            const assembledLine = this.assembledLines[lineNumber];
+            assembledLine.fileInfo.lineNumbers.push(lineNumber);
+            console.log(assembledLine.fileInfo.pathname, lineNumber);
+        }
+        // Fix up begin/end line numbers in FileInfo structures.
+        const computeBeginEndLineNumbers = (fileInfo: FileInfo) => {
+            console.log("compute", fileInfo.pathname);
+            if (fileInfo.lineNumbers.length === 0) {
+                throw new Error("File info for \"" + fileInfo.pathname + "\" has no lines");
             }
+
+            fileInfo.beginLineNumber = fileInfo.lineNumbers[0];
+            fileInfo.endLineNumber = fileInfo.lineNumbers[fileInfo.lineNumbers.length - 1] + 1;
+
+            for (const child of fileInfo.childFiles) {
+                // Process children first.
+                computeBeginEndLineNumbers(child);
+                fileInfo.beginLineNumber = Math.min(fileInfo.beginLineNumber, child.beginLineNumber);
+                fileInfo.endLineNumber = Math.max(fileInfo.endLineNumber, child.endLineNumber);
+            }
+        };
+        computeBeginEndLineNumbers(sourceFile.fileInfo);
+
+        return sourceFile;
+    }
+
+    /**
+     * Load a source file as an array of AssembledLine objects, or undefined if the
+     * file can't be loaded.
+     */
+    public loadSourceFile(pathname: string, parentFileInfo: FileInfo | undefined): SourceFile | undefined {
+        const lines = this.fileReader(pathname);
+        if (lines === undefined) {
+            return undefined;
         }
 
-        return assembledLines;
+        const fileInfo = new FileInfo(pathname, parentFileInfo);
+
+        // Converted to assembled lines.
+        const assembledLines: AssembledLine[] = [];
+        for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
+            assembledLines.push(new AssembledLine(fileInfo, lineNumber, lines[lineNumber]));
+        }
+
+        return new SourceFile(fileInfo, assembledLines);
     }
 }
 
@@ -228,7 +267,6 @@ export class Asm {
 class Pass {
     public readonly asm: Asm;
     public readonly passNumber: number;
-    public readonly assembledLines: AssembledLine[] = [];
     // Address of line being parsed.
     public address = 0;
     // Scope prefix (for #local areas).
@@ -236,103 +274,33 @@ class Pass {
     public scopeCounter = 1;
     // Target type (bin, rom).
     public target: Target = "bin";
-    // Whether any line is a library include.
-    public hasLibraryInclude = false;
+    // Number (in listing) of line we're assembling.
+    public lineNumber = 0;
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
         this.passNumber = passNumber;
     }
 
-    public ignoreUnknownIdentifiers(): boolean {
-        return this.passNumber !== FINAL_PASS;
-    }
-
     /**
      * Assembles the lines of the file. Returns a FileInfo object for this tree, or undefined
      * if the file couldn't be read.
      */
-    public assembleFile(pathname: string): FileInfo | undefined {
-        return new FileParser(this, pathname).assemble();
-    }
-}
-
-/**
- * Parser for a particular file.
- */
-class FileParser {
-    public readonly pass: Pass;
-    // Pathname we're assembling.
-    public readonly pathname: string;
-
-    constructor(pass: Pass, pathname: string) {
-        this.pass = pass;
-        this.pathname = pathname;
+    public run(): void {
+        for (this.lineNumber = 0; this.lineNumber < this.asm.assembledLines.length; this.lineNumber++) {
+            const assembledLine = this.asm.assembledLines[this.lineNumber];
+            assembledLine.address = this.address;
+            new LineParser(this, assembledLine).assemble();
+            this.address = assembledLine.nextAddress;
+        }
     }
 
     /**
-     * Assembles the lines of the file. Returns a FileInfo object for this tree, or undefined
-     * if the file couldn't be read.
+     * Insert the specified lines immediately after the line currently being assembled.
+     * @param assembledLines
      */
-    public assemble(): FileInfo | undefined {
-        const lines = this.pass.asm.fileReader(this.pathname);
-        if (lines === undefined) {
-            return undefined;
-        }
-
-        const beginLineNumber = this.pass.assembledLines.length;
-        const childFiles: FileInfo[] = [];
-        const lineNumbers: number[] = [];
-
-        for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
-            const lineParser = new LineParser(this, lines[lineNumber], lineNumber);
-            const results = lineParser.assemble();
-
-            lineNumbers.push(this.pass.assembledLines.length);
-            this.pass.address = results.nextAddress;
-            this.pass.assembledLines.push(results);
-
-            // Include file.
-            if (results.includeFilename !== undefined) {
-                const includePathname = path.resolve(path.dirname(this.pathname), results.includeFilename);
-                const childFile = this.pass.assembleFile(includePathname);
-                if (childFile === undefined) {
-                    results.error = "cannot read file " + includePathname;
-                } else {
-                    childFiles.push(childFile);
-                }
-            }
-
-            // Library include.
-            if (results.libraryIncludeDir !== undefined && this.pass.asm.libraryIncludeSymbols.size > 0) {
-                const libraryDir = path.resolve(path.dirname(this.pathname), results.libraryIncludeDir);
-                const filenames = fs.readdirSync(libraryDir);
-                // Map from symbol to full filename.
-                const filenameMap = new Map<string,string>();
-                for (const filename of filenames) {
-                    const symbol = path.parse(filename).name;
-                    filenameMap.set(symbol, filename);
-                }
-
-                for (const symbol of this.pass.asm.libraryIncludeSymbols) {
-                    const filename = filenameMap.get(symbol);
-                    if (filename !== undefined) {
-                        const includePathname = path.resolve(libraryDir, filename);
-                        console.log("Auto-including " + includePathname); // TODO remove.
-                        const childFile = this.pass.assembleFile(includePathname);
-                        if (childFile === undefined) {
-                            throw new Error("cannot read file " + includePathname);
-                        } else {
-                            childFiles.push(childFile);
-                        }
-                    }
-                }
-            }
-        }
-
-        const endLineNumber = this.pass.assembledLines.length;
-
-        return new FileInfo(this.pathname, beginLineNumber, endLineNumber, childFiles, lineNumbers);
+    public insertLines(assembledLines: AssembledLine[]): void {
+        this.asm.assembledLines.splice(this.lineNumber + 1, 0, ...assembledLines);
     }
 }
 
@@ -340,33 +308,24 @@ class FileParser {
  * Parser for one single line.
  */
 class LineParser {
-    private readonly file: FileParser;
+    private readonly pass: Pass;
+    private readonly assembledLine: AssembledLine;
     // Full text of line being parsed.
     private readonly line: string;
-    // Line number we're parsing, zero-based.
-    private readonly lineNumber: number;
     // Parsing index into the line.
     private column: number = 0;
     // Pointer to the token we just parsed.
     private previousToken = 0;
-    // Results of parsing one line.
-    private readonly results: AssembledLine;
 
-    constructor(file: FileParser, line: string, lineNumber: number) {
-        this.file = file;
-        this.line = line;
-        this.lineNumber = lineNumber;
-        this.results = new AssembledLine(file.pathname, lineNumber, line, file.pass.address);
+    constructor(pass: Pass, assembledLine: AssembledLine) {
+        this.pass = pass;
+        this.assembledLine = assembledLine;
+        this.line = assembledLine.line;
     }
 
-    public assemble(): AssembledLine {
-        this.parseLine();
-        return this.results;
-    }
-
-    private parseLine(): void {
+    public assemble(): void {
         // Convenience.
-        const thisAddress = this.file.pass.address;
+        const thisAddress = this.pass.address;
 
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
@@ -391,7 +350,7 @@ class LineParser {
 
             // By default assign it to current address, but can be overwritten
             // by .equ below.
-            labelValue = this.file.pass.address;
+            labelValue = thisAddress;
             symbolColumn = this.previousToken;
         }
 
@@ -408,8 +367,8 @@ class LineParser {
                         if (adjustOperator !== undefined) {
                             adjustValue = this.readExpression(true);
                             if (adjustValue === undefined) {
-                                if (this.results.error === undefined) {
-                                    this.results.error = "bad adjustment value";
+                                if (this.assembledLine.error === undefined) {
+                                    this.assembledLine.error = "bad adjustment value";
                                 }
                                 return;
                             }
@@ -442,9 +401,9 @@ class LineParser {
 
                                 value = lo(value);
                             }
-                            this.results.binary.push(value);
+                            this.assembledLine.binary.push(value);
                         }
-                    } else if (this.results.error !== undefined) {
+                    } else if (this.assembledLine.error !== undefined) {
                         // Error parsing string.
                         return;
                     } else {
@@ -452,18 +411,18 @@ class LineParser {
                         const s = this.parsePredefinedName();
                         if (s !== undefined) {
                             for (let i = 0; i < s.length; i++) {
-                                this.results.binary.push(s.charCodeAt(i));
+                                this.assembledLine.binary.push(s.charCodeAt(i));
                             }
                         } else {
                             // Try a normal expression.
                             const value = this.readExpression(true);
                             if (value === undefined) {
-                                if (this.results.error === undefined) {
-                                    this.results.error = "invalid " + mnemonic + " expression";
+                                if (this.assembledLine.error === undefined) {
+                                    this.assembledLine.error = "invalid " + mnemonic + " expression";
                                 }
                                 return;
                             }
-                            this.results.binary.push(lo(value));
+                            this.assembledLine.binary.push(lo(value));
                         }
                     }
                     if (!this.foundChar(',')) {
@@ -474,13 +433,13 @@ class LineParser {
                 while (true) {
                     const value = this.readExpression(true);
                     if (value === undefined) {
-                        if (this.results.error === undefined) {
-                            this.results.error = "invalid " + mnemonic + " expression";
+                        if (this.assembledLine.error === undefined) {
+                            this.assembledLine.error = "invalid " + mnemonic + " expression";
                         }
                         return;
                     }
-                    this.results.binary.push(lo(value));
-                    this.results.binary.push(hi(value));
+                    this.assembledLine.binary.push(lo(value));
+                    this.assembledLine.binary.push(hi(value));
                     if (!this.foundChar(',')) {
                         break;
                     }
@@ -489,15 +448,15 @@ class LineParser {
                 while (true) {
                     const value = this.readExpression(true);
                     if (value === undefined) {
-                        if (this.results.error === undefined) {
-                            this.results.error = "invalid " + mnemonic + " expression";
+                        if (this.assembledLine.error === undefined) {
+                            this.assembledLine.error = "invalid " + mnemonic + " expression";
                         }
                         return;
                     }
-                    this.results.binary.push(lo(value));
-                    this.results.binary.push(hi(value));
-                    this.results.binary.push(lo(value >> 16));
-                    this.results.binary.push(hi(value >> 16));
+                    this.assembledLine.binary.push(lo(value));
+                    this.assembledLine.binary.push(hi(value));
+                    this.assembledLine.binary.push(lo(value >> 16));
+                    this.assembledLine.binary.push(hi(value >> 16));
                     if (!this.foundChar(',')) {
                         break;
                     }
@@ -505,9 +464,9 @@ class LineParser {
             } else if (mnemonic === ".equ" || mnemonic === "equ") {
                 const value = this.readExpression(true);
                 if (value === undefined) {
-                    this.results.error = "bad value for constant";
+                    this.assembledLine.error = "bad value for constant";
                 } else if (label === undefined) {
-                    this.results.error = "must have label for constant";
+                    this.assembledLine.error = "must have label for constant";
                 } else {
                     // Remember constant.
                     labelValue = value;
@@ -515,21 +474,21 @@ class LineParser {
             } else if (PSEUDO_ORG.has(mnemonic)) {
                 const startAddress = this.readExpression(true);
                 if (startAddress === undefined) {
-                    this.results.error = "start address expected";
+                    this.assembledLine.error = "start address expected";
                 } else {
-                    this.results.nextAddress = startAddress;
+                    this.assembledLine.nextAddress = startAddress;
                 }
             } else if (PSEUDO_ALIGN.has(mnemonic)) {
                 const align = this.readExpression(true);
                 if (align === undefined || align <= 0) {
-                    this.results.error = "alignment value expected";
+                    this.assembledLine.error = "alignment value expected";
                 } else {
                     let fillChar: number | undefined;
                     if (this.foundChar(",")) {
                         const expr = this.readExpression(true);
                         if (expr === undefined) {
-                            if (this.results.error === undefined) {
-                                this.results.error = "error in fill byte";
+                            if (this.assembledLine.error === undefined) {
+                                this.assembledLine.error = "error in fill byte";
                             }
                             return;
                         }
@@ -537,13 +496,13 @@ class LineParser {
                     }
 
                     if (fillChar === undefined) {
-                        this.results.nextAddress = thisAddress + (align - thisAddress%align)%align;
+                        this.assembledLine.nextAddress = thisAddress + (align - thisAddress%align)%align;
                     } else {
                         fillChar = lo(fillChar);
 
                         let address = thisAddress;
                         while ((address % align) !== 0) {
-                            this.results.binary.push(fillChar);
+                            this.assembledLine.binary.push(fillChar);
                             address++;
                         }
                     }
@@ -551,14 +510,14 @@ class LineParser {
             } else if (PSEUDO_FILL.has(mnemonic)) {
                 const length = this.readExpression(true);
                 if (length === undefined || length <= 0) {
-                    this.results.error = "length value expected";
+                    this.assembledLine.error = "length value expected";
                 } else {
                     let fillChar: number | undefined;
                     if (this.foundChar(",")) {
                         const expr = this.readExpression(true);
                         if (expr === undefined) {
-                            if (this.results.error === undefined) {
-                                this.results.error = "error in fill byte";
+                            if (this.assembledLine.error === undefined) {
+                                this.assembledLine.error = "error in fill byte";
                             }
                             return;
                         }
@@ -566,12 +525,12 @@ class LineParser {
                     }
 
                     if (fillChar === undefined) {
-                        this.results.nextAddress = thisAddress + length;
+                        this.assembledLine.nextAddress = thisAddress + length;
                     } else {
                         fillChar = lo(fillChar);
 
                         for (let i = 0; i < length; i++) {
-                            this.results.binary.push(fillChar);
+                            this.assembledLine.binary.push(fillChar);
                         }
                     }
                 }
@@ -585,26 +544,21 @@ class LineParser {
 
         // If we're defining a new symbol, record it.
         if (label !== undefined && labelValue !== undefined) {
-            const scopedLabel = (labelIsGlobal ? "" : this.file.pass.scopePrefix) + label;
-            const oldSymbolInfo = this.file.pass.asm.symbols.get(scopedLabel);
-            if (oldSymbolInfo !== undefined) {
+            const scopedLabel = (labelIsGlobal ? "" : this.pass.scopePrefix) + label;
+            let symbolInfo = this.pass.asm.symbols.get(scopedLabel);
+            if (symbolInfo !== undefined) {
                 // Sanity check.
-                if (labelValue !== oldSymbolInfo.value ||
-                    this.file.pass.assembledLines.length !== oldSymbolInfo.definition.lineNumber ||
-                    symbolColumn !== oldSymbolInfo.definition.column) {
-
+                if (symbolInfo.value !== 0 && labelValue !== symbolInfo.value) {
                     // TODO should be programmer error.
-                    console.log("error: changing value of \"" + label + "\" from " +
-                        toHex(oldSymbolInfo.value, 4) + "," + oldSymbolInfo.definition.lineNumber + "," + oldSymbolInfo.definition.column +
-                        " to " +
-                        toHex(labelValue, 4) + "," + this.file.pass.assembledLines.length + "," + symbolColumn,
-                        this.file.pass.passNumber);
+                    console.log("error: changing value of \"" + label + "\" from " + toHex(symbolInfo.value, 4) +
+                        " to " + toHex(labelValue, 4) + " in pass " + this.pass.passNumber);
                 }
+                symbolInfo.value = labelValue;
             } else {
-                this.file.pass.asm.symbols.set(scopedLabel,
-                    new SymbolInfo(label, labelValue, this.file.pass.assembledLines.length, symbolColumn));
-                this.file.pass.asm.undefinedSymbols.delete(label);
+                symbolInfo = new SymbolInfo(label, labelValue);
+                this.pass.asm.symbols.set(scopedLabel, symbolInfo);
             }
+            symbolInfo.definition = new SymbolReference(this.pass.lineNumber, symbolColumn);
         }
     }
 
@@ -635,12 +589,13 @@ class LineParser {
             }
 
             case "__file__":
-                value = this.file.pathname;
+                value = this.assembledLine.fileInfo.pathname;
                 break;
 
             case "__line__":
                 // Zero-based.
-                value = this.lineNumber.toString();
+                // The line number might be undefined if the line is synthetic.
+                value = (this.assembledLine.lineNumber ?? 0).toString();
                 break;
         }
 
@@ -660,7 +615,7 @@ class LineParser {
             this.column = this.line.length;
         }
         if (this.column != this.line.length) {
-            this.results.error = "syntax error";
+            this.assembledLine.error = "syntax error";
         }
     }
 
@@ -672,7 +627,7 @@ class LineParser {
         }
         const directive = this.readIdentifier(true, true);
         if (directive === undefined || directive === "") {
-            this.results.error = "must specify directive after #";
+            this.assembledLine.error = "must specify directive after #";
             return;
         }
 
@@ -680,12 +635,12 @@ class LineParser {
             case "target":
                 const target = this.readIdentifier(false, true);
                 if (target === "bin" || target === "rom") {
-                    this.file.pass.target = target;
+                    this.pass.target = target;
                 } else {
                     if (target === undefined) {
-                        this.results.error = "must specify target";
+                        this.assembledLine.error = "must specify target";
                     } else {
-                        this.results.error = "unknown target " + target;
+                        this.assembledLine.error = "unknown target " + target;
                     }
                     return;
                 }
@@ -694,23 +649,23 @@ class LineParser {
             case "code":
                 const segmentName = this.readIdentifier(true, false);
                 if (segmentName === undefined) {
-                    this.results.error = "segment name expected";
+                    this.assembledLine.error = "segment name expected";
                 } else if (this.foundChar(',')) {
                     if (this.foundChar("*")) {
                         // Keep start address unchanged.
                     } else {
                         const startAddress = this.readExpression(true);
                         if (startAddress === undefined) {
-                            this.results.error = "start address expected";
+                            this.assembledLine.error = "start address expected";
                         } else {
-                            this.results.nextAddress = startAddress;
+                            this.assembledLine.nextAddress = startAddress;
                         }
                     }
 
                     if (this.foundChar(',')) {
                         const length = this.readExpression(true);
                         if (length === undefined) {
-                            this.results.error = "length expected";
+                            this.assembledLine.error = "length expected";
                         }
                     }
                 }
@@ -722,42 +677,76 @@ class LineParser {
                 if (token === "library") {
                     const dir = this.readString();
                     if (dir === undefined) {
-                        this.results.error = "missing library directory";
-                    } else {
-                        this.results.libraryIncludeDir = dir;
-                        this.file.pass.hasLibraryInclude = true;
+                        this.assembledLine.error = "missing library directory";
+                    } else if (this.pass.passNumber === 1) {
+                        const libraryDir = path.resolve(path.dirname(this.assembledLine.fileInfo.pathname), dir);
+                        let filenames: string[];
+                        try {
+                            filenames = fs.readdirSync(libraryDir);
+                        } catch (e) {
+                            this.assembledLine.error = "can't read directory \"" + libraryDir + "\"";
+                            return;
+                        }
+                        for (const filename of filenames) {
+                            let parsedPath = path.parse(filename);
+                            console.log(filename, parsedPath);
+                            if (LIBRARY_EXTS.has(parsedPath.ext)) {
+                                const symbol = this.pass.asm.symbols.get(parsedPath.name);
+                                console.log(symbol);
+                                if (symbol !== undefined && symbol.definition === undefined) {
+                                    // Found used but undefined symbol that matches a file in the library.
+                                    const includePathname = path.resolve(libraryDir, filename);
+                                    console.log("Auto-including " + includePathname); // TODO remove.
+                                    this.pass.insertLines([
+                                        new AssembledLine(this.assembledLine.fileInfo, undefined,
+                                            "#include \"" + includePathname + "\""),
+                                        new AssembledLine(this.assembledLine.fileInfo, undefined,
+                                            this.line),
+                                    ]);
+                                }
+                            }
+                        }
                     }
+                } else if (token !== undefined) {
+                    this.assembledLine.error = "unknown identifier " + token;
                 } else {
                     this.column = previousColumn;
                     const filename = this.readString();
                     if (filename === undefined) {
-                        this.results.error = "missing included filename";
-                    } else {
-                        this.results.includeFilename = filename;
+                        this.assembledLine.error = "missing included filename";
+                    } else if (this.pass.passNumber === 1) {
+                        const includePathname = path.resolve(path.dirname(this.assembledLine.fileInfo.pathname), filename);
+                        const sourceFile = this.pass.asm.loadSourceFile(includePathname, this.assembledLine.fileInfo);
+                        if (sourceFile === undefined) {
+                            this.assembledLine.error = "cannot read file " + includePathname;
+                        } else {
+                            // Insert the included lines right in our listing.
+                            this.pass.insertLines(sourceFile.assembledLines);
+                        }
                     }
                 }
                 break;
             }
 
             case "local":
-                if (this.file.pass.scopePrefix !== "") {
-                    this.results.error = "can't have nested #local";
+                if (this.pass.scopePrefix !== "") {
+                    this.assembledLine.error = "can't have nested #local";
                 } else {
                     // Pick characters that aren't normally allowed.
-                    this.file.pass.scopePrefix = "#local" + this.file.pass.scopeCounter++ + "-";
+                    this.pass.scopePrefix = "#local" + this.pass.scopeCounter++ + "-";
                 }
                 break;
 
             case "endlocal":
-                if (this.file.pass.scopePrefix === "") {
-                    this.results.error = "#endlocal without #local";
+                if (this.pass.scopePrefix === "") {
+                    this.assembledLine.error = "#endlocal without #local";
                 } else {
-                    this.file.pass.scopePrefix = "";
+                    this.pass.scopePrefix = "";
                 }
                 break;
 
             default:
-                this.results.error = "unknown directive #" + directive;
+                this.assembledLine.error = "unknown directive #" + directive;
                 break;
         }
 
@@ -824,7 +813,7 @@ class LineParser {
                 }
 
                 if (match) {
-                    this.results.binary = [];
+                    this.assembledLine.binary = [];
                     for (const op of variant.opcode) {
                         if (typeof(op) === "string") {
                             const value = args[op];
@@ -833,27 +822,27 @@ class LineParser {
                             }
                             switch (op) {
                                 case "nnnn":
-                                    this.results.binary.push(lo(value));
-                                    this.results.binary.push(hi(value));
+                                    this.assembledLine.binary.push(lo(value));
+                                    this.assembledLine.binary.push(hi(value));
                                     break;
 
                                 case "nn":
                                 case "dd":
-                                    this.results.binary.push(lo(value));
+                                    this.assembledLine.binary.push(lo(value));
                                     break;
 
                                 case "offset":
-                                    this.results.binary.push(lo(value - this.results.address - this.results.binary.length - 1));
+                                    this.assembledLine.binary.push(lo(value - this.assembledLine.address - this.assembledLine.binary.length - 1));
                                     break;
 
                                 default:
                                     throw new Error("Unknown arg type " + op);
                             }
                         } else {
-                            this.results.binary.push(op);
+                            this.assembledLine.binary.push(op);
                         }
                     }
-                    this.results.variant = variant;
+                    this.assembledLine.variant = variant;
                     break;
                 } else {
                     // Reset reader.
@@ -862,10 +851,10 @@ class LineParser {
             }
 
             if (!match) {
-                this.results.error = "no variant found for " + mnemonic;
+                this.assembledLine.error = "no variant found for " + mnemonic;
             }
         } else {
-            this.results.error = "unknown mnemonic: " + mnemonic;
+            this.assembledLine.error = "unknown mnemonic: " + mnemonic;
         }
     }
 
@@ -890,7 +879,7 @@ class LineParser {
 
         if (this.column === this.line.length) {
             // No end quote.
-            this.results.error = "no end quote in string";
+            this.assembledLine.error = "no end quote in string";
             return undefined;
         }
 
@@ -1047,28 +1036,31 @@ class LineParser {
         if (identifier !== undefined) {
             // Get address of identifier or value of constant.
             let symbolInfo = undefined;
-            if (this.file.pass.scopePrefix !== "") {
+            if (this.pass.scopePrefix !== "") {
                 // Prefer local to global.
-                symbolInfo = this.file.pass.asm.symbols.get(this.file.pass.scopePrefix + identifier);
+                symbolInfo = this.pass.asm.symbols.get(this.pass.scopePrefix + identifier);
             }
             if (symbolInfo === undefined) {
                 // Check global.
-                symbolInfo = this.file.pass.asm.symbols.get(identifier);
+                symbolInfo = this.pass.asm.symbols.get(identifier);
             }
             if (symbolInfo === undefined) {
-                if (!this.file.pass.ignoreUnknownIdentifiers()) {
-                    this.results.error = "unknown identifier \"" + identifier + "\"";
+                if (this.pass.passNumber === 1) {
+                    // Record that this identifier was used so that we can include its file with
+                    // library includes.
+                    // TODO we don't know whether it's a local or global symbol. Assume local and push it out in #endlocal.
+                    symbolInfo = new SymbolInfo(identifier, 0);
+                    this.pass.asm.symbols.set(identifier, symbolInfo);
+                } else {
+                    this.assembledLine.error = "unknown identifier \"" + identifier + "\"";
+                    return 0;
                 }
-                // TODO I don't like that the set here is mutated even though evaluating this expression
-                // might be speculative.
-                this.file.pass.asm.undefinedSymbols.add(identifier);
-                return 0;
-            } else {
-                if (!this.file.pass.ignoreUnknownIdentifiers()) {
-                    symbolInfo.references.push(new SymbolReference(this.file.pass.assembledLines.length, startIndex));
-                }
-                return symbolInfo.value;
             }
+            if (this.pass.passNumber === 1) {
+                // TODO I don't like this, given that evaluating this expression might be speculative.
+                symbolInfo.references.push(new SymbolReference(this.pass.lineNumber, startIndex));
+            }
+            return symbolInfo.value;
         }
 
         // Try literal character, like 'a'.
@@ -1096,7 +1088,7 @@ class LineParser {
         if (this.foundChar('$')) {
             if (this.column === this.line.length || parseDigit(this.line[this.column], 16) === undefined) {
                 // It's a reference to the current address, not a hex prefix.
-                return sign*this.results.address;
+                return sign*this.assembledLine.address;
             }
 
             base = 16;

@@ -15,11 +15,12 @@ function main() {
     const lstFd = fs.openSync(lstPathname, "w");
     const binFd = fs.openSync(binPathname, "w");
     const asm = new Asm(loadFile);
-    const assembledLines = asm.assembleFile(srcPathname);
-    if (assembledLines === undefined) {
+    const sourceFile = asm.assembleFile(srcPathname);
+    if (sourceFile === undefined) {
         console.log("Cannot read file " + srcPathname);
         return;
     }
+    const assembledLines = sourceFile.assembledLines;
 
     let errorCount = 0;
     for (const results of assembledLines) {
