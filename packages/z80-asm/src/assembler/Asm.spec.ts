@@ -40,7 +40,7 @@ describe("assemble", () => {
             { line: " .org 5" },
             { line: "main" },
         ]);
-        expect(asm.symbols.get("main")?.value).to.equal(5);
+        expect(asm.scopes[0].get("main")?.value).to.equal(5);
     });
 
     it("label w/colon", () => {
@@ -48,7 +48,7 @@ describe("assemble", () => {
             { line: " .org 5" },
             { line: "main:" },
         ]);
-        expect(asm.symbols.get("main")?.value).to.equal(5);
+        expect(asm.scopes[0].get("main")?.value).to.equal(5);
     });
 
     // Mnemonics are allowed as labels.
@@ -57,7 +57,7 @@ describe("assemble", () => {
             { line: " .org 5" },
             { line: "nop" },
         ]);
-        expect(asm.symbols.get("nop")?.value).to.equal(5);
+        expect(asm.scopes[0].get("nop")?.value).to.equal(5);
     });
 
     it("label w/inst", () => {
@@ -65,7 +65,7 @@ describe("assemble", () => {
             { line: " .org 5" },
             { line: "main nop", opcodes: [0] },
         ]);
-        expect(asm.symbols.get("main")?.value).to.equal(5);
+        expect(asm.scopes[0].get("main")?.value).to.equal(5);
     });
 
     it("ld a,c", () => {
@@ -171,7 +171,7 @@ describe("number parsing", () => {
                 { line: line },
             ]);
 
-            expect(asm.symbols.get("foo")?.value).to.be.equal(expected);
+            expect(asm.scopes[0].get("foo")?.value).to.be.equal(expected);
         });
     }
 });

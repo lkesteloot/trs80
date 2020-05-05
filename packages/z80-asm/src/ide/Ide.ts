@@ -137,7 +137,6 @@ class Ide {
     private readonly cm: CodeMirror.Editor;
     // The index of this array is the line number in the file (zero-based).
     private assembledLines: AssembledLine[] = [];
-    private symbols = new Map<string,SymbolInfo>();
     private pathname: string = "";
     private ipcRenderer: any;
     private scrollbarAnnotator: any;
@@ -387,7 +386,8 @@ class Ide {
 
     // Find symbol usage at a location, or undefined if we're not on a symbol.
     private findSymbolAt(lineNumber: number, column: number): SymbolHit | undefined {
-        for (const symbol of this.symbols.values()) {
+        const assembledLine = this.assembledLines[lineNumber];
+        for (const symbol of assembledLine.symbols) {
             // See if we're at the definition.
             if (symbol.definition !== undefined && symbol.matches(symbol.definition, lineNumber, column)) {
                 return new SymbolHit(symbol, undefined);
@@ -561,7 +561,6 @@ class Ide {
         }
         this.assembledLines = sourceFile.assembledLines;
         this.fileInfo = sourceFile.fileInfo;
-        this.symbols = asm.symbols;
 
         // Compute new text for editor.
         const lines: string[] = [];

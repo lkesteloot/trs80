@@ -149,6 +149,8 @@ export class AssembledLine {
     public error: string | undefined;
     // The variant of the instruction, if any.
     public variant: Variant | undefined;
+    // List of symbols defined or references on this line.
+    public readonly symbols: SymbolInfo[] = [];
     // The next address, if it was explicitly specified.
     private specifiedNextAddress: number | undefined;
 
@@ -182,13 +184,42 @@ export class SourceFile {
 }
 
 /**
+ * Scope for symbols.
+ */
+class Scope {
+    public readonly symbols = new Map<string, SymbolInfo>();
+    public readonly parent: Scope | undefined;
+
+    constructor(parent: Scope | undefined) {
+        this.parent = parent;
+    }
+
+    public get(identifier: string, propagateUp?: boolean): SymbolInfo | undefined {
+        let symbolInfo = this.symbols.get(identifier);
+        if (symbolInfo === undefined && propagateUp && this.parent !== undefined) {
+            symbolInfo = this.parent.get(identifier, propagateUp);
+        }
+
+        return symbolInfo;
+    }
+
+    public set(identifier: string, symbolInfo: SymbolInfo): void {
+        this.symbols.set(identifier, symbolInfo);
+    }
+
+    public remove(identifier: string): void {
+        this.symbols.delete(identifier);
+    }
+}
+
+/**
  * Assembler.
  */
 export class Asm {
     // Interface for fetching a file's lines.
     public readonly fileReader: FileReader;
-    // Map from symbol name to SymbolInfo.
-    public readonly symbols = new Map<string, SymbolInfo>();
+    // Index 0 is global scope, then one scope for each #local.
+    public readonly scopes: Scope[] = [new Scope(undefined)];
     // All assembled lines.
     public assembledLines: AssembledLine[] = [];
 
@@ -208,18 +239,16 @@ export class Asm {
         // label knows where it'll be.
         new Pass(this, 1).run();
 
-        // SECOND PASS.
+        // SECOND PASS. Patch up references and generate error messages for undefined symbols.
         new Pass(this, 2).run();
 
         // Fix up line numbers in FileInfo structures.
         for (let lineNumber = 0; lineNumber < this.assembledLines.length; lineNumber++) {
             const assembledLine = this.assembledLines[lineNumber];
             assembledLine.fileInfo.lineNumbers.push(lineNumber);
-            console.log(assembledLine.fileInfo.pathname, lineNumber);
         }
         // Fix up begin/end line numbers in FileInfo structures.
         const computeBeginEndLineNumbers = (fileInfo: FileInfo) => {
-            console.log("compute", fileInfo.pathname);
             if (fileInfo.lineNumbers.length === 0) {
                 throw new Error("File info for \"" + fileInfo.pathname + "\" has no lines");
             }
@@ -235,6 +264,18 @@ export class Asm {
             }
         };
         computeBeginEndLineNumbers(sourceFile.fileInfo);
+
+        // Fill in symbols of each line.
+        for (const scope of this.scopes) {
+            for (const symbol of scope.symbols.values()) {
+                if (symbol.definition !== undefined) {
+                    this.assembledLines[symbol.definition.lineNumber].symbols.push(symbol);
+                }
+                for (const reference of symbol.references) {
+                    this.assembledLines[reference.lineNumber].symbols.push(symbol);
+                }
+            }
+        }
 
         return sourceFile;
     }
@@ -269,9 +310,10 @@ class Pass {
     public readonly passNumber: number;
     // Address of line being parsed.
     public address = 0;
-    // Scope prefix (for #local areas).
-    public scopePrefix = "";
-    public scopeCounter = 1;
+    // The current scope, local or global.
+    public currentScope: Scope;
+    // Number of scopes defined so far in this pass, including global (index 0).
+    public scopeCount = 1;
     // Target type (bin, rom).
     public target: Target = "bin";
     // Number (in listing) of line we're assembling.
@@ -280,6 +322,7 @@ class Pass {
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
         this.passNumber = passNumber;
+        this.currentScope = this.asm.scopes[0];
     }
 
     /**
@@ -287,11 +330,20 @@ class Pass {
      * if the file couldn't be read.
      */
     public run(): void {
+        // Assemble every line.
         for (this.lineNumber = 0; this.lineNumber < this.asm.assembledLines.length; this.lineNumber++) {
             const assembledLine = this.asm.assembledLines[this.lineNumber];
             assembledLine.address = this.address;
             new LineParser(this, assembledLine).assemble();
             this.address = assembledLine.nextAddress;
+        }
+
+        // Make sure our #local and #endlocal are balanced.
+        if (this.currentScope !== this.asm.scopes[0]) {
+            const lines = this.asm.assembledLines;
+            if (lines.length > 0 && lines[lines.length - 1].error === undefined) {
+                lines[lines.length - 1].error = "missing #endlocal";
+            }
         }
     }
 
@@ -301,6 +353,50 @@ class Pass {
      */
     public insertLines(assembledLines: AssembledLine[]): void {
         this.asm.assembledLines.splice(this.lineNumber + 1, 0, ...assembledLines);
+    }
+
+    /**
+     * Return the scope for global symbols.
+     */
+    public globals(): Scope {
+        return this.asm.scopes[0];
+    }
+
+    /**
+     * Return the scope for the innermost #local, which could just be the global scope.
+     */
+    public locals(): Scope {
+        return this.currentScope;
+    }
+
+    /**
+     * Create a new scope, when we hit #local.
+     */
+    public enterScope(): Scope {
+        if (this.passNumber === 1) {
+            this.currentScope = new Scope(this.currentScope);
+            this.asm.scopes.push(this.currentScope);
+            this.scopeCount++;
+        } else {
+            this.currentScope = this.asm.scopes[this.scopeCount++];
+        }
+        return this.currentScope;
+    }
+
+    /**
+     * Exit the current scope, when we hit #endlocal.
+     *
+     * @return whether successful. Might fail if we're already at the global scope.
+     */
+    public leaveScope(): boolean {
+        const scope = this.currentScope.parent;
+        if (scope === undefined) {
+            return false;
+        }
+
+        this.currentScope = scope;
+
+        return true;
     }
 }
 
@@ -544,11 +640,11 @@ class LineParser {
 
         // If we're defining a new symbol, record it.
         if (label !== undefined && labelValue !== undefined) {
-            const scopedLabel = (labelIsGlobal ? "" : this.pass.scopePrefix) + label;
-            let symbolInfo = this.pass.asm.symbols.get(scopedLabel);
+            const scope = labelIsGlobal ? this.pass.globals() : this.pass.locals();
+            let symbolInfo = scope.get(label);
             if (symbolInfo !== undefined) {
                 // Sanity check.
-                if (symbolInfo.value !== 0 && labelValue !== symbolInfo.value) {
+                if (symbolInfo.definition !== undefined && labelValue !== symbolInfo.value) {
                     // TODO should be programmer error.
                     console.log("error: changing value of \"" + label + "\" from " + toHex(symbolInfo.value, 4) +
                         " to " + toHex(labelValue, 4) + " in pass " + this.pass.passNumber);
@@ -556,7 +652,7 @@ class LineParser {
                 symbolInfo.value = labelValue;
             } else {
                 symbolInfo = new SymbolInfo(label, labelValue);
-                this.pass.asm.symbols.set(scopedLabel, symbolInfo);
+                scope.set(label, symbolInfo);
             }
             symbolInfo.definition = new SymbolReference(this.pass.lineNumber, symbolColumn);
         }
@@ -689,10 +785,8 @@ class LineParser {
                         }
                         for (const filename of filenames) {
                             let parsedPath = path.parse(filename);
-                            console.log(filename, parsedPath);
                             if (LIBRARY_EXTS.has(parsedPath.ext)) {
-                                const symbol = this.pass.asm.symbols.get(parsedPath.name);
-                                console.log(symbol);
+                                const symbol = this.pass.globals().get(parsedPath.name);
                                 if (symbol !== undefined && symbol.definition === undefined) {
                                     // Found used but undefined symbol that matches a file in the library.
                                     const includePathname = path.resolve(libraryDir, filename);
@@ -729,19 +823,30 @@ class LineParser {
             }
 
             case "local":
-                if (this.pass.scopePrefix !== "") {
-                    this.assembledLine.error = "can't have nested #local";
-                } else {
-                    // Pick characters that aren't normally allowed.
-                    this.pass.scopePrefix = "#local" + this.pass.scopeCounter++ + "-";
-                }
+                this.pass.enterScope();
                 break;
 
             case "endlocal":
-                if (this.pass.scopePrefix === "") {
+                // When we leave a scope, we must push symbols that are both references and undefined out
+                // to the outer scope, since that's where they might be defined.
+                const scope = this.pass.locals();
+                if (scope.parent === undefined) {
                     this.assembledLine.error = "#endlocal without #local";
                 } else {
-                    this.pass.scopePrefix = "";
+                    for (const [identifier, symbol] of scope.symbols) {
+                        if (symbol.references.length > 0 && symbol.definition === undefined) {
+                            scope.remove(identifier);
+
+                            // Merge with this symbol in the parent, if any.
+                            const parentSymbol = scope.parent.get(identifier);
+                            if (parentSymbol === undefined) {
+                                scope.parent.set(identifier, symbol);
+                            } else {
+                                parentSymbol.references.splice(0, 0, ...symbol.references);
+                            }
+                        }
+                    }
+                    this.pass.leaveScope();
                 }
                 break;
 
@@ -1035,30 +1140,27 @@ class LineParser {
         const identifier = this.readIdentifier(false, false);
         if (identifier !== undefined) {
             // Get address of identifier or value of constant.
-            let symbolInfo = undefined;
-            if (this.pass.scopePrefix !== "") {
-                // Prefer local to global.
-                symbolInfo = this.pass.asm.symbols.get(this.pass.scopePrefix + identifier);
-            }
-            if (symbolInfo === undefined) {
-                // Check global.
-                symbolInfo = this.pass.asm.symbols.get(identifier);
-            }
+
+            // Local symbols can shadow global ones, and might not be defined yet, so only check
+            // the local scope in pass 1. In pass 2 the identifier must have been defined somewhere.
+            let symbolInfo = this.pass.locals().get(identifier, this.pass.passNumber !== 1);
             if (symbolInfo === undefined) {
                 if (this.pass.passNumber === 1) {
                     // Record that this identifier was used so that we can include its file with
-                    // library includes.
-                    // TODO we don't know whether it's a local or global symbol. Assume local and push it out in #endlocal.
+                    // library includes. We don't know whether it's a local or global symbol.
+                    // Assume local and push it out in #endlocal.
                     symbolInfo = new SymbolInfo(identifier, 0);
-                    this.pass.asm.symbols.set(identifier, symbolInfo);
+                    this.pass.locals().set(identifier, symbolInfo);
                 } else {
-                    this.assembledLine.error = "unknown identifier \"" + identifier + "\"";
-                    return 0;
+                    throw new Error("Identifier " + identifier + " was not defined in pass 1");
                 }
             }
             if (this.pass.passNumber === 1) {
                 // TODO I don't like this, given that evaluating this expression might be speculative.
                 symbolInfo.references.push(new SymbolReference(this.pass.lineNumber, startIndex));
+            } else if (symbolInfo.definition === undefined) {
+                this.assembledLine.error = "unknown identifier \"" + identifier + "\"";
+                return 0;
             }
             return symbolInfo.value;
         }
