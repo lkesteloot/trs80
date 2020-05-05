@@ -526,8 +526,12 @@ class Ide {
 
         const newLines: string[] = [];
         for (const lineNumber of lineNumbers) {
-            const text = this.cm.getLine(lineNumber);
-            newLines.push(text);
+            // Skip synthetic lines.
+            const assembledLine = this.assembledLines[lineNumber];
+            if (assembledLine.lineNumber !== undefined) {
+                const text = this.cm.getLine(lineNumber);
+                newLines.push(text);
+            }
         }
 
         sourceFile.setLines(newLines);
