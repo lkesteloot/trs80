@@ -19,7 +19,7 @@ body {
     white-space: pre;
 }
 .error-line {
-    background-color: #400;
+    background-color: #400 !important;
     /* text-decoration: #C00 wavy underline; */
 }
 .CodeMirror-linenumber {

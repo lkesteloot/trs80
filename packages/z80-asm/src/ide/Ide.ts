@@ -576,6 +576,7 @@ class Ide {
             this.cm.setValue(newValue);
         }
 
+        const before1 = Date.now();
         // Update text markers.
         for (let lineNumber = 0; lineNumber < this.assembledLines.length; lineNumber++) {
             const assembledLine = this.assembledLines[lineNumber];
@@ -584,8 +585,10 @@ class Ide {
                 this.cm.addLineClass(lineNumber, "background", "include-" + depth);
             }
         }
+        console.log("Updating include line markers: " + (Date.now() - before1));
 
         // Update UI.
+        const before2 = Date.now();
         const annotationMarks: any[] = [];
         for (let lineNumber = 0; lineNumber < this.assembledLines.length; lineNumber++) {
             const results = this.assembledLines[lineNumber];
@@ -640,6 +643,8 @@ class Ide {
             if (results.error === undefined) {
                 this.cm.removeLineClass(lineNumber, "background", "error-line");
             } else {
+                this.cm.addLineClass(lineNumber, "background", "error-line");
+
                 // Highlight error in scrollbar.
                 annotationMarks.push({
                     from: { line: lineNumber, ch: 0 },
@@ -647,18 +652,27 @@ class Ide {
                 });
 
                 // Write error below line.
+                // Disable this, it's really slow when the file has a lot of errors.
+                // It forces the browser to do a layout because CM wants to know the
+                // height of the widget. It also really slows down updating the
+                // scrollbar below, probably for the same reason. Maybe put it back in
+                // when we support macros and our files don't bleed so red.
+                /*
                 const node = document.createElement("span");
                 node.appendChild(document.createTextNode(results.error));
                 this.lineWidgets.push(this.cm.addLineWidget(lineNumber, node, {
                     className: "error-line",
                 }));
+                 */
             }
         }
+        console.log("Updating gutters and line widgets: " + (Date.now() - before2));
 
+        const before3 = Date.now();
         this.scrollbarAnnotator.update(annotationMarks);
+        console.log("Updating scrollbar annotations: " + (Date.now() - before3));
 
-        const after = Date.now();
-        console.log("Assembly time: " + (after - before));
+        console.log("Total assembly time: " + (Date.now() - before));
     }
 
     private hint(): any {
@@ -678,7 +692,7 @@ class Ide {
     /**
      * Generate a popup for an instruction that has clr info.
      */
-    private getPopupForClr(clr: ClrInstruction) {
+    private getPopupForClr(clr: ClrInstruction): string {
         let popup = "<b>" + clr.instruction.toUpperCase() + "</b><br><br>";
         if (clr.description) {
             popup += clr.description + "<br><br>";

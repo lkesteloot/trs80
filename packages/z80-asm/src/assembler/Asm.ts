@@ -222,6 +222,8 @@ export class Asm {
     public readonly scopes: Scope[] = [new Scope(undefined)];
     // All assembled lines.
     public assembledLines: AssembledLine[] = [];
+    // Cache from full directory path to list of filenames in the directory.
+    private dirCache = new Map<string,string[]>();
 
     constructor(fileReader: FileReader) {
         this.fileReader = fileReader;
@@ -300,6 +302,26 @@ export class Asm {
 
         return new SourceFile(fileInfo, assembledLines);
     }
+
+    /**
+     * Reads a directory, caching the results.
+     *
+     * @return a list of filenames in the directory, or undefined if an error occurs.
+     */
+    public readDir(dir: string): string[] | undefined {
+        let filenames = this.dirCache.get(dir);
+        if (filenames == undefined) {
+            try {
+                filenames = fs.readdirSync(dir);
+            } catch (e) {
+                // Can't read dir.
+                return undefined;
+            }
+            this.dirCache.set(dir, filenames);
+        }
+
+        return filenames;
+    }
 }
 
 /**
@@ -330,6 +352,7 @@ class Pass {
      * if the file couldn't be read.
      */
     public run(): void {
+        const before = Date.now();
         // Assemble every line.
         for (this.lineNumber = 0; this.lineNumber < this.asm.assembledLines.length; this.lineNumber++) {
             const assembledLine = this.asm.assembledLines[this.lineNumber];
@@ -345,6 +368,8 @@ class Pass {
                 lines[lines.length - 1].error = "missing #endlocal";
             }
         }
+        const after = Date.now();
+        console.log("Pass " + this.passNumber + " time: " + (after - before));
     }
 
     /**
@@ -646,8 +671,11 @@ class LineParser {
                 // Sanity check.
                 if (symbolInfo.definition !== undefined && labelValue !== symbolInfo.value) {
                     // TODO should be programmer error.
+                    /*
                     console.log("error: changing value of \"" + label + "\" from " + toHex(symbolInfo.value, 4) +
                         " to " + toHex(labelValue, 4) + " in pass " + this.pass.passNumber);
+
+                     */
                 }
                 symbolInfo.value = labelValue;
             } else {
@@ -776,10 +804,8 @@ class LineParser {
                         this.assembledLine.error = "missing library directory";
                     } else if (this.pass.passNumber === 1) {
                         const libraryDir = path.resolve(path.dirname(this.assembledLine.fileInfo.pathname), dir);
-                        let filenames: string[];
-                        try {
-                            filenames = fs.readdirSync(libraryDir);
-                        } catch (e) {
+                        const filenames = this.pass.asm.readDir(libraryDir);
+                        if (filenames === undefined) {
                             this.assembledLine.error = "can't read directory \"" + libraryDir + "\"";
                             return;
                         }
@@ -790,7 +816,6 @@ class LineParser {
                                 if (symbol !== undefined && symbol.definition === undefined) {
                                     // Found used but undefined symbol that matches a file in the library.
                                     const includePathname = path.resolve(libraryDir, filename);
-                                    console.log("Auto-including " + includePathname); // TODO remove.
                                     this.pass.insertLines([
                                         new AssembledLine(this.assembledLine.fileInfo, undefined,
                                             "#include \"" + includePathname + "\""),
