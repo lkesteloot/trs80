@@ -187,7 +187,7 @@ const template = [
                 },
             },
             {
-                label: "Next Usage",
+                label: "Next Declaration or Usage",
                 accelerator: "Shift+CmdOrCtrl+B",
                 registerAccelerator: true,
                 click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {

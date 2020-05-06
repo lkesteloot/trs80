@@ -11,7 +11,6 @@ import "codemirror/addon/dialog/dialog.css";
 import "codemirror/addon/hint/show-hint.css";
 import "codemirror/addon/fold/foldgutter.css";
 import "./main.css";
-
 // Load these for their side-effects (they register themselves).
 import "codemirror/addon/dialog/dialog";
 import "codemirror/addon/search/search";
@@ -28,7 +27,6 @@ import "codemirror/mode/z80/z80";
 import * as fs from "fs";
 import Store from "electron-store";
 import {ClrInstruction, OpcodeTemplate, Variant} from "../assembler/OpcodesTypes";
-import {toHex} from "z80-base/dist/main";
 
 // Max number of sub-lines per line. These are lines where we display the
 // opcodes for a single source line.
@@ -46,11 +44,12 @@ type RangeFinderResult = {from: CodeMirror.Position, to: CodeMirror.Position} | 
 // Result of looking up what symbol we're on.
 class SymbolHit {
     public readonly symbol: SymbolInfo;
-    // Undefined if it's the definition.
-    public readonly referenceNumber: number | undefined;
+    public readonly isDefinition: boolean;
+    public readonly referenceNumber: number;
 
-    constructor(symbol: SymbolInfo, reference: number | undefined) {
+    constructor(symbol: SymbolInfo, isDefinition: boolean, reference: number) {
         this.symbol = symbol;
+        this.isDefinition = isDefinition;
         this.referenceNumber = reference;
     }
 }
@@ -388,15 +387,16 @@ class Ide {
     private findSymbolAt(lineNumber: number, column: number): SymbolHit | undefined {
         const assembledLine = this.assembledLines[lineNumber];
         for (const symbol of assembledLine.symbols) {
-            // See if we're at the definition.
-            if (symbol.definition !== undefined && symbol.matches(symbol.definition, lineNumber, column)) {
-                return new SymbolHit(symbol, undefined);
-            } else {
-                // See if we're at a use.
-                for (let i = 0; i < symbol.references.length; i++) {
-                    if (symbol.matches(symbol.references[i], lineNumber, column)) {
-                        return new SymbolHit(symbol, i);
-                    }
+            // See if we're at a definition.
+            for (let i = 0; i < symbol.definitions.length; i++) {
+                if (symbol.matches(symbol.definitions[i], lineNumber, column)) {
+                    return new SymbolHit(symbol, true, i);
+                }
+            }
+            // See if we're at a use.
+            for (let i = 0; i < symbol.references.length; i++) {
+                if (symbol.matches(symbol.references[i], lineNumber, column)) {
+                    return new SymbolHit(symbol, false, i);
                 }
             }
         }
@@ -406,27 +406,30 @@ class Ide {
 
     // Jump from a use to its definition and vice versa.
     //
-    // @param nextUse whether to jump to the next use if we're on one (true) or go to the definition (false).
+    // @param nextUse whether to cycle uses/definitions (true) or switch between use and definition (false).
     private jumpToDefinition(nextUse: boolean) {
         const pos = this.cm.getCursor();
         const symbolHit = this.findSymbolAt(pos.line, pos.ch);
         if (symbolHit !== undefined) {
             const symbol = symbolHit.symbol;
 
-            if (symbolHit.referenceNumber === undefined) {
-                if (symbol.references.length > 0) {
-                    // Jump to first use.
-                    const reference = symbol.references[0];
+            if (symbolHit.isDefinition) {
+                if (nextUse) {
+                    const reference = symbol.definitions[(symbolHit.referenceNumber + 1) % symbol.definitions.length];
                     this.setCursorToReference(reference);
+                } else if (symbol.references.length > 0) {
+                    this.setCursorToReference(symbol.references[0]);
                 } else {
-                    // TODO display error.
+                    // TODO: Display error.
                 }
             } else {
-                if (nextUse || symbol.definition === undefined) {
+                if (nextUse) {
                     const reference = symbol.references[(symbolHit.referenceNumber + 1) % symbol.references.length];
                     this.setCursorToReference(reference);
+                } else if (symbol.definitions.length > 0) {
+                    this.setCursorToReference(symbol.definitions[0]);
                 } else {
-                    this.setCursorToReference(symbol.definition);
+                    // TODO: Display error.
                 }
             }
         }
@@ -457,15 +460,17 @@ class Ide {
         if (symbolHit !== undefined) {
             const symbol = symbolHit.symbol;
 
-            if (symbol.definition !== undefined) {
-                const mark = this.cm.markText({line: symbol.definition.lineNumber, ch: symbol.definition.column},
-                    {line: symbol.definition.lineNumber, ch: symbol.definition.column + symbol.name.length},
+            // Highlight definitions.
+            for (const reference of symbol.definitions) {
+                const mark = this.cm.markText({line: reference.lineNumber, ch: reference.column},
+                    {line: reference.lineNumber, ch: reference.column + symbol.name.length},
                     {
                         className: "current-symbol",
                     });
                 this.symbolMarks.push(mark);
             }
 
+            // Highlight references.
             for (const reference of symbol.references) {
                 const mark = this.cm.markText({line: reference.lineNumber, ch: reference.column},
                     {line: reference.lineNumber, ch: reference.column + symbol.name.length},

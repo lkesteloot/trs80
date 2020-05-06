@@ -1,5 +1,5 @@
 import mnemonicData from "./Opcodes";
-import {hi, isByteReg, isWordReg, lo, toHex} from "z80-base";
+import {hi, isByteReg, isWordReg, lo} from "z80-base";
 import {Variant} from "./OpcodesTypes";
 import * as path from "path";
 import * as fs from "fs";
@@ -21,6 +21,13 @@ const PSEUDO_DEF_WORDS = new Set(["defw", "dw", ".dw", ".word"]);
 // Long-defining pseudo instructions.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z53.htm
 const PSEUDO_DEF_LONGS = new Set([".long"]);
+
+// Instruction to assign a value to a symbol. We don't support the "set" variant
+// because it clashes with the Z80 "set" instruction, and so requires extra
+// parsing logic.
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z71.htm
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z72.htm
+const PSEUDO_EQU = new Set(["equ", ".equ", "defl", "="]);
 
 // Org-setting pseudo instructions.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z50.htm
@@ -91,8 +98,10 @@ export class SymbolReference {
 export class SymbolInfo {
     public readonly name: string;
     public value: number;
-    public definition: SymbolReference | undefined;
+    public definitions: SymbolReference[] = [];
     public references: SymbolReference[] = [];
+    // If it has multiple definitions with different values.
+    public changesValue = false;
 
     constructor(name: string, value: number) {
         this.name = name;
@@ -270,8 +279,8 @@ export class Asm {
         // Fill in symbols of each line.
         for (const scope of this.scopes) {
             for (const symbol of scope.symbols.values()) {
-                if (symbol.definition !== undefined) {
-                    this.assembledLines[symbol.definition.lineNumber].symbols.push(symbol);
+                for (const reference of symbol.definitions) {
+                    this.assembledLines[reference.lineNumber].symbols.push(symbol);
                 }
                 for (const reference of symbol.references) {
                     this.assembledLines[reference.lineNumber].symbols.push(symbol);
@@ -480,6 +489,14 @@ class LineParser {
 
         this.skipWhitespace();
         let mnemonic = this.readIdentifier(false, true);
+        if (mnemonic === undefined) {
+            // Special check for "=", which is the same as "defl".
+            const column = this.column;
+            if (this.foundChar("=")) {
+                mnemonic = "=";
+                this.previousToken = column;
+            }
+        }
         if (mnemonic !== undefined && this.previousToken > 0) {
             if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
@@ -585,7 +602,7 @@ class LineParser {
                         break;
                     }
                 }
-            } else if (mnemonic === ".equ" || mnemonic === "equ") {
+            } else if (PSEUDO_EQU.has(mnemonic)) {
                 const value = this.readExpression(true);
                 if (value === undefined) {
                     this.assembledLine.error = "bad value for constant";
@@ -672,21 +689,18 @@ class LineParser {
             const scope = labelIsGlobal ? this.pass.globals() : this.pass.locals();
             let symbolInfo = scope.get(label);
             if (symbolInfo !== undefined) {
-                // Sanity check.
-                if (symbolInfo.definition !== undefined && labelValue !== symbolInfo.value) {
-                    // TODO should be programmer error.
-                    /*
-                    console.log("error: changing value of \"" + label + "\" from " + toHex(symbolInfo.value, 4) +
-                        " to " + toHex(labelValue, 4) + " in pass " + this.pass.passNumber);
-
-                     */
+                // Check if value is changing.
+                if (symbolInfo.definitions.length > 0 && symbolInfo.value !== labelValue) {
+                    symbolInfo.changesValue = true;
                 }
                 symbolInfo.value = labelValue;
             } else {
                 symbolInfo = new SymbolInfo(label, labelValue);
                 scope.set(label, symbolInfo);
             }
-            symbolInfo.definition = new SymbolReference(this.pass.lineNumber, symbolColumn);
+            if (this.pass.passNumber === 1) {
+                symbolInfo.definitions.push(new SymbolReference(this.pass.lineNumber, symbolColumn));
+            }
         }
     }
 
@@ -817,7 +831,7 @@ class LineParser {
                             let parsedPath = path.parse(filename);
                             if (LIBRARY_EXTS.has(parsedPath.ext)) {
                                 const symbol = this.pass.globals().get(parsedPath.name);
-                                if (symbol !== undefined && symbol.definition === undefined) {
+                                if (symbol !== undefined && symbol.definitions.length === 0) {
                                     // Found used but undefined symbol that matches a file in the library.
                                     const includePathname = path.resolve(libraryDir, filename);
                                     this.pass.insertLines([
@@ -865,7 +879,7 @@ class LineParser {
                     this.assembledLine.error = "#endlocal without #local";
                 } else {
                     for (const [identifier, symbol] of scope.symbols) {
-                        if (symbol.references.length > 0 && symbol.definition === undefined) {
+                        if (symbol.references.length > 0 && symbol.definitions.length === 0) {
                             scope.remove(identifier);
 
                             // Merge with this symbol in the parent, if any.
@@ -1189,8 +1203,14 @@ class LineParser {
             if (this.pass.passNumber === 1) {
                 // TODO I don't like this, given that evaluating this expression might be speculative.
                 symbolInfo.references.push(new SymbolReference(this.pass.lineNumber, startIndex));
-            } else if (symbolInfo.definition === undefined) {
+            } else if (symbolInfo.definitions.length === 0) {
                 this.assembledLine.error = "unknown identifier \"" + identifier + "\"";
+                return 0;
+            } else if (symbolInfo.definitions.length > 1 &&
+                symbolInfo.changesValue &&
+                symbolInfo.definitions[0].lineNumber >= this.pass.lineNumber) {
+
+                this.assembledLine.error = "label \"" + identifier + "\" not yet defined here";
                 return 0;
             }
             return symbolInfo.value;
