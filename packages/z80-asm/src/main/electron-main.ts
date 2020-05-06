@@ -2,7 +2,7 @@ import {app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, TouchBar} from 
 
 const { TouchBarButton } = TouchBar;
 
-function createWindow() {
+function createWindow(): BrowserWindow {
     // Create the browser window.
     const win = new BrowserWindow({
         width: 1200,
@@ -18,6 +18,8 @@ function createWindow() {
 
     // Open the DevTools.
     /// win.webContents.openDevTools()
+
+    return win;
 }
 
 // Default value for future Electron versions. Setting this avoids a warning.
@@ -27,9 +29,9 @@ app.allowRendererProcessReuse = true;
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-    createWindow();
+    const win = createWindow();
     setupMenus();
-    setupTouchBar();
+    setupTouchBar(win);
     setupMessageListeners();
 });
 
@@ -192,6 +194,15 @@ const template = [
                     focusedWindow.webContents.send("next-usage");
                 },
             },
+            { type: 'separator' },
+            {
+                label: "Next Error",
+                accelerator: "F2",
+                registerAccelerator: true,
+                click: (event: any, focusedWindow: BrowserWindow, focusedWebContents: any) => {
+                    focusedWindow.webContents.send("next-error");
+                },
+            },
         ],
     },
     {
@@ -249,12 +260,7 @@ function setupMenus() {
     Menu.setApplicationMenu(menu)
 }
 
-function setupTouchBar() {
-    const win = BrowserWindow.getFocusedWindow();
-    if (!win) {
-        return;
-    }
-
+function setupTouchBar(win: BrowserWindow) {
     const nextErrorButton = new TouchBarButton({
         label: 'Next Error',
         click: () => {
