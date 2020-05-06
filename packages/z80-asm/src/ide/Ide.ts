@@ -591,20 +591,21 @@ class Ide {
         const before2 = Date.now();
         const annotationMarks: any[] = [];
         for (let lineNumber = 0; lineNumber < this.assembledLines.length; lineNumber++) {
-            const results = this.assembledLines[lineNumber];
+            const assembledLine = this.assembledLines[lineNumber];
 
+            // Update gutter.
             let addressElement: HTMLElement | null;
-            if (results.binary.length > 0) {
+            if (assembledLine.binary.length > 0) {
                 addressElement = document.createElement("div");
 
                 // Break opcodes over multiple lines if necessary.
                 let numLines = 0;
                 for (let offset = 0;
-                     offset < results.binary.length && numLines < MAX_SUBLINES;
+                     offset < assembledLine.binary.length && numLines < MAX_SUBLINES;
                      offset += BYTES_PER_SUBLINE, numLines++) {
 
-                    const addressString = toHexWord(results.address + offset) +
-                        "  " + results.binary.slice(offset, offset + BYTES_PER_SUBLINE).map(toHexByte).join(" ");
+                    const addressString = toHexWord(assembledLine.address + offset) +
+                        "  " + assembledLine.binary.slice(offset, offset + BYTES_PER_SUBLINE).map(toHexByte).join(" ");
                     const addressTextElement = document.createTextNode(addressString);
                     if (offset > 0) {
                         addressElement.appendChild(document.createElement("br"));
@@ -619,10 +620,10 @@ class Ide {
                     this.cm.addLineClass(lineNumber, "wrap", "line-height-" + numLines);
                 }
 
-                if (results.variant !== undefined) {
-                    let popup = results.variant.clr !== null
-                        ? this.getPopupForClr(results.variant.clr)
-                        : this.getPopupForPseudoInstruction(results.variant);
+                if (assembledLine.variant !== undefined) {
+                    let popup = assembledLine.variant.clr !== null
+                        ? this.getPopupForClr(assembledLine.variant.clr)
+                        : this.getPopupForPseudoInstruction(assembledLine.variant);
                     if (popup !== undefined) {
                         addressElement.addEventListener("mouseenter", () => {
                             if (addressElement !== null && (addressElement as any)._tippy === undefined) {
@@ -640,7 +641,8 @@ class Ide {
             }
             this.cm.setGutterMarker(lineNumber, "gutter-assembled", addressElement);
 
-            if (results.error === undefined) {
+            // Update errors.
+            if (assembledLine.error === undefined) {
                 this.cm.removeLineClass(lineNumber, "background", "error-line");
             } else {
                 this.cm.addLineClass(lineNumber, "background", "error-line");
@@ -664,6 +666,23 @@ class Ide {
                     className: "error-line",
                 }));
                  */
+            }
+
+            // Handle synthetic lines.
+            if (assembledLine.lineNumber === undefined) {
+                // I don't know if we need to remember these marks and delete them ourselves, or
+                // if the setValue() call will do it.
+                this.cm.markText({line: lineNumber, ch: 0}, {line: lineNumber + 1, ch: 0}, {
+                    inclusiveLeft: false,
+                    inclusiveRight: false,
+                    // These are not in the type definition. Not sure if we need them.
+                    // selectLeft: false,
+                    // selectRight: true,
+                    atomic: true,
+                    collapsed: false,
+                    clearOnEnter: false,
+                    css: "color: #666",
+                });
             }
         }
         console.log("Updating gutters and line widgets: " + (Date.now() - before2));
