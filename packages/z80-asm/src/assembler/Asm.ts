@@ -340,6 +340,8 @@ class Pass {
     public target: Target = "bin";
     // Number (in listing) of line we're assembling.
     public lineNumber = 0;
+    // Number of library files we included.
+    public libraryIncludeCount = 0;
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
@@ -369,7 +371,8 @@ class Pass {
             }
         }
         const after = Date.now();
-        console.log("Pass " + this.passNumber + " time: " + (after - before));
+        console.log("Pass " + this.passNumber + " time: " + (after - before) +
+            ", library includes: " + this.libraryIncludeCount);
     }
 
     /**
@@ -650,6 +653,7 @@ class LineParser {
                     } else {
                         fillChar = lo(fillChar);
 
+                        this.assembledLine.binary.splice(0, this.assembledLine.binary.length);
                         for (let i = 0; i < length; i++) {
                             this.assembledLine.binary.push(fillChar);
                         }
@@ -822,6 +826,8 @@ class LineParser {
                                         new AssembledLine(this.assembledLine.fileInfo, undefined,
                                             this.line),
                                     ]);
+                                    this.pass.libraryIncludeCount++;
+                                    break;
                                 }
                             }
                         }

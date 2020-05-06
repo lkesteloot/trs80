@@ -659,13 +659,16 @@ class Ide {
                 // height of the widget. It also really slows down updating the
                 // scrollbar below, probably for the same reason. Maybe put it back in
                 // when we support macros and our files don't bleed so red.
+                // Also I'm not sure I like those always being there and popping in and
+                // out, maybe find a better way to do that, like only show it when
+                // the user clicks the error line.
                 /*
                 const node = document.createElement("span");
-                node.appendChild(document.createTextNode(results.error));
+                node.appendChild(document.createTextNode(assembledLine.error));
                 this.lineWidgets.push(this.cm.addLineWidget(lineNumber, node, {
                     className: "error-line",
                 }));
-                 */
+                */
             }
 
             // Handle synthetic lines.
