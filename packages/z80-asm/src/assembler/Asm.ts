@@ -150,6 +150,8 @@ export class AssembledLine {
     public readonly lineNumber: number | undefined;
     // Text of line.
     public readonly line: string;
+    // Line number in the listing.
+    public listingLineNumber = 0;
     // Address of this line.
     public address = 0;
     // Decoded opcodes and parameters:
@@ -158,7 +160,7 @@ export class AssembledLine {
     public error: string | undefined;
     // The variant of the instruction, if any.
     public variant: Variant | undefined;
-    // List of symbols defined or references on this line.
+    // List of symbols defined or referenced on this line.
     public readonly symbols: SymbolInfo[] = [];
     // The next address, if it was explicitly specified.
     private specifiedNextAddress: number | undefined;
@@ -339,8 +341,6 @@ export class Asm {
 class Pass {
     public readonly asm: Asm;
     public readonly passNumber: number;
-    // Address of line being parsed.
-    public address = 0;
     // The current scope, local or global.
     public currentScope: Scope;
     // Number of scopes defined so far in this pass, including global (index 0).
@@ -348,7 +348,7 @@ class Pass {
     // Target type (bin, rom).
     public target: Target = "bin";
     // Number (in listing) of line we're assembling.
-    public lineNumber = 0;
+    private listingLineNumber = 0;
     // Number of library files we included.
     public libraryIncludeCount = 0;
 
@@ -364,12 +364,15 @@ class Pass {
      */
     public run(): void {
         const before = Date.now();
+
         // Assemble every line.
-        for (this.lineNumber = 0; this.lineNumber < this.asm.assembledLines.length; this.lineNumber++) {
-            const assembledLine = this.asm.assembledLines[this.lineNumber];
-            assembledLine.address = this.address;
+        this.listingLineNumber = 0;
+        while (true) {
+            const assembledLine = this.getNextLine();
+            if (assembledLine === undefined) {
+                break;
+            }
             new LineParser(this, assembledLine).assemble();
-            this.address = assembledLine.nextAddress;
         }
 
         // Make sure our #local and #endlocal are balanced.
@@ -385,11 +388,27 @@ class Pass {
     }
 
     /**
+     * Return the next line of the listing file, or undefined if there are no more.
+     */
+    public getNextLine(): AssembledLine | undefined {
+        if (this.listingLineNumber < 0 || this.listingLineNumber >= this.asm.assembledLines.length) {
+            return undefined;
+        }
+
+        const listingLineNumber = this.listingLineNumber++;
+        const assembledLine = this.asm.assembledLines[listingLineNumber];
+        assembledLine.listingLineNumber = listingLineNumber;
+        assembledLine.address = listingLineNumber === 0 ? 0 : this.asm.assembledLines[listingLineNumber - 1].nextAddress;
+
+        return assembledLine;
+    }
+
+    /**
      * Insert the specified lines immediately after the line currently being assembled.
      * @param assembledLines
      */
     public insertLines(assembledLines: AssembledLine[]): void {
-        this.asm.assembledLines.splice(this.lineNumber + 1, 0, ...assembledLines);
+        this.asm.assembledLines.splice(this.listingLineNumber, 0, ...assembledLines);
     }
 
     /**
@@ -458,7 +477,7 @@ class LineParser {
 
     public assemble(): void {
         // Convenience.
-        const thisAddress = this.pass.address;
+        const thisAddress = this.assembledLine.address;
 
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
@@ -699,7 +718,7 @@ class LineParser {
                 scope.set(label, symbolInfo);
             }
             if (this.pass.passNumber === 1) {
-                symbolInfo.definitions.push(new SymbolReference(this.pass.lineNumber, symbolColumn));
+                symbolInfo.definitions.push(new SymbolReference(this.assembledLine.listingLineNumber, symbolColumn));
             }
         }
     }
@@ -1202,13 +1221,13 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 // TODO I don't like this, given that evaluating this expression might be speculative.
-                symbolInfo.references.push(new SymbolReference(this.pass.lineNumber, startIndex));
+                symbolInfo.references.push(new SymbolReference(this.assembledLine.listingLineNumber, startIndex));
             } else if (symbolInfo.definitions.length === 0) {
                 this.assembledLine.error = "unknown identifier \"" + identifier + "\"";
                 return 0;
             } else if (symbolInfo.definitions.length > 1 &&
                 symbolInfo.changesValue &&
-                symbolInfo.definitions[0].lineNumber >= this.pass.lineNumber) {
+                symbolInfo.definitions[0].lineNumber >= this.assembledLine.listingLineNumber) {
 
                 this.assembledLine.error = "label \"" + identifier + "\" not yet defined here";
                 return 0;
