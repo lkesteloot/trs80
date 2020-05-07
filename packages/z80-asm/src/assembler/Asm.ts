@@ -41,8 +41,17 @@ const PSEUDO_ALIGN = new Set(["align", ".align"]);
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z56.htm
 const PSEUDO_FILL = new Set(["defs", "ds", ".ds", ".block", ".blkb", "data"]);
 
+// Pseudo instructions to start and end macro definitions.
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z64.htm#A
+const PSEUDO_MACRO = new Set(["macro", ".macro"]);
+const PSEUDO_ENDM = new Set(["endm", ".endm"]);
+
 // Valid extensions for files in library directories. Use the same list as zasm.
 const LIBRARY_EXTS = new Set([".s", ".ass", ".asm"]);
+
+// Possible tags for macro parameters.
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z65.htm#A
+const MACRO_TAGS = ["!", "#", "$", "%", "&", ".", ":", "?", "@", "\\", "^", "_", "|", "~"];
 
 // Type of target we can handle.
 type Target = "bin" | "rom";
@@ -67,6 +76,11 @@ function isFlag(s: string): boolean {
 function isLegalIdentifierCharacter(ch: string, isFirst: boolean) {
     return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '.' || ch == '_' ||
         (!isFirst && (ch >= '0' && ch <= '9'));
+}
+
+// Whether the specified character counts as horizontal whitespace.
+function isWhitespace(c: string): boolean {
+    return c === " " || c === "\t";
 }
 
 /**
@@ -195,6 +209,32 @@ export class SourceFile {
 }
 
 /**
+ * Macro definition.
+ */
+class Macro {
+    public readonly name: string;
+    // Single-character tag, like "&", "\\", or "#".
+    public readonly tag: string;
+    // Parameter names, not including the tags.
+    public readonly params: string[];
+    // Line number of ".macro" in the listing.
+    public readonly macroListingLineNumber: number;
+    // Line number of ".endm" in the listing.
+    public readonly endmListingLineNumber: number;
+    // Lines of text, not including .macro or endm.
+    public readonly lines: string[];
+
+    constructor(name: string, tag: string, params: string[], macroListingLineNumber: number, endmListingLineNumber: number, lines: string[]) {
+        this.name = name;
+        this.tag = tag;
+        this.params = params;
+        this.macroListingLineNumber = macroListingLineNumber;
+        this.endmListingLineNumber = endmListingLineNumber;
+        this.lines = lines;
+    }
+}
+
+/**
  * Scope for symbols.
  */
 class Scope {
@@ -235,6 +275,8 @@ export class Asm {
     public assembledLines: AssembledLine[] = [];
     // Cache from full directory path to list of filenames in the directory.
     private dirCache = new Map<string,string[]>();
+    // Map from macro name (lower case) to its definition.
+    public macros = new Map<string,Macro>();
 
     constructor(fileReader: FileReader) {
         this.fileReader = fileReader;
@@ -361,9 +403,13 @@ class Pass {
     /**
      * Assembles the lines of the file. Returns a FileInfo object for this tree, or undefined
      * if the file couldn't be read.
+     *
+     * @return the number of errors.
      */
-    public run(): void {
+    public run(): number {
         const before = Date.now();
+
+        let errorCount = 0;
 
         // Assemble every line.
         this.listingLineNumber = 0;
@@ -373,6 +419,10 @@ class Pass {
                 break;
             }
             new LineParser(this, assembledLine).assemble();
+
+            if (assembledLine.error !== undefined) {
+                errorCount++;
+            }
         }
 
         // Make sure our #local and #endlocal are balanced.
@@ -383,8 +433,14 @@ class Pass {
             }
         }
         const after = Date.now();
+
+        /*
         console.log("Pass " + this.passNumber + " time: " + (after - before) +
-            ", library includes: " + this.libraryIncludeCount);
+            ", library includes: " + this.libraryIncludeCount +
+            ", errors: " + errorCount);
+         */
+
+        return errorCount;
     }
 
     /**
@@ -401,6 +457,13 @@ class Pass {
         assembledLine.address = listingLineNumber === 0 ? 0 : this.asm.assembledLines[listingLineNumber - 1].nextAddress;
 
         return assembledLine;
+    }
+
+    /**
+     * Rewind or skip ahead to this location. This line will be parsed next.
+     */
+    public setListingLineNumber(listingLineNumber: number): void {
+        this.listingLineNumber = listingLineNumber;
     }
 
     /**
@@ -478,6 +541,9 @@ class LineParser {
     public assemble(): void {
         // Convenience.
         const thisAddress = this.assembledLine.address;
+
+        // Clear out anything we put in previous passes.
+        this.assembledLine.binary.length = 0;
 
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
@@ -689,12 +755,114 @@ class LineParser {
                     } else {
                         fillChar = lo(fillChar);
 
-                        this.assembledLine.binary.splice(0, this.assembledLine.binary.length);
                         for (let i = 0; i < length; i++) {
                             this.assembledLine.binary.push(fillChar);
                         }
                     }
                 }
+            } else if (PSEUDO_MACRO.has(mnemonic)) {
+                // Macro definition.
+                let name: string | undefined;
+                let tag: string;
+                if (label !== undefined) {
+                    name = label;
+                    label = undefined;
+                    tag = "&";
+                } else {
+                    name = this.readIdentifier(true, false);
+                    if (name === undefined) {
+                        this.assembledLine.error = "must specify name of macro";
+                        return;
+                    }
+                    tag = "\\";
+                }
+
+                // Convert to lower case because all mnemonics are case-insensitive.
+                name = name.toLowerCase();
+                const macro = this.pass.asm.macros.get(name);
+
+                if (this.pass.passNumber > 1) {
+                    // Skip macro definition.
+                    if (macro === undefined) {
+                        throw new Error("Macro \"" + name + "\" not found in pass " + this.pass.passNumber);
+                    }
+
+                    this.pass.setListingLineNumber(macro.endmListingLineNumber + 1);
+                    return;
+                } else {
+                    // Can't redefine macro.
+                    if (macro !== undefined) {
+                        this.assembledLine.error = "macro \"" + name + "\" already defined";
+                        return;
+                    }
+
+                    // Parse parameters.
+                    const params: string[] = [];
+                    if (!this.isEndOfLine()) {
+                        // See if the first parameter specifies a tag. It's okay to not have one.
+                        tag = this.foundOneOfChar(MACRO_TAGS) ?? tag;
+
+                        do {
+                            const thisTag = this.foundOneOfChar(MACRO_TAGS) ?? tag;
+                            if (thisTag !== tag) {
+                                this.assembledLine.error = "Inconsistent tags in macro: " + tag + " and " + thisTag;
+                                return;
+                            }
+
+                            const param = this.readIdentifier(true, false);
+                            if (param === undefined) {
+                                this.assembledLine.error = "expected macro parameter name";
+                                return;
+                            }
+
+                            params.push(param);
+                        } while (this.foundChar(","));
+
+                        // Make sure there's no extra junk.
+                        this.ensureEndOfLine();
+                    }
+
+                    // Eat rest of macro.
+                    const macroListingLineNumber = this.assembledLine.listingLineNumber;
+                    let endmListingLineNumber: number | undefined = undefined;
+                    const lines: string[] = [];
+
+                    while (true) {
+                        const assembledLine = this.pass.getNextLine();
+                        if (assembledLine === undefined) {
+                            this.assembledLine.error = "macro has no endm";
+                            break;
+                        }
+
+                        const lineParser = new LineParser(this.pass, assembledLine);
+                        // TODO check to make sure macro doesn't contain a # directive, unless the tag is
+                        // # and the directive is one of the param names.
+                        lineParser.skipWhitespace();
+                        const token = lineParser.readIdentifier(false, true);
+                        if (token !== undefined && PSEUDO_ENDM.has(token)) {
+                            endmListingLineNumber = assembledLine.listingLineNumber;
+                            break;
+                        }
+
+                        lines.push(assembledLine.line);
+                    }
+
+                    if (endmListingLineNumber === undefined) {
+                        // Error in macro. Try to recover.
+                        endmListingLineNumber = macroListingLineNumber;
+                        lines.splice(0, lines.length);
+                        this.pass.setListingLineNumber(macroListingLineNumber + 1);
+                    }
+
+                    this.pass.asm.macros.set(name, new Macro(name, tag, params,
+                        macroListingLineNumber, endmListingLineNumber, lines));
+
+                    // Don't want to parse any more of the original macro line.
+                    return;
+                }
+            } else if (PSEUDO_ENDM.has(mnemonic)) {
+                this.assembledLine.error = "endm outside of macro definition";
+                return;
             } else {
                 this.processOpCode(mnemonic);
             }
@@ -768,6 +936,16 @@ class LineParser {
         return value;
     }
 
+    // Advance the parser to the end of the line.
+    private skipToEndOfLine(): void {
+        this.column = this.line.length;
+    }
+
+    // Whether we're at the end of the line. Assumes we've already skipped whitespace.
+    private isEndOfLine(): boolean {
+        return this.isChar(";") || this.column === this.line.length;
+    }
+
     // Make sure there's no junk at the end of the line.
     private ensureEndOfLine(): void {
         // Check for comment.
@@ -775,7 +953,7 @@ class LineParser {
             // Skip rest of line.
             this.column = this.line.length;
         }
-        if (this.column != this.line.length) {
+        if (this.column != this.line.length && this.assembledLine.error === undefined) {
             this.assembledLine.error = "syntax error";
         }
     }
@@ -924,6 +1102,66 @@ class LineParser {
     }
 
     private processOpCode(mnemonic: string): void {
+        const macro = this.pass.asm.macros.get(mnemonic);
+        if (macro !== undefined) {
+            if (this.pass.passNumber > 1) {
+                if (this.assembledLine.listingLineNumber > macro.endmListingLineNumber) {
+                    // Valid, used after definition. Skip macro call.
+                    this.skipToEndOfLine();
+                    return;
+                } else {
+                    // Ignore, will probably be an error below.
+                }
+            } else {
+                // Pass 1, expand macro.
+
+                // Parse arguments.
+                const args: string[] = [];
+                if (!this.isEndOfLine()) {
+                    do {
+                        const begin = this.column;
+                        while (this.column < this.line.length && !this.isChar(",") && !this.isChar(";")) {
+                            if (this.isChar("\"") || this.isChar("'")) {
+                                const str = this.readString();
+                                if (str === undefined) {
+                                    // Error is already set.
+                                    return;
+                                }
+                            } else {
+                                this.column++;
+                            }
+                        }
+                        // Back up over trailing spaces.
+                        while (this.column > begin && isWhitespace(this.line.charAt(this.column - 1))) {
+                            this.column--;
+                        }
+
+                        const arg = this.line.substring(begin, this.column);
+                        args.push(arg);
+
+                        this.skipWhitespace();
+                    } while (this.foundChar(","));
+                }
+
+                // Make sure we got the right number.
+                if (args.length < macro.params.length) {
+                    // Give name of argument as hint to what to type next.
+                    this.assembledLine.error = "macro missing \"" + macro.params[args.length] + "\" argument";
+                    return;
+                }
+                if (args.length > macro.params.length) {
+                    this.assembledLine.error = "macro got too many arguments (" + args.length +
+                        " instead of " + macro.params.length + ")";
+                    return;
+                }
+
+                const assembledLines = macro.lines.map((line) =>
+                    new AssembledLine(this.assembledLine.fileInfo, undefined, this.performMacroSubstitutions(line, macro, args)));
+                this.pass.insertLines(assembledLines);
+                return;
+            }
+        }
+
         const mnemonicInfo = mnemonicData.mnemonics[mnemonic];
         if (mnemonicInfo !== undefined) {
             const argStart = this.column;
@@ -1025,6 +1263,40 @@ class LineParser {
         } else {
             this.assembledLine.error = "unknown mnemonic: " + mnemonic;
         }
+    }
+
+    /**
+     * Substitute macro parameters and expand {} expressions.
+     */
+    private performMacroSubstitutions(line: string, macro: Macro, args: string[]): string {
+        const parts: string[] = [];
+
+        let i = 0;
+        while (i < line.length) {
+            const ch = line.charAt(i);
+            if (ch === macro.tag) {
+                const beginName = i + 1;
+                let endName = beginName;
+                while (endName < line.length && isLegalIdentifierCharacter(line.charAt(endName), endName === beginName)) {
+                    endName++;
+                }
+
+                const name = line.substring(beginName, endName);
+                const argIndex = macro.params.indexOf(name);
+                if (argIndex >= 0) {
+                    parts.push(args[argIndex]);
+                    i = endName;
+                } else {
+                    parts.push(ch);
+                    i++;
+                }
+            } else {
+                parts.push(ch);
+                i++;
+            }
+        }
+
+        return parts.join("");
     }
 
     /**
@@ -1357,7 +1629,7 @@ class LineParser {
     }
 
     private skipWhitespace(): void {
-        while (this.column < this.line.length && (this.line[this.column] === ' ' || this.line[this.column] === '\t')) {
+        while (this.column < this.line.length && isWhitespace(this.line[this.column])) {
             this.column++;
         }
     }

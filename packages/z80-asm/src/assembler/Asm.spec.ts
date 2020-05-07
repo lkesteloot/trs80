@@ -1,7 +1,7 @@
 
 import { expect } from "chai";
 import "mocha";
-import {Asm} from "./Asm";
+import {Asm, SourceFile} from "./Asm";
 
 interface TestLine {
     line: string;
@@ -174,4 +174,85 @@ describe("number parsing", () => {
             expect(asm.scopes[0].get("foo")?.value).to.be.equal(expected);
         });
     }
+});
+
+function runMacroTest(testLines: string[], expectedOpcodes: number[]): void {
+    const asm = new Asm((pathname) => testLines);
+    const sourceFile = asm.assembleFile("unused.asm");
+    if (sourceFile === undefined) {
+        throw new Error("File not found");
+    }
+    const opcodes: number[] = [];
+    for (const assembledLine of sourceFile.assembledLines) {
+        opcodes.splice(opcodes.length, 0, ... assembledLine.binary);
+    }
+    expect(opcodes).to.deep.equal(expectedOpcodes);
+}
+
+describe("assemble", () => {
+    it("macro label first", () => {
+        runMacroTest([
+            "foo macro",
+            "    nop",
+            "    endm",
+            "    foo",
+            "    foo",
+        ], [0, 0]);
+    });
+    it("macro label last", () => {
+        runMacroTest([
+            "    macro foo",
+            "    nop",
+            "    endm",
+            "    foo",
+            "    foo",
+        ], [0, 0]);
+    });
+    it("macro param label first", () => {
+        runMacroTest([
+            "foo macro p1",
+            "    ld a, &p1",
+            "    endm",
+            "    foo 1",
+            "    foo 2",
+        ], [0x3E, 1, 0x3E, 2]);
+    });
+    it("macro param label last", () => {
+        runMacroTest([
+            "    macro foo p1",
+            "    ld a, \\p1",
+            "    endm",
+            "    foo 1",
+            "    foo 2",
+        ], [0x3E, 1, 0x3E, 2]);
+    });
+    it("macro params", () => {
+        runMacroTest([
+            "    macro foo p1, p2",
+            "    ld a, \\p1",
+            "    ld a, \\p2",
+            "    endm",
+            "    foo 1, 2",
+            "    foo 3, 4",
+        ], [0x3E, 1, 0x3E, 2, 0x3E, 3, 0x3E, 4]);
+    });
+    it("macro tag", () => {
+        runMacroTest([
+            "    macro foo #p1, #p2",
+            "    ld a, #p1",
+            "    ld a, #p2",
+            "    endm",
+            "    foo 1, 2",
+            "    foo 3, 4",
+        ], [0x3E, 1, 0x3E, 2, 0x3E, 3, 0x3E, 4]);
+    });
+    it("macro arg", () => {
+        runMacroTest([
+            "    macro foo p",
+            "    .text \\p",
+            "    endm",
+            "    foo 'A,B;C'",
+            "    foo \"A,B;C\"",
+        ], [0x41, 0x2C, 0x42, 0x3B, 0x43, 0x41, 0x2C, 0x42, 0x3B, 0x43]);
+    });
 });

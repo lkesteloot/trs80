@@ -674,6 +674,7 @@ class Ide {
                     className: "error-line",
                 }));
                 */
+                console.log(assembledLine.error);// TODO remove
             }
 
             // Handle synthetic lines.
