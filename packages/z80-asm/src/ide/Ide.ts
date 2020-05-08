@@ -532,8 +532,11 @@ class Ide {
         const newLines: string[] = [];
         for (const lineNumber of lineNumbers) {
             // Skip synthetic lines.
-            const assembledLine = this.assembledLines[lineNumber];
-            if (assembledLine.lineNumber !== undefined) {
+            const lineInfo = this.cm.lineInfo(lineNumber);
+            const isSynthetic = lineInfo.textClass === undefined
+                ? false
+                : lineInfo.textClass.split(" ").indexOf("synthetic-line") >= 0;
+            if (!isSynthetic) {
                 const text = this.cm.getLine(lineNumber);
                 newLines.push(text);
             }
@@ -670,6 +673,8 @@ class Ide {
 
             // Handle synthetic lines.
             if (assembledLine.lineNumber === undefined) {
+                this.cm.addLineClass(lineNumber, "text", "synthetic-line");
+
                 // I don't know if we need to remember these marks and delete them ourselves, or
                 // if the setValue() call will do it.
                 this.cm.markText({line: lineNumber, ch: 0}, {line: lineNumber + 1, ch: 0}, {

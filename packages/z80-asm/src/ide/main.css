@@ -22,6 +22,9 @@ body {
     background-color: #400 !important;
     /* text-decoration: #C00 wavy underline; */
 }
+.synthetic-line {
+    /* Nothing this is just a marker class. */
+}
 .CodeMirror-linenumber {
     color: #585 !important;
 }
