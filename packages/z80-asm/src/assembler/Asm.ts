@@ -1436,7 +1436,7 @@ class LineParser {
         let op = "";
 
         while (true) {
-            const subValue = this.readAtom();
+            const subValue = this.readMonadic();
             if (subValue === undefined) {
                 return undefined;
             }
@@ -1459,6 +1459,32 @@ class LineParser {
         }
 
         return value;
+    }
+
+    private readMonadic(): number | undefined {
+        const ch = this.foundOneOfChar(["+", "-", "~", "!"]);
+        if (ch !== undefined) {
+            const value = this.readMonadic();
+            if (value === undefined) {
+                return undefined;
+            }
+            switch (ch) {
+                case "+":
+                default:
+                    return value;
+
+                case "-":
+                    return -value;
+
+                case "~":
+                    return ~value;
+
+                case "!":
+                    return !value ? 1 : 0;
+            }
+        } else {
+            return this.readAtom();
+        }
     }
 
     private readAtom(): number | undefined {
