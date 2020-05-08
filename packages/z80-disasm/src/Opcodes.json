@@ -6509,9 +6509,6 @@
       "7c": {
         "mnemonic": "neg"
       },
-      "4d": {
-        "mnemonic": "retn"
-      },
       "5d": {
         "mnemonic": "retn"
       },
@@ -6546,6 +6543,9 @@
           "bc",
           "(nnnn)"
         ]
+      },
+      "4d": {
+        "mnemonic": "reti"
       },
       "4f": {
         "mnemonic": "ld",
