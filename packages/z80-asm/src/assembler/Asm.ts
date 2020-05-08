@@ -1258,7 +1258,7 @@ class LineParser {
                 }
             }
 
-            if (!match) {
+            if (!match && this.assembledLine.error === undefined) {
                 this.assembledLine.error = "no variant found for " + mnemonic;
             }
         } else {
@@ -1492,7 +1492,7 @@ class LineParser {
 
         // Parenthesized expression.
         if (this.foundChar('(')) {
-            const value = this.readSum();
+            const value = this.readExpression(true);
             if (value === undefined || !this.foundChar(')')) {
                 return undefined;
             }
@@ -1502,7 +1502,35 @@ class LineParser {
         // Try identifier.
         const identifier = this.readIdentifier(false, false);
         if (identifier !== undefined) {
-            // Get address of identifier or value of constant.
+            // See if it's a built-in function.
+            if (this.foundChar("(")) {
+                const value = this.readExpression(true);
+                if (value === undefined) {
+                    if (this.assembledLine.error === undefined) {
+                        this.assembledLine.error = "missing expression for function call";
+                    }
+                    return undefined;
+                }
+                if (!this.foundChar(")")) {
+                    if (this.assembledLine.error === undefined) {
+                        this.assembledLine.error = "missing end parenthesis for function call";
+                    }
+                    return undefined;
+                }
+                switch (identifier) {
+                    case "lo":
+                        return lo(value);
+
+                    case "hi":
+                        return hi(value);
+
+                    default:
+                        this.assembledLine.error = "unknown function \"" + identifier + "\"";
+                        return undefined;
+                }
+            }
+
+            // Must be symbol reference. Get address of identifier or value of constant.
 
             // Local symbols can shadow global ones, and might not be defined yet, so only check
             // the local scope in pass 1. In pass 2 the identifier must have been defined somewhere.
