@@ -190,6 +190,16 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcode: [0x44, 0x4D],
         clr: null,
     });
+    mnemonics["ld"].variants.push({
+        tokens: ["de", ",", "hl"],
+        opcode: [0x54, 0x5D],
+        clr: null,
+    });
+    mnemonics["ld"].variants.push({
+        tokens: ["hl", ",", "de"],
+        opcode: [0x62, 0x6B],
+        clr: null,
+    });
 }
 
 function generateOpcodes(): void {

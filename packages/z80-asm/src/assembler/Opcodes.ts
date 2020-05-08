@@ -15681,6 +15681,30 @@ const opcodes: Instructions = {
             77
           ],
           "clr": null
+        },
+        {
+          "tokens": [
+            "de",
+            ",",
+            "hl"
+          ],
+          "opcode": [
+            84,
+            93
+          ],
+          "clr": null
+        },
+        {
+          "tokens": [
+            "hl",
+            ",",
+            "de"
+          ],
+          "opcode": [
+            98,
+            107
+          ],
+          "clr": null
         }
       ]
     },
