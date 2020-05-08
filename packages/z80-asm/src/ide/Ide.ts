@@ -578,7 +578,9 @@ class Ide {
         }
         let newValue = lines.join("\n");
         if (newValue !== this.cm.getValue()) {
+            const cursor = this.cm.getCursor();
             this.cm.setValue(newValue);
+            this.cm.setCursor(cursor);
         }
 
         const before1 = Date.now();
@@ -659,22 +661,11 @@ class Ide {
                 });
 
                 // Write error below line.
-                // Disable this, it's really slow when the file has a lot of errors.
-                // It forces the browser to do a layout because CM wants to know the
-                // height of the widget. It also really slows down updating the
-                // scrollbar below, probably for the same reason. Maybe put it back in
-                // when we support macros and our files don't bleed so red.
-                // Also I'm not sure I like those always being there and popping in and
-                // out, maybe find a better way to do that, like only show it when
-                // the user clicks the error line.
-                /*
                 const node = document.createElement("span");
                 node.appendChild(document.createTextNode(assembledLine.error));
                 this.lineWidgets.push(this.cm.addLineWidget(lineNumber, node, {
                     className: "error-line",
                 }));
-                */
-                console.log(assembledLine.error);// TODO remove
             }
 
             // Handle synthetic lines.
