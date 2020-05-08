@@ -1084,7 +1084,7 @@ class LineParser {
                             if (parentSymbol === undefined) {
                                 scope.parent.set(identifier, symbol);
                             } else {
-                                parentSymbol.references.splice(0, 0, ...symbol.references);
+                                parentSymbol.references.splice(parentSymbol.references.length, 0, ...symbol.references);
                             }
                         }
                     }
@@ -1102,6 +1102,7 @@ class LineParser {
     }
 
     private processOpCode(mnemonic: string): void {
+        // See if we should expand a macro.
         const macro = this.pass.asm.macros.get(mnemonic);
         if (macro !== undefined) {
             if (this.pass.passNumber > 1) {
@@ -1213,8 +1214,8 @@ class LineParser {
                 }
 
                 if (match) {
-                    // See if it's the end of the line.
-                    if (this.column < this.line.length && !this.isChar(';')) {
+                    // Make sure they're no extra garbage.
+                    if (!this.isEndOfLine()) {
                         match = false;
                     }
                 }
