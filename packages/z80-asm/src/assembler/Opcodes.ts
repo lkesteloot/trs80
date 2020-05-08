@@ -16478,7 +16478,7 @@ const opcodes: Instructions = {
           "tokens": [
             "af",
             ",",
-            "af"
+            "af'"
           ],
           "opcode": [
             8

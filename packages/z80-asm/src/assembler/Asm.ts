@@ -1692,6 +1692,7 @@ class LineParser {
     private readIdentifier(allowRegister: boolean, toLowerCase: boolean): string | undefined {
         const startIndex = this.column;
 
+        // Skip through the identifier.
         while (this.column < this.line.length && isLegalIdentifierCharacter(this.line[this.column], this.column == startIndex)) {
             this.column++;
         }
@@ -1700,6 +1701,10 @@ class LineParser {
             let identifier = this.line.substring(startIndex, this.column);
             if (toLowerCase) {
                 identifier = identifier.toLowerCase();
+            }
+            // Special case to parse AF'.
+            if (allowRegister && identifier.toLowerCase() === "af" && this.foundChar("'")) {
+                identifier += "'";
             }
             if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || isFlag(identifier))) {
                 // Register names can't be identifiers.

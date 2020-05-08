@@ -18,7 +18,7 @@ import {toHexByte} from "z80-base";
 import {Variant, OpcodeTemplate, ClrInstruction, Mnemonics, Instructions} from "../assembler/OpcodesTypes";
 
 // Break args into sequences of letters, digits, or single punctuation.
-const TOKENIZING_REGEXP = /([a-z]+)|([,+()])|([0-9]+)|(;.*)/g;
+const TOKENIZING_REGEXP = /([a-z]+)'?|([,+()])|([0-9]+)|(;.*)/g;
 
 interface ClrFile {
     instructions: ClrInstruction[];
