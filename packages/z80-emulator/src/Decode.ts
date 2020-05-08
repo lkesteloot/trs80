@@ -5888,7 +5888,6 @@ decodeMapED.set(0x7D, (z80: Z80) => { // retn
     z80.regs.memptr = z80.regs.pc;
 });
 decodeMapED.set(0x45, decodeMapED.get(0x7D) as OpcodeFunc);
-decodeMapED.set(0x4D, decodeMapED.get(0x7D) as OpcodeFunc);
 decodeMapED.set(0x55, decodeMapED.get(0x7D) as OpcodeFunc);
 decodeMapED.set(0x5D, decodeMapED.get(0x7D) as OpcodeFunc);
 decodeMapED.set(0x65, decodeMapED.get(0x7D) as OpcodeFunc);
@@ -5940,6 +5939,11 @@ decodeMapED.set(0x4B, (z80: Z80) => { // ld bc,(nnnn)
     z80.regs.memptr = inc16(addr);
     value = word(z80.readByte(z80.regs.memptr), value);
     z80.regs.bc = value;
+});
+decodeMapED.set(0x4D, (z80: Z80) => { // reti
+    z80.regs.iff1 = z80.regs.iff2;
+    z80.regs.pc = z80.popWord();
+    z80.regs.memptr = z80.regs.pc;
 });
 decodeMapED.set(0x4F, (z80: Z80) => { // ld r,a
     let value: number;

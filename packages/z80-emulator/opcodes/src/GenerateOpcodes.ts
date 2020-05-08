@@ -1029,6 +1029,7 @@ function generateDispatch(pathname: string, prefix: string): string {
                     break;
                 }
 
+                case "reti":
                 case "retn": {
                     addLine(output, "z80.regs.iff1 = z80.regs.iff2;");
                     addLine(output, "z80.regs.pc = z80.popWord();");
