@@ -24,10 +24,11 @@ export type Register = ByteReg | WordReg | InternalReg;
  * List of all word registers.
  */
 const WORD_REG = new Set(["af", "bc", "de", "hl", "af'", "bc'", "de'", "hl'", "ix", "iy", "sp", "pc"]);
+
 /**
  * List of all byte registers.
  */
-const BYTE_REG = new Set(["a", "f", "b", "c", "d", "e", "h", "l", "ixh", "ixl", "iyh", "iyl"]);
+const BYTE_REG = new Set(["a", "f", "b", "c", "d", "e", "h", "l", "ixh", "ixl", "iyh", "iyl", "i", "r"]);
 
 /**
  * Determine whether a register stores a word.
