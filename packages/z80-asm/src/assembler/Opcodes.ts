@@ -30462,6 +30462,27 @@ const opcodes: Instructions = {
         }
       ]
     },
+    "reti": {
+      "variants": [
+        {
+          "tokens": [],
+          "opcode": [
+            237,
+            77
+          ],
+          "clr": {
+            "opcodes": "ED4D",
+            "undocumented": false,
+            "flags": "------",
+            "byte_count": 2,
+            "with_jump_clock_count": 14,
+            "without_jump_clock_count": 14,
+            "description": "Used at the end of A maskable interrupt service routine. The top stack entry is popped into PC, and signals an I/O device that the interrupt has finished, allowing nested interrupts (not A consideration on the TI).",
+            "instruction": "reti"
+          }
+        }
+      ]
+    },
     "rrd": {
       "variants": [
         {
