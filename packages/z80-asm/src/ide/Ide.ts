@@ -267,6 +267,7 @@ class Ide {
             this.pathname = pathname;
             this.ipcRenderer.send("set-window-title", pathname);
             this.assembleAll();
+            this.cm.execCommand("foldAll")
         }
     }
 
@@ -274,6 +275,7 @@ class Ide {
     private setPathnameAndLoad(pathname: string): void {
         this.setPathname(pathname);
         this.assembleAll();
+        this.cm.execCommand("foldAll")
         this.cm.clearHistory();
     }
 
