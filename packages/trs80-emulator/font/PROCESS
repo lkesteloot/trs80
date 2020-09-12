@@ -1,0 +1,6 @@
+#!/bin/bash
+
+convert font.png -compress none font.pgm
+
+python3 process.py < font.pgm > ../src/FontTexture.ts
+

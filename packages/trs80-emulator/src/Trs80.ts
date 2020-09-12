@@ -96,8 +96,8 @@ export class Trs80 implements Hal {
     private cassetteRiseInterruptCount = 0;
     private cassetteFallInterruptCount = 0;
 
-    constructor(parentNode: HTMLElement, cassette: Cassette) {
-        this.screen = new CssScreen(parentNode);
+    constructor(screen: Trs80Screen, cassette: Cassette) {
+        this.screen = screen;
         this.cassette = cassette;
         this.memory.fill(0);
         const raw = window.atob(model3Rom);
