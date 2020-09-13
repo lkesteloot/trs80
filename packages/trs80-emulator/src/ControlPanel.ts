@@ -26,6 +26,17 @@ const CAMERA_ICON = `
 </svg>
 `;
 
+// https://thenounproject.com/search/?q=previous%20track&i=658409
+const PREVIOUS_TRACK_ICON = `
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 14 21.25" version="1.1" x="0px" y="0px">
+    <g fill="white" fill-rule="evenodd">
+        <g transform="translate(-320.000000, -618.000000)">
+            <path d="M330,628.032958 L330,634.00004 C330,634.545291 330.45191,635 331.009369,635 L332.990631,635 C333.556647,635 334,634.552303 334,634.00004 L334,618.99996 C334,618.454709 333.54809,618 332.990631,618 L331.009369,618 C330.443353,618 330,618.447697 330,618.99996 L330,624.967057 C329.894605,624.850473 329.775773,624.739153 329.643504,624.634441 L322.356496,618.865559 C321.054403,617.834736 320,618.3432 320,620.000122 L320,632.999878 C320,634.663957 321.055039,635.164761 322.356496,634.134441 L329.643504,628.365559 C329.775779,628.260841 329.894611,628.149527 330,628.032958 Z" transform="translate(327.000000, 626.500000) scale(-1, 1) translate(-327.000000, -626.500000) "/>
+        </g>
+    </g>
+</svg>
+`;
+
 /**
  * Control panel that hovers in the screen for doing things like resetting the computer.
  */
@@ -78,6 +89,18 @@ export class ControlPanel {
         let icon = document.createElement("img");
         icon.src = "data:image/svg+xml;base64," + btoa(CAMERA_ICON);
         icon.style.transform = "scale(0.5)";
+        icon.style.cursor = "pointer";
+        icon.addEventListener("click", callback);
+        this.panelNode.appendChild(icon);
+    }
+
+    /**
+     * Add a tape rewind button.
+     */
+    public addTapeRewindButton(callback: () => void) {
+        let icon = document.createElement("img");
+        icon.src = "data:image/svg+xml;base64," + btoa(PREVIOUS_TRACK_ICON);
+        icon.style.transform = "scale(0.32)";
         icon.style.cursor = "pointer";
         icon.addEventListener("click", callback);
         this.panelNode.appendChild(icon);
