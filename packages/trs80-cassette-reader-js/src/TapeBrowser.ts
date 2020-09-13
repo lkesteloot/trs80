@@ -11,6 +11,7 @@ import {Highlight} from "./Highlight";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {DisplaySamples} from "./DisplaySamples";
 import {base64EncodeUint8Array, clearElement} from "./Utils";
+import {CssScreen} from "trs80-emulator";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -516,8 +517,11 @@ export class TapeBrowser {
         const screenshotDiv = document.createElement("div");
         screenshotDiv.style.marginLeft = "20pt";
         div.appendChild(screenshotDiv);
-        Trs80.displayScreenshot(screenshotDiv, program.screenshot);
-        program.onScreenshot.subscribe(screenshot => Trs80.displayScreenshot(screenshotDiv, screenshot));
+        const screenshotScreen = new CssScreen(screenshotDiv);
+        screenshotScreen.displayScreenshot(program.screenshot);
+        program.onScreenshot.subscribe(screenshot => {
+            screenshotScreen.displayScreenshot(screenshot)
+        });
 
         return new Pane(div);
     }
@@ -634,8 +638,8 @@ export class TapeBrowser {
     private makeEmulatorPane(program: Program, cassette: Int16Cassette): Pane {
         const div = document.createElement("div");
 
-        const screen = document.createElement("div");
-        div.appendChild(screen);
+        const screenDiv = document.createElement("div");
+        div.appendChild(screenDiv);
 
         const progressBar = document.createElement("progress");
         progressBar.classList.add("hidden");
@@ -651,6 +655,7 @@ export class TapeBrowser {
         });
         div.appendChild(screenshotButton);
 
+        const screen = new CssScreen(screenDiv);
         const trs80 = new Trs80(screen, cassette);
         trs80.reset();
 

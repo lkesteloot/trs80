@@ -6,8 +6,7 @@ import {Uploader} from "./Uploader";
 import Split from "split.js";
 import {AudioFile} from "./AudioUtils";
 import {clearElement, flashNode} from "./Utils";
-import {Trs80} from "trs80-emulator";
-import exp from "constants";
+import {CssScreen} from "trs80-emulator";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -84,7 +83,8 @@ function populateBrowseScreen(browseScreen: HTMLElement): void {
             if (programData.screenshot) {
                 const div = document.createElement("div");
                 browseScreen.appendChild(div);
-                Trs80.displayScreenshot(div, programData.screenshot);
+                const screen = new CssScreen(div);
+                screen.displayScreenshot(programData.screenshot);
             }
         }
     }
