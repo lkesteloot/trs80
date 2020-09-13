@@ -3,7 +3,6 @@ import {Hal, Z80} from "z80-emulator";
 import {Cassette} from "./Cassette";
 import {Keyboard} from "./Keyboard";
 import {model3Rom} from "./Model3Rom";
-import {CssScreen} from "./CssScreen";
 import {Trs80Screen} from "./Trs80Screen";
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 

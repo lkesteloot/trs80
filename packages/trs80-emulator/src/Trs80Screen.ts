@@ -1,8 +1,7 @@
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 
 /**
- * Interface for displaying a screen. We make this a concrete
- * class because rollup.js can't handle exported interfaces.
+ * Abstract base class for displaying a screen.
  */
 export class Trs80Screen {
     private expanded = false;
