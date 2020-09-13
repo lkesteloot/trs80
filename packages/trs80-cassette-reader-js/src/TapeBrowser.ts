@@ -12,6 +12,7 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {DisplaySamples} from "./DisplaySamples";
 import {base64EncodeUint8Array, clearElement} from "./Utils";
 import {CssScreen} from "trs80-emulator";
+import {ControlPanel} from "trs80-emulator";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -25,6 +26,10 @@ class Int16Cassette extends Cassette {
         super();
         this.samples = samples;
         this.samplesPerSecond = sampleRate;
+    }
+
+    public rewind(): void {
+        this.frame = 0;
     }
 
     public setProgressBar(progressBar: HTMLProgressElement): void {
@@ -646,17 +651,18 @@ export class TapeBrowser {
         cassette.setProgressBar(progressBar);
         div.appendChild(progressBar);
 
-        const screenshotButton = document.createElement("button");
-        screenshotButton.innerText = "Take Screenshot";
-        screenshotButton.addEventListener("click", event => {
+        const screen = new CssScreen(screenDiv);
+        const trs80 = new Trs80(screen, cassette);
+        let controlPanel = new ControlPanel(screen.getNode());
+        controlPanel.addResetButton(() => trs80.reset());
+        controlPanel.addTapeRewindButton(() => {
+            cassette.rewind();
+        });
+        controlPanel.addScreenshotButton(() => {
             const screenshot = trs80.getScreenshot();
             program.setScreenshot(screenshot);
             this.tape.saveUserData();
         });
-        div.appendChild(screenshotButton);
-
-        const screen = new CssScreen(screenDiv);
-        const trs80 = new Trs80(screen, cassette);
         trs80.reset();
 
         let pane = new Pane(div);
