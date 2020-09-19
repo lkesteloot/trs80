@@ -13,6 +13,7 @@ import {DisplaySamples} from "./DisplaySamples";
 import {base64EncodeUint8Array, clearElement} from "./Utils";
 import {CssScreen} from "trs80-emulator";
 import {ControlPanel} from "trs80-emulator";
+import {ProgressBar} from "trs80-emulator";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -20,7 +21,9 @@ import {ControlPanel} from "trs80-emulator";
 class Int16Cassette extends Cassette {
     private readonly samples: Int16Array;
     private frame: number = 0;
-    private progressBar: HTMLProgressElement | undefined;
+    private progressBar: ProgressBar | undefined;
+    private motorOn = false;
+    private rewinding = false;
 
     constructor(samples: Int16Array, sampleRate: number) {
         super();
@@ -29,34 +32,67 @@ class Int16Cassette extends Cassette {
     }
 
     public rewind(): void {
-        this.frame = 0;
+        if (this.progressBar === undefined) {
+            this.frame = 0;
+        } else {
+            this.rewinding = true;
+            this.updateProgressBarVisibility();
+            const updateRewind = () => {
+                if (this.frame > 0) {
+                    this.frame = Math.max(0, Math.round(this.frame - this.samples.length/30));
+                    this.progressBar?.setValue(this.frame);
+                    window.requestAnimationFrame(updateRewind);
+                } else {
+                    this.rewinding = false;
+                    this.updateProgressBarVisibility();
+                }
+            };
+            // Wait for progress bar to become visible.
+            setTimeout(updateRewind, 150);
+        }
     }
 
-    public setProgressBar(progressBar: HTMLProgressElement): void {
+    public setProgressBar(progressBar: ProgressBar): void {
         this.progressBar = progressBar;
-        this.progressBar.max = this.samples.length;
+        this.progressBar.setMaxValue(this.samples.length);
     }
 
     public onMotorStart(): void {
-        if (this.progressBar !== undefined) {
-            this.progressBar.classList.remove("hidden");
-        }
+        this.motorOn = true;
+        this.updateProgressBarVisibility();
     }
 
     public readSample(): number {
-        if (this.frame % this.samplesPerSecond === 0) {
-            console.log("Reading tape at " + frameToTimestamp(this.frame, this.samplesPerSecond));
-        }
-        if (this.progressBar !== undefined && this.frame % Math.floor(this.samplesPerSecond / 10) === 0) {
-            this.progressBar.value = this.frame;
-        }
+        if (this.rewinding) {
+            // Can't read while rewinding.
+            return 0;
+        } else {
+            if (this.frame % this.samplesPerSecond === 0) {
+                console.log("Reading tape at " + frameToTimestamp(this.frame, this.samplesPerSecond));
+            }
+            if (this.progressBar !== undefined &&
+                (this.frame % Math.floor(this.samplesPerSecond / 10) === 0 ||
+                    this.frame == this.samples.length - 1)) {
 
-        return this.frame < this.samples.length ? this.samples[this.frame++]/32768 : 0;
+                this.progressBar.setValue(this.frame);
+            }
+
+            return this.frame < this.samples.length ? this.samples[this.frame++] / 32768 : 0;
+        }
     }
 
     public onMotorStop(): void {
+        this.motorOn = false;
+        this.updateProgressBarVisibility();
+    }
+
+    private updateProgressBarVisibility() {
         if (this.progressBar !== undefined) {
-            this.progressBar.classList.add("hidden");
+            if (this.motorOn || this.rewinding) {
+                this.progressBar.show();
+            } else {
+                this.progressBar.hide();
+            }
         }
     }
 }
@@ -646,14 +682,9 @@ export class TapeBrowser {
         const screenDiv = document.createElement("div");
         div.appendChild(screenDiv);
 
-        const progressBar = document.createElement("progress");
-        progressBar.classList.add("hidden");
-        cassette.setProgressBar(progressBar);
-        div.appendChild(progressBar);
-
         const screen = new CssScreen(screenDiv);
         const trs80 = new Trs80(screen, cassette);
-        let controlPanel = new ControlPanel(screen.getNode());
+        const controlPanel = new ControlPanel(screen.getNode());
         controlPanel.addResetButton(() => trs80.reset());
         controlPanel.addTapeRewindButton(() => {
             cassette.rewind();
@@ -663,6 +694,8 @@ export class TapeBrowser {
             program.setScreenshot(screenshot);
             this.tape.saveUserData();
         });
+        const progressBar = new ProgressBar(screen.getNode());
+        cassette.setProgressBar(progressBar);
         trs80.reset();
 
         let pane = new Pane(div);

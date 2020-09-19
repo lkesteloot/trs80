@@ -43,7 +43,7 @@
     "progress": "^2.0.3",
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.6.7",
-    "trs80-emulator": "^1.0.7",
+    "trs80-emulator": "../trs80-emulator",
     "z80-base": "^1.0.4"
   }
 }
