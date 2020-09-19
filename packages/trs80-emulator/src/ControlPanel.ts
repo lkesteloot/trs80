@@ -78,6 +78,7 @@ export class ControlPanel {
         icon.src = "data:image/svg+xml;base64," + btoa(RESET_ICON);
         icon.style.transform = "scale(0.5)";
         icon.style.cursor = "pointer";
+        icon.title = "Reset the computer";
         icon.addEventListener("click", callback);
         this.panelNode.appendChild(icon);
     }
@@ -90,6 +91,7 @@ export class ControlPanel {
         icon.src = "data:image/svg+xml;base64," + btoa(CAMERA_ICON);
         icon.style.transform = "scale(0.5)";
         icon.style.cursor = "pointer";
+        icon.title = "Take a screenshot";
         icon.addEventListener("click", callback);
         this.panelNode.appendChild(icon);
     }
@@ -102,6 +104,7 @@ export class ControlPanel {
         icon.src = "data:image/svg+xml;base64," + btoa(PREVIOUS_TRACK_ICON);
         icon.style.transform = "scale(0.32)";
         icon.style.cursor = "pointer";
+        icon.title = "Rewind the cassette";
         icon.addEventListener("click", callback);
         this.panelNode.appendChild(icon);
     }
