@@ -513,6 +513,7 @@ export class TapeBrowser {
             td.classList.add("value");
 
             const input = document.createElement("input");
+            input.type = "text";
             input.classList.add("name");
             program.onName.subscribe(name => input.value = name);
             input.value = program.name;

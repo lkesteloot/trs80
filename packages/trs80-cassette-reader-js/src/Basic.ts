@@ -104,59 +104,59 @@ function add(out: HTMLElement, text: string, className: string): HTMLElement {
 }
 
 // Stylesheet.
-const BACKGROUND_COLOR = "#1E1E1E";
+const BACKGROUND_COLOR = "var(--background)";
 const STYLE = {
     error: {
-        color: "#aa0000",
+        color: "var(--red)",
         "&$highlighted": {
-            backgroundColor: "#aa0000",
+            backgroundColor: "var(--red)",
             color: BACKGROUND_COLOR,
         },
     },
     lineNumber: {
-        color: "#858585",
+        color: "var(--foreground-secondary)",
         "&$highlighted": {
-            backgroundColor: "#858585",
+            backgroundColor: "var(--foreground-secondary)",
             color: BACKGROUND_COLOR,
         },
     },
     punctuation: {
-        color: "#D4D4D4",
+        color: "var(--foreground-secondary)",
         "&$highlighted": {
-            backgroundColor: "#D4D4D4",
+            backgroundColor: "var(--foreground-secondary)",
             color: BACKGROUND_COLOR,
         },
     },
     keyword: {
-        color: "#C586C0",
+        color: "var(--blue)",
         "&$highlighted": {
-            backgroundColor: "#C586C0",
+            backgroundColor: "var(--blue)",
             color: BACKGROUND_COLOR,
         },
     },
     regular: {
-        color: "#9CDCFE",
+        color: "var(--foreground)",
         "&$highlighted": {
-            backgroundColor: "#9CDCFE",
+            backgroundColor: "var(--foreground)",
             color: BACKGROUND_COLOR,
         },
     },
     string: {
-        color: "#CE9178",
+        color: "var(--orange)",
         "&$highlighted": {
-            backgroundColor: "#CE9178",
+            backgroundColor: "var(--orange)",
             color: BACKGROUND_COLOR,
         },
     },
     comment: {
-        color: "#6A9955",
+        color: "var(--cyan)",
         "&$highlighted": {
-            backgroundColor: "#6A9955",
+            backgroundColor: "var(--cyan)",
             color: BACKGROUND_COLOR,
         },
     },
     selected: {
-        backgroundColor: "#555555",
+        backgroundColor: "var(--background-highlights)",
     },
     highlighted: {
         // Empty style that's referenced above as $highlighted.

@@ -5,38 +5,38 @@ import jss from './Jss';
 import {pad} from "./Utils";
 
 // Stylesheet.
-const BACKGROUND_COLOR = "#1E1E1E";
+const BACKGROUND_COLOR = "var(--background)";
 const STYLE = {
     address: {
-        color: "#858585",
+        color: "var(--foreground-secondary)",
         "&$highlighted": {
-            backgroundColor: "#858585",
+            backgroundColor: "var(--foreground-secondary)",
             color: BACKGROUND_COLOR,
         },
     },
     hex: {
-        color: "#D4D4D4",
+        color: "var(--blue)",
         "&$highlighted": {
-            backgroundColor: "#D4D4D4",
+            backgroundColor: "var(--blue)",
             color: BACKGROUND_COLOR,
         },
     },
     ascii: {
-        color: "#D4D4D4",
+        color: "var(--cyan)",
         "&$highlighted": {
-            backgroundColor: "#D4D4D4",
+            backgroundColor: "var(--cyan)",
             color: BACKGROUND_COLOR,
         },
     },
     asciiUnprintable: {
-        color: "#858585",
+        color: "var(--foreground-secondary)",
         "&$highlighted": {
-            backgroundColor: "#858585",
+            backgroundColor: "var(--foreground-secondary)",
             color: BACKGROUND_COLOR,
         },
     },
     selected: {
-        backgroundColor: "#555555",
+        backgroundColor: "var(--background-highlights)",
     },
     highlighted: {
         // Empty style that's referenced above as $highlighted.

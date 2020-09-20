@@ -311,8 +311,20 @@ export class WaveformDisplay {
         const width = canvas.width;
         const height = canvas.height;
 
+        // Get the theme variables.
+        canvas.classList.add("dark-mode");
+        const style = getComputedStyle(canvas);
+        const backgroundColor = style.getPropertyValue("--background");
+        const selectionColor = style.getPropertyValue("--background-highlights");
+        const highlightColor = "rgba(0, 0, 0, 0.2)";
+        const braceColor = style.getPropertyValue("--foreground-secondary");
+        const labelColor = style.getPropertyValue("--foreground");
+        const waveformColor = style.getPropertyValue("--blue");
+        const startColor = style.getPropertyValue("--cyan");
+        const badColor = style.getPropertyValue("--red");
+
         // Background.
-        ctx.fillStyle = "rgb(0, 0, 0)";
+        ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, width, height);
 
         if (displaySamples === undefined) {
@@ -339,7 +351,7 @@ export class WaveformDisplay {
 
         // Selection.
         if (this.startSelectionFrame !== undefined && this.endSelectionFrame !== undefined) {
-            ctx.fillStyle = "rgb(50, 50, 50)";
+            ctx.fillStyle = selectionColor;
             const x1 = frameToX(this.startSelectionFrame/ mag);
             const x2 = frameToX(this.endSelectionFrame / mag);
             ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
@@ -347,7 +359,7 @@ export class WaveformDisplay {
 
         // Highlight.
         if (this.startHighlightFrame !== undefined && this.endHighlightFrame !== undefined) {
-            ctx.fillStyle = "rgb(75, 75, 75)";
+            ctx.fillStyle = highlightColor;
             const x1 = frameToX(this.startHighlightFrame/ mag);
             const x2 = frameToX(this.endHighlightFrame / mag);
             ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
@@ -362,33 +374,33 @@ export class WaveformDisplay {
                         const x1 = frameToX(bitInfo.startFrame / mag);
                         const x2 = frameToX(bitInfo.endFrame / mag);
 
-                        let braceColor: string;
+                        let bitBraceColor: string;
                         let label: string;
-                        let labelColor: string;
+                        let bitLabelColor: string;
                         switch (bitInfo.bitType) {
                             case BitType.ZERO:
-                                braceColor = "rgb(150, 150, 150)";
-                                labelColor = "rgb(255, 255, 255)";
+                                bitBraceColor = braceColor;
+                                bitLabelColor = labelColor;
                                 label = "0";
                                 break;
                             case BitType.ONE:
-                                braceColor = "rgb(150, 150, 150)";
-                                labelColor = "rgb(255, 255, 255)";
+                                bitBraceColor = braceColor;
+                                bitLabelColor = labelColor;
                                 label = "1";
                                 break;
                             case BitType.START:
-                                braceColor = "rgb(50, 200, 50)";
-                                labelColor = "rgb(100, 255, 100)";
+                                bitBraceColor = startColor;
+                                bitLabelColor = startColor;
                                 label = "START";
                                 break;
                             case BitType.BAD:
-                                braceColor = "rgb(200, 50, 50)";
-                                labelColor = "rgb(255, 100, 100)";
+                                bitBraceColor = badColor;
+                                bitLabelColor = badColor;
                                 label = "BAD";
                                 break;
                         }
 
-                        this.drawBraceAndLabel(ctx, x1, x2, braceColor, label, labelColor);
+                        this.drawBraceAndLabel(ctx, x1, x2, bitBraceColor, label, bitLabelColor);
                     }
                 }
             } else if (this.zoom < 5) {
@@ -405,21 +417,19 @@ export class WaveformDisplay {
                             : program.isBasicProgram() && basicToken !== undefined ? basicToken
                             : "0x" + byteValue.toString(16).padStart(2, "0").toUpperCase();
 
-                        this.drawBraceAndLabel(ctx, x1, x2, "rgb(150, 150, 150)",
-                            label, "rgb(255, 255, 255)");
+                        this.drawBraceAndLabel(ctx, x1, x2, braceColor, label, labelColor);
                     }
                 }
             } else {
                 // Highlight the whole program.
                 const x1 = frameToX(program.startFrame / mag);
                 const x2 = frameToX(program.endFrame / mag);
-                this.drawBraceAndLabel(ctx, x1, x2, "rgb(150, 150, 150)",
-                    program.getShortLabel(), "rgb(255, 255, 255)");
+                this.drawBraceAndLabel(ctx, x1, x2, braceColor, program.getShortLabel(), labelColor);
             }
         }
 
         // Draw waveform.
-        ctx.strokeStyle = "rgb(255, 255, 255)";
+        ctx.strokeStyle = waveformColor;
         if (drawingLine) {
             ctx.beginPath();
         }

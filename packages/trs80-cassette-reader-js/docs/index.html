@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <link href="main.css?v=2" rel="stylesheet" type="text/css">
+    <link href="main.css?v=3" rel="stylesheet" type="text/css">
     <!-- https://favicon.io/favicon-converter/ -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300|Roboto+Mono|Roboto:100,400,700&display=block" rel="stylesheet">
 </head>
 
-<body>
+<body class="light-mode">
     <div id="drop_screen" class="screen">
         <h1>TRS-80 Cassette Reader</h1>
         <label id="drop_zone" for="drop_upload">
@@ -47,7 +47,7 @@
         <input id="drop_upload" class="hidden" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav">
         <p id="about">
             This app parses and cleans up TRS-80 Model I and Model III cassette audio
-            files, and generates clean audio for importing into emulators.
+            files,<br>and generates clean audio for importing into emulators.
             <a href="https://github.com/lkesteloot/trs80-cassette-reader-js">Source code</a>
         </p>
     </div>

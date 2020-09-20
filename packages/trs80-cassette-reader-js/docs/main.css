@@ -1,20 +1,64 @@
 /* Global settings. */
+:root {
+    /* Solarized colors */
+    --base03:    #002b36;
+    --base02:    #073642;
+    --base01:    #586e75;
+    --base00:    #657b83;
+    --base0:     #839496;
+    --base1:     #93a1a1;
+    --base2:     #eee8d5;
+    --base3:     #fdf6e3;
+    --yellow:    #b58900;
+    --orange:    #cb4b16;
+    --red:       #dc322f;
+    --magenta:   #d33682;
+    --violet:    #6c71c4;
+    --blue:      #268bd2;
+    --cyan:      #2aa198;
+    --green:     #859900;
+}
+.light-mode {
+    --background: var(--base3);
+    --background-highlights: var(--base2);
+    --foreground: var(--base00);
+    --foreground-emphasized: var(--base01);
+    --foreground-secondary: var(--base1);
+    --accent-color: var(--red);
+    --accent-foreground-color: var(--base3);
+}
+.dark-mode {
+    --background: var(--base03);
+    --background-highlights: var(--base02);
+    --foreground: var(--base0);
+    --foreground-emphasized: var(--base1);
+    --foreground-secondary: var(--base01);
+    --accent-color: var(--red);
+    --accent-foreground-color: var(--base3);
+}
 body {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     height: 100vh;
+    background-color: var(--background);
+    color: var(--foreground);
 }
 body, input, textarea {
     font-family: "Roboto", "Helvetica Neue", sans-serif;
     font-size: 16px;
+}
+textarea, input[type=text] {
+    background-color: var(--background-highlights);
+    color: var(--foreground-emphasized);
+    border: 1px solid var(--foreground-secondary);
 }
 .hidden {
     display: none !important;
 }
 .gutter {
     height: 100vh;
-    background-color: #EEEEEE;
+    background-color: var(--background-highlights);
     background-repeat: no-repeat;
     background-position: 50%;
 }
@@ -28,15 +72,13 @@ body, input, textarea {
 }
 .nice_button {
     border-radius: 4px;
-    background-color: #7c858b;
-    color: white;
+    background-color: var(--accent-color);
+    color: var(--accent-foreground-color);
     padding: 6px 12px;
     cursor: pointer;
     font-size: 14px;
     margin: 4px 0;
-}
-.nice_button:hover {
-    background-color: #5A6268;
+    border: 0;
 }
 
 /* Drag and drop (upload) screen. */
@@ -47,22 +89,23 @@ body, input, textarea {
     text-align: center;
     font-size: 48pt;
     font-weight: 100;
+    color: var(--accent-color);
 }
 #drop_zone {
     display: flex;
     flex-direction: column;
     padding: 2em 3em;
-    border: 2px dashed #BBBBBB;
+    border: 2px dashed rgba(0, 0, 0, .2);
     border-radius: 2px;
-    background-color: #EEEEEE;
-    color: #BBBBBB;
+    background-color: var(--background-highlights);
+    color: var(--foreground-emphasized);
     font-size: 24pt;
     text-align: center;
     width: 60%;
     margin: 0 auto;
 }
 #drop_zone.hover {
-    border-color: #00E676;
+    border-color: var(--accent-color);
 }
 #drop_instructions {
     display: flex;
@@ -98,12 +141,12 @@ body, input, textarea {
 }
 #about {
     text-align: center;
-    color: #aaa;
+    color: var(--foreground-secondary);
     width: 50%;
     margin: 2em auto;
 }
 #about a {
-    color: #aaa;
+    color: var(--foreground-secondary);
 }
 
 #user_data_field {
@@ -132,8 +175,9 @@ body, input, textarea {
     overflow-x: auto;
     overflow-y: auto;
 }
+/* If the binary is identical to a previous copy. */
 .duplicate_copy {
-    color: #BBBBBB;
+    color: var(--foreground-secondary);
 }
 .tape_contents_row {
     cursor: default;
@@ -147,15 +191,16 @@ body, input, textarea {
     font-size: 24pt;
     text-align: center;
     margin: 0.5em 0;
+    color: var(--accent-color);
 }
 .tape_contents_row.program_title {
     text-transform: uppercase;
     padding-top: 0.5em;
     margin-bottom: 0.2em;
-    color: #666666;
+    color: var(--foreground-emphasized);
 }
 .duplicate_copy .tape_contents_row.program_title {
-    color: #BBBBBB;
+    color: var(--foreground-secondary);
 }
 .tape_contents_row.program_title.new_track {
     margin-top: 0.5em;
@@ -165,12 +210,13 @@ body, input, textarea {
     font-weight: normal;
 }
 .tape_contents_row.selectable_row:hover {
-    background-color: #EEEEEE;
+    background-color: var(--background-highlights);
+    color: var(--foreground-emphasized);
 }
 .tape_contents_row.selected,
 .tape_contents_row.selected.selectable_row:hover {
-    background-color: #AAAAAA;
-    color: white;
+    background-color: var(--accent-color);
+    color: var(--accent-foreground-color);
 }
 #data_screen > main {
     display: flex;
@@ -226,10 +272,10 @@ body, input, textarea {
 }
 .metadata .value.clickable {
     cursor: pointer;
-    color: #0000EE;
+    color: var(--blue);
 }
 .metadata .value.clickable:hover {
-    background-color: #EEEEEE;
+    background-color: var(--background-highlights);
 }
 .metadata td input.name {
     width: 100%;
@@ -239,8 +285,9 @@ body, input, textarea {
 }
 .program {
     font-family: "Roboto Mono", monospace;
-    background-color: #1E1E1E;
-    color: #D4D4D4;
     white-space: pre;
     cursor: default;
+}
+canvas {
+    border-radius: 5px;
 }
