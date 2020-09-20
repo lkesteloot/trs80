@@ -186,6 +186,7 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
 
     const b = new ByteReader(bytes);
     let state;
+    // Map from byte address to HTML element for that byte.
     const elements: HTMLElement[] = [];
 
     if (b.read() !== 0xD3 || b.read() !== 0xD3 || b.read() !== 0xD3) {
@@ -226,6 +227,7 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
         // Read rest of line.
         let c; // Uint8 value.
         let ch; // String value.
+        let colonAddr = 0;
         state = NORMAL;
         while (true) {
             c = b.read();
@@ -239,11 +241,14 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
             // way to add a single quote as a comment.
             if (ch === ":" && state === NORMAL) {
                 state = COLON;
+                colonAddr = b.addr() - 1;
             } else if (ch === ":" && state === COLON) {
                 e = add(line, ":", classes.punctuation);
-                elements[b.addr() - 1] = e;
+                elements[colonAddr] = e;
+                colonAddr = b.addr() - 1;
             } else if (c === REM && state === COLON) {
                 state = COLON_REM;
+                colonAddr = 0;
             } else if (c === REMQUOT && state === COLON_REM) {
                 e = add(line, "'", classes.comment);
                 elements[b.addr() - 1] = e;
@@ -252,10 +257,11 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
                 e = add(line, "ELSE", classes.keyword);
                 elements[b.addr() - 1] = e;
                 state = NORMAL;
+                colonAddr = 0;
             } else {
                 if (state === COLON || state === COLON_REM) {
                     e = add(line, ":", classes.punctuation);
-                    elements[b.addr() - 1] = e;
+                    elements[colonAddr] = e;
                     if (state === COLON_REM) {
                         e = add(line, "REM", classes.comment);
                         elements[b.addr() - 1] = e;
@@ -263,6 +269,7 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
                     } else {
                         state = NORMAL;
                     }
+                    colonAddr = 0;
                 }
 
                 switch (state) {
@@ -317,12 +324,13 @@ export function fromTokenized(bytes: Uint8Array, out: HTMLElement): HTMLElement[
         // Deal with eaten tokens.
         if (state === COLON || state === COLON_REM) {
             e = add(line, ":", classes.punctuation);
-            elements[b.addr() - 1] = e;
+            elements[colonAddr] = e;
             if (state === COLON_REM) {
                 e = add(line, "REM", classes.comment);
+                elements[b.addr() - 1] = e;
             }
-            elements[b.addr() - 1] = e;
             /// state = NORMAL;
+            /// colonAddr = 0;
         }
 
         // Append last line.
