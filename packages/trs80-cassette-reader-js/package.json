@@ -5,13 +5,13 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
-    "build-test": "tsc --build tsconfig.node.json",
+    "build-node": "tsc --build tsconfig.node.json",
     "lint": "tslint --project . --format codeFrame",
     "lint:fix": "npm run lint -- --fix",
     "start": "npm run build && http-server docs",
     "watch": "webpack --watch",
-    "watch-test": "tsc --build tsconfig.node.json --watch",
-    "test": "node build/RegressionTest.js run tests.json"
+    "watch-node": "tsc --build tsconfig.node.json --watch",
+    "test": "npm run build-node && node build/RegressionTest.js run tests.json"
   },
   "repository": {
     "type": "git",

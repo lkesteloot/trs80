@@ -4,7 +4,7 @@ Processes TRS-80 Model I and Model III cassettes and cleans them up.
 [Try it in your browser](https://lkesteloot.github.io/trs80-cassette-reader-js/).
 
     % npm install
-    % npm run start
+    % npm start
 
 Open http://127.0.0.1:8080 in your browser.
 
