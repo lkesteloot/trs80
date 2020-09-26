@@ -91,11 +91,15 @@ export function toDiv(basicElements: BasicElement[], out: HTMLElement): HTMLElem
     // Map from byte address to HTML element for that byte.
     const elements: HTMLElement[] = [];
 
-    let line = document.createElement("div");
-    out.appendChild(line);
+    let line: HTMLElement | undefined = undefined;
 
     for (const basicElement of basicElements) {
         let className: string;
+
+        if (line === undefined || basicElement.elementType === ElementType.LINE_NUMBER) {
+            line = document.createElement("div");
+            out.appendChild(line);
+        }
 
         switch (basicElement.elementType) {
             case ElementType.ERROR:
@@ -103,8 +107,6 @@ export function toDiv(basicElements: BasicElement[], out: HTMLElement): HTMLElem
                 break;
             case ElementType.LINE_NUMBER:
                 className = classes.lineNumber;
-                line = document.createElement("div");
-                out.appendChild(line);
                 break;
             case ElementType.PUNCTUATION:
                 className = classes.punctuation;

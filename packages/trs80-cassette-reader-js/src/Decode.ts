@@ -4,6 +4,28 @@ import * as path from "path";
 import {readWavFile} from "./WavReader";
 import {Tape} from "./Tape";
 import {Decoder} from "./Decoder";
+import * as Basic from "./Basic";
+
+/**
+ * Create a plain text version of the Basic program described by the binary.
+ */
+function makeBasicText(binary: Uint8Array): string {
+    const basicElements = Basic.fromTokenized(binary);
+
+    const parts: string[] = [];
+
+    for (const basicElement of basicElements) {
+        if (parts.length > 0 && basicElement.elementType === Basic.ElementType.LINE_NUMBER) {
+            parts.push("\n");
+        }
+
+        parts.push(basicElement.text);
+    }
+
+    parts.push("\n");
+
+    return parts.join("");
+}
 
 function main() {
     const args = process.argv.slice(2);
@@ -35,6 +57,16 @@ function main() {
         } else {
             console.log("Writing " + binaryPathname);
             fs.writeFileSync(binaryPathname, program.binary);
+        }
+
+        if (program.isBasicProgram()) {
+            const basicPathname = path.join(dir, name + "-" + (i + 1) + ".bas");
+            if (fs.existsSync(basicPathname)) {
+                console.error("Not overwriting " + basicPathname);
+            } else {
+                console.log("Writing " + basicPathname);
+                fs.writeFileSync(basicPathname, makeBasicText(program.binary));
+            }
         }
     }
 }
