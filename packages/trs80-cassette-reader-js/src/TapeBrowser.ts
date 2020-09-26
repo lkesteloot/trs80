@@ -1,5 +1,6 @@
 import {frameToTimestamp} from "./AudioUtils";
 import * as Basic from "./Basic";
+import * as BasicRender from "./BasicRender";
 import * as Hexdump from "./Hexdump";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
@@ -624,16 +625,16 @@ export class TapeBrowser {
         const div = document.createElement("div");
         div.classList.add("program");
 
-        const elements = Basic.toDiv(Basic.fromTokenized(program.binary), div);
+        const elements = BasicRender.toDiv(Basic.fromTokenized(program.binary), div);
 
         const highlighter = new Highlighter(this, program, div);
         elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
 
         this.onHighlight.subscribe(highlight => {
-            highlighter.highlight(highlight, program, Basic.highlightClassName);
+            highlighter.highlight(highlight, program, BasicRender.highlightClassName);
         });
         this.onSelection.subscribe(selection => {
-            highlighter.select(selection, program, Basic.selectClassName);
+            highlighter.select(selection, program, BasicRender.selectClassName);
         });
         this.onDoneSelecting.subscribe(source => {
             if (source !== highlighter) {
