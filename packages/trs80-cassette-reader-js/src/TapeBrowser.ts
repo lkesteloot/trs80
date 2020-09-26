@@ -624,7 +624,7 @@ export class TapeBrowser {
         const div = document.createElement("div");
         div.classList.add("program");
 
-        const elements = Basic.fromTokenized(program.binary, div);
+        const elements = Basic.toDiv(Basic.fromTokenized(program.binary), div);
 
         const highlighter = new Highlighter(this, program, div);
         elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
