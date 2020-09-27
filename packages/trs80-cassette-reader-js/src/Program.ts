@@ -154,4 +154,20 @@ export class Program {
 
         return true;
     }
+
+    /**
+     * Return a .cas file version of the binary.
+     *
+     * http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/tape-and-file-formats-structures/
+     */
+    public asCasFile(): Uint8Array {
+        // 256 zero bytes, 0xA5 byte, binary contents, then two zero bytes.
+        const cas = new Uint8Array(this.binary.length + 256 + 1 + 2);
+
+        // Don't need to explicitly fill in the zeros.
+        cas[256] = 0xA5;
+        cas.set(this.binary, 257);
+
+        return cas;
+    }
 }

@@ -59,12 +59,21 @@ function main() {
     for (let i = 0; i < tape.programs.length; i++) {
         const program = tape.programs[i];
         const programName = name + "-" + program.trackNumber + "-" + program.copyNumber;
+
         const binaryPathname = path.join(dir, programName + ".bin");
         if (!force && fs.existsSync(binaryPathname)) {
             console.error("Not overwriting " + binaryPathname);
         } else {
             console.log("Writing " + binaryPathname);
             fs.writeFileSync(binaryPathname, program.binary);
+        }
+
+        const casPathname = path.join(dir, programName + ".cas");
+        if (!force && fs.existsSync(casPathname)) {
+            console.error("Not overwriting " + casPathname);
+        } else {
+            console.log("Writing " + casPathname);
+            fs.writeFileSync(casPathname, program.asCasFile());
         }
 
         if (program.isBasicProgram()) {
