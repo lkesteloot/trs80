@@ -811,6 +811,8 @@ export class TapeBrowser {
             addPane("Reconstructed", this.makeReconstructedPane(program));
             if (basicPane !== undefined) {
                 addPane("Basic", basicPane);
+            }
+            if (basicPane !== undefined || program.isSystemProgram()) {
                 addPane("Emulator (original)", this.makeEmulatorPane(program, new TapeCassette(this.tape, program)));
                 addPane("Emulator (reconstructed)", this.makeEmulatorPane(program, new ReconstructedCassette(program, this.tape.sampleRate)));
             }

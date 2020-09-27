@@ -139,6 +139,17 @@ export class Program {
     }
 
     /**
+     * Whether this is a program that can be loaded with the SYSTEM command.
+     *
+     * http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/tape-and-file-formats-structures/
+     */
+    public isSystemProgram(): boolean {
+        return this.binary != null &&
+            this.binary.length >= 1 &&
+            this.binary[0] === 0x55;
+    }
+
+    /**
      * Whether these two programs have the same binaries.
      */
     public sameBinaryAs(other: Program): boolean {
