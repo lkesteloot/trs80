@@ -8,6 +8,7 @@ import {Tape} from "./Tape";
 import {Decoder} from "./Decoder";
 import * as program from "commander";
 import { toHexByte } from "z80-base";
+import * as chalk from "chalk";
 
 const CACHE_DIR = "cache";
 
@@ -153,28 +154,38 @@ async function testJsonFile(jsonUrl: string) {
         // Single test.
         const tape = await loadTape(url.resolve(jsonUrl, test.url));
 
+        let successCount = 0;
+        let failureCount = 0;
         for (let i = 0; i < tape.programs.length; i++) {
             const program = tape.programs[i];
-            const binaryUrl = test.binaries[i].url;
+            const binaryUrl = test.binaries[i].url; // TODO tape.programs[i] and test.binaries[i] may not match up.
             const expectedBinary = fs.readFileSync(await downloadFile(url.resolve(jsonUrl, binaryUrl)));
             const actualBinary = program.binary;
 
             let failed = false;
             for (let i = 0; i < Math.min(actualBinary.length, expectedBinary.length) && !failed; i++) {
                 if (actualBinary[i] !== expectedBinary[i]) {
-                    console.log("%s: bytes differ at index %d (0x%s vs 0x%s)",
+                    console.log(chalk.red("%s: bytes differ at index %d (0x%s vs 0x%s)"),
                         binaryUrl, i, toHexByte(actualBinary[i]), toHexByte(expectedBinary[i]));
                     failed = true;
+                    failureCount += 1;
                 }
             }
             if (!failed) {
                 if (actualBinary.length !== expectedBinary.length) {
-                    console.log("%s: prefix matches, but sizes differ (%d cs %d)",
+                    console.log(chalk.red("%s: prefix matches, but sizes differ (%d vs %d)"),
                         binaryUrl, actualBinary.length, expectedBinary.length);
+                    failureCount += 1;
                 } else {
-                    console.log("%s: files match", binaryUrl);
+                    successCount += 1;
+                    // console.log("%s: files match", binaryUrl);
                 }
             }
+        }
+        if (failureCount === 0) {
+            console.log(chalk.green("Successes: " + successCount));
+        } else {
+            console.log(chalk.red("Successes: " + successCount + ", failures: " + failureCount));
         }
     }
 }

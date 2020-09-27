@@ -37,6 +37,7 @@
     "webpack-cli": "^3.3.10"
   },
   "dependencies": {
+    "chalk": "^4.1.0",
     "commander": "^4.1.0",
     "jss": "^10.0.3",
     "jss-preset-default": "^10.0.3",
