@@ -2,6 +2,7 @@
 // Handles uploading WAV files and decoding them.
 import {AudioFile} from "./AudioUtils";
 import {readWavFile} from "./WavReader";
+import {encodeLowSpeed} from "./LowSpeedTapeEncoder";
 
 export class Uploader {
     private readonly uploadInput: HTMLInputElement;
@@ -87,7 +88,11 @@ export class Uploader {
     }
 
     private handleArrayBuffer(pathname: string, arrayBuffer: ArrayBuffer) {
-        const audioFile = readWavFile(arrayBuffer);
+        const rate = 44100;
+
+        const audioFile = pathname.toLowerCase().endsWith(".cas")
+            ? new AudioFile(rate, encodeLowSpeed(new Uint8Array(arrayBuffer), rate))
+            : readWavFile(arrayBuffer);
         this.handleAudioBuffer(pathname, audioFile);
     }
 
