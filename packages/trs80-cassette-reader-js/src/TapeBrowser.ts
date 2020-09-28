@@ -1,6 +1,7 @@
 import {frameToTimestamp} from "./AudioUtils";
 import * as Basic from "./Basic";
 import * as BasicRender from "./BasicRender";
+import * as SystemProgramRender from "./SystemProgramRender";
 import * as Hexdump from "./Hexdump";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
@@ -15,6 +16,7 @@ import {base64EncodeUint8Array, clearElement} from "./Utils";
 import {CssScreen} from "trs80-emulator";
 import {ControlPanel} from "trs80-emulator";
 import {ProgressBar} from "trs80-emulator";
+import {SystemProgram} from "./SystemProgram";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -131,7 +133,7 @@ class ReconstructedCassette extends Int16Cassette {
 class Pane {
     element: HTMLElement;
     row?: HTMLElement;
-    edtasmName?: string;
+    programName?: string;
     willHide?: () => void;
     didHide?: () => void;
     willShow?: () => void;
@@ -441,7 +443,7 @@ export class TapeBrowser {
     /**
      * Make pane of metadata for a program.
      */
-    private makeMetadataPane(program: Program, basicPane?: Pane, edtasmPane?: Pane): Pane {
+    private makeMetadataPane(program: Program, basicPane?: Pane, systemPane?: Pane, edtasmPane?: Pane): Pane {
         const div = document.createElement("div");
         div.classList.add("metadata");
         div.style.display = "flex";
@@ -501,8 +503,11 @@ export class TapeBrowser {
         });
         if (basicPane !== undefined) {
             addKeyValue("Type", "Basic program", () => this.showPane(basicPane));
+        } else if (systemPane !== undefined) {
+            addKeyValue("Type", "System program" + (systemPane.programName ? " (" + systemPane.programName + ")" : ""),
+                () => this.showPane(systemPane));
         } else if (edtasmPane !== undefined) {
-            addKeyValue("Type", "Assembly program" + (edtasmPane.edtasmName ? " (" + edtasmPane.edtasmName + ")" : ""),
+            addKeyValue("Type", "Assembly program" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""),
                 () => this.showPane(edtasmPane));
         } else {
             addKeyValue("Type", "Unknown");
@@ -649,6 +654,39 @@ export class TapeBrowser {
         return pane;
     }
 
+    private makeSystemPane(program: Program): Pane {
+        const div = document.createElement("div");
+        div.classList.add("program");
+
+        const systemProgram = new SystemProgram(program.binary);
+
+        const elements = SystemProgramRender.toDiv(systemProgram, div);
+
+        const highlighter = new Highlighter(this, program, div);
+        elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
+
+        this.onHighlight.subscribe(highlight => {
+            highlighter.highlight(highlight, program, SystemProgramRender.highlightClassName);
+        });
+        this.onSelection.subscribe(selection => {
+            highlighter.select(selection, program, SystemProgramRender.selectClassName);
+        });
+        this.onDoneSelecting.subscribe(source => {
+            if (source !== highlighter) {
+                highlighter.doneSelecting();
+            }
+        });
+
+        let pane = new Pane(div);
+        if (systemProgram.filename !== "") {
+            pane.programName = systemProgram.filename;
+        }
+        pane.didShow = () => {
+            highlighter.didShow();
+        };
+        return pane;
+    }
+
     private makeEdtasmPane(program: Program): Pane {
         const div = document.createElement("div");
         div.classList.add("program");
@@ -671,7 +709,7 @@ export class TapeBrowser {
         });
 
         const pane = new Pane(div);
-        pane.edtasmName = name;
+        pane.programName = name;
         pane.didShow = () => {
             highlighter.didShow();
         };
@@ -797,27 +835,31 @@ export class TapeBrowser {
 
             // Make these panes here so they're accessible from the metadata page.
             const basicPane = program.isBasicProgram() ? this.makeBasicPane(program) : undefined;
+            const systemPane = program.isSystemProgram() ? this.makeSystemPane(program) : undefined;
             const edtasmPane = program.isEdtasmProgram() ? this.makeEdtasmPane(program) : undefined;
 
             // Metadata pane.
             let metadataLabel = frameToTimestamp(program.startFrame, this.tape.sampleRate, true) + " to " +
                 frameToTimestamp(program.endFrame, this.tape.sampleRate, true) + " (" +
                 frameToTimestamp(program.endFrame - program.startFrame, this.tape.sampleRate, true) + ")";
-            addPane(metadataLabel, this.makeMetadataPane(program, basicPane, edtasmPane));
+            addPane(metadataLabel, this.makeMetadataPane(program, basicPane, systemPane, edtasmPane));
 
             // Make the various panes.
             addPane("Binary" + (duplicateCopy ? " (same as copy " + firstCopyOfTrack?.copyNumber + ")" : ""),
                 this.makeBinaryPane(program));
             addPane("Reconstructed", this.makeReconstructedPane(program));
             if (basicPane !== undefined) {
-                addPane("Basic", basicPane);
+                addPane("Basic program", basicPane);
             }
-            if (basicPane !== undefined || program.isSystemProgram()) {
+            if (systemPane !== undefined) {
+                addPane("System program" + (systemPane.programName ? " (" + systemPane.programName + ")" : ""), systemPane);
+            }
+            if (basicPane !== undefined || systemPane !== undefined) {
                 addPane("Emulator (original)", this.makeEmulatorPane(program, new TapeCassette(this.tape, program)));
                 addPane("Emulator (reconstructed)", this.makeEmulatorPane(program, new ReconstructedCassette(program, this.tape.sampleRate)));
             }
             if (edtasmPane !== undefined) {
-                addPane("Assembly" + (edtasmPane.edtasmName ? " (" + edtasmPane.edtasmName + ")" : ""), edtasmPane);
+                addPane("Assembly" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""), edtasmPane);
             }
         }
 

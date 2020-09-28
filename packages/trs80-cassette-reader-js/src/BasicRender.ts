@@ -3,6 +3,7 @@ import jss from './Jss'
 import {BasicElement, ElementType} from "./Basic";
 
 /**
+ * Add text to the line with the specified class.
  *
  * @param out the enclosing element to add to.
  * @param text the text to add.

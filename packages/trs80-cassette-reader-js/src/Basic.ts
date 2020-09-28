@@ -1,7 +1,8 @@
 
 // Tools for decoding Basic programs.
 
-import { pad } from "./Utils";
+import {pad} from "./Utils";
+import {ByteReader,EOF} from "./ByteReader";
 
 // Starts at 0x80.
 const TOKENS = [
@@ -26,7 +27,6 @@ const REM = 0x93;
 const DATA = 0x88;
 const REMQUOT = 0xFB;
 const ELSE = 0x95;
-const EOF = -1;
 
 /**
  * Parser state.
@@ -41,52 +41,6 @@ const RAW = 2;
 const COLON = 3;
 // Just ate a colon and a REM.
 const COLON_REM = 4;
-
-class ByteReader {
-    private readonly b: Uint8Array;
-    private pos: number;
-
-    constructor(b: Uint8Array) {
-        this.b = b;
-        this.pos = 0;
-    }
-
-    /**
-     * Return the next byte, or EOF on end of array.
-     *
-     * @returns {number}
-     */
-    public read(): number {
-        return this.pos < this.b.length ? this.b[this.pos++] : EOF;
-    }
-
-    /**
-     * Return the byte address of the next byte to be read.
-     */
-    public addr(): number {
-        return this.pos;
-    }
-
-    /**
-     * Reads a little-endian short (two-byte) integer.
-     *
-     * @param allowEofAfterFirstByte
-     * @returns the integer, or EOF on end of file.
-     */
-    public readShort(allowEofAfterFirstByte: boolean): number {
-        const low = this.read();
-        if (low === EOF) {
-            return EOF;
-        }
-
-        const high = this.read();
-        if (high === EOF) {
-            return allowEofAfterFirstByte ? low : EOF;
-        }
-
-        return low + high * 256;
-    }
-}
 
 /**
  * Get the token for the byte value, or undefined if the value does

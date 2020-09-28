@@ -3,6 +3,7 @@ import {BitData} from "./BitData";
 import {DisplaySamples} from "./DisplaySamples";
 import {ByteData} from "./ByteData";
 import {SimpleEventDispatcher} from "strongly-typed-events";
+import {isSystemProgram} from "./SystemProgram";
 
 export class Program {
     public trackNumber: number;
@@ -144,9 +145,7 @@ export class Program {
      * http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/tape-and-file-formats-structures/
      */
     public isSystemProgram(): boolean {
-        return this.binary != null &&
-            this.binary.length >= 1 &&
-            this.binary[0] === 0x55;
+        return isSystemProgram(this.binary);
     }
 
     /**
