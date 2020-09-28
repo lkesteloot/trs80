@@ -5,6 +5,7 @@ import {Program} from "./Program";
 import {Highlight} from "./Highlight";
 import * as Basic from "./Basic";
 import {SimpleEventDispatcher} from "strongly-typed-events";
+import {toHexByte} from "z80-base";
 
 /**
  * An individual waveform to be displayed.
@@ -404,20 +405,47 @@ export class WaveformDisplay {
                     }
                 }
             } else if (this.zoom < 5) {
-                // Highlight bytes.
-                for (const byteInfo of program.byteData) {
-                    if (byteInfo.endFrame >= firstOrigSample && byteInfo.startFrame <= lastOrigSample) {
-                        const x1 = frameToX(byteInfo.startFrame / mag);
-                        const x2 = frameToX(byteInfo.endFrame / mag);
-                        let byteValue = byteInfo.value;
-                        const basicToken = Basic.getToken(byteValue);
-                        const label = byteValue < 32 ? "^" + String.fromCodePoint(byteValue + 64)
-                            : byteValue === 32 ? '\u2423' // Open box to represent space.
-                            : byteValue < 128 ? String.fromCodePoint(byteValue)
-                            : program.isBasicProgram() && basicToken !== undefined ? basicToken
-                            : "0x" + byteValue.toString(16).padStart(2, "0").toUpperCase();
+                // Highlight annotations, if we have them.
+                if (program.annotations !== undefined) {
+                    for (const annotation of program.annotations) {
+                        let startFrame: number | undefined = undefined;
+                        let endFrame: number | undefined = undefined;
+                        for (let i = annotation.firstIndex; i <= annotation.lastIndex; i++) {
+                            const byteInfo = program.byteData[i];
+                            if (byteInfo !== undefined) {
+                                if (startFrame === undefined || endFrame === undefined) {
+                                    startFrame = byteInfo.startFrame;
+                                    endFrame = byteInfo.endFrame;
+                                } else {
+                                    startFrame = Math.min(startFrame, byteInfo.startFrame);
+                                    endFrame = Math.max(endFrame, byteInfo.endFrame);
+                                }
+                            }
+                        }
+                        if (endFrame !== undefined && startFrame !== undefined &&
+                            endFrame >= firstOrigSample && startFrame <= lastOrigSample) {
 
-                        this.drawBraceAndLabel(ctx, x1, x2, braceColor, label, labelColor);
+                            const x1 = frameToX(startFrame / mag);
+                            const x2 = frameToX(endFrame / mag);
+                            this.drawBraceAndLabel(ctx, x1, x2, braceColor, annotation.text, labelColor);
+                        }
+                    }
+                } else {
+                    // Highlight bytes.
+                    for (const byteInfo of program.byteData) {
+                        if (byteInfo.endFrame >= firstOrigSample && byteInfo.startFrame <= lastOrigSample) {
+                            const x1 = frameToX(byteInfo.startFrame / mag);
+                            const x2 = frameToX(byteInfo.endFrame / mag);
+                            let byteValue = byteInfo.value;
+                            const basicToken = Basic.getToken(byteValue);
+                            const label = byteValue < 32 ? "^" + String.fromCodePoint(byteValue + 64)
+                                : byteValue === 32 ? '\u2423' // Open box to represent space.
+                                    : byteValue < 128 ? String.fromCodePoint(byteValue)
+                                        : program.isBasicProgram() && basicToken !== undefined ? basicToken
+                                            : toHexByte(byteValue);
+
+                            this.drawBraceAndLabel(ctx, x1, x2, braceColor, label, labelColor);
+                        }
                     }
                 }
             } else {
@@ -526,13 +554,20 @@ export class WaveformDisplay {
 
         const middle = (left + right)/2;
 
-        // Don't use a custom font here, they load asynchronously and we're not told when they
-        // finish loading, so we can't redraw and the initial draw uses some default serif font.
-        ctx.font = '10pt monospace';
-        ctx.fillStyle = labelColor;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "alphabetic";
-        ctx.fillText(label, middle, 38);
+        const ledding = 16;
+
+        // Don't have more than two lines, there's no space for it.
+        const lines = label.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            // Don't use a custom font here, they load asynchronously and we're not told when they
+            // finish loading, so we can't redraw and the initial draw uses some default serif font.
+            ctx.font = '10pt monospace';
+            ctx.fillStyle = labelColor;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "alphabetic";
+            ctx.fillText(line, middle, 38 - (lines.length - i - 1)*ledding);
+        }
 
         ctx.strokeStyle = braceColor;
         ctx.lineWidth = 1;

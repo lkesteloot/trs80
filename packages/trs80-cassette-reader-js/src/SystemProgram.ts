@@ -5,7 +5,8 @@
  */
 
 import {ByteReader,EOF} from "./ByteReader";
-import {toHexByte} from "z80-base";
+import {toHexByte,toHexWord} from "z80-base";
+import {WaveformAnnotation} from "./WaveformAnnotation";
 
 const FILE_HEADER = 0x55;
 const DATA_HEADER = 0x3C;
@@ -45,10 +46,12 @@ export class SystemProgram {
     public chunks: SystemChunk[] = [];
     public entryPointAddress = 0;
     public error: string | undefined;
+    public annotations: WaveformAnnotation[] = [];
 
     constructor(binary: Uint8Array) {
         const b = new ByteReader(binary);
 
+        this.annotations.push(new WaveformAnnotation("File\nHead", b.addr(), b.addr()));
         const headerByte = b.read();
         if (headerByte === EOF) {
             this.error = "File is empty";
@@ -66,8 +69,11 @@ export class SystemProgram {
             return;
         }
         this.filename = this.filename.trim();
+        this.annotations.push(new WaveformAnnotation("Filename\n\"" + this.filename + "\"",
+            b.addr() - FILENAME_LENGTH, b.addr() - 1));
 
         while (true) {
+            this.annotations.push(new WaveformAnnotation("Data\nHead", b.addr(), b.addr()));
             const marker = b.read();
             if (marker === EOF) {
                 this.error = "File is truncated at start of block";
@@ -90,12 +96,15 @@ export class SystemProgram {
             if (length === 0) {
                 length = 256;
             }
+            this.annotations.push(new WaveformAnnotation("Length\n" + length, b.addr() - 1, b.addr() - 1));
 
             const loadAddress = b.readShort(false);
             if (loadAddress === EOF) {
                 this.error = "File is truncated at load address";
                 return;
             }
+            this.annotations.push(new WaveformAnnotation("Address\n" + toHexWord(loadAddress),
+                b.addr() - 2, b.addr() - 1));
 
             const data = b.readBytes(length);
             if (data.length < length) {
@@ -108,6 +117,7 @@ export class SystemProgram {
                 this.error = "File is truncated at checksum";
                 return;
             }
+            this.annotations.push(new WaveformAnnotation("XSum\n0x" + toHexByte(checksum), b.addr() - 1, b.addr() - 1));
 
             this.chunks.push(new SystemChunk(loadAddress, data, checksum));
         }
@@ -118,6 +128,8 @@ export class SystemProgram {
             this.entryPointAddress = 0;
             return;
         }
+        this.annotations.push(new WaveformAnnotation("Run\n" + toHexWord(this.entryPointAddress),
+            b.addr() - 2, b.addr() - 1));
     }
 
     /**

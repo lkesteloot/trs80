@@ -15,6 +15,7 @@ import {DisplaySamples} from "./DisplaySamples";
 import {base64EncodeUint8Array, clearElement} from "./Utils";
 import {SystemProgram} from "./SystemProgram";
 import {Highlighter} from "./Highlighter";
+import {WaveformAnnotation} from "./WaveformAnnotation";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -503,9 +504,13 @@ export class TapeBrowser {
 
         const systemProgram = new SystemProgram(program.binary);
 
-        const highlightables = SystemProgramRender.toDiv(systemProgram, div);
+        const [highlightables, annotations] = SystemProgramRender.toDiv(systemProgram, div);
         const highlighter = new Highlighter(this, program, div);
         highlighter.addHighlightables(highlightables);
+        if (program.annotations === undefined) {
+            program.annotations = [];
+        }
+        program.annotations.push(...systemProgram.annotations, ...annotations);
 
         this.onHighlight.subscribe(highlight => {
             highlighter.highlight(highlight, program, SystemProgramRender.highlightClassName);
