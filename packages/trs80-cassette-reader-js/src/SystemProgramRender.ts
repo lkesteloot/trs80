@@ -24,58 +24,57 @@ const BACKGROUND_COLOR = "var(--background)";
 const STYLE = {
     error: {
         color: "var(--red)",
-        "&$highlighted": {
-            backgroundColor: "var(--red)",
-            color: BACKGROUND_COLOR,
-        },
     },
     address: {
         color: "var(--foreground-secondary)",
-        "&$highlighted": {
-            backgroundColor: "var(--foreground-secondary)",
-            color: BACKGROUND_COLOR,
-        },
     },
     hex: {
         color: "var(--blue)",
-        "&$highlighted": {
-            backgroundColor: "var(--blue)",
-            color: BACKGROUND_COLOR,
-        },
     },
     opcodes: {
         color: "var(--cyan)",
-        "&$highlighted": {
-            backgroundColor: "var(--cyan)",
-            color: BACKGROUND_COLOR,
-        },
     },
     label: {
         color: "var(--orange)",
-        "&$highlighted": {
-            backgroundColor: "var(--orange)",
-            color: BACKGROUND_COLOR,
-        },
     },
     space: {
-        color: "var(--foregroun)",
-        "&$highlighted": {
-            backgroundColor: "var(--foreground)",
-            color: BACKGROUND_COLOR,
-        },
+        color: "var(--foreground-secondary)",
     },
     punctuation: {
         color: "var(--foreground-secondary)",
-        "&$highlighted": {
-            backgroundColor: "var(--foreground-secondary)",
-            color: BACKGROUND_COLOR,
-        },
     },
     selected: {
         backgroundColor: "var(--background-highlights)",
     },
     highlighted: {
-        // Empty style that's referenced above as $highlighted.
+        "& $hex": {
+            backgroundColor: "var(--blue)",
+            color: BACKGROUND_COLOR,
+        },
+        "& $punctuation": {
+            backgroundColor: "var(--foreground-secondary)",
+            color: BACKGROUND_COLOR,
+        },
+        "& $space": {
+            backgroundColor: "var(--foreground-secondary)",
+            color: BACKGROUND_COLOR,
+        },
+        "& $label": {
+            backgroundColor: "var(--orange)",
+            color: BACKGROUND_COLOR,
+        },
+        "& $opcodes": {
+            backgroundColor: "var(--cyan)",
+            color: BACKGROUND_COLOR,
+        },
+        "& $address": {
+            backgroundColor: "var(--foreground-secondary)",
+            color: BACKGROUND_COLOR,
+        },
+        "& $error": {
+            backgroundColor: "var(--red)",
+            color: BACKGROUND_COLOR,
+        },
     },
 };
 const sheet = jss.createStyleSheet(STYLE);
@@ -132,12 +131,14 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): HTMLEleme
         out.appendChild(line);
         add(line, toHexWord(instruction.address), classes.address);
         add(line, "  ", classes.space);
-        const e = add(line, instruction.binText(), classes.hex);
+        add(line, instruction.binText(), classes.hex);
         add(line, "".padEnd(12 - instruction.binText().length + 8), classes.space);
         add(line, instruction.toText(), classes.opcodes);
 
-        // We don't have index in original array. Not remotely.
-        //        elements[instruction.] = e;
+        const byteOffset = systemProgram.addressToByteOffset(instruction.address);
+        if (byteOffset !== undefined) {
+            elements[byteOffset] = line;
+        }
     }
 
     return elements;

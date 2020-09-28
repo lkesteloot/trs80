@@ -119,4 +119,24 @@ export class SystemProgram {
             return;
         }
     }
+
+    /**
+     * Convert an address in memory to the original byte offset in the binary. Returns undefined if
+     * not found in any chunk.
+     */
+    public addressToByteOffset(address: number): number | undefined {
+        // Skip file header and block header.
+        let offset = 1 + FILENAME_LENGTH + 4;
+
+        for (const chunk of this.chunks) {
+            if (address >= chunk.loadAddress && address < chunk.loadAddress + chunk.data.length) {
+                return offset + (address - chunk.loadAddress);
+            }
+
+            // Skip checksum and block header of the next block.
+            offset += chunk.data.length + 5;
+        }
+
+        return undefined;
+    }
 }
