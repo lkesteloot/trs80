@@ -67,8 +67,11 @@ export enum ElementType {
  * Piece of a Basic program (token, character, line number).
  */
 export class BasicElement {
-    // Byte offset in "bytes" array, or undefined if this is an error message.
+    // Byte offset in "bytes" array, or undefined if this is an error message or otherwise not selectable.
     public offset: number | undefined;
+
+    // Length of section in "bytes" array.
+    public length: number = 1;
 
     // Text of element.
     public text: string;
@@ -124,8 +127,10 @@ export function fromTokenized(bytes: Uint8Array): BasicElement[] {
             elements.push(new BasicElement(undefined, "[EOF in line number]", ElementType.ERROR));
             break;
         }
-        elements.push(new BasicElement(b.addr() - 2, lineNumber.toString(), ElementType.LINE_NUMBER));
-        elements.push(new BasicElement(b.addr() - 1, " ", ElementType.REGULAR));
+        let lineNumberElement = new BasicElement(b.addr() - 2, lineNumber.toString(), ElementType.LINE_NUMBER);
+        lineNumberElement.length = 2;
+        elements.push(lineNumberElement);
+        elements.push(new BasicElement(undefined, " ", ElementType.REGULAR));
 
         // Read rest of line.
         let c; // Uint8 value.

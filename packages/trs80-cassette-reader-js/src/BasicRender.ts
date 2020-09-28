@@ -1,6 +1,7 @@
 
 import jss from './Jss'
 import {BasicElement, ElementType} from "./Basic";
+import {Highlightable} from "./Highlighter";
 
 /**
  * Add text to the line with the specified class.
@@ -82,15 +83,13 @@ export const selectClassName = sheet.classes.selected;
 
 /**
  * Render an array of Basic elements to a DIV.
- *
- * @return array of the elements added, with the index being the offset into the original bytes array.
  */
-export function toDiv(basicElements: BasicElement[], out: HTMLElement): HTMLElement[] {
+export function toDiv(basicElements: BasicElement[], out: HTMLElement): Highlightable[] {
     sheet.attach();
     const classes = sheet.classes;
 
     // Map from byte address to HTML element for that byte.
-    const elements: HTMLElement[] = [];
+    const elements: Highlightable[] = [];
 
     let line: HTMLElement | undefined = undefined;
 
@@ -129,7 +128,7 @@ export function toDiv(basicElements: BasicElement[], out: HTMLElement): HTMLElem
 
         const e = add(line, basicElement.text, className);
         if (basicElement.offset !== undefined) {
-            elements[basicElement.offset] = e;
+            elements.push(new Highlightable(basicElement.offset, basicElement.offset + basicElement.length - 1, e));
         }
     }
 

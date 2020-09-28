@@ -426,9 +426,8 @@ export class TapeBrowser {
         const asciiHighlighter = new Highlighter(this, program, div);
 
         const [hexElements, asciiElements] = Hexdump.create(program.binary, div);
-
-        hexElements.forEach((e, byteIndex) => hexHighlighter.addElement(byteIndex, e));
-        asciiElements.forEach((e, byteIndex) => asciiHighlighter.addElement(byteIndex, e));
+        hexHighlighter.addHighlightables(hexElements);
+        asciiHighlighter.addHighlightables(asciiElements);
 
         this.onHighlight.subscribe(highlight => {
             hexHighlighter.highlight(highlight, program, Hexdump.highlightClassName);
@@ -474,10 +473,10 @@ export class TapeBrowser {
         const div = document.createElement("div");
         div.classList.add("program");
 
-        const elements = BasicRender.toDiv(Basic.fromTokenized(program.binary), div);
+        const highlightables = BasicRender.toDiv(Basic.fromTokenized(program.binary), div);
 
         const highlighter = new Highlighter(this, program, div);
-        elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
+        highlighter.addHighlightables(highlightables);
 
         this.onHighlight.subscribe(highlight => {
             highlighter.highlight(highlight, program, BasicRender.highlightClassName);
@@ -504,10 +503,9 @@ export class TapeBrowser {
 
         const systemProgram = new SystemProgram(program.binary);
 
-        const elements = SystemProgramRender.toDiv(systemProgram, div);
-
+        const highlightables = SystemProgramRender.toDiv(systemProgram, div);
         const highlighter = new Highlighter(this, program, div);
-        elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
+        highlighter.addHighlightables(highlightables);
 
         this.onHighlight.subscribe(highlight => {
             highlighter.highlight(highlight, program, SystemProgramRender.highlightClassName);
@@ -538,7 +536,7 @@ export class TapeBrowser {
         const [name, elements] = Edtasm.decodeEdtasm(program.binary, div);
 
         const highlighter = new Highlighter(this, program, div);
-        elements.forEach((e, byteIndex) => highlighter.addElement(byteIndex, e));
+        highlighter.addHighlightables(elements);
 
         this.onHighlight.subscribe(highlight => {
             highlighter.highlight(highlight, program, Edtasm.highlightClassName);

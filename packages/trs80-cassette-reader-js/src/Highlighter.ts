@@ -3,6 +3,30 @@ import {Highlight} from "./Highlight";
 import {TapeBrowser} from "./TapeBrowser";
 
 /**
+ * Represents an item that's highlightable and maps to a part of the program's binary.
+ */
+export class Highlightable {
+    /**
+     * First byte index into the binary array of the highlight, inclusive.
+     */
+    public readonly firstIndex: number;
+    /**
+     * Last byte index into the binary array of the highlight, inclusive.
+     */
+    public readonly lastIndex: number;
+    /**
+     * HTML element representing this item.
+     */
+    public readonly element: HTMLElement;
+
+    constructor(firstIndex: number, lastIndex: number, element: HTMLElement) {
+        this.firstIndex = firstIndex;
+        this.lastIndex = lastIndex;
+        this.element = element;
+    }
+}
+
+/**
  * Helper class to highlight or select elements.
  */
 export class Highlighter {
@@ -56,21 +80,29 @@ export class Highlighter {
     }
 
     /**
-     * Add an element to be highlighted.
+     * Add the highlightable element to the highlighter.
      */
-    public addElement(byteIndex: number, element: HTMLElement | undefined): void {
+    public addHighlightable(h: Highlightable): void {
         // Allow undefined element for convenience of caller. Just ignore it.
+        const element = h.element;
         if (element === undefined) {
             return;
         }
 
-        this.elements[byteIndex] = element;
+        for (let byteIndex = h.firstIndex; byteIndex <= h.lastIndex; byteIndex++) {
+            this.elements[byteIndex] = element;
+        }
 
         // Set up event listeners for highlighting.
         element.addEventListener("mouseenter", () => {
-            this.tapeBrowser.setHighlight(new Highlight(this.program, byteIndex));
+            this.tapeBrowser.setHighlight(new Highlight(this.program, h.firstIndex, h.lastIndex));
             if (this.selectionBeginIndex !== undefined) {
-                this.tapeBrowser.setSelection(new Highlight(this.program, this.selectionBeginIndex, byteIndex));
+                const highlight = h.firstIndex <= this.selectionBeginIndex && this.selectionBeginIndex <= h.lastIndex
+                    ? new Highlight(this.program, h.firstIndex, h.lastIndex)
+                    : this.selectionBeginIndex < h.firstIndex
+                        ? new Highlight(this.program, this.selectionBeginIndex, h.lastIndex)
+                        : new Highlight(this.program, h.firstIndex, this.selectionBeginIndex);
+                this.tapeBrowser.setSelection(highlight);
             }
         });
         element.addEventListener("mouseleave", () => {
@@ -81,10 +113,20 @@ export class Highlighter {
 
         // Set up event listeners for selecting.
         element.addEventListener("mousedown", event => {
-            this.tapeBrowser.setSelection(new Highlight(this.program, byteIndex));
-            this.selectionBeginIndex = byteIndex;
+            this.tapeBrowser.setSelection(new Highlight(this.program, h.firstIndex, h.lastIndex));
+            // This isn't right, it depends on which way they'll select. Might have to fix later.
+            this.selectionBeginIndex = h.firstIndex;
             event.preventDefault();
         });
+    }
+
+    /**
+     * Add all highlightables to the highlighter.
+     */
+    public addHighlightables(highlightables: Highlightable[]): void {
+        for (const highlightable of highlightables) {
+            this.addHighlightable(highlightable);
+        }
     }
 
     /**

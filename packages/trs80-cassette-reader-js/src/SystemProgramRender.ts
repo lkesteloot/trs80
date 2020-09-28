@@ -3,6 +3,7 @@ import jss from './Jss'
 import {Disasm} from "z80-disasm";
 import {toHexWord} from "z80-base";
 import {SystemProgram} from "./SystemProgram";
+import {Highlightable} from "./Highlighter";
 
 /**
  * Add text to the line with the specified class.
@@ -87,12 +88,12 @@ export const selectClassName = sheet.classes.selected;
  *
  * @return array of the elements added, with the index being the offset into the original bytes array.
  */
-export function toDiv(systemProgram: SystemProgram, out: HTMLElement): HTMLElement[] {
+export function toDiv(systemProgram: SystemProgram, out: HTMLElement): Highlightable[] {
     sheet.attach();
     const classes = sheet.classes;
 
-    // Map from byte address to HTML element for that byte.
-    const elements: HTMLElement[] = [];
+    // Every element we render that maps to a byte in the program.
+    const elements: Highlightable[] = [];
 
     if (systemProgram.error !== undefined) {
         const line = document.createElement("div");
@@ -138,7 +139,7 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): HTMLEleme
 
         const byteOffset = systemProgram.addressToByteOffset(instruction.address);
         if (byteOffset !== undefined) {
-            elements[byteOffset] = line;
+            elements.push(new Highlightable(byteOffset, byteOffset + instruction.bin.length - 1, line));
         }
     }
 

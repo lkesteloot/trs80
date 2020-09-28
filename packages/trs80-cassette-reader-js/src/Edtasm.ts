@@ -4,6 +4,7 @@
 // http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/edtasm-file-format/
 
 import jss from './Jss';
+import {Highlightable} from "./Highlighter";
 
 // Stylesheet.
 const BACKGROUND_COLOR = "#1E1E1E";
@@ -66,10 +67,10 @@ function add(out: HTMLElement, text: string, className: string): HTMLElement {
 /**
  * Decoded the program into the DIV, returning the program name and array of created elements.
  */
-export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement): [string, HTMLElement[]] {
+export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement): [string, Highlightable[]] {
     sheet.attach();
     const classes = sheet.classes;
-    const elements: HTMLElement[] = [];
+    const elements: Highlightable[] = [];
     let e: HTMLElement;
 
     // Check magic.
@@ -99,7 +100,7 @@ export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement): [string, HTML
         // Read line number.
         for (let j = 0; j < 5; j++) {
             e = add(line, (bytes[i] - 0xB0).toString(), classes.lineNumber);
-            elements[i] = e;
+            elements.push(new Highlightable(i, i, e));
             i++;
         }
 
@@ -125,7 +126,7 @@ export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement): [string, HTML
                 pos++;
             }
             e = add(line, text, className);
-            elements[i] = e;
+            elements.push(new Highlightable(i, i, e));
             i++;
         }
 

@@ -3,6 +3,7 @@
 
 import jss from './Jss';
 import {pad} from "./Utils";
+import {Highlightable} from "./Highlighter";
 
 // Stylesheet.
 const BACKGROUND_COLOR = "var(--background)";
@@ -46,12 +47,12 @@ const sheet = jss.createStyleSheet(STYLE);
 export const highlightClassName = sheet.classes.highlighted;
 export const selectClassName = sheet.classes.selected;
 
-export function create(binary: Uint8Array, div: HTMLElement): [HTMLElement[], HTMLElement[]] {
+export function create(binary: Uint8Array, div: HTMLElement): [Highlightable[], Highlightable[]] {
     sheet.attach();
     const classes = sheet.classes;
 
-    const hexElements: HTMLElement[] = [];
-    const asciiElements: HTMLElement[] = [];
+    const hexElements: Highlightable[] = [];
+    const asciiElements: Highlightable[] = [];
 
     for (let addr = 0; addr < binary.length; addr += 16) {
         const line = document.createElement("div");
@@ -67,7 +68,7 @@ export function create(binary: Uint8Array, div: HTMLElement): [HTMLElement[], HT
             e = document.createElement("span");
             e.classList.add(classes.hex);
             e.innerText = pad(binary[subAddr], 16, 2);
-            hexElements.push(e);
+            hexElements.push(new Highlightable(hexElements.length, hexElements.length, e));
             line.appendChild(e);
             line.appendChild(document.createTextNode(" "));
         }
@@ -87,7 +88,7 @@ export function create(binary: Uint8Array, div: HTMLElement): [HTMLElement[], HT
                 e.classList.add(classes.asciiUnprintable);
                 e.innerText = ".";
             }
-            asciiElements.push(e);
+            asciiElements.push(new Highlightable(asciiElements.length, asciiElements.length, e));
             line.appendChild(e);
         }
         div.appendChild(line);
