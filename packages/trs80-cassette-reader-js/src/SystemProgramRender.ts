@@ -47,6 +47,7 @@ const STYLE = {
         backgroundColor: "var(--background-highlights)",
     },
     highlighted: {
+        backgroundColor: "var(--foreground-secondary)",
         "& $hex": {
             backgroundColor: "var(--blue)",
             color: BACKGROUND_COLOR,
