@@ -205,6 +205,11 @@ export class Trs80 implements Hal {
         const port = address & 0xFF;
         let value: number;
         switch (port) {
+            case 0x00:
+                // Joystick.
+                value = 0xFF;
+                break;
+
             case 0xE0:
                 // IRQ latch read.
                 value = ~this.irqLatch & 0xFF;
