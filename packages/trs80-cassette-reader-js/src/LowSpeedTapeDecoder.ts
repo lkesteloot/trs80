@@ -1,4 +1,3 @@
-
 import {clampToInt16} from "./AudioUtils";
 import {BitData} from "./BitData";
 import {BitType} from "./BitType";
@@ -6,6 +5,7 @@ import {Tape} from "./Tape";
 import {TapeDecoder} from "./TapeDecoder";
 import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
+import {Program} from "./Program";
 
 /**
  * Number of consecutive zero bits we require in the header before we're pretty
@@ -88,7 +88,25 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         return "Low speed" + (this.invert ? " (Inv)" : "");
     }
 
-    public handleSample(frame: number) {
+    public findNextProgram(startFrame: number): Program | undefined {
+        const samples = this.tape.lowSpeedSamples.samplesList[0];
+        let programStartFrame = -1;
+
+        for (let frame = startFrame; frame < samples.length; frame++) {
+            this.handleSample(frame);
+            if (this.state === TapeDecoderState.DETECTED && programStartFrame === -1) {
+                programStartFrame = frame;
+            }
+            if (this.state === TapeDecoderState.FINISHED && programStartFrame !== -1) {
+                return new Program(0, 0, programStartFrame, frame, this.getName(),
+                    this.getBinary(), this.getBitData(), this.getByteData());
+            }
+        }
+
+        return undefined;
+    }
+
+    private handleSample(frame: number) {
         const samples = this.tape.lowSpeedSamples.samplesList[0];
         const pulse = this.invert ? -samples[frame] : samples[frame];
 

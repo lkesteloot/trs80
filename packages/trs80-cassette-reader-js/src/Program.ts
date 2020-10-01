@@ -18,7 +18,7 @@ export class Program {
     public byteData: ByteData[];
     // Annotation that can be used by specialized reader.
     public annotations: WaveformAnnotation[] | undefined;
-    public reconstructedSamples: DisplaySamples;
+    public reconstructedSamples: DisplaySamples | undefined;
     public name: string = "";
     public notes: string = "";
     public screenshot: string = "";
@@ -27,8 +27,7 @@ export class Program {
     public readonly onScreenshot = new SimpleEventDispatcher<string>();
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
-                decoderName: string, binary: Uint8Array, bitData: BitData[], byteData: ByteData[],
-                reconstructedSamples: Int16Array) {
+                decoderName: string, binary: Uint8Array, bitData: BitData[], byteData: ByteData[]) {
 
         this.trackNumber = trackNumber;
         this.copyNumber = copyNumber;
@@ -38,6 +37,12 @@ export class Program {
         this.binary = binary;
         this.bitData = bitData;
         this.byteData = byteData;
+    }
+
+    /**
+     * Set the high-speed samples reconstructed from the binary.
+     */
+    public setReconstructedSamples(reconstructedSamples: Int16Array): void {
         this.reconstructedSamples = new DisplaySamples(reconstructedSamples);
     }
 

@@ -4,6 +4,7 @@ import {Tape} from "./Tape";
 import {TapeDecoder} from "./TapeDecoder";
 import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
+import {Program} from "./Program";
 
 // What distance away from 0 counts as "positive" (or, when negative, "negative").
 const THRESHOLD = 500/32768.0;
@@ -34,7 +35,25 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
         return "High speed";
     }
 
-    public handleSample(frame: number) {
+    public findNextProgram(startFrame: number): Program | undefined {
+        const samples = this.tape.lowSpeedSamples.samplesList[0];
+        let programStartFrame = -1;
+
+        for (let frame = startFrame; frame < samples.length; frame++) {
+            this.handleSample(frame);
+            if (this.state === TapeDecoderState.DETECTED && programStartFrame === -1) {
+                programStartFrame = frame;
+            }
+            if (this.state === TapeDecoderState.FINISHED && programStartFrame !== -1) {
+                return new Program(0, 0, programStartFrame, frame, this.getName(),
+                    this.getBinary(), this.getBitData(), this.getByteData());
+            }
+        }
+
+        return undefined;
+    }
+
+    private handleSample(frame: number) {
         const samples = this.tape.lowSpeedSamples.samplesList[0];
         const sample = samples[frame];
 

@@ -8,6 +8,7 @@ import {Tape} from "./Tape";
 import {TapeDecoder} from "./TapeDecoder";
 import {TapeDecoderState} from "./TapeDecoderState";
 import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
+import {LowSpeedAnteoTapeDecoder} from "./LowSpeedAnteoTapeDecoder";
 
 /**
  * Candidate program. A decoded detected it, but it might not be as good as another candidate.
@@ -68,46 +69,34 @@ export class Decoder {
         let copyNumber = 0;
 
         // All decoders we're interested in.
-        let tapeDecoderFactories = [
+        let tapeDecoderFactories: (() => TapeDecoder)[] = [
             () => new LowSpeedTapeDecoder(this.tape, true),
             () => new LowSpeedTapeDecoder(this.tape, false),
+            // () => new LowSpeedAnteoTapeDecoder(this.tape),
             () => new HighSpeedTapeDecoder(this.tape),
         ];
 
         // All programs we detect.
-        const candidates: Candidate[] = [];
+        const candidates: Program[] = [];
 
         // Try each decoder, feeding it the whole tape.
         for (const tapeDecoderFactory of tapeDecoderFactories) {
-            let tapeDecoder = tapeDecoderFactory();
-            let programStartFrame = -1;
+            let startFrame = 0;
 
-            for (let frame = 0; frame < sampleLength; frame++) {
-                tapeDecoder.handleSample(frame);
-
-                const state = tapeDecoder.getState();
-
-                // See if it detected its encoding.
-                if (state === TapeDecoderState.DETECTED && programStartFrame === -1) {
-                    programStartFrame = frame;
+            while (true) {
+                let tapeDecoder = tapeDecoderFactory();
+                const program = tapeDecoder.findNextProgram(startFrame);
+                if (program === undefined) {
+                    break;
                 }
-
-                // See if anyone declared victory.
-                if (state === TapeDecoderState.FINISHED) {
-                    candidates.push(new Candidate(tapeDecoder, programStartFrame, frame));
-                    tapeDecoder = tapeDecoderFactory();
-                    programStartFrame = -1;
-                }
-            }
-
-            // See if decoder had detected but not finished at end of tape.
-            if (tapeDecoder.getState() === TapeDecoderState.DETECTED && programStartFrame !== -1) {
-                candidates.push(new Candidate(tapeDecoder, programStartFrame, sampleLength - 1));
+                candidates.push(program);
+                startFrame = program.endFrame;
             }
         }
 
-        console.log(candidates); // TODO
+        console.log(candidates); // TODO remove
 
+        /*
         // Make a sorted list of start/end of candidates.
         const transitions: Transition[] = [];
         for (const candidate of candidates) {
@@ -145,13 +134,20 @@ export class Decoder {
 
         // Go through the candidates and eliminate bad ones. TODO remove
         candidates.sort((a, b) => a.startFrame - b.startFrame);
-
+*/
         // Convert remaining candidates to programs.
         for (const candidate of candidates) {
             // Skip very short programs, they're mis-detects.
             if (candidate.endFrame - candidate.startFrame > this.tape.sampleRate / 10) {
-                const tapeDecoder = candidate.tapeDecoder;
                 let newTrack = false; // TODO
+
+                /*
+                                    // TODO See how long it took to find it. A large gap means a new track.
+                                    const leadTime = (frame - searchFrameStart) / this.tape.sampleRate;
+                                    newTrack = trackNumber === 0 || leadTime > 10;
+                                    programStartFrame = frame;
+                }
+                 */
                 if (newTrack) {
                     trackNumber++;
                     copyNumber = 1;
@@ -159,21 +155,13 @@ export class Decoder {
                 } else {
                     copyNumber += 1;
                 }
-                const program = new Program(trackNumber, copyNumber, candidate.startFrame, candidate.endFrame,
-                    tapeDecoder.getName(), tapeDecoder.getBinary(), tapeDecoder.getBitData(), tapeDecoder.getByteData(),
-                    this.encodeHighSpeed(tapeDecoder.getBinary()));
-                this.tape.addProgram(program);
+                candidate.trackNumber = trackNumber;
+                candidate.copyNumber = copyNumber;
+                candidate.setReconstructedSamples(this.encodeHighSpeed(candidate.binary));
+                this.tape.addProgram(candidate);
             }
 
         }
-
-        /*
-                            // See how long it took to find it. A large gap means a new track.
-                            const leadTime = (frame - searchFrameStart) / this.tape.sampleRate;
-                            newTrack = trackNumber === 0 || leadTime > 10;
-                            programStartFrame = frame;
-        }
-         */
     }
 
     /**

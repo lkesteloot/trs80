@@ -121,8 +121,8 @@ class TapeCassette extends Int16Cassette {
  * Implementation of Cassette that reads from our high-speed reconstruction.
  */
 class ReconstructedCassette extends Int16Cassette {
-    constructor(program: Program, sampleRate: number) {
-        super(program.reconstructedSamples.samplesList[0], sampleRate);
+    constructor(samples: DisplaySamples, sampleRate: number) {
+        super(samples.samplesList[0], sampleRate);
     }
 }
 
@@ -456,14 +456,14 @@ export class TapeBrowser {
     /**
      * Make the pane of the audio sample we reconstruct from the bits.
      */
-    private makeReconstructedPane(program: Program): Pane {
+    private makeReconstructedPane(samples: DisplaySamples): Pane {
         const div = document.createElement("div");
         div.classList.add("reconstructed_waveform");
 
         this.makeWaveforms(div, new WaveformDisplay(), [
             {
                 label: "Reconstructed high-speed waveform:",
-                samples: program.reconstructedSamples,
+                samples: samples,
             }
         ]);
 
@@ -694,7 +694,9 @@ export class TapeBrowser {
             // Make the various panes.
             addPane("Binary" + (duplicateCopy ? " (same as copy " + firstCopyOfTrack?.copyNumber + ")" : ""),
                 this.makeBinaryPane(program));
-            addPane("Reconstructed", this.makeReconstructedPane(program));
+            if (program.reconstructedSamples !== undefined) {
+                addPane("Reconstructed", this.makeReconstructedPane(program.reconstructedSamples));
+            }
             if (basicPane !== undefined) {
                 addPane("Basic program", basicPane);
             }
@@ -703,7 +705,10 @@ export class TapeBrowser {
             }
             if (basicPane !== undefined || systemPane !== undefined) {
                 addPane("Emulator (original)", this.makeEmulatorPane(program, new TapeCassette(this.tape, program)));
-                addPane("Emulator (reconstructed)", this.makeEmulatorPane(program, new ReconstructedCassette(program, this.tape.sampleRate)));
+                if (program.reconstructedSamples !== undefined) {
+                    addPane("Emulator (reconstructed)",
+                        this.makeEmulatorPane(program, new ReconstructedCassette(program.reconstructedSamples, this.tape.sampleRate)));
+                }
             }
             if (edtasmPane !== undefined) {
                 addPane("Assembly" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""), edtasmPane);
