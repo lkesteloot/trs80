@@ -58,11 +58,10 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
                     if (this.state === TapeDecoderState.DETECTED) {
                         this.bitCount += 1;
 
-                        // Just got a start bit. Must be zero.
                         let bitType: BitType;
                         if (this.bitCount === 1) {
+                            // Just got a start bit. Must be zero.
                             if (bit) {
-                                this.state = TapeDecoderState.ERROR;
                                 bitType = BitType.BAD;
                             } else {
                                 bitType = BitType.START;
@@ -79,7 +78,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
                         }
                     } else {
                         // Detect end of header.
-                        if ((this.recentBits & 0xFFFF) === 0x557F) {
+                        if ((this.recentBits & 0xFFFFFFFF) === 0x5555557F) {
                             this.state = TapeDecoderState.DETECTED;
 
                             // No start bit on first byte.

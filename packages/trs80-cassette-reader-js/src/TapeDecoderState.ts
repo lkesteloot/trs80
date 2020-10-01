@@ -14,12 +14,6 @@ export enum TapeDecoderState {
     DETECTED,
 
     /**
-     * Go from DETECTED to ERROR if an error is found (e.g., missing start bit).
-     * Once in the ERROR state, the decoder won't be called again.
-     */
-    ERROR,
-
-    /**
      * Go from DETECTED to FINISHED once the program is fully read.
      * Once in the FINISHED state, the decoder won't be given any more samples.
      */

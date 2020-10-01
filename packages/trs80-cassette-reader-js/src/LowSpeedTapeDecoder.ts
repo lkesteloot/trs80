@@ -85,7 +85,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     }
 
     public getName(): string {
-        return "Low speed";
+        return "Low speed" + (this.invert ? " (Inv)" : "");
     }
 
     public handleSample(frame: number) {
