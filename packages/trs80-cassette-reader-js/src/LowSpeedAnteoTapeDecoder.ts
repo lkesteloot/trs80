@@ -9,6 +9,7 @@ import {BitData} from "./BitData";
 import {ByteData} from "./ByteData";
 import {Program} from "./Program";
 import {BitType} from "./BitType";
+import {WaveformAnnotation} from "./WaveformAnnotation";
 
 const SYNC_BYTE = 0xA5;
 
@@ -45,9 +46,9 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         this.quarterPeriod = Math.round(this.period / 4);
     }
 
-    public findNextProgram(frame: number): Program | undefined {
+    public findNextProgram(frame: number, annotations: WaveformAnnotation[]): Program | undefined {
         let count = 0;
-        while (count++ < 20) {
+        while (count++ < 20) { // TODO is 20 good? We may find 20 false starts?
             console.log('-------------------------------------');
             const [_, pulse] = this.findNextPulse(frame, this.peakThreshold);
             if (pulse === undefined) {
@@ -56,7 +57,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             }
 
             frame = pulse.frame;
-            const success = this.proofPulseDistance(frame);
+            const success = this.proofPulseDistance(frame, annotations);
             if (success) {
                 const program = this.loadData(frame);
                 // TODO we should restart somewhere if we failed to load the program.
@@ -73,12 +74,15 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     /**
      * Verifies that we have pulses every period starting at frame.
      */
-    private proofPulseDistance(frame: number): boolean {
+    private proofPulseDistance(frame: number, annotations: WaveformAnnotation[]): boolean {
+        const initialFrame = frame;
+
         console.log("Proofing starting at", frame, "with period", this.period);
         for (let i = 0; i < 200; i++) {
             const pulse = this.isPulseAt(frame);
             if (!(pulse instanceof Pulse)) {
                 console.log("Did not find pulse at", frame);
+                annotations.push(new WaveformAnnotation("Failed", initialFrame, frame));
                 return false;
             }
 

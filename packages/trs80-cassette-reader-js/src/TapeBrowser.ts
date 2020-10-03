@@ -269,6 +269,7 @@ export class TapeBrowser {
      * Make the lower-right pane of original waveforms.
      */
     private makeOriginalSamplesWaveforms(waveforms: HTMLElement): void {
+        this.originalWaveformDisplay.setAnnotations(this.tape.annotations);
         this.makeWaveforms(waveforms, this.originalWaveformDisplay, [
             {
                 label: "Original waveform:",

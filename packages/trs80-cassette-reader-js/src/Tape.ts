@@ -7,6 +7,7 @@ import {AudioFile, highPassFilter} from "./AudioUtils";
 import {DisplaySamples} from "./DisplaySamples";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
 import {Program} from "./Program";
+import {WaveformAnnotation} from "./WaveformAnnotation";
 
 const LOCAL_DATA_KEY = "tapes";
 
@@ -34,6 +35,7 @@ export class Tape {
     public lowSpeedSamples: DisplaySamples;
     public sampleRate: number;
     public programs: Program[];
+    public readonly annotations: WaveformAnnotation[] = [];
 
     /**
      * @param name text to display (e.g., "LOAD80-Feb82-s1").

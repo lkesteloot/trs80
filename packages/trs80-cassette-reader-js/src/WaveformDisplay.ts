@@ -6,6 +6,7 @@ import {Highlight} from "./Highlight";
 import * as Basic from "./Basic";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {toHexByte} from "z80-base";
+import {WaveformAnnotation} from "./WaveformAnnotation";
 
 /**
  * An individual waveform to be displayed.
@@ -80,6 +81,10 @@ export class WaveformDisplay {
      * Listeners of the zoom property.
      */
     private onZoom = new SimpleEventDispatcher<number>();
+    /**
+     * List of annotations to display in the displays.
+     */
+    private annotations: WaveformAnnotation[] = [];
 
     /**
      * Add a waveform to display.
@@ -108,6 +113,13 @@ export class WaveformDisplay {
      */
     public addProgram(program: Program) {
         this.programs.push(program);
+    }
+
+    /**
+     * Set the list of annotations. A reference will be kept to this list.
+     */
+    public setAnnotations(annotations: WaveformAnnotation[]): void {
+        this.annotations = annotations;
     }
 
     /**
@@ -337,6 +349,7 @@ export class WaveformDisplay {
         const mag = Math.pow(2, this.zoom);
         const centerSample = Math.floor(this.centerSample / mag);
 
+        // From zoom space sample to X.
         const frameToX = (i: number) => Math.floor(width / 2) + (i - centerSample);
 
         // Compute viewing window in zoom space.
@@ -353,7 +366,7 @@ export class WaveformDisplay {
         // Selection.
         if (this.startSelectionFrame !== undefined && this.endSelectionFrame !== undefined) {
             ctx.fillStyle = selectionColor;
-            const x1 = frameToX(this.startSelectionFrame/ mag);
+            const x1 = frameToX(this.startSelectionFrame / mag);
             const x2 = frameToX(this.endSelectionFrame / mag);
             ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
         }
@@ -361,7 +374,7 @@ export class WaveformDisplay {
         // Highlight.
         if (this.startHighlightFrame !== undefined && this.endHighlightFrame !== undefined) {
             ctx.fillStyle = highlightColor;
-            const x1 = frameToX(this.startHighlightFrame/ mag);
+            const x1 = frameToX(this.startHighlightFrame / mag);
             const x2 = frameToX(this.endHighlightFrame / mag);
             ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
         }
@@ -482,7 +495,44 @@ export class WaveformDisplay {
         if (drawingLine) {
             ctx.stroke();
         }
+
+        // Find entry in annotations just before our first sample.
+        let index = 0; // this.findFirstAnnotation(firstOrigSample);
+        if (index !== undefined) {
+            // Draw annotations.
+            ctx.strokeStyle = braceColor;
+            while (index < this.annotations.length) {
+                const annotation = this.annotations[index];
+                const x1 = frameToX(annotation.firstIndex / mag);
+                const x2 = frameToX(annotation.lastIndex / mag);
+                this.drawBraceAndLabel(ctx, x1, x2, braceColor, annotation.text, labelColor);
+                index++;
+            }
+        }
     }
+
+    /**
+     * Find the index of the first annotation at or after firstSample, or undefined
+     * if no annotations are at or after it.
+     */
+    /*
+    private findFirstAnnotation(firstSample: number): number | undefined {
+        let low = 0;
+        let high = this.annotations.length - 1;
+        while (low <= high && this.annotations[high].frame >= firstSample) {
+            if (low === high) {
+                return low;
+            }
+            let mid = Math.floor((low + high)/2);
+            if (this.annotations[mid].frame < firstSample) {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+
+        return undefined;
+    }*/
 
     /**
      * Set the zoom level to a particular value.
@@ -586,11 +636,15 @@ export class WaveformDisplay {
 
         ctx.beginPath();
         ctx.moveTo(left, bottom);
-        ctx.arcTo(left, lineY, left + radius, lineY, radius);
-        ctx.arcTo(middle, lineY, middle, top, radius);
-        ctx.arcTo(middle, lineY, middle + radius, lineY, radius);
-        ctx.arcTo(right, lineY, right, lineY + radius, radius);
-        ctx.lineTo(right, bottom);
+        if (left === right) {
+            ctx.lineTo(left, lineY);
+        } else {
+            ctx.arcTo(left, lineY, left + radius, lineY, radius);
+            ctx.arcTo(middle, lineY, middle, top, radius);
+            ctx.arcTo(middle, lineY, middle + radius, lineY, radius);
+            ctx.arcTo(right, lineY, right, lineY + radius, radius);
+            ctx.lineTo(right, bottom);
+        }
 
         ctx.stroke();
     }

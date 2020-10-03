@@ -68,7 +68,8 @@ export class Decoder {
         let trackNumber = 0;
         let copyNumber = 0;
 
-        // All decoders we're interested in.
+        // All decoders we're interested in. We use factories because they're created
+        // multiple times, once for each program found.
         let tapeDecoderFactories: (() => TapeDecoder)[] = [
             // () => new LowSpeedTapeDecoder(this.tape, true),
             // () => new LowSpeedTapeDecoder(this.tape, false),
@@ -79,13 +80,16 @@ export class Decoder {
         // All programs we detect.
         const candidates: Program[] = [];
 
+        // Clear all annotations.
+        this.tape.annotations.splice(0, this.tape.annotations.length);
+
         // Try each decoder, feeding it the whole tape.
         for (const tapeDecoderFactory of tapeDecoderFactories) {
             let startFrame = 0;
 
             while (true) {
                 let tapeDecoder = tapeDecoderFactory();
-                const program = tapeDecoder.findNextProgram(startFrame);
+                const program = tapeDecoder.findNextProgram(startFrame, this.tape.annotations);
                 if (program === undefined) {
                     break;
                 }
@@ -160,7 +164,6 @@ export class Decoder {
                 candidate.setReconstructedSamples(this.encodeHighSpeed(candidate.binary));
                 this.tape.addProgram(candidate);
             }
-
         }
     }
 

@@ -5,6 +5,7 @@ import {BitData} from "./BitData";
 import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
 import {Program} from "./Program";
+import {WaveformAnnotation} from "./WaveformAnnotation";
 
 export interface TapeDecoder {
     /**
@@ -15,10 +16,14 @@ export interface TapeDecoder {
     /**
      * Find the next program starting at "startFrame".
      *
+     * @param startFrame where in the tape to start decoding.
+     * @param annotations the reader can optionally append this this array of annotations, to be displayed
+     * in the waveform for debugging.
+     *
      * @return the decoded program (with invalid track/copy numbers), or undefined if no program was found.
      * The caller can call getState() to figure out if decoding finished properly.
      */
-    findNextProgram(startFrame: number): Program | undefined;
+    findNextProgram(startFrame: number, annotations: WaveformAnnotation[]): Program | undefined;
 
     /**
      * Get the state of the decoder. See the enum for valid state transitions.
