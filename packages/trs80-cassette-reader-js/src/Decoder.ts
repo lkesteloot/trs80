@@ -70,10 +70,10 @@ export class Decoder {
 
         // All decoders we're interested in.
         let tapeDecoderFactories: (() => TapeDecoder)[] = [
-            () => new LowSpeedTapeDecoder(this.tape, true),
-            () => new LowSpeedTapeDecoder(this.tape, false),
-            // () => new LowSpeedAnteoTapeDecoder(this.tape),
-            () => new HighSpeedTapeDecoder(this.tape),
+            // () => new LowSpeedTapeDecoder(this.tape, true),
+            // () => new LowSpeedTapeDecoder(this.tape, false),
+            () => new LowSpeedAnteoTapeDecoder(this.tape),
+            // () => new HighSpeedTapeDecoder(this.tape),
         ];
 
         // All programs we detect.

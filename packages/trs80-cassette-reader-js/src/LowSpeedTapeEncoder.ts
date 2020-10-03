@@ -2,18 +2,17 @@
 import {concatAudio} from "./AudioUtils";
 
 /**
- * Generate one cycle of a sine wave.
- * @param length number of samples in the full cycle.
- * @return audio samples for one cycle.
+ * Generate one pulse for 500 baud audio.
  */
-function generateCycle(length: number): Int16Array {
+function generatePulse(length: number): Int16Array {
     const audio = new Int16Array(length);
 
-    for (let i = 0; i < length; i++) {
-        const t = 2*Math.PI*i/length;
+    // Center it in the audio.
+    for (let i = 0; i < length/2; i++) {
+        const t = 2*Math.PI*i/(length/2);
 
         // -0.5 to 0.5, matches recorded audio.
-        audio[i] = Math.sin(t)*16384;
+        audio[i + length/4] = Math.sin(t)*16384;
     }
 
     return audio;
@@ -51,7 +50,7 @@ export function encodeLowSpeed(bytes: Uint8Array, sampleRate: number): Int16Arra
     const CYCLE_LENGTH = Math.round(0.001*sampleRate);
 
     // Samples representing one cycle.
-    const cycle = generateCycle(CYCLE_LENGTH);
+    const cycle = generatePulse(CYCLE_LENGTH);
 
     // Samples representing 1ms of silence.
     const silence = new Int16Array(CYCLE_LENGTH);
