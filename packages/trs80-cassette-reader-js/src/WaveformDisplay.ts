@@ -198,7 +198,7 @@ export class WaveformDisplay {
         this.onZoom.subscribe(zoom => input.value = (-zoom).toString());
 
         input.addEventListener("input", () => {
-            this.setZoom(-parseInt(input.value));
+            this.setZoom(-parseInt(input.value), undefined);
         });
 
         return label;
@@ -212,11 +212,15 @@ export class WaveformDisplay {
         let dragInitialX = 0;
         let dragInitialCenterSample = 0;
         let inCanvas = false;
+        let holdingShift = false;
         let holdingAlt = false;
         let selectionStart: Highlight | undefined = undefined;
 
         const updateCursor = () => {
-            canvas.style.cursor = holdingAlt ? "auto" : dragging ? "grabbing" : "grab";
+            canvas.style.cursor = holdingShift ? (holdingAlt ? "zoom-out" : "zoom-in")
+                : holdingAlt ? "auto"
+                : dragging ? "grabbing"
+                : "grab";
         };
         updateCursor();
 
@@ -232,7 +236,16 @@ export class WaveformDisplay {
 
         // Mouse click events.
         canvas.addEventListener("mousedown", event => {
-            if (holdingAlt) {
+            if (holdingShift) {
+                if (holdingAlt) {
+                    // Zoom out.
+                    this.setZoom(this.zoom + 1, event.offsetX);
+                } else {
+                    // Zoom in.
+                    this.setZoom(this.zoom - 1, event.offsetX);
+                }
+            } else if (holdingAlt) {
+                // Start selecting.
                 const frame = this.screenXToOriginalFrame(event.offsetX);
                 const highlight = this.highlightAt(frame);
                 if (highlight !== undefined) {
@@ -240,6 +253,7 @@ export class WaveformDisplay {
                     this.onSelection.dispatch(highlight);
                 }
             } else {
+                // Start pan.
                 dragging = true;
                 dragInitialX = event.offsetX;
                 dragInitialCenterSample = this.centerSample;
@@ -282,12 +296,20 @@ export class WaveformDisplay {
                     holdingAlt = true;
                     updateCursor();
                 }
+                if (event.key === "Shift") {
+                    holdingShift = true;
+                    updateCursor();
+                }
             }
         });
         document.addEventListener("keyup", event => {
             if (inCanvas) {
                 if (event.key === "Alt") {
                     holdingAlt = false;
+                    updateCursor();
+                }
+                if (event.key === "Shift") {
+                    holdingShift = false;
                     updateCursor();
                 }
             }
@@ -536,28 +558,23 @@ export class WaveformDisplay {
 
     /**
      * Set the zoom level to a particular value.
+     *
+     * @param zoom new zoom level.
+     * @param screenX pixel to keep at the same place, or undefined to mean the horizontal center.
      */
-    public setZoom(zoom: number): void {
+    public setZoom(zoom: number, screenX: number | undefined): void {
+        if (screenX === undefined) {
+            screenX = Math.round(this.displayWidth / 2);
+        }
+
         const newZoom = Math.min(Math.max(0, zoom), this.maxZoom);
         if (newZoom !== this.zoom) {
+            const frame = this.screenXToOriginalFrame(screenX);
             this.zoom = newZoom;
+            this.centerSample = frame - Math.round((screenX - this.displayWidth/2)*Math.pow(2, newZoom));
             this.onZoom.dispatch(newZoom);
             this.draw();
         }
-    }
-
-    /**
-     * Zoom in one level.
-     */
-    public zoomIn() {
-        this.setZoom(this.zoom - 1);
-    }
-
-    /**
-     * Zoom out one level.
-     */
-    public zoomOut() {
-        this.setZoom(this.zoom + 1);
     }
 
     /**
@@ -581,7 +598,7 @@ export class WaveformDisplay {
         this.centerSample = Math.floor((startFrame + endFrame)/2);
 
         // Find appropriate zoom.
-        this.setZoom(this.computeFitLevel(sampleCount));
+        this.setZoom(this.computeFitLevel(sampleCount), undefined);
 
         this.draw();
     }
