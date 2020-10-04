@@ -47,8 +47,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     }
 
     public findNextProgram(frame: number, annotations: WaveformAnnotation[]): Program | undefined {
-        let count = 0;
-        while (count++ < 20) { // TODO is 20 good? We may find 20 false starts?
+        while (true) {
             console.log('-------------------------------------');
             const [_, pulse] = this.findNextPulse(frame, this.peakThreshold);
             if (pulse === undefined) {
@@ -60,15 +59,14 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             const success = this.proofPulseDistance(frame, annotations);
             if (success) {
                 const program = this.loadData(frame);
-                // TODO we should restart somewhere if we failed to load the program.
-                return program;
+                if (program != undefined && program.binary.length > 0) {
+                    return program;
+                }
             }
 
             // Jump forward 1/10 second.
             frame += this.period*50;
         }
-
-        return undefined;
     }
 
     /**

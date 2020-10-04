@@ -14,6 +14,10 @@ const LOCAL_DATA_KEY = "tapes";
 export interface SavedProgram {
     name: string,
     notes: string,
+    /**
+     * Representative timestamp, in seconds, for this program. This is roughly the half-way point of the
+     * program on the tape.
+     */
     timestamp: number,
     screenshot: string,
 }
