@@ -40,7 +40,16 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
     constructor(tape: Tape) {
         this.tape = tape;
-        this.samples = this.tape.originalSamples.samplesList[0];
+        if (true) {
+            this.samples = this.tape.originalSamples.samplesList[0];
+        } else {
+            // Invert samples.
+            const samples = this.tape.originalSamples.samplesList[0];
+            this.samples = new Int16Array(samples.length);
+            for (let i = 0; i < samples.length; i++) {
+                this.samples[i] = -samples[i];
+            }
+        }
         this.period = Math.round(this.tape.sampleRate*0.002); // 2ms period.
         this.halfPeriod = Math.round(this.period / 2);
         this.quarterPeriod = Math.round(this.period / 4);
@@ -48,7 +57,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
     public findNextProgram(frame: number, annotations: WaveformAnnotation[]): Program | undefined {
         while (true) {
-            console.log('-------------------------------------');
+            // console.log('-------------------------------------');
             const [_, pulse] = this.findNextPulse(frame, this.peakThreshold);
             if (pulse === undefined) {
                 // Ran off the end of the tape.
@@ -58,7 +67,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             frame = pulse.frame;
             const success = this.proofPulseDistance(frame, annotations);
             if (success) {
-                const program = this.loadData(frame);
+                const program = this.loadData(frame, annotations);
                 if (program != undefined && program.binary.length > 0) {
                     return program;
                 }
@@ -87,22 +96,28 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             frame = pulse.frame + this.period;
         }
         console.log("Proof successful");
+        // annotations.push(new WaveformAnnotation("P", initialFrame, frame - this.period));
 
         return true;
     }
 
-    private loadData(startFrame: number): Program | undefined {
+    private loadData(startFrame: number, annotations: WaveformAnnotation[]): Program | undefined {
         let recentBits = 0;
         let frame = startFrame;
         let foundSyncByte = false;
         let bitCount = 0;
+        let allowLateZeroPulse = false;
         const bitData: BitData[] = [];
         const byteData: ByteData[] = [];
         const binary: number[] = [];
 
         while (true) {
-            const allowLateZeroPulse = !foundSyncByte && recentBits === SYNC_BYTE >> 1;
+            // console.log("recentBits", recentBits.toString(16).padStart(8, "0"), allowLateZeroPulse, foundSyncByte);
+            if (allowLateZeroPulse) {
+                annotations.push(new WaveformAnnotation("!", frame, frame));
+            }
             const bitResult = this.readBit(frame, allowLateZeroPulse);
+            allowLateZeroPulse = false;
             if (bitResult === NonPulse.SILENCE) {
                 // End of program.
                 break;
@@ -115,12 +130,13 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             } else {
                 const [bit, nextFrame] = bitResult;
                 recentBits = (recentBits << 1) | (bit ? 1 : 0);
-                bitData.push(new BitData(frame + this.quarterPeriod, nextFrame + this.quarterPeriod, bit ? BitType.ONE : BitType.ZERO));
+                bitData.push(new BitData(nextFrame - this.quarterPeriod, nextFrame + this.period - this.quarterPeriod,
+                    bit ? BitType.ONE : BitType.ZERO));
 
                 if (foundSyncByte) {
                     bitCount += 1;
                     if (bitCount === 8) {
-                        let byteValue = recentBits & 0xFF;
+                        const byteValue = recentBits & 0xFF;
                         binary.push(byteValue);
                         byteData.push(new ByteData(byteValue, bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame));
                         bitCount = 0;
@@ -128,6 +144,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                 } else {
                     if (recentBits === SYNC_BYTE) {
                         foundSyncByte = true;
+                        allowLateZeroPulse = true;
                         bitCount = 0;
                     }
                 }
@@ -136,13 +153,15 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             }
         }
 
-        if (frame === startFrame) {
+        if (frame === startFrame || !foundSyncByte) {
             // Didn't read any bits.
+            annotations.push(new WaveformAnnotation("E", startFrame, frame));
             return undefined;
         }
+        annotations.push(new WaveformAnnotation("" + foundSyncByte, startFrame, frame));
 
         // Remove trailing BAD bits, they're probably just think after the last bit.
-        while (bitData.length > 0 && bitData[bitData.length - 1].bitType == BitType.BAD) {
+        while (bitData.length > 0 && bitData[bitData.length - 1].bitType === BitType.BAD) {
             bitData.splice(bitData.length - 1, 1);
         }
 
@@ -151,21 +170,19 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     }
 
     /**
-     * Read a bit at position "frame", which should be the position of the previous bit's final pulse.
+     * Read a bit at position "frame", which should be the position of the previous bit's zero pulse.
      * @return the value of the bit and the new position of the zero pulse, or NonPulse if a bit
      * couldn't be found.
      */
     private readBit(frame: number, allowLateZeroPulse: boolean): [boolean,number] | NonPulse {
-        // One pulse is half a period away.
-        const onePulse = this.isPulseAt(frame + this.halfPeriod);
-        const bit = onePulse instanceof Pulse;
-
         // Zero pulse is one period away.
         let zeroPulse = this.isPulseAt(frame + this.period);
+        // console.log("readbit", bit, onePulse, zeroPulse);
         if (!(zeroPulse instanceof Pulse)) {
             if (allowLateZeroPulse) {
                 const [_, latePulse] = this.findNextPulse(frame + this.period, this.peakThreshold);
                 if (latePulse === undefined || latePulse.frame > frame + this.period*3) {
+                    // Failed to find late pulse.
                     return zeroPulse;
                 }
 
@@ -174,6 +191,10 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                 return zeroPulse;
             }
         }
+
+        // One pulse is half a period after the zero pulse.
+        const onePulse = this.isPulseAt(zeroPulse.frame + this.halfPeriod);
+        const bit = onePulse instanceof Pulse;
 
         return [bit, zeroPulse.frame];
     }
@@ -205,7 +226,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
         // Look for next position below the threshold. Keep track of peak value.
         let maxValue = -32769;
-        let maxFrame = 0;
+        let maxFrame = -1;
         while (frame < this.samples.length && this.samples[frame] >= threshold) {
             if (this.samples[frame] > maxValue) {
                 maxValue = this.samples[frame];
@@ -217,7 +238,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             return [frame, undefined];
         }
 
-        if (maxFrame === 0) {
+        if (maxFrame === -1) {
             throw new Error("Didn't find peak");
         }
 
@@ -228,7 +249,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
      * Look for a pulse around frame, returning it found, otherwise undefined.
      */
     private isPulseAt(frame: number): Pulse | NonPulse {
-        const distance = Math.round(this.period / 4);
+        const distance = Math.round(this.period / 6);
         const pulseStart = frame - distance;
         const pulseEnd = frame + distance;
         if (pulseStart < 0 || pulseEnd >= this.samples.length) {
@@ -236,9 +257,9 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         }
 
         // Find min and max around frame.
-        let minValue = this.samples[pulseStart];
-        let maxValue = this.samples[pulseEnd];
         let maxFrame = pulseStart;
+        let minValue = this.samples[maxFrame];
+        let maxValue = this.samples[maxFrame];
         for (let i = pulseStart; i <= pulseEnd; i++) {
             const value = this.samples[i];
             if (value < minValue) {
@@ -249,7 +270,6 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                 maxFrame = i;
             }
         }
-
 
         let span = maxValue - minValue;
         if (span > this.peakThreshold &&

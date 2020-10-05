@@ -94,7 +94,7 @@ export class Decoder {
                     break;
                 }
                 candidates.push(program);
-                startFrame = program.endFrame;
+                startFrame = Math.round(program.endFrame + this.tape.sampleRate*0.01);
             }
         }
 
