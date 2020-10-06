@@ -112,9 +112,17 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
     }
     const binary = new Uint8Array(totalLength);
     let offset = 0;
+    let address = systemProgram.chunks[0].loadAddress;
     for (const chunk of systemProgram.chunks) {
+        if (chunk.loadAddress !== address) {
+            // If we get this, we need to modify Disasm to get chunks.
+            console.log("Expected", address, "but got", chunk.loadAddress);
+            address = chunk.loadAddress;
+        }
+
         binary.set(chunk.data, offset);
         offset += chunk.data.length;
+        address += chunk.data.length;
     }
 
     const disasm = new Disasm(binary);

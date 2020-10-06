@@ -15,7 +15,6 @@ import {DisplaySamples} from "./DisplaySamples";
 import {base64EncodeUint8Array, clearElement} from "./Utils";
 import {SystemProgram} from "./SystemProgram";
 import {Highlighter} from "./Highlighter";
-import {WaveformAnnotation} from "./WaveformAnnotation";
 
 /**
  * Generic cassette that reads from a Int16Array.

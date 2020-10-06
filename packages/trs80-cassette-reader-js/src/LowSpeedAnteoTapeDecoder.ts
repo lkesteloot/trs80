@@ -40,7 +40,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
     constructor(tape: Tape) {
         this.tape = tape;
-        if (true) {
+        if (false) {
             this.samples = this.tape.originalSamples.samplesList[0];
         } else {
             // Invert samples.

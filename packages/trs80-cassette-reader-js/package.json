@@ -46,6 +46,6 @@
     "strongly-typed-events": "^1.6.7",
     "trs80-emulator": "^1.0.9",
     "z80-base": "^1.0.4",
-    "z80-disasm": "^1.0.5"
+    "z80-disasm": "../z80-disasm"
   }
 }
