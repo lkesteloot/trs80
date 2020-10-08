@@ -8,6 +8,7 @@ import {DisplaySamples} from "./DisplaySamples";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
 import {Program} from "./Program";
 import {WaveformAnnotation} from "./WaveformAnnotation";
+import {SimpleEventDispatcher} from "strongly-typed-events";
 
 const LOCAL_DATA_KEY = "tapes";
 
@@ -34,12 +35,15 @@ export interface SavedData {
 
 export class Tape {
     public name: string;
+    public notes: string = "";
     public originalSamples: DisplaySamples;
     public filteredSamples: DisplaySamples;
     public lowSpeedSamples: DisplaySamples;
     public sampleRate: number;
     public programs: Program[];
     public readonly annotations: WaveformAnnotation[] = [];
+    public readonly onName = new SimpleEventDispatcher<string>();
+    public readonly onNotes = new SimpleEventDispatcher<string>();
 
     /**
      * @param name text to display (e.g., "LOAD80-Feb82-s1").
@@ -57,6 +61,26 @@ export class Tape {
 
     public addProgram(program: Program) {
         this.programs.push(program);
+    }
+
+    /**
+     * Set the name of the tape, as set by the user.
+     */
+    public setName(name: string): void {
+        if (name !== this.name) {
+            this.name = name;
+            this.onName.dispatch(name);
+        }
+    }
+
+    /**
+     * Set the notes for the tape, as set by the user.
+     */
+    public setNotes(notes: string): void {
+        if (notes !== this.notes) {
+            this.notes = notes;
+            this.onNotes.dispatch(notes);
+        }
     }
 
     /**
@@ -78,6 +102,7 @@ export class Tape {
 
         for (const tapeData of data.tapes) {
             if (tapeData.name === this.name) {
+                this.notes = tapeData.notes;
                 for (const programData of tapeData.programs) {
                     for (const program of this.programs) {
                         if (program.isForTimestamp(programData.timestamp, this.sampleRate)) {
@@ -99,7 +124,7 @@ export class Tape {
             tapes: [
                 {
                     name: this.name,
-                    notes: "",
+                    notes: this.notes,
                     programs: this.programs.map(program => ({
                         name: program.name,
                         notes: program.notes,

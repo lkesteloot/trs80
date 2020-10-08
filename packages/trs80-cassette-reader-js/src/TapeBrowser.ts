@@ -288,7 +288,7 @@ export class TapeBrowser {
     /**
      * Make pane of metadata for a program.
      */
-    private makeMetadataPane(program: Program, basicPane?: Pane, systemPane?: Pane, edtasmPane?: Pane): Pane {
+    private makeMetadataPane(program: Program | Tape, basicPane?: Pane, systemPane?: Pane, edtasmPane?: Pane): Pane {
         const div = document.createElement("div");
         div.classList.add("metadata");
         div.style.display = "flex";
@@ -297,7 +297,9 @@ export class TapeBrowser {
         div.appendChild(textInfoDiv);
 
         const h1 = document.createElement("h1");
-        h1.innerText = "Track " + program.trackNumber + ", copy " + program.copyNumber;
+        h1.innerText = program instanceof Program
+            ? "Track " + program.trackNumber + ", copy " + program.copyNumber
+            : "Whole Tape";
         textInfoDiv.appendChild(h1);
 
         const table = document.createElement("table");
@@ -332,30 +334,36 @@ export class TapeBrowser {
             addKeyElement(key, valueElement);
         };
 
-        addKeyValue("Decoder", program.decoderName);
-        addKeyValue("Start time", frameToTimestamp(program.startFrame, this.tape.sampleRate), () =>
-            this.originalWaveformDisplay.zoomToFit(program.startFrame - 100, program.startFrame + 100));
-        addKeyValue("End time", frameToTimestamp(program.endFrame, this.tape.sampleRate), () =>
-            this.originalWaveformDisplay.zoomToFit(program.endFrame - 100, program.endFrame + 100));
-        addKeyValue("Duration", frameToTimestamp(program.endFrame - program.startFrame, this.tape.sampleRate, true), () =>
-            this.originalWaveformDisplay.zoomToFit(program.startFrame, program.endFrame));
-        addKeyValue("Binary", "Download " + program.binary.length + " bytes", () => {
-            // Download binary.
-            const a = document.createElement("a");
-            a.href = "data:application/octet-stream;base64," + base64EncodeUint8Array(program.binary);
-            a.download = program.getShortLabel().replace(" ", "-") + ".bin";
-            a.click();
-        });
-        if (basicPane !== undefined) {
-            addKeyValue("Type", "Basic program", () => this.showPane(basicPane));
-        } else if (systemPane !== undefined) {
-            addKeyValue("Type", "System program" + (systemPane.programName ? " (" + systemPane.programName + ")" : ""),
-                () => this.showPane(systemPane));
-        } else if (edtasmPane !== undefined) {
-            addKeyValue("Type", "Assembly program" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""),
-                () => this.showPane(edtasmPane));
-        } else {
-            addKeyValue("Type", "Unknown");
+        if (program instanceof Program) {
+            addKeyValue("Decoder", program.decoderName);
+        }
+        const startFrame = program instanceof Program ? program.startFrame : 0;
+        const endFrame = program instanceof Program ? program.endFrame : program.originalSamples.samplesList[0].length;
+        addKeyValue("Start time", frameToTimestamp(startFrame, this.tape.sampleRate), () =>
+            this.originalWaveformDisplay.zoomToFit(startFrame - 100, startFrame + 100));
+        addKeyValue("End time", frameToTimestamp(endFrame, this.tape.sampleRate), () =>
+            this.originalWaveformDisplay.zoomToFit(endFrame - 100, endFrame + 100));
+        addKeyValue("Duration", frameToTimestamp(endFrame - startFrame, this.tape.sampleRate, true), () =>
+            this.originalWaveformDisplay.zoomToFit(startFrame, endFrame));
+        if (program instanceof Program) {
+            addKeyValue("Binary", "Download " + program.binary.length + " bytes", () => {
+                // Download binary.
+                const a = document.createElement("a");
+                a.href = "data:application/octet-stream;base64," + base64EncodeUint8Array(program.binary);
+                a.download = program.getShortLabel().replace(" ", "-") + ".bin";
+                a.click();
+            });
+            if (basicPane !== undefined) {
+                addKeyValue("Type", "Basic program", () => this.showPane(basicPane));
+            } else if (systemPane !== undefined) {
+                addKeyValue("Type", "System program" + (systemPane.programName ? " (" + systemPane.programName + ")" : ""),
+                    () => this.showPane(systemPane));
+            } else if (edtasmPane !== undefined) {
+                addKeyValue("Type", "Assembly program" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""),
+                    () => this.showPane(edtasmPane));
+            } else {
+                addKeyValue("Type", "Unknown");
+            }
         }
 
         // Add editable fields.
@@ -368,6 +376,11 @@ export class TapeBrowser {
             input.classList.add("name");
             program.onName.subscribe(name => input.value = name);
             input.value = program.name;
+            // Spec says "off", but Chrome ignores that, so use "chrome-off".
+            input.autocomplete = "chrome-off";
+            if (program instanceof Tape) {
+                input.disabled = true;
+            }
             td.appendChild(input);
 
             addKeyElement("Name", td);
@@ -386,6 +399,8 @@ export class TapeBrowser {
             input.rows = 5;
             program.onNotes.subscribe(notes => input.value = notes);
             input.value = program.notes;
+            // Spec says "off", but Chrome ignores that, so use "chrome-off".
+            input.autocomplete = "chrome-off";
             td.appendChild(input);
 
             const keyElement = addKeyElement("Notes", td);
@@ -397,24 +412,26 @@ export class TapeBrowser {
             });
         }
 
-        // Add bit errors.
-        let count = 1;
-        for (const bitData of program.bitData) {
-            if (bitData.bitType === BitType.BAD) {
-                addKeyValue("Bit error " + count++, frameToTimestamp(bitData.startFrame, this.tape.sampleRate), () =>
-                    this.originalWaveformDisplay.zoomToBitData(bitData));
+        if (program instanceof Program) {
+            // Add bit errors.
+            let count = 1;
+            for (const bitData of program.bitData) {
+                if (bitData.bitType === BitType.BAD) {
+                    addKeyValue("Bit error " + count++, frameToTimestamp(bitData.startFrame, this.tape.sampleRate), () =>
+                        this.originalWaveformDisplay.zoomToBitData(bitData));
+                }
             }
-        }
 
-        // Add screenshot.
-        const screenshotDiv = document.createElement("div");
-        screenshotDiv.style.marginLeft = "20pt";
-        div.appendChild(screenshotDiv);
-        const screenshotScreen = new CssScreen(screenshotDiv);
-        screenshotScreen.displayScreenshot(program.screenshot);
-        program.onScreenshot.subscribe(screenshot => {
-            screenshotScreen.displayScreenshot(screenshot)
-        });
+            // Add screenshot.
+            const screenshotDiv = document.createElement("div");
+            screenshotDiv.style.marginLeft = "20pt";
+            div.appendChild(screenshotDiv);
+            const screenshotScreen = new CssScreen(screenshotDiv);
+            screenshotScreen.displayScreenshot(program.screenshot);
+            program.onScreenshot.subscribe(screenshot => {
+                screenshotScreen.displayScreenshot(screenshot)
+            });
+        }
 
         return new Pane(div);
     }
@@ -663,7 +680,12 @@ export class TapeBrowser {
         // Header for taoe.
         const row = addRow("Whole tape");
         row.classList.add("program_title");
+        let metadataLabel = frameToTimestamp(0, this.tape.sampleRate, true) + " to " +
+            frameToTimestamp(this.tape.originalSamples.samplesList[0].length, this.tape.sampleRate, true);
+        addPane(metadataLabel, this.makeMetadataPane(this.tape, undefined, undefined, undefined));
         addPane("Emulator", this.makeEmulatorPane(undefined, new TapeCassette(this.tape, undefined)));
+
+        // Section for each program.
         for (const program of this.tape.programs) {
             let duplicateCopy = false;
 
