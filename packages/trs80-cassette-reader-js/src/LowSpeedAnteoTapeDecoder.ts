@@ -31,7 +31,7 @@ class Pulse {
 export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     private readonly tape: Tape;
     private readonly samples: Int16Array;
-    // Distance between two zero pulses.
+    // Distance between two clock pulses.
     private readonly period: number;
     private readonly halfPeriod: number;
     private readonly quarterPeriod: number;
@@ -106,18 +106,18 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         let frame = startFrame;
         let foundSyncByte = false;
         let bitCount = 0;
-        let allowLateZeroPulse = false;
+        let allowLateClockPulse = false;
         const bitData: BitData[] = [];
         const byteData: ByteData[] = [];
         const binary: number[] = [];
 
         while (true) {
-            // console.log("recentBits", recentBits.toString(16).padStart(8, "0"), allowLateZeroPulse, foundSyncByte);
-            if (allowLateZeroPulse) {
+            // console.log("recentBits", recentBits.toString(16).padStart(8, "0"), allowLateClockPulse, foundSyncByte);
+            if (allowLateClockPulse) {
                 annotations.push(new WaveformAnnotation("!", frame, frame));
             }
-            const bitResult = this.readBit(frame, allowLateZeroPulse);
-            allowLateZeroPulse = false;
+            const bitResult = this.readBit(frame, allowLateClockPulse);
+            allowLateClockPulse = false;
             if (bitResult === NonPulse.SILENCE) {
                 // End of program.
                 break;
@@ -144,7 +144,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                 } else {
                     if (recentBits === SYNC_BYTE) {
                         foundSyncByte = true;
-                        allowLateZeroPulse = true;
+                        allowLateClockPulse = true;
                         bitCount = 0;
                     }
                 }
@@ -170,33 +170,33 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     }
 
     /**
-     * Read a bit at position "frame", which should be the position of the previous bit's zero pulse.
-     * @return the value of the bit and the new position of the zero pulse, or NonPulse if a bit
+     * Read a bit at position "frame", which should be the position of the previous bit's clock pulse.
+     * @return the value of the bit and the new position of the clock pulse, or NonPulse if a bit
      * couldn't be found.
      */
-    private readBit(frame: number, allowLateZeroPulse: boolean): [boolean,number] | NonPulse {
-        // Zero pulse is one period away.
-        let zeroPulse = this.isPulseAt(frame + this.period);
-        // console.log("readbit", bit, onePulse, zeroPulse);
-        if (!(zeroPulse instanceof Pulse)) {
-            if (allowLateZeroPulse) {
+    private readBit(frame: number, allowLateClockPulse: boolean): [boolean,number] | NonPulse {
+        // Clock pulse is one period away.
+        let clockPulse = this.isPulseAt(frame + this.period);
+        // console.log("readbit", bit, dataPulse, clockPulse);
+        if (!(clockPulse instanceof Pulse)) {
+            if (allowLateClockPulse) {
                 const [_, latePulse] = this.findNextPulse(frame + this.period, this.peakThreshold);
                 if (latePulse === undefined || latePulse.frame > frame + this.period*3) {
                     // Failed to find late pulse.
-                    return zeroPulse;
+                    return clockPulse;
                 }
 
-                zeroPulse = latePulse;
+                clockPulse = latePulse;
             } else {
-                return zeroPulse;
+                return clockPulse;
             }
         }
 
-        // One pulse is half a period after the zero pulse.
-        const onePulse = this.isPulseAt(zeroPulse.frame + this.halfPeriod);
-        const bit = onePulse instanceof Pulse;
+        // Data pulse is half a period after the clock pulse.
+        const dataPulse = this.isPulseAt(clockPulse.frame + this.halfPeriod);
+        const bit = dataPulse instanceof Pulse;
 
-        return [bit, zeroPulse.frame];
+        return [bit, clockPulse.frame];
     }
 
     /**

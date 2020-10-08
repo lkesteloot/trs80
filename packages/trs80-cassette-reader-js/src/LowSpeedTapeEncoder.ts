@@ -28,21 +28,18 @@ function generatePulse(length: number): Int16Array {
 function addByte(samplesList: Int16Array[], b: number, cycle: Int16Array, silence: Int16Array) {
     // MSb first.
     for (let i = 7; i >= 0; i--) {
-        if ((b & (1 << i)) != 0) {
-            // One.
-            samplesList.push(cycle);
-            samplesList.push(cycle);
-        } else {
-            // Zero.
-            samplesList.push(silence);
-            samplesList.push(cycle);
-        }
+        // Clock pulse.
+        samplesList.push(cycle);
+
+        // Data pulse.
+        const bit = (b & (1 << i)) != 0;
+        samplesList.push(bit ? cycle : silence);
     }
 }
 
 /**
  * Encode the sequence of bytes as an array of audio samples for low-speed (500 baud) cassettes.
- * @param bytes cas-style array of bytes, including 256 zero bytes, sync bytes, and trailing zero bytes.
+ * @param bytes cas-style array of bytes, including 256 zero bytes, sync byte, and trailing zero bytes.
  * @param sampleRate number of samples per second in the generated audio.
  */
 export function encodeLowSpeed(bytes: Uint8Array, sampleRate: number): Int16Array {
@@ -61,6 +58,7 @@ export function encodeLowSpeed(bytes: Uint8Array, sampleRate: number): Int16Arra
     // Start with half a second of silence.
     samplesList.push(new Int16Array(sampleRate / 2));
 
+    // All data bytes.
     for (let i = 0; i < bytes.length; i++) {
         addByte(samplesList, bytes[i], cycle, silence);
     }
