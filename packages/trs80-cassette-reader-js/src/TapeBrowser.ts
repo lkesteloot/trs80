@@ -367,7 +367,7 @@ export class TapeBrowser {
         }
 
         // Add editable fields.
-        {
+        if (program instanceof Program) {
             const td = document.createElement("td");
             td.classList.add("value");
 

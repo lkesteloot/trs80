@@ -40,8 +40,8 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
     constructor(tape: Tape) {
         this.tape = tape;
-        if (false) {
-            this.samples = this.tape.originalSamples.samplesList[0];
+        if (true) {
+            this.samples = this.tape.lowSpeedSamples.samplesList[0];
         } else {
             // Invert samples.
             const samples = this.tape.originalSamples.samplesList[0];
@@ -113,9 +113,6 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
         while (true) {
             // console.log("recentBits", recentBits.toString(16).padStart(8, "0"), allowLateClockPulse, foundSyncByte);
-            if (allowLateClockPulse) {
-                annotations.push(new WaveformAnnotation("!", frame, frame));
-            }
             const bitResult = this.readBit(frame, allowLateClockPulse);
             allowLateClockPulse = false;
             if (bitResult === NonPulse.SILENCE) {
@@ -125,7 +122,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             if (bitResult === NonPulse.NOISE) {
                 const nextFrame = frame + this.period;
                 recentBits = (recentBits << 1) | 0;
-                bitData.push(new BitData(frame + this.quarterPeriod, nextFrame + this.quarterPeriod, BitType.BAD));
+                bitData.push(new BitData(nextFrame - this.quarterPeriod, nextFrame + this.period - this.quarterPeriod, BitType.BAD));
                 frame = nextFrame;
             } else {
                 const [bit, nextFrame] = bitResult;
@@ -143,6 +140,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                     }
                 } else {
                     if (recentBits === SYNC_BYTE) {
+                        annotations.push(new WaveformAnnotation("Sync", bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame));
                         foundSyncByte = true;
                         allowLateClockPulse = true;
                         bitCount = 0;
@@ -153,12 +151,14 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             }
         }
 
+        /*
         if (frame === startFrame || !foundSyncByte) {
             // Didn't read any bits.
             annotations.push(new WaveformAnnotation("E", startFrame, frame));
             return undefined;
         }
         annotations.push(new WaveformAnnotation("" + foundSyncByte, startFrame, frame));
+        */
 
         // Remove trailing BAD bits, they're probably just think after the last bit.
         while (bitData.length > 0 && bitData[bitData.length - 1].bitType === BitType.BAD) {
@@ -273,11 +273,13 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
         let span = maxValue - minValue;
         if (span > this.peakThreshold &&
-            this.samples[pulseStart] < maxValue - this.peakThreshold/2 &&
-            this.samples[pulseEnd] < maxValue - this.peakThreshold/2) {
+            (this.samples[pulseStart] < maxValue - this.peakThreshold / 2 &&
+                this.samples[pulseEnd] < maxValue - this.peakThreshold / 2) ||
+            (this.samples[pulseStart] > minValue + this.peakThreshold / 2 &&
+                this.samples[pulseEnd] > minValue + this.peakThreshold / 2)) {
 
             return new Pulse(maxValue, maxFrame);
-        } else if (span > this.peakThreshold/2) {
+        } else if (span > this.peakThreshold / 2) {
             return NonPulse.NOISE;
         } else {
             return NonPulse.SILENCE;

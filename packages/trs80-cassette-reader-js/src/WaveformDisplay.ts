@@ -401,6 +401,13 @@ export class WaveformDisplay {
             ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
         }
 
+        // Y=0 axis.
+        ctx.strokeStyle = selectionColor;
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+
         // Programs and bits.
         for (const program of this.programs) {
             if (drawingLine) {
@@ -436,7 +443,7 @@ export class WaveformDisplay {
                                 break;
                         }
 
-                        this.drawBraceAndLabel(ctx, x1, x2, bitBraceColor, label, bitLabelColor);
+                        this.drawBraceAndLabel(ctx, height, x1, x2, bitBraceColor, label, bitLabelColor, true);
                     }
                 }
             } else if (this.zoom < 5) {
@@ -462,7 +469,7 @@ export class WaveformDisplay {
 
                             const x1 = frameToX(startFrame / mag);
                             const x2 = frameToX(endFrame / mag);
-                            this.drawBraceAndLabel(ctx, x1, x2, braceColor, annotation.text, labelColor);
+                            this.drawBraceAndLabel(ctx, height, x1, x2, braceColor, annotation.text, labelColor, true);
                         }
                     }
                 } else {
@@ -479,7 +486,7 @@ export class WaveformDisplay {
                                         : program.isBasicProgram() && basicToken !== undefined ? basicToken
                                             : toHexByte(byteValue);
 
-                            this.drawBraceAndLabel(ctx, x1, x2, braceColor, label, labelColor);
+                            this.drawBraceAndLabel(ctx, height, x1, x2, braceColor, label, labelColor, true);
                         }
                     }
                 }
@@ -487,7 +494,7 @@ export class WaveformDisplay {
                 // Highlight the whole program.
                 const x1 = frameToX(program.startFrame / mag);
                 const x2 = frameToX(program.endFrame / mag);
-                this.drawBraceAndLabel(ctx, x1, x2, braceColor, program.getShortLabel(), labelColor);
+                this.drawBraceAndLabel(ctx, height, x1, x2, braceColor, program.getShortLabel(), labelColor, true);
             }
         }
 
@@ -525,9 +532,10 @@ export class WaveformDisplay {
             ctx.strokeStyle = braceColor;
             while (index < this.annotations.length) {
                 const annotation = this.annotations[index];
+                // TODO these are supposed to be byte indices, but they're being treated like frames:
                 const x1 = frameToX(annotation.firstIndex / mag);
                 const x2 = frameToX(annotation.lastIndex / mag);
-                this.drawBraceAndLabel(ctx, x1, x2, braceColor, annotation.text, labelColor);
+                this.drawBraceAndLabel(ctx, height, x1, x2, braceColor, annotation.text, labelColor, false);
                 index++;
             }
         }
@@ -615,13 +623,14 @@ export class WaveformDisplay {
     /**
      * Draw a down-facing brace withe specified label.
      */
-    private drawBraceAndLabel(ctx: CanvasRenderingContext2D,
-                              left: number, right: number, braceColor: string,
-                              label: string, labelColor: string): void {
+    private drawBraceAndLabel(ctx: CanvasRenderingContext2D, height: number,
+                              left: number, right: number,
+                              braceColor: string, label: string,
+                              labelColor: string, drawOnTop: boolean): void {
 
         const middle = (left + right)/2;
 
-        const ledding = 16;
+        const leading = 16;
 
         // Don't have more than two lines, there's no space for it.
         const lines = label.split("\n");
@@ -633,12 +642,13 @@ export class WaveformDisplay {
             ctx.fillStyle = labelColor;
             ctx.textAlign = "center";
             ctx.textBaseline = "alphabetic";
-            ctx.fillText(line, middle, 38 - (lines.length - i - 1)*ledding);
+            const y = drawOnTop ? 38 - (lines.length - i - 1)*leading : height - 35 + i*leading;
+            ctx.fillText(line, middle, y);
         }
 
         ctx.strokeStyle = braceColor;
         ctx.lineWidth = 1;
-        this.drawBrace(ctx, left, middle, right, 40, 380);
+        this.drawBrace(ctx, left, middle, right, 40, height - 40, drawOnTop);
     }
 
     /**
@@ -646,23 +656,25 @@ export class WaveformDisplay {
      */
     private drawBrace(ctx: CanvasRenderingContext2D,
                       left: number, middle: number, right: number,
-                      top: number, bottom: number): void {
+                      top: number, bottom: number,
+                      drawOnTop: boolean): void {
 
-        const radius = Math.min(10, (right - left)/4);
-        const lineY = top + 20;
+        const radius = Math.min(10, (right - left) / 4);
+        const lineY = drawOnTop ? top + 20 : bottom - 20;
+        const pointY = drawOnTop ? top : bottom;
+        const otherY = drawOnTop ? bottom - 40 : top + 40;
 
         ctx.beginPath();
-        ctx.moveTo(left, bottom);
+        ctx.moveTo(left, otherY);
         if (left === right) {
             ctx.lineTo(left, lineY);
         } else {
             ctx.arcTo(left, lineY, left + radius, lineY, radius);
-            ctx.arcTo(middle, lineY, middle, top, radius);
+            ctx.arcTo(middle, lineY, middle, pointY, radius);
             ctx.arcTo(middle, lineY, middle + radius, lineY, radius);
-            ctx.arcTo(right, lineY, right, lineY + radius, radius);
-            ctx.lineTo(right, bottom);
+            ctx.arcTo(right, lineY, right, lineY + (drawOnTop ? radius : -radius), radius);
+            ctx.lineTo(right, otherY);
         }
-
         ctx.stroke();
     }
 
