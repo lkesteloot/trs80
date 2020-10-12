@@ -82,5 +82,5 @@ export function concatAudio(samplesList: Int16Array[]): Int16Array {
  * Clamp the number to the range of signed 16-bit int.
  */
 export function clampToInt16(x: number): number {
-    return Math.max(Math.min(x, 32767), -32768);
+    return Math.max(Math.min(Math.round(x), 32767), -32768);
 }

@@ -54,7 +54,7 @@ export class Tape {
         this.originalSamples = new DisplaySamples(audioFile.samples);
         this.filteredSamples = new DisplaySamples(highPassFilter(audioFile.samples, 500));
         this.lowSpeedSamples = new DisplaySamples(LowSpeedTapeDecoder.filterSamples(
-            this.filteredSamples.samplesList[0]));
+            this.filteredSamples.samplesList[0], audioFile.rate));
         this.sampleRate = audioFile.rate;
         this.programs = [];
     }

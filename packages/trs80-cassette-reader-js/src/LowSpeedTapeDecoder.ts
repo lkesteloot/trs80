@@ -19,21 +19,41 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
      * Differentiating filter to accentuate pulses.
      *
      * @param samples samples to filter.
+     * @param sampleRate number of samples per second in the recording.
      * @returns filtered samples.
      */
-    public static filterSamples(samples: Int16Array): Int16Array {
+    public static filterSamples(samples: Int16Array, sampleRate: number): Int16Array {
         const out = new Int16Array(samples.length);
 
-        // Number of samples between the top of the pulse and the bottom of it.
-        // TODO make tape.sampleRate-sensitive.
-        const pulsePeakDistance = 7;
+        // Number of samples between the top of the pulse and the bottom of it. Each pulse
+        // lasts 125µs, so assume the distance between crest and trough is 125µs.
+        const pulseWidth = Math.round(125e-6*sampleRate);
 
-        for (let i = 0; i < samples.length; i++) {
-            // Differentiate to accentuate a pulse. Pulse go positive, then negative,
-            // with a space of pulsePeakDistance, so subtracting those generates a large
-            // positive value at the bottom of the pulse.
-            const newSample = i >= pulsePeakDistance ? samples[i - pulsePeakDistance] - samples[i] : 0;
-            out[i] = clampToInt16(newSample);
+        if (false) {
+            for (let i = 0; i < samples.length; i++) {
+                // Differentiate to accentuate a pulse. Pulse go positive, then negative,
+                // with a space of pulseWidth, so subtracting those generates a large
+                // positive value at the bottom of the pulse.
+                const newSample = i >= pulseWidth ? samples[i - pulseWidth] - samples[i] : 0;
+                out[i] = clampToInt16(newSample);
+            }
+        } else {
+            // Convolution with a pulse similar to what the original should have looked like (125 µs pulse
+            // up, then 125 µs pulse down).
+            let posSum = 0;
+            let negSum = 0;
+            let denom = pulseWidth*2;
+
+            for (let i = 0; i < samples.length; i++) {
+                let aheadSample = i + pulseWidth >= samples.length ? 0 : samples[i + pulseWidth];
+                let nowSample = samples[i];
+                let behindSample = i - pulseWidth < 0 ? 0 : samples[i - pulseWidth];
+
+                posSum += nowSample - behindSample;
+                negSum += aheadSample - nowSample;
+
+                out[i] = clampToInt16((posSum - negSum)/denom);
+            }
         }
 
         return out;

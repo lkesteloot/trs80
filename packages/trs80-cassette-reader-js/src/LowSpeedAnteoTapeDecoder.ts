@@ -44,7 +44,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             this.samples = this.tape.lowSpeedSamples.samplesList[0];
         } else {
             // Invert samples.
-            const samples = this.tape.originalSamples.samplesList[0];
+            const samples = this.tape.lowSpeedSamples.samplesList[0];
             this.samples = new Int16Array(samples.length);
             for (let i = 0; i < samples.length; i++) {
                 this.samples[i] = -samples[i];
