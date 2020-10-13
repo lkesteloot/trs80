@@ -228,6 +228,7 @@ export class WaveformDisplay {
         canvas.addEventListener("mouseenter", event => {
             inCanvas = true;
             holdingAlt = event.altKey;
+            holdingShift = event.shiftKey;
             updateCursor();
         });
         canvas.addEventListener("mouseleave", () => {
