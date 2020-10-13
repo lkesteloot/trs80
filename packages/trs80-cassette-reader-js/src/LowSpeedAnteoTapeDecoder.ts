@@ -36,7 +36,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     private readonly halfPeriod: number;
     private readonly quarterPeriod: number;
     private state: TapeDecoderState = TapeDecoderState.UNDECIDED;
-    private peakThreshold = 4000;
+    private peakThreshold = 2000;
 
     constructor(tape: Tape) {
         this.tape = tape;
