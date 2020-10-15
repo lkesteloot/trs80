@@ -177,7 +177,7 @@ textarea, input[type=text] {
 }
 /* If the binary is identical to a previous copy. */
 .duplicate_copy {
-    color: var(--foreground-secondary);
+    opacity: 0.2;
 }
 .tape_contents_row {
     cursor: default;
@@ -198,9 +198,6 @@ textarea, input[type=text] {
     padding-top: 0.5em;
     margin-bottom: 0.2em;
     color: var(--foreground-emphasized);
-}
-.duplicate_copy .tape_contents_row.program_title {
-    color: var(--foreground-secondary);
 }
 .tape_contents_row.program_title.new_track {
     margin-top: 0.5em;

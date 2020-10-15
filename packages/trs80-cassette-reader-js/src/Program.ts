@@ -188,4 +188,15 @@ export class Program {
 
         return cas;
     }
+
+    /**
+     * Whether this program is strictly nested in the other program, with margin to spare.
+     */
+    public isNestedIn(candidate: Program, marginFrames: number): boolean {
+        // Full nested, but also with margin on at least one side.
+        return this.startFrame > candidate.startFrame &&
+            this.endFrame < candidate.endFrame &&
+            (this.startFrame > candidate.startFrame + marginFrames ||
+                this.endFrame < candidate.endFrame - marginFrames);
+    }
 }

@@ -10,40 +10,12 @@ import {TapeDecoderState} from "./TapeDecoderState";
 import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
 import {LowSpeedAnteoTapeDecoder} from "./LowSpeedAnteoTapeDecoder";
 
-/**
- * Candidate program. A decoded detected it, but it might not be as good as another candidate.
- */
-class Candidate {
-    public tapeDecoder: TapeDecoder;
-    public startFrame: number;
-    public endFrame: number;
-
-    constructor(tapeDecoder: TapeDecoder, startFrame: number, endFrame: number) {
-        this.tapeDecoder = tapeDecoder;
-        this.startFrame = startFrame;
-        this.endFrame = endFrame;
-    }
-
-    /**
-     * Whether this candidate is strictly nested in the other candidate, with margin to spare.
-     */
-    public isNestedIn(candidate: Candidate, marginFrames: number): boolean {
-        return this.startFrame > candidate.startFrame &&
-            this.endFrame < candidate.endFrame &&
-            (this.startFrame > candidate.startFrame + marginFrames ||
-                this.endFrame < candidate.endFrame - marginFrames);
-    }
-}
-
-/**
- * Represents either the beginning or end of a candidate.
- */
 class Transition {
-    public candidate: Candidate;
+    public candidate: Program;
     public isStart: boolean;
     public frame: number;
 
-    constructor(candidate: Candidate, isStart: boolean, frame: number) {
+    constructor(candidate: Program, isStart: boolean, frame: number) {
         this.candidate = candidate;
         this.isStart = isStart;
         this.frame = frame;
@@ -65,8 +37,6 @@ export class Decoder {
      */
     public decode() {
         let sampleLength = this.tape.filteredSamples.samplesList[0].length;
-        let trackNumber = 0;
-        let copyNumber = 0;
 
         // All decoders we're interested in. We use factories because they're created
         // multiple times, once for each program found.
@@ -74,7 +44,7 @@ export class Decoder {
             // () => new LowSpeedTapeDecoder(this.tape, true),
             // () => new LowSpeedTapeDecoder(this.tape, false),
             () => new LowSpeedAnteoTapeDecoder(this.tape),
-            // () => new HighSpeedTapeDecoder(this.tape),
+            () => new HighSpeedTapeDecoder(this.tape),
         ];
 
         // All programs we detect.
@@ -100,7 +70,6 @@ export class Decoder {
 
         console.log(candidates); // TODO remove
 
-        /*
         // Make a sorted list of start/end of candidates.
         const transitions: Transition[] = [];
         for (const candidate of candidates) {
@@ -112,7 +81,7 @@ export class Decoder {
         // Go through them, keeping track of which candidates are active, and deleting
         // clearly bad candidates (those completely nested in others).
         candidates.splice(0, candidates.length);
-        const activeCandidates: Candidate[] = [];
+        const activeCandidates: Program[] = [];
         for (const transition of transitions) {
             // See if this new one is nested in an active one.
             if (transition.isStart) {
@@ -136,26 +105,21 @@ export class Decoder {
             }
         }
 
-        // Go through the candidates and eliminate bad ones. TODO remove
+        // Sort programs by tape order.
         candidates.sort((a, b) => a.startFrame - b.startFrame);
-*/
+
         // Convert remaining candidates to programs.
+        let trackNumber = 0;
+        let copyNumber = 0;
+        let endOfLastProgram = 0;
         for (const candidate of candidates) {
             // Skip very short programs, they're mis-detects.
             if (candidate.endFrame - candidate.startFrame > this.tape.sampleRate / 10) {
-                let newTrack = false; // TODO
-
-                /*
-                                    // TODO See how long it took to find it. A large gap means a new track.
-                                    const leadTime = (frame - searchFrameStart) / this.tape.sampleRate;
-                                    newTrack = trackNumber === 0 || leadTime > 10;
-                                    programStartFrame = frame;
-                }
-                 */
-                if (newTrack) {
+                // See how long it took to find it. A large gap means a new track.
+                const leadTime = (candidate.startFrame - endOfLastProgram) / this.tape.sampleRate;
+                if (trackNumber === 0 || leadTime > 10) {
                     trackNumber++;
                     copyNumber = 1;
-                    newTrack = false;
                 } else {
                     copyNumber += 1;
                 }
@@ -163,6 +127,8 @@ export class Decoder {
                 candidate.copyNumber = copyNumber;
                 candidate.setReconstructedSamples(this.encodeHighSpeed(candidate.binary));
                 this.tape.addProgram(candidate);
+
+                endOfLastProgram = candidate.endFrame;
             }
         }
     }

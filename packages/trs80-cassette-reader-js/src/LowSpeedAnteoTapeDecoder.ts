@@ -84,18 +84,18 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     private proofPulseDistance(frame: number, annotations: WaveformAnnotation[]): boolean {
         const initialFrame = frame;
 
-        console.log("Proofing starting at", frame, "with period", this.period);
+        // console.log("Proofing starting at", frame, "with period", this.period);
         for (let i = 0; i < 200; i++) {
             const pulse = this.isPulseAt(frame);
             if (!(pulse instanceof Pulse)) {
-                console.log("Did not find pulse at", frame);
+                // console.log("Did not find pulse at", frame);
                 annotations.push(new WaveformAnnotation("Failed", initialFrame, frame));
                 return false;
             }
 
             frame = pulse.frame + this.period;
         }
-        console.log("Proof successful");
+        // console.log("Proof successful");
         // annotations.push(new WaveformAnnotation("P", initialFrame, frame - this.period));
 
         return true;
