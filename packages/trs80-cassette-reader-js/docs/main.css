@@ -260,12 +260,14 @@ textarea, input[type=text] {
     padding-left: 0;
     padding-right: 1em;
     text-align: right;
+    white-space: nowrap;
 }
 .metadata .key.top {
     vertical-align: top;
 }
 .metadata .value {
     padding: 4px 8px;
+    white-space: nowrap;
 }
 .metadata .value.clickable {
     cursor: pointer;

@@ -288,7 +288,8 @@ export class TapeBrowser {
     /**
      * Make pane of metadata for a program.
      */
-    private makeMetadataPane(program: Program | Tape, basicPane?: Pane, systemPane?: Pane, edtasmPane?: Pane): Pane {
+    private makeMetadataPane(program: Program | Tape, basicPane?: Pane, systemPane?: Pane, edtasmPane?: Pane,
+                             onProgramClick?: (program: Program) => void): Pane {
         const div = document.createElement("div");
         div.classList.add("metadata");
         div.style.display = "flex";
@@ -431,6 +432,29 @@ export class TapeBrowser {
             program.onScreenshot.subscribe(screenshot => {
                 screenshotScreen.displayScreenshot(screenshot)
             });
+        } else {
+            const screenshotsDiv = document.createElement("div");
+            div.appendChild(screenshotsDiv);
+            for (const subprogram of program.programs) {
+                const screenshotDiv = document.createElement("div");
+                screenshotDiv.style.marginLeft = "20pt";
+                screenshotDiv.style.marginBottom = "20pt";
+                screenshotDiv.style.float = "left";
+                if (onProgramClick !== undefined) {
+                    screenshotDiv.style.cursor = "pointer";
+                    screenshotDiv.addEventListener("click", () => onProgramClick(subprogram));
+                }
+                screenshotsDiv.appendChild(screenshotDiv);
+                const screenshotScreen = new CssScreen(screenshotDiv);
+                const updateScreenshot = function (screenshot: string) {
+                    screenshotScreen.displayScreenshot(screenshot);
+                    screenshotDiv.style.display = screenshot === "" ? "none" : "block";
+                };
+                updateScreenshot(subprogram.screenshot);
+                subprogram.onScreenshot.subscribe(screenshot => {
+                    updateScreenshot(screenshot);
+                });
+            }
         }
 
         return new Pane(div);
@@ -645,7 +669,7 @@ export class TapeBrowser {
 
         let sectionDiv: HTMLDivElement = addSection();
 
-        // Add a row to the table of contents.
+        // Add a row to the table of contents. Returns the row div.
         const addRow = (text: string, onClick?: ((this: GlobalEventHandlers, ev: MouseEvent) => any)) => {
             const rowDiv = document.createElement("div");
             rowDiv.classList.add("tape_contents_row");
@@ -677,12 +701,18 @@ export class TapeBrowser {
             });
         };
 
-        // Header for taoe.
+        // Map from program to action when its screenshot is clicked.
+        const screenshotClickAction: WeakMap<Program,() => void> = new WeakMap<Program, () => void>();
+
+        // Header for tape.
         const row = addRow("Whole tape");
         row.classList.add("program_title");
         let metadataLabel = frameToTimestamp(0, this.tape.sampleRate, true) + " to " +
             frameToTimestamp(this.tape.originalSamples.samplesList[0].length, this.tape.sampleRate, true);
-        addPane(metadataLabel, this.makeMetadataPane(this.tape, undefined, undefined, undefined));
+        addPane(metadataLabel, this.makeMetadataPane(this.tape, undefined, undefined, undefined,
+            (program) => {
+                screenshotClickAction.get(program)?.();
+            }));
         addPane("Emulator", this.makeEmulatorPane(undefined, new TapeCassette(this.tape, undefined)));
 
         // Section for each program.
@@ -718,7 +748,15 @@ export class TapeBrowser {
             let metadataLabel = frameToTimestamp(program.startFrame, this.tape.sampleRate, true) + " to " +
                 frameToTimestamp(program.endFrame, this.tape.sampleRate, true) + " (" +
                 frameToTimestamp(program.endFrame - program.startFrame, this.tape.sampleRate, true) + ")";
-            addPane(metadataLabel, this.makeMetadataPane(program, basicPane, systemPane, edtasmPane));
+            let metadataPane = this.makeMetadataPane(program, basicPane, systemPane, edtasmPane, undefined);
+            addPane(metadataLabel, metadataPane);
+            screenshotClickAction.set(program, () => {
+                this.showPane(metadataPane);
+                metadataPane.row?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                })
+            });
 
             // Make the various panes.
             addPane("Binary" + (duplicateCopy ? " (same as copy " + firstCopyOfTrack?.copyNumber + ")" : ""),
