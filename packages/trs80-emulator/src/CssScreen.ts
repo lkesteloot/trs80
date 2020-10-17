@@ -1,7 +1,10 @@
 import {Trs80Screen} from "./Trs80Screen";
-import css from "./css";
+import {configureStylesheet} from "./Stylesheet";
 import {clearElement, CSS_PREFIX, SCREEN_BEGIN} from "./Utils";
 
+/**
+ * TRS-80 screen based on CSS tricks like setting a background image for each character.
+ */
 export class CssScreen extends Trs80Screen {
     private readonly node: HTMLElement;
 
@@ -13,7 +16,7 @@ export class CssScreen extends Trs80Screen {
         this.node = CssScreen.createScreenNode(parentNode);
 
         // Make global CSS if necessary.
-        CssScreen.configureStyle();
+        configureStylesheet();
     }
 
     writeChar(address: number, value: number): void {
@@ -82,35 +85,5 @@ export class CssScreen extends Trs80Screen {
         }
 
         return node;
-    }
-
-    /**
-     * Make a global stylesheet for all TRS-80 emulators on this page.
-     */
-    private static configureStyle(): void {
-        const styleId = CSS_PREFIX + "-style";
-        if (document.getElementById(styleId) !== null) {
-            // Already created.
-            return;
-        }
-
-        // Image is 512x480
-        // 10 rows of glyphs, but last two are different page.
-        // Use first 8 rows.
-        // 32 chars across (32*8 = 256)
-        // For thin font:
-        //     256px wide.
-        //     Chars are 8px wide (256/32 = 8)
-        //     Chars are 24px high (480/2/10 = 24), with doubled rows.
-        const lines: string[] = [];
-        for (let ch = 0; ch < 256; ch++) {
-            lines.push(`.${CSS_PREFIX}-narrow .${CSS_PREFIX}-char-${ch} { background-position: ${-(ch%32)*8}px ${-Math.floor(ch/32)*24}px; }`);
-            lines.push(`.${CSS_PREFIX}-expanded .${CSS_PREFIX}-char-${ch} { background-position: ${-(ch%32)*16}px ${-Math.floor(ch/32+10)*24}px; }`);
-        }
-
-        const node = document.createElement("style");
-        node.id = styleId;
-        node.innerHTML = css + "\n\n" + lines.join("\n");
-        document.head.appendChild(node);
     }
 }
