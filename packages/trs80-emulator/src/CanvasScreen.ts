@@ -114,6 +114,7 @@ export class CanvasScreen extends Trs80Screen {
     }
 
     setExpandedCharacters(expanded: boolean): void {
+        super.setExpandedCharacters(expanded);
         this.narrowCanvas.style.display = expanded ? "none" : "block";
         this.expandedCanvas.style.display = !expanded ? "none" : "block";
         this.scheduleUpdateThumbnail();
