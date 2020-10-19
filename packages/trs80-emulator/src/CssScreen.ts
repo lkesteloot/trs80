@@ -42,6 +42,7 @@ export class CssScreen extends Trs80Screen {
     }
 
     setExpandedCharacters(expanded: boolean): void {
+        super.setExpandedCharacters(expanded);
         if (expanded) {
             this.node.classList.remove(CSS_PREFIX + "-narrow");
             this.node.classList.add(CSS_PREFIX + "-expanded");
@@ -49,10 +50,6 @@ export class CssScreen extends Trs80Screen {
             this.node.classList.remove(CSS_PREFIX + "-expanded");
             this.node.classList.add(CSS_PREFIX + "-narrow");
         }
-    }
-
-    isExpandedCharacters(): boolean {
-        return this.node.classList.contains(CSS_PREFIX + "-expanded");
     }
 
     /**

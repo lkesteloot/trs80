@@ -126,6 +126,7 @@ export class FontScreen extends Trs80Screen {
     }
 
     setExpandedCharacters(expanded: boolean): void {
+        super.setExpandedCharacters(expanded);
         if (expanded) {
             this.node.classList.remove(cssPrefix + "-narrow");
             this.node.classList.add(cssPrefix + "-expanded");
@@ -133,10 +134,6 @@ export class FontScreen extends Trs80Screen {
             this.node.classList.remove(cssPrefix + "-expanded");
             this.node.classList.add(cssPrefix + "-narrow");
         }
-    }
-
-    isExpandedCharacters(): boolean {
-        return this.node.classList.contains(cssPrefix + "-expanded");
     }
 
     /**

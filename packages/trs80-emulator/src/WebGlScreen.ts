@@ -124,14 +124,6 @@ export class WebGlScreen extends Trs80Screen {
         return this.node;
     }
 
-    setExpandedCharacters(expanded: boolean): void {
-        super.setExpandedCharacters(expanded);
-    }
-
-    isExpandedCharacters(): boolean {
-        return super.isExpandedCharacters();
-    }
-
     private draw(): void {
         this.gl.viewport(0, 0, this.node.width, this.node.height);
         this.gl.clearColor(0.8, 0.9, 1.0, 1.0);
