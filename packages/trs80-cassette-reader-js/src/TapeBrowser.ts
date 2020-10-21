@@ -5,7 +5,7 @@ import * as SystemProgramRender from "./SystemProgramRender";
 import * as Hexdump from "./Hexdump";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
-import {Cassette, ControlPanel, CssScreen, ProgressBar, Trs80} from "trs80-emulator";
+import {Cassette, ControlPanel, CanvasScreen, ProgressBar, Trs80} from "trs80-emulator";
 import {WaveformDisplay} from "./WaveformDisplay";
 import * as Edtasm from "./Edtasm";
 import {BitType} from "./BitType";
@@ -243,6 +243,7 @@ export class TapeBrowser {
             parent.appendChild(label);
 
             let canvas = document.createElement("canvas");
+            canvas.classList.add("waveform");
             canvas.width = 800;
             canvas.height = 400;
             waveformDisplay.addWaveform(canvas, sampleSet.samples);
@@ -427,7 +428,7 @@ export class TapeBrowser {
             const screenshotDiv = document.createElement("div");
             screenshotDiv.style.marginLeft = "20pt";
             div.appendChild(screenshotDiv);
-            const screenshotScreen = new CssScreen(screenshotDiv);
+            const screenshotScreen = new CanvasScreen(screenshotDiv, false);
             screenshotScreen.displayScreenshot(program.screenshot);
             program.onScreenshot.subscribe(screenshot => {
                 screenshotScreen.displayScreenshot(screenshot)
@@ -445,7 +446,7 @@ export class TapeBrowser {
                     screenshotDiv.addEventListener("click", () => onProgramClick(subprogram));
                 }
                 screenshotsDiv.appendChild(screenshotDiv);
-                const screenshotScreen = new CssScreen(screenshotDiv);
+                const screenshotScreen = new CanvasScreen(screenshotDiv, true);
                 const updateScreenshot = function (screenshot: string) {
                     screenshotScreen.displayScreenshot(screenshot);
                     screenshotDiv.style.display = screenshot === "" ? "none" : "block";
@@ -610,7 +611,7 @@ export class TapeBrowser {
         const screenDiv = document.createElement("div");
         div.appendChild(screenDiv);
 
-        const screen = new CssScreen(screenDiv);
+        const screen = new CanvasScreen(screenDiv, false);
         const trs80 = new Trs80(screen, cassette);
         const controlPanel = new ControlPanel(screen.getNode());
         controlPanel.addResetButton(() => trs80.reset());

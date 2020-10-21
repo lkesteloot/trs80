@@ -44,8 +44,8 @@
     "progress": "^2.0.3",
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.6.7",
-    "trs80-emulator": "^1.0.9",
+    "trs80-emulator": "^1.0.11",
     "z80-base": "^1.0.4",
-    "z80-disasm": "../z80-disasm"
+    "z80-disasm": "^1.0.5"
   }
 }
