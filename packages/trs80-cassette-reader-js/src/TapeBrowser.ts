@@ -447,6 +447,7 @@ export class TapeBrowser {
                 }
                 screenshotsDiv.appendChild(screenshotDiv);
                 const screenshotScreen = new CanvasScreen(screenshotDiv, true);
+                screenshotScreen.getNode().classList.add("thumbnail");
                 const updateScreenshot = function (screenshot: string) {
                     screenshotScreen.displayScreenshot(screenshot);
                     screenshotDiv.style.display = screenshot === "" ? "none" : "block";
