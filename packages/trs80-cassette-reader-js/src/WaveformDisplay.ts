@@ -7,16 +7,27 @@ import * as Basic from "./Basic";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {toHexByte} from "z80-base";
 import {WaveformAnnotation} from "./WaveformAnnotation";
+import {clearElement, withCommas} from "./Utils";
+import {frameDurationToString, frameToTimestamp} from "./AudioUtils";
+
+let gRadioButtonCounter = 1;
+
+/**
+ * Whether the user is selecting whole bytes or audio samples.
+ */
+enum SelectionMode { BYTES, SAMPLES }
 
 /**
  * An individual waveform to be displayed.
  */
 class Waveform {
     public readonly canvas: HTMLCanvasElement;
-    public samples: DisplaySamples | undefined;
+    public readonly infoPanel: HTMLElement;
+    public readonly samples: DisplaySamples;
 
-    constructor(canvas: HTMLCanvasElement, samples?: DisplaySamples) {
+    constructor(canvas: HTMLCanvasElement, infoPanel: HTMLElement, samples: DisplaySamples) {
         this.canvas = canvas;
+        this.infoPanel = infoPanel;
         this.samples = samples;
     }
 }
@@ -31,6 +42,10 @@ export class WaveformDisplay {
     public readonly onHighlight = new SimpleEventDispatcher<Highlight | undefined>();
     public readonly onSelection = new SimpleEventDispatcher<Highlight | undefined>();
     public readonly onDoneSelecting = new SimpleEventDispatcher<any>();
+    /**
+     * The sample rate of the original recording.
+     */
+    private readonly sampleRate: number;
     /**
      * The width of the canvases, in pixels.
      */
@@ -66,13 +81,25 @@ export class WaveformDisplay {
      */
     private endHighlightFrame: number | undefined;
     /**
-     * Start of current selection, if any, in original samples, inclusive.
+     * Start of current selection, if any, in original samples, inclusive. This is for
+     * when selecting bytes.
      */
     private startSelectionFrame: number | undefined;
     /**
-     * End of current selection, if any, in original samples, inclusive.
+     * End of current selection, if any, in original samples, inclusive. This is for
+     * when selecting bytes.
      */
     private endSelectionFrame: number | undefined;
+    /**
+     * Start of current selection, if any, in original samples, inclusive. This is for
+     * when selecting samples.
+     */
+    private startSampleSelectionFrame: number | undefined;
+    /**
+     * End of current selection, if any, in original samples, inclusive. This is for
+     * when selecting samples.
+     */
+    private endSampleSelectionFrame: number | undefined;
     /**
      * Listeners of the maxZoom property.
      */
@@ -85,11 +112,19 @@ export class WaveformDisplay {
      * List of annotations to display in the displays.
      */
     private annotations: WaveformAnnotation[] = [];
+    /**
+     * What the user wants to select.
+     */
+    private selectionMode = SelectionMode.BYTES;
+
+    constructor(sampleRate: number) {
+        this.sampleRate = sampleRate;
+    }
 
     /**
      * Add a waveform to display.
      */
-    public addWaveform(canvas: HTMLCanvasElement, samples: DisplaySamples) {
+    public addWaveform(canvas: HTMLCanvasElement, infoPanel : HTMLElement, samples: DisplaySamples) {
         const displayWidth = canvas.width;
         if (this.displayWidth === 0) {
             this.displayWidth = displayWidth;
@@ -104,7 +139,7 @@ export class WaveformDisplay {
             this.onMaxZoom.dispatch(newMaxZoom);
         }
 
-        this.waveforms.push(new Waveform(canvas, samples));
+        this.waveforms.push(new Waveform(canvas, infoPanel, samples));
         this.configureCanvas(canvas);
     }
 
@@ -166,6 +201,7 @@ export class WaveformDisplay {
         }
 
         this.draw();
+        this.updateInfoPanels();
     }
 
     /**
@@ -178,11 +214,77 @@ export class WaveformDisplay {
     }
 
     /**
+     * Makes a block element to place above a set of waveform displays.
+     */
+    public makeControls(showSelectionType: boolean): HTMLElement {
+        const controls = document.createElement("div");
+
+        // Zoom controls.
+        controls.appendChild(this.makeZoomControls());
+
+        // Instructions.
+        const instructions = document.createElement("span");
+        instructions.innerHTML = "<b>Shift</b>: Zoom in; <b>Alt-Shift</b>: Zoom out; <b>Alt</b>: Select";
+        instructions.style.marginLeft = "30px";
+        controls.appendChild(instructions);
+
+        // Selection type.
+        if (showSelectionType) {
+            const selectionLabel = document.createElement("span");
+            selectionLabel.innerText = "Select: ";
+            selectionLabel.style.marginLeft = "30px";
+            selectionLabel.style.fontWeight = "bold";
+            controls.append(selectionLabel);
+
+            // Unique name for this group of inputs.
+            const name = "selection-type-radio-name-" + gRadioButtonCounter;
+            gRadioButtonCounter += 1;
+
+            // Options for selection mode.
+            let selectionModes = [
+                {
+                    label: "Bytes",
+                    selectionMode: SelectionMode.BYTES,
+                    checked: true,
+                },
+                {
+                    label: "Samples",
+                    selectionMode: SelectionMode.SAMPLES,
+                    checked: false,
+                },
+            ];
+
+            for (const {label, selectionMode, checked} of selectionModes) {
+                const labelNode = document.createElement("label");
+                const radioInput = document.createElement("input") as HTMLInputElement;
+                radioInput.type = "radio";
+                radioInput.name = name;
+                radioInput.checked = checked;
+                radioInput.addEventListener("change", () => this.setSelectionMode(selectionMode));
+                labelNode.appendChild(radioInput);
+                labelNode.append(" " + label);
+                controls.appendChild(labelNode);
+            }
+        }
+
+        return controls;
+    }
+
+    /**
+     * Sets the selection mode. Does not update the radio buttons.
+     */
+    private setSelectionMode(selectionMode: SelectionMode): void {
+        this.selectionMode = selectionMode;
+        this.draw();
+        this.updateInfoPanels();
+    }
+
+    /**
      * Create zoom control elements, bind them to this waveform display, and return them.
      * These are not guaranteed to be a block element. Caller should warp them in
      * a div if that's what they want.
      */
-    public makeZoomControls(): HTMLElement {
+    private makeZoomControls(): HTMLElement {
         const label = document.createElement("label") as HTMLLabelElement;
         label.innerText = "Zoom: ";
 
@@ -205,7 +307,7 @@ export class WaveformDisplay {
     }
 
     /**
-     * Configure the mouse events in the canvas.
+     * Configure the mouse and keyboard events in the canvas.
      */
     private configureCanvas(canvas: HTMLCanvasElement) {
         let dragging = false;
@@ -215,6 +317,7 @@ export class WaveformDisplay {
         let holdingShift = false;
         let holdingAlt = false;
         let selectionStart: Highlight | undefined = undefined;
+        let selectingSamples = false;
 
         const updateCursor = () => {
             canvas.style.cursor = holdingShift ? (holdingAlt ? "zoom-out" : "zoom-in")
@@ -238,6 +341,7 @@ export class WaveformDisplay {
         // Mouse click events.
         canvas.addEventListener("mousedown", event => {
             if (holdingShift) {
+                // Zoom.
                 if (holdingAlt) {
                     // Zoom out.
                     this.setZoom(this.zoom + 1, event.offsetX);
@@ -248,11 +352,21 @@ export class WaveformDisplay {
             } else if (holdingAlt) {
                 // Start selecting.
                 const frame = this.screenXToOriginalFrame(event.offsetX);
-                const highlight = this.highlightAt(frame);
-                if (highlight !== undefined) {
-                    selectionStart = highlight;
-                    this.onSelection.dispatch(highlight);
+                if (this.selectionMode === SelectionMode.BYTES) {
+                    // Selecting bytes.
+                    const highlight = this.highlightAt(frame);
+                    if (highlight !== undefined) {
+                        selectionStart = highlight;
+                        this.onSelection.dispatch(highlight);
+                    }
+                } else {
+                    // Selecting samples.
+                    this.startSampleSelectionFrame = frame;
+                    this.endSampleSelectionFrame = frame;
+                    selectingSamples = true;
+                    this.draw();
                 }
+                this.updateInfoPanels();
             } else {
                 // Start pan.
                 dragging = true;
@@ -267,7 +381,25 @@ export class WaveformDisplay {
                 updateCursor();
             } else if (selectionStart !== undefined) {
                 this.onDoneSelecting.dispatch(this);
+                this.updateInfoPanels();
                 selectionStart = undefined;
+            } else if (selectingSamples) {
+                // Done selecting samples.
+                if (this.startSampleSelectionFrame !== undefined && this.endSampleSelectionFrame !== undefined) {
+                    if (this.startSampleSelectionFrame === this.endSampleSelectionFrame) {
+                        // Deselect.
+                        this.startSampleSelectionFrame = undefined;
+                        this.endSampleSelectionFrame = undefined;
+                    } else if (this.startSampleSelectionFrame > this.endSampleSelectionFrame) {
+                        // Put in the right order.
+                        const tmp = this.startSampleSelectionFrame;
+                        this.startSampleSelectionFrame = this.endSampleSelectionFrame;
+                        this.endSampleSelectionFrame = tmp;
+                    }
+                }
+                selectingSamples = false;
+                this.draw();
+                this.updateInfoPanels();
             }
         });
         canvas.addEventListener("mousemove", event => {
@@ -283,6 +415,10 @@ export class WaveformDisplay {
                     this.onSelection.dispatch(new Highlight(highlight.program,
                         selectionStart.firstIndex, highlight.lastIndex));
                 }
+            } else if (selectingSamples) {
+                this.endSampleSelectionFrame = this.screenXToOriginalFrame(event.offsetX);
+                this.draw();
+                this.updateInfoPanels();
             } else if (holdingAlt) {
                 const frame = this.screenXToOriginalFrame(event.offsetX);
                 const highlight = this.highlightAt(frame);
@@ -342,7 +478,7 @@ export class WaveformDisplay {
      * @param {HTMLCanvasElement} canvas
      * @param {DisplaySamples} displaySamples
      */
-    private drawInCanvas(canvas: HTMLCanvasElement, displaySamples?: DisplaySamples) {
+    private drawInCanvas(canvas: HTMLCanvasElement, displaySamples: DisplaySamples) {
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
         const width = canvas.width;
         const height = canvas.height;
@@ -363,10 +499,6 @@ export class WaveformDisplay {
         ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, width, height);
 
-        if (displaySamples === undefined) {
-            return;
-        }
-
         const samplesList = displaySamples.samplesList;
         const samples = samplesList[this.zoom];
         const mag = Math.pow(2, this.zoom);
@@ -386,20 +518,45 @@ export class WaveformDisplay {
         // Whether we're zoomed in enough to draw and line and individual bits.
         const drawingLine: boolean = this.zoom < 3;
 
-        // Selection.
-        if (this.startSelectionFrame !== undefined && this.endSelectionFrame !== undefined) {
-            ctx.fillStyle = selectionColor;
-            const x1 = frameToX(this.startSelectionFrame / mag);
-            const x2 = frameToX(this.endSelectionFrame / mag);
-            ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
-        }
+        if (this.selectionMode === SelectionMode.BYTES) {
+            // Selection.
+            if (this.startSelectionFrame !== undefined && this.endSelectionFrame !== undefined) {
+                ctx.fillStyle = selectionColor;
+                const x1 = frameToX(this.startSelectionFrame / mag);
+                const x2 = frameToX(this.endSelectionFrame / mag);
+                ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
+            }
 
-        // Highlight.
-        if (this.startHighlightFrame !== undefined && this.endHighlightFrame !== undefined) {
-            ctx.fillStyle = highlightColor;
-            const x1 = frameToX(this.startHighlightFrame / mag);
-            const x2 = frameToX(this.endHighlightFrame / mag);
-            ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
+            // Highlight.
+            if (this.startHighlightFrame !== undefined && this.endHighlightFrame !== undefined) {
+                ctx.fillStyle = highlightColor;
+                const x1 = frameToX(this.startHighlightFrame / mag);
+                const x2 = frameToX(this.endHighlightFrame / mag);
+                ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
+            }
+        } else {
+            // Selecting samples.
+            if (this.startSampleSelectionFrame !== undefined && this.endSampleSelectionFrame !== undefined) {
+                ctx.fillStyle = selectionColor;
+                let x1 = frameToX(this.startSampleSelectionFrame / mag);
+                let x2 = frameToX(this.endSampleSelectionFrame / mag);
+                if (x2 < x1) {
+                    // Might be backwards while dragging.
+                    const tmp = x1;
+                    x1 = x2;
+                    x2 = tmp;
+                }
+
+                ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
+
+                // Highlight center of selection.
+                const midX = (x1 + x2)/2;
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+                ctx.beginPath();
+                ctx.moveTo(midX, 0);
+                ctx.lineTo(midX, height);
+                ctx.stroke();
+            }
         }
 
         // Y=0 axis.
@@ -688,7 +845,22 @@ export class WaveformDisplay {
         // Offset in pixels from center of canvas.
         const pixelOffset = screenX - Math.floor(this.displayWidth / 2);
 
-        return this.centerSample + pixelOffset*mag;
+        // Convert to frame.
+        let frame = this.centerSample + pixelOffset*mag;
+
+        // Clamp at end.
+        if (this.waveforms.length > 0) {
+            const waveform = this.waveforms[0];
+            if (waveform.samples.samplesList.length > 0) {
+                const maxFrame = waveform.samples.samplesList[0].length - 1;
+                frame = Math.min(frame, maxFrame);
+            }
+        }
+
+        // Clamp at start.
+        frame = Math.max(frame, 0);
+
+        return frame;
     }
 
     /**
@@ -706,6 +878,59 @@ export class WaveformDisplay {
         }
 
         return undefined;
+    }
+
+    /**
+     * Update the statistics displayed on the info panels of each waveform.
+     */
+    private updateInfoPanels(): void {
+        let startFrame: number | undefined = undefined;
+        let endFrame: number | undefined = undefined;
+        if (this.selectionMode === SelectionMode.BYTES && this.startSelectionFrame !== undefined && this.endSelectionFrame !== undefined) {
+            // Swap around.
+            startFrame = Math.min(this.startSelectionFrame, this.endSelectionFrame);
+            endFrame = Math.max(this.startSelectionFrame, this.endSelectionFrame);
+        } else if (this.selectionMode === SelectionMode.SAMPLES && this.startSampleSelectionFrame !== undefined && this.endSampleSelectionFrame !== undefined) {
+            // Swap around.
+            startFrame = Math.min(this.startSampleSelectionFrame, this.endSampleSelectionFrame);
+            endFrame = Math.max(this.startSampleSelectionFrame, this.endSampleSelectionFrame);
+        }
+
+        for (const waveform of this.waveforms) {
+            const infoPanel = waveform.infoPanel;
+
+            if (startFrame !== undefined && endFrame !== undefined) {
+                const duration = endFrame - startFrame;
+
+                let minValue: number | undefined = undefined;
+                let maxValue: number | undefined = undefined;
+                let samples = waveform.samples.samplesList[0];
+                for (let frame = startFrame; frame <= endFrame; frame++) {
+                    const value = samples[frame];
+                    if (minValue === undefined || value < minValue) {
+                        minValue = value;
+                    }
+                    if (maxValue === undefined || value > maxValue) {
+                        maxValue = value;
+                    }
+                }
+
+                const parts: string[] = [];
+                parts.push("<b>Start frame:</b> " + frameToTimestamp(startFrame, this.sampleRate) + "<br>");
+                parts.push("<b>End frame:</b> " + frameToTimestamp(endFrame, this.sampleRate) + "<br>");
+                parts.push("<b>Duration:</b> " + frameDurationToString(duration, this.sampleRate) + "<br>");
+                if (maxValue !== undefined) {
+                    parts.push("<b>Maximum value:</b> " + withCommas(maxValue) + "<br>");
+                }
+                if (minValue !== undefined) {
+                    parts.push("<b>Minimum value:</b> " + withCommas(minValue) + "<br>");
+                }
+
+                infoPanel.innerHTML = parts.join("");
+            } else {
+                clearElement(infoPanel);
+            }
+        }
     }
 }
 

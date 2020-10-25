@@ -150,7 +150,7 @@ export class TapeBrowser {
     private readonly waveforms: HTMLElement;
     private readonly tapeContents: HTMLElement;
     private readonly topData: HTMLElement;
-    private readonly originalWaveformDisplay = new WaveformDisplay();
+    private readonly originalWaveformDisplay: WaveformDisplay;
     /**
      * All the panes we created in the upper-right (program, etc.).
      */
@@ -188,6 +188,7 @@ export class TapeBrowser {
         this.waveforms = waveforms;
         this.tapeContents = tapeContents;
         this.topData = topData;
+        this.originalWaveformDisplay = new WaveformDisplay(tape.sampleRate);
 
         clearElement(tapeContents);
         clearElement(topData);
@@ -229,25 +230,36 @@ export class TapeBrowser {
      * and their labels.
      */
     private makeWaveforms(parent: HTMLElement, waveformDisplay: WaveformDisplay,
-                         sampleSets: { label: string, samples: DisplaySamples }[]): void {
+                          showSelectionType: boolean,
+                          sampleSets: { label: string, samples: DisplaySamples }[]): void {
 
         clearElement(parent);
 
-        const zoomControls = document.createElement("div");
-        zoomControls.appendChild(waveformDisplay.makeZoomControls());
-        parent.appendChild(zoomControls);
+        parent.appendChild(waveformDisplay.makeControls(showSelectionType));
 
         for (const sampleSet of sampleSets) {
             let label = document.createElement("p");
             label.innerText = sampleSet.label;
             parent.appendChild(label);
 
+            let container = document.createElement("div");
+            container.style.display = "flex";
+            container.style.flexFlow = "row nowrap";
+            container.style.justifyContent = "flex-start";
+            container.style.alignItems = "flex-start";
+
             let canvas = document.createElement("canvas");
             canvas.classList.add("waveform");
             canvas.width = 800;
             canvas.height = 400;
-            waveformDisplay.addWaveform(canvas, sampleSet.samples);
-            parent.appendChild(canvas);
+            container.appendChild(canvas);
+
+            let infoPanel = document.createElement("div");
+            infoPanel.style.marginLeft = "30px";
+            container.appendChild(infoPanel);
+            waveformDisplay.addWaveform(canvas, infoPanel, sampleSet.samples);
+
+            parent.appendChild(container);
         }
 
         this.onHighlight.subscribe(highlight => waveformDisplay.setHighlight(highlight));
@@ -270,7 +282,7 @@ export class TapeBrowser {
      */
     private makeOriginalSamplesWaveforms(waveforms: HTMLElement): void {
         this.originalWaveformDisplay.setAnnotations(this.tape.annotations);
-        this.makeWaveforms(waveforms, this.originalWaveformDisplay, [
+        this.makeWaveforms(waveforms, this.originalWaveformDisplay, true, [
             {
                 label: "Original waveform:",
                 samples: this.tape.originalSamples,
@@ -503,7 +515,7 @@ export class TapeBrowser {
         const div = document.createElement("div");
         div.classList.add("reconstructed_waveform");
 
-        this.makeWaveforms(div, new WaveformDisplay(), [
+        this.makeWaveforms(div, new WaveformDisplay(this.tape.sampleRate), false, [
             {
                 label: "Reconstructed high-speed waveform:",
                 samples: samples,

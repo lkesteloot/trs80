@@ -5,7 +5,7 @@
  * @param base base of the number
  * @param size zero-pad to this many digits
  */
-export function pad(n: number, base: number, size: number) {
+export function pad(n: number, base: number, size: number): string {
     let s = n.toString(base);
 
     if (base === 16) {
@@ -15,6 +15,21 @@ export function pad(n: number, base: number, size: number) {
 
     while (s.length < size) {
         s = "0" + s;
+    }
+
+    return s;
+}
+
+/**
+ * Generate the string version of a number, in base 10, with commas for thousands groups.
+ */
+export function withCommas(n: number | string): string {
+    let s = typeof n === "number" ? n.toString(10) : n;
+
+    if (s.length > 4) {
+        for (let i = s.length - 3; i > 0; i -= 3) {
+            s = s.substring(0, i) + "," + s.substring(i);
+        }
     }
 
     return s;

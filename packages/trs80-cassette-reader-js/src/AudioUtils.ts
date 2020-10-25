@@ -1,5 +1,5 @@
 
-import { pad } from "./Utils";
+import {pad, withCommas} from "./Utils";
 
 export class AudioFile {
     // In samples per second.
@@ -58,8 +58,27 @@ export function frameToTimestamp(frame: number, hz: number, brief?: boolean) {
     if (brief) {
         return (hour !== 0 ? hour + ":" + pad(min, 10, 2) : min) + ":" + pad(sec, 10, 2);
     } else {
-        return hour + ":" + pad(min, 10, 2) + ":" + pad(sec, 10, 2) + "." + pad(ms, 10, 3) + " (frame " + frame + ")";
+        return hour + ":" + pad(min, 10, 2) + ":" + pad(sec, 10, 2) + "." + pad(ms, 10, 3) + " (frame " + withCommas(frame) + ")";
     }
+}
+
+/**
+ * @param frame the frame duration to be described as a string.
+ * @param hz number of frames per second in original recording.
+ */
+export function frameDurationToString(frame: number, hz: number) {
+    const time = frame / hz;
+
+    let us = Math.floor(time * 1000000);
+    let sec = Math.floor(us / 1000000);
+    us -= sec * 1000000;
+    let min = Math.floor(sec / 60);
+    sec -= min * 60;
+    const hour = Math.floor(min / 60);
+    min -= hour * 60;
+
+    return (hour !== 0 ? hour + ":" + pad(min, 10, 2) : min) + ":" + pad(sec, 10, 2) + "." +
+        withCommas(pad(us, 10, 6)) + " (" + withCommas(frame) + " frames)";
 }
 
 /**
