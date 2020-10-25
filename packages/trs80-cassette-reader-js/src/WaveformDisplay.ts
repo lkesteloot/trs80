@@ -18,6 +18,11 @@ let gRadioButtonCounter = 1;
 enum SelectionMode { BYTES, SAMPLES }
 
 /**
+ * When adjusting the selection, whether changing one of its ends, or creating it from scratch.
+ */
+enum SelectionAdjustMode { LEFT, CREATE, RIGHT }
+
+/**
  * An individual waveform to be displayed.
  */
 class Waveform {
@@ -318,20 +323,42 @@ export class WaveformDisplay {
         let holdingAlt = false;
         let selectionStart: Highlight | undefined = undefined;
         let selectingSamples = false;
+        let selectionAdjustMode = SelectionAdjustMode.CREATE;
+        let lastSeenMouseX = 0;
+        let lastSeenMouseY = 0;
 
         const updateCursor = () => {
             canvas.style.cursor = holdingShift ? (holdingAlt ? "zoom-out" : "zoom-in")
-                : holdingAlt ? "auto"
+                : holdingAlt ? (selectionAdjustMode === SelectionAdjustMode.CREATE ? "auto" : "col-resize")
                 : dragging ? "grabbing"
                 : "grab";
         };
         updateCursor();
+
+        // See if we're on the edge of a sample selection area.
+        const updateSelectionAdjustMode = () => {
+            selectionAdjustMode = SelectionAdjustMode.CREATE;
+            if (holdingAlt && this.selectionMode === SelectionMode.SAMPLES &&
+                this.startSampleSelectionFrame !== undefined && this.endSampleSelectionFrame !== undefined) {
+
+                const startX = this.originalFrameToScreenX(this.startSampleSelectionFrame);
+                if (Math.abs(lastSeenMouseX - startX) < 4) {
+                    selectionAdjustMode = SelectionAdjustMode.LEFT;
+                }
+                const endX = this.originalFrameToScreenX(this.endSampleSelectionFrame);
+                if (Math.abs(lastSeenMouseX - endX) < 4) {
+                    selectionAdjustMode = SelectionAdjustMode.RIGHT;
+                }
+            }
+            updateCursor();
+        };
 
         // Mouse enter/leave events.
         canvas.addEventListener("mouseenter", event => {
             inCanvas = true;
             holdingAlt = event.altKey;
             holdingShift = event.shiftKey;
+            updateSelectionAdjustMode();
             updateCursor();
         });
         canvas.addEventListener("mouseleave", () => {
@@ -361,7 +388,17 @@ export class WaveformDisplay {
                     }
                 } else {
                     // Selecting samples.
-                    this.startSampleSelectionFrame = frame;
+                    switch (selectionAdjustMode) {
+                        case SelectionAdjustMode.LEFT:
+                            this.startSampleSelectionFrame = this.endSampleSelectionFrame;
+                            break;
+                        case SelectionAdjustMode.CREATE:
+                            this.startSampleSelectionFrame = frame;
+                            break;
+                        case SelectionAdjustMode.RIGHT:
+                            // Nothing.
+                            break;
+                    }
                     this.endSampleSelectionFrame = frame;
                     selectingSamples = true;
                     this.draw();
@@ -403,6 +440,9 @@ export class WaveformDisplay {
             }
         });
         canvas.addEventListener("mousemove", event => {
+            lastSeenMouseX = event.offsetX;
+            lastSeenMouseY = event.offsetY;
+
             if (dragging) {
                 const dx = event.offsetX - dragInitialX;
                 const mag = Math.pow(2, this.zoom);
@@ -423,6 +463,7 @@ export class WaveformDisplay {
                 const frame = this.screenXToOriginalFrame(event.offsetX);
                 const highlight = this.highlightAt(frame);
                 this.onHighlight.dispatch(highlight);
+                updateSelectionAdjustMode();
             }
         });
 
@@ -431,6 +472,7 @@ export class WaveformDisplay {
             if (inCanvas) {
                 if (event.key === "Alt") {
                     holdingAlt = true;
+                    updateSelectionAdjustMode();
                     updateCursor();
                 }
                 if (event.key === "Shift") {
@@ -443,6 +485,7 @@ export class WaveformDisplay {
             if (inCanvas) {
                 if (event.key === "Alt") {
                     holdingAlt = false;
+                    updateSelectionAdjustMode();
                     updateCursor();
                 }
                 if (event.key === "Shift") {
@@ -861,6 +904,15 @@ export class WaveformDisplay {
         frame = Math.max(frame, 0);
 
         return frame;
+    }
+
+    /**
+     * Convert an original (unzoomed) sample to its X coordinate. Does not clamp to display range.
+     */
+    private originalFrameToScreenX(frame: number): number {
+        const mag = Math.pow(2, this.zoom);
+        const centerSample = Math.floor(this.centerSample / mag);
+        return Math.floor(this.displayWidth / 2) + (frame / mag - centerSample);
     }
 
     /**
