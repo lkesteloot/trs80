@@ -164,3 +164,66 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
 
     return new AudioFile(rate, samples);
 }
+
+/**
+ * Convert samples to a WAV file.
+ *
+ * http://soundfile.sapp.org/doc/WaveFormat/
+ */
+export function writeWavFile(samples: Int16Array, sampleRate: number): ArrayBuffer {
+    const channelCount = 1;
+    const bitDepth = 16;
+
+    // Total size of WAV file.
+    const totalSize = 11*4 + samples.length*2;
+    const wav = new ArrayBuffer(totalSize);
+    const wavData = new DataView(wav);
+
+    let index = 0;
+    const writeString = (s: string) => {
+        for (let i = 0; i < s.length; i++) {
+            wavData.setUint8(index, s.charCodeAt(i));
+            index += 1;
+        }
+    };
+    const writeUint16 = (n: number) => {
+        wavData.setUint16(index, n, true);
+        index += 2;
+    };
+    const writeInt16 = (n: number) => {
+        wavData.setInt16(index, n, true);
+        index += 2;
+    };
+    const writeUint32 = (n: number) => {
+        wavData.setUint32(index, n, true);
+        index += 4;
+    };
+
+    // Main header.
+    writeString("RIFF");
+    writeUint32(totalSize - 8);
+    writeString("WAVE");
+
+    // Format chunk.
+    writeString("fmt ");
+    writeUint32(16);
+    writeUint16(WAVE_FORMAT_PCM);
+    writeUint16(channelCount);
+    writeUint32(sampleRate);
+    writeUint32(sampleRate*channelCount*bitDepth/8); // Byte rate.
+    writeUint16(channelCount*bitDepth/8); // Block align.
+    writeUint16(bitDepth);
+
+    // Data chunk.
+    writeString("data");
+    writeUint32(samples.length*2);
+    for (let i = 0; i < samples.length; i++) {
+        writeInt16(samples[i]);
+    }
+
+    if (index !== totalSize) {
+        throw new Error("wrote " + index + " but expected " + totalSize);
+    }
+
+    return wav;
+}

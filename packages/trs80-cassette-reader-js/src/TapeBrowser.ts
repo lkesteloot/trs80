@@ -12,7 +12,7 @@ import {BitType} from "./BitType";
 import {Highlight} from "./Highlight";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {DisplaySamples} from "./DisplaySamples";
-import {base64EncodeUint8Array, clearElement} from "./Utils";
+import {clearElement} from "./Utils";
 import {SystemProgram} from "./SystemProgram";
 import {Highlighter} from "./Highlighter";
 
@@ -363,7 +363,8 @@ export class TapeBrowser {
             addKeyValue("Binary", "Download " + program.binary.length + " bytes", () => {
                 // Download binary.
                 const a = document.createElement("a");
-                a.href = "data:application/octet-stream;base64," + base64EncodeUint8Array(program.binary);
+                const blob = new Blob([program.binary], {type: "application/octet-stream"});
+                a.href = window.URL.createObjectURL(blob);
                 a.download = program.getShortLabel().replace(" ", "-") + ".bin";
                 a.click();
             });

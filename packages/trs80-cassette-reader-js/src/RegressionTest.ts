@@ -3,7 +3,7 @@ import * as path from "path";
 import * as url from "url";
 import * as https from "https";
 import * as ProgressBar from "progress";
-import {readWavFile} from "./WavReader";
+import {readWavFile} from "./WavFile";
 import {Tape} from "./Tape";
 import {Decoder} from "./Decoder";
 import * as program from "commander";

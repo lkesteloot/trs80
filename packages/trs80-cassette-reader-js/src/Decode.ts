@@ -1,7 +1,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import {readWavFile} from "./WavReader";
+import {readWavFile} from "./WavFile";
 import {Tape} from "./Tape";
 import {Decoder} from "./Decoder";
 import * as Basic from "./Basic";

@@ -9,6 +9,7 @@ import {toHexByte} from "z80-base";
 import {WaveformAnnotation} from "./WaveformAnnotation";
 import {clearElement, withCommas} from "./Utils";
 import {frameDurationToString, frameToTimestamp} from "./AudioUtils";
+import {writeWavFile} from "./WavFile";
 
 let gRadioButtonCounter = 1;
 
@@ -948,10 +949,10 @@ export class WaveformDisplay {
             endFrame = Math.max(this.startSampleSelectionFrame, this.endSampleSelectionFrame);
         }
 
-        for (const waveform of this.waveforms) {
-            const infoPanel = waveform.infoPanel;
+        if (startFrame !== undefined && endFrame !== undefined) {
+            for (const waveform of this.waveforms) {
+                const infoPanel = waveform.infoPanel;
 
-            if (startFrame !== undefined && endFrame !== undefined) {
                 const duration = endFrame - startFrame;
 
                 let minValue: number | undefined = undefined;
@@ -977,12 +978,37 @@ export class WaveformDisplay {
                 if (minValue !== undefined) {
                     parts.push("<b>Minimum value:</b> " + withCommas(minValue) + "<br>");
                 }
-
                 infoPanel.innerHTML = parts.join("");
-            } else {
-                clearElement(infoPanel);
+
+                // Button to save WAV file of selection.
+                const saveButton = document.createElement("button");
+                saveButton.innerText = "Save WAV File";
+                saveButton.classList.add("nice_button");
+                saveButton.style.marginTop = "20px";
+                const constStartFrame = startFrame;
+                const constEndFrame = endFrame;
+                saveButton.addEventListener("click", () =>
+                    this.saveWavFile(waveform.samples.samplesList[0], constStartFrame, constEndFrame));
+                infoPanel.appendChild(saveButton);
+            }
+        } else {
+            // No selection, erase panel.
+            for (const waveform of this.waveforms) {
+                clearElement(waveform.infoPanel);
             }
         }
+    }
+
+    /**
+     * Create a WAV file and auto-download it to the user.
+     */
+    private saveWavFile(samples: Int16Array, startFrame: number, endFrame: number): void {
+        const wav = writeWavFile(samples.subarray(startFrame, endFrame + 1), this.sampleRate);
+        const a = document.createElement("a");
+        const blob = new Blob([wav], {type: "audio/wav"});
+        a.href = window.URL.createObjectURL(blob);
+        a.download = "clip.wav";
+        a.click();
     }
 }
 

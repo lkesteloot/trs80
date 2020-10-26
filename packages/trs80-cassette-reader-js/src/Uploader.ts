@@ -1,7 +1,7 @@
 
 // Handles uploading WAV files and decoding them.
 import {AudioFile} from "./AudioUtils";
-import {readWavFile} from "./WavReader";
+import {readWavFile} from "./WavFile";
 import {encodeLowSpeed} from "./LowSpeedTapeEncoder";
 
 export class Uploader {
