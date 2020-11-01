@@ -238,28 +238,7 @@ export class TapeBrowser {
         parent.appendChild(waveformDisplay.makeControls(showSelectionType));
 
         for (const sampleSet of sampleSets) {
-            let label = document.createElement("p");
-            label.innerText = sampleSet.label;
-            parent.appendChild(label);
-
-            let container = document.createElement("div");
-            container.style.display = "flex";
-            container.style.flexFlow = "row nowrap";
-            container.style.justifyContent = "flex-start";
-            container.style.alignItems = "flex-start";
-
-            let canvas = document.createElement("canvas");
-            canvas.classList.add("waveform");
-            canvas.width = 800;
-            canvas.height = 400;
-            container.appendChild(canvas);
-
-            let infoPanel = document.createElement("div");
-            infoPanel.style.marginLeft = "30px";
-            container.appendChild(infoPanel);
-            waveformDisplay.addWaveform(canvas, infoPanel, sampleSet.samples);
-
-            parent.appendChild(container);
+            WaveformDisplay.makeWaveformDisplay(sampleSet.label, sampleSet.samples, parent, waveformDisplay);
         }
 
         this.onHighlight.subscribe(highlight => waveformDisplay.setHighlight(highlight));

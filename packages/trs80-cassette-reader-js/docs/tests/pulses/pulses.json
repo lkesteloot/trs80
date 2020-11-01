@@ -1,0 +1,24 @@
+{
+    "tests": [
+        {
+            "wavUrl": "pulse01.wav",
+            "type": "pulse"
+        },
+        {
+            "wavUrl": "pulse02.wav",
+            "type": "pulse"
+        },
+        {
+            "wavUrl": "pulse03.wav",
+            "type": "pulse"
+        },
+        {
+            "wavUrl": "pulse04.wav",
+            "type": "pulse"
+        },
+        {
+            "wavUrl": "no-pulse01.wav",
+            "type": "no-pulse"
+        }
+    ]
+}

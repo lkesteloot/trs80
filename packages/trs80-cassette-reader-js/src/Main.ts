@@ -7,6 +7,11 @@ import Split from "split.js";
 import {AudioFile} from "./AudioUtils";
 import {clearElement, flashNode} from "./Utils";
 import {CssScreen} from "trs80-emulator";
+import {TestFile, TestType} from "./Test";
+import {readWavFile} from "./WavFile";
+import {WaveformDisplay} from "./WaveformDisplay";
+import {DisplaySamples} from "./DisplaySamples";
+import {LowSpeedAnteoTapeDecoder, Pulse} from "./LowSpeedAnteoTapeDecoder";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -185,6 +190,83 @@ function handleAudioBuffer(pathname: string, audioFile: AudioFile) {
     });
 }
 
+function runTests(testFile: TestFile): void {
+    const screen = showScreen("test_screen");
+
+    const pageHeader = document.createElement("h1");
+    pageHeader.innerText = "Test Results";
+    screen.appendChild(pageHeader);
+
+    for (const test of testFile.tests) {
+        const testResult = document.createElement("div");
+        testResult.classList.add("test");
+        screen.append(testResult);
+
+        const url = new URL(test.wavUrl, testFile.url).href;
+        fetch(url, {cache: "reload"})
+            .then(req => req.arrayBuffer())
+            .then(arrayBuffer => {
+                const wavFile = readWavFile(arrayBuffer);
+                const tape = new Tape(url, wavFile);
+                const waveformDisplay = new WaveformDisplay(wavFile.rate);
+
+                const title = document.createElement("span");
+                title.innerText = url;
+
+                const header = document.createElement("div");
+                header.appendChild(title);
+                header.classList.add("test_header");
+                testResult.append(header);
+
+                const panel = document.createElement("div");
+                panel.classList.add("expandable_panel");
+                testResult.append(panel);
+
+                header.addEventListener("click", () => {
+                    testResult.classList.toggle("expanded");
+                });
+
+                WaveformDisplay.makeWaveformDisplay("Original samples", tape.originalSamples, panel, waveformDisplay);
+                WaveformDisplay.makeWaveformDisplay("Low speed filter", tape.lowSpeedSamples, panel, waveformDisplay);
+                waveformDisplay.draw();
+
+                switch (test.type) {
+                    case TestType.PULSE:
+                    case TestType.NO_PULSE:
+                        const decoder = new LowSpeedAnteoTapeDecoder(tape);
+                        const pulse = decoder.isPulseAt(Math.round(wavFile.samples.length/2));
+                        if (pulse instanceof Pulse) {
+                            waveformDisplay.addPointAnnotation(pulse.frame, pulse.value);
+                        }
+                        const result = document.createElement("span");
+                        result.classList.add("test_result");
+                        if ((pulse instanceof Pulse) === (test.type === TestType.PULSE)) {
+                            result.innerText = "Pass";
+                            result.classList.add("test_pass");
+                        } else {
+                            result.innerText = "Fail";
+                            result.classList.add("test_fail");
+                        }
+                        header.appendChild(result);
+                        break;
+
+                    case TestType.BITS:
+                        break;
+                }
+            });
+    }
+}
+
+function loadAndRunTests(): void {
+    const url = new URL("tests/pulses/pulses.json", document.baseURI).href;
+    fetch(url, {cache: "reload"})
+        .then(req => req.json())
+        .then(json => {
+            const testFile = new TestFile(url, json);
+            runTests(testFile);
+        });
+}
+
 export function main() {
     showScreen("drop_screen");
 
@@ -199,6 +281,7 @@ export function main() {
     const exportDataButton = document.getElementById("export_data_button") as HTMLButtonElement;
     const importDataButton = document.getElementById("import_data_button") as HTMLButtonElement;
     const browseDataButton = document.getElementById("browse_data_button") as HTMLButtonElement;
+    const runTestsButton = document.getElementById("run_tests_button") as HTMLButtonElement;
     const copyToClipboardButton = document.getElementById("copy_to_clipboard_button") as HTMLButtonElement;
     const importButton = document.getElementById("import_button") as HTMLButtonElement;
 
@@ -208,6 +291,7 @@ export function main() {
         const browseScreen = showScreen("browse_screen");
         populateBrowseScreen(browseScreen);
     });
+    runTestsButton.addEventListener("click", loadAndRunTests);
 
     copyToClipboardButton.addEventListener("click", event => copyToClipboard());
     importButton.addEventListener("click", event => importData());

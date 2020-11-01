@@ -39,6 +39,19 @@ class Waveform {
 }
 
 /**
+ * A point to be drawn on the waveform.
+ */
+class PointAnnotation {
+    public readonly frame: number;
+    public readonly value: number;
+
+    constructor(frame: number, value: number) {
+        this.frame = frame;
+        this.value = value;
+    }
+}
+
+/**
  * Displays a list of different waveforms, synchronizing their pan and zoom.
  */
 export class WaveformDisplay {
@@ -122,6 +135,10 @@ export class WaveformDisplay {
      * What the user wants to select.
      */
     private selectionMode = SelectionMode.BYTES;
+    /**
+     * Point annotations to draw.
+     */
+    private readonly pointAnnotations: PointAnnotation[] = [];
 
     constructor(sampleRate: number) {
         this.sampleRate = sampleRate;
@@ -150,6 +167,33 @@ export class WaveformDisplay {
     }
 
     /**
+     * Make the canvas and its surrounding elements to display a waveform.
+     */
+    public static makeWaveformDisplay(label: string, samples: DisplaySamples, parent: HTMLElement, waveformDisplay: WaveformDisplay): void {
+        let labelElement = document.createElement("p");
+        labelElement.innerText = label;
+        parent.appendChild(labelElement);
+
+        let container = document.createElement("div");
+        container.style.display = "flex";
+        container.style.flexFlow = "row nowrap";
+        container.style.justifyContent = "flex-start";
+        container.style.alignItems = "flex-start";
+        parent.appendChild(container);
+
+        let canvas = document.createElement("canvas");
+        canvas.classList.add("waveform");
+        canvas.width = 800;
+        canvas.height = 400;
+        container.appendChild(canvas);
+
+        let infoPanel = document.createElement("div");
+        infoPanel.style.marginLeft = "30px";
+        container.appendChild(infoPanel);
+        waveformDisplay.addWaveform(canvas, infoPanel, samples);
+    }
+
+    /**
      * Add a program to highlight in the waveform.
      */
     public addProgram(program: Program) {
@@ -161,6 +205,14 @@ export class WaveformDisplay {
      */
     public setAnnotations(annotations: WaveformAnnotation[]): void {
         this.annotations = annotations;
+    }
+
+    /**
+     * Add a point annotation to draw.
+     */
+    public addPointAnnotation(frame: number, value: number): void {
+        this.pointAnnotations.push(new PointAnnotation(frame, value));
+        this.draw();
     }
 
     /**
@@ -740,6 +792,16 @@ export class WaveformDisplay {
                 this.drawBraceAndLabel(ctx, height, x1, x2, braceColor, annotation.text, labelColor, false);
                 index++;
             }
+        }
+
+        // Draw point annotations.
+        ctx.fillStyle = badColor;
+        for (const pointAnnotation of this.pointAnnotations) {
+            const x = frameToX(pointAnnotation.frame / mag);
+            const y = height/2 - pointAnnotation.value * height / 65536;
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.fill();
         }
     }
 

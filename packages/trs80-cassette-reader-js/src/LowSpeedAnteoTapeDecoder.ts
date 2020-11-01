@@ -18,7 +18,7 @@ enum NonPulse {
     NOISE, SILENCE,
 }
 
-class Pulse {
+export class Pulse {
     public readonly value: number;
     public readonly frame: number;
 
@@ -29,7 +29,6 @@ class Pulse {
 }
 
 export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
-    private readonly tape: Tape;
     private readonly samples: Int16Array;
     // Distance between two clock pulses.
     private readonly period: number;
@@ -39,18 +38,17 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     private peakThreshold = 2000;
 
     constructor(tape: Tape) {
-        this.tape = tape;
+        const samples = tape.lowSpeedSamples.samplesList[0];
         if (true) {
-            this.samples = this.tape.lowSpeedSamples.samplesList[0];
+            this.samples = samples;
         } else {
             // Invert samples.
-            const samples = this.tape.lowSpeedSamples.samplesList[0];
             this.samples = new Int16Array(samples.length);
             for (let i = 0; i < samples.length; i++) {
                 this.samples[i] = -samples[i];
             }
         }
-        this.period = Math.round(this.tape.sampleRate*0.002); // 2ms period.
+        this.period = Math.round(tape.sampleRate*0.002); // 2ms period.
         this.halfPeriod = Math.round(this.period / 2);
         this.quarterPeriod = Math.round(this.period / 4);
     }
@@ -248,7 +246,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     /**
      * Look for a pulse around frame, returning it found, otherwise undefined.
      */
-    private isPulseAt(frame: number): Pulse | NonPulse {
+    public isPulseAt(frame: number): Pulse | NonPulse {
         const distance = Math.round(this.period / 6);
         const pulseStart = frame - distance;
         const pulseEnd = frame + distance;

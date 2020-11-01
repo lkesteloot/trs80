@@ -296,3 +296,50 @@ canvas.waveform {
 .thumbnail:hover {
     transform: scale(1.02);
 }
+
+#test_screen {
+    margin: 50px 80px;
+}
+#test_screen h1 {
+    font-size: 28pt;
+    font-weight: 100;
+    color: var(--accent-color);
+}
+#test_screen .test {
+    margin: 5px 0;
+}
+#test_screen .expandable_panel {
+    display: none;
+    margin: 5px 0 30px 20px;
+}
+#test_screen .test.expanded .expandable_panel {
+    display: block;
+}
+#test_screen .test_header {
+    cursor: pointer;
+}
+#test_screen .test_header::before {
+    content: "▶";
+    display: inline-block;
+    margin-right: 5px;
+    transition: transform 0.15s;
+}
+#test_screen .test.expanded .test_header::before {
+    transform: translate(-2px, 0) rotate(90deg);
+}
+#test_screen .test_result {
+    font-weight: bold;
+    color: var(--background);
+    padding: 2px 10px;
+    /* Use large size to get pill shape. */
+    border-radius: 999px;
+    text-transform: uppercase;
+    margin-left: 10px;
+    letter-spacing: 0.05em;
+}
+#test_screen .test_pass {
+    background-color: var(--green);
+}
+#test_screen .test_fail {
+    background-color: var(--red);
+}
