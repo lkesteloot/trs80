@@ -12,12 +12,14 @@ const STRING_TO_TEST_TYPE: {[key: string]: TestType} = {
 };
 
 export class Test {
+    public readonly name: string;
     public readonly wavUrl: string;
     public readonly type: TestType;
     public readonly bin: string | undefined;
     public readonly binUrl: string | undefined;
 
     constructor(jsonTest: any) {
+        this.name = jsonTest.name;
         this.wavUrl = jsonTest.wavUrl;
         this.type = STRING_TO_TEST_TYPE[jsonTest.type as string];
         this.bin = jsonTest.bin as string;

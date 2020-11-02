@@ -211,7 +211,7 @@ function runTests(testFile: TestFile): void {
                 const waveformDisplay = new WaveformDisplay(wavFile.rate);
 
                 const title = document.createElement("span");
-                title.innerText = url;
+                title.innerText = test.name;
 
                 const header = document.createElement("div");
                 header.appendChild(title);

@@ -1,22 +1,27 @@
 {
     "tests": [
         {
+            "name": "Clean pulse",
             "wavUrl": "pulse01.wav",
             "type": "pulse"
         },
         {
+            "name": "Clean short pulse",
             "wavUrl": "pulse02.wav",
             "type": "pulse"
         },
         {
+            "name": "Clean medium pulse",
             "wavUrl": "pulse03.wav",
             "type": "pulse"
         },
         {
+            "name": "Large down spike",
             "wavUrl": "pulse04.wav",
             "type": "pulse"
         },
         {
+            "name": "Silence",
             "wavUrl": "no-pulse01.wav",
             "type": "no-pulse"
         }
