@@ -24,10 +24,13 @@ export function pad(n: number, base: number, size: number): string {
  * Generate the string version of a number, in base 10, with commas for thousands groups.
  */
 export function withCommas(n: number | string): string {
-    let s = typeof n === "number" ? n.toString(10) : n;
+    let s = typeof n === "number" ? Math.round(n).toString(10) : n;
 
-    if (s.length > 4) {
-        for (let i = s.length - 3; i > 0; i -= 3) {
+    const negative = s.length >= 1 && s.charAt(0) === "-";
+    const firstDigit = negative ? 1 : 0;
+
+    if (s.length - firstDigit > 4) {
+        for (let i = s.length - 3; i > firstDigit; i -= 3) {
             s = s.substring(0, i) + "," + s.substring(i);
         }
     }

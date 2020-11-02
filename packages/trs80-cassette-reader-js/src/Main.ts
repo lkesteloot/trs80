@@ -11,7 +11,7 @@ import {TestFile, TestType} from "./Test";
 import {readWavFile} from "./WavFile";
 import {WaveformDisplay} from "./WaveformDisplay";
 import {DisplaySamples} from "./DisplaySamples";
-import {LowSpeedAnteoTapeDecoder, Pulse} from "./LowSpeedAnteoTapeDecoder";
+import {LowSpeedAnteoTapeDecoder, Pulse, PulseResultType} from "./LowSpeedAnteoTapeDecoder";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -222,6 +222,9 @@ function runTests(testFile: TestFile): void {
                 panel.classList.add("expandable_panel");
                 testResult.append(panel);
 
+                const explanation = document.createElement("p");
+                panel.append(explanation);
+
                 header.addEventListener("click", () => {
                     testResult.classList.toggle("expanded");
                 });
@@ -234,13 +237,18 @@ function runTests(testFile: TestFile): void {
                     case TestType.PULSE:
                     case TestType.NO_PULSE:
                         const decoder = new LowSpeedAnteoTapeDecoder(tape);
-                        const pulse = decoder.isPulseAt(Math.round(wavFile.samples.length/2));
-                        if (pulse instanceof Pulse) {
+                        const pulse = decoder.isPulseAt(Math.round(wavFile.samples.length/2), true);
+                        if (pulse.resultType === PulseResultType.PULSE) {
                             waveformDisplay.addPointAnnotation(pulse.frame, pulse.value);
+                        }
+                        if (pulse.explanation !== "") {
+                            explanation.innerText = pulse.explanation;
+                        } else {
+                            explanation.remove();
                         }
                         const result = document.createElement("span");
                         result.classList.add("test_result");
-                        if ((pulse instanceof Pulse) === (test.type === TestType.PULSE)) {
+                        if (pulse.resultType === PulseResultType.PULSE === (test.type === TestType.PULSE)) {
                             result.innerText = "Pass";
                             result.classList.add("test_pass");
                         } else {
