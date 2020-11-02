@@ -6,7 +6,7 @@ import {TapeDecoder} from "./TapeDecoder";
 import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
 import {Program} from "./Program";
-import {WaveformAnnotation} from "./WaveformAnnotation";
+import {ProgramAnnotation} from "./Annotations";
 
 /**
  * Number of consecutive zero bits we require in the header before we're pretty
@@ -109,7 +109,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         return "Low speed" + (this.invert ? " (Inv)" : "");
     }
 
-    public findNextProgram(startFrame: number, annotations: WaveformAnnotation[]): Program | undefined {
+    public findNextProgram(startFrame: number, annotations: ProgramAnnotation[]): Program | undefined {
         const samples = this.tape.lowSpeedSamples.samplesList[0];
         let programStartFrame = -1;
 

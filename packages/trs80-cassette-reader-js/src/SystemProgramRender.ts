@@ -4,7 +4,7 @@ import {Disasm} from "z80-disasm";
 import {toHexWord} from "z80-base";
 import {SystemProgram} from "./SystemProgram";
 import {Highlightable} from "./Highlighter";
-import {WaveformAnnotation} from "./WaveformAnnotation";
+import {ProgramAnnotation} from "./Annotations";
 
 /**
  * Add text to the line with the specified class.
@@ -89,14 +89,14 @@ export const selectClassName = sheet.classes.selected;
  *
  * @return array of the elements added, with the index being the offset into the original bytes array.
  */
-export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highlightable[], WaveformAnnotation[]] {
+export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highlightable[], ProgramAnnotation[]] {
     sheet.attach();
     const classes = sheet.classes;
 
     // Every element we render that maps to a byte in the program.
     const elements: Highlightable[] = [];
     // Waveform annotations.
-    const annotations: WaveformAnnotation[] = [];
+    const annotations: ProgramAnnotation[] = [];
 
     if (systemProgram.error !== undefined) {
         const line = document.createElement("div");
@@ -152,7 +152,7 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         if (byteOffset !== undefined) {
             let lastIndex = byteOffset + instruction.bin.length - 1;
             elements.push(new Highlightable(byteOffset, lastIndex, line));
-            annotations.push(new WaveformAnnotation(instruction.toText() + "\n" + instruction.binText(), byteOffset, lastIndex));
+            annotations.push(new ProgramAnnotation(instruction.toText() + "\n" + instruction.binText(), byteOffset, lastIndex));
         }
     }
 

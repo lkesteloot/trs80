@@ -4,7 +4,7 @@ import {DisplaySamples} from "./DisplaySamples";
 import {ByteData} from "./ByteData";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {isSystemProgram} from "./SystemProgram";
-import {WaveformAnnotation} from "./WaveformAnnotation";
+import {ProgramAnnotation} from "./Annotations";
 
 export class Program {
     public trackNumber: number;
@@ -17,7 +17,7 @@ export class Program {
     // Index by byte index in the "binary" array.
     public byteData: ByteData[];
     // Annotation that can be used by specialized reader.
-    public annotations: WaveformAnnotation[] | undefined;
+    public annotations: ProgramAnnotation[] | undefined;
     public reconstructedSamples: DisplaySamples | undefined;
     public name: string = "";
     public notes: string = "";

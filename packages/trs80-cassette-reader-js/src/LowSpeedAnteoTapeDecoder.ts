@@ -9,7 +9,13 @@ import {BitData} from "./BitData";
 import {ByteData} from "./ByteData";
 import {Program} from "./Program";
 import {BitType} from "./BitType";
-import {WaveformAnnotation} from "./WaveformAnnotation";
+import {
+    HorizontalLineAnnotation,
+    PointAnnotation,
+    ProgramAnnotation,
+    VerticalLineAnnotation,
+    WaveformAnnotation
+} from "./Annotations";
 import {withCommas} from "./Utils";
 
 const SYNC_BYTE = 0xA5;
@@ -30,6 +36,7 @@ export class Pulse {
     public readonly value: number;
     public readonly frame: number;
     public readonly explanation: string;
+    public readonly waveformAnnotations: WaveformAnnotation[] = [];
 
     constructor(resultType: PulseResultType, value: number, frame: number, explanation: string) {
         this.resultType = resultType;
@@ -64,7 +71,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         this.quarterPeriod = Math.round(this.period / 4);
     }
 
-    public findNextProgram(frame: number, annotations: WaveformAnnotation[]): Program | undefined {
+    public findNextProgram(frame: number, annotations: ProgramAnnotation[]): Program | undefined {
         while (true) {
             // console.log('-------------------------------------');
             const [_, pulse] = this.findNextPulse(frame, this.peakThreshold);
@@ -90,7 +97,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     /**
      * Verifies that we have pulses every period starting at frame.
      */
-    private proofPulseDistance(frame: number, annotations: WaveformAnnotation[]): boolean {
+    private proofPulseDistance(frame: number, annotations: ProgramAnnotation[]): boolean {
         const initialFrame = frame;
 
         // console.log("Proofing starting at", frame, "with period", this.period);
@@ -98,7 +105,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             const pulse = this.isPulseAt(frame);
             if (!(pulse instanceof Pulse)) {
                 // console.log("Did not find pulse at", frame);
-                annotations.push(new WaveformAnnotation("Failed", initialFrame, frame));
+                annotations.push(new ProgramAnnotation("Failed", initialFrame, frame));
                 return false;
             }
 
@@ -110,7 +117,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         return true;
     }
 
-    private loadData(startFrame: number, annotations: WaveformAnnotation[]): Program | undefined {
+    private loadData(startFrame: number, annotations: ProgramAnnotation[]): Program | undefined {
         let recentBits = 0;
         let frame = startFrame;
         let foundSyncByte = false;
@@ -152,7 +159,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                     }
                 } else {
                     if (recentBits === SYNC_BYTE) {
-                        annotations.push(new WaveformAnnotation("Sync", bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame));
+                        annotations.push(new ProgramAnnotation("Sync", bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame));
                         foundSyncByte = true;
                         allowLateClockPulse = true;
                         bitCount = 0;
@@ -283,38 +290,52 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             }
         }
 
-        let range = maxValue - minValue;
+        const range = maxValue - minValue;
 
+        const posPulseEndThreshold = maxValue - this.peakThreshold / 2;
         if (range > this.peakThreshold &&
-            this.samples[pulseStart] < maxValue - this.peakThreshold / 2 &&
-            this.samples[pulseEnd] < maxValue - this.peakThreshold / 2) {
+            this.samples[pulseStart] < posPulseEndThreshold &&
+            this.samples[pulseEnd] < posPulseEndThreshold) {
 
             const explanation = includeExplanation ?
                 "Looked for pulse at " + withCommas(frame) + " and found it at " + withCommas(maxFrame) +
                 ", which is within the search radius of " + withCommas(distance) + ". " +
                 "Range " + withCommas(range) + " is greater than pulse threshold " + withCommas(this.peakThreshold) +
-                ", start " + withCommas(this.samples[pulseStart]) + " < " + withCommas(maxValue - this.peakThreshold / 2) +
-                ", and end " +  withCommas(this.samples[pulseEnd]) + " < " + withCommas(maxValue - this.peakThreshold / 2) : "";
-            return new Pulse(PulseResultType.PULSE, maxValue, maxFrame, explanation);
-        } else if (range > this.peakThreshold &&
-            this.samples[pulseStart] > minValue + this.peakThreshold / 2 &&
-            this.samples[pulseEnd] > minValue + this.peakThreshold / 2) {
+                ", start " + withCommas(this.samples[pulseStart]) + " < " + withCommas(posPulseEndThreshold) +
+                ", and end " + withCommas(this.samples[pulseEnd]) + " < " + withCommas(posPulseEndThreshold) : "";
+            let pulse = new Pulse(PulseResultType.PULSE, maxValue, maxFrame, explanation);
+            if (includeExplanation) {
+                pulse.waveformAnnotations.push(new PointAnnotation(pulse.frame, pulse.value));
+                pulse.waveformAnnotations.push(new PointAnnotation(pulseStart, this.samples[pulseStart]));
+                pulse.waveformAnnotations.push(new PointAnnotation(pulseEnd, this.samples[pulseEnd]));
+                pulse.waveformAnnotations.push(new HorizontalLineAnnotation(posPulseEndThreshold));
+                pulse.waveformAnnotations.push(new VerticalLineAnnotation(frame));
+            }
+            return pulse;
+        }
+
+        let negPulseEndThreshold = minValue + this.peakThreshold / 2;
+        if (range > this.peakThreshold &&
+            this.samples[pulseStart] > negPulseEndThreshold &&
+            this.samples[pulseEnd] > negPulseEndThreshold) {
 
             const explanation = includeExplanation ?
                 "Looked for pulse at " + withCommas(frame) + " and found it at " + withCommas(maxFrame) +
                 ", which is within the search radius of " + withCommas(distance) + ". " +
                 "Range " + withCommas(range) + " is greater than pulse threshold " + withCommas(this.peakThreshold) +
-                ", start " + withCommas(this.samples[pulseStart]) + " > " + withCommas(minValue + this.peakThreshold / 2) +
-                ", and end " +  withCommas(this.samples[pulseEnd]) + " > " + withCommas(minValue + this.peakThreshold / 2) : "";
+                ", start " + withCommas(this.samples[pulseStart]) + " > " + withCommas(negPulseEndThreshold) +
+                ", and end " + withCommas(this.samples[pulseEnd]) + " > " + withCommas(negPulseEndThreshold) : "";
+            // TODO should use minFrame, not maxFrame.
             return new Pulse(PulseResultType.PULSE, maxValue, maxFrame, explanation);
-        } else if (range > this.peakThreshold / 2) {
+        }
+        if (range > this.peakThreshold / 2) {
             const explanation = includeExplanation ? "Range " + range + " is less than pulse threshold " + withCommas(this.peakThreshold) +
                 " but greater than noise threshold " + (this.peakThreshold / 2) : "";
             return new Pulse(PulseResultType.NOISE, 0, 0, explanation);
-        } else {
-            const explanation = includeExplanation ? "Range " + range + " is less than or equal to noise threshold " + (this.peakThreshold / 2) : "";
-            return new Pulse(PulseResultType.SILENCE, 0, 0, explanation);
         }
+
+        const explanation = includeExplanation ? "Range " + range + " is less than or equal to noise threshold " + (this.peakThreshold / 2) : "";
+        return new Pulse(PulseResultType.SILENCE, 0, 0, explanation);
     }
 
     getBinary(): Uint8Array {

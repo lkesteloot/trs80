@@ -12,6 +12,7 @@ import {readWavFile} from "./WavFile";
 import {WaveformDisplay} from "./WaveformDisplay";
 import {DisplaySamples} from "./DisplaySamples";
 import {LowSpeedAnteoTapeDecoder, Pulse, PulseResultType} from "./LowSpeedAnteoTapeDecoder";
+import {PointAnnotation} from "./Annotations";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -231,16 +232,13 @@ function runTests(testFile: TestFile): void {
 
                 WaveformDisplay.makeWaveformDisplay("Original samples", tape.originalSamples, panel, waveformDisplay);
                 WaveformDisplay.makeWaveformDisplay("Low speed filter", tape.lowSpeedSamples, panel, waveformDisplay);
-                waveformDisplay.draw();
 
                 switch (test.type) {
                     case TestType.PULSE:
                     case TestType.NO_PULSE:
                         const decoder = new LowSpeedAnteoTapeDecoder(tape);
                         const pulse = decoder.isPulseAt(Math.round(wavFile.samples.length/2), true);
-                        if (pulse.resultType === PulseResultType.PULSE) {
-                            waveformDisplay.addPointAnnotation(pulse.frame, pulse.value);
-                        }
+                        pulse.waveformAnnotations.forEach(a => waveformDisplay.addWaveformAnnotation(a));
                         if (pulse.explanation !== "") {
                             explanation.innerText = pulse.explanation;
                         } else {

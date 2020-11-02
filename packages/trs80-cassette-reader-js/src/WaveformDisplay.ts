@@ -6,7 +6,7 @@ import {Highlight} from "./Highlight";
 import * as Basic from "./Basic";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {toHexByte} from "z80-base";
-import {WaveformAnnotation} from "./WaveformAnnotation";
+import {AnnotationContext, ProgramAnnotation, WaveformAnnotation} from "./Annotations";
 import {clearElement, withCommas} from "./Utils";
 import {frameDurationToString, frameToTimestamp} from "./AudioUtils";
 import {writeWavFile} from "./WavFile";
@@ -35,19 +35,6 @@ class Waveform {
         this.canvas = canvas;
         this.infoPanel = infoPanel;
         this.samples = samples;
-    }
-}
-
-/**
- * A point to be drawn on the waveform.
- */
-class PointAnnotation {
-    public readonly frame: number;
-    public readonly value: number;
-
-    constructor(frame: number, value: number) {
-        this.frame = frame;
-        this.value = value;
     }
 }
 
@@ -130,15 +117,19 @@ export class WaveformDisplay {
     /**
      * List of annotations to display in the displays.
      */
-    private annotations: WaveformAnnotation[] = [];
+    private annotations: ProgramAnnotation[] = [];
     /**
      * What the user wants to select.
      */
     private selectionMode = SelectionMode.BYTES;
     /**
-     * Point annotations to draw.
+     * Waveform annotations to draw.
      */
-    private readonly pointAnnotations: PointAnnotation[] = [];
+    private readonly waveformAnnotations: WaveformAnnotation[] = [];
+    /**
+     * Handle to the timeout to redraw.
+     */
+    private drawTimeout: number | undefined = undefined;
 
     constructor(sampleRate: number) {
         this.sampleRate = sampleRate;
@@ -191,6 +182,8 @@ export class WaveformDisplay {
         infoPanel.style.marginLeft = "30px";
         container.appendChild(infoPanel);
         waveformDisplay.addWaveform(canvas, infoPanel, samples);
+
+        waveformDisplay.queueDraw();
     }
 
     /**
@@ -203,16 +196,16 @@ export class WaveformDisplay {
     /**
      * Set the list of annotations. A reference will be kept to this list.
      */
-    public setAnnotations(annotations: WaveformAnnotation[]): void {
+    public setAnnotations(annotations: ProgramAnnotation[]): void {
         this.annotations = annotations;
     }
 
     /**
      * Add a point annotation to draw.
      */
-    public addPointAnnotation(frame: number, value: number): void {
-        this.pointAnnotations.push(new PointAnnotation(frame, value));
-        this.draw();
+    public addWaveformAnnotation(waveformAnnotation: WaveformAnnotation): void {
+        this.waveformAnnotations.push(waveformAnnotation);
+        this.queueDraw();
     }
 
     /**
@@ -235,7 +228,7 @@ export class WaveformDisplay {
             }
         }
 
-        this.draw();
+        this.queueDraw();
     }
 
     /**
@@ -550,9 +543,29 @@ export class WaveformDisplay {
     }
 
     /**
+     * Queue a redraw to happen as soon as possible. This is useful if many of these might be called
+     * synchronously -- they will be collapsed.
+     */
+    public queueDraw(): void {
+        this.cancelQueuedDraw();
+        this.drawTimeout = window.setTimeout(() => this.draw(), 0);
+    }
+
+    /**
+     * Cancel any queued draw.
+     */
+    private cancelQueuedDraw(): void {
+        if (this.drawTimeout !== undefined) {
+            window.clearTimeout(this.drawTimeout);
+            this.drawTimeout = undefined;
+        }
+    }
+
+    /**
      * Draw all the waveforms.
      */
     public draw() {
+        this.cancelQueuedDraw();
         for (const waveform of this.waveforms) {
             this.drawInCanvas(waveform.canvas, waveform.samples);
         }
@@ -795,13 +808,20 @@ export class WaveformDisplay {
         }
 
         // Draw point annotations.
-        ctx.fillStyle = badColor;
-        for (const pointAnnotation of this.pointAnnotations) {
-            const x = frameToX(pointAnnotation.frame / mag);
-            const y = height/2 - pointAnnotation.value * height / 65536;
-            ctx.beginPath();
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
-            ctx.fill();
+        const annotationContext: AnnotationContext = {
+            width: width,
+            height: height,
+            frameToX(frame: number): number {
+                return frameToX(frame / mag);
+            },
+            valueToY(value: number): number {
+                return height/2 - value * height / 65536;
+            },
+            context: ctx,
+            highlightColor: badColor,
+        };
+        for (const pointAnnotation of this.waveformAnnotations) {
+            pointAnnotation.draw(annotationContext);
         }
     }
 
