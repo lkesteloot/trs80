@@ -193,6 +193,7 @@ function handleAudioBuffer(pathname: string, audioFile: AudioFile) {
 
 function runTests(testFile: TestFile): void {
     const screen = showScreen("test_screen");
+    clearElement(screen);
 
     const pageHeader = document.createElement("h1");
     pageHeader.innerText = "Test Results";
@@ -263,7 +264,10 @@ function runTests(testFile: TestFile): void {
     }
 }
 
-function loadAndRunTests(): void {
+/**
+ * Show the test screen and start loading the test JSON file.
+ */
+function showTestScreen(): void {
     const url = new URL("tests/pulses/pulses.json", document.baseURI).href;
     fetch(url, {cache: "reload"})
         .then(req => req.json())
@@ -271,6 +275,25 @@ function loadAndRunTests(): void {
             const testFile = new TestFile(url, json);
             runTests(testFile);
         });
+}
+
+/**
+ * Handle the browser's back and forward history buttons.
+ */
+function handleNewLocation() {
+    const hash = window.location.hash;
+
+    switch (hash) {
+        case "":
+        case "#":
+        default:
+            showScreen("drop_screen");
+            break;
+
+        case "#test":
+            showTestScreen();
+            break;
+    }
 }
 
 export function main() {
@@ -297,8 +320,10 @@ export function main() {
         const browseScreen = showScreen("browse_screen");
         populateBrowseScreen(browseScreen);
     });
-    runTestsButton.addEventListener("click", loadAndRunTests);
+    runTestsButton.addEventListener("click", () => window.location.href = "#test");
 
     copyToClipboardButton.addEventListener("click", event => copyToClipboard());
     importButton.addEventListener("click", event => importData());
+
+    window.addEventListener("popstate", handleNewLocation);
 }
