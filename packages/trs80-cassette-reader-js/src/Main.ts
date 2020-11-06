@@ -234,32 +234,52 @@ function runTests(testFile: TestFile): void {
                 WaveformDisplay.makeWaveformDisplay("Original samples", tape.originalSamples, panel, waveformDisplay);
                 WaveformDisplay.makeWaveformDisplay("Low speed filter", tape.lowSpeedSamples, panel, waveformDisplay);
 
+                let pass: boolean;
                 switch (test.type) {
                     case TestType.PULSE:
-                    case TestType.NO_PULSE:
+                    case TestType.NO_PULSE: {
                         const decoder = new LowSpeedAnteoTapeDecoder(tape);
-                        const pulse = decoder.isPulseAt(Math.round(wavFile.samples.length/2), true);
-                        pulse.waveformAnnotations.forEach(a => waveformDisplay.addWaveformAnnotation(a));
+                        const pulse = decoder.isPulseAt(Math.round(wavFile.samples.length / 2), true);
+                        waveformDisplay.addWaveformAnnotations(pulse.waveformAnnotations);
                         if (pulse.explanation !== "") {
                             explanation.innerText = pulse.explanation;
                         } else {
                             explanation.remove();
                         }
-                        const result = document.createElement("span");
-                        result.classList.add("test_result");
-                        if (pulse.resultType === PulseResultType.PULSE === (test.type === TestType.PULSE)) {
-                            result.innerText = "Pass";
-                            result.classList.add("test_pass");
-                        } else {
-                            result.innerText = "Fail";
-                            result.classList.add("test_fail");
-                        }
-                        header.appendChild(result);
+                        pass = pulse.resultType === PulseResultType.PULSE === (test.type === TestType.PULSE);
                         break;
+                    }
 
-                    case TestType.BITS:
+                    case TestType.BITS: {
+                        const decoder = new LowSpeedAnteoTapeDecoder(tape);
+                        const [actualBits, waveformAnnotations] = decoder.readBits(0);
+                        if (test.bin === undefined) {
+                            // We don't yet support binUrl.
+                            throw new Error("must define bin for bits test");
+                        }
+                        const expectBits = test.bin.replace(/ /g, "");
+                        waveformDisplay.addWaveformAnnotations(waveformAnnotations);
+                        pass = actualBits === expectBits;
+                        if (pass) {
+                            explanation.remove();
+                        } else {
+                            explanation.innerText = "Expected " + expectBits + " but got " + actualBits + ".";
+                        }
                         break;
+                    }
                 }
+
+                // Show pass/fail label.
+                const result = document.createElement("span");
+                result.classList.add("test_result");
+                if (pass) {
+                    result.innerText = "Pass";
+                    result.classList.add("test_pass");
+                } else {
+                    result.innerText = "Fail";
+                    result.classList.add("test_fail");
+                }
+                header.appendChild(result);
             });
     }
 }

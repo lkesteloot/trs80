@@ -101,8 +101,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
         for (let i = 0; i < 200; i++) {
             const pulse = this.isPulseAt(frame);
-            if (!(pulse instanceof Pulse)) {
-                // console.log("Did not find pulse at", frame);
+            if (pulse.resultType !== PulseResultType.PULSE) {
                 waveformAnnotations.push(new LabelAnnotation("Failed", initialFrame, frame, false));
                 return false;
             }
@@ -185,7 +184,6 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     private readBit(frame: number, allowLateClockPulse: boolean): [boolean,number] | PulseResultType {
         // Clock pulse is one period away.
         let clockPulse = this.isPulseAt(frame + this.period);
-        // console.log("readbit", bit, dataPulse, clockPulse);
         if (clockPulse.resultType !== PulseResultType.PULSE) {
             if (allowLateClockPulse) {
                 const [_, latePulse] = this.findNextPulse(frame + this.period, this.peakThreshold);
@@ -205,6 +203,46 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         const bit = dataPulse.resultType === PulseResultType.PULSE;
 
         return [bit, clockPulse.frame];
+    }
+
+    /**
+     * Read a sequence of bits (the characters "0" and "1"). Frame is the position of the previous clock bit.
+     * This is a for testing.
+     */
+    public readBits(frame: number): [string, WaveformAnnotation[]] {
+        let bits = "";
+        const waveformAnnotation: WaveformAnnotation[] = [];
+
+        waveformAnnotation.push(new LabelAnnotation("Previous", frame, frame, true));
+
+        while (true) {
+            const expectedNextFrame = frame + this.period;
+
+            const bitResult = this.readBit(frame, false);
+
+            if (bitResult === PulseResultType.NOISE || bitResult === PulseResultType.SILENCE) {
+                const left = expectedNextFrame - this.quarterPeriod;
+                const right = expectedNextFrame + this.period - this.quarterPeriod;
+                waveformAnnotation.push(new LabelAnnotation(bitResult === PulseResultType.NOISE ? "Noise" : "Silence",
+                    left, right, true));
+                break;
+            }
+            if (bitResult === PulseResultType.PULSE) {
+                // Can't happen.
+                throw new Error("read bit can't be PULSE");
+            }
+            const [bit, nextFrame] = bitResult;
+            let bitChar = bit ? "1" : "0";
+            bits += bitChar;
+
+            const left = nextFrame - this.quarterPeriod;
+            const right = nextFrame + this.period - this.quarterPeriod;
+            waveformAnnotation.push(new LabelAnnotation(bitChar, left, right, true));
+
+            frame = nextFrame;
+        }
+
+        return [bits, waveformAnnotation];
     }
 
     /**

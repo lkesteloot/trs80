@@ -1,7 +1,10 @@
 
 export enum TestType {
+    // Expect a pulse half-way through the WAV file.
     PULSE,
+    // Expect no pulse half-way through the WAV file.
     NO_PULSE,
+    // Expect a sequence of bits (in "bin" or "binUrl"). First sample of WAV is previous bit's clock pulse.
     BITS,
 }
 
@@ -11,10 +14,15 @@ const STRING_TO_TEST_TYPE: {[key: string]: TestType} = {
     "bits": TestType.BITS,
 };
 
+/**
+ * Individual test to run.
+ */
 export class Test {
     public readonly name: string;
     public readonly wavUrl: string;
     public readonly type: TestType;
+    // If type == BITS, then exactly one of these must be set.
+    // Sequence of "0" or "1" characters. Spaces are ignored.
     public readonly bin: string | undefined;
     public readonly binUrl: string | undefined;
 
@@ -27,6 +35,9 @@ export class Test {
     }
 }
 
+/**
+ * Batch of tests from a file.
+ */
 export class TestFile {
     public readonly url: string;
     public readonly tests: Test[] = [];

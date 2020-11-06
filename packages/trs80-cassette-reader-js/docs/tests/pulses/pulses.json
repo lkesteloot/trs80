@@ -24,6 +24,12 @@
             "name": "Silence",
             "wavUrl": "no-pulse01.wav",
             "type": "no-pulse"
+        },
+        {
+            "name": "Clean bits",
+            "wavUrl": "bits01.wav",
+            "type": "bits",
+            "bin": "0011 1010  1011 0010  0100 0000"
         }
     ]
 }
