@@ -7,7 +7,7 @@ import {AudioFile, highPassFilter} from "./AudioUtils";
 import {DisplaySamples} from "./DisplaySamples";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
 import {Program} from "./Program";
-import {ProgramAnnotation} from "./Annotations";
+import {ProgramAnnotation, WaveformAnnotation} from "./Annotations";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 
 const LOCAL_DATA_KEY = "tapes";
@@ -41,7 +41,7 @@ export class Tape {
     public lowSpeedSamples: DisplaySamples;
     public sampleRate: number;
     public programs: Program[];
-    public readonly annotations: ProgramAnnotation[] = [];
+    public readonly waveformAnnotations: WaveformAnnotation[] = [];
     public readonly onName = new SimpleEventDispatcher<string>();
     public readonly onNotes = new SimpleEventDispatcher<string>();
 

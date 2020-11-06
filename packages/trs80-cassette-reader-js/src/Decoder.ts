@@ -2,11 +2,9 @@
 // Uses tape decoders to work through the tape, finding programs and decoding them.
 
 import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder";
-import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
 import {TapeDecoder} from "./TapeDecoder";
-import {TapeDecoderState} from "./TapeDecoderState";
 import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
 import {LowSpeedAnteoTapeDecoder} from "./LowSpeedAnteoTapeDecoder";
 
@@ -51,7 +49,7 @@ export class Decoder {
         const candidates: Program[] = [];
 
         // Clear all annotations.
-        this.tape.annotations.splice(0, this.tape.annotations.length);
+        this.tape.waveformAnnotations.splice(0, this.tape.waveformAnnotations.length);
 
         // Try each decoder, feeding it the whole tape.
         for (const tapeDecoderFactory of tapeDecoderFactories) {
@@ -59,7 +57,7 @@ export class Decoder {
 
             while (true) {
                 let tapeDecoder = tapeDecoderFactory();
-                const program = tapeDecoder.findNextProgram(startFrame, this.tape.annotations);
+                const program = tapeDecoder.findNextProgram(startFrame, this.tape.waveformAnnotations);
                 if (program === undefined) {
                     break;
                 }

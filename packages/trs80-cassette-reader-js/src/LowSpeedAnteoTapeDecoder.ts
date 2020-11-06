@@ -10,9 +10,8 @@ import {ByteData} from "./ByteData";
 import {Program} from "./Program";
 import {BitType} from "./BitType";
 import {
-    HorizontalLineAnnotation,
+    HorizontalLineAnnotation, LabelAnnotation,
     PointAnnotation,
-    ProgramAnnotation,
     VerticalLineAnnotation,
     WaveformAnnotation
 } from "./Annotations";
@@ -71,7 +70,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         this.quarterPeriod = Math.round(this.period / 4);
     }
 
-    public findNextProgram(frame: number, annotations: ProgramAnnotation[]): Program | undefined {
+    public findNextProgram(frame: number, waveformAnnotations: WaveformAnnotation[]): Program | undefined {
         while (true) {
             // console.log('-------------------------------------');
             const [_, pulse] = this.findNextPulse(frame, this.peakThreshold);
@@ -81,9 +80,9 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             }
 
             frame = pulse.frame;
-            const success = this.proofPulseDistance(frame, annotations);
+            const success = this.proofPulseDistance(frame, waveformAnnotations);
             if (success) {
-                const program = this.loadData(frame, annotations);
+                const program = this.loadData(frame, waveformAnnotations);
                 if (program != undefined && program.binary.length > 0) {
                     return program;
                 }
@@ -97,27 +96,27 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     /**
      * Verifies that we have pulses every period starting at frame.
      */
-    private proofPulseDistance(frame: number, annotations: ProgramAnnotation[]): boolean {
+    private proofPulseDistance(frame: number, waveformAnnotations: WaveformAnnotation[]): boolean {
         const initialFrame = frame;
 
-        // console.log("Proofing starting at", frame, "with period", this.period);
         for (let i = 0; i < 200; i++) {
             const pulse = this.isPulseAt(frame);
             if (!(pulse instanceof Pulse)) {
                 // console.log("Did not find pulse at", frame);
-                annotations.push(new ProgramAnnotation("Failed", initialFrame, frame));
+                waveformAnnotations.push(new LabelAnnotation("Failed", initialFrame, frame, false));
                 return false;
             }
 
             frame = pulse.frame + this.period;
         }
-        // console.log("Proof successful");
-        // annotations.push(new WaveformAnnotation("P", initialFrame, frame - this.period));
 
         return true;
     }
 
-    private loadData(startFrame: number, annotations: ProgramAnnotation[]): Program | undefined {
+    /**
+     * Load the program starting at the start frame.
+     */
+    private loadData(startFrame: number, waveformAnnotations: WaveformAnnotation[]): Program | undefined {
         let recentBits = 0;
         let frame = startFrame;
         let foundSyncByte = false;
@@ -128,7 +127,6 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         const binary: number[] = [];
 
         while (true) {
-            // console.log("recentBits", recentBits.toString(16).padStart(8, "0"), allowLateClockPulse, foundSyncByte);
             const bitResult = this.readBit(frame, allowLateClockPulse);
             allowLateClockPulse = false;
             if (bitResult === PulseResultType.SILENCE) {
@@ -159,7 +157,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                     }
                 } else {
                     if (recentBits === SYNC_BYTE) {
-                        annotations.push(new ProgramAnnotation("Sync", bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame));
+                        waveformAnnotations.push(new LabelAnnotation("Sync", bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame, false));
                         foundSyncByte = true;
                         allowLateClockPulse = true;
                         bitCount = 0;
@@ -169,15 +167,6 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                 frame = nextFrame;
             }
         }
-
-        /*
-        if (frame === startFrame || !foundSyncByte) {
-            // Didn't read any bits.
-            annotations.push(new WaveformAnnotation("E", startFrame, frame));
-            return undefined;
-        }
-        annotations.push(new WaveformAnnotation("" + foundSyncByte, startFrame, frame));
-        */
 
         // Remove trailing BAD bits, they're probably just think after the last bit.
         while (bitData.length > 0 && bitData[bitData.length - 1].bitType === BitType.BAD) {

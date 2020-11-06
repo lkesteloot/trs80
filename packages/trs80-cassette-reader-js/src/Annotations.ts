@@ -1,6 +1,7 @@
 
 /**
- * Information about one particular section of a program.
+ * Information about one particular section of a program. Because this is program-based, the indices
+ * are byte-oriented.
  */
 export class ProgramAnnotation {
     /**
@@ -30,6 +31,9 @@ export class ProgramAnnotation {
     }
 }
 
+/**
+ * Context that a WaveformAnnotation can use to draw into the waveform display.
+ */
 export interface AnnotationContext {
     /**
      * Width of the canvas in pixels.
@@ -57,13 +61,23 @@ export interface AnnotationContext {
     context: CanvasRenderingContext2D;
 
     /**
+     * Color for foreground elements, such as text.
+     */
+    foregroundColor: string;
+
+    /**
+     * Color for secondary elements, like arrows and braces.
+     */
+    secondaryForegroundColor: string;
+
+    /**
      * Color to use for highlighting something brightly.
      */
     highlightColor: string;
 }
 
 /**
- * Base class of annotations of the raw waveform.
+ * Interface of annotations of the raw waveform.
  */
 export interface WaveformAnnotation {
     /**
@@ -138,4 +152,88 @@ export class VerticalLineAnnotation implements WaveformAnnotation {
         ctx.context.stroke();
 
     }
+}
+
+/**
+ * Label with braces.
+ */
+export class LabelAnnotation implements WaveformAnnotation {
+    public readonly label: string;
+    public readonly left: number;
+    public readonly right: number;
+    public readonly onTop: boolean;
+
+    constructor(label: string, left: number, right: number, onTop: boolean) {
+        this.label = label;
+        this.left = left;
+        this.right = right;
+        this.onTop = onTop;
+    }
+
+    draw(ctx: AnnotationContext): void {
+        const x1 = ctx.frameToX(this.left);
+        const x2 = ctx.frameToX(this.right);
+
+        drawBraceAndLabel(ctx.context, ctx.height,
+            x1, x2, ctx.secondaryForegroundColor,
+            this.label, ctx.foregroundColor, this.onTop);
+    }
+}
+
+/**
+ * Draw a brace with specified label.
+ */
+export function drawBraceAndLabel(ctx: CanvasRenderingContext2D, height: number,
+    left: number, right: number,
+    braceColor: string, label: string,
+    labelColor: string, drawOnTop: boolean): void {
+
+    const middle = (left + right) / 2;
+
+    const leading = 16;
+
+    // Don't have more than two lines, there's no space for it.
+    const lines = label.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Don't use a custom font here, they load asynchronously and we're not told when they
+        // finish loading, so we can't redraw and the initial draw uses some default serif font.
+        ctx.font = '10pt monospace';
+        ctx.fillStyle = labelColor;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        const y = drawOnTop ? 38 - (lines.length - i - 1) * leading : height - 35 + i * leading;
+        ctx.fillText(line, middle, y);
+    }
+
+    ctx.strokeStyle = braceColor;
+    ctx.lineWidth = 1;
+    drawBrace(ctx, left, middle, right, 40, height - 40, drawOnTop);
+}
+
+/**
+ * Draw a horizontal brace.
+ */
+export function drawBrace(ctx: CanvasRenderingContext2D,
+    left: number, middle: number, right: number,
+    top: number, bottom: number,
+    drawOnTop: boolean): void {
+
+    const radius = Math.min(10, (right - left) / 4);
+    const lineY = drawOnTop ? top + 20 : bottom - 20;
+    const pointY = drawOnTop ? top : bottom;
+    const otherY = drawOnTop ? bottom - 40 : top + 40;
+
+    ctx.beginPath();
+    ctx.moveTo(left, otherY);
+    if (left === right) {
+        ctx.lineTo(left, lineY);
+    } else {
+        ctx.arcTo(left, lineY, left + radius, lineY, radius);
+        ctx.arcTo(middle, lineY, middle, pointY, radius);
+        ctx.arcTo(middle, lineY, middle + radius, lineY, radius);
+        ctx.arcTo(right, lineY, right, lineY + (drawOnTop ? radius : -radius), radius);
+        ctx.lineTo(right, otherY);
+    }
+    ctx.stroke();
 }

@@ -6,7 +6,7 @@ import {Highlight} from "./Highlight";
 import * as Basic from "./Basic";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {toHexByte} from "z80-base";
-import {AnnotationContext, ProgramAnnotation, WaveformAnnotation} from "./Annotations";
+import {AnnotationContext, drawBraceAndLabel, WaveformAnnotation} from "./Annotations";
 import {clearElement, withCommas} from "./Utils";
 import {frameDurationToString, frameToTimestamp} from "./AudioUtils";
 import {writeWavFile} from "./WavFile";
@@ -115,10 +115,6 @@ export class WaveformDisplay {
      */
     private onZoom = new SimpleEventDispatcher<number>();
     /**
-     * List of annotations to display in the displays.
-     */
-    private annotations: ProgramAnnotation[] = [];
-    /**
      * What the user wants to select.
      */
     private selectionMode = SelectionMode.BYTES;
@@ -194,14 +190,15 @@ export class WaveformDisplay {
     }
 
     /**
-     * Set the list of annotations. A reference will be kept to this list.
+     * Add the list of annotations.
      */
-    public setAnnotations(annotations: ProgramAnnotation[]): void {
-        this.annotations = annotations;
+    public addWaveformAnnotations(waveformAnnotations: WaveformAnnotation[]): void {
+        this.waveformAnnotations.push(... waveformAnnotations);
+        this.queueDraw();
     }
 
     /**
-     * Add a point annotation to draw.
+     * Add an annotation to draw.
      */
     public addWaveformAnnotation(waveformAnnotation: WaveformAnnotation): void {
         this.waveformAnnotations.push(waveformAnnotation);
@@ -710,7 +707,7 @@ export class WaveformDisplay {
                                 break;
                         }
 
-                        this.drawBraceAndLabel(ctx, height, x1, x2, bitBraceColor, label, bitLabelColor, true);
+                        drawBraceAndLabel(ctx, height, x1, x2, bitBraceColor, label, bitLabelColor, true);
                     }
                 }
             } else if (this.zoom < 5) {
@@ -736,7 +733,7 @@ export class WaveformDisplay {
 
                             const x1 = frameToX(startFrame / mag);
                             const x2 = frameToX(endFrame / mag);
-                            this.drawBraceAndLabel(ctx, height, x1, x2, braceColor, annotation.text, labelColor, true);
+                            drawBraceAndLabel(ctx, height, x1, x2, braceColor, annotation.text, labelColor, true);
                         }
                     }
                 } else {
@@ -753,7 +750,7 @@ export class WaveformDisplay {
                                         : program.isBasicProgram() && basicToken !== undefined ? basicToken
                                             : toHexByte(byteValue);
 
-                            this.drawBraceAndLabel(ctx, height, x1, x2, braceColor, label, labelColor, true);
+                            drawBraceAndLabel(ctx, height, x1, x2, braceColor, label, labelColor, true);
                         }
                     }
                 }
@@ -761,7 +758,7 @@ export class WaveformDisplay {
                 // Highlight the whole program.
                 const x1 = frameToX(program.startFrame / mag);
                 const x2 = frameToX(program.endFrame / mag);
-                this.drawBraceAndLabel(ctx, height, x1, x2, braceColor, program.getShortLabel(), labelColor, true);
+                drawBraceAndLabel(ctx, height, x1, x2, braceColor, program.getShortLabel(), labelColor, true);
             }
         }
 
@@ -792,22 +789,7 @@ export class WaveformDisplay {
             ctx.stroke();
         }
 
-        // Find entry in annotations just before our first sample.
-        let index = 0; // this.findFirstAnnotation(firstOrigSample);
-        if (index !== undefined) {
-            // Draw annotations.
-            ctx.strokeStyle = braceColor;
-            while (index < this.annotations.length) {
-                const annotation = this.annotations[index];
-                // TODO these are supposed to be byte indices, but they're being treated like frames:
-                const x1 = frameToX(annotation.firstIndex / mag);
-                const x2 = frameToX(annotation.lastIndex / mag);
-                this.drawBraceAndLabel(ctx, height, x1, x2, braceColor, annotation.text, labelColor, false);
-                index++;
-            }
-        }
-
-        // Draw point annotations.
+        // Draw waveform annotations.
         const annotationContext: AnnotationContext = {
             width: width,
             height: height,
@@ -819,34 +801,13 @@ export class WaveformDisplay {
             },
             context: ctx,
             highlightColor: badColor,
+            foregroundColor: style.getPropertyValue("--foreground"),
+            secondaryForegroundColor: style.getPropertyValue("--foreground-secondary"),
         };
-        for (const pointAnnotation of this.waveformAnnotations) {
-            pointAnnotation.draw(annotationContext);
+        for (const waveformAnnotation of this.waveformAnnotations) {
+            waveformAnnotation.draw(annotationContext);
         }
     }
-
-    /**
-     * Find the index of the first annotation at or after firstSample, or undefined
-     * if no annotations are at or after it.
-     */
-    /*
-    private findFirstAnnotation(firstSample: number): number | undefined {
-        let low = 0;
-        let high = this.annotations.length - 1;
-        while (low <= high && this.annotations[high].frame >= firstSample) {
-            if (low === high) {
-                return low;
-            }
-            let mid = Math.floor((low + high)/2);
-            if (this.annotations[mid].frame < firstSample) {
-                low = mid + 1;
-            } else {
-                high = mid;
-            }
-        }
-
-        return undefined;
-    }*/
 
     /**
      * Set the zoom level to a particular value.
@@ -902,64 +863,6 @@ export class WaveformDisplay {
         if (this.waveforms.length > 0 && this.waveforms[0].samples !== undefined) {
             this.zoomToFit(0, this.waveforms[0].samples.samplesList[0].length);
         }
-    }
-
-    /**
-     * Draw a down-facing brace withe specified label.
-     */
-    private drawBraceAndLabel(ctx: CanvasRenderingContext2D, height: number,
-                              left: number, right: number,
-                              braceColor: string, label: string,
-                              labelColor: string, drawOnTop: boolean): void {
-
-        const middle = (left + right)/2;
-
-        const leading = 16;
-
-        // Don't have more than two lines, there's no space for it.
-        const lines = label.split("\n");
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            // Don't use a custom font here, they load asynchronously and we're not told when they
-            // finish loading, so we can't redraw and the initial draw uses some default serif font.
-            ctx.font = '10pt monospace';
-            ctx.fillStyle = labelColor;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "alphabetic";
-            const y = drawOnTop ? 38 - (lines.length - i - 1)*leading : height - 35 + i*leading;
-            ctx.fillText(line, middle, y);
-        }
-
-        ctx.strokeStyle = braceColor;
-        ctx.lineWidth = 1;
-        this.drawBrace(ctx, left, middle, right, 40, height - 40, drawOnTop);
-    }
-
-    /**
-     * Draw a horizontal brace, pointing up, facing down.
-     */
-    private drawBrace(ctx: CanvasRenderingContext2D,
-                      left: number, middle: number, right: number,
-                      top: number, bottom: number,
-                      drawOnTop: boolean): void {
-
-        const radius = Math.min(10, (right - left) / 4);
-        const lineY = drawOnTop ? top + 20 : bottom - 20;
-        const pointY = drawOnTop ? top : bottom;
-        const otherY = drawOnTop ? bottom - 40 : top + 40;
-
-        ctx.beginPath();
-        ctx.moveTo(left, otherY);
-        if (left === right) {
-            ctx.lineTo(left, lineY);
-        } else {
-            ctx.arcTo(left, lineY, left + radius, lineY, radius);
-            ctx.arcTo(middle, lineY, middle, pointY, radius);
-            ctx.arcTo(middle, lineY, middle + radius, lineY, radius);
-            ctx.arcTo(right, lineY, right, lineY + (drawOnTop ? radius : -radius), radius);
-            ctx.lineTo(right, otherY);
-        }
-        ctx.stroke();
     }
 
     /**
