@@ -30,6 +30,12 @@
             "wavUrl": "bits01.wav",
             "type": "bits",
             "bin": "0011 1010  1011 0010  0100 0000"
+        },
+        {
+            "name": "Quiet bits",
+            "wavUrl": "bits02.wav",
+            "type": "bits",
+            "bin": "0000 1100 0100"
         }
     ]
 }
