@@ -254,6 +254,7 @@ export class TapeBrowser {
         waveformDisplay.onDoneSelecting.subscribe(source => this.doneSelecting(source));
 
         waveformDisplay.zoomToFitAll();
+        waveformDisplay.queueDraw();
     }
 
     /**
