@@ -1,5 +1,15 @@
 #!/bin/bash
 
+filename="src/Model1Level1Rom.ts"
+echo "export const model1Level1Rom = \`" > $filename
+base64 < roms/model1-level1.rom >> $filename
+echo "\`;" >> $filename
+
+filename="src/Model1Level2Rom.ts"
+echo "export const model1Level2Rom = \`" > $filename
+base64 < roms/model1-level2.rom >> $filename
+echo "\`;" >> $filename
+
 filename="src/Model3Rom.ts"
 echo "export const model3Rom = \`" > $filename
 base64 < roms/model3.rom >> $filename

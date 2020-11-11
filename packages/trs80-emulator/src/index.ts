@@ -5,4 +5,5 @@ export {FontScreen} from "./FontScreen";
 export {CanvasScreen} from "./CanvasScreen";
 export {WebGlScreen} from "./WebGlScreen";
 export {ControlPanel} from "./ControlPanel";
+export {SettingsPanel} from "./SettingsPanel";
 export {ProgressBar} from "./ProgressBar";

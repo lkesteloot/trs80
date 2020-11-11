@@ -7,9 +7,16 @@ To run a local build:
 
     % npm install
     % npm run build
-    % npm run start
+    % npm start
 
 Then visit http://127.0.0.1:8080/
+
+Icons from the Noun Project:
+
+* [Reset](https://thenounproject.com/term/reset/3012384) by Adrien Coquet
+* [Camera](https://thenounproject.com/term/camera/1841396) by Untashable
+* [Previous](https://thenounproject.com/term/previous-track/658409) by Ariel Verber
+* [Settings](https://thenounproject.com/term/setting/3593545) by Cuputo
 
 # License
 
