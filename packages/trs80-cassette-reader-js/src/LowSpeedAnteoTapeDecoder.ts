@@ -34,13 +34,15 @@ export class Pulse {
     public readonly resultType: PulseResultType;
     public readonly value: number;
     public readonly frame: number;
+    public readonly range: number;
     public readonly explanation: string;
     public readonly waveformAnnotations: WaveformAnnotation[] = [];
 
-    constructor(resultType: PulseResultType, value: number, frame: number, explanation: string) {
+    constructor(resultType: PulseResultType, value: number, frame: number, range: number, explanation: string) {
         this.resultType = resultType;
         this.value = value;
         this.frame = frame;
+        this.range = range;
         this.explanation = explanation;
     }
 }
@@ -52,7 +54,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     private readonly halfPeriod: number;
     private readonly quarterPeriod: number;
     private state: TapeDecoderState = TapeDecoderState.UNDECIDED;
-    private peakThreshold = 2000;
+    private peakThreshold = 1000;
 
     constructor(tape: Tape) {
         const samples = tape.lowSpeedSamples.samplesList[0];
@@ -83,7 +85,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             const success = this.proofPulseDistance(frame, waveformAnnotations);
             if (success) {
                 const program = this.loadData(frame, waveformAnnotations);
-                if (program != undefined && program.binary.length > 0) {
+                if (program.binary.length > 0) {
                     return program;
                 }
             }
@@ -115,7 +117,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     /**
      * Load the program starting at the start frame.
      */
-    private loadData(startFrame: number, waveformAnnotations: WaveformAnnotation[]): Program | undefined {
+    private loadData(startFrame: number, waveformAnnotations: WaveformAnnotation[]): Program {
         let recentBits = 0;
         let frame = startFrame;
         let foundSyncByte = false;
@@ -126,22 +128,19 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         const binary: number[] = [];
 
         while (true) {
-            const bitResult = this.readBit(frame, allowLateClockPulse);
+            const [bit, clockPulse, dataPulse] = this.readBit(frame, allowLateClockPulse);
             allowLateClockPulse = false;
-            if (bitResult === PulseResultType.SILENCE) {
+            if (clockPulse.resultType === PulseResultType.SILENCE) {
                 // End of program.
                 break;
             }
-            if (bitResult === PulseResultType.NOISE) {
+            if (clockPulse.resultType === PulseResultType.NOISE) {
                 const nextFrame = frame + this.period;
                 recentBits = (recentBits << 1) | 0;
                 bitData.push(new BitData(nextFrame - this.quarterPeriod, nextFrame + this.period - this.quarterPeriod, BitType.BAD));
                 frame = nextFrame;
-            } else if (bitResult === PulseResultType.PULSE) {
-                // Can't happen.
-                throw new Error("read bit can't be PULSE");
             } else {
-                const [bit, nextFrame] = bitResult;
+                const nextFrame = clockPulse.frame;
                 recentBits = (recentBits << 1) | (bit ? 1 : 0);
                 bitData.push(new BitData(nextFrame - this.quarterPeriod, nextFrame + this.period - this.quarterPeriod,
                     bit ? BitType.ONE : BitType.ZERO));
@@ -164,10 +163,11 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                 }
 
                 frame = nextFrame;
+                this.peakThreshold = Math.round(clockPulse.range/4);
             }
         }
 
-        // Remove trailing BAD bits, they're probably just think after the last bit.
+        // Remove trailing BAD bits, they're probably just junk after the last bit.
         while (bitData.length > 0 && bitData[bitData.length - 1].bitType === BitType.BAD) {
             bitData.splice(bitData.length - 1, 1);
         }
@@ -178,71 +178,84 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
     /**
      * Read a bit at position "frame", which should be the position of the previous bit's clock pulse.
-     * @return the value of the bit and the new position of the clock pulse, or NonPulse if a bit
-     * couldn't be found.
+     * @return the value of the bit, the clock pulse, and the data pulse.
      */
-    private readBit(frame: number, allowLateClockPulse: boolean): [boolean,number] | PulseResultType {
+    private readBit(frame: number, allowLateClockPulse: boolean, includeExplanation?: boolean): [boolean,Pulse,Pulse] {
         // Clock pulse is one period away.
-        let clockPulse = this.isPulseAt(frame + this.period);
+        let clockPulse = this.isPulseAt(frame + this.period, includeExplanation);
         if (clockPulse.resultType !== PulseResultType.PULSE) {
             if (allowLateClockPulse) {
                 const [_, latePulse] = this.findNextPulse(frame + this.period, this.peakThreshold);
                 if (latePulse === undefined || latePulse.frame > frame + this.period*3) {
                     // Failed to find late pulse.
-                    return clockPulse.resultType;
+                    return [false, clockPulse, clockPulse];
                 }
 
                 clockPulse = latePulse;
             } else {
-                return clockPulse.resultType;
+                return [false, clockPulse, clockPulse];
             }
         }
 
         // Data pulse is half a period after the clock pulse.
-        const dataPulse = this.isPulseAt(clockPulse.frame + this.halfPeriod);
+        const dataPulse = this.isPulseAt(clockPulse.frame + this.halfPeriod, includeExplanation);
         const bit = dataPulse.resultType === PulseResultType.PULSE;
 
-        return [bit, clockPulse.frame];
+        return [bit, clockPulse, dataPulse];
     }
 
     /**
      * Read a sequence of bits (the characters "0" and "1"). Frame is the position of the previous clock bit.
      * This is a for testing.
      */
-    public readBits(frame: number): [string, WaveformAnnotation[]] {
+    public readBits(frame: number): [string, WaveformAnnotation[], string[]] {
         let bits = "";
         const waveformAnnotation: WaveformAnnotation[] = [];
+        const explanations: string[] = [];
 
         waveformAnnotation.push(new LabelAnnotation("Previous", frame, frame, true));
 
         while (true) {
             const expectedNextFrame = frame + this.period;
 
-            const bitResult = this.readBit(frame, false);
+            const [bit, clockPulse, dataPulse] = this.readBit(frame, false, true);
 
-            if (bitResult === PulseResultType.NOISE || bitResult === PulseResultType.SILENCE) {
+            if (clockPulse.resultType === PulseResultType.NOISE || clockPulse.resultType === PulseResultType.SILENCE) {
                 const left = expectedNextFrame - this.quarterPeriod;
                 const right = expectedNextFrame + this.period - this.quarterPeriod;
-                waveformAnnotation.push(new LabelAnnotation(bitResult === PulseResultType.NOISE ? "Noise" : "Silence",
+                waveformAnnotation.push(new LabelAnnotation(clockPulse.resultType === PulseResultType.NOISE ? "Noise" : "Silence",
                     left, right, true));
+
+                if (clockPulse.explanation !== "") {
+                    explanations.push(clockPulse.explanation);
+                }
+                waveformAnnotation.push(... clockPulse.waveformAnnotations);
+
                 break;
             }
-            if (bitResult === PulseResultType.PULSE) {
-                // Can't happen.
-                throw new Error("read bit can't be PULSE");
-            }
-            const [bit, nextFrame] = bitResult;
-            let bitChar = bit ? "1" : "0";
+
+            const bitChar = bit ? "1" : "0";
             bits += bitChar;
 
+            if (clockPulse.explanation !== "") {
+                explanations.push(clockPulse.explanation);
+            }
+            if (dataPulse.explanation !== "") {
+                explanations.push(dataPulse.explanation);
+            }
+            waveformAnnotation.push(... clockPulse.waveformAnnotations);
+            waveformAnnotation.push(... dataPulse.waveformAnnotations);
+
+            const nextFrame = clockPulse.frame;
             const left = nextFrame - this.quarterPeriod;
             const right = nextFrame + this.period - this.quarterPeriod;
             waveformAnnotation.push(new LabelAnnotation(bitChar, left, right, true));
 
             frame = nextFrame;
+            this.peakThreshold = Math.round(clockPulse.range/4);
         }
 
-        return [bits, waveformAnnotation];
+        return [bits, waveformAnnotation, explanations];
     }
 
     /**
@@ -288,7 +301,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             throw new Error("Didn't find peak");
         }
 
-        return [frame, new Pulse(PulseResultType.PULSE, maxValue, maxFrame, "")];
+        return [frame, new Pulse(PulseResultType.PULSE, maxValue, maxFrame, threshold, "")];
     }
 
     /**
@@ -296,20 +309,19 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
      */
     public isPulseAt(frame: number, includeExplanation?: boolean): Pulse {
         const distance = Math.round(this.period / 6);
-        const pulseStart = frame - distance;
-        const pulseEnd = frame + distance;
-        if (pulseStart < 0 || pulseEnd >= this.samples.length) {
-            return new Pulse(PulseResultType.SILENCE, 0, 0, "too close to edge of audio");
-        }
+        const pulseStart = Math.max(frame - distance, 0);
+        const pulseEnd = Math.min(frame + distance, this.samples.length - 1);
 
         // Find min and max around frame.
         let maxFrame = pulseStart;
+        let minFrame = pulseStart;
         let minValue = this.samples[maxFrame];
         let maxValue = this.samples[maxFrame];
         for (let i = pulseStart; i <= pulseEnd; i++) {
             const value = this.samples[i];
             if (value < minValue) {
                 minValue = value;
+                minFrame = i;
             }
             if (value > maxValue) {
                 maxValue = value;
@@ -318,51 +330,75 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         }
 
         const range = maxValue - minValue;
+        let pulseEndOffset = this.peakThreshold / 4;
+        const posPulseEndThreshold = maxValue - pulseEndOffset;
+        const negPulseEndThreshold = minValue + pulseEndOffset;
+        const annotations: WaveformAnnotation[] = [];
 
-        const posPulseEndThreshold = maxValue - this.peakThreshold / 2;
-        if (range > this.peakThreshold &&
-            this.samples[pulseStart] < posPulseEndThreshold &&
-            this.samples[pulseEnd] < posPulseEndThreshold) {
-
-            const explanation = includeExplanation ?
-                "Looked for pulse at " + withCommas(frame) + " and found it at " + withCommas(maxFrame) +
-                ", which is within the search radius of " + withCommas(distance) + ". " +
-                "Range " + withCommas(range) + " is greater than pulse threshold " + withCommas(this.peakThreshold) +
-                ", start " + withCommas(this.samples[pulseStart]) + " < " + withCommas(posPulseEndThreshold) +
-                ", and end " + withCommas(this.samples[pulseEnd]) + " < " + withCommas(posPulseEndThreshold) : "";
-            let pulse = new Pulse(PulseResultType.PULSE, maxValue, maxFrame, explanation);
+        if (range > this.peakThreshold) {
             if (includeExplanation) {
-                pulse.waveformAnnotations.push(new PointAnnotation(pulse.frame, pulse.value));
-                pulse.waveformAnnotations.push(new PointAnnotation(pulseStart, this.samples[pulseStart]));
-                pulse.waveformAnnotations.push(new PointAnnotation(pulseEnd, this.samples[pulseEnd]));
-                pulse.waveformAnnotations.push(new HorizontalLineAnnotation(posPulseEndThreshold));
-                pulse.waveformAnnotations.push(new VerticalLineAnnotation(frame));
+                annotations.push(new PointAnnotation(pulseStart, this.samples[pulseStart]));
+                annotations.push(new PointAnnotation(pulseEnd, this.samples[pulseEnd]));
+                annotations.push(new HorizontalLineAnnotation(posPulseEndThreshold, pulseStart, pulseEnd));
+                annotations.push(new HorizontalLineAnnotation(negPulseEndThreshold, pulseStart, pulseEnd));
             }
+
+            if (this.samples[pulseStart] < posPulseEndThreshold &&
+                this.samples[pulseEnd] < posPulseEndThreshold) {
+
+                const explanation = includeExplanation ?
+                    "Looked for pulse at " + withCommas(frame) + " and found it at " + withCommas(maxFrame) +
+                    ", which is within the search radius of " + withCommas(distance) + ". " +
+                    "Range " + withCommas(range) + " is greater than pulse threshold " + withCommas(this.peakThreshold) +
+                    ", start " + withCommas(this.samples[pulseStart]) + " < " + withCommas(posPulseEndThreshold) +
+                    ", and end " + withCommas(this.samples[pulseEnd]) + " < " + withCommas(posPulseEndThreshold) + "." : "";
+                let pulse = new Pulse(PulseResultType.PULSE, maxValue, maxFrame, range, explanation);
+                if (includeExplanation) {
+                    pulse.waveformAnnotations.push(new PointAnnotation(pulse.frame, pulse.value));
+                    pulse.waveformAnnotations.push(new VerticalLineAnnotation(frame));
+                    pulse.waveformAnnotations.push(... annotations);
+                }
+                return pulse;
+            }
+
+            if (this.samples[pulseStart] > negPulseEndThreshold &&
+                this.samples[pulseEnd] > negPulseEndThreshold) {
+
+                const explanation = includeExplanation ?
+                    "Looked for pulse at " + withCommas(frame) + " and found it at " + withCommas(minFrame) +
+                    ", which is within the search radius of " + withCommas(distance) + ". " +
+                    "Range " + withCommas(range) + " is greater than pulse threshold " + withCommas(this.peakThreshold) +
+                    ", start " + withCommas(this.samples[pulseStart]) + " > " + withCommas(negPulseEndThreshold) +
+                    ", and end " + withCommas(this.samples[pulseEnd]) + " > " + withCommas(negPulseEndThreshold) + "." : "";
+                const pulse = new Pulse(PulseResultType.PULSE, minValue, minFrame, range, explanation);
+                if (includeExplanation) {
+                    pulse.waveformAnnotations.push(new PointAnnotation(pulse.frame, pulse.value));
+                    pulse.waveformAnnotations.push(new VerticalLineAnnotation(frame));
+                    pulse.waveformAnnotations.push(... annotations);
+                }
+                return pulse;
+            }
+
+            const explanation = includeExplanation ? "Range " + range + " is greater than pulse threshold " + withCommas(this.peakThreshold) +
+                " but the sides don't pull away enough." : "";
+            const pulse = new Pulse(PulseResultType.NOISE, 0, 0, 0, explanation);
+            pulse.waveformAnnotations.push(... annotations);
             return pulse;
         }
 
-        let negPulseEndThreshold = minValue + this.peakThreshold / 2;
-        if (range > this.peakThreshold &&
-            this.samples[pulseStart] > negPulseEndThreshold &&
-            this.samples[pulseEnd] > negPulseEndThreshold) {
-
-            const explanation = includeExplanation ?
-                "Looked for pulse at " + withCommas(frame) + " and found it at " + withCommas(maxFrame) +
-                ", which is within the search radius of " + withCommas(distance) + ". " +
-                "Range " + withCommas(range) + " is greater than pulse threshold " + withCommas(this.peakThreshold) +
-                ", start " + withCommas(this.samples[pulseStart]) + " > " + withCommas(negPulseEndThreshold) +
-                ", and end " + withCommas(this.samples[pulseEnd]) + " > " + withCommas(negPulseEndThreshold) : "";
-            // TODO should use minFrame, not maxFrame.
-            return new Pulse(PulseResultType.PULSE, maxValue, maxFrame, explanation);
-        }
-        if (range > this.peakThreshold / 2) {
+        const noiseThreshold = this.peakThreshold / 2;
+        if (range > noiseThreshold) {
             const explanation = includeExplanation ? "Range " + range + " is less than pulse threshold " + withCommas(this.peakThreshold) +
-                " but greater than noise threshold " + (this.peakThreshold / 2) : "";
-            return new Pulse(PulseResultType.NOISE, 0, 0, explanation);
+                " but greater than noise threshold " + noiseThreshold + "." : "";
+            const pulse = new Pulse(PulseResultType.NOISE, 0, 0, 0, explanation);
+            pulse.waveformAnnotations.push(... annotations);
+            return pulse;
         }
 
-        const explanation = includeExplanation ? "Range " + range + " is less than or equal to noise threshold " + (this.peakThreshold / 2) : "";
-        return new Pulse(PulseResultType.SILENCE, 0, 0, explanation);
+        const explanation = includeExplanation ? "Range " + range + " is less than or equal to noise threshold " + noiseThreshold + "." : "";
+        let pulse = new Pulse(PulseResultType.SILENCE, 0, 0, 0, explanation);
+        pulse.waveformAnnotations.push(... annotations);
+        return pulse;
     }
 
     getBinary(): Uint8Array {

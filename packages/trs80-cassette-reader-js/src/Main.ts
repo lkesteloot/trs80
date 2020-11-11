@@ -10,9 +10,7 @@ import {CssScreen} from "trs80-emulator";
 import {TestFile, TestType} from "./Test";
 import {readWavFile} from "./WavFile";
 import {WaveformDisplay} from "./WaveformDisplay";
-import {DisplaySamples} from "./DisplaySamples";
-import {LowSpeedAnteoTapeDecoder, Pulse, PulseResultType} from "./LowSpeedAnteoTapeDecoder";
-import {PointAnnotation} from "./Annotations";
+import {LowSpeedAnteoTapeDecoder, PulseResultType} from "./LowSpeedAnteoTapeDecoder";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -191,6 +189,16 @@ function handleAudioBuffer(pathname: string, audioFile: AudioFile) {
     });
 }
 
+// https://stackoverflow.com/a/6234804/211234
+function escapeHtml(unsafe: string): string {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function runTests(testFile: TestFile): void {
     const screen = showScreen("test_screen");
     clearElement(screen);
@@ -252,7 +260,7 @@ function runTests(testFile: TestFile): void {
 
                     case TestType.BITS: {
                         const decoder = new LowSpeedAnteoTapeDecoder(tape);
-                        const [actualBits, waveformAnnotations] = decoder.readBits(0);
+                        const [actualBits, waveformAnnotations, explanations] = decoder.readBits(0);
                         if (test.bin === undefined) {
                             // We don't yet support binUrl.
                             throw new Error("must define bin for bits test");
@@ -260,10 +268,20 @@ function runTests(testFile: TestFile): void {
                         const expectBits = test.bin.replace(/ /g, "");
                         waveformDisplay.addWaveformAnnotations(waveformAnnotations);
                         pass = actualBits === expectBits;
-                        if (pass) {
+                        if (!pass) {
+                            explanations.unshift("Expected " + expectBits + " but got " + actualBits + ".");
+                        }
+                        if (explanations.length === 0) {
                             explanation.remove();
                         } else {
-                            explanation.innerText = "Expected " + expectBits + " but got " + actualBits + ".";
+                            let html = "";
+                            for (const e of explanations) {
+                                if (html !== "") {
+                                    html += "<br>";
+                                }
+                                html += escapeHtml(e);
+                            }
+                            explanation.innerHTML = html;
                         }
                         break;
                     }

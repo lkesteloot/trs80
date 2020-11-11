@@ -21,6 +21,11 @@
             "type": "pulse"
         },
         {
+            "name": "Very quiet",
+            "wavUrl": "pulse05.wav",
+            "type": "pulse"
+        },
+        {
             "name": "Silence",
             "wavUrl": "no-pulse01.wav",
             "type": "no-pulse"
@@ -36,6 +41,24 @@
             "wavUrl": "bits02.wav",
             "type": "bits",
             "bin": "0000 1100 0100"
+        },
+        {
+            "name": "Very quiet bits",
+            "wavUrl": "bits03.wav",
+            "type": "bits",
+            "bin": "0000 0000 1001"
+        },
+        {
+            "name": "Very quiet bits",
+            "wavUrl": "bits04.wav",
+            "type": "bits",
+            "bin": "0000 0000"
+        },
+        {
+            "name": "Dip in volume",
+            "wavUrl": "bits05.wav",
+            "type": "bits",
+            "bin": "0010 0000 000"
         }
     ]
 }

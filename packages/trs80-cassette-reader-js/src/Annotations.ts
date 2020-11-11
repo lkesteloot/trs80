@@ -104,7 +104,7 @@ export class PointAnnotation implements WaveformAnnotation {
 
         ctx.context.fillStyle = ctx.highlightColor;
         ctx.context.beginPath();
-        ctx.context.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.context.arc(x, y, 3, 0, 2 * Math.PI);
         ctx.context.fill();
 
     }
@@ -115,9 +115,13 @@ export class PointAnnotation implements WaveformAnnotation {
  */
 export class HorizontalLineAnnotation implements WaveformAnnotation {
     public readonly value: number;
+    public readonly x1: number;
+    public readonly x2: number;
 
-    constructor(value: number) {
+    constructor(value: number, x1: number, x2: number) {
         this.value = value;
+        this.x1 = x1;
+        this.x2 = x2;
     }
 
     draw(ctx: AnnotationContext): void {
@@ -125,10 +129,9 @@ export class HorizontalLineAnnotation implements WaveformAnnotation {
 
         ctx.context.strokeStyle = ctx.highlightColor;
         ctx.context.beginPath();
-        ctx.context.moveTo(0, y);
-        ctx.context.lineTo(ctx.width, y);
+        ctx.context.moveTo(ctx.frameToX(this.x1), y);
+        ctx.context.lineTo(ctx.frameToX(this.x2), y);
         ctx.context.stroke();
-
     }
 }
 
