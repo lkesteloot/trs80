@@ -215,7 +215,10 @@ export class Keyboard {
         // Look up the key info.
         const keyInfo = keyMap.get(key);
         if (keyInfo === undefined) {
-            console.log("Unknown key \"" + key + "\"");
+            // Meta is noisy.
+            if (key !== "Meta") {
+                console.log("Unknown key \"" + key + "\"");
+            }
         } else {
             // Append key to queue.
             this.keyQueue.push(new KeyActivity(keyInfo, isPressed));

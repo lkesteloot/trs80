@@ -2,9 +2,12 @@ import {lo, toHex} from "z80-base";
 import {Hal, Z80} from "z80-emulator";
 import {Cassette} from "./Cassette";
 import {Keyboard} from "./Keyboard";
+import {model1Level1Rom} from "./Model1Level1Rom";
+import {model1Level2Rom} from "./Model1Level2Rom";
 import {model3Rom} from "./Model3Rom";
 import {Trs80Screen} from "./Trs80Screen";
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
+import {Config, ModelType, RamSize} from "./Config";
 
 // IRQs
 const CASSETTE_RISE_IRQ_MASK = 0x01;
@@ -56,10 +59,11 @@ function isScreenAddress(address: number): boolean {
  */
 export class Trs80 implements Hal {
     private static readonly TIMER_CYCLES = CLOCK_HZ / TIMER_HZ;
+    private config: Config;
     public tStateCount = 0;
     private readonly screen: Trs80Screen;
     private cassette: Cassette;
-    private memory = new Uint8Array(64*1024);
+    private memory = new Uint8Array(0);
     private keyboard = new Keyboard();
     private modeImage = 0x80;
     // Which IRQs should be handled.
@@ -98,13 +102,60 @@ export class Trs80 implements Hal {
     constructor(screen: Trs80Screen, cassette: Cassette) {
         this.screen = screen;
         this.cassette = cassette;
+        this.config = new Config(ModelType.MODEL3, RamSize.RAM_48_KB);
+        this.updateFromConfig();
+        this.loadRom();
+        this.tStateCount = 0;
+        this.keyboard.configureKeyboard();
+    }
+
+    /**
+     * Get the current emulator's configuration.
+     */
+    public getConfig(): Config {
+        return this.config;
+    }
+
+    /**
+     * Sets a new configuration and reboots into it.
+     */
+    public setConfig(config: Config): void {
+        this.config = config;
+        this.updateFromConfig();
+        this.reset();
+    }
+
+    /**
+     * Update our settings based on the config. Wipes memory.
+     */
+    private updateFromConfig(): void {
+        this.memory = new Uint8Array(RAM_START + this.config.getRamSize());
         this.memory.fill(0);
-        const raw = window.atob(model3Rom);
+        this.loadRom();
+    }
+
+    /**
+     * Load the config-specific ROM into memory.
+     */
+    private loadRom(): void {
+        let rom: string;
+        switch (this.config.modelType) {
+            case ModelType.MODEL1_LEVEL1:
+                rom = model1Level1Rom;
+                break;
+            case ModelType.MODEL1_LEVEL2:
+                rom = model1Level2Rom;
+                break;
+            case ModelType.MODEL3:
+            default:
+                rom = model3Rom;
+                break;
+        }
+
+        const raw = window.atob(rom);
         for (let i = 0; i < raw.length; i++) {
             this.memory[i] = raw.charCodeAt(i);
         }
-        this.tStateCount = 0;
-        this.keyboard.configureKeyboard();
     }
 
     public reset(): void {
@@ -187,7 +238,7 @@ export class Trs80 implements Hal {
 
     public readMemory(address: number): number {
         if (address < ROM_SIZE || address >= RAM_START || isScreenAddress(address)) {
-            return this.memory[address];
+            return address < this.memory.length ? this.memory[address] : 0xFF;
         } else if (address === 0x37E8) {
             // Printer. 0x30 = Printer selected, ready, with paper, not busy.
             return 0x30;
@@ -197,7 +248,7 @@ export class Trs80 implements Hal {
         } else {
             // Unmapped memory.
             console.log("Reading from unmapped memory at 0x" + toHex(address, 4));
-            return 0xFF;
+            return 0;
         }
     }
 

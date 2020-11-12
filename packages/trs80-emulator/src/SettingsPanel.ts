@@ -1,5 +1,6 @@
-
 import {CSS_PREFIX} from "./Utils";
+import {Config, ModelType, RamSize} from "./Config";
+import {Trs80} from "./Trs80";
 
 const gCssPrefix = CSS_PREFIX + "-settings-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
@@ -106,48 +107,6 @@ const GLOBAL_CSS = `
 `;
 
 /**
- * The various TRS-80 models we support.
- */
-export enum ModelType {
-    MODEL1_LEVEL1,
-    MODEL1_LEVEL2,
-    MODEL3,
-}
-
-/**
- * The various amounts of RAM we support.
- */
-export enum RamSize {
-    RAM_4_KB,
-    RAM_16_KB,
-    RAM_32_KB,
-    RAM_48_KB,
-}
-
-/**
- * A specific configuration of model and RAM.
- */
-class Config {
-    public readonly modelType: ModelType;
-    public readonly ramSize: RamSize;
-
-    constructor(modelType: ModelType, ramSize: RamSize) {
-        this.modelType = modelType;
-        this.ramSize = ramSize;
-    }
-
-    public withModelType(modelType: ModelType): Config {
-        return new Config(modelType, this.ramSize);
-    }
-
-    public withRamSize(ramSize: RamSize): Config {
-        return new Config(this.modelType, ramSize);
-    }
-}
-
-let gOfficialConfig: Config = new Config(ModelType.MODEL3, RamSize.RAM_48_KB);
-
-/**
  * An option in the settings screen, like a specific model or RAM amount.
  */
 interface Option {
@@ -165,13 +124,9 @@ interface OptionBlock {
      */
     isChecked: (value: any, config: Config) => boolean;
     /**
-     * Whether the option should be enabled, based on this config.
-     */
-    isEnabled: (value: any, config: Config) => boolean;
-    /**
      * Return a modified config, given that this option was selected by the user.
      */
-    onSelect: (value: any, config: Config) => Config;
+    updateConfig: (value: any, config: Config) => Config;
     options: Option[];
 }
 
@@ -197,8 +152,7 @@ const OPTION_BLOCKS: OptionBlock[] = [
     {
         title: "Model",
         isChecked: (modelType: ModelType, config: Config) => modelType === config.modelType,
-        isEnabled: (modelType: ModelType, config: Config) => modelType === ModelType.MODEL1_LEVEL1 || config.ramSize !== RamSize.RAM_4_KB,
-        onSelect: (modelType: ModelType, config: Config) => config.withModelType(modelType),
+        updateConfig: (modelType: ModelType, config: Config) => config.withModelType(modelType),
         options: [
             {
                 label: "Model I (Level 1)",
@@ -217,8 +171,7 @@ const OPTION_BLOCKS: OptionBlock[] = [
     {
         title: "RAM",
         isChecked: (ramSize: RamSize, config: Config) => ramSize === config.ramSize,
-        isEnabled: (ramSize: RamSize, config: Config) => ramSize !== RamSize.RAM_4_KB || config.modelType === ModelType.MODEL1_LEVEL1,
-        onSelect: (ramSize: RamSize, config: Config) => config.withRamSize(ramSize),
+        updateConfig: (ramSize: RamSize, config: Config) => config.withRamSize(ramSize),
         options: [
             {
                 label: "4 kB",
@@ -248,10 +201,13 @@ let gRadioButtonCounter = 1;
 export class SettingsPanel {
     public onOpen: (() => void) | undefined;
     public onClose: (() => void) | undefined;
+    private readonly trs80: Trs80;
     private readonly panelNode: HTMLElement;
     private readonly displayedOptions: DisplayedOption[] = [];
 
-    constructor(screenNode: HTMLElement) {
+    constructor(screenNode: HTMLElement, trs80: Trs80) {
+        this.trs80 = trs80;
+
         // Make global CSS if necessary.
         SettingsPanel.configureStyle();
 
@@ -324,7 +280,7 @@ export class SettingsPanel {
 
         // Configure options.
         for (const displayedOption of this.displayedOptions) {
-            displayedOption.input.checked = displayedOption.block.isChecked(displayedOption.option.value, gOfficialConfig);
+            displayedOption.input.checked = displayedOption.block.isChecked(displayedOption.option.value, this.trs80.getConfig());
         }
         this.updateEnabledOptions();
 
@@ -335,7 +291,7 @@ export class SettingsPanel {
      * Reboot the machine (and close the dialog box).
      */
     private reboot(): void {
-        gOfficialConfig = this.getConfig();
+        this.trs80.setConfig(this.getConfig());
         this.close();
     }
 
@@ -356,7 +312,7 @@ export class SettingsPanel {
     private updateEnabledOptions(): void {
         const config = this.getConfig();
         for (const displayedOption of this.displayedOptions) {
-            const enabled = displayedOption.block.isEnabled(displayedOption.option.value, config);
+            const enabled = displayedOption.block.updateConfig(displayedOption.option.value, config).isValid();
             displayedOption.input.disabled = !enabled;
         }
     }
@@ -365,11 +321,12 @@ export class SettingsPanel {
      * Make a new config from the user's currently selected options.
      */
     private getConfig(): Config {
-        let config = gOfficialConfig;
+        // Any config works here, we override it below.
+        let config = new Config(ModelType.MODEL3, RamSize.RAM_48_KB);
 
         for (const displayedOption of this.displayedOptions) {
             if (displayedOption.input.checked) {
-                config = displayedOption.block.onSelect(displayedOption.option.value, config);
+                config = displayedOption.block.updateConfig(displayedOption.option.value, config);
             }
         }
 

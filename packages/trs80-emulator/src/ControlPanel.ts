@@ -1,6 +1,7 @@
 
 import {CSS_PREFIX} from "./Utils";
 import {SettingsPanel} from "./SettingsPanel";
+import {Config} from "./Config";
 
 const gCssPrefix = CSS_PREFIX + "-control-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
