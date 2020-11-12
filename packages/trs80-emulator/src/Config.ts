@@ -42,12 +42,7 @@ export class Config {
      * Whether this particular config is valid.
      */
     public isValid(): boolean {
-        // Can't have 4 kB on Level 2.
-        if (this.ramSize === RamSize.RAM_4_KB && this.modelType !== ModelType.MODEL1_LEVEL1) {
-            return false;
-        }
-
-        // All else okay.
+        // All currently okay.
         return true;
     }
 
