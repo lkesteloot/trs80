@@ -11,6 +11,8 @@ To run a local build:
 
 Then visit http://127.0.0.1:8080/
 
+# Credits
+
 Icons from the Noun Project:
 
 * [Reset](https://thenounproject.com/term/reset/3012384) by Adrien Coquet
