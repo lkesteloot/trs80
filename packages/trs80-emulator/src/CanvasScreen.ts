@@ -1,24 +1,38 @@
 import {Trs80Screen} from "./Trs80Screen";
-import {configureStylesheet, FONT_IMAGE} from "./Stylesheet";
 import {clearElement, CSS_PREFIX, SCREEN_BEGIN} from "./Utils";
+import {MODEL3_FONT} from "./Fonts";
 
 const cssPrefix = CSS_PREFIX + "-canvas-screen";
 
-// Run it on the next event cycle.
-const UPDATE_THUMBNAIL_TIMEOUT_MS = 0;
+const BASE_CSS = `
+
+.${cssPrefix} {
+    display: inline-block;
+    padding: 10px;
+    background-color: #334843;
+    border-radius: 8px;
+}
+
+`;
 
 /**
- * Record a character that was supposed to be written to the screen, but was delayed.
+ * Make a global stylesheet for all TRS-80 emulators on this page. Idempotent.
  */
-class WrittenCharacter {
-    public readonly address: number;
-    public readonly value: number;
-
-    constructor(address: number, value: number) {
-        this.address = address;
-        this.value = value;
+export function configureStylesheet(): void {
+    const styleId = cssPrefix;
+    if (document.getElementById(styleId) !== null) {
+        // Already created.
+        return;
     }
+
+    const node = document.createElement("style");
+    node.id = styleId;
+    node.innerHTML = BASE_CSS;
+    document.head.appendChild(node);
 }
+
+// Run it on the next event cycle.
+const UPDATE_THUMBNAIL_TIMEOUT_MS = 0;
 
 /**
  * TRS-80 screen based on an HTML canvas element.
@@ -29,11 +43,9 @@ export class CanvasScreen extends Trs80Screen {
     private readonly expandedCanvas: HTMLCanvasElement;
     private readonly narrowContext: CanvasRenderingContext2D;
     private readonly expandedContext: CanvasRenderingContext2D;
-    private readonly fontImage: HTMLImageElement;
     private readonly thumbnailImage: HTMLImageElement | undefined;
+    private readonly glyphs: HTMLCanvasElement[] = [];
     private updateThumbnailTimeout: number | undefined;
-    private fontImageLoaded = false;
-    private readonly writeQueue: WrittenCharacter[] = [];
 
     constructor(parentNode: HTMLElement, isThumbnail: boolean) {
         super();
@@ -63,18 +75,6 @@ export class CanvasScreen extends Trs80Screen {
             this.node.appendChild(this.expandedCanvas);
         }
 
-        // Image that stores original font.
-        this.fontImage = document.createElement("img");
-        this.fontImage.src = FONT_IMAGE;
-        this.fontImage.onload = () => {
-            // Once the font image loads, we can write the characters we couldn't write before.
-            this.fontImageLoaded = true;
-            for (const writeChar of this.writeQueue) {
-                this.writeChar(writeChar.address, writeChar.value);
-            }
-            this.writeQueue.splice(0, this.writeQueue.length);
-        };
-
         if (isThumbnail) {
             this.thumbnailImage = document.createElement("img");
             this.thumbnailImage.width = 64*8/3;
@@ -82,28 +82,24 @@ export class CanvasScreen extends Trs80Screen {
             this.node.appendChild(this.thumbnailImage);
         }
 
+        for (let i = 0; i < 256; i++) {
+            this.glyphs.push(MODEL3_FONT.makeImage(i, [255, 255, 255]));
+        }
+
         // Make global CSS if necessary.
         configureStylesheet();
     }
 
     writeChar(address: number, value: number): void {
-        if (!this.fontImageLoaded) {
-            // Can't write anything until the font image loads. Record what we were supposed to do.
-            this.writeQueue.push(new WrittenCharacter(address, value));
-            return;
-        }
-
         const offset = address - SCREEN_BEGIN;
-        const imageX = (value % 32)*8;
-        const imageY = Math.floor(value / 32)*24;
         const screenX = (offset % 64)*8;
         const screenY = Math.floor(offset / 64)*24;
-        this.narrowContext.drawImage(this.fontImage, imageX, imageY, 8, 24, screenX, screenY, 8, 24);
+        this.narrowContext.clearRect(screenX, screenY, 8, 24);
+        this.narrowContext.drawImage(this.glyphs[value], 0, 0, 8, 24, screenX, screenY, 8, 24);
 
         if (offset % 2 === 0) {
-            const imageX = (value % 32)*16;
-            const imageY = Math.floor(value / 32 + 10)*24;
-            this.expandedContext.drawImage(this.fontImage, imageX, imageY, 16, 24, screenX, screenY, 16, 24);
+            this.expandedContext.clearRect(screenX, screenY, 16, 24);
+            this.expandedContext.drawImage(this.glyphs[value], 0, 0, 16, 24, screenX, screenY, 16, 24);
         }
 
         this.scheduleUpdateThumbnail();
