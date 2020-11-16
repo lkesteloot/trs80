@@ -6,7 +6,7 @@ were generated using discrete logic on the fly.
 
 ## Model I
 
-The Model I used a MCM6670 CG chip, providing 5x7 pixels for each glyph.
+The Model I used a MCM6670 CG chip, providing 5&times;7 pixels for each glyph.
 
 It's helpful to think of the character set as being broken into
 32-character banks. The Model I's CG chip had four banks
@@ -16,8 +16,11 @@ with raised descenders and the letter "a" inexplicably raised two pixels:
 
 ![Model I character set](images/model1a.png)
 
-To save money, Radio Shack omitted bit 6 from the video display RAM of
-the Model I. The bit was hard-wired to return the NOR of bits 5 and 7.
+Video was 1024 characters (16 rows of 64 columns), and the memory for this
+was split across 1024-kilobit chips, one chip for each
+data bit. To save money, Radio Shack omitted the chip
+for bit 6, and its value was hard-wired to return the NOR of bits 5 and 7.
+The resulting byte was used as the address for the CG chip.
 This had the effect of duplicating bank 2 (digits) to bank 4, and
 bank 3 (upper case) to bank 1:
 
@@ -49,7 +52,7 @@ was replaced with a pound sign, and the tilde was replaced with a yen sign:
 
 ## Model III
 
-The Model III's CG chip's glyphs were 7x8, allowing
+The Model III's CG chip's glyphs were 7&times;8, allowing
 lower case letters to sit on the same baseline as the upper case letters.
 A nice set of Latin letters were placed in bank 1, and the backquote
 and tilde were restored:
@@ -79,5 +82,5 @@ Matthew Reed wrote up the [Electic Pencil lower case modification](http://www.tr
 
 Rebecca G. Bettencourt has a wonderful set of [TRS-80 fonts](https://www.kreativekorp.com/software/fonts/trs80.shtml).
 
-The fonts in this emulator were taked from the [xtrs](https://www.tim-mann.org/xtrs.html)
+The fonts in this emulator were taken from the [xtrs](https://www.tim-mann.org/xtrs.html)
 emulator.
