@@ -20,8 +20,6 @@ Icons from the Noun Project:
 * [Previous](https://thenounproject.com/term/previous-track/658409) by Ariel Verber
 * [Settings](https://thenounproject.com/term/setting/3593545) by Cuputo
 
-TRS-80 font from [Rebecca G. Bettencourt](https://www.kreativekorp.com/software/fonts/trs80.shtml).
-
 # License
 
 Copyright (c) Lawrence Kesteloot, [MIT license](LICENSE).
