@@ -34,6 +34,10 @@ export function configureStylesheet(): void {
 // Run it on the next event cycle.
 const UPDATE_THUMBNAIL_TIMEOUT_MS = 0;
 
+const WHITE_PHOSPHOR = [230, 231, 252];
+const AMBER_PHOSPHOR = [247, 190, 64];
+const GREEN_PHOSPHOR = [122, 244, 96];
+
 /**
  * TRS-80 screen based on an HTML canvas element.
  */
@@ -83,7 +87,7 @@ export class CanvasScreen extends Trs80Screen {
         }
 
         for (let i = 0; i < 256; i++) {
-            this.glyphs.push(MODEL3_FONT.makeImage(i, [255, 255, 255]));
+            this.glyphs.push(MODEL3_FONT.makeImage(i, WHITE_PHOSPHOR));
         }
 
         // Make global CSS if necessary.
