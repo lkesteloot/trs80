@@ -48,7 +48,8 @@ export class CanvasScreen extends Trs80Screen {
     private readonly narrowContext: CanvasRenderingContext2D;
     private readonly expandedContext: CanvasRenderingContext2D;
     private readonly thumbnailImage: HTMLImageElement | undefined;
-    private readonly glyphs: HTMLCanvasElement[] = [];
+    private readonly narrowGlyphs: HTMLCanvasElement[] = [];
+    private readonly expandedGlyphs: HTMLCanvasElement[] = [];
     private updateThumbnailTimeout: number | undefined;
 
     constructor(parentNode: HTMLElement, isThumbnail: boolean) {
@@ -87,7 +88,8 @@ export class CanvasScreen extends Trs80Screen {
         }
 
         for (let i = 0; i < 256; i++) {
-            this.glyphs.push(MODEL3_FONT.makeImage(i, WHITE_PHOSPHOR));
+            this.narrowGlyphs.push(MODEL3_FONT.makeImage(i, WHITE_PHOSPHOR, false));
+            this.expandedGlyphs.push(MODEL3_FONT.makeImage(i, WHITE_PHOSPHOR, true));
         }
 
         // Make global CSS if necessary.
@@ -99,11 +101,11 @@ export class CanvasScreen extends Trs80Screen {
         const screenX = (offset % 64)*8;
         const screenY = Math.floor(offset / 64)*24;
         this.narrowContext.clearRect(screenX, screenY, 8, 24);
-        this.narrowContext.drawImage(this.glyphs[value], 0, 0, 8, 24, screenX, screenY, 8, 24);
+        this.narrowContext.drawImage(this.narrowGlyphs[value], 0, 0, 8, 24, screenX, screenY, 8, 24);
 
         if (offset % 2 === 0) {
             this.expandedContext.clearRect(screenX, screenY, 16, 24);
-            this.expandedContext.drawImage(this.glyphs[value], 0, 0, 16, 24, screenX, screenY, 16, 24);
+            this.expandedContext.drawImage(this.expandedGlyphs[value], 0, 0, 16, 24, screenX, screenY, 16, 24);
         }
 
         this.scheduleUpdateThumbnail();

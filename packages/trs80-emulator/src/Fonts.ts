@@ -604,22 +604,23 @@ export class Font {
      * Make a bitmap for the specified character (0-255). "on" pixels are the
      * specified color, "off" pixels are fully transparent.
      */
-    public makeImage(char: number, rgb: number[]): HTMLCanvasElement {
+    public makeImage(char: number, rgb: number[], expanded: boolean): HTMLCanvasElement {
         const canvas = document.createElement("canvas");
-        canvas.width = this.width;
+        let expandedMultiplier = expanded ? 2 : 1;
+        canvas.width = this.width*expandedMultiplier;
         canvas.height = this.height*2;
 
         const ctx = canvas.getContext("2d");
         if (ctx === null) {
             throw new Error("2d context not supported");
         }
-        const imageData = ctx.createImageData(this.width, this.height*2);
+        const imageData = ctx.createImageData(canvas.width, canvas.height);
 
         // Light pixel at (x,y) in imageData if bit "bit" of "byte" is on.
         const lightPixel = (x: number, y: number, byte: number, bit: number): void => {
             const pixel = (byte & (1 << bit)) !== 0;
             if (pixel) {
-                const pixelOffset = (y * this.width + x) * 4;
+                const pixelOffset = (y * canvas.width + x) * 4;
 
                 imageData.data[pixelOffset + 0] = rgb[0];
                 imageData.data[pixelOffset + 1] = rgb[1];
@@ -632,10 +633,10 @@ export class Font {
         if (bankOffset === -1) {
             // Graphical character.
             const byte = char%64;
-            for (let y = 0; y < this.height * 2; y++) {
-                const py = Math.floor(y/(this.height*2/3));
-                for (let x = 0; x < this.width; x++) {
-                    const px = Math.floor(x/(this.width/2));
+            for (let y = 0; y < canvas.height; y++) {
+                const py = Math.floor(y/(canvas.height/3));
+                for (let x = 0; x < canvas.width; x++) {
+                    const px = Math.floor(x/(canvas.width/2));
                     const bit = py*2 + px;
                     lightPixel(x, y, byte, bit);
                 }
@@ -645,10 +646,10 @@ export class Font {
             const charOffset = bankOffset + char % 64;
             const byteOffset = charOffset * 12;
 
-            for (let y = 0; y < this.height * 2; y++) {
+            for (let y = 0; y < canvas.height; y++) {
                 const byte = this.bits[byteOffset + Math.floor(y / 2)];
-                for (let x = 0; x < this.width; x++) {
-                    lightPixel(x, y, byte, x);
+                for (let x = 0; x < canvas.width; x++) {
+                    lightPixel(x, y, byte, Math.floor(x/expandedMultiplier));
                 }
             }
         }
