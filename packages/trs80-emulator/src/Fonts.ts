@@ -580,6 +580,18 @@ const GLYPH_CG4 = [
     0x04,0x0a,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 ];
 
+export interface GlyphOptions {
+    /**
+     * RGB (0-255) of "on" pixels.
+     */
+    color: number[];
+
+    /**
+     * Whether to draw fake scanlines.
+     */
+    scanlines: boolean;
+}
+
 /**
  * Class representing a font and able to generate its glyphs.
  */
@@ -604,7 +616,7 @@ export class Font {
      * Make a bitmap for the specified character (0-255). "on" pixels are the
      * specified color, "off" pixels are fully transparent.
      */
-    public makeImage(char: number, rgb: number[], expanded: boolean): HTMLCanvasElement {
+    public makeImage(char: number, expanded: boolean, options: GlyphOptions): HTMLCanvasElement {
         const canvas = document.createElement("canvas");
         let expandedMultiplier = expanded ? 2 : 1;
         canvas.width = this.width*expandedMultiplier;
@@ -621,11 +633,12 @@ export class Font {
             const pixel = (byte & (1 << bit)) !== 0;
             if (pixel) {
                 const pixelOffset = (y * canvas.width + x) * 4;
+                const alpha = options.scanlines ? (y % 2 == 0 ? 0xFF : 0xAA) : 0xFF;
 
-                imageData.data[pixelOffset + 0] = rgb[0];
-                imageData.data[pixelOffset + 1] = rgb[1];
-                imageData.data[pixelOffset + 2] = rgb[2];
-                imageData.data[pixelOffset + 3] = 0xFF;
+                imageData.data[pixelOffset + 0] = options.color[0];
+                imageData.data[pixelOffset + 1] = options.color[1];
+                imageData.data[pixelOffset + 2] = options.color[2];
+                imageData.data[pixelOffset + 3] = alpha;
             }
         };
 

@@ -1,6 +1,6 @@
 import {Trs80Screen} from "./Trs80Screen";
 import {clearElement, CSS_PREFIX, SCREEN_BEGIN} from "./Utils";
-import {MODEL3_FONT} from "./Fonts";
+import {GlyphOptions, MODEL3_FONT} from "./Fonts";
 
 const cssPrefix = CSS_PREFIX + "-canvas-screen";
 
@@ -87,9 +87,14 @@ export class CanvasScreen extends Trs80Screen {
             this.node.appendChild(this.thumbnailImage);
         }
 
+        const glyphOptions: GlyphOptions = {
+            color: WHITE_PHOSPHOR,
+            scanlines: true,
+        };
+
         for (let i = 0; i < 256; i++) {
-            this.narrowGlyphs.push(MODEL3_FONT.makeImage(i, WHITE_PHOSPHOR, false));
-            this.expandedGlyphs.push(MODEL3_FONT.makeImage(i, WHITE_PHOSPHOR, true));
+            this.narrowGlyphs.push(MODEL3_FONT.makeImage(i, false, glyphOptions));
+            this.expandedGlyphs.push(MODEL3_FONT.makeImage(i, true, glyphOptions));
         }
 
         // Make global CSS if necessary.
