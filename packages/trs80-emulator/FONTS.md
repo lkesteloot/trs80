@@ -68,9 +68,18 @@ these had Greek, math, and drawing characters:
 
 ![Model I character set](images/model3-2.png)
 
-Setting bit 3 of port 0xEC switched these to Katakana characters:
+Clearing bit 3 of port 0xEC switched these to Katakana characters. In
+Basic this was toggled by running `PRINT CHR$(22)`:
 
 ![Model I character set](images/model3-3.png)
+
+## Wide characters
+
+Both models supported a double-width character set. These were not new glyphs,
+but were merely the above glyphs with each column duplicated. Characters were
+stored in the even bytes of video memory; the odd bytes were ignored. From
+Basic, wide mode was selected by running `PRINT CHR$(23)` and deselected by
+clearing the screen (`CLS`).
 
 ## References
 
