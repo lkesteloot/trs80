@@ -1,6 +1,6 @@
 import {Trs80Screen} from "./Trs80Screen";
-import {clearElement, CSS_PREFIX, SCREEN_BEGIN} from "./Utils";
-import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_FONT} from "./Fonts";
+import {clearElement, CSS_PREFIX, SCREEN_BEGIN, SCREEN_END} from "./Utils";
+import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts";
 import {CGChip, Config, ModelType, Phosphor} from "./Config";
 
 const cssPrefix = CSS_PREFIX + "-canvas-screen";
@@ -44,13 +44,12 @@ const GREEN_PHOSPHOR = [122, 244, 96];
  */
 export class CanvasScreen extends Trs80Screen {
     private readonly node: HTMLElement;
-    private readonly narrowCanvas: HTMLCanvasElement;
-    private readonly expandedCanvas: HTMLCanvasElement;
-    private readonly narrowContext: CanvasRenderingContext2D;
-    private readonly expandedContext: CanvasRenderingContext2D;
+    private readonly canvas: HTMLCanvasElement;
+    private readonly context: CanvasRenderingContext2D;
     private readonly thumbnailImage: HTMLImageElement | undefined;
-    private readonly narrowGlyphs: HTMLCanvasElement[] = [];
-    private readonly expandedGlyphs: HTMLCanvasElement[] = [];
+    private readonly memory: Uint8Array = new Uint8Array(SCREEN_END - SCREEN_BEGIN);
+    private readonly glyphs: HTMLCanvasElement[] = [];
+    private config: Config = Config.makeDefault();
     private glyphWidth = 0;
     private updateThumbnailTimeout: number | undefined;
 
@@ -64,22 +63,13 @@ export class CanvasScreen extends Trs80Screen {
         this.node.classList.add(cssPrefix);
         parentNode.appendChild(this.node);
 
-        this.narrowCanvas = document.createElement("canvas");
-        this.narrowCanvas.width = 64*8;
-        this.narrowCanvas.height = 16*24;
-        this.narrowCanvas.style.display = "block";
-        this.narrowContext = this.narrowCanvas.getContext("2d") as CanvasRenderingContext2D;
+        this.canvas = document.createElement("canvas");
+        this.canvas.width = 64*8;
+        this.canvas.height = 16*24;
+        this.canvas.style.display = "block";
+        this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
         if (!isThumbnail) {
-            this.node.appendChild(this.narrowCanvas);
-        }
-
-        this.expandedCanvas = document.createElement("canvas");
-        this.expandedCanvas.width = 64*8;
-        this.expandedCanvas.height = 16*24;
-        this.expandedCanvas.style.display = "none";
-        this.expandedContext = this.expandedCanvas.getContext("2d") as CanvasRenderingContext2D;
-        if (!isThumbnail) {
-            this.node.appendChild(this.expandedCanvas);
+            this.node.appendChild(this.canvas);
         }
 
         if (isThumbnail) {
@@ -89,15 +79,23 @@ export class CanvasScreen extends Trs80Screen {
             this.node.appendChild(this.thumbnailImage);
         }
 
-        this.setConfig(Config.makeDefault(), new Uint8Array(0));
+        this.updateFromConfig();
 
         // Make global CSS if necessary.
         configureStylesheet();
     }
 
-    setConfig(config: Config, values: Uint8Array): void {
+    setConfig(config: Config): void {
+        this.config = config;
+        this.updateFromConfig();
+    }
+
+    /**
+     * Update the font and screen from the config and other state.
+     */
+    private updateFromConfig(): void {
         let color;
-        switch (config.phosphor) {
+        switch (this.config.phosphor) {
             case Phosphor.WHITE:
             default:
                 color = WHITE_PHOSPHOR;
@@ -111,19 +109,19 @@ export class CanvasScreen extends Trs80Screen {
         }
 
         let font;
-        switch (config.cgChip) {
+        switch (this.config.cgChip) {
             case CGChip.ORIGINAL:
                 font = MODEL1A_FONT;
                 break;
             case CGChip.LOWER_CASE:
             default:
-                switch (config.modelType) {
+                switch (this.config.modelType) {
                     case ModelType.MODEL1:
                         font = MODEL1B_FONT;
                         break;
                     case ModelType.MODEL3:
                     default:
-                        font = MODEL3_FONT;
+                        font = this.isAlternateCharacters() ? MODEL3_ALT_FONT : MODEL3_FONT;
                         break;
                 }
                 break;
@@ -133,34 +131,37 @@ export class CanvasScreen extends Trs80Screen {
             color: color,
             scanlines: false,
         };
-
-        this.narrowGlyphs.splice(0, this.narrowGlyphs.length);
-        this.expandedGlyphs.splice(0, this.expandedGlyphs.length);
         for (let i = 0; i < 256; i++) {
-            this.narrowGlyphs.push(font.makeImage(i, false, glyphOptions));
-            this.expandedGlyphs.push(font.makeImage(i, true, glyphOptions));
+            this.glyphs[i] = font.makeImage(i, this.isExpandedCharacters(), glyphOptions);
         }
         this.glyphWidth = font.width;
 
-        // Refresh screen.
-        for (let i = 0; i < values.length; i++) {
-            this.writeChar(SCREEN_BEGIN + i, values[i]);
-        }
+        this.refresh();
     }
 
     writeChar(address: number, value: number): void {
         const offset = address - SCREEN_BEGIN;
+        this.memory[offset] = value;
+        this.drawChar(offset, value);
+        this.scheduleUpdateThumbnail();
+    }
+
+    /**
+     * Draw a single character to the canvas.
+     */
+    private drawChar(offset: number, value: number): void {
         const screenX = (offset % 64)*8;
         const screenY = Math.floor(offset / 64)*24;
-        this.narrowContext.clearRect(screenX, screenY, 8, 24);
-        this.narrowContext.drawImage(this.narrowGlyphs[value], 0, 0, this.glyphWidth, 24, screenX, screenY, 8, 24);
 
-        if (offset % 2 === 0) {
-            this.expandedContext.clearRect(screenX, screenY, 16, 24);
-            this.expandedContext.drawImage(this.expandedGlyphs[value], 0, 0, this.glyphWidth*2, 24, screenX, screenY, 16, 24);
+        if (this.isExpandedCharacters()) {
+            if (offset % 2 === 0) {
+                this.context.clearRect(screenX, screenY, 16, 24);
+                this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth * 2, 24, screenX, screenY, 16, 24);
+            }
+        } else {
+            this.context.clearRect(screenX, screenY, 8, 24);
+            this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth, 24, screenX, screenY, 8, 24);
         }
-
-        this.scheduleUpdateThumbnail();
     }
 
     getNode(): HTMLElement {
@@ -168,9 +169,26 @@ export class CanvasScreen extends Trs80Screen {
     }
 
     setExpandedCharacters(expanded: boolean): void {
-        super.setExpandedCharacters(expanded);
-        this.narrowCanvas.style.display = expanded ? "none" : "block";
-        this.expandedCanvas.style.display = !expanded ? "none" : "block";
+        if (expanded !== this.isExpandedCharacters()) {
+            super.setExpandedCharacters(expanded);
+            this.updateFromConfig();
+        }
+    }
+
+    setAlternateCharacters(alternate: boolean): void {
+        if (alternate !== this.isAlternateCharacters()) {
+            super.setAlternateCharacters(alternate);
+            this.updateFromConfig();
+        }
+    }
+
+    /**
+     * Refresh the display based on what we've kept track of.
+     */
+    private refresh(): void {
+        for (let offset = 0; offset < this.memory.length; offset++) {
+            this.drawChar(offset, this.memory[offset]);
+        }
         this.scheduleUpdateThumbnail();
     }
 
@@ -197,8 +215,7 @@ export class CanvasScreen extends Trs80Screen {
      */
     private updateThumbnail(): void {
         if (this.thumbnailImage !== undefined) {
-            const canvas = this.isExpandedCharacters() ? this.expandedCanvas : this.narrowCanvas;
-            this.thumbnailImage.src = canvas.toDataURL();
+            this.thumbnailImage.src = this.canvas.toDataURL();
         }
     }
 }

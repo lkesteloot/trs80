@@ -134,8 +134,7 @@ export class Trs80 implements Hal {
         const needsReboot = config.needsReboot(this.config);
         this.config = config;
 
-        const videoMemory = this.memory.slice(SCREEN_BEGIN, SCREEN_END);
-        this.screen.setConfig(this.config, videoMemory);
+        this.screen.setConfig(this.config);
 
         if (needsReboot) {
             this.updateFromConfig();
@@ -347,6 +346,7 @@ export class Trs80 implements Hal {
                 this.modeImage = value;
                 this.setCassetteMotor((value & 0x02) !== 0);
                 this.screen.setExpandedCharacters((value & 0x04) !== 0);
+                this.screen.setAlternateCharacters((value & 0x08) === 0);
                 break;
 
             case 0xF0:

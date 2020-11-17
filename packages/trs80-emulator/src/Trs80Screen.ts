@@ -6,12 +6,13 @@ import {Config} from "./Config";
  */
 export class Trs80Screen {
     private expanded = false;
+    private alternate = false;
 
     /**
      * Set the config for this screen. Before this is called, the screen is permitted to use any config
-     * it wants. The values are the 1024 characters of the screen, in case the screen needs to refresh itself.
+     * it wants.
      */
-    public setConfig(config: Config, values: Uint8Array): void {
+    public setConfig(config: Config): void {
         throw new Error("Must be implemented");
     }
 
@@ -43,6 +44,20 @@ export class Trs80Screen {
      */
     public isExpandedCharacters(): boolean {
         return this.expanded;
+    }
+
+    /**
+     * Enable or disable alternate (Katakana) character mode.
+     */
+    public setAlternateCharacters(alternate: boolean): void {
+        this.alternate = alternate;
+    }
+
+    /**
+     * Return whether we're in alternate (Katakana) character mode.
+     */
+    public isAlternateCharacters(): boolean {
+        return this.alternate;
     }
 
     /**
