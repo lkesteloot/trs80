@@ -88,13 +88,13 @@ export class CanvasScreen extends Trs80Screen {
             this.node.appendChild(this.thumbnailImage);
         }
 
-        this.setConfig(Config.makeDefault(), []);
+        this.setConfig(Config.makeDefault(), new Uint8Array(0));
 
         // Make global CSS if necessary.
         configureStylesheet();
     }
 
-    setConfig(config: Config, values: number[]): void {
+    setConfig(config: Config, values: Uint8Array): void {
         let color;
         switch (config.phosphor) {
             case Phosphor.WHITE:

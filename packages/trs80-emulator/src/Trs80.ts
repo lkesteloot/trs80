@@ -128,12 +128,19 @@ export class Trs80 implements Hal {
     }
 
     /**
-     * Sets a new configuration and reboots into it.
+     * Sets a new configuration and reboots into it if necessary.
      */
     public setConfig(config: Config): void {
+        const needsReboot = config.needsReboot(this.config);
         this.config = config;
-        this.updateFromConfig();
-        this.reset();
+
+        const videoMemory = this.memory.slice(SCREEN_BEGIN, SCREEN_END);
+        this.screen.setConfig(this.config, videoMemory);
+
+        if (needsReboot) {
+            this.updateFromConfig();
+            this.reset();
+        }
     }
 
     /**
@@ -143,7 +150,6 @@ export class Trs80 implements Hal {
         this.memory = new Uint8Array(RAM_START + this.config.getRamSize());
         this.memory.fill(0);
         this.loadRom();
-        this.screen.setConfig(this.config, []);
     }
 
     /**

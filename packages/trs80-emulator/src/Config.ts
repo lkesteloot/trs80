@@ -107,6 +107,18 @@ export class Config {
     }
 
     /**
+     * Whether this new config needs to be rebooted, if the emulator currently is running the old config.
+     */
+    public needsReboot(oldConfig: Config): boolean {
+        // Maybe here we could not reboot if only the CG chip changed. The software is able to detect the
+        // difference (since bit 6 is synthetic in one case).
+        return this.modelType !== oldConfig.modelType ||
+            this.basicLevel !== oldConfig.basicLevel ||
+            this.cgChip !== oldConfig.cgChip ||
+            this.ramSize !== oldConfig.ramSize;
+    }
+
+    /**
      * Return the RAM size in bytes.
      */
     public getRamSize(): number {

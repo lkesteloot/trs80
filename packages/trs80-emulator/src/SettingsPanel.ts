@@ -6,6 +6,7 @@ const gCssPrefix = CSS_PREFIX + "-settings-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
 const gPanelCssClass = gCssPrefix + "-panel";
 const gShownCssClass = gCssPrefix + "-shown";
+const gAcceptButtonCssClass = gCssPrefix + "-accept";
 const gRebootButtonCssClass = gCssPrefix + "-reboot";
 const gOptionsClass = gCssPrefix + "-options";
 const gButtonsClass = gCssPrefix + "-buttons";
@@ -62,11 +63,13 @@ const GLOBAL_CSS = `
 .${gPanelCssClass} input[type=radio] + label {
     display: block;
     flex-grow: 1;
+    flex-basis: 0;
     text-align: center;
     padding: 4px 16px;
     margin-left: 10px;
     border-radius: 3px;
     background-color: #44443A;
+    white-space: nowrap;
 }
 
 .${gPanelCssClass} input[type=radio] + label:first-of-type {
@@ -93,6 +96,7 @@ const GLOBAL_CSS = `
 .${gPanelCssClass} a {
     display: block;
     flex-grow: 1;
+    flex-basis: 0;
     text-align: center;
     padding: 4px 16px;
     border-radius: 3px;
@@ -106,10 +110,18 @@ const GLOBAL_CSS = `
     margin-left: 0;
 }
 
+.${gPanelCssClass} a.${gAcceptButtonCssClass} {
+    font-weight: bold;
+    color: #eee;
+    background-color: #449944;
+}
+
+.${gPanelCssClass} a.${gAcceptButtonCssClass}:hover {
+    background-color: #338833;
+}
+
 .${gPanelCssClass} a.${gRebootButtonCssClass} {
     background-color: #D25F43;
-    color: #eee;
-    font-weight: bold;
 }
 
 .${gPanelCssClass} a:hover {
@@ -269,6 +281,7 @@ export class SettingsPanel {
     private readonly trs80: Trs80;
     private readonly panelNode: HTMLElement;
     private readonly displayedOptions: DisplayedOption[] = [];
+    private readonly acceptButton: HTMLElement;
 
     constructor(screenNode: HTMLElement, trs80: Trs80) {
         this.trs80 = trs80;
@@ -322,14 +335,14 @@ export class SettingsPanel {
         buttonsDiv.classList.add(gButtonsClass);
         div.appendChild(buttonsDiv);
 
-        const rebootButton = document.createElement("a");
-        rebootButton.classList.add(gRebootButtonCssClass);
-        rebootButton.innerText = "Reboot";
-        rebootButton.addEventListener("click", (event) => {
+        this.acceptButton = document.createElement("a");
+        this.acceptButton.classList.add(gAcceptButtonCssClass);
+        this.acceptButton.addEventListener("click", (event) => {
             event.preventDefault();
-            this.reboot();
+            this.accept();
         });
-        buttonsDiv.appendChild(rebootButton);
+        buttonsDiv.appendChild(this.acceptButton);
+        this.configureAcceptButton(this.trs80.getConfig());
 
         const cancelButton = document.createElement("a");
         cancelButton.innerText = "Cancel";
@@ -358,9 +371,9 @@ export class SettingsPanel {
     }
 
     /**
-     * Reboot the machine (and close the dialog box).
+     * Accept the changes, configure the machine, and close the dialog box.
      */
-    private reboot(): void {
+    private accept(): void {
         this.trs80.setConfig(this.getConfig());
         this.close();
     }
@@ -384,6 +397,21 @@ export class SettingsPanel {
         for (const displayedOption of this.displayedOptions) {
             const enabled = displayedOption.block.updateConfig(displayedOption.option.value, config).isValid();
             displayedOption.input.disabled = !enabled;
+        }
+
+        this.configureAcceptButton(config);
+    }
+
+    /**
+     * Set the accept button to be OK or Reboot.
+     */
+    private configureAcceptButton(config: Config) {
+        if (config.needsReboot(this.trs80.getConfig())) {
+            this.acceptButton.classList.add(gRebootButtonCssClass);
+            this.acceptButton.innerText = "Reboot";
+        } else {
+            this.acceptButton.classList.remove(gRebootButtonCssClass);
+            this.acceptButton.innerText = "OK";
         }
     }
 

@@ -11,7 +11,7 @@ export class Trs80Screen {
      * Set the config for this screen. Before this is called, the screen is permitted to use any config
      * it wants. The values are the 1024 characters of the screen, in case the screen needs to refresh itself.
      */
-    public setConfig(config: Config, values: number[]): void {
+    public setConfig(config: Config, values: Uint8Array): void {
         throw new Error("Must be implemented");
     }
 
