@@ -75,11 +75,11 @@ Basic this was toggled by running `PRINT CHR$(22)`:
 
 ## Wide characters
 
-Both models supported a double-width character set. These were not new glyphs,
-but were merely the above glyphs with each column duplicated. Characters were
-stored in the even bytes of video memory; the odd bytes were ignored. From
-Basic, wide mode was selected by running `PRINT CHR$(23)` and deselected by
-clearing the screen (`CLS`).
+Both models supported a double-width character set. These were not higher-resolution
+glyphs, they were only the above glyphs with each column duplicated. Characters were
+stored in the even bytes of video memory; the odd bytes were ignored. Setting
+bit 2 of port 0xEC turned on wide mode. In Basic it was enabled by
+running `PRINT CHR$(23)` and disabled by clearing the screen (`CLS`).
 
 ## References
 
