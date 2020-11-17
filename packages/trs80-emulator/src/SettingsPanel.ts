@@ -1,5 +1,5 @@
 import {CSS_PREFIX} from "./Utils";
-import {Config, ModelType, RamSize} from "./Config";
+import {BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize} from "./Config";
 import {Trs80} from "./Trs80";
 
 const gCssPrefix = CSS_PREFIX + "-settings-panel";
@@ -7,9 +7,11 @@ const gScreenNodeCssClass = gCssPrefix + "-screen-node";
 const gPanelCssClass = gCssPrefix + "-panel";
 const gShownCssClass = gCssPrefix + "-shown";
 const gRebootButtonCssClass = gCssPrefix + "-reboot";
+const gOptionsClass = gCssPrefix + "-options";
+const gButtonsClass = gCssPrefix + "-buttons";
 
 const GLOBAL_CSS = `
-.` + gPanelCssClass + ` {
+.${gPanelCssClass} {
     display: flex;
     align-items: stretch;
     justify-content: center;
@@ -22,7 +24,7 @@ const GLOBAL_CSS = `
     transition: opacity .20s ease-in-out;
 }
 
-.` + gPanelCssClass + ` > div {
+.${gPanelCssClass} > div {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -37,70 +39,88 @@ const GLOBAL_CSS = `
     padding: 10px 30px;
 }
 
-.` + gPanelCssClass + `.` + gShownCssClass + ` {
+.${gPanelCssClass}.${gShownCssClass} {
     opacity: 1;
 }
 
-.` + gPanelCssClass + ` h1 {
+.${gPanelCssClass} h1 {
     text-transform: uppercase;
     text-align: center;
-    letter-spacing: 1px;
+    letter-spacing: .5px;
     font-size: 10pt;
     margin: 0 0 10px 0;
 }
 
-.` + gPanelCssClass + ` input[type=radio] {
+.${gPanelCssClass} .${gOptionsClass} {
+    display: flex;
+}
+
+.${gPanelCssClass} input[type=radio] {
     display: none;
 }
 
-.` + gPanelCssClass + ` input[type=radio] + label {
+.${gPanelCssClass} input[type=radio] + label {
     display: block;
+    flex-grow: 1;
     text-align: center;
     padding: 4px 16px;
+    margin-left: 10px;
     border-radius: 3px;
-    margin: 5px 0;
     background-color: #44443A;
 }
 
-.` + gPanelCssClass + ` input[type=radio]:enabled + label:hover {
+.${gPanelCssClass} input[type=radio] + label:first-of-type {
+    margin-left: 0;
+}
+
+.${gPanelCssClass} input[type=radio]:enabled + label:hover {
     background-color: #66665A;
 }
 
-.` + gPanelCssClass + ` input[type=radio]:disabled + label {
+.${gPanelCssClass} input[type=radio]:disabled + label {
     color: #666;
 }
 
-.` + gPanelCssClass + ` input[type=radio]:enabled:checked + label {
+.${gPanelCssClass} input[type=radio]:enabled:checked + label {
     color: #444;
     background-color: #ccc;
 }
 
-.` + gPanelCssClass + ` a {
+.${gPanelCssClass} .${gButtonsClass} {
+    display: flex;
+}
+
+.${gPanelCssClass} a {
     display: block;
+    flex-grow: 1;
     text-align: center;
     padding: 4px 16px;
     border-radius: 3px;
-    margin: 5px 0;
+    margin-left: 10px;
     color: #ccc;
     background-color: #44443A;
     cursor: default;
 }
 
-.` + gPanelCssClass + ` a.` + gRebootButtonCssClass + ` {
+.${gPanelCssClass} a:first-of-type {
+    margin-left: 0;
+}
+
+.${gPanelCssClass} a.${gRebootButtonCssClass} {
     background-color: #D25F43;
     color: #eee;
     font-weight: bold;
 }
 
-.` + gPanelCssClass + ` a:hover {
+.${gPanelCssClass} a:hover {
     background-color: #66665A;
 }
 
-.` + gPanelCssClass + ` a.` + gRebootButtonCssClass + `:hover {
+.${gPanelCssClass} a.${gRebootButtonCssClass}:hover {
     background-color: #BD563C;
 }
 
-.` + gScreenNodeCssClass + ` {
+.${gScreenNodeCssClass} {
     /* Force the screen node to relative positioning. Hope that doesn't screw anything up. */
     position: relative;
 }
@@ -155,16 +175,42 @@ const OPTION_BLOCKS: OptionBlock[] = [
         updateConfig: (modelType: ModelType, config: Config) => config.withModelType(modelType),
         options: [
             {
-                label: "Model I (Level 1)",
-                value: ModelType.MODEL1_LEVEL1,
-            },
-            {
-                label: "Model I (Level 2)",
-                value: ModelType.MODEL1_LEVEL2,
+                label: "Model I",
+                value: ModelType.MODEL1,
             },
             {
                 label: "Model III",
                 value: ModelType.MODEL3,
+            },
+        ]
+    },
+    {
+        title: "Basic",
+        isChecked: (basicLevel: BasicLevel, config: Config) => basicLevel === config.basicLevel,
+        updateConfig: (basicLevel: BasicLevel, config: Config) => config.withBasicLevel(basicLevel),
+        options: [
+            {
+                label: "Level 1",
+                value: BasicLevel.LEVEL1,
+            },
+            {
+                label: "Level 2",
+                value: BasicLevel.LEVEL2,
+            },
+        ]
+    },
+    {
+        title: "Characters",
+        isChecked: (cgChip: CGChip, config: Config) => cgChip === config.cgChip,
+        updateConfig: (cgChip: CGChip, config: Config) => config.withCGChip(cgChip),
+        options: [
+            {
+                label: "Original",
+                value: CGChip.ORIGINAL,
+            },
+            {
+                label: "Lower case",
+                value: CGChip.LOWER_CASE,
             },
         ]
     },
@@ -188,6 +234,25 @@ const OPTION_BLOCKS: OptionBlock[] = [
             {
                 label: "48 kB",
                 value: RamSize.RAM_48_KB,
+            },
+        ]
+    },
+    {
+        title: "Phosphor",
+        isChecked: (phosphor: Phosphor, config: Config) => phosphor === config.phosphor,
+        updateConfig: (phosphor: Phosphor, config: Config) => config.withPhosphor(phosphor),
+        options: [
+            {
+                label: "White",
+                value: Phosphor.WHITE,
+            },
+            {
+                label: "Green",
+                value: Phosphor.GREEN,
+            },
+            {
+                label: "Amber",
+                value: Phosphor.AMBER,
             },
         ]
     },
@@ -230,6 +295,10 @@ export class SettingsPanel {
             h1.innerText = block.title;
             blockDiv.appendChild(h1);
 
+            const optionsDiv = document.createElement("div");
+            optionsDiv.classList.add(gOptionsClass);
+            blockDiv.appendChild(optionsDiv);
+
             for (const option of block.options) {
                 const id = gCssPrefix + "-" + gRadioButtonCounter++;
 
@@ -238,19 +307,20 @@ export class SettingsPanel {
                 input.type = "radio";
                 input.name = name;
                 input.addEventListener("change", () => this.updateEnabledOptions());
-                blockDiv.appendChild(input);
+                optionsDiv.appendChild(input);
 
                 const label = document.createElement("label");
                 label.htmlFor = id;
                 label.innerText = option.label;
-                blockDiv.appendChild(label);
+                optionsDiv.appendChild(label);
 
                 this.displayedOptions.push(new DisplayedOption(input, block, option));
             }
         }
 
-        const buttonDiv = document.createElement("div");
-        div.appendChild(buttonDiv);
+        const buttonsDiv = document.createElement("div");
+        buttonsDiv.classList.add(gButtonsClass);
+        div.appendChild(buttonsDiv);
 
         const rebootButton = document.createElement("a");
         rebootButton.classList.add(gRebootButtonCssClass);
@@ -259,7 +329,7 @@ export class SettingsPanel {
             event.preventDefault();
             this.reboot();
         });
-        buttonDiv.appendChild(rebootButton);
+        buttonsDiv.appendChild(rebootButton);
 
         const cancelButton = document.createElement("a");
         cancelButton.innerText = "Cancel";
@@ -267,7 +337,7 @@ export class SettingsPanel {
             event.preventDefault();
             this.close();
         });
-        buttonDiv.appendChild(cancelButton);
+        buttonsDiv.appendChild(cancelButton);
     }
 
     /**
@@ -322,7 +392,7 @@ export class SettingsPanel {
      */
     private getConfig(): Config {
         // Any config works here, we override it below.
-        let config = new Config(ModelType.MODEL3, RamSize.RAM_48_KB);
+        let config = Config.makeDefault();
 
         for (const displayedOption of this.displayedOptions) {
             if (displayedOption.input.checked) {

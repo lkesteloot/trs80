@@ -1,6 +1,7 @@
 import {Trs80Screen} from "./Trs80Screen";
 import {clearElement, CSS_PREFIX, SCREEN_BEGIN} from "./Utils";
-import {GlyphOptions, MODEL3_FONT} from "./Fonts";
+import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_FONT} from "./Fonts";
+import {CGChip, Config, ModelType, Phosphor} from "./Config";
 
 const cssPrefix = CSS_PREFIX + "-canvas-screen";
 
@@ -87,18 +88,62 @@ export class CanvasScreen extends Trs80Screen {
             this.node.appendChild(this.thumbnailImage);
         }
 
-        const glyphOptions: GlyphOptions = {
-            color: WHITE_PHOSPHOR,
-            scanlines: true,
-        };
-
-        for (let i = 0; i < 256; i++) {
-            this.narrowGlyphs.push(MODEL3_FONT.makeImage(i, false, glyphOptions));
-            this.expandedGlyphs.push(MODEL3_FONT.makeImage(i, true, glyphOptions));
-        }
+        this.setConfig(Config.makeDefault(), []);
 
         // Make global CSS if necessary.
         configureStylesheet();
+    }
+
+    setConfig(config: Config, values: number[]): void {
+        let color;
+        switch (config.phosphor) {
+            case Phosphor.WHITE:
+            default:
+                color = WHITE_PHOSPHOR;
+                break;
+            case Phosphor.GREEN:
+                color = GREEN_PHOSPHOR;
+                break;
+            case Phosphor.AMBER:
+                color = AMBER_PHOSPHOR;
+                break;
+        }
+
+        let font;
+        switch (config.cgChip) {
+            case CGChip.ORIGINAL:
+                font = MODEL1A_FONT;
+                break;
+            case CGChip.LOWER_CASE:
+            default:
+                switch (config.modelType) {
+                    case ModelType.MODEL1:
+                        font = MODEL1B_FONT;
+                        break;
+                    case ModelType.MODEL3:
+                    default:
+                        font = MODEL3_FONT;
+                        break;
+                }
+                break;
+        }
+
+        const glyphOptions: GlyphOptions = {
+            color: color,
+            scanlines: false,
+        };
+
+        this.narrowGlyphs.splice(0, this.narrowGlyphs.length);
+        this.expandedGlyphs.splice(0, this.expandedGlyphs.length);
+        for (let i = 0; i < 256; i++) {
+            this.narrowGlyphs.push(font.makeImage(i, false, glyphOptions));
+            this.expandedGlyphs.push(font.makeImage(i, true, glyphOptions));
+        }
+
+        // Refresh screen.
+        for (let i = 0; i < values.length; i++) {
+            this.writeChar(SCREEN_BEGIN + i, values[i]);
+        }
     }
 
     writeChar(address: number, value: number): void {

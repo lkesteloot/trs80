@@ -1,10 +1,19 @@
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
+import {Config} from "./Config";
 
 /**
  * Abstract base class for displaying a screen.
  */
 export class Trs80Screen {
     private expanded = false;
+
+    /**
+     * Set the config for this screen. Before this is called, the screen is permitted to use any config
+     * it wants. The values are the 1024 characters of the screen, in case the screen needs to refresh itself.
+     */
+    public setConfig(config: Config, values: number[]): void {
+        throw new Error("Must be implemented");
+    }
 
     /**
      * Write a character to the screen.

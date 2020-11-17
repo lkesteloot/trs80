@@ -7,7 +7,7 @@ import {model1Level2Rom} from "./Model1Level2Rom";
 import {model3Rom} from "./Model3Rom";
 import {Trs80Screen} from "./Trs80Screen";
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
-import {Config, ModelType, RamSize} from "./Config";
+import {BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize} from "./Config";
 
 // IRQs
 const CASSETTE_RISE_IRQ_MASK = 0x01;
@@ -102,7 +102,7 @@ export class Trs80 implements Hal {
     constructor(screen: Trs80Screen, cassette: Cassette) {
         this.screen = screen;
         this.cassette = cassette;
-        this.config = new Config(ModelType.MODEL3, RamSize.RAM_48_KB);
+        this.config = Config.makeDefault();
         this.updateFromConfig();
         this.loadRom();
         this.tStateCount = 0;
@@ -132,6 +132,7 @@ export class Trs80 implements Hal {
         this.memory = new Uint8Array(RAM_START + this.config.getRamSize());
         this.memory.fill(0);
         this.loadRom();
+        this.screen.setConfig(this.config, []);
     }
 
     /**
@@ -140,12 +141,19 @@ export class Trs80 implements Hal {
     private loadRom(): void {
         let rom: string;
         switch (this.config.modelType) {
-            case ModelType.MODEL1_LEVEL1:
-                rom = model1Level1Rom;
+            case ModelType.MODEL1:
+                switch (this.config.basicLevel) {
+                    case BasicLevel.LEVEL1:
+                        rom = model1Level1Rom;
+                        break;
+
+                    case BasicLevel.LEVEL2:
+                    default:
+                        rom = model1Level2Rom;
+                        break;
+                }
                 break;
-            case ModelType.MODEL1_LEVEL2:
-                rom = model1Level2Rom;
-                break;
+
             case ModelType.MODEL3:
             default:
                 rom = model3Rom;

@@ -1,7 +1,6 @@
 
 import {CSS_PREFIX} from "./Utils";
 import {SettingsPanel} from "./SettingsPanel";
-import {Config} from "./Config";
 
 const gCssPrefix = CSS_PREFIX + "-control-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
@@ -54,7 +53,8 @@ const SETTINGS_ICON = `
 </svg>
 `;
 
-const GLOBAL_CSS = "." + gPanelCssClass + ` {
+const GLOBAL_CSS = `
+.${gPanelCssClass} {
     background-color: rgba(0, 0, 0, 0.2);
     position: absolute;
     right: 10px;
@@ -64,21 +64,21 @@ const GLOBAL_CSS = "." + gPanelCssClass + ` {
     transition: opacity .20s ease-in-out;
 }
 
-.` + gScreenNodeCssClass + ` {
+.${gScreenNodeCssClass} {
     /* Force the screen node to relative positioning. Hope that doesn't screw anything up. */
     position: relative;
 }
 
-.` + gScreenNodeCssClass + `:hover .` + gPanelCssClass + ` {
+.${gScreenNodeCssClass}:hover .${gPanelCssClass} {
     opacity: 1;
 }
 
 /* Hide the control panel if any other panel is showing (like settings). */
-.` + gScreenNodeCssClass + `.` + gShowingOtherPanelCssClass + `:hover .` + gPanelCssClass + ` {
+.${gScreenNodeCssClass}.${gShowingOtherPanelCssClass}:hover .${gPanelCssClass} {
     opacity: 0;
 }
 
-.` + gButtonCssClass + ` {
+.${gButtonCssClass} {
     display: block;
     margin: 15px;
     cursor: pointer;
@@ -87,11 +87,11 @@ const GLOBAL_CSS = "." + gPanelCssClass + ` {
     transition: transform 0.05s ease-in-out;
 }
 
-.` + gButtonCssClass + `:hover {
+.${gButtonCssClass}:hover {
     opacity: 1;
 }
 
-.` + gButtonCssClass + `:active {
+.${gButtonCssClass}:active {
     transform: scale(1.15);
 }
 `;
