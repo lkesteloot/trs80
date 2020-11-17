@@ -7,7 +7,7 @@ import {model1Level2Rom} from "./Model1Level2Rom";
 import {model3Rom} from "./Model3Rom";
 import {Trs80Screen} from "./Trs80Screen";
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
-import {BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize} from "./Config";
+import {BasicLevel, CGChip, Config, ModelType} from "./Config";
 
 // IRQs
 const CASSETTE_RISE_IRQ_MASK = 0x01;
@@ -52,6 +52,17 @@ enum CassetteValue {
  */
 function isScreenAddress(address: number): boolean {
     return address >= SCREEN_BEGIN && address < SCREEN_END;
+}
+
+/**
+ * See the FONT.md file for an explanation of this, but basically bit 6 is the NOR of bits 5 and 7.
+ */
+function computeVideoBit6(value: number): number {
+    const bit5 = (value >> 5) & 1;
+    const bit7 = (value >> 7) & 1;
+    const bit6 = (bit5 | bit7) ^ 1;
+
+    return (value & 0xBF) | (bit6 << 6);
 }
 
 /**
@@ -372,6 +383,11 @@ export class Trs80 implements Hal {
             console.log("Warning: Writing to ROM location 0x" + toHex(address, 4));
         } else {
             if (address >= SCREEN_BEGIN && address < SCREEN_END) {
+                if (this.config.cgChip === CGChip.ORIGINAL) {
+                    // No bit 6 in video memory, need to compute it.
+                    value = computeVideoBit6(value);
+                }
+
                 this.screen.writeChar(address, value);
             } else if (address < RAM_START) {
                 console.log("Writing to unmapped memory at 0x" + toHex(address, 4));

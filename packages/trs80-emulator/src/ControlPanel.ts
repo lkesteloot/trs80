@@ -55,7 +55,7 @@ const SETTINGS_ICON = `
 
 const GLOBAL_CSS = `
 .${gPanelCssClass} {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.6);
     position: absolute;
     right: 10px;
     top: 10px;
