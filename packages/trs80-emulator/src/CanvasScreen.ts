@@ -51,6 +51,7 @@ export class CanvasScreen extends Trs80Screen {
     private readonly thumbnailImage: HTMLImageElement | undefined;
     private readonly narrowGlyphs: HTMLCanvasElement[] = [];
     private readonly expandedGlyphs: HTMLCanvasElement[] = [];
+    private glyphWidth = 0;
     private updateThumbnailTimeout: number | undefined;
 
     constructor(parentNode: HTMLElement, isThumbnail: boolean) {
@@ -139,6 +140,7 @@ export class CanvasScreen extends Trs80Screen {
             this.narrowGlyphs.push(font.makeImage(i, false, glyphOptions));
             this.expandedGlyphs.push(font.makeImage(i, true, glyphOptions));
         }
+        this.glyphWidth = font.width;
 
         // Refresh screen.
         for (let i = 0; i < values.length; i++) {
@@ -151,11 +153,11 @@ export class CanvasScreen extends Trs80Screen {
         const screenX = (offset % 64)*8;
         const screenY = Math.floor(offset / 64)*24;
         this.narrowContext.clearRect(screenX, screenY, 8, 24);
-        this.narrowContext.drawImage(this.narrowGlyphs[value], 0, 0, 8, 24, screenX, screenY, 8, 24);
+        this.narrowContext.drawImage(this.narrowGlyphs[value], 0, 0, this.glyphWidth, 24, screenX, screenY, 8, 24);
 
         if (offset % 2 === 0) {
             this.expandedContext.clearRect(screenX, screenY, 16, 24);
-            this.expandedContext.drawImage(this.expandedGlyphs[value], 0, 0, 16, 24, screenX, screenY, 16, 24);
+            this.expandedContext.drawImage(this.expandedGlyphs[value], 0, 0, this.glyphWidth*2, 24, screenX, screenY, 16, 24);
         }
 
         this.scheduleUpdateThumbnail();

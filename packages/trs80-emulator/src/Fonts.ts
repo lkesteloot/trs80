@@ -580,6 +580,9 @@ const GLYPH_CG4 = [
     0x04,0x0a,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 ];
 
+/**
+ * Options when rasterizing each glyph.
+ */
 export interface GlyphOptions {
     /**
      * RGB (0-255) of "on" pixels.
