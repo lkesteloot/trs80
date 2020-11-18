@@ -307,7 +307,8 @@ export class Trs80 implements Hal {
 
     public readPort(address: number): number {
         const port = address & 0xFF;
-        let value: number;
+        let value = 0xFF; // Default value for missing ports.
+
         switch (port) {
             case 0x00:
                 // Joystick.
