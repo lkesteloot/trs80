@@ -104,8 +104,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
                         if ((this.recentBits & 0xFFFFFFFF) === 0x5555557F) {
                             this.state = TapeDecoderState.DETECTED;
 
-                            // No start bit on first byte.
-                            this.bitCount = 1;
+                            this.bitCount = 0;
                             this.recentBits = 0;
 
                             waveformAnnotations.push(new LabelAnnotation("Sync",

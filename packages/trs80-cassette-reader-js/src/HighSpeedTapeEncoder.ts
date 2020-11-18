@@ -115,6 +115,49 @@ export function wrapHighSpeed(bytes: Uint8Array): Uint8Array {
 }
 
 /**
+ * High-speed CAS files have start bits built-in. Strip these out because
+ * we re-insert them below when encoding. We could also remove the
+ * writing of start bits below, but we don't really know how many bits
+ * there are at the end that we shouldn't write.
+ */
+export function stripStartBits(inBytes: Uint8Array): Uint8Array {
+    // Find sync byte.
+    let headerSize: number | undefined = undefined;
+    for (let i = 0; i < inBytes.length; i++) {
+        if (inBytes[i] === SYNC_BYTE) {
+            headerSize = i + 1;
+            break;
+        }
+    }
+    if (headerSize === undefined) {
+        console.log("Can't find sync byte in high-speed CAS file");
+        return inBytes;
+    }
+
+    // Compute new size of array.
+    const outBytes = new Uint8Array(Math.floor(headerSize + (inBytes.length - headerSize)*8/9));
+
+    // First bytes, up to and including sync byte, don't have a start bit.
+    outBytes.set(inBytes.slice(0, headerSize));
+
+    // Strip start bit from the rest.
+    for (let i = headerSize; i < outBytes.length; i++) {
+        // Index of most-significant data bit.
+        const bitIndex =  headerSize*8 + (i - headerSize)*9 + 1;
+        const byteIndex = Math.floor(bitIndex/8);
+        const bitOffset = bitIndex%8;
+
+        let value = inBytes[byteIndex] << bitOffset;
+        if (bitOffset !== 0) {
+            value |= inBytes[byteIndex + 1] >> (8 - bitOffset);
+        }
+        outBytes[i] = value;
+    }
+
+    return outBytes;
+}
+
+/**
  * Encode the sequence of bytes as an array of audio samples for high-speed (1500 baud) cassettes.
  * @param bytes cas-style array of bytes, including 256 0x55 bytes and sync byte.
  * @param sampleRate number of samples per second in the generated audio.
@@ -150,19 +193,12 @@ export function encodeHighSpeed(bytes: Uint8Array, sampleRate: number): Int16Arr
 
     // Write program.
     let sawSyncByte = false;
-    let firstStartBit = false;
     for (const b of bytes) {
         if (!sawSyncByte && b === SYNC_BYTE) {
             sawSyncByte = true;
-            firstStartBit = true;
         } else if (sawSyncByte) {
             // Start bit.
-            if (firstStartBit) {
-                // samplesList.push(longZero);
-                firstStartBit = false;
-            } else {
-                samplesList.push(zero);
-            }
+            samplesList.push(zero);
         }
         addByte(samplesList, b, zero, one);
     }
