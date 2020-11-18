@@ -2,7 +2,9 @@
 // Handles uploading WAV files and decoding them.
 import {AudioFile} from "./AudioUtils";
 import {readWavFile} from "./WavFile";
-import {encodeLowSpeed} from "./LowSpeedTapeEncoder";
+import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
+import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
+import {wrapBasic} from "./Basic";
 
 export class Uploader {
     private readonly uploadInput: HTMLInputElement;
@@ -92,37 +94,16 @@ export class Uploader {
 
         let audioFile;
         if (pathname.toLowerCase().endsWith(".cas")) {
-            audioFile = new AudioFile(rate, encodeLowSpeed(new Uint8Array(arrayBuffer), rate));
+            let bytes = new Uint8Array(arrayBuffer);
+            const highSpeed = bytes.length > 0 && bytes[0] === 0x55;
+            const audio = highSpeed ? encodeHighSpeed(bytes, rate) : encodeLowSpeed(bytes, rate);
+            audioFile = new AudioFile(rate, audio);
         } else if (pathname.toLowerCase().endsWith(".bas")) {
-            // Add tape header.
-            const buffers = [
-                new Uint8Array(256),
-                new Uint8Array([0xA5, 0xD3, 0xD3, 0xD3]),
-                new Uint8Array(arrayBuffer),
-            ];
-            const allBytes = this.concatByteArrays(buffers);
-
-            audioFile = new AudioFile(rate, encodeLowSpeed(allBytes, rate));
+            audioFile = new AudioFile(rate, encodeLowSpeed(wrapLowSpeed(wrapBasic(new Uint8Array(arrayBuffer))), rate));
         } else {
             audioFile = readWavFile(arrayBuffer);
         }
         this.handleAudioBuffer(pathname, audioFile);
-    }
-
-    /**
-     * Concatenate a list of byte arrays into one.
-     */
-    private concatByteArrays(samplesList: Uint8Array[]): Uint8Array {
-        const length = samplesList.reduce((sum, samples) => sum + samples.length, 0);
-        const allBytes = new Uint8Array(length);
-
-        let offset = 0;
-        for (const samples of samplesList) {
-            allBytes.set(samples, offset);
-            offset += samples.length;
-        }
-
-        return allBytes;
     }
 
     private dropHandler(ev: DragEvent) {

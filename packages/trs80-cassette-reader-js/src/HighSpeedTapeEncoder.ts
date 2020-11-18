@@ -1,5 +1,8 @@
 
 import {concatAudio} from "./AudioUtils";
+import {concatByteArrays} from "./Utils";
+
+const SYNC_BYTE = 0x7F;
 
 /**
  * Generate one cycle of a sine wave.
@@ -99,30 +102,45 @@ function addByte(samplesList: Int16Array[], b: number, zero: Int16Array, one: In
 }
 
 /**
+ * Adds the header bytes necessary for writing high-speed cassettes.
+ */
+export function wrapHighSpeed(bytes: Uint8Array): Uint8Array {
+    // Add tape header.
+    const buffers = [
+        new Uint8Array(256).fill(0x55),
+        new Uint8Array([SYNC_BYTE]),
+        bytes,
+    ];
+    return concatByteArrays(buffers);
+}
+
+/**
  * Encode the sequence of bytes as an array of audio samples for high-speed (1500 baud) cassettes.
+ * @param bytes cas-style array of bytes, including 256 0x55 bytes and sync byte.
+ * @param sampleRate number of samples per second in the generated audio.
  */
 export function encodeHighSpeed(bytes: Uint8Array, sampleRate: number): Int16Array {
     // Length of a zero bit, in samples.
-    const ZERO_LENGTH = Math.round(0.00072*sampleRate);
+    const zeroLength = Math.round(0.00072*sampleRate);
 
     // Length of a one bit, in samples.
-    const ONE_LENGTH = Math.round(0.00034*sampleRate);
+    const oneLength = Math.round(0.00034*sampleRate);
 
     // Samples representing a zero bit.
-    const zero = generateCycle(ZERO_LENGTH);
+    const zero = generateCycle(zeroLength);
 
     // Samples representing a one bit.
-    const one = generateCycle(ONE_LENGTH);
+    const one = generateCycle(oneLength);
 
     // Samples representing a long zero bit. This is the first start bit
     // after the end of the header. It's 1 ms longer than a regular zero.
-    const LONG_ZERO = generateCycle(ZERO_LENGTH + sampleRate/1000);
+    const longZero = generateCycle(zeroLength + sampleRate/1000);
 
     // The final cycle in the entire waveform, which is necessary
     // to force that last negative-to-positive transition (and interrupt).
     // We could just use a simple half cycle here, but it's nicer to do
     // something like the original analog.
-    const FINAL_HALF_CYCLE = generateFinalHalfCycle(ZERO_LENGTH*3, zero);
+    const finalHalfCycle = generateFinalHalfCycle(zeroLength*3, zero);
 
     // List of samples.
     const samplesList: Int16Array[] = [];
@@ -130,28 +148,25 @@ export function encodeHighSpeed(bytes: Uint8Array, sampleRate: number): Int16Arr
     // Start with half a second of silence.
     samplesList.push(new Int16Array(sampleRate / 2));
 
-    // Header of 0x55.
-    for (let i = 0; i < 256; i++) {
-        addByte(samplesList, 0x55, zero, one);
-    }
-    // End of header.
-    addByte(samplesList, 0x7F, zero, one);
-
     // Write program.
-    let firstStartBit = true;
+    let sawSyncByte = false;
     for (const b of bytes) {
         // Start bit.
-        if (firstStartBit) {
-            samplesList.push(LONG_ZERO);
-            firstStartBit = false;
+        if (!sawSyncByte && b === SYNC_BYTE) {
+            samplesList.push(longZero);
+            sawSyncByte = true;
         } else {
             samplesList.push(zero);
         }
         addByte(samplesList, b, zero, one);
     }
 
+    if (!sawSyncByte) {
+        console.log("Warning: Didn't see sync byte when generating high-speed audio");
+    }
+
     // Finish off the last cycle, so that it generates an interrupt.
-    samplesList.push(FINAL_HALF_CYCLE);
+    samplesList.push(finalHalfCycle);
 
     // End with half a second of silence.
     samplesList.push(new Int16Array(sampleRate / 2));

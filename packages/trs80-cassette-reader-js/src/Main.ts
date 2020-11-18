@@ -6,7 +6,7 @@ import {Uploader} from "./Uploader";
 import Split from "split.js";
 import {AudioFile} from "./AudioUtils";
 import {clearElement, flashNode} from "./Utils";
-import {CssScreen} from "trs80-emulator";
+import {CanvasScreen} from "trs80-emulator";
 import {TestFile, TestType} from "./Test";
 import {readWavFile} from "./WavFile";
 import {WaveformDisplay} from "./WaveformDisplay";
@@ -87,7 +87,7 @@ function populateBrowseScreen(browseScreen: HTMLElement): void {
             if (programData.screenshot) {
                 const div = document.createElement("div");
                 browseScreen.appendChild(div);
-                const screen = new CssScreen(div);
+                const screen = new CanvasScreen(div, false);
                 screen.displayScreenshot(programData.screenshot);
             }
         }

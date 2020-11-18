@@ -1,8 +1,10 @@
 
 // Tools for decoding Basic programs.
 
-import {pad} from "./Utils";
+import {concatByteArrays, pad} from "./Utils";
 import {ByteReader,EOF} from "./ByteReader";
+
+const BASIC_HEADER_BYTE = 0xD3;
 
 // Starts at 0x80.
 const TOKENS = [
@@ -86,6 +88,17 @@ export class BasicElement {
     }
 }
 
+/**
+ * Adds the header bytes necessary for writing Basic cassettes.
+ */
+export function wrapBasic(bytes: Uint8Array): Uint8Array {
+    // Add Basic header.
+    const buffers = [
+        new Uint8Array([BASIC_HEADER_BYTE, BASIC_HEADER_BYTE, BASIC_HEADER_BYTE]),
+        bytes,
+    ];
+    return concatByteArrays(buffers);
+}
 
 /**
  * Decode a tokenized Basic program.
@@ -99,7 +112,7 @@ export function fromTokenized(bytes: Uint8Array): BasicElement[] {
     // Map from byte address to BasicElement for that byte.
     const elements: BasicElement[] = [];
 
-    if (b.read() !== 0xD3 || b.read() !== 0xD3 || b.read() !== 0xD3) {
+    if (b.read() !== BASIC_HEADER_BYTE || b.read() !== BASIC_HEADER_BYTE || b.read() !== BASIC_HEADER_BYTE) {
         elements.push(new BasicElement(undefined, "Basic: missing magic -- not a BASIC file.", ElementType.ERROR));
         return elements;
     }

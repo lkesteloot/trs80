@@ -5,8 +5,9 @@ import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
 import {TapeDecoder} from "./TapeDecoder";
-import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
+import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder";
 import {LowSpeedAnteoTapeDecoder} from "./LowSpeedAnteoTapeDecoder";
+import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
 
 class Transition {
     public candidate: Program;
@@ -123,7 +124,7 @@ export class Decoder {
                 }
                 candidate.trackNumber = trackNumber;
                 candidate.copyNumber = copyNumber;
-                candidate.setReconstructedSamples(this.encodeHighSpeed(candidate.binary));
+                candidate.setReconstructedSamples(this.reencode(candidate.binary));
                 this.tape.addProgram(candidate);
 
                 endOfLastProgram = candidate.endFrame;
@@ -132,25 +133,32 @@ export class Decoder {
     }
 
     /**
-     * Tapes a binary (potentially read at low speed) and generates a clean high-speed audio.
+     * Re-encodes a binary as a clean low-speed audio.
      */
-    private encodeHighSpeed(binary: Uint8Array): Int16Array {
-        // Low-speed programs end in two 0x00, but high-speed programs
-        // end in three 0x00. Add the additional 0x00 since we're
-        // saving high-speed.
-        let highSpeedBytes;
-        if (binary.length >= 3 &&
-            binary[binary.length - 1] === 0x00 &&
-            binary[binary.length - 2] === 0x00 &&
-            binary[binary.length - 3] !== 0x00) {
-
-            highSpeedBytes = new Uint8Array(binary.length + 1);
-            highSpeedBytes.set(binary);
-            highSpeedBytes[highSpeedBytes.length - 1] = 0x00;
+    private reencode(binary: Uint8Array): Int16Array {
+        // Here we could re-encode in either low speed or high speed. Do low speed so that
+        // the audio is usable on a Model I.
+        if (true) {
+            return encodeLowSpeed(wrapLowSpeed(binary), this.tape.sampleRate);
         } else {
-            highSpeedBytes = binary;
-        }
+            // Low-speed programs end in two 0x00, but high-speed programs
+            // end in three 0x00. Add the additional 0x00 since we're
+            // saving high-speed.
+            // Note: I think that's true of Basic programs, but maybe not of other programs.
+            let highSpeedBytes;
+            if (binary.length >= 3 &&
+                binary[binary.length - 1] === 0x00 &&
+                binary[binary.length - 2] === 0x00 &&
+                binary[binary.length - 3] !== 0x00) {
 
-        return encodeHighSpeed(highSpeedBytes, this.tape.sampleRate);
+                highSpeedBytes = new Uint8Array(binary.length + 1);
+                highSpeedBytes.set(binary);
+                highSpeedBytes[highSpeedBytes.length - 1] = 0x00;
+            } else {
+                highSpeedBytes = binary;
+            }
+
+            return encodeHighSpeed(wrapHighSpeed(highSpeedBytes), this.tape.sampleRate);
+        }
     }
 }

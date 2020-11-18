@@ -78,3 +78,20 @@ export function flashNode(node: HTMLElement): void {
     updateOpacity();
     node.appendChild(overlay);
 }
+
+
+/**
+ * Concatenate a list of byte arrays into one.
+ */
+export function concatByteArrays(samplesList: Uint8Array[]): Uint8Array {
+    const length = samplesList.reduce((sum, samples) => sum + samples.length, 0);
+    const allBytes = new Uint8Array(length);
+
+    let offset = 0;
+    for (const samples of samplesList) {
+        allBytes.set(samples, offset);
+        offset += samples.length;
+    }
+
+    return allBytes;
+}
