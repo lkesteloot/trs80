@@ -5,6 +5,7 @@ import {ByteData} from "./ByteData";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {isSystemProgram} from "./SystemProgram";
 import {ProgramAnnotation} from "./Annotations";
+import {BitType} from "./BitType";
 
 export class Program {
     public trackNumber: number;
@@ -198,5 +199,20 @@ export class Program {
             this.endFrame < candidate.endFrame &&
             (this.startFrame > candidate.startFrame + marginFrames ||
                 this.endFrame < candidate.endFrame - marginFrames);
+    }
+
+    /**
+     * Return the number of bit errors we've found. This is not super cheap, cache if you need it a lot.
+     */
+    public countBitErrors(): number {
+        let count = 0;
+
+        for (const bitData of this.bitData) {
+            if (bitData.bitType === BitType.BAD) {
+                count += 1;
+            }
+        }
+
+        return count;
     }
 }

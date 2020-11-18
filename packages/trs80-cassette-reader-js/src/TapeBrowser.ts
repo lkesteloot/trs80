@@ -386,6 +386,7 @@ export class TapeBrowser {
             });
         }
         {
+            // Show note.
             const td = document.createElement("td");
             td.classList.add("value");
 
@@ -745,6 +746,10 @@ export class TapeBrowser {
             let metadataLabel = frameToTimestamp(program.startFrame, this.tape.sampleRate, true) + " to " +
                 frameToTimestamp(program.endFrame, this.tape.sampleRate, true) + " (" +
                 frameToTimestamp(program.endFrame - program.startFrame, this.tape.sampleRate, true) + ")";
+            const bitErrorCount = program.countBitErrors();
+            if (bitErrorCount > 0) {
+                metadataLabel += ", " + bitErrorCount + " bit error" + (bitErrorCount === 1 ? "" : "s");
+            }
             let metadataPane = this.makeMetadataPane(program, basicPane, systemPane, edtasmPane, undefined);
             addPane(metadataLabel, metadataPane);
             screenshotClickAction.set(program, () => {

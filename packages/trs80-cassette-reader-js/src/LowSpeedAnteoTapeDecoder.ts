@@ -118,7 +118,11 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
      * Load the program starting at the start frame.
      */
     private loadData(startFrame: number, waveformAnnotations: WaveformAnnotation[]): Program {
-        let recentBits = 0;
+        // We want a sequence of 0 bit followed by the sync byte, so initialize our recent bits to
+        // all ones so that if we happen to land at the beginning of a sync byte (preceded by
+        // non-zeros) we don't wrongly detect it. Force all these 1s to get flushed out by
+        // real zeros.
+        let recentBits = 0xFFFFFFFF;
         let frame = startFrame;
         let foundSyncByte = false;
         let bitCount = 0;

@@ -5,7 +5,7 @@ import {TapeDecoder} from "./TapeDecoder";
 import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
 import {Program} from "./Program";
-import {WaveformAnnotation} from "./Annotations";
+import {LabelAnnotation, WaveformAnnotation} from "./Annotations";
 
 // What distance away from 0 counts as "positive" (or, when negative, "negative").
 const THRESHOLD = 500/32768.0;
@@ -41,7 +41,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
         let programStartFrame = -1;
 
         for (let frame = startFrame; frame < samples.length; frame++) {
-            this.handleSample(frame);
+            this.handleSample(frame, waveformAnnotationnnotations);
             if (this.state === TapeDecoderState.DETECTED && programStartFrame === -1) {
                 programStartFrame = frame;
             }
@@ -54,7 +54,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
         return undefined;
     }
 
-    private handleSample(frame: number) {
+    private handleSample(frame: number, waveformAnnotations: WaveformAnnotation[]) {
         const samples = this.tape.lowSpeedSamples.samplesList[0];
         const sample = samples[frame];
 
@@ -73,27 +73,30 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
 
                     // Bits are MSb to LSb.
                     this.recentBits = (this.recentBits << 1) | (bit ? 1 : 0);
+                    this.bitCount += 1;
+
+                    let bitType: BitType;
+                    if (this.bitCount === 1 && this.state === TapeDecoderState.DETECTED) {
+                        // Just got a start bit. Must be zero.
+                        if (bit) {
+                            bitType = BitType.BAD;
+                        } else {
+                            bitType = BitType.START;
+                        }
+                    } else {
+                        bitType = bit ? BitType.ONE : BitType.ZERO;
+                    }
+                    this.bits.push(new BitData(frame - this.cycleSize, frame, bitType));
 
                     // If we're in the program, add the bit to our stream.
                     if (this.state === TapeDecoderState.DETECTED) {
-                        this.bitCount += 1;
-
-                        let bitType: BitType;
-                        if (this.bitCount === 1) {
-                            // Just got a start bit. Must be zero.
-                            if (bit) {
-                                bitType = BitType.BAD;
-                            } else {
-                                bitType = BitType.START;
-                            }
-                        } else {
-                            bitType = bit ? BitType.ONE : BitType.ZERO;
-                        }
-                        this.bits.push(new BitData(frame - this.cycleSize, frame, bitType));
-
                         // Got enough bits for a byte (including the start bit).
                         if (this.bitCount === 9) {
-                            this.programBytes.push(this.recentBits & 0xFF);
+                            let byteValue = this.recentBits & 0xFF;
+                            this.programBytes.push(byteValue);
+                            this.byteData.push(new ByteData(byteValue,
+                                this.bits[this.bits.length - 8].startFrame,
+                                this.bits[this.bits.length - 1].endFrame));
                             this.bitCount = 0;
                         }
                     } else {
@@ -104,6 +107,11 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
                             // No start bit on first byte.
                             this.bitCount = 1;
                             this.recentBits = 0;
+
+                            waveformAnnotations.push(new LabelAnnotation("Sync",
+                                this.bits[this.bits.length - 8].startFrame,
+                                this.bits[this.bits.length - 1].endFrame,
+                                false));
                         }
                     }
                 } else if (this.state === TapeDecoderState.DETECTED &&

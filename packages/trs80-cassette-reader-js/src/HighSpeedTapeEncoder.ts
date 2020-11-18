@@ -150,13 +150,19 @@ export function encodeHighSpeed(bytes: Uint8Array, sampleRate: number): Int16Arr
 
     // Write program.
     let sawSyncByte = false;
+    let firstStartBit = false;
     for (const b of bytes) {
-        // Start bit.
         if (!sawSyncByte && b === SYNC_BYTE) {
-            samplesList.push(longZero);
             sawSyncByte = true;
-        } else {
-            samplesList.push(zero);
+            firstStartBit = true;
+        } else if (sawSyncByte) {
+            // Start bit.
+            if (firstStartBit) {
+                // samplesList.push(longZero);
+                firstStartBit = false;
+            } else {
+                samplesList.push(zero);
+            }
         }
         addByte(samplesList, b, zero, one);
     }
