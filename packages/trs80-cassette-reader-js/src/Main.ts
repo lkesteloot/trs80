@@ -199,6 +199,23 @@ function escapeHtml(unsafe: string): string {
         .replace(/'/g, "&#039;");
 }
 
+/**
+ * Makes a pill to show pass or fail for a test.
+ */
+function makePassFailLabel(pass: boolean): HTMLElement {
+    const result = document.createElement("span");
+    result.classList.add("test_result");
+    if (pass) {
+        result.innerText = "Pass";
+        result.classList.add("test_pass");
+    } else {
+        result.innerText = "Fail";
+        result.classList.add("test_fail");
+    }
+
+    return result;
+}
+
 function runTests(testFile: TestFile): void {
     const screen = showScreen("test_screen");
     clearElement(screen);
@@ -214,7 +231,12 @@ function runTests(testFile: TestFile): void {
 
         const url = new URL(test.wavUrl, testFile.url).href;
         fetch(url, {cache: "reload"})
-            .then(req => req.arrayBuffer())
+            .then(response => {
+                if (response.ok) {
+                    return response.arrayBuffer();
+                }
+                throw new Error(response.statusText);
+            })
             .then(arrayBuffer => {
                 const wavFile = readWavFile(arrayBuffer);
                 const tape = new Tape(url, wavFile);
@@ -287,17 +309,18 @@ function runTests(testFile: TestFile): void {
                     }
                 }
 
-                // Show pass/fail label.
-                const result = document.createElement("span");
-                result.classList.add("test_result");
-                if (pass) {
-                    result.innerText = "Pass";
-                    result.classList.add("test_pass");
-                } else {
-                    result.innerText = "Fail";
-                    result.classList.add("test_fail");
-                }
-                header.appendChild(result);
+                header.appendChild(makePassFailLabel(pass));
+            })
+            .catch(reason => {
+                const title = document.createElement("span");
+                title.innerText = test.name + " (" + reason + ")";
+
+                const header = document.createElement("div");
+                header.appendChild(title);
+                // header.classList.add("test_header");
+                testResult.append(header);
+
+                header.appendChild(makePassFailLabel(false));
             });
     }
 }
