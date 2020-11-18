@@ -1,6 +1,6 @@
-# TRS-80 Model III emulator
+# TRS-80 Model I and Model III emulator
 
-This is a TypeScript-based TRS-80 Model III emulator.
+This is a TypeScript-based TRS-80 Model I and Model III emulator.
 [Try it in your browser](https://lkesteloot.github.io/trs80-emulator/).
 
 To run a local build:
