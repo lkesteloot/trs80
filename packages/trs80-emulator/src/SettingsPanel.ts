@@ -22,7 +22,13 @@ const GLOBAL_CSS = `
     top: 0;
     bottom: 0;
     opacity: 0;
+    visibility: hidden;
     transition: opacity .20s ease-in-out;
+}
+
+.${gPanelCssClass}.${gShownCssClass} {
+    opacity: 1;
+    visibility: visible;
 }
 
 .${gPanelCssClass} > div {
@@ -38,10 +44,6 @@ const GLOBAL_CSS = `
     line-height: normal;
     margin: 20px 0;
     padding: 10px 30px;
-}
-
-.${gPanelCssClass}.${gShownCssClass} {
-    opacity: 1;
 }
 
 .${gPanelCssClass} h1 {
@@ -180,7 +182,7 @@ class DisplayedOption {
 /**
  * Our full configuration options.
  */
-const OPTION_BLOCKS: OptionBlock[] = [
+const HARDWARE_OPTION_BLOCKS: OptionBlock[] = [
     {
         title: "Model",
         isChecked: (modelType: ModelType, config: Config) => modelType === config.modelType,
@@ -249,6 +251,8 @@ const OPTION_BLOCKS: OptionBlock[] = [
             },
         ]
     },
+];
+const VIEW_OPTION_BLOCKS: OptionBlock[] = [
     {
         title: "Phosphor",
         isChecked: (phosphor: Phosphor, config: Config) => phosphor === config.phosphor,
@@ -270,6 +274,26 @@ const OPTION_BLOCKS: OptionBlock[] = [
     },
 ];
 
+// Type of panel to show.
+export enum PanelType {
+    // Model, RAM, etc.
+    HARDWARE,
+    // Phosphor color, background, etc.
+    VIEW,
+}
+
+// Get the right options blocks for the panel type.
+function optionBlocksForPanelType(panelType: PanelType): OptionBlock[] {
+    switch (panelType) {
+        case PanelType.HARDWARE:
+        default:
+            return HARDWARE_OPTION_BLOCKS;
+
+        case PanelType.VIEW:
+            return VIEW_OPTION_BLOCKS;
+    }
+}
+
 let gRadioButtonCounter = 1;
 
 /**
@@ -278,12 +302,14 @@ let gRadioButtonCounter = 1;
 export class SettingsPanel {
     public onOpen: (() => void) | undefined;
     public onClose: (() => void) | undefined;
+    public readonly panelType: PanelType;
     private readonly trs80: Trs80;
     private readonly panelNode: HTMLElement;
     private readonly displayedOptions: DisplayedOption[] = [];
     private readonly acceptButton: HTMLElement;
 
-    constructor(screenNode: HTMLElement, trs80: Trs80) {
+    constructor(screenNode: HTMLElement, trs80: Trs80, panelType: PanelType) {
+        this.panelType = panelType;
         this.trs80 = trs80;
 
         // Make global CSS if necessary.
@@ -298,7 +324,7 @@ export class SettingsPanel {
         const div = document.createElement("div");
         this.panelNode.appendChild(div);
 
-        for (const block of OPTION_BLOCKS) {
+        for (const block of optionBlocksForPanelType(panelType)) {
             const name = gCssPrefix + "-" + gRadioButtonCounter++;
 
             const blockDiv = document.createElement("div");
@@ -419,8 +445,7 @@ export class SettingsPanel {
      * Make a new config from the user's currently selected options.
      */
     private getConfig(): Config {
-        // Any config works here, we override it below.
-        let config = Config.makeDefault();
+        let config = this.trs80.getConfig();
 
         for (const displayedOption of this.displayedOptions) {
             if (displayedOption.input.checked) {

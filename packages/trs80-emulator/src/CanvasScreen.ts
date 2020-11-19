@@ -197,7 +197,10 @@ export class CanvasScreen extends Trs80Screen {
      */
     private scheduleUpdateThumbnail(): void {
         this.cancelUpdateThumbnail();
-        this.updateThumbnailTimeout = window.setTimeout(() => this.updateThumbnail(), UPDATE_THUMBNAIL_TIMEOUT_MS);
+        this.updateThumbnailTimeout = window.setTimeout(() => {
+            this.updateThumbnailTimeout = undefined;
+            this.updateThumbnail();
+        }, UPDATE_THUMBNAIL_TIMEOUT_MS);
     }
 
     /**
