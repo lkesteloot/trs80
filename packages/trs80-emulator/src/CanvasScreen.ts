@@ -13,6 +13,7 @@ const BASE_CSS = `
     padding: 10px;
     background-color: #334843;
     border-radius: 8px;
+    transition: background-color .5s ease-in-out;
 }
 
 .${gCssPrefix}.${gBlackBackgroundClass} {

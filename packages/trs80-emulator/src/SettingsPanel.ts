@@ -36,7 +36,7 @@ const GLOBAL_CSS = `
     flex-direction: column;
     justify-content: space-between;
     
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(40, 40, 40, 0.8);
     border-radius: 15px;
     color: #ccc;
     font-family: sans-serif;
