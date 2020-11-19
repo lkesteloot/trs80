@@ -13,6 +13,7 @@ const gOptionsClass = gCssPrefix + "-options";
 const gButtonsClass = gCssPrefix + "-buttons";
 const gColorButtonClass = gCssPrefix + "-color-button";
 const gDarkColorButtonClass = gCssPrefix + "-dark-color-button";
+const gAcceptButtonColor = "#449944";
 
 const GLOBAL_CSS = `
 .${gPanelCssClass} {
@@ -149,7 +150,7 @@ const GLOBAL_CSS = `
 .${gPanelCssClass} a.${gAcceptButtonCssClass} {
     font-weight: bold;
     color: #eee;
-    background-color: #449944;
+    background-color: ${gAcceptButtonColor};
 }
 
 .${gPanelCssClass} a.${gAcceptButtonCssClass}:hover {
@@ -301,10 +302,21 @@ const VIEW_OPTION_BLOCKS: OptionBlock[] = [
         title: "Phosphor",
         isChecked: (phosphor: Phosphor, config: Config) => phosphor === config.phosphor,
         updateConfig: (phosphor: Phosphor, config: Config) => config.withPhosphor(phosphor),
-        options: [Phosphor.WHITE, Phosphor.GREEN, Phosphor.AMBER].map(p => ({
-            label: rgbToCss(adjustColor(phosphorToRgb(p), 0.85)),
-            value: p,
-        })),
+        options: [
+            {
+                label: rgbToCss(adjustColor(phosphorToRgb(Phosphor.WHITE), 0.8)),
+                value: Phosphor.WHITE,
+            },
+            {
+                // Cheat and use the green from the OK button so that the two greens don't clash.
+                label: gAcceptButtonColor,
+                value: Phosphor.GREEN,
+            },
+            {
+                label: rgbToCss(adjustColor(phosphorToRgb(Phosphor.AMBER), 0.8)),
+                value: Phosphor.AMBER,
+            },
+        ]
     },
     {
         title: "Background",
@@ -375,7 +387,7 @@ function isDarkColor(color: string): boolean {
 
     console.log(color, red, grn, blu, gray);
 
-    return gray < 128;
+    return gray < 110;
 }
 
 let gRadioButtonCounter = 1;
