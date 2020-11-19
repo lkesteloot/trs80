@@ -1,5 +1,5 @@
 import {CSS_PREFIX} from "./Utils";
-import {BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize} from "./Config";
+import {Background, BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize, ScanLines} from "./Config";
 import {Trs80} from "./Trs80";
 
 const gCssPrefix = CSS_PREFIX + "-settings-panel";
@@ -269,6 +269,36 @@ const VIEW_OPTION_BLOCKS: OptionBlock[] = [
             {
                 label: "Amber",
                 value: Phosphor.AMBER,
+            },
+        ]
+    },
+    {
+        title: "Background",
+        isChecked: (background: Background, config: Config) => background === config.background,
+        updateConfig: (background: Background, config: Config) => config.withBackground(background),
+        options: [
+            {
+                label: "Black",
+                value: Background.BLACK,
+            },
+            {
+                label: "Authentic",
+                value: Background.AUTHENTIC,
+            },
+        ]
+    },
+    {
+        title: "Scan Lines",
+        isChecked: (scanLines: ScanLines, config: Config) => scanLines === config.scanLines,
+        updateConfig: (scanLines: ScanLines, config: Config) => config.withScanLines(scanLines),
+        options: [
+            {
+                label: "Off",
+                value: ScanLines.OFF,
+            },
+            {
+                label: "On",
+                value: ScanLines.ON,
             },
         ]
     },

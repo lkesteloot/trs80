@@ -43,6 +43,22 @@ export enum Phosphor {
 }
 
 /**
+ * Background color.
+ */
+export enum Background {
+    BLACK,
+    AUTHENTIC,
+}
+
+/**
+ * Whether to display scan lines.
+ */
+export enum ScanLines {
+    OFF,
+    ON,
+}
+
+/**
  * A specific configuration of model and RAM.
  */
 export class Config {
@@ -51,40 +67,55 @@ export class Config {
     public readonly cgChip: CGChip;
     public readonly ramSize: RamSize;
     public readonly phosphor: Phosphor;
+    public readonly background: Background;
+    public readonly scanLines: ScanLines;
 
-    constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize, phosphor: Phosphor) {
+    constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize,
+                phosphor: Phosphor, background: Background, scanLines: ScanLines) {
+
         this.modelType = modelType;
         this.basicLevel = basicLevel;
         this.cgChip = cgChip;
         this.ramSize = ramSize;
         this.phosphor = phosphor;
+        this.background = background;
+        this.scanLines = scanLines;
     }
 
     public withModelType(modelType: ModelType): Config {
-        return new Config(modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor);
+        return new Config(modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines);
     }
 
     public withBasicLevel(basicLevel: BasicLevel): Config {
-        return new Config(this.modelType, basicLevel, this.cgChip, this.ramSize, this.phosphor);
+        return new Config(this.modelType, basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines);
     }
 
     public withCGChip(cgChip: CGChip): Config {
-        return new Config(this.modelType, this.basicLevel, cgChip, this.ramSize, this.phosphor);
+        return new Config(this.modelType, this.basicLevel, cgChip, this.ramSize, this.phosphor, this.background, this.scanLines);
     }
 
     public withRamSize(ramSize: RamSize): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, ramSize, this.phosphor);
+        return new Config(this.modelType, this.basicLevel, this.cgChip, ramSize, this.phosphor, this.background, this.scanLines);
     }
 
     public withPhosphor(phosphor: Phosphor): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, phosphor);
+        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, phosphor, this.background, this.scanLines);
+    }
+
+    public withBackground(background: Background): Config {
+        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, background, this.scanLines);
+    }
+
+    public withScanLines(scanLines: ScanLines): Config {
+        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, scanLines);
     }
 
     /**
      * Make a default configuration.
      */
     public static makeDefault(): Config {
-        return new Config(ModelType.MODEL3, BasicLevel.LEVEL2, CGChip.LOWER_CASE, RamSize.RAM_48_KB, Phosphor.WHITE);
+        return new Config(ModelType.MODEL3, BasicLevel.LEVEL2, CGChip.LOWER_CASE, RamSize.RAM_48_KB,
+            Phosphor.WHITE, Background.AUTHENTIC, ScanLines.OFF);
     }
 
     /**

@@ -1,17 +1,22 @@
 import {Trs80Screen} from "./Trs80Screen";
 import {clearElement, CSS_PREFIX, SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts";
-import {CGChip, Config, ModelType, Phosphor} from "./Config";
+import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "./Config";
 
-const cssPrefix = CSS_PREFIX + "-canvas-screen";
+const gCssPrefix = CSS_PREFIX + "-canvas-screen";
+const gBlackBackgroundClass = gCssPrefix + "-black-background";
 
 const BASE_CSS = `
 
-.${cssPrefix} {
+.${gCssPrefix} {
     display: inline-block;
     padding: 10px;
     background-color: #334843;
     border-radius: 8px;
+}
+
+.${gCssPrefix}.${gBlackBackgroundClass} {
+    background-color: black;
 }
 
 `;
@@ -20,7 +25,7 @@ const BASE_CSS = `
  * Make a global stylesheet for all TRS-80 emulators on this page. Idempotent.
  */
 export function configureStylesheet(): void {
-    const styleId = cssPrefix;
+    const styleId = gCssPrefix;
     if (document.getElementById(styleId) !== null) {
         // Already created.
         return;
@@ -60,7 +65,7 @@ export class CanvasScreen extends Trs80Screen {
 
         // Make our own sub-node that we have control over.
         this.node = document.createElement("div");
-        this.node.classList.add(cssPrefix);
+        this.node.classList.add(gCssPrefix);
         parentNode.appendChild(this.node);
 
         this.canvas = document.createElement("canvas");
@@ -127,9 +132,20 @@ export class CanvasScreen extends Trs80Screen {
                 break;
         }
 
+        switch (this.config.background) {
+            case Background.BLACK:
+                this.node.classList.add(gBlackBackgroundClass);
+                break;
+
+            case Background.AUTHENTIC:
+            default:
+                this.node.classList.remove(gBlackBackgroundClass);
+                break;
+        }
+
         const glyphOptions: GlyphOptions = {
             color: color,
-            scanlines: false,
+            scanLines: this.config.scanLines === ScanLines.ON,
         };
         for (let i = 0; i < 256; i++) {
             this.glyphs[i] = font.makeImage(i, this.isExpandedCharacters(), glyphOptions);

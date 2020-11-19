@@ -592,7 +592,7 @@ export interface GlyphOptions {
     /**
      * Whether to draw fake scanlines.
      */
-    scanlines: boolean;
+    scanLines: boolean;
 }
 
 /**
@@ -636,7 +636,7 @@ export class Font {
             const pixel = (byte & (1 << bit)) !== 0;
             if (pixel) {
                 const pixelOffset = (y * canvas.width + x) * 4;
-                const alpha = options.scanlines ? (y % 2 == 0 ? 0xFF : 0xAA) : 0xFF;
+                const alpha = options.scanLines ? (y % 2 == 0 ? 0xFF : 0xAA) : 0xFF;
 
                 imageData.data[pixelOffset + 0] = options.color[0];
                 imageData.data[pixelOffset + 1] = options.color[1];
