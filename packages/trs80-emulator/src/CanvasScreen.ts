@@ -6,18 +6,21 @@ import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "./Conf
 const gCssPrefix = CSS_PREFIX + "-canvas-screen";
 const gBlackBackgroundClass = gCssPrefix + "-black-background";
 
+export const AUTHENTIC_BACKGROUND = "#334843";
+export const BLACK_BACKGROUND = "#000000";
+
 const BASE_CSS = `
 
 .${gCssPrefix} {
     display: inline-block;
     padding: 10px;
-    background-color: #334843;
+    background-color: ${AUTHENTIC_BACKGROUND};
     border-radius: 8px;
     transition: background-color .5s ease-in-out;
 }
 
 .${gCssPrefix}.${gBlackBackgroundClass} {
-    background-color: black;
+    background-color: ${BLACK_BACKGROUND};
 }
 
 `;
@@ -44,6 +47,21 @@ const UPDATE_THUMBNAIL_TIMEOUT_MS = 0;
 const WHITE_PHOSPHOR = [230, 231, 252];
 const AMBER_PHOSPHOR = [247, 190, 64];
 const GREEN_PHOSPHOR = [122, 244, 96];
+
+// Gets an RGB array (0-255) for a phosphor.
+export function phosphorToRgb(phosphor: Phosphor): number[] {
+    switch (phosphor) {
+        case Phosphor.WHITE:
+        default:
+            return WHITE_PHOSPHOR;
+
+        case Phosphor.GREEN:
+            return GREEN_PHOSPHOR;
+
+        case Phosphor.AMBER:
+            return AMBER_PHOSPHOR;
+    }
+}
 
 /**
  * TRS-80 screen based on an HTML canvas element.
@@ -100,20 +118,6 @@ export class CanvasScreen extends Trs80Screen {
      * Update the font and screen from the config and other state.
      */
     private updateFromConfig(): void {
-        let color;
-        switch (this.config.phosphor) {
-            case Phosphor.WHITE:
-            default:
-                color = WHITE_PHOSPHOR;
-                break;
-            case Phosphor.GREEN:
-                color = GREEN_PHOSPHOR;
-                break;
-            case Phosphor.AMBER:
-                color = AMBER_PHOSPHOR;
-                break;
-        }
-
         let font;
         switch (this.config.cgChip) {
             case CGChip.ORIGINAL:
@@ -145,7 +149,7 @@ export class CanvasScreen extends Trs80Screen {
         }
 
         const glyphOptions: GlyphOptions = {
-            color: color,
+            color: phosphorToRgb(this.config.phosphor),
             scanLines: this.config.scanLines === ScanLines.ON,
         };
         for (let i = 0; i < 256; i++) {

@@ -1,6 +1,7 @@
 import {CSS_PREFIX} from "./Utils";
 import {Background, BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize, ScanLines} from "./Config";
 import {Trs80} from "./Trs80";
+import {AUTHENTIC_BACKGROUND, BLACK_BACKGROUND, phosphorToRgb} from "./CanvasScreen";
 
 const gCssPrefix = CSS_PREFIX + "-settings-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
@@ -10,6 +11,8 @@ const gAcceptButtonCssClass = gCssPrefix + "-accept";
 const gRebootButtonCssClass = gCssPrefix + "-reboot";
 const gOptionsClass = gCssPrefix + "-options";
 const gButtonsClass = gCssPrefix + "-buttons";
+const gColorButtonClass = gCssPrefix + "-color-button";
+const gDarkColorButtonClass = gCssPrefix + "-dark-color-button";
 
 const GLOBAL_CSS = `
 .${gPanelCssClass} {
@@ -44,6 +47,7 @@ const GLOBAL_CSS = `
     line-height: normal;
     margin: 20px 0;
     padding: 10px 30px;
+    min-width: 200px;
 }
 
 .${gPanelCssClass} h1 {
@@ -56,6 +60,7 @@ const GLOBAL_CSS = `
 
 .${gPanelCssClass} .${gOptionsClass} {
     display: flex;
+    justify-content: center;
 }
 
 .${gPanelCssClass} input[type=radio] {
@@ -72,6 +77,35 @@ const GLOBAL_CSS = `
     border-radius: 3px;
     background-color: #44443A;
     white-space: nowrap;
+}
+
+.${gPanelCssClass} input[type=radio] + label.${gColorButtonClass} {
+    flex-grow: 0;
+    flex-basis: auto;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    color: transparent;
+    transition: color .20s ease-in-out;
+}
+
+.${gPanelCssClass} input[type=radio] + label.${gColorButtonClass}.${gDarkColorButtonClass} {
+    border: solid 2px #ccc;
+}
+
+.${gPanelCssClass} input[type=radio]:checked + label.${gColorButtonClass}::after {
+    content: "✓";
+    font-size: 20px;
+}
+
+.${gPanelCssClass} input[type=radio]:checked + label.${gColorButtonClass} {
+    color: black;
+}
+
+.${gPanelCssClass} input[type=radio]:checked + label.${gColorButtonClass}.${gDarkColorButtonClass} {
+    color: #ccc;
 }
 
 .${gPanelCssClass} input[type=radio] + label:first-of-type {
@@ -179,6 +213,16 @@ class DisplayedOption {
     }
 }
 
+// Convert RGB array (0-255) to a CSS string.
+function rgbToCss(color: number[]): string {
+    return "#" + color.map(c => c.toString(16).padStart(2, "0").toUpperCase()).join("");
+}
+
+// Multiplies an RGB (0-255) color by a factor.
+function adjustColor(color: number[], factor: number): number[] {
+    return color.map(c => Math.max(0, Math.min(255, Math.round(c*factor))));
+}
+
 /**
  * Our full configuration options.
  */
@@ -257,20 +301,10 @@ const VIEW_OPTION_BLOCKS: OptionBlock[] = [
         title: "Phosphor",
         isChecked: (phosphor: Phosphor, config: Config) => phosphor === config.phosphor,
         updateConfig: (phosphor: Phosphor, config: Config) => config.withPhosphor(phosphor),
-        options: [
-            {
-                label: "White",
-                value: Phosphor.WHITE,
-            },
-            {
-                label: "Green",
-                value: Phosphor.GREEN,
-            },
-            {
-                label: "Amber",
-                value: Phosphor.AMBER,
-            },
-        ]
+        options: [Phosphor.WHITE, Phosphor.GREEN, Phosphor.AMBER].map(p => ({
+            label: rgbToCss(adjustColor(phosphorToRgb(p), 0.85)),
+            value: p,
+        })),
     },
     {
         title: "Background",
@@ -278,11 +312,11 @@ const VIEW_OPTION_BLOCKS: OptionBlock[] = [
         updateConfig: (background: Background, config: Config) => config.withBackground(background),
         options: [
             {
-                label: "Black",
+                label: BLACK_BACKGROUND,
                 value: Background.BLACK,
             },
             {
-                label: "Authentic",
+                label: AUTHENTIC_BACKGROUND,
                 value: Background.AUTHENTIC,
             },
         ]
@@ -322,6 +356,26 @@ function optionBlocksForPanelType(panelType: PanelType): OptionBlock[] {
         case PanelType.VIEW:
             return VIEW_OPTION_BLOCKS;
     }
+}
+
+/**
+ * Whether the given CSS color is dark.
+ *
+ * @param color an CSS color in the form "#rrggbb".
+ */
+function isDarkColor(color: string): boolean {
+    if (!color.startsWith("#") || color.length !== 7) {
+        throw new Error("isDarkColor: not a color (" + color + ")");
+    }
+
+    const red = parseInt(color.substr(1, 2), 16);
+    const grn = parseInt(color.substr(3, 2), 16);
+    const blu = parseInt(color.substr(5, 2), 16);
+    const gray = red*0.3 + grn*0.6 + blu*0.1;
+
+    console.log(color, red, grn, blu, gray);
+
+    return gray < 128;
 }
 
 let gRadioButtonCounter = 1;
@@ -380,7 +434,16 @@ export class SettingsPanel {
 
                 const label = document.createElement("label");
                 label.htmlFor = id;
-                label.innerText = option.label;
+                if (option.label.startsWith("#")) {
+                    // It's a color, show a swatch.
+                    label.classList.add(gColorButtonClass);
+                    label.style.backgroundColor = option.label;
+                    if (isDarkColor(option.label)) {
+                        label.classList.add(gDarkColorButtonClass);
+                    }
+                } else {
+                    label.innerText = option.label;
+                }
                 optionsDiv.appendChild(label);
 
                 this.displayedOptions.push(new DisplayedOption(input, block, option));
