@@ -748,7 +748,7 @@ export class TapeBrowser {
                 frameToTimestamp(program.endFrame - program.startFrame, this.tape.sampleRate, true) + ")";
             const bitErrorCount = program.countBitErrors();
             if (bitErrorCount > 0) {
-                metadataLabel += ", " + bitErrorCount + " bit error" + (bitErrorCount === 1 ? "" : "s");
+                metadataLabel += ", " + bitErrorCount + " error" + (bitErrorCount === 1 ? "" : "s");
             }
             let metadataPane = this.makeMetadataPane(program, basicPane, systemPane, edtasmPane, undefined);
             addPane(metadataLabel, metadataPane);

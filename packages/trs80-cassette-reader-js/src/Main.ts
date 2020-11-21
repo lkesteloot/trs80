@@ -1,4 +1,3 @@
-
 import {Decoder} from "./Decoder";
 import {Tape} from "./Tape";
 import {TapeBrowser} from "./TapeBrowser";
@@ -216,18 +215,17 @@ function makePassFailLabel(pass: boolean): HTMLElement {
     return result;
 }
 
-function runTests(testFile: TestFile): void {
-    const screen = showScreen("test_screen");
-    clearElement(screen);
-
-    const pageHeader = document.createElement("h1");
-    pageHeader.innerText = "Test Results";
-    screen.appendChild(pageHeader);
+function runTests(parent: HTMLElement, testFile: TestFile): void {
+    if (testFile.name !== undefined) {
+        const pageHeader = document.createElement("h2");
+        pageHeader.innerText = testFile.name;
+        parent.appendChild(pageHeader);
+    }
 
     for (const test of testFile.tests) {
         const testResult = document.createElement("div");
         testResult.classList.add("test");
-        screen.append(testResult);
+        parent.append(testResult);
 
         const url = new URL(test.wavUrl, testFile.url).href;
         fetch(url, {cache: "reload"})
@@ -323,19 +321,48 @@ function runTests(testFile: TestFile): void {
                 header.appendChild(makePassFailLabel(false));
             });
     }
+    for (const include of testFile.includes) {
+        loadTestFile(parent, include, testFile.url);
+    }
+}
+
+function loadTestFile(parent: HTMLElement, relativeUrl: string, parentUrl: string): void {
+    const url = new URL(relativeUrl, parentUrl).href;
+    fetch(url, {cache: "reload"})
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error(response.statusText);
+        })
+        .then(json => {
+            runTests(parent, new TestFile(url, json));
+        })
+        .catch(reason => {
+            const title = document.createElement("span");
+            title.innerText = url + " (" + reason + ")";
+
+            const header = document.createElement("div");
+            header.appendChild(title);
+            // header.classList.add("test_header");
+            parent.append(header);
+
+            header.appendChild(makePassFailLabel(false));
+        });
 }
 
 /**
  * Show the test screen and start loading the test JSON file.
  */
 function showTestScreen(): void {
-    const url = new URL("tests/pulses/pulses.json", document.baseURI).href;
-    fetch(url, {cache: "reload"})
-        .then(req => req.json())
-        .then(json => {
-            const testFile = new TestFile(url, json);
-            runTests(testFile);
-        });
+    const screen = showScreen("test_screen");
+    clearElement(screen);
+
+    const pageHeader = document.createElement("h1");
+    pageHeader.innerText = "Test Results";
+    screen.appendChild(pageHeader);
+
+    loadTestFile(screen, "tests/tests.json", document.baseURI);
 }
 
 /**

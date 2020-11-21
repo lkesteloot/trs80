@@ -39,12 +39,14 @@ export class Test {
  * Batch of tests from a file.
  */
 export class TestFile {
+    public readonly name: string | undefined;
     public readonly url: string;
     public readonly tests: Test[] = [];
     public readonly includes: string[] = [];
 
     constructor(url: string, json: any) {
         this.url = url;
+        this.name = json.name;
 
         const jsonTests = json.tests as any[];
         if (jsonTests === undefined) {

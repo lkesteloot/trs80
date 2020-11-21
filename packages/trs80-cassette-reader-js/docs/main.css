@@ -305,6 +305,12 @@ canvas.waveform {
     font-weight: 100;
     color: var(--accent-color);
 }
+#test_screen h2 {
+    font-size: 18pt;
+    font-weight: 100;
+    color: var(--foreground-emphasized);
+    margin-top: 1em;
+}
 #test_screen .test {
     margin: 5px 0;
 }

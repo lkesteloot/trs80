@@ -1,0 +1,6 @@
+{
+    "tests": [
+        "low-speed/low-speed.json",
+        "high-speed/high-speed.json"
+    ]
+}

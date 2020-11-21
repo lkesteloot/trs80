@@ -1,4 +1,5 @@
 {
+    "name": "Low speed tests",
     "tests": [
         {
             "name": "Clean pulse",
