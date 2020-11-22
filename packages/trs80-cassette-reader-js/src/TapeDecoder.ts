@@ -17,7 +17,7 @@ export interface TapeDecoder {
      * Find the next program starting at "startFrame".
      *
      * @param startFrame where in the tape to start decoding.
-     * @param waveformAnnotations the reader can optionally append this this array of annotations, to be displayed
+     * @param waveformAnnotations the reader can optionally append to this array of annotations, to be displayed
      * in the waveform for debugging.
      *
      * @return the decoded program (with invalid track/copy numbers), or undefined if no program was found.

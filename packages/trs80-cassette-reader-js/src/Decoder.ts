@@ -57,7 +57,7 @@ export class Decoder {
             let startFrame = 0;
 
             while (true) {
-                let tapeDecoder = tapeDecoderFactory();
+                const tapeDecoder = tapeDecoderFactory();
                 const program = tapeDecoder.findNextProgram(startFrame, this.tape.waveformAnnotations);
                 if (program === undefined) {
                     break;
