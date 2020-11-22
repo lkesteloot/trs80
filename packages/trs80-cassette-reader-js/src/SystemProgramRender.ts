@@ -124,6 +124,7 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
     h1.innerText = "Chunks";
     out.appendChild(h1);
 
+    let programAddress: number | undefined = undefined;
     for (const chunk of systemProgram.chunks) {
         const line = document.createElement("div");
         out.appendChild(line);
@@ -141,13 +142,18 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         text = text.padEnd(14, " ");
         add(line, text, classes.hex);
 
-        text = "Program code";
         if (chunk.loadAddress >= SCREEN_BEGIN && chunk.loadAddress + chunk.data.length <= SCREEN_END) {
             text = "Screen";
         } else if (chunk.loadAddress === 0x4210) {
             text = "Port 0xEC bitmask";
         } else if (chunk.loadAddress === 0x401E) {
             text = "Video driver pointer";
+        } else {
+            text = "Program code";
+            if (programAddress !== undefined && chunk.loadAddress !== programAddress) {
+                text += " (not contiguous, expected " + toHexWord(programAddress) + ")";
+            }
+            programAddress = chunk.loadAddress + length;
         }
         add(line, text, classes.opcodes);
 
