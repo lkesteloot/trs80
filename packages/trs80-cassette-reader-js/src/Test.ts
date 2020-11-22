@@ -36,6 +36,10 @@ export class Test {
         this.bin = jsonTest.bin as string;
         this.binUrl = jsonTest.binUrl as string;
     }
+
+    public isHighSpeed(): boolean {
+        return this.type === TestType.HIGH_SPEED_BITS;
+    }
 }
 
 /**

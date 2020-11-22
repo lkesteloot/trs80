@@ -44,4 +44,13 @@ export interface TapeDecoder {
      * Get the byte information for the decoded program. Only called if the state is FINISHED.
      */
     getByteData(): ByteData[];
+
+    /**
+     * For testing, reads a sequence of bits.
+     *
+     * @param frame starting frame.
+     * @return string of "0" and "1" bits, a list of waveform annotations, and a list of explanations.
+     */
+    readBits(frame: number): [string, WaveformAnnotation[], string[]];
+
 }

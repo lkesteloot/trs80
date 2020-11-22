@@ -261,7 +261,11 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                 });
 
                 WaveformDisplay.makeWaveformDisplay("Original samples", tape.originalSamples, panel, waveformDisplay);
-                WaveformDisplay.makeWaveformDisplay("Low speed filter", tape.lowSpeedSamples, panel, waveformDisplay);
+                if (test.isHighSpeed()) {
+                    WaveformDisplay.makeWaveformDisplay("High pass filter", tape.filteredSamples, panel, waveformDisplay);
+                } else {
+                    WaveformDisplay.makeWaveformDisplay("Low speed filter", tape.lowSpeedSamples, panel, waveformDisplay);
+                }
 
                 let pass: boolean;
                 switch (test.type) {
