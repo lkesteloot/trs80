@@ -4,6 +4,7 @@ import {toHexByte, toHexWord} from "z80-base";
 import {SystemChunk, SystemProgram} from "./SystemProgram";
 import {Highlightable} from "./Highlighter";
 import {ProgramAnnotation} from "./Annotations";
+import {CanvasScreen} from "trs80-emulator";
 
 // RAM address range of screen.
 const SCREEN_BEGIN = 15 * 1024;
@@ -119,11 +120,17 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         return true;
     }
 
-    // Display a row for each chunk.
+    // Prepare screenshot, in case loading process writes to screen.
+    const screenDiv = document.createElement("div");
+    const screen = new CanvasScreen(screenDiv, false);
+    let wroteToScreen = false;
+
+    // List chunks on tape.
     let h1 = document.createElement("h1");
     h1.innerText = "Chunks";
     out.appendChild(h1);
 
+    // Display a row for each chunk.
     let programAddress: number | undefined = undefined;
     for (const chunk of systemProgram.chunks) {
         const line = document.createElement("div");
@@ -142,20 +149,27 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         text = text.padEnd(14, " ");
         add(line, text, classes.hex);
 
+        // Write explanation.
         if (chunk.loadAddress >= SCREEN_BEGIN && chunk.loadAddress + chunk.data.length <= SCREEN_END) {
-            text = "Screen";
+            add(line, "Screen", classes.opcodes);
+            if (!wroteToScreen) {
+                add(line, " (see screenshot below)", classes.error);
+            }
+            for (let i = 0; i < length; i++) {
+                screen.writeChar(chunk.loadAddress + i, chunk.data[i]);
+            }
+            wroteToScreen = true;
         } else if (chunk.loadAddress === 0x4210) {
-            text = "Port 0xEC bitmask";
+            add(line, "Port 0xEC bitmask", classes.opcodes);
         } else if (chunk.loadAddress === 0x401E) {
-            text = "Video driver pointer";
+            add(line, "Video driver pointer", classes.opcodes);
         } else {
-            text = "Program code";
+            add(line, "Program code", classes.opcodes);
             if (programAddress !== undefined && chunk.loadAddress !== programAddress) {
-                text += " (not contiguous, expected " + toHexWord(programAddress) + ")";
+                add(line, " (not contiguous, expected " + toHexWord(programAddress) + ")", classes.error);
             }
             programAddress = chunk.loadAddress + length;
         }
-        add(line, text, classes.opcodes);
 
         if (!chunk.isChecksumValid()) {
             add(line, " (invalid checksum)", classes.error);
@@ -167,6 +181,14 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
     out.appendChild(entryPointDiv);
     add(entryPointDiv, "Entry point: ", classes.label);
     add(entryPointDiv, toHexWord(systemProgram.entryPointAddress), classes.address);
+
+    if (wroteToScreen) {
+        h1 = document.createElement("h1");
+        h1.innerText = "Loading Screen";
+        out.appendChild(h1);
+
+        out.appendChild(screenDiv);
+    }
 
     h1 = document.createElement("h1");
     h1.innerText = "Disassembly";
