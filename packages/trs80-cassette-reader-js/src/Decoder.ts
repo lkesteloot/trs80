@@ -67,8 +67,6 @@ export class Decoder {
             }
         }
 
-        console.log(candidates); // TODO remove
-
         // Make a sorted list of start/end of candidates.
         const transitions: Transition[] = [];
         for (const candidate of candidates) {

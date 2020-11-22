@@ -147,7 +147,7 @@ function importData(): void {
 }
 
 function handleAudioBuffer(pathname: string, audioFile: AudioFile) {
-    console.log("Audio is " + audioFile.rate + " Hz");
+    // console.log("Audio is " + audioFile.rate + " Hz");
     // TODO check that there's 1 channel.
 
     const tape = new Tape(nameFromPathname(pathname), audioFile);

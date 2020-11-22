@@ -229,7 +229,7 @@ export function drawBrace(ctx: CanvasRenderingContext2D,
 
     ctx.beginPath();
     ctx.moveTo(left, otherY);
-    if (left === right) {
+    if (left === right || radius <= 0) {
         ctx.lineTo(left, lineY);
     } else {
         ctx.arcTo(left, lineY, left + radius, lineY, radius);

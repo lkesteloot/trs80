@@ -74,7 +74,6 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
     public findNextProgram(frame: number, waveformAnnotations: WaveformAnnotation[]): Program | undefined {
         while (true) {
-            // console.log('-------------------------------------');
             const [_, pulse] = this.findNextPulse(frame, this.peakThreshold);
             if (pulse === undefined) {
                 // Ran off the end of the tape.
@@ -99,16 +98,20 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
      * Verifies that we have pulses every period starting at frame.
      */
     private proofPulseDistance(frame: number, waveformAnnotations: WaveformAnnotation[]): boolean {
-        const initialFrame = frame;
-
         for (let i = 0; i < 200; i++) {
-            const pulse = this.isPulseAt(frame);
-            if (pulse.resultType !== PulseResultType.PULSE) {
-                waveformAnnotations.push(new LabelAnnotation("Failed", initialFrame, frame, false));
+            // We expect a pulse every period.
+            const expectedPulse = this.isPulseAt(frame);
+            if (expectedPulse.resultType !== PulseResultType.PULSE) {
                 return false;
             }
 
-            frame = pulse.frame + this.period;
+            // And no pulse in between, which would indicate a "1" bit.
+            const expectedNoPulse = this.isPulseAt(frame + this.halfPeriod);
+            if (expectedNoPulse.resultType === PulseResultType.PULSE) {
+                return false;
+            }
+
+            frame = expectedPulse.frame + this.period;
         }
 
         return true;
