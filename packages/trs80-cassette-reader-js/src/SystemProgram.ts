@@ -26,6 +26,23 @@ export class SystemChunk {
         this.data = data;
         this.checksum = checksum;
     }
+
+    /**
+     * Whether the checksum supplied on tape matches what we compute.
+     */
+    public isChecksumValid(): boolean {
+        let checksum = 0;
+
+        // Include load address and data.
+        checksum += (this.loadAddress >> 8) & 0xFF;
+        checksum += this.loadAddress & 0xFF;
+        for (const b of this.data) {
+            checksum += b;
+        }
+        checksum &= 0xFF;
+
+        return checksum === this.checksum;
+    }
 }
 
 /**
@@ -96,14 +113,14 @@ export class SystemProgram {
             if (length === 0) {
                 length = 256;
             }
-            this.annotations.push(new ProgramAnnotation("Length\n" + length, b.addr() - 1, b.addr() - 1));
+            this.annotations.push(new ProgramAnnotation("Len\n" + length, b.addr() - 1, b.addr() - 1));
 
             const loadAddress = b.readShort(false);
             if (loadAddress === EOF) {
                 this.error = "File is truncated at load address";
                 return;
             }
-            this.annotations.push(new ProgramAnnotation("Address\n" + toHexWord(loadAddress),
+            this.annotations.push(new ProgramAnnotation("Addr\n" + toHexWord(loadAddress),
                 b.addr() - 2, b.addr() - 1));
 
             const data = b.readBytes(length);

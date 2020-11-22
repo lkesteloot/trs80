@@ -1,10 +1,13 @@
-
 import jss from './Jss'
 import {Disasm} from "z80-disasm";
-import {toHexWord} from "z80-base";
-import {SystemProgram} from "./SystemProgram";
+import {toHexByte, toHexWord} from "z80-base";
+import {SystemChunk, SystemProgram} from "./SystemProgram";
 import {Highlightable} from "./Highlighter";
 import {ProgramAnnotation} from "./Annotations";
+
+// RAM address range of screen.
+const SCREEN_BEGIN = 15 * 1024;
+const SCREEN_END = 16 * 1024;
 
 /**
  * Add text to the line with the specified class.
@@ -104,31 +107,95 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         add(line, systemProgram.error, classes.error);
     }
 
+    function okChunk(chunk: SystemChunk): boolean {
+        if (chunk.loadAddress >= SCREEN_BEGIN && chunk.loadAddress + chunk.data.length <= SCREEN_END) {
+            return false;
+        }
+
+        if (chunk.loadAddress === 0x4210) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // Display a row for each chunk.
+    let h1 = document.createElement("h1");
+    h1.innerText = "Chunks";
+    out.appendChild(h1);
+
+    for (const chunk of systemProgram.chunks) {
+        const line = document.createElement("div");
+        out.appendChild(line);
+
+        // Address and length.
+        let length = chunk.data.length;
+        let text = toHexWord(chunk.loadAddress) + "-" + toHexWord(chunk.loadAddress + length - 1) +
+            " (" + length + " byte" + (length === 1 ? "" : "s") + ")";
+        text = text.padEnd(23, " ");
+        add(line, text, classes.address);
+
+        // First few bytes.
+        const bytes = chunk.data.slice(0, Math.min(3, length));
+        text = Array.from(bytes).map(toHexByte).join(" ") + (bytes.length < length ? " ..." : "");
+        text = text.padEnd(14, " ");
+        add(line, text, classes.hex);
+
+        text = "Program code";
+        if (chunk.loadAddress >= SCREEN_BEGIN && chunk.loadAddress + chunk.data.length <= SCREEN_END) {
+            text = "Screen";
+        } else if (chunk.loadAddress === 0x4210) {
+            text = "Port 0xEC bitmask";
+        } else if (chunk.loadAddress === 0x401E) {
+            text = "Video driver pointer";
+        }
+        add(line, text, classes.opcodes);
+
+        if (!chunk.isChecksumValid()) {
+            add(line, " (invalid checksum)", classes.error);
+        }
+    }
+
+    h1 = document.createElement("h1");
+    h1.innerText = "Disassembly";
+    out.appendChild(h1);
+
     // Make single binary with all bytes.
     // TODO pass each chunk to disassembler, since it may not be continuous.
     let totalLength = 0;
     for (const chunk of systemProgram.chunks) {
-        totalLength += chunk.data.length;
+        if (okChunk(chunk)) {
+            totalLength += chunk.data.length;
+        }
     }
     const binary = new Uint8Array(totalLength);
     let offset = 0;
-    let address = systemProgram.chunks.length === 0 ? 0 : systemProgram.chunks[0].loadAddress;
+    let address: number | undefined = undefined;
+    let loadAddress = 0;
     for (const chunk of systemProgram.chunks) {
-        if (chunk.loadAddress !== address) {
-            // If we get this, we need to modify Disasm to get chunks.
-            console.log("Expected", address, "but got", chunk.loadAddress);
-            address = chunk.loadAddress;
-        }
+        console.log(chunk.loadAddress.toString(16), chunk.data.length);
+        if (okChunk(chunk)) {
+            if (address === undefined) {
+                address = chunk.loadAddress;
+                loadAddress = address;
+            }
+            if (chunk.loadAddress !== address) {
+                // If we get this, we need to modify Disasm to get chunks.
+                console.log("Expected", address.toString(16), "but got", chunk.loadAddress.toString(16));
+                address = chunk.loadAddress;
+            }
 
-        binary.set(chunk.data, offset);
-        offset += chunk.data.length;
-        address += chunk.data.length;
+            binary.set(chunk.data, offset);
+            offset += chunk.data.length;
+            address += chunk.data.length;
+        }
     }
+    console.log("Start address: " + systemProgram.entryPointAddress.toString(16));
 
     const disasm = new Disasm(binary);
 
     // TODO not right in general. See chunks above.
-    disasm.org = systemProgram.chunks.length === 0 ? 0 : systemProgram.chunks[0].loadAddress;
+    disasm.org = loadAddress;
     const instructions = disasm.disassembleAll();
 
     for (const instruction of instructions) {

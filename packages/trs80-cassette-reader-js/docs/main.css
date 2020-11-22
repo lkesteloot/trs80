@@ -246,9 +246,13 @@ textarea, input[type=text] {
     right: 0;
     bottom: 0;
 }
-.metadata h1 {
+.metadata h1, .system-program h1 {
+    font-family: "Roboto", "Helvetica Neue", sans-serif;
     font-weight: 100;
-    margin-top: 10px;
+    margin-top: 30px;
+}
+.metadata h1:first-of-type, .system-program h1:first-of-type {
+    margin-top: 10px
 }
 .metadata table {
     padding: 0;

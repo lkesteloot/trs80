@@ -538,6 +538,7 @@ export class TapeBrowser {
     private makeSystemPane(program: Program): Pane {
         const div = document.createElement("div");
         div.classList.add("program");
+        div.classList.add("system-program");
 
         const systemProgram = new SystemProgram(program.binary);
 
