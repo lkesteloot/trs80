@@ -162,6 +162,12 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         }
     }
 
+    const entryPointDiv = document.createElement("div");
+    entryPointDiv.style.marginTop = "10px";
+    out.appendChild(entryPointDiv);
+    add(entryPointDiv, "Entry point: ", classes.label);
+    add(entryPointDiv, toHexWord(systemProgram.entryPointAddress), classes.address);
+
     h1 = document.createElement("h1");
     h1.innerText = "Disassembly";
     out.appendChild(h1);
