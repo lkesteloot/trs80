@@ -19,13 +19,8 @@ const MIN_SILENCE_FRAMES = 1000;
 export class HighSpeedTapeDecoder implements TapeDecoder {
     private readonly tape: Tape;
     private state: TapeDecoderState = TapeDecoderState.UNDECIDED;
-    private programBytes: number[] = [];
-    private oldSign: number = 0;
-    private cycleSize: number = 0;
-    private recentBits: number = 0;
-    private bitCount: number = 0;
-    private lastCrossingFrame: number = 0;
-    private bits: BitData[] = [];
+    private readonly programBytes: number[] = [];
+    private readonly bits: BitData[] = [];
     private readonly byteData: ByteData[] = [];
 
     constructor(tape: Tape) {
@@ -36,14 +31,93 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
         return "High speed";
     }
 
-    public findNextProgram(startFrame: number, waveformAnnotationnnotations: WaveformAnnotation[]): Program | undefined {
+    public findNextProgram(startFrame: number, waveformAnnotations: WaveformAnnotation[]): Program | undefined {
         const samples = this.tape.filteredSamples.samplesList[0];
         let programStartFrame = -1;
+        let oldSign = 0;
+        let lastCrossingFrame = 0;
+        let bitCount = 0;
+        let cycleSize = 0;
+        let recentBits = 0;
 
         for (let frame = startFrame; frame < samples.length; frame++) {
-            this.handleSample(samples, frame, waveformAnnotationnnotations);
-            if (this.state === TapeDecoderState.DETECTED && programStartFrame === -1) {
-                programStartFrame = frame;
+            const sample = samples[frame];
+            const newSign = sample > THRESHOLD ? 1 : sample < -THRESHOLD ? -1 : 0;
+
+            // Detect zero-crossing.
+            if (oldSign !== 0 && newSign !== 0 && oldSign !== newSign) {
+                // Crossed the horizontal axis.
+                lastCrossingFrame = frame;
+
+                // Detect positive edge. That's the end of the cycle.
+                if (oldSign === -1) {
+                    // Only consider cycles in the right range of periods. We allow up to 100 samples
+                    // to handle the long zero bit right after the sync byte.
+                    if (cycleSize > 7 && cycleSize < 100) {
+                        // Long cycle is "0", short cycle is "1".
+                        const bit = cycleSize < 22;
+
+                        // Bits are MSb to LSb.
+                        recentBits = (recentBits << 1) | (bit ? 1 : 0);
+                        bitCount += 1;
+
+                        let bitType: BitType;
+                        if (bitCount === 1 && this.state === TapeDecoderState.DETECTED) {
+                            // Just got a start bit. Must be zero.
+                            bitType = bit ? BitType.BAD : BitType.START;
+                        } else {
+                            bitType = bit ? BitType.ONE : BitType.ZERO;
+                        }
+                        this.bits.push(new BitData(frame - cycleSize, frame, bitType));
+
+                        // If we're in the program, add the bit to our stream.
+                        if (this.state === TapeDecoderState.DETECTED) {
+                            // Got enough bits for a byte (including the start bit).
+                            if (bitCount === 9) {
+                                let byteValue = recentBits & 0xFF;
+                                this.programBytes.push(byteValue);
+                                this.byteData.push(new ByteData(byteValue,
+                                    this.bits[this.bits.length - 8].startFrame,
+                                    this.bits[this.bits.length - 1].endFrame));
+                                bitCount = 0;
+                            }
+                        } else {
+                            // Detect end of header.
+                            if ((recentBits & 0xFFFFFFFF) === 0x5555557F) {
+                                this.state = TapeDecoderState.DETECTED;
+
+                                bitCount = 0;
+                                recentBits = 0;
+                                programStartFrame = frame;
+
+                                waveformAnnotations.push(new LabelAnnotation("Sync",
+                                    this.bits[this.bits.length - 8].startFrame,
+                                    this.bits[this.bits.length - 1].endFrame,
+                                    false));
+                            }
+                        }
+                    } else if (this.state === TapeDecoderState.DETECTED) {
+                        // Invalid bit length after program is detected. End reading. For a good recording
+                        // this probably just the end of the recording.
+                        this.state = TapeDecoderState.FINISHED;
+                    }
+
+                    // End of cycle, start a new one.
+                    cycleSize = 0;
+                } else {
+                    // Negative edge. Nothing to do, we're part-way through a cycle.
+                }
+            } else {
+                // Continue current cycle.
+                cycleSize += 1;
+            }
+
+            if (newSign !== 0) {
+                oldSign = newSign;
+            }
+
+            if (this.state === TapeDecoderState.DETECTED && frame - lastCrossingFrame > MIN_SILENCE_FRAMES) {
+                this.state = TapeDecoderState.FINISHED;
             }
             if (this.state === TapeDecoderState.FINISHED && programStartFrame !== -1) {
                 return new Program(0, 0, programStartFrame, frame, this.getName(),
@@ -51,90 +125,8 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
             }
         }
 
+        // Ran off the end of the cassette. Here we could maybe return a partial program, if that would be useful.
         return undefined;
-    }
-
-    private handleSample(samples: Int16Array, frame: number, waveformAnnotations: WaveformAnnotation[]) {
-        const sample = samples[frame];
-
-        const newSign = sample > THRESHOLD ? 1 : sample < -THRESHOLD ? -1 : 0;
-
-        // Detect zero-crossing.
-        if (this.oldSign !== 0 && newSign !== 0 && this.oldSign !== newSign) {
-            this.lastCrossingFrame = frame;
-
-            // Detect positive edge. That's the end of the cycle.
-            if (this.oldSign === -1) {
-                // Only consider cycles in the right range of periods. We allow up to 100 samples
-                // to handle the long zero bit right after the sync byte.
-                if (this.cycleSize > 7 && this.cycleSize < 100) {
-                    // Long cycle is "0", short cycle is "1".
-                    const bit = this.cycleSize < 22;
-
-                    // Bits are MSb to LSb.
-                    this.recentBits = (this.recentBits << 1) | (bit ? 1 : 0);
-                    this.bitCount += 1;
-
-                    let bitType: BitType;
-                    if (this.bitCount === 1 && this.state === TapeDecoderState.DETECTED) {
-                        // Just got a start bit. Must be zero.
-                        if (bit) {
-                            bitType = BitType.BAD;
-                        } else {
-                            bitType = BitType.START;
-                        }
-                    } else {
-                        bitType = bit ? BitType.ONE : BitType.ZERO;
-                    }
-                    this.bits.push(new BitData(frame - this.cycleSize, frame, bitType));
-
-                    // If we're in the program, add the bit to our stream.
-                    if (this.state === TapeDecoderState.DETECTED) {
-                        // Got enough bits for a byte (including the start bit).
-                        if (this.bitCount === 9) {
-                            let byteValue = this.recentBits & 0xFF;
-                            this.programBytes.push(byteValue);
-                            this.byteData.push(new ByteData(byteValue,
-                                this.bits[this.bits.length - 8].startFrame,
-                                this.bits[this.bits.length - 1].endFrame));
-                            this.bitCount = 0;
-                        }
-                    } else {
-                        // Detect end of header.
-                        if ((this.recentBits & 0xFFFFFFFF) === 0x5555557F) {
-                            this.state = TapeDecoderState.DETECTED;
-
-                            this.bitCount = 0;
-                            this.recentBits = 0;
-
-                            waveformAnnotations.push(new LabelAnnotation("Sync",
-                                this.bits[this.bits.length - 8].startFrame,
-                                this.bits[this.bits.length - 1].endFrame,
-                                false));
-                        }
-                    }
-                } else if (this.state === TapeDecoderState.DETECTED &&
-                           this.programBytes.length > 0 && this.cycleSize > 66) {
-                    // 1.5 ms gap, end of recording.
-                    // TODO pull this out of zero crossing.
-                    this.state = TapeDecoderState.FINISHED;
-                }
-
-                // End of cycle, start a new one.
-                this.cycleSize = 0;
-            }
-        } else {
-            // Continue current cycle.
-            this.cycleSize += 1;
-        }
-
-        if (newSign !== 0) {
-            this.oldSign = newSign;
-        }
-
-        if (this.state === TapeDecoderState.DETECTED && frame - this.lastCrossingFrame > MIN_SILENCE_FRAMES) {
-            this.state = TapeDecoderState.FINISHED;
-        }
     }
 
     public getState() {
