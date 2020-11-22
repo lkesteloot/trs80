@@ -210,7 +210,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
     /**
      * Read a sequence of bits (the characters "0" and "1"). Frame is the position of the previous clock bit.
-     * This is a for testing.
+     * This is for testing.
      */
     public readBits(frame: number): [string, WaveformAnnotation[], string[]] {
         let bits = "";

@@ -1,17 +1,20 @@
 
 export enum TestType {
     // Expect a pulse half-way through the WAV file.
-    PULSE,
+    LOW_SPEED_PULSE,
     // Expect no pulse half-way through the WAV file.
-    NO_PULSE,
+    LOW_SPEED_NO_PULSE,
     // Expect a sequence of bits (in "bin" or "binUrl"). First sample of WAV is previous bit's clock pulse.
-    BITS,
+    LOW_SPEED_BITS,
+    // Expect a sequence of bits (in "bin" or "binUrl"). Start and end WAV file part-way through pulses.
+    HIGH_SPEED_BITS,
 }
 
 const STRING_TO_TEST_TYPE: {[key: string]: TestType} = {
-    "pulse": TestType.PULSE,
-    "no-pulse": TestType.NO_PULSE,
-    "bits": TestType.BITS,
+    "low-speed-pulse": TestType.LOW_SPEED_PULSE,
+    "low-speed-no-pulse": TestType.LOW_SPEED_NO_PULSE,
+    "low-speed-bits": TestType.LOW_SPEED_BITS,
+    "high-speed-bits": TestType.HIGH_SPEED_BITS,
 };
 
 /**

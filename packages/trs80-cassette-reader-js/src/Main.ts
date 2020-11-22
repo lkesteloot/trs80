@@ -10,6 +10,7 @@ import {TestFile, TestType} from "./Test";
 import {readWavFile} from "./WavFile";
 import {WaveformDisplay} from "./WaveformDisplay";
 import {LowSpeedAnteoTapeDecoder, PulseResultType} from "./LowSpeedAnteoTapeDecoder";
+import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -264,8 +265,8 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
 
                 let pass: boolean;
                 switch (test.type) {
-                    case TestType.PULSE:
-                    case TestType.NO_PULSE: {
+                    case TestType.LOW_SPEED_PULSE:
+                    case TestType.LOW_SPEED_NO_PULSE: {
                         const decoder = new LowSpeedAnteoTapeDecoder(tape);
                         const pulse = decoder.isPulseAt(Math.round(wavFile.samples.length / 2), true);
                         waveformDisplay.addWaveformAnnotations(pulse.waveformAnnotations);
@@ -274,12 +275,15 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                         } else {
                             explanation.remove();
                         }
-                        pass = pulse.resultType === PulseResultType.PULSE === (test.type === TestType.PULSE);
+                        pass = pulse.resultType === PulseResultType.PULSE === (test.type === TestType.LOW_SPEED_PULSE);
                         break;
                     }
 
-                    case TestType.BITS: {
-                        const decoder = new LowSpeedAnteoTapeDecoder(tape);
+                    case TestType.LOW_SPEED_BITS:
+                    case TestType.HIGH_SPEED_BITS: {
+                        const decoder = test.type === TestType.LOW_SPEED_BITS
+                            ? new LowSpeedAnteoTapeDecoder(tape)
+                            : new HighSpeedTapeDecoder(tape);
                         const [actualBits, waveformAnnotations, explanations] = decoder.readBits(0);
                         if (test.bin === undefined) {
                             // We don't yet support binUrl.
@@ -322,7 +326,10 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
             });
     }
     for (const include of testFile.includes) {
-        loadTestFile(parent, include, testFile.url);
+        const testFileDiv = document.createElement("div");
+        parent.appendChild(testFileDiv);
+
+        loadTestFile(testFileDiv, include, testFile.url);
     }
 }
 

@@ -4,61 +4,61 @@
         {
             "name": "Clean pulse",
             "wavUrl": "pulse01.wav",
-            "type": "pulse"
+            "type": "low-speed-pulse"
         },
         {
             "name": "Clean short pulse",
             "wavUrl": "pulse02.wav",
-            "type": "pulse"
+            "type": "low-speed-pulse"
         },
         {
             "name": "Clean medium pulse",
             "wavUrl": "pulse03.wav",
-            "type": "pulse"
+            "type": "low-speed-pulse"
         },
         {
             "name": "Large down spike",
             "wavUrl": "pulse04.wav",
-            "type": "pulse"
+            "type": "low-speed-pulse"
         },
         {
             "name": "Very quiet",
             "wavUrl": "pulse05.wav",
-            "type": "pulse"
+            "type": "low-speed-pulse"
         },
         {
             "name": "Silence",
             "wavUrl": "no-pulse01.wav",
-            "type": "no-pulse"
+            "type": "low-speed-no-pulse"
         },
         {
             "name": "Clean bits",
             "wavUrl": "bits01.wav",
-            "type": "bits",
+            "type": "low-speed-bits",
             "bin": "0011 1010  1011 0010  0100 0000"
         },
         {
             "name": "Quiet bits",
             "wavUrl": "bits02.wav",
-            "type": "bits",
+            "type": "low-speed-bits",
             "bin": "0000 1100 0100"
         },
         {
             "name": "Very quiet bits",
             "wavUrl": "bits03.wav",
-            "type": "bits",
+            "type": "low-speed-bits",
             "bin": "0000 0000 1001"
         },
         {
             "name": "Very quiet bits",
             "wavUrl": "bits04.wav",
-            "type": "bits",
+            "type": "low-speed-bits",
             "bin": "0000 0000"
         },
         {
             "name": "Dip in volume",
             "wavUrl": "bits05.wav",
-            "type": "bits",
+            "type": "low-speed-bits",
             "bin": "0010 0000 000"
         }
     ]

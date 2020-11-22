@@ -1,5 +1,11 @@
 {
     "name": "High speed tests",
     "tests": [
+        {
+            "name": "Sync byte",
+            "wavUrl": "bits01.wav",
+            "type": "high-speed-bits",
+            "bin": "1 01111111 011010011 011"
+        }
     ]
 }

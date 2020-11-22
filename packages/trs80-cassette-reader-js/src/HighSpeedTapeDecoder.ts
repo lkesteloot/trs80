@@ -33,11 +33,11 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
 
     public findNextProgram(startFrame: number, waveformAnnotations: WaveformAnnotation[]): Program | undefined {
         const samples = this.tape.filteredSamples.samplesList[0];
-        let programStartFrame = -1;
+        let programStartFrame: number | undefined = undefined;
         let oldSign = 0;
         let lastCrossingFrame = 0;
         let bitCount = 0;
-        let cycleSize = 0;
+        let cycleSize: number | undefined = undefined;
         let recentBits = 0;
 
         for (let frame = startFrame; frame < samples.length; frame++) {
@@ -50,10 +50,10 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
                 lastCrossingFrame = frame;
 
                 // Detect positive edge. That's the end of the cycle.
-                if (oldSign === -1) {
+                if (newSign === 1) {
                     // Only consider cycles in the right range of periods. We allow up to 100 samples
                     // to handle the long zero bit right after the sync byte.
-                    if (cycleSize > 7 && cycleSize < 100) {
+                    if (cycleSize !== undefined && cycleSize > 7 && cycleSize < 100) {
                         // Long cycle is "0", short cycle is "1".
                         const bit = cycleSize < 22;
 
@@ -109,7 +109,9 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
                 }
             } else {
                 // Continue current cycle.
-                cycleSize += 1;
+                if (cycleSize !== undefined) {
+                    cycleSize += 1;
+                }
             }
 
             if (newSign !== 0) {
@@ -119,7 +121,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
             if (this.state === TapeDecoderState.DETECTED && frame - lastCrossingFrame > MIN_SILENCE_FRAMES) {
                 this.state = TapeDecoderState.FINISHED;
             }
-            if (this.state === TapeDecoderState.FINISHED && programStartFrame !== -1) {
+            if (this.state === TapeDecoderState.FINISHED && programStartFrame !== undefined) {
                 return new Program(0, 0, programStartFrame, frame, this.getName(),
                     this.getBinary(), this.getBitData(), this.getByteData());
             }
@@ -127,6 +129,13 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
 
         // Ran off the end of the cassette. Here we could maybe return a partial program, if that would be useful.
         return undefined;
+    }
+
+    /**
+     * Read a sequence of bits (the characters "0" and "1"). This is for testing.
+     */
+    public readBits(frame: number): [string, WaveformAnnotation[], string[]] {
+        return ["", [], []];
     }
 
     public getState() {
