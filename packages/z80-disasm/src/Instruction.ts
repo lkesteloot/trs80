@@ -1,5 +1,5 @@
 
-import {toHex} from "z80-base";
+import {toHexByte} from "z80-base";
 
 export class Instruction {
     /**
@@ -43,7 +43,7 @@ export class Instruction {
      * Text version of the binary: two-digit hex numbers separated by a space.
      */
     public binText(): string {
-        return this.bin.map((n) => toHex(n, 2)).join(" ");
+        return this.bin.map(toHexByte).join(" ");
     }
 
     /**
@@ -73,5 +73,29 @@ export class Instruction {
 
             args[i] = arg;
         }
+    }
+
+    /**
+     * Whether this instruction, when executed, potentially continues on to the next instructions. For example,
+     * "nop" and "jr z,foo" return true, but "ret" and "jr foo" return false.
+     */
+    public continues(): boolean {
+        // Return without a flag test.
+        if (this.mnemonic === "ret" && this.args.length === 0) {
+            return false;
+        }
+
+        // Return from interrupt.
+        if (this.mnemonic === "reti" || this.mnemonic === "retn") {
+            return false;
+        }
+
+        // Jump without a flag test.
+        if ((this.mnemonic === "jp" || this.mnemonic === "jr") && this.args.length === 1) {
+            return false;
+        }
+
+        // All else might continue.
+        return true;
     }
 }

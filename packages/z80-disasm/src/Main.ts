@@ -19,9 +19,10 @@ const binPathname: string = program.args[0];
 
 let bin = fs.readFileSync(binPathname);
 
-const disasm = new Disasm(bin);
-disasm.org = org;
-const instructions = disasm.disassembleAll();
+const disasm = new Disasm();
+disasm.addChunk(bin, org);
+disasm.addEntryPoint(org);
+const instructions = disasm.disassemble();
 for (const instruction of instructions) {
     if (instruction.label !== undefined) {
         console.log("                 " + instruction.label + ":");
