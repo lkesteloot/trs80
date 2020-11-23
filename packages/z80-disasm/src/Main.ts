@@ -3,6 +3,7 @@ import program from "commander";
 import * as fs from "fs";
 import {Disasm} from "./Disasm";
 import {toHexWord, toHexByte} from "z80-base";
+import {Z80_KNOWN_LABELS} from "./KnownLabels";
 
 program
     .option('--org <address>', 'where to assume the binary is loaded (0)')
@@ -21,6 +22,7 @@ const binPathname: string = program.args[0];
 let bin = fs.readFileSync(binPathname);
 
 const disasm = new Disasm();
+disasm.addLabels(Z80_KNOWN_LABELS);
 disasm.addChunk(bin, org);
 disasm.addEntryPoint(org);
 if (program.start !== undefined) {
