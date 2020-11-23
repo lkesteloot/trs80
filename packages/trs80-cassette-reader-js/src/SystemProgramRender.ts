@@ -113,7 +113,7 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
             return false;
         }
 
-        if (chunk.loadAddress === 0x4210) {
+        if (chunk.loadAddress === 0x4210 || chunk.loadAddress === 0x401E) {
             return false;
         }
 
@@ -194,43 +194,14 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
     h1.innerText = "Disassembly";
     out.appendChild(h1);
 
-    // Make single binary with all bytes.
-    // TODO pass each chunk to disassembler, since it may not be continuous.
-    let totalLength = 0;
+    const disasm = new Disasm();
     for (const chunk of systemProgram.chunks) {
         if (okChunk(chunk)) {
-            totalLength += chunk.data.length;
+            disasm.addChunk(chunk.data, chunk.loadAddress);
         }
     }
-    const binary = new Uint8Array(totalLength);
-    let offset = 0;
-    let address: number | undefined = undefined;
-    let loadAddress = 0;
-    for (const chunk of systemProgram.chunks) {
-        console.log(chunk.loadAddress.toString(16), chunk.data.length);
-        if (okChunk(chunk)) {
-            if (address === undefined) {
-                address = chunk.loadAddress;
-                loadAddress = address;
-            }
-            if (chunk.loadAddress !== address) {
-                // If we get this, we need to modify Disasm to get chunks.
-                console.log("Expected", address.toString(16), "but got", chunk.loadAddress.toString(16));
-                address = chunk.loadAddress;
-            }
-
-            binary.set(chunk.data, offset);
-            offset += chunk.data.length;
-            address += chunk.data.length;
-        }
-    }
-    console.log("Start address: " + systemProgram.entryPointAddress.toString(16));
-
-    const disasm = new Disasm(binary);
-
-    // TODO not right in general. See chunks above.
-    disasm.org = loadAddress;
-    const instructions = disasm.disassembleAll();
+    disasm.addEntryPoint(systemProgram.entryPointAddress);
+    const instructions = disasm.disassemble();
 
     for (const instruction of instructions) {
         if (instruction.label !== undefined) {
@@ -241,20 +212,34 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
             add(line, ":", classes.punctuation);
         }
 
-        const line = document.createElement("div");
-        out.appendChild(line);
-        add(line, toHexWord(instruction.address), classes.address);
-        add(line, "  ", classes.space);
-        add(line, instruction.binText(), classes.hex);
-        add(line, "".padEnd(12 - instruction.binText().length + 8), classes.space);
-        add(line, instruction.toText(), classes.opcodes);
+        let address = instruction.address;
+        const bytes = instruction.bin;
 
-        const byteOffset = systemProgram.addressToByteOffset(instruction.address);
-        if (byteOffset !== undefined) {
-            let lastIndex = byteOffset + instruction.bin.length - 1;
-            elements.push(new Highlightable(byteOffset, lastIndex, line));
-            annotations.push(new ProgramAnnotation(instruction.toText() + "\n" + instruction.binText(), byteOffset, lastIndex));
+        while (bytes.length > 0) {
+            const subbytes = bytes.slice(0, Math.min(4, bytes.length));
+            const subbytesText = subbytes.map(toHexByte).join(" ");
+
+            const line = document.createElement("div");
+            out.appendChild(line);
+            add(line, toHexWord(instruction.address), classes.address);
+            add(line, "  ", classes.space);
+            add(line, subbytesText, classes.hex);
+            if (address === instruction.address) {
+                add(line, "".padEnd(12 - subbytesText.length + 8), classes.space);
+                add(line, instruction.toText(), classes.opcodes);
+            }
+
+            const byteOffset = systemProgram.addressToByteOffset(address);
+            if (byteOffset !== undefined) {
+                const lastIndex = byteOffset + subbytes.length - 1;
+                elements.push(new Highlightable(byteOffset, lastIndex, line));
+                annotations.push(new ProgramAnnotation(instruction.toText() + "\n" + instruction.binText(), byteOffset, lastIndex));
+            }
+
+            address += subbytes.length;
+            bytes.splice(0, subbytes.length);
         }
+
     }
 
     return [elements, annotations];
