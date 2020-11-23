@@ -134,6 +134,70 @@ export class Disasm {
     }
 
     /**
+     * Makes a data (.byte, .text) instruction starting at the specified address.
+     */
+    private makeDataInstruction(address: number): Instruction {
+        const startAddress = address;
+
+        // Whether the byte is appropriate for a .text instruction.
+        const isPrintable = (b: number) => b >= 32 && b < 127;
+        const isText = (b: number) => isPrintable(b) || b === 10 || b === 13;
+
+        const parts: string[] = [];
+        let mnemonic: string | undefined = undefined;
+
+        // Look for contiguous sequence of either text or not text.
+        if (isText(this.memory[address])) {
+            mnemonic = ".text";
+            while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] && isText(this.memory[address]) && address - startAddress < 50) {
+                const byte = this.memory[address];
+                if (isPrintable(byte)) {
+                    let char = String.fromCharCode(byte);
+                    if (char === "\"") {
+                        // zasm doesn't support this backslash syntax. We'd have to enclose the whole string
+                        // with single quotes.
+                        // http://k1.spdns.de/Develop/Projects/zasm/Documentation/z79.htm#R
+                        char = "\\\"";
+                    }
+                    if (parts.length > 0 && parts[parts.length - 1].startsWith("\"")) {
+                        const s = parts[parts.length - 1];
+                        parts[parts.length - 1] = s.substring(0, s.length - 1) + char + "\"";
+                    } else {
+                        parts.push("\"" + char + "\"");
+                    }
+                } else {
+                    parts.push("0x" + toHexByte(byte));
+                }
+                address += 1;
+            }
+
+            if (address - startAddress < 2) {
+                // Probably not actual text.
+                mnemonic = undefined;
+                parts.splice(0, parts.length);
+                address = startAddress;
+            } else {
+                // Allow terminating NUL.
+                if (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] && this.memory[address] === 0) {
+                    parts.push("0x" + toHexByte(0));
+                    address += 1;
+                }
+            }
+        }
+
+        if (mnemonic === undefined) {
+            mnemonic = ".byte";
+            while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] && address - startAddress < 8) {
+                parts.push("0x" + toHexByte(this.memory[address]));
+                address += 1;
+            }
+        }
+
+        const bytes = Array.from(this.memory.slice(startAddress, address));
+        return new Instruction(startAddress, bytes, mnemonic, parts, parts);
+    }
+
+    /**
      * Disassemble all instructions and assign labels.
      */
     public disassemble(): Instruction[] {
@@ -168,7 +232,7 @@ export class Disasm {
 
         // Keep decoding as long as we have addresses to decode.
         while (addressesToDecode.size !== 0) {
-            // Pick any to start with.
+            // Pick any to do next.
             const address = addressesToDecode.values().next().value;
             addressesToDecode.delete(address);
             const instruction = this.disassembleOne(address);
@@ -189,9 +253,7 @@ export class Disasm {
             if (this.hasContent[address]) {
                 let instruction = this.instructions[address];
                 if (instruction === undefined) {
-                    const bytes = [this.memory[address]];
-                    const stringParams = bytes.map((n) => "0x" + toHexByte(n));
-                    instruction = new Instruction(address, bytes, ".byte", stringParams, stringParams);
+                    instruction = this.makeDataInstruction(address);
                 }
                 instructions.push(instruction);
 
