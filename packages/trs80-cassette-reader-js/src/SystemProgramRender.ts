@@ -1,5 +1,5 @@
 import jss from './Jss'
-import {Disasm} from "z80-disasm";
+import {Disasm, TRS80_MODEL_III_KNOWN_LABELS, Z80_KNOWN_LABELS} from "z80-disasm";
 import {toHexByte, toHexWord} from "z80-base";
 import {SystemChunk, SystemProgram} from "./SystemProgram";
 import {Highlightable} from "./Highlighter";
@@ -195,6 +195,9 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
     out.appendChild(h1);
 
     const disasm = new Disasm();
+    disasm.addLabels(Z80_KNOWN_LABELS);
+    disasm.addLabels(TRS80_MODEL_III_KNOWN_LABELS);
+    disasm.addLabels([[systemProgram.entryPointAddress, "MAIN"]]);
     for (const chunk of systemProgram.chunks) {
         if (okChunk(chunk)) {
             disasm.addChunk(chunk.data, chunk.loadAddress);

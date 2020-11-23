@@ -223,4 +223,8 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     public getByteData(): ByteData[] {
         return this.byteData;
     }
+
+    readBits(frame: number): [string, WaveformAnnotation[], string[]] {
+        throw new Error("Method not implemented.");
+    }
 }
