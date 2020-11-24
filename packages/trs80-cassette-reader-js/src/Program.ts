@@ -6,13 +6,14 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {isSystemProgram} from "./SystemProgram";
 import {ProgramAnnotation} from "./Annotations";
 import {BitType} from "./BitType";
+import {TapeDecoder} from "./TapeDecoder";
 
 export class Program {
     public trackNumber: number;
     public copyNumber: number;
     public startFrame: number;
     public endFrame: number;
-    public decoderName: string;
+    public decoder: TapeDecoder;
     public binary: Uint8Array;
     public bitData: BitData[];
     // Index by byte index in the "binary" array.
@@ -28,13 +29,13 @@ export class Program {
     public readonly onScreenshot = new SimpleEventDispatcher<string>();
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
-                decoderName: string, binary: Uint8Array, bitData: BitData[], byteData: ByteData[]) {
+                decoder: TapeDecoder, binary: Uint8Array, bitData: BitData[], byteData: ByteData[]) {
 
         this.trackNumber = trackNumber;
         this.copyNumber = copyNumber;
         this.startFrame = startFrame;
         this.endFrame = endFrame;
-        this.decoderName = decoderName;
+        this.decoder = decoder;
         this.binary = binary;
         this.bitData = bitData;
         this.byteData = byteData;
@@ -51,7 +52,7 @@ export class Program {
      * Get a generic label for the program.
      */
     public getLabel(): string {
-        return "Track " + this.trackNumber + ", copy " + this.copyNumber + ", " + this.decoderName;
+        return "Track " + this.trackNumber + ", copy " + this.copyNumber + ", " + this.decoder.getName();
     }
 
     /**

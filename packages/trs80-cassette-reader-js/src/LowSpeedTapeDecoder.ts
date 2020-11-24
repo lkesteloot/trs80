@@ -109,6 +109,10 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         return "Low speed" + (this.invert ? " (Inv)" : "");
     }
 
+    public isHighSpeed(): boolean {
+        return false;
+    }
+
     public findNextProgram(startFrame: number, waveformAnnotation: WaveformAnnotation[]): Program | undefined {
         const samples = this.tape.lowSpeedSamples.samplesList[0];
         let programStartFrame = -1;
@@ -119,7 +123,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                 programStartFrame = frame;
             }
             if (this.state === TapeDecoderState.FINISHED && programStartFrame !== -1) {
-                return new Program(0, 0, programStartFrame, frame, this.getName(),
+                return new Program(0, 0, programStartFrame, frame, this,
                     this.getBinary(), this.getBitData(), this.getByteData());
             }
         }

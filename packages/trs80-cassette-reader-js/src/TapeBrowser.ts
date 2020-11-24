@@ -272,7 +272,7 @@ export class TapeBrowser {
                 samples: this.tape.filteredSamples,
             },
             {
-                label: "Differentiated for low-speed decoding:",
+                label: "Pre-processed for low-speed decoding:",
                 samples: this.tape.lowSpeedSamples,
             },
         ]);
@@ -329,7 +329,7 @@ export class TapeBrowser {
         };
 
         if (program instanceof Program) {
-            addKeyValue("Decoder", program.decoderName);
+            addKeyValue("Decoder", program.decoder.getName());
         }
         const startFrame = program instanceof Program ? program.startFrame : 0;
         const endFrame = program instanceof Program ? program.endFrame : program.originalSamples.samplesList[0].length;
@@ -499,7 +499,7 @@ export class TapeBrowser {
 
         this.makeWaveforms(div, new WaveformDisplay(this.tape.sampleRate), false, [
             {
-                label: "Reconstructed high-speed waveform:",
+                label: "Reconstructed low-speed waveform:",
                 samples: samples,
             }
         ]);
@@ -774,9 +774,10 @@ export class TapeBrowser {
                 addPane("System program" + (systemPane.programName ? " (" + systemPane.programName + ")" : ""), systemPane);
             }
             if (basicPane !== undefined || systemPane !== undefined) {
-                addPane("Emulator (original)", this.makeEmulatorPane(program, new TapeCassette(this.tape, program)));
+                let emulatorLabel = "Emulator (original, " + (program.decoder.isHighSpeed() ? "high" : "low") + " speed)";
+                addPane(emulatorLabel, this.makeEmulatorPane(program, new TapeCassette(this.tape, program)));
                 if (program.reconstructedSamples !== undefined) {
-                    addPane("Emulator (reconstructed)",
+                    addPane("Emulator (reconstructed, low speed)",
                         this.makeEmulatorPane(program, new ReconstructedCassette(program.reconstructedSamples, this.tape.sampleRate)));
                 }
             }

@@ -28,6 +28,10 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
         return "High speed";
     }
 
+    public isHighSpeed(): boolean {
+        return true;
+    }
+
     public findNextProgram(startFrame: number, waveformAnnotations: WaveformAnnotation[]): Program | undefined {
         const samples = this.tape.filteredSamples.samplesList[0];
         let programStartFrame: number | undefined = undefined;
@@ -97,7 +101,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
             return undefined;
         }
 
-        return new Program(0, 0, programStartFrame, startFrame, this.getName(),
+        return new Program(0, 0, programStartFrame, startFrame, this,
             this.getBinary(), this.getBitData(), this.getByteData());
     }
 

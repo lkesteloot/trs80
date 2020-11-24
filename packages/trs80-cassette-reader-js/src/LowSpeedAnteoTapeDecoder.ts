@@ -180,7 +180,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         }
 
         return new Program(0, 0, startFrame, frame,
-            this.getName(), this.numbersToBytes(binary), bitData, byteData);
+            this, this.numbersToBytes(binary), bitData, byteData);
     }
 
     /**
@@ -422,6 +422,10 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
 
     getName(): string {
         return "Low speed (Anteo)";
+    }
+
+    public isHighSpeed(): boolean {
+        return false;
     }
 
     getState(): TapeDecoderState {

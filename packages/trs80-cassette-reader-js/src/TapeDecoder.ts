@@ -5,13 +5,18 @@ import {BitData} from "./BitData";
 import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
 import {Program} from "./Program";
-import {ProgramAnnotation, WaveformAnnotation} from "./Annotations";
+import {WaveformAnnotation} from "./Annotations";
 
 export interface TapeDecoder {
     /**
-     * The name of the decoder. An all-lower case string.
+     * The name of the decoder.
      */
     getName(): string;
+
+    /**
+     * Whether this is a high speed (1500 baud) or low speed (500 baud) decoder.
+     */
+    isHighSpeed(): boolean;
 
     /**
      * Find the next program starting at "startFrame".
@@ -52,5 +57,4 @@ export interface TapeDecoder {
      * @return string of "0" and "1" bits, a list of waveform annotations, and a list of explanations.
      */
     readBits(frame: number): [string, WaveformAnnotation[], string[]];
-
 }
