@@ -385,8 +385,6 @@ function isDarkColor(color: string): boolean {
     const blu = parseInt(color.substr(5, 2), 16);
     const gray = red*0.3 + grn*0.6 + blu*0.1;
 
-    console.log(color, red, grn, blu, gray);
-
     return gray < 110;
 }
 
