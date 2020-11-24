@@ -5,7 +5,7 @@ import * as SystemProgramRender from "./SystemProgramRender";
 import * as Hexdump from "./Hexdump";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
-import {Cassette, ControlPanel, CanvasScreen, ProgressBar, Trs80, SettingsPanel} from "trs80-emulator";
+import {Cassette, ControlPanel, CanvasScreen, ProgressBar, Trs80, SettingsPanel, PanelType} from "trs80-emulator";
 import {WaveformDisplay} from "./WaveformDisplay";
 import * as Edtasm from "./Edtasm";
 import {BitType} from "./BitType";
@@ -609,7 +609,8 @@ export class TapeBrowser {
 
         const screen = new CanvasScreen(screenDiv, false);
         const trs80 = new Trs80(screen, cassette);
-        const settingsPanel = new SettingsPanel(screen.getNode(), trs80);
+        const hardwareSettingsPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.HARDWARE);
+        const viewPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.VIEW);
         const controlPanel = new ControlPanel(screen.getNode());
         controlPanel.addResetButton(() => trs80.reset());
         controlPanel.addTapeRewindButton(() => {
@@ -623,7 +624,8 @@ export class TapeBrowser {
                 this.tape.saveUserData();
             });
         }
-        controlPanel.addSettingsButton(settingsPanel);
+        controlPanel.addSettingsButton(hardwareSettingsPanel);
+        controlPanel.addSettingsButton(viewPanel);
         const progressBar = new ProgressBar(screen.getNode());
         cassette.setProgressBar(progressBar);
         trs80.reset();
