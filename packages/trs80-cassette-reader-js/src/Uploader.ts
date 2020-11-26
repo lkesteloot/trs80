@@ -3,7 +3,7 @@
 import {AudioFile} from "./AudioUtils";
 import {readWavFile} from "./WavFile";
 import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
-import {encodeHighSpeed, stripStartBits} from "./HighSpeedTapeEncoder";
+import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
 import {wrapBasic} from "./Basic";
 
 export class Uploader {
@@ -96,7 +96,7 @@ export class Uploader {
         if (pathname.toLowerCase().endsWith(".cas")) {
             let bytes = new Uint8Array(arrayBuffer);
             const highSpeed = bytes.length > 0 && bytes[0] === 0x55;
-            const audio = highSpeed ? encodeHighSpeed(stripStartBits(bytes), rate) : encodeLowSpeed(bytes, rate);
+            const audio = highSpeed ? encodeHighSpeed(bytes, rate) : encodeLowSpeed(bytes, rate);
             audioFile = new AudioFile(rate, audio);
         } else if (pathname.toLowerCase().endsWith(".bas")) {
             audioFile = new AudioFile(rate, encodeLowSpeed(wrapLowSpeed(wrapBasic(new Uint8Array(arrayBuffer))), rate));

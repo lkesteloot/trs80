@@ -273,11 +273,15 @@ textarea, input[type=text] {
     padding: 4px 8px;
     white-space: nowrap;
 }
-.metadata .value.clickable {
+.metadata .value > span {
+    padding: 0 6px;
+    white-space: nowrap;
+}
+.metadata .clickable {
     cursor: pointer;
     color: var(--blue);
 }
-.metadata .value.clickable:hover {
+.metadata .clickable:hover {
     background-color: var(--background-highlights);
 }
 .metadata td input.name {

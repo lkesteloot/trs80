@@ -327,6 +327,21 @@ export class TapeBrowser {
 
             addKeyElement(key, valueElement);
         };
+        const addKeyValues = (key: string, values: string[], click?: (value: string) => void) => {
+            const valuesElement = document.createElement("td");
+            valuesElement.classList.add("value");
+            for (const value of values) {
+                const valueElement = document.createElement("span");
+                valueElement.innerText = value;
+                if (click !== undefined) {
+                    valueElement.classList.add("clickable");
+                    valueElement.addEventListener("click", () => click(value));
+                }
+                valuesElement.appendChild(valueElement);
+            }
+
+            addKeyElement(key, valuesElement);
+        };
 
         if (program instanceof Program) {
             addKeyValue("Decoder", program.decoder.getName());
@@ -340,12 +355,13 @@ export class TapeBrowser {
         addKeyValue("Duration", frameToTimestamp(endFrame - startFrame, this.tape.sampleRate, true), () =>
             this.originalWaveformDisplay.zoomToFit(startFrame, endFrame));
         if (program instanceof Program) {
-            addKeyValue("Binary", "Download " + program.binary.length + " bytes", () => {
+            addKeyValues("Download", [".BIN", ".CAS"], (value: string) => {
                 // Download binary.
                 const a = document.createElement("a");
-                const blob = new Blob([program.binary], {type: "application/octet-stream"});
+                const contents = value === ".BIN" ? program.binary : program.asCasFile();
+                const blob = new Blob([contents], {type: "application/octet-stream"});
                 a.href = window.URL.createObjectURL(blob);
-                a.download = program.getShortLabel().replace(" ", "-") + ".bin";
+                a.download = program.getShortLabel().replace(" ", "-") + value.toLowerCase();
                 a.click();
             });
             if (basicPane !== undefined) {

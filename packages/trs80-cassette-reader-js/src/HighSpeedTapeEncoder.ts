@@ -102,16 +102,37 @@ function addByte(samplesList: Int16Array[], b: number, zero: Int16Array, one: In
 }
 
 /**
- * Adds the header bytes necessary for writing high-speed cassettes.
+ * Adds the header bytes and start bits necessary for writing high-speed cassettes. The input bytes
+ * must not have the start bits already inserted.
  */
 export function wrapHighSpeed(bytes: Uint8Array): Uint8Array {
     // Add tape header.
     const buffers = [
         new Uint8Array(256).fill(0x55),
         new Uint8Array([SYNC_BYTE]),
-        bytes,
+        insertStartBits(bytes),
     ];
     return concatByteArrays(buffers);
+}
+
+/**
+ * Inserts a zero start bit before every byte.
+ */
+function insertStartBits(inBytes: Uint8Array): Uint8Array {
+    const outBytes = new Uint8Array(Math.ceil(inBytes.length*9/8));
+
+    for (let i = 0; i < inBytes.length; i++) {
+        const byte = inBytes[i];
+        const bitPos = i*9 + 1;
+        const bytePos = Math.floor(bitPos/8);
+        const bitOffset = bitPos % 8;
+        outBytes[bytePos] |= byte >> bitOffset;
+        if (bitOffset !== 0) {
+            outBytes[bytePos + 1] |= byte << (8 - bitOffset);
+        }
+    }
+
+    return outBytes;
 }
 
 /**
@@ -119,6 +140,9 @@ export function wrapHighSpeed(bytes: Uint8Array): Uint8Array {
  * we re-insert them below when encoding. We could also remove the
  * writing of start bits below, but we don't really know how many bits
  * there are at the end that we shouldn't write.
+ *
+ * Update: We no longer insert start bits in encodeHighSpeed(), so this
+ * routine is no longer necessary, but we keep it around anyway.
  */
 export function stripStartBits(inBytes: Uint8Array): Uint8Array {
     // Find sync byte.
@@ -159,7 +183,7 @@ export function stripStartBits(inBytes: Uint8Array): Uint8Array {
 
 /**
  * Encode the sequence of bytes as an array of audio samples for high-speed (1500 baud) cassettes.
- * @param bytes cas-style array of bytes, including 256 0x55 bytes and sync byte.
+ * @param bytes cas-style array of bytes, including 256 0x55 bytes, sync byte, and start bits.
  * @param sampleRate number of samples per second in the generated audio.
  */
 export function encodeHighSpeed(bytes: Uint8Array, sampleRate: number): Int16Array {
@@ -175,10 +199,6 @@ export function encodeHighSpeed(bytes: Uint8Array, sampleRate: number): Int16Arr
     // Samples representing a one bit.
     const one = generateCycle(oneLength);
 
-    // Samples representing a long zero bit. This is the first start bit
-    // after the end of the header. It's 1 ms longer than a regular zero.
-    const longZero = generateCycle(zeroLength + sampleRate/1000);
-
     // The final cycle in the entire waveform, which is necessary
     // to force that last negative-to-positive transition (and interrupt).
     // We could just use a simple half cycle here, but it's nicer to do
@@ -192,19 +212,8 @@ export function encodeHighSpeed(bytes: Uint8Array, sampleRate: number): Int16Arr
     samplesList.push(new Int16Array(sampleRate / 2));
 
     // Write program.
-    let sawSyncByte = false;
     for (const b of bytes) {
-        if (!sawSyncByte && b === SYNC_BYTE) {
-            sawSyncByte = true;
-        } else if (sawSyncByte) {
-            // Start bit.
-            samplesList.push(zero);
-        }
         addByte(samplesList, b, zero, one);
-    }
-
-    if (!sawSyncByte) {
-        console.log("Warning: Didn't see sync byte when generating high-speed audio");
     }
 
     // Finish off the last cycle, so that it generates an interrupt.
