@@ -32,6 +32,11 @@
             "type": "low-speed-no-pulse"
         },
         {
+            "name": "Proof",
+            "wavUrl": "proof01.wav",
+            "type": "low-speed-proof"
+        },
+        {
             "name": "Clean bits",
             "wavUrl": "bits01.wav",
             "type": "low-speed-bits",

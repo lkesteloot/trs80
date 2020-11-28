@@ -11,6 +11,7 @@ import {readWavFile} from "./WavFile";
 import {WaveformDisplay} from "./WaveformDisplay";
 import {LowSpeedAnteoTapeDecoder, PulseResultType} from "./LowSpeedAnteoTapeDecoder";
 import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder";
+import {WaveformAnnotation} from "./Annotations";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -272,7 +273,7 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                     case TestType.LOW_SPEED_PULSE:
                     case TestType.LOW_SPEED_NO_PULSE: {
                         const decoder = new LowSpeedAnteoTapeDecoder(tape);
-                        const pulse = decoder.isPulseAt(Math.round(wavFile.samples.length / 2), true);
+                        const pulse = decoder.isPulseAt(Math.round(wavFile.samples.length / 2), LowSpeedAnteoTapeDecoder.DEFAULT_THRESHOLD, true);
                         waveformDisplay.addWaveformAnnotations(pulse.waveformAnnotations);
                         if (pulse.explanation !== "") {
                             explanation.innerText = pulse.explanation;
@@ -280,6 +281,27 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                             explanation.remove();
                         }
                         pass = pulse.resultType === PulseResultType.PULSE === (test.type === TestType.LOW_SPEED_PULSE);
+                        break;
+                    }
+
+                    case TestType.LOW_SPEED_PROOF: {
+                        const decoder = new LowSpeedAnteoTapeDecoder(tape);
+                        const [_, pulse] = decoder.findNextPulse(0, LowSpeedAnteoTapeDecoder.DEFAULT_THRESHOLD);
+                        if (pulse === undefined) {
+                            // Ran off the end of the tape.
+                            pass = false;
+                            explanation.innerText = "Ran off the end of the tape";
+                        } else {
+                            const waveformAnnotations: WaveformAnnotation[] = [];
+                            const success = decoder.proofPulseDistance(pulse.frame, waveformAnnotations);
+                            waveformDisplay.addWaveformAnnotations(waveformAnnotations);
+                            if (success) {
+                                explanation.remove();
+                            } else {
+                                explanation.innerText = "Proof failed";
+                            }
+                            pass = success;
+                        }
                         break;
                     }
 

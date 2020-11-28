@@ -27,13 +27,13 @@ export function highPassFilter(samples: Int16Array, size: number): Int16Array {
         sum += samples[i];
 
         // Subtract out the average of the last "size" samples (to estimate local DC component).
-        out[i] = samples[i] - sum / size;
+        out[i] = clampToInt16(samples[i] - sum / size);
     }
     for (let i = size; i < samples.length; i++) {
         sum += samples[i] - samples[i - size];
 
         // Subtract out the average of the last "size" samples (to estimate local DC component).
-        out[i] = samples[i] - sum / size;
+        out[i] = clampToInt16(samples[i] - sum / size);
     }
 
     return out;
