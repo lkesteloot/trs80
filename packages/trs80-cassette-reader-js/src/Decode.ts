@@ -32,10 +32,10 @@ function makeBasicText(binary: Uint8Array): string {
 function main() {
     program
         .storeOptionsAsProperties(false)
-        .option("-f, --force", "override existing output files")
-        .option("-s, --split", "split tape into programs")
-        .option("-w, --wav", "output clean WAV file")
-        .option("-c, --cas", "output CAS file")
+        .option("--force", "overwrite existing output files")
+        .option("--split", "split tape into programs")
+        .option("--wav", "output clean WAV file")
+        .option("--cas", "output CAS file")
         .option("--bin", "output BIN file")
         .option("--bas", "output BAS file")
         .description("Reads a TRS-80 cassette audio file and generates cleaned-up files.")
