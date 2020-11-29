@@ -17,12 +17,15 @@
     "type": "git",
     "url": "git+https://github.com/lkesteloot/trs80-cassette-reader-js.git"
   },
-  "author": "",
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/lkesteloot/trs80-cassette-reader-js/issues"
   },
   "homepage": "https://github.com/lkesteloot/trs80-cassette-reader-js#readme",
+  "bin": {
+    "trs80-cassette-reader": "bin/trs80-cassette-reader"
+  },
   "devDependencies": {
     "@types/node": "^13.5.2",
     "@types/progress": "^2.0.3",

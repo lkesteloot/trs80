@@ -1,7 +1,7 @@
 
 // Handles uploading WAV files and decoding them.
 import {AudioFile} from "./AudioUtils";
-import {readWavFile} from "./WavFile";
+import {DEFAULT_SAMPLE_RATE, readWavFile} from "./WavFile";
 import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
 import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
 import {wrapBasic} from "./Basic";
@@ -90,16 +90,14 @@ export class Uploader {
     }
 
     private handleArrayBuffer(pathname: string, arrayBuffer: ArrayBuffer) {
-        const rate = 44100;
-
         let audioFile;
         if (pathname.toLowerCase().endsWith(".cas")) {
             let bytes = new Uint8Array(arrayBuffer);
             const highSpeed = bytes.length > 0 && bytes[0] === 0x55;
-            const audio = highSpeed ? encodeHighSpeed(bytes, rate) : encodeLowSpeed(bytes, rate);
-            audioFile = new AudioFile(rate, audio);
+            const audio = highSpeed ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE) : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE);
+            audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, audio);
         } else if (pathname.toLowerCase().endsWith(".bas")) {
-            audioFile = new AudioFile(rate, encodeLowSpeed(wrapLowSpeed(wrapBasic(new Uint8Array(arrayBuffer))), rate));
+            audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, encodeLowSpeed(wrapLowSpeed(wrapBasic(new Uint8Array(arrayBuffer))), DEFAULT_SAMPLE_RATE));
         } else {
             audioFile = readWavFile(arrayBuffer);
         }

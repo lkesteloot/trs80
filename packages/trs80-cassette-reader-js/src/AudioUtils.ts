@@ -103,3 +103,10 @@ export function concatAudio(samplesList: Int16Array[]): Int16Array {
 export function clampToInt16(x: number): number {
     return Math.max(Math.min(Math.round(x), 32767), -32768);
 }
+
+/**
+ * Generate a certain amount of silence.
+ */
+export function makeSilence(seconds: number, sampleRate: number): Int16Array {
+    return new Int16Array(Math.round(seconds*sampleRate));
+}

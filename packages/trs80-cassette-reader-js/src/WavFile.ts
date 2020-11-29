@@ -1,6 +1,11 @@
 import {AudioFile} from "./AudioUtils";
 
 /**
+ * Rate used for writing files.
+ */
+export const DEFAULT_SAMPLE_RATE = 44100;
+
+/**
  * Values for the "audioFormat" field.
  */
 const WAVE_FORMAT_UNKNOWN = 0x0000; // Microsoft Unknown Wave Format
@@ -170,7 +175,7 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
  *
  * http://soundfile.sapp.org/doc/WaveFormat/
  */
-export function writeWavFile(samples: Int16Array, sampleRate: number): ArrayBuffer {
+export function writeWavFile(samples: Int16Array, sampleRate: number): Uint8Array {
     const channelCount = 1;
     const bitDepth = 16;
 
@@ -225,5 +230,5 @@ export function writeWavFile(samples: Int16Array, sampleRate: number): ArrayBuff
         throw new Error("wrote " + index + " but expected " + totalSize);
     }
 
-    return wav;
+    return new Uint8Array(wav);
 }

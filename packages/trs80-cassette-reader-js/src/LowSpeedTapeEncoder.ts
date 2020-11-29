@@ -1,5 +1,5 @@
 
-import {concatAudio} from "./AudioUtils";
+import {concatAudio, makeSilence} from "./AudioUtils";
 import {concatByteArrays} from "./Utils";
 
 const SYNC_BYTE = 0xA5;
@@ -72,7 +72,7 @@ export function encodeLowSpeed(bytes: Uint8Array, sampleRate: number): Int16Arra
     const samplesList: Int16Array[] = [];
 
     // Start with half a second of silence.
-    samplesList.push(new Int16Array(sampleRate / 2));
+    samplesList.push(makeSilence(0.5, sampleRate));
 
     // All data bytes.
     for (let i = 0; i < bytes.length; i++) {
@@ -80,7 +80,7 @@ export function encodeLowSpeed(bytes: Uint8Array, sampleRate: number): Int16Arra
     }
 
     // End with half a second of silence.
-    samplesList.push(new Int16Array(sampleRate / 2));
+    samplesList.push(makeSilence(0.5, sampleRate));
 
     // Concatenate all samples.
     return concatAudio(samplesList);

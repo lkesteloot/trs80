@@ -7,8 +7,9 @@ import {isSystemProgram} from "./SystemProgram";
 import {ProgramAnnotation} from "./Annotations";
 import {BitType} from "./BitType";
 import {TapeDecoder} from "./TapeDecoder";
-import {wrapHighSpeed} from "./HighSpeedTapeEncoder";
-import {wrapLowSpeed} from "./LowSpeedTapeEncoder";
+import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder";
+import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
+import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile";
 
 export class Program {
     public trackNumber: number;
@@ -186,6 +187,23 @@ export class Program {
         } else {
             return wrapLowSpeed(this.binary);
         }
+    }
+
+    /**
+     * Return just the audio portion of a WAV file for this program.
+     */
+    public asAudio(): Int16Array {
+        const bytes = this.asCasFile();
+        return this.decoder.isHighSpeed()
+            ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE)
+            : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE);
+    }
+
+    /**
+     * Return a .wav file version of the binary.
+     */
+    public asWavFile(): Uint8Array {
+        return writeWavFile(this.asAudio(), DEFAULT_SAMPLE_RATE);
     }
 
     /**
