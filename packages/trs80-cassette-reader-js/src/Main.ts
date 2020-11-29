@@ -8,7 +8,7 @@ import {clearElement, flashNode} from "./Utils";
 import {CanvasScreen} from "trs80-emulator";
 import {TestFile, TestType} from "./Test";
 import {readWavFile} from "./WavFile";
-import {WaveformDisplay} from "./WaveformDisplay";
+import {SelectionMode, WaveformDisplay} from "./WaveformDisplay";
 import {LowSpeedAnteoTapeDecoder, PulseResultType} from "./LowSpeedAnteoTapeDecoder";
 import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder";
 import {WaveformAnnotation} from "./Annotations";
@@ -241,6 +241,7 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                 const wavFile = readWavFile(arrayBuffer);
                 const tape = new Tape(url, wavFile);
                 const waveformDisplay = new WaveformDisplay(wavFile.rate);
+                waveformDisplay.setSelectionMode(SelectionMode.SAMPLES);
 
                 const title = document.createElement("span");
                 title.innerText = test.name;
@@ -261,11 +262,11 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                     testResult.classList.toggle("expanded");
                 });
 
-                WaveformDisplay.makeWaveformDisplay("Original samples", tape.originalSamples, panel, waveformDisplay);
+                waveformDisplay.addWaveformAndChrome("Original samples", tape.originalSamples, panel);
                 if (test.isHighSpeed()) {
-                    WaveformDisplay.makeWaveformDisplay("High pass filter", tape.filteredSamples, panel, waveformDisplay);
+                    waveformDisplay.addWaveformAndChrome("High pass filter", tape.filteredSamples, panel);
                 } else {
-                    WaveformDisplay.makeWaveformDisplay("Low speed filter", tape.lowSpeedSamples, panel, waveformDisplay);
+                    waveformDisplay.addWaveformAndChrome("Low speed filter", tape.lowSpeedSamples, panel);
                 }
 
                 let pass: boolean;
@@ -286,7 +287,7 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
 
                     case TestType.LOW_SPEED_PROOF: {
                         const decoder = new LowSpeedAnteoTapeDecoder(tape);
-                        const [_, pulse] = decoder.findNextPulse(0, LowSpeedAnteoTapeDecoder.DEFAULT_THRESHOLD);
+                        const pulse = decoder.findPulse(0, LowSpeedAnteoTapeDecoder.DEFAULT_THRESHOLD);
                         if (pulse === undefined) {
                             // Ran off the end of the tape.
                             pass = false;
@@ -301,6 +302,37 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                                 explanation.innerText = "Proof failed";
                             }
                             pass = success;
+                        }
+                        break;
+                    }
+
+                    case TestType.LOW_SPEED_SYNC: {
+                        const decoder = new LowSpeedAnteoTapeDecoder(tape);
+                        const pulse = decoder.findPulse(0, LowSpeedAnteoTapeDecoder.DEFAULT_THRESHOLD);
+                        if (pulse === undefined) {
+                            // Ran off the end of the tape.
+                            pass = false;
+                            explanation.innerText = "Ran off the end of the tape";
+                        } else {
+                            if (test.bin === undefined) {
+                                // We don't yet support binUrl.
+                                throw new Error("must define bin for bits test");
+                            }
+
+                            // Don't bother proofing.
+                            const waveformAnnotations: WaveformAnnotation[] = [];
+                            const program = decoder.loadData(pulse.frame, waveformAnnotations);
+                            console.log(program.binary.length, program.binary);
+                            waveformDisplay.addWaveformAnnotations(waveformAnnotations);
+                            waveformDisplay.addProgram(program);
+                            const actualBits = Array.from(program.binary).map(b => b.toString(2).padStart(8, "0")).join("");
+                            const expectBits = test.bin.replace(/ /g, "");
+                            pass = actualBits === expectBits;
+                            if (pass) {
+                                explanation.remove();
+                            } else {
+                                explanation.innerText = "Expected " + expectBits + " but got " + actualBits + ".";
+                            }
                         }
                         break;
                     }

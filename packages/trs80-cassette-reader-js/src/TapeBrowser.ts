@@ -238,7 +238,7 @@ export class TapeBrowser {
         parent.appendChild(waveformDisplay.makeControls(showSelectionType));
 
         for (const sampleSet of sampleSets) {
-            WaveformDisplay.makeWaveformDisplay(sampleSet.label, sampleSet.samples, parent, waveformDisplay);
+            waveformDisplay.addWaveformAndChrome(sampleSet.label, sampleSet.samples, parent);
         }
 
         this.onHighlight.subscribe(highlight => waveformDisplay.setHighlight(highlight));
@@ -389,9 +389,6 @@ export class TapeBrowser {
             input.value = program.name;
             // Spec says "off", but Chrome ignores that, so use "chrome-off".
             input.autocomplete = "chrome-off";
-            if (program instanceof Tape) {
-                input.disabled = true;
-            }
             td.appendChild(input);
 
             addKeyElement("Name", td);

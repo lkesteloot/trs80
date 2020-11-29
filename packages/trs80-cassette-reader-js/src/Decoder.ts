@@ -114,7 +114,7 @@ export class Decoder {
             if (candidate.endFrame - candidate.startFrame > this.tape.sampleRate / 10) {
                 // See how long it took to find it. A large gap means a new track.
                 const leadTime = (candidate.startFrame - endOfLastProgram) / this.tape.sampleRate;
-                if (trackNumber === 0 || leadTime > 10) {
+                if (trackNumber === 0 || leadTime > 5) {
                     trackNumber++;
                     copyNumber = 1;
                 } else {

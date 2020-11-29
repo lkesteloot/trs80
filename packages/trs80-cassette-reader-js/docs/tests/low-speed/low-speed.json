@@ -32,9 +32,20 @@
             "type": "low-speed-no-pulse"
         },
         {
-            "name": "Proof",
+            "name": "Clean proof",
             "wavUrl": "proof01.wav",
             "type": "low-speed-proof"
+        },
+        {
+            "name": "Reverse audio proof",
+            "wavUrl": "proof02.wav",
+            "type": "low-speed-proof"
+        },
+        {
+            "name": "Sync byte",
+            "wavUrl": "sync01.wav",
+            "type": "low-speed-sync",
+            "bin": "11010011 11010011 11010011"
         },
         {
             "name": "Clean bits",

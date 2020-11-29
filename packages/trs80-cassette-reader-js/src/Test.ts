@@ -6,6 +6,9 @@ export enum TestType {
     LOW_SPEED_NO_PULSE,
     // Expect a sequence of header (zero) bits to be proofed. This is different than reading a bunch of zero bits.
     LOW_SPEED_PROOF,
+    // Expect a few bits of zeros, then the sync byte, then more bits of data. The "bin" field is the bits
+    // after the sync byte (e.g., D3 for a Basic program).
+    LOW_SPEED_SYNC,
     // Expect a sequence of bits (in "bin" or "binUrl"). First sample of WAV is previous bit's clock pulse.
     LOW_SPEED_BITS,
     // Expect a sequence of bits (in "bin" or "binUrl"). Start and end WAV file part-way through pulses.
@@ -16,6 +19,7 @@ const STRING_TO_TEST_TYPE: {[key: string]: TestType} = {
     "low-speed-pulse": TestType.LOW_SPEED_PULSE,
     "low-speed-no-pulse": TestType.LOW_SPEED_NO_PULSE,
     "low-speed-proof": TestType.LOW_SPEED_PROOF,
+    "low-speed-sync": TestType.LOW_SPEED_SYNC,
     "low-speed-bits": TestType.LOW_SPEED_BITS,
     "high-speed-bits": TestType.HIGH_SPEED_BITS,
 };

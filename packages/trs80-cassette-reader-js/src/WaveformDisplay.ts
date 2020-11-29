@@ -16,7 +16,7 @@ let gRadioButtonCounter = 1;
 /**
  * Whether the user is selecting whole bytes or audio samples.
  */
-enum SelectionMode { BYTES, SAMPLES }
+export enum SelectionMode { BYTES, SAMPLES }
 
 /**
  * When adjusting the selection, whether changing one of its ends, or creating it from scratch.
@@ -156,7 +156,7 @@ export class WaveformDisplay {
     /**
      * Make the canvas and its surrounding elements to display a waveform.
      */
-    public static makeWaveformDisplay(label: string, samples: DisplaySamples, parent: HTMLElement, waveformDisplay: WaveformDisplay): void {
+    public addWaveformAndChrome(label: string, samples: DisplaySamples, parent: HTMLElement): void {
         let labelElement = document.createElement("p");
         labelElement.innerText = label;
         parent.appendChild(labelElement);
@@ -177,9 +177,9 @@ export class WaveformDisplay {
         let infoPanel = document.createElement("div");
         infoPanel.style.marginLeft = "30px";
         container.appendChild(infoPanel);
-        waveformDisplay.addWaveform(canvas, infoPanel, samples);
+        this.addWaveform(canvas, infoPanel, samples);
 
-        waveformDisplay.queueDraw();
+        this.queueDraw();
     }
 
     /**
@@ -319,9 +319,9 @@ export class WaveformDisplay {
     }
 
     /**
-     * Sets the selection mode. Does not update the radio buttons.
+     * Sets the selection mode. Does not update the radio buttons. Defaults to BYTES.
      */
-    private setSelectionMode(selectionMode: SelectionMode): void {
+    public setSelectionMode(selectionMode: SelectionMode): void {
         this.selectionMode = selectionMode;
         this.draw();
         this.updateInfoPanels();
