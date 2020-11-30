@@ -17,6 +17,9 @@
     --blue:      #268bd2;
     --cyan:      #2aa198;
     --green:     #859900;
+
+    /* Horizontal margin for screens that are open. */
+    --horiz-margin: 80px;
 }
 .light-mode {
     --background: var(--base3);
@@ -43,6 +46,11 @@ body {
     height: 100vh;
     background-color: var(--background);
     color: var(--foreground);
+
+    /* For laying out the navbar and the screens. */
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: flex-start;
 }
 body, input, textarea {
     font-family: "Roboto", "Helvetica Neue", sans-serif;
@@ -57,7 +65,6 @@ textarea, input[type=text] {
     display: none !important;
 }
 .gutter {
-    height: 100vh;
     background-color: var(--background-highlights);
     background-repeat: no-repeat;
     background-position: 50%;
@@ -80,7 +87,39 @@ textarea, input[type=text] {
     margin: 4px 0;
     border: 0;
 }
+/* Nav bar */
+.navbar {
+    flex-grow: 0;
 
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: flex-start;
+    align-items: baseline;
+    background-color: var(--background-highlights);
+    padding: 5px var(--horiz-margin);
+}
+.navbar h1 {
+    font-size: 20pt;
+    font-weight: 100;
+    color: var(--foreground);
+    margin: 0;
+    padding: 0;
+}
+.screens {
+    flex-grow: 1;
+
+    /* Relative position so that .screen can match ours exactly. */
+    position: relative;
+}
+.screen {
+    /* Peg to the position of .screens. */
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+}
 /* Drag and drop (upload) screen. */
 #drop_screen {
     padding: 30px;
@@ -96,7 +135,7 @@ textarea, input[type=text] {
     flex-direction: column;
     padding: 2em 3em;
     border: 2px dashed rgba(0, 0, 0, .2);
-    border-radius: 2px;
+    border-radius: 10px;
     background-color: var(--background-highlights);
     color: var(--foreground-emphasized);
     font-size: 24pt;
@@ -161,17 +200,14 @@ textarea, input[type=text] {
 
 /* Browse screen. */
 #browse_screen {
-    margin: 20px 40px;
+    padding: 20px var(--horiz-margin);
 }
 
 /* Data (main) screen. */
 #data_screen {
     display: flex;
-    width: 100%;
-    height: 100%;
 }
 #data_screen > nav {
-    max-height: 100vh;
     overflow-x: auto;
     overflow-y: auto;
 }
@@ -233,7 +269,6 @@ textarea, input[type=text] {
 }
 .pane {
     padding: 10px 20px;
-    position: absolute;
     overflow-x: auto;
     overflow-y: scroll;
     /*
@@ -306,7 +341,7 @@ canvas.waveform {
 }
 
 #test_screen {
-    margin: 50px 80px;
+    padding: 50px var(--horiz-margin);
 }
 #test_screen h1 {
     font-size: 28pt;
