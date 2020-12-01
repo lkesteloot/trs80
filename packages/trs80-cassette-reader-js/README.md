@@ -10,8 +10,15 @@ Open http://127.0.0.1:8080 in your browser.
 
 # Command-line usage
 
-The program can also be run on the command line:
+The program can also be run on the command line. You can install the version on
+npm with:
 
+    % npm install -g trs80-cassette-reader
+    % trs80-cassette-reader [options] foo.wav
+
+Or, to install from source:
+
+    (clone repo)
     % npm install
     % npm run build-node
     % bin/trs80-cassette-reader --help
