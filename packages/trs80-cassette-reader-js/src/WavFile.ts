@@ -1,4 +1,5 @@
 import {AudioFile} from "./AudioUtils";
+import {toHexByte} from "z80-base";
 
 /**
  * Rate used for writing files.
@@ -53,6 +54,16 @@ class ArrayBufferReader {
     }
 
     /**
+     * Read an unsigned 8-bit value.
+     */
+    public readUint8(): number {
+        const value = this.dataView.getUint8(this.index);
+        this.index += 1;
+
+        return value;
+    }
+
+    /**
      * Read an unsigned 16-bit value.
      */
     public readUint16(): number {
@@ -73,6 +84,15 @@ class ArrayBufferReader {
     }
 
     /**
+     * Read a buffer of Uint8 numbers.
+     */
+    public readUint8Array(byteLength: number): Uint8Array {
+        const array = new Uint8Array(this.arrayBuffer, this.index, byteLength);
+        this.index += byteLength;
+        return array;
+    }
+
+    /**
      * Read a buffer of Int16 numbers.
      */
     public readInt16Array(byteLength: number): Int16Array {
@@ -90,6 +110,7 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
 
     let rate: number | undefined = undefined;
     let samples: Int16Array | undefined = undefined;
+    let bitDepth: number | undefined = undefined;
 
     // Read ID.
     const riffId = reader.readString(4);
@@ -118,8 +139,8 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
 
         switch (chunkId) {
             case "fmt ": {
-                if (chunkSize !== 16) {
-                    throw new Error("Expected fmt size of 16, got " + chunkSize);
+                if (chunkSize < 16) {
+                    throw new Error("Expected fmt size of at least 16, got " + chunkSize);
                 }
 
                 const audioFormat = reader.readUint16();
@@ -127,10 +148,23 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
                 rate = reader.readUint32();
                 const byteRate = reader.readUint32(); // useless...
                 const blockAlign = reader.readUint16(); // useless...
-                const bitDepth = reader.readUint16();
-                const signed = bitDepth !== 8;
+                bitDepth = reader.readUint16();
                 if (audioFormat !== WAVE_FORMAT_PCM) {
                     throw new Error("Can only handle PCM, not " + audioFormat);
+                }
+                if (channels !== 1) {
+                    throw new Error("Can only handle mono streams, not " + channels + " channels");
+                }
+                const expectBlockAlign = Math.ceil(bitDepth/8);
+                if (blockAlign !== expectBlockAlign) {
+                    throw new Error("Expected block align of " + expectBlockAlign + ", not " + blockAlign);
+                }
+
+                // Read the rest of the optional parameters. These are allowed but we don't do anything
+                // with them.
+                for (let i = 16; i < chunkSize; i++) {
+                    const byte = reader.readUint8();
+                    console.log("Got extra byte in wav fmt chunk: 0x" + toHexByte(byte));
                 }
                 break;
             }
@@ -157,7 +191,19 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
                     // If we run into this, just read the rest of the array.
                     throw new Error("We don't handle 0-sized data");
                 }
-                samples = reader.readInt16Array(chunkSize);
+                if (bitDepth === 8) {
+                    const samples8 = reader.readUint8Array(chunkSize);
+
+                    // Convert from 8-bit unsigned to 16-bit signed.
+                    samples = new Int16Array(samples8.length);
+                    for (let i = 0; i < samples.length; i++) {
+                        samples[i] = (samples8[i] - 127)*255;
+                    }
+                } else if (bitDepth === 16) {
+                    samples = reader.readInt16Array(chunkSize);
+                } else {
+                    throw new Error("Can only handle bit depths of 8 and 16, not " + bitDepth);
+                }
                 break;
             }
         }
