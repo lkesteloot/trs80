@@ -7,6 +7,7 @@ import * as Basic from "./Basic";
 import * as program from "commander";
 import {concatByteArrays} from "./Utils";
 import {concatAudio, makeSilence} from "./AudioUtils";
+import * as pkg from "../package.json";
 
 /**
  * Create a plain text version of the Basic program described by the binary.
@@ -40,6 +41,7 @@ function main() {
         .option("--bas", "output BAS file")
         .description("Reads a TRS-80 cassette audio file and generates cleaned-up files.")
         .usage("[options] original.wav")
+        .version(pkg.version)
         .parse(process.argv);
 
     if (program.args.length !== 1) {

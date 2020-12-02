@@ -7,7 +7,8 @@
         "strict": true,
         "allowSyntheticDefaultImports": true,
         "outDir": "build",
-        "noImplicitReturns": true
+        "noImplicitReturns": true,
+        "resolveJsonModule": true
     },
     "include": [
         "src/**/*.ts"
