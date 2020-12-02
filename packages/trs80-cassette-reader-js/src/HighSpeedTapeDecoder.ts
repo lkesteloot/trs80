@@ -6,15 +6,17 @@ import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
 import {Program} from "./Program";
 import {LabelAnnotation, WaveformAnnotation} from "./Annotations";
+import {DEFAULT_SAMPLE_RATE} from "./WavFile";
 
 // What distance away from 0 counts as "positive" (or, when negative, "negative").
-const THRESHOLD = 500/32768.0;
+const THRESHOLD = 500;
 
 /**
  * Decodes high-speed (1500 baud) cassettes.
  */
 export class HighSpeedTapeDecoder implements TapeDecoder {
     private readonly tape: Tape;
+    private readonly lengthMultiplier: number;
     private state: TapeDecoderState = TapeDecoderState.UNDECIDED;
     private readonly programBytes: number[] = [];
     private readonly bits: BitData[] = [];
@@ -22,6 +24,9 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
 
     constructor(tape: Tape) {
         this.tape = tape;
+
+        // Our "number of samples" comparisons assume DEFAULT_SAMPLE_RATE, so adjust for that.
+        this.lengthMultiplier = tape.sampleRate/DEFAULT_SAMPLE_RATE;
     }
 
     public getName(): string {
@@ -118,9 +123,9 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
         }
 
         const cycleSize = crossing - startFrame;
-        if (cycleSize > 7 && cycleSize < 100) {
+        if (cycleSize > 7*this.lengthMultiplier && cycleSize < 100*this.lengthMultiplier) {
             // Long cycle is "0", short cycle is "1".
-            const bit = cycleSize < 22;
+            const bit = cycleSize < 22*this.lengthMultiplier;
 
             return [crossing, bit];
         } else {

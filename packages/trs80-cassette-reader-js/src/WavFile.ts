@@ -197,7 +197,7 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
                     // Convert from 8-bit unsigned to 16-bit signed.
                     samples = new Int16Array(samples8.length);
                     for (let i = 0; i < samples.length; i++) {
-                        samples[i] = (samples8[i] - 127)*255;
+                        samples[i] = -(samples8[i] - 128)*255;
                     }
                 } else if (bitDepth === 16) {
                     samples = reader.readInt16Array(chunkSize);
