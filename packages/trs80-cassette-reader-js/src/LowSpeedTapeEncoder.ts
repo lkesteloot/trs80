@@ -11,11 +11,12 @@ function generatePulse(length: number): Int16Array {
     const audio = new Int16Array(length);
 
     // Center it in the audio.
+    const offset = Math.round(length/4);
     for (let i = 0; i < length/2; i++) {
         const t = 2*Math.PI*i/(length/2);
 
         // -0.5 to 0.5, matches recorded audio.
-        audio[i + length/4] = Math.sin(t)*16384;
+        audio[i + offset] = Math.sin(t)*16384;
     }
 
     return audio;
