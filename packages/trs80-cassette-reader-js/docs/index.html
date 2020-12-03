@@ -39,6 +39,7 @@
             <button id="import_data_button" class="nice_button">Import Data</button>
             <button id="browse_data_button" class="nice_button">Browse Data</button>
             <button id="run_tests_button" class="nice_button">Run Tests</button>
+            <button id="retrostore_button" class="nice_button">RetroStore</button>
         </div>
         <div id="export_import" class="hidden">
             <textarea id="user_data_field" rows="10"></textarea>
@@ -49,7 +50,7 @@
                 <button id="import_button" class="nice_button">Import</button>
             </div>
         </div>
-        <input id="drop_upload" class="hidden" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav, .cas, .bas">
+        <input id="drop_upload" class="hidden" type="file" accept="audio/vnd.wave, audio/wav, audio/wave, audio/x-wav, .cas, .bas, .cmd">
         <p id="about">
             This app parses and cleans up TRS-80 Model I and Model III cassette audio
             files,<br>and generates clean audio for importing into emulators.
@@ -66,6 +67,8 @@
     <div id="browse_screen" class="screen hidden">
     </div>
     <div id="test_screen" class="screen hidden">
+    </div>
+    <div id="retrostore_screen" class="screen hidden">
     </div>
 </div>
 <script type="module">

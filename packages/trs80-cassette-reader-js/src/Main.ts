@@ -430,6 +430,17 @@ function showTestScreen(): void {
     loadTestFile(screen, "tests/tests.json", document.baseURI);
 }
 
+function showRetroStoreScreen(): void {
+    const screen = showScreen("retrostore_screen");
+    clearElement(screen);
+
+    fetch("http://retrostore.org/rpc?m=pubapplist")
+        .then(response => response.json())
+        .then(json => {
+            console.log(json);
+        });
+}
+
 /**
  * Handle the browser's back and forward history buttons.
  */
@@ -445,6 +456,10 @@ function handleNewLocation() {
 
         case "#test":
             showTestScreen();
+            break;
+
+        case "#retrostore":
+            showRetroStoreScreen();
             break;
     }
 }
@@ -464,6 +479,7 @@ export function main() {
     const importDataButton = document.getElementById("import_data_button") as HTMLButtonElement;
     const browseDataButton = document.getElementById("browse_data_button") as HTMLButtonElement;
     const runTestsButton = document.getElementById("run_tests_button") as HTMLButtonElement;
+    const retroStoreButton = document.getElementById("retrostore_button") as HTMLButtonElement;
     const copyToClipboardButton = document.getElementById("copy_to_clipboard_button") as HTMLButtonElement;
     const importButton = document.getElementById("import_button") as HTMLButtonElement;
 
@@ -474,6 +490,7 @@ export function main() {
         populateBrowseScreen(browseScreen);
     });
     runTestsButton.addEventListener("click", () => window.location.href = "#test");
+    retroStoreButton.addEventListener("click", () => window.location.href = "#retrostore");
 
     copyToClipboardButton.addEventListener("click", event => copyToClipboard());
     importButton.addEventListener("click", event => importData());

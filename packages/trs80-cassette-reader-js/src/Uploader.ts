@@ -97,6 +97,8 @@ export class Uploader {
             audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, audio);
         } else if (pathname.toLowerCase().endsWith(".bas")) {
             audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, encodeLowSpeed(wrapLowSpeed(wrapBasic(new Uint8Array(arrayBuffer))), DEFAULT_SAMPLE_RATE));
+        } else if (pathname.toLowerCase().endsWith(".cmd")) {
+            audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, encodeLowSpeed(wrapLowSpeed(new Uint8Array(arrayBuffer)), DEFAULT_SAMPLE_RATE));
         } else {
             audioFile = readWavFile(arrayBuffer);
         }

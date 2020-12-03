@@ -2,6 +2,7 @@ import {frameToTimestamp} from "./AudioUtils";
 import * as Basic from "./Basic";
 import * as BasicRender from "./BasicRender";
 import * as SystemProgramRender from "./SystemProgramRender";
+import * as CmdProgramRender from "./CmdProgramRender";
 import * as Hexdump from "./Hexdump";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
@@ -15,6 +16,7 @@ import {DisplaySamples} from "./DisplaySamples";
 import {clearElement} from "./Utils";
 import {SystemProgram} from "./SystemProgram";
 import {Highlighter} from "./Highlighter";
+import {CmdProgram} from "./CmdProgram";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -282,7 +284,8 @@ export class TapeBrowser {
      * Make pane of metadata for a program.
      */
     private makeMetadataPane(program: Program | Tape, basicPane?: Pane, systemPane?: Pane, edtasmPane?: Pane,
-                             onProgramClick?: (program: Program) => void): Pane {
+                             cmdPane?: Pane, onProgramClick?: (program: Program) => void): Pane {
+
         const div = document.createElement("div");
         div.classList.add("metadata");
         div.style.display = "flex";
@@ -372,6 +375,9 @@ export class TapeBrowser {
             } else if (edtasmPane !== undefined) {
                 addKeyValue("Type", "Assembly program" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""),
                     () => this.showPane(edtasmPane));
+            } else if (cmdPane !== undefined) {
+                addKeyValue("Type", "CMD program" + (cmdPane.programName ? " (" + cmdPane.programName + ")" : ""),
+                    () => this.showPane(cmdPane));
             } else {
                 addKeyValue("Type", "Unknown");
             }
@@ -585,6 +591,43 @@ export class TapeBrowser {
         return pane;
     }
 
+    private makeCmdPane(program: Program): Pane {
+        const div = document.createElement("div");
+        div.classList.add("program");
+        div.classList.add("cmd-program");
+
+        const cmdProgram = new CmdProgram(program.binary);
+
+        const [highlightables, annotations] = CmdProgramRender.toDiv(cmdProgram, div);
+        const highlighter = new Highlighter(this, program, div);
+        highlighter.addHighlightables(highlightables);
+        if (program.annotations === undefined) {
+            program.annotations = [];
+        }
+        program.annotations.push(...cmdProgram.annotations, ...annotations);
+
+        this.onHighlight.subscribe(highlight => {
+            highlighter.highlight(highlight, program, CmdProgramRender.highlightClassName);
+        });
+        this.onSelection.subscribe(selection => {
+            highlighter.select(selection, program, CmdProgramRender.selectClassName);
+        });
+        this.onDoneSelecting.subscribe(source => {
+            if (source !== highlighter) {
+                highlighter.doneSelecting();
+            }
+        });
+
+        let pane = new Pane(div);
+        if (cmdProgram.filename !== "") {
+            pane.programName = cmdProgram.filename;
+        }
+        pane.didShow = () => {
+            highlighter.didShow();
+        };
+        return pane;
+    }
+
     private makeEdtasmPane(program: Program): Pane {
         const div = document.createElement("div");
         div.classList.add("program");
@@ -723,7 +766,7 @@ export class TapeBrowser {
         row.classList.add("program_title");
         let metadataLabel = frameToTimestamp(0, this.tape.sampleRate, true) + " to " +
             frameToTimestamp(this.tape.originalSamples.samplesList[0].length, this.tape.sampleRate, true);
-        addPane(metadataLabel, this.makeMetadataPane(this.tape, undefined, undefined, undefined,
+        addPane(metadataLabel, this.makeMetadataPane(this.tape, undefined, undefined, undefined, undefined,
             (program) => {
                 screenshotClickAction.get(program)?.();
             }));
@@ -757,6 +800,7 @@ export class TapeBrowser {
             const basicPane = program.isBasicProgram() ? this.makeBasicPane(program) : undefined;
             const systemPane = program.isSystemProgram() ? this.makeSystemPane(program) : undefined;
             const edtasmPane = program.isEdtasmProgram() ? this.makeEdtasmPane(program) : undefined;
+            const cmdPane = program.isCmdProgram() ? this.makeCmdPane(program) : undefined;
 
             // Metadata pane.
             let metadataLabel = frameToTimestamp(program.startFrame, this.tape.sampleRate, true) + " to " +
@@ -766,7 +810,7 @@ export class TapeBrowser {
             if (bitErrorCount > 0) {
                 metadataLabel += ", " + bitErrorCount + " error" + (bitErrorCount === 1 ? "" : "s");
             }
-            let metadataPane = this.makeMetadataPane(program, basicPane, systemPane, edtasmPane, undefined);
+            let metadataPane = this.makeMetadataPane(program, basicPane, systemPane, edtasmPane, cmdPane, undefined);
             addPane(metadataLabel, metadataPane);
             screenshotClickAction.set(program, () => {
                 this.showPane(metadataPane);
@@ -787,6 +831,9 @@ export class TapeBrowser {
             }
             if (systemPane !== undefined) {
                 addPane("System program" + (systemPane.programName ? " (" + systemPane.programName + ")" : ""), systemPane);
+            }
+            if (cmdPane !== undefined) {
+                addPane("CMD program" + (cmdPane.programName ? " (" + cmdPane.programName + ")" : ""), cmdPane);
             }
             if (basicPane !== undefined || systemPane !== undefined) {
                 let emulatorLabel = "Emulator (original, " + (program.decoder.isHighSpeed() ? "high" : "low") + " speed)";

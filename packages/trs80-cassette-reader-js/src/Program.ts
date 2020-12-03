@@ -10,6 +10,7 @@ import {TapeDecoder} from "./TapeDecoder";
 import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder";
 import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
 import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile";
+import {isCmdProgram} from "./CmdProgram";
 
 export class Program {
     public trackNumber: number;
@@ -159,6 +160,13 @@ export class Program {
      */
     public isSystemProgram(): boolean {
         return isSystemProgram(this.binary);
+    }
+
+    /**
+     * Whether this is a CMD program.
+     */
+    public isCmdProgram(): boolean {
+        return isCmdProgram(this.binary);
     }
 
     /**
