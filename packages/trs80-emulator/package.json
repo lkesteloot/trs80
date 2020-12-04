@@ -3,7 +3,7 @@
   "version": "1.1.1",
   "description": "TRS-80 Model III emulator",
   "main": "dist/main/index.js",
-  "typing": "dist/main/index.d.ts",
+  "types": "dist/main/index.d.ts",
   "module": "dist/module/index.js",
   "scripts": {
     "build": "npm run build:main && npm run build:module",
@@ -12,7 +12,8 @@
     "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
     "lint:fix": "npm run lint -- --fix",
     "start": "rollup -c && http-server docs",
-    "watch": "rollup -c --watch"
+    "watch": "rollup -c --watch",
+    "prepublish": "npm run build"
   },
   "keywords": [
     "trs-80",

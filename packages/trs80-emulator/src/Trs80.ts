@@ -71,12 +71,27 @@ function computeVideoBit6(value: number): number {
 }
 
 /**
+ * An event scheduled for the future.
+ */
+class ScheduledEvent {
+    public readonly handle: number;
+    public readonly tStateCount: number;
+    public readonly callback: () => void;
+
+    constructor(handle: number, tStateCount: number, callback: () => void) {
+        this.handle = handle;
+        this.tStateCount = tStateCount;
+        this.callback = callback;
+    }
+}
+
+/**
  * HAL for the TRS-80 Model III.
  */
 export class Trs80 implements Hal {
     private config: Config;
     private timerHz = M3_TIMER_HZ;
-    private clockHz = M3_CLOCK_HZ;
+    public clockHz = M3_CLOCK_HZ;
     public tStateCount = 0;
     private readonly screen: Trs80Screen;
     private cassette: Cassette;
@@ -115,6 +130,10 @@ export class Trs80 implements Hal {
     private cassetteSamplesRead = 0;
     private cassetteRiseInterruptCount = 0;
     private cassetteFallInterruptCount = 0;
+
+    // The list is sorted by tStateCount.
+    private scheduledEventCounter = 1;
+    private scheduledEvents: ScheduledEvent[] = [];
 
     constructor(screen: Trs80Screen, cassette: Cassette) {
         this.screen = screen;
@@ -209,6 +228,10 @@ export class Trs80 implements Hal {
         this.z80.reset();
     }
 
+    public jumpTo(address: number): void {
+        this.z80.regs.pc = address;
+    }
+
     /**
      * Start the CPU and intercept browser keys.
      */
@@ -279,6 +302,11 @@ export class Trs80 implements Hal {
 
         // Update cassette state.
         this.updateCassette();
+
+        while (this.scheduledEvents.length > 0 && this.tStateCount >= this.scheduledEvents[0].tStateCount) {
+            const scheduledEvent = this.scheduledEvents.shift() as ScheduledEvent;
+            scheduledEvent.callback();
+        }
     }
 
     public contendMemory(address: number): void {
@@ -545,10 +573,13 @@ export class Trs80 implements Hal {
      * Run a certain number of CPU instructions and schedule another tick.
      */
     private tick(): void {
-        for (let i = 0; i < this.clocksPerTick; i++) {
+        for (let i = 0; i < this.clocksPerTick && this.started; i++) {
             this.step();
         }
-        this.scheduleNextTick();
+        // We might have stopped in the step() routine (e.g., with scheduled event).
+        if (this.started) {
+            this.scheduleNextTick();
+        }
     }
 
     /**
@@ -588,6 +619,41 @@ export class Trs80 implements Hal {
             this.tickHandle = undefined;
             this.tick();
         }, delay);
+    }
+
+    /**
+     * Schedule an event to happen tStateCount clocks in the future. The callback will be called
+     * at the end of an instruction step.
+     *
+     * @return a handle that can be passed to cancelScheduledEvent().
+     */
+    public setScheduledEvent(tStateCount: number, callback: () => void): number {
+        let handle = this.scheduledEventCounter++;
+
+        this.scheduledEvents.push(new ScheduledEvent(handle, this.tStateCount + tStateCount, callback));
+        this.scheduledEvents.sort((a, b) => {
+            if (a.tStateCount < b.tStateCount) {
+                return -1;
+            } else if (a.tStateCount > b.tStateCount) {
+                return 1;
+            } else {
+                return 0;
+            }
+        });
+
+        return handle;
+    }
+
+    /**
+     * Cancel an event scheduled by setScheduledEvent().
+     */
+    public cancelScheduledEvent(handle: number): void {
+        for (let i = 0; i < this.scheduledEvents.length; i++) {
+            if (this.scheduledEvents[i].handle === handle) {
+                this.scheduledEvents.splice(i, 1);
+                break;
+            }
+        }
     }
 
     /**
