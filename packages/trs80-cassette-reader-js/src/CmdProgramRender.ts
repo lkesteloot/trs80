@@ -144,10 +144,11 @@ export function toDiv(cmdProgram: CmdProgram, out: HTMLElement): [Highlightable[
             add(line, "Load module header: ", classes.opcodes);
             add(line, chunk.filename, classes.hex);
         } else {
-            add(line, "Unknown type: ", classes.opcodes);
+            add(line, "Unknown type: ", classes.error);
             const bytes = chunk.rawData.slice(0, Math.min(3, chunk.rawData.length));
             const text = Array.from(bytes).map(toHexByte).join(" ") + (bytes.length < chunk.rawData.length ? " ..." : "");
             add(line, text, classes.hex);
+            add(line, " (" + chunk.rawData.length + " byte" + (chunk.rawData.length == 1 ? "" : "s") + ")", classes.address);
         }
     }
 

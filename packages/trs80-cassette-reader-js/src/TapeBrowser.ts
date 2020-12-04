@@ -16,7 +16,8 @@ import {DisplaySamples} from "./DisplaySamples";
 import {clearElement} from "./Utils";
 import {SystemProgram} from "./SystemProgram";
 import {Highlighter} from "./Highlighter";
-import {CmdProgram} from "./CmdProgram";
+import {CmdLoadBlockChunk, CmdProgram, CmdTransferAddressChunk} from "./CmdProgram";
+import {DEFAULT_SAMPLE_RATE} from "./WavFile";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -124,6 +125,15 @@ class TapeCassette extends Int16Cassette {
 class ReconstructedCassette extends Int16Cassette {
     constructor(samples: DisplaySamples, sampleRate: number) {
         super(samples.samplesList[0], sampleRate);
+    }
+}
+
+/**
+ * Empty cassette for when there's nothing to read.
+ */
+class EmptyCassette extends Int16Cassette {
+    constructor() {
+        super(new Int16Array(0), DEFAULT_SAMPLE_RATE);
     }
 }
 
@@ -657,23 +667,61 @@ export class TapeBrowser {
         return pane;
     }
 
-    private makeEmulatorPane(program: Program | undefined, cassette: Int16Cassette): Pane {
+    private loadProgram(trs80: Trs80, program: Program): void {
+        if (program.isCmdProgram()) {
+            const cmdProgram = new CmdProgram(program.binary);
+            for (const chunk of cmdProgram.chunks) {
+                if (chunk instanceof CmdLoadBlockChunk) {
+                    for (let i = 0; i < chunk.loadData.length; i++) {
+                        trs80.writeMemory(chunk.address + i, chunk.loadData[i]);
+                    }
+                } else if (chunk instanceof CmdTransferAddressChunk) {
+                    trs80.jumpTo(chunk.address);
+                }
+            }
+        } else if (program.isSystemProgram()) {
+            const systemProgram = new SystemProgram(program.binary);
+            for (const chunk of systemProgram.chunks) {
+                for (let i = 0; i < chunk.data.length; i++) {
+                    trs80.writeMemory(chunk.loadAddress + i, chunk.data[i]);
+                }
+            }
+            trs80.jumpTo(systemProgram.entryPointAddress);
+        }
+    }
+
+    /**
+     * Create a pane with an emulator pointing at the cassette and program.
+     */
+    private makeEmulatorPane(program: Program | undefined, cassette: Int16Cassette | undefined, autoRun?: boolean): Pane {
         const div = document.createElement("div");
 
         const screenDiv = document.createElement("div");
         div.appendChild(screenDiv);
 
         const screen = new CanvasScreen(screenDiv, false);
-        const trs80 = new Trs80(screen, cassette);
+        const trs80 = new Trs80(screen, cassette ?? new EmptyCassette());
+
+        const reboot = () => {
+            trs80.reset();
+
+            if (autoRun && program !== undefined) {
+                trs80.setScheduledEvent(trs80.clockHz/30, () => {
+                    this.loadProgram(trs80, program);
+                });
+            }
+        };
+
         const hardwareSettingsPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.HARDWARE);
         const viewPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.VIEW);
         const controlPanel = new ControlPanel(screen.getNode());
-        controlPanel.addResetButton(() => trs80.reset());
-        controlPanel.addTapeRewindButton(() => {
-            cassette.rewind();
-        });
+        controlPanel.addResetButton(reboot);
+        if (cassette !== undefined) {
+            controlPanel.addTapeRewindButton(() => {
+                cassette.rewind();
+            });
+        }
         if (program !== undefined) {
-            // TODO: Could add screenshot to tape.
             controlPanel.addScreenshotButton(() => {
                 const screenshot = trs80.getScreenshot();
                 program.setScreenshot(screenshot);
@@ -682,9 +730,11 @@ export class TapeBrowser {
         }
         controlPanel.addSettingsButton(hardwareSettingsPanel);
         controlPanel.addSettingsButton(viewPanel);
-        const progressBar = new ProgressBar(screen.getNode());
-        cassette.setProgressBar(progressBar);
-        trs80.reset();
+        if (cassette !== undefined) {
+            const progressBar = new ProgressBar(screen.getNode());
+            cassette.setProgressBar(progressBar);
+        }
+        reboot();
 
         let pane = new Pane(div);
         pane.didShow = () => trs80.start();
@@ -835,6 +885,9 @@ export class TapeBrowser {
             if (cmdPane !== undefined) {
                 addPane("CMD program" + (cmdPane.programName ? " (" + cmdPane.programName + ")" : ""), cmdPane);
             }
+            if (edtasmPane !== undefined) {
+                addPane("Assembly" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""), edtasmPane);
+            }
             if (basicPane !== undefined || systemPane !== undefined) {
                 let emulatorLabel = "Emulator (original, " + (program.decoder.isHighSpeed() ? "high" : "low") + " speed)";
                 addPane(emulatorLabel, this.makeEmulatorPane(program, new TapeCassette(this.tape, program)));
@@ -843,8 +896,8 @@ export class TapeBrowser {
                         this.makeEmulatorPane(program, new ReconstructedCassette(program.reconstructedSamples, this.tape.sampleRate)));
                 }
             }
-            if (edtasmPane !== undefined) {
-                addPane("Assembly" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""), edtasmPane);
+            if (cmdPane !== undefined || systemPane !== undefined) {
+                addPane("Emulator (auto-run)", this.makeEmulatorPane(program, undefined, true));
             }
         }
 

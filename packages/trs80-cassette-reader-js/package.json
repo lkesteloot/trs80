@@ -11,7 +11,8 @@
     "start": "npm run build && http-server docs",
     "watch": "webpack --watch",
     "watch-node": "tsc --build tsconfig.node.json --watch",
-    "test": "npm run build-node && node build/RegressionTest.js run tests.json"
+    "test": "npm run build-node && node build/RegressionTest.js run tests.json",
+    "prepare": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -48,7 +49,7 @@
     "progress": "^2.0.3",
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.6.7",
-    "trs80-emulator": "^1.1.1",
+    "trs80-emulator": "^1.1.2",
     "z80-base": "^1.0.4",
     "z80-disasm": "^1.1.0"
   }

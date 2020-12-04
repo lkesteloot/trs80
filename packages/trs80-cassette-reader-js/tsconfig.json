@@ -5,6 +5,7 @@
         "sourceMap": false,
         "moduleResolution": "Node",
         "strict": true,
+        "resolveJsonModule": true,
         "allowSyntheticDefaultImports": true
     },
     "include": [
