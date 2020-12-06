@@ -8,6 +8,7 @@
         "no-console": false,
         "no-bitwise": false,
         "interface-name": false,
+        "max-classes-per-file": false,
         "whitespace": [
             true,
             "check-branch",
