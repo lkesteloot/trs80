@@ -11,6 +11,7 @@
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
   "devDependencies": {
+    "@types/navigo": "^7.0.1",
     "@types/node": "^13.5.2",
     "http-server": "^0.12.0",
     "source-map-loader": "^0.2.4",
@@ -22,14 +23,18 @@
     "webpack-cli": "^3.3.10"
   },
   "dependencies": {
+    "base64-arraybuffer": "^0.2.0",
     "chalk": "^4.1.0",
     "commander": "^4.1.0",
+    "firebase": "^8.1.2",
     "jss": "^10.0.3",
     "jss-preset-default": "^10.0.3",
     "md5.js": "^1.3.5",
+    "navigo": "^7.1.2",
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.6.7",
-    "trs80-emulator": "^1.1.2",
+    "trs80-base": "file:../trs80-base",
+    "trs80-emulator": "../trs80-emulator",
     "z80-base": "^1.0.4",
     "z80-disasm": "^1.1.0"
   }

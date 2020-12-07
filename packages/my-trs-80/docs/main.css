@@ -1,0 +1,207 @@
+/* Global settings. */
+:root {
+    /* Solarized colors */
+    --base03:    #002b36;
+    --base02:    #073642;
+    --base01:    #586e75;
+    --base00:    #657b83;
+    --base0:     #839496;
+    --base1:     #93a1a1;
+    --base2:     #eee8d5;
+    --base3:     #fdf6e3;
+    --yellow:    #b58900;
+    --orange:    #cb4b16;
+    --red:       #dc322f;
+    --magenta:   #d33682;
+    --violet:    #6c71c4;
+    --blue:      #268bd2;
+    --cyan:      #2aa198;
+    --green:     #859900;
+
+    /* Horizontal margin for screens that are open. */
+    --horiz-margin: 80px;
+}
+.light-mode {
+    --background: var(--base3);
+    --background-highlights: var(--base2);
+    --foreground: var(--base00);
+    --foreground-emphasized: var(--base01);
+    --foreground-secondary: var(--base1);
+    --accent-color: var(--red);
+    --accent-foreground-color: var(--base3);
+}
+.dark-mode {
+    --background: var(--base03);
+    --background-highlights: var(--base02);
+    --foreground: var(--base0);
+    --foreground-emphasized: var(--base1);
+    --foreground-secondary: var(--base01);
+    --accent-color: var(--red);
+    --accent-foreground-color: var(--base3);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+/*    height: 100vh;
+    position: relative;*/
+}
+
+body, input, textarea {
+    font-family: "Roboto", "Helvetica Neue", sans-serif;
+    font-size: 16px;
+}
+
+.screen {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+/*
+.main-computer-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}*/
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.popup-background {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .20s ease-in-out, visibility .20s ease-in-out;
+}
+
+.popup-shown {
+    opacity: 1;
+    visibility: visible;
+}
+
+.popup-positioning {
+    position: absolute;
+    left: 50px;
+    top: 50px;
+    right: 50px;
+    bottom: 50px;
+
+    overflow: hidden hidden;
+}
+
+.popup-content {
+    --side-padding: 20px;
+
+    /* Start off-screen */
+    position: absolute;
+    left: 100vw;
+    top: 0;
+    right: -100vw;
+    bottom: 0;
+    transition: left 0.5s ease-in-out, right 0.5s ease-in-out;
+
+    border-radius: 10px;
+
+    background-color: var(--background);
+    color: var(--foreground);
+
+    overflow-y: auto;
+}
+
+.library .programs {
+    border-top: 1px solid var(--background-highlights);
+}
+
+.library h1 {
+    padding: var(--side-padding) var(--side-padding) 10px var(--side-padding);
+    margin: 0;
+    font-size: 28pt;
+    font-weight: 100;
+    color: var(--accent-color);
+}
+
+.library .program {
+    padding: 10px var(--side-padding);
+    border-bottom: 1px solid var(--background-highlights);
+    cursor: default;
+}
+
+.library .program .name {
+    font-weight: 800;
+    color: var(--accent-color);
+}
+
+.library .program .filename {
+    font-family: "Roboto Mono", monospace;
+    white-space: pre;
+}
+
+.library .program .note {
+    font-size: 80%;
+    margin-top: 5px;
+    color: var(--foreground-secondary);
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.button {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--foreground-secondary);
+    border-radius: 50%;
+    cursor: pointer;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.button svg {
+    fill: var(--foreground-secondary);
+}
+
+.button:hover {
+    background-color: var(--background-highlights);
+    border: 2px solid var(--foreground);
+}
+
+.button:hover svg {
+    fill: var(--foreground);
+}
+
+.close-button {
+    float: right;
+}
+
+.back-button {
+    float: left;
+    margin-right: 20px;
+}
+
+.play-button {
+    float: right;
+    margin-right: 10px;
+}
+
+.info-button {
+    float: right;
+}
