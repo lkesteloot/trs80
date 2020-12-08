@@ -23,7 +23,6 @@
     "webpack-cli": "^3.3.10"
   },
   "dependencies": {
-    "base64-arraybuffer": "^0.2.0",
     "chalk": "^4.1.0",
     "commander": "^4.1.0",
     "firebase": "^8.1.2",

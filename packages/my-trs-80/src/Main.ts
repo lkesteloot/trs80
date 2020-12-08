@@ -3,41 +3,12 @@ import {createHome} from "./Home";
 import {CanvasScreen, Cassette, ControlPanel, PanelType, ProgressBar, SettingsPanel, Trs80} from "trs80-emulator";
 import {CmdProgram} from "trs80-base";
 import firebase from 'firebase/app';
-import * as base64 from 'base64-arraybuffer';
 // These imports load individual services into the firebase namespace.
 import 'firebase/auth';
 import 'firebase/firestore';
 import 'firebase/analytics';
 import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentData = firebase.firestore.DocumentData;
-
-const CLOSE_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
-    <path d="M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z"/>
-</svg>`;
-
-// https://thenounproject.com/term/arrow/1256499
-const BACK_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 23 64 54" width="18" height="18">
-    <path d="M81,50a4,4,0,0,0-4-4H33.13L49.39,30.84A4,4,0,1,0,43.93,25L20.24,47.07a4,4,0,0,0,0,5.85L43.93,75a4,4,0,0,0,5.46-5.85L33.13,54H77A4,4,0,0,0,81,50Z"/>
-</svg>`;
-
-// https://thenounproject.com/term/arrow/1256499
-const FORWARD_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 23 64 54" width="18" height="18">
-    <g transform="translate(50, 50) rotate(180) translate(-50, -50)">
-        <path d="M81,50a4,4,0,0,0-4-4H33.13L49.39,30.84A4,4,0,1,0,43.93,25L20.24,47.07a4,4,0,0,0,0,5.85L43.93,75a4,4,0,0,0,5.46-5.85L33.13,54H77A4,4,0,0,0,81,50Z"/>
-    </g>
-</svg>`;
-
-// https://thenounproject.com/term/play/1914265
-const PLAY_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 15 64 70" width="18" height="18">
-    <g transform="translate(0,-952.36218)">
-        <path d="m 18,1028.9228 c 0.14842,6.5177 6.82362,10.4644 12.67182,7.3615 l 47.0288,-26.6902 C 80.26202,1008.1385 82,1005.4715 82,1002.346 c 0,-3.12559 -1.73798,-5.79259 -4.29938,-7.24819 l -47.0288,-26.65233 c -5.8482,-3.1029 -12.5234,0.806 -12.67182,7.3237 z"/>
-    </g>
-</svg>
-`;
 
 function configureRoutes() {
     const body = document.querySelector("body") as HTMLElement;
@@ -53,12 +24,29 @@ class EmptyCassette extends Cassette {
 }
 
 /**
+ * Make a material design icon with the given name.
+ *
+ * https://google.github.io/material-design-icons/
+ * https://material.io/resources/icons/?style=round
+ */
+function makeIcon(name: string): HTMLElement {
+    const icon = document.createElement("i");
+
+    icon.classList.add("material-icons-round");
+    icon.classList.add("material-icons-override");
+    icon.innerText = name;
+
+    return icon;
+}
+
+/**
  * Make a generic round button.
  */
-function makeButton(svg: string, clickCallback: () => void) {
+function makeButton(icon: HTMLElement, title: string, clickCallback: () => void) {
     const button = document.createElement("div");
     button.classList.add("button");
-    button.innerHTML = svg;
+    button.title = title;
+    button.appendChild(icon);
     button.addEventListener("click", clickCallback);
 
     return button;
@@ -68,7 +56,7 @@ function makeButton(svg: string, clickCallback: () => void) {
  * Make a float-right close button for dialog boxes.
  */
 function makeCloseButton(closeCallback: () => void) {
-    const button = makeButton(CLOSE_SVG, closeCallback);
+    const button = makeButton(makeIcon("close"), "Close window", closeCallback);
     button.classList.add("close-button");
 
     return button;
@@ -193,12 +181,13 @@ class Library {
         this.positioningNode.appendChild(itemNode);
 
         const header = document.createElement("h1");
-        const backButton = makeButton(BACK_SVG, () => this.popScreen());
+        const backButton = makeButton(makeIcon("arrow_back"), "Back", () => this.popScreen());
         backButton.classList.add("back-button");
         header.appendChild(backButton);
         header.appendChild(makeCloseButton(() => this.close()));
         header.appendChild(document.createTextNode(file.name));
         itemNode.appendChild(header);
+
 
         this.pushScreen(itemNode);
     }
@@ -250,7 +239,7 @@ class Library {
         programDiv.classList.add("program");
         parent.appendChild(programDiv);
 
-        const infoButton = makeButton(FORWARD_SVG, () => {
+        const infoButton = makeButton(makeIcon("arrow_forward"), "File information", () => {
             if (this.screens.length === 1) {
                 this.showItemInfo(file);
             }
@@ -258,7 +247,7 @@ class Library {
         infoButton.classList.add("info-button");
         programDiv.appendChild(infoButton);
 
-        const playButton = makeButton(PLAY_SVG, () => {
+        const playButton = makeButton(makeIcon("play_arrow"), "Run program", () => {
             const cmdProgram = new CmdProgram(file.binary);
             if (cmdProgram.error !== undefined) {
                 // TODO

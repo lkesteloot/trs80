@@ -53,6 +53,12 @@ body, input, textarea {
     font-size: 16px;
 }
 
+/* Our own overrides for the material design icons. */
+.material-icons-override {
+    font-size: 30px;
+    color: var(--foreground-secondary);
+}
+
 .screen {
     position: absolute;
     left: 0;
@@ -87,6 +93,7 @@ body, input, textarea {
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.6);
+    overflow: hidden hidden;
 
     opacity: 0;
     visibility: hidden;
@@ -105,7 +112,7 @@ body, input, textarea {
     right: 50px;
     bottom: 50px;
 
-    overflow: hidden hidden;
+    overflow: visible visible;
 }
 
 .popup-content {
@@ -128,10 +135,11 @@ body, input, textarea {
 }
 
 .library .programs {
-    border-top: 1px solid var(--background-highlights);
+    /* Nothing. */
 }
 
 .library h1 {
+    border-bottom: 1px solid var(--background-highlights);
     padding: var(--side-padding) var(--side-padding) 10px var(--side-padding);
     margin: 0;
     font-size: 28pt;
@@ -166,9 +174,9 @@ body, input, textarea {
 .button {
     width: 36px;
     height: 36px;
-    border: 2px solid var(--foreground-secondary);
     border-radius: 50%;
     cursor: pointer;
+    background-color: var(--background-highlights);
 
     display: flex;
     justify-content: center;
@@ -180,12 +188,11 @@ body, input, textarea {
 }
 
 .button:hover {
-    background-color: var(--background-highlights);
-    border: 2px solid var(--foreground);
+    /* Nothing. */
 }
 
 .button:hover svg {
-    fill: var(--foreground);
+    fill: var(--foreground-emphasized);
 }
 
 .close-button {
