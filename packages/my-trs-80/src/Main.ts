@@ -120,6 +120,7 @@ class Library {
     private readonly libraryNode: HTMLElement;
     private readonly escListener: (e: KeyboardEvent) => void;
     private readonly screens: HTMLElement[] = [];
+    private isOpen = false;
     private trs80WasStarted = false;
 
     constructor(parent: HTMLElement, trs80: Trs80, db: firebase.firestore.Firestore) {
@@ -221,17 +222,31 @@ class Library {
     }
 
     public open(): void {
-        document.addEventListener("keydown", this.escListener);
-        this.trs80WasStarted = this.trs80.stop();
-        this.backgroundNode.classList.add("popup-shown");
+        if (!this.isOpen) {
+            this.isOpen = true;
+            document.addEventListener("keydown", this.escListener);
+            this.trs80WasStarted = this.trs80.stop();
+            this.backgroundNode.classList.add("popup-shown");
+        }
     }
 
     public close(): void {
-        document.removeEventListener("keydown", this.escListener);
-        if (this.trs80WasStarted) {
-            this.trs80.start();
+        if (this.isOpen) {
+            this.isOpen = false;
+            document.removeEventListener("keydown", this.escListener);
+            if (this.trs80WasStarted) {
+                this.trs80.start();
+            }
+            this.backgroundNode.classList.remove("popup-shown");
         }
-        this.backgroundNode.classList.remove("popup-shown");
+    }
+
+    public toggle(): void {
+        if (this.isOpen) {
+            this.close();
+        } else {
+            this.open();
+        }
     }
 
     private addFile(parent: HTMLElement, file: File): void {
@@ -299,6 +314,24 @@ function addProgramToFirestore(db: firebase.firestore.Firestore, name: string, u
         });
 }
 
+function createNavbar(openLibrary: () => void): HTMLElement {
+    const navbar = document.createElement("div");
+    navbar.classList.add("navbar");
+
+    const libraryButton = makeButton(makeIcon("folder_open"), "Open library (Ctrl-L)", openLibrary);
+    navbar.appendChild(libraryButton);
+
+    const themeButton = makeButton(makeIcon("brightness_medium"), "Toggle theme", () => {
+        const body = document.querySelector("body") as HTMLElement;
+
+        body.classList.toggle("light-mode");
+        body.classList.toggle("dark-mode");
+    });
+    navbar.appendChild(themeButton);
+
+    return navbar;
+}
+
 export function main() {
     const app = firebase.initializeApp({
         apiKey: "AIzaSyAfGZY9BaDUmy4qNtg11JHd_kLd1JmgdBI",
@@ -320,6 +353,11 @@ export function main() {
     }
 
     const body = document.querySelector("body") as HTMLElement;
+
+    let library: Library | undefined = undefined;
+
+    const navbar = createNavbar(() => library?.open());
+    body.appendChild(navbar);
 
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
@@ -354,12 +392,13 @@ export function main() {
     const progressBar = new ProgressBar(screen.getNode());
     // cassette.setProgressBar(progressBar);
 
-    const library = new Library(body, trs80, db);
+    library = new Library(body, trs80, db);
 
-    const libraryButton = document.createElement("button");
-    libraryButton.innerText = "Library";
-    libraryButton.addEventListener("click", () => library.open());
-    body.appendChild(libraryButton);
+    document.addEventListener("keydown", event => {
+        if (event.ctrlKey && event.key === "l") {
+            library?.toggle();
+        }
+    });
 
     reboot();
 }

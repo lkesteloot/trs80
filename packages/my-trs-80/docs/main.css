@@ -40,12 +40,21 @@
     --accent-foreground-color: var(--base3);
 }
 
+* {
+    /* For theme changes. */
+    transition: color .25s ease-in-out, background-color .25s ease-in-out;
+}
+
 body {
     margin: 0;
     padding: 0;
-    background-color: #000;
-/*    height: 100vh;
-    position: relative;*/
+    background-color: var(--background);
+
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: flex-start;
+
+    height: 100vh;
 }
 
 body, input, textarea {
@@ -71,18 +80,26 @@ body, input, textarea {
     display: none;
 }
 
-/*
 .main-computer-screen {
+    flex-grow: 1;
+
     display: flex;
     justify-content: center;
     align-items: center;
+}
 
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-}*/
+/* ----------------------------------------------------------------------------------------------------- */
+
+.navbar {
+    height: 50px;
+    background-color: var(--background-highlights);
+    padding: 0 10px;
+
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: flex-end;
+    align-items: center;
+}
 
 /* ----------------------------------------------------------------------------------------------------- */
 
