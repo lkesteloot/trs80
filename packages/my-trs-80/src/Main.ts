@@ -10,17 +10,25 @@ import 'firebase/analytics';
 import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 
+const MATERIAL_ICONS_CLASS = "material-icons-round";
+
 function configureRoutes() {
     const body = document.querySelector("body") as HTMLElement;
     const router = new Navigo(null, true, "#!");
     const s = createHome(router);
     s.classList.add("screen");
-    body.appendChild(s);
+    body.append(s);
     router.resolve();
 }
 
 class EmptyCassette extends Cassette {
     // Nothing to do.
+}
+
+// Fresh IDs for inputs so that we can point labels at them. TODO delete?
+let inputIdCounter = 1;
+function makeId(): string {
+    return "_input" + inputIdCounter++;
 }
 
 /**
@@ -32,7 +40,7 @@ class EmptyCassette extends Cassette {
 function makeIcon(name: string): HTMLElement {
     const icon = document.createElement("i");
 
-    icon.classList.add("material-icons-round");
+    icon.classList.add(MATERIAL_ICONS_CLASS);
     icon.classList.add("material-icons-override");
     icon.innerText = name;
 
@@ -42,11 +50,11 @@ function makeIcon(name: string): HTMLElement {
 /**
  * Make a generic round button.
  */
-function makeButton(icon: HTMLElement, title: string, clickCallback: () => void) {
+function makeIconButton(icon: HTMLElement, title: string, clickCallback: () => void) {
     const button = document.createElement("div");
     button.classList.add("button");
     button.title = title;
-    button.appendChild(icon);
+    button.append(icon);
     button.addEventListener("click", clickCallback);
 
     return button;
@@ -55,9 +63,26 @@ function makeButton(icon: HTMLElement, title: string, clickCallback: () => void)
 /**
  * Make a float-right close button for dialog boxes.
  */
-function makeCloseButton(closeCallback: () => void) {
-    const button = makeButton(makeIcon("close"), "Close window", closeCallback);
+function makeCloseIconButton(closeCallback: () => void) {
+    const button = makeIconButton(makeIcon("close"), "Close window", closeCallback);
     button.classList.add("close-button");
+
+    return button;
+}
+
+function makeButton(label: string, iconName: string | undefined, cssClass: string, clickCallback: () => void) {
+    const button = document.createElement("button");
+    button.innerText = label;
+    button.classList.add(cssClass);
+
+    if (iconName !== undefined) {
+        const icon = document.createElement("i");
+        icon.classList.add(MATERIAL_ICONS_CLASS);
+        icon.innerText = iconName;
+        button.append(icon);
+    }
+
+    button.addEventListener("click", clickCallback);
 
     return button;
 }
@@ -144,25 +169,25 @@ class Library {
                 e.stopPropagation();
             }
         });
-        parent.appendChild(this.backgroundNode);
+        parent.append(this.backgroundNode);
 
         this.positioningNode = document.createElement("div");
         this.positioningNode.classList.add("popup-positioning");
-        this.backgroundNode.appendChild(this.positioningNode);
+        this.backgroundNode.append(this.positioningNode);
 
         this.libraryNode = document.createElement("div");
         this.libraryNode.classList.add("popup-content");
         this.libraryNode.classList.add("library");
-        this.positioningNode.appendChild(this.libraryNode);
+        this.positioningNode.append(this.libraryNode);
 
         const header = document.createElement("h1");
         header.innerText = "Library";
-        header.appendChild(makeCloseButton(() => this.close()));
-        this.libraryNode.appendChild(header);
+        header.append(makeCloseIconButton(() => this.close()));
+        this.libraryNode.append(header);
 
         const programsDiv = document.createElement("div");
         programsDiv.classList.add("programs");
-        this.libraryNode.appendChild(programsDiv);
+        this.libraryNode.append(programsDiv);
 
         db.collection("files").get().then((querySnapshot) => {
             const files = querySnapshot.docs.map(d => new File(d));
@@ -175,22 +200,84 @@ class Library {
         this.pushScreen(this.libraryNode);
     }
 
-    private showItemInfo(file: File): void {
-        const itemNode = document.createElement("div");
-        itemNode.classList.add("popup-content");
-        itemNode.classList.add("library");
-        this.positioningNode.appendChild(itemNode);
+    private showFileInfo(file: File): void {
+        const fileInfoDiv = document.createElement("div");
+        fileInfoDiv.classList.add("popup-content");
+        fileInfoDiv.classList.add("file-info");
+        this.positioningNode.append(fileInfoDiv);
 
         const header = document.createElement("h1");
-        const backButton = makeButton(makeIcon("arrow_back"), "Back", () => this.popScreen());
+        const backButton = makeIconButton(makeIcon("arrow_back"), "Back", () => this.popScreen());
         backButton.classList.add("back-button");
-        header.appendChild(backButton);
-        header.appendChild(makeCloseButton(() => this.close()));
-        header.appendChild(document.createTextNode(file.name));
-        itemNode.appendChild(header);
+        header.append(backButton);
+        header.append(makeCloseIconButton(() => this.close()));
+        header.append(document.createTextNode(file.name));
+        fileInfoDiv.append(header);
 
+        // Form for editing file info.
+        const form = document.createElement("form");
+        form.classList.add("file-info-form");
+        fileInfoDiv.append(form);
 
-        this.pushScreen(itemNode);
+        const nameLabel = document.createElement("label");
+        nameLabel.classList.add("name");
+        nameLabel.innerText = "Name";
+        form.append(nameLabel);
+        const nameInput = document.createElement("input");
+        nameInput.value = file.name;
+        nameLabel.append(nameInput);
+
+        const filenameLabel = document.createElement("label");
+        filenameLabel.classList.add("filename");
+        filenameLabel.innerText = "Filename";
+        form.append(filenameLabel);
+        const filenameInput = document.createElement("input");
+        filenameInput.value = file.filename;
+        filenameLabel.append(filenameInput);
+
+        const noteLabel = document.createElement("label");
+        noteLabel.classList.add("note");
+        noteLabel.innerText = "Note";
+        form.append(noteLabel);
+        const noteInput = document.createElement("textarea");
+        noteInput.rows = 10;
+        noteInput.value = file.note;
+        noteLabel.append(noteInput);
+
+        const miscDiv = document.createElement("div");
+        miscDiv.classList.add("misc");
+        miscDiv.innerText = "misc";
+        form.append(miscDiv);
+
+        const screenshotsDiv = document.createElement("div");
+        screenshotsDiv.classList.add("screenshots");
+        screenshotsDiv.innerText = "screenshots";
+        form.append(screenshotsDiv);
+
+        const actionBar = document.createElement("div");
+        actionBar.classList.add("action-bar");
+        fileInfoDiv.append(actionBar);
+
+        const runButton = makeButton("Run", "play_arrow", "play-button", () => {
+            this.runProgram(file);
+        });
+        actionBar.append(runButton);
+        const deleteButton = makeButton("Delete File", "delete", "delete-button", () => {
+            // TODO.
+        });
+        actionBar.append(deleteButton);
+        const revertButton = makeButton("Revert", "undo", "revert-button", () => {
+            // TODO.
+        });
+        revertButton.disabled = true;
+        actionBar.append(revertButton);
+        const saveButton = makeButton("Save", "save", "save-button", () => {
+            // TODO.
+        });
+        saveButton.disabled = true;
+        actionBar.append(saveButton);
+
+        this.pushScreen(fileInfoDiv);
     }
 
     private pushScreen(screen: HTMLElement): void {
@@ -252,42 +339,46 @@ class Library {
     private addFile(parent: HTMLElement, file: File): void {
         const programDiv = document.createElement("div");
         programDiv.classList.add("program");
-        parent.appendChild(programDiv);
+        parent.append(programDiv);
 
-        const infoButton = makeButton(makeIcon("arrow_forward"), "File information", () => {
+        const infoButton = makeIconButton(makeIcon("arrow_forward"), "File information", () => {
             if (this.screens.length === 1) {
-                this.showItemInfo(file);
+                this.showFileInfo(file);
             }
         });
         infoButton.classList.add("info-button");
-        programDiv.appendChild(infoButton);
+        programDiv.append(infoButton);
 
-        const playButton = makeButton(makeIcon("play_arrow"), "Run program", () => {
-            const cmdProgram = new CmdProgram(file.binary);
-            if (cmdProgram.error !== undefined) {
-                // TODO
-            } else {
-                this.trs80.runCmdProgram(cmdProgram);
-                this.close();
-            }
+        const playButton = makeIconButton(makeIcon("play_arrow"), "Run program", () => {
+            this.runProgram(file);
         });
         playButton.classList.add("play-button");
-        programDiv.appendChild(playButton);
+        programDiv.append(playButton);
 
         const nameDiv = document.createElement("div");
         nameDiv.classList.add("name");
         nameDiv.innerText = file.name;
-        programDiv.appendChild(nameDiv);
+        programDiv.append(nameDiv);
 
         const filenameDiv = document.createElement("div");
         filenameDiv.classList.add("filename");
         filenameDiv.innerText = file.filename;
-        programDiv.appendChild(filenameDiv);
+        programDiv.append(filenameDiv);
 
         const noteDiv = document.createElement("div");
         noteDiv.classList.add("note");
         noteDiv.innerText = file.note;
-        programDiv.appendChild(noteDiv);
+        programDiv.append(noteDiv);
+    }
+
+    private runProgram(file: File): void {
+        const cmdProgram = new CmdProgram(file.binary);
+        if (cmdProgram.error !== undefined) {
+            // TODO
+        } else {
+            this.trs80.runCmdProgram(cmdProgram);
+            this.close();
+        }
     }
 }
 
@@ -318,16 +409,16 @@ function createNavbar(openLibrary: () => void): HTMLElement {
     const navbar = document.createElement("div");
     navbar.classList.add("navbar");
 
-    const libraryButton = makeButton(makeIcon("folder_open"), "Open library (Ctrl-L)", openLibrary);
-    navbar.appendChild(libraryButton);
+    const libraryButton = makeIconButton(makeIcon("folder_open"), "Open library (Ctrl-L)", openLibrary);
+    navbar.append(libraryButton);
 
-    const themeButton = makeButton(makeIcon("brightness_medium"), "Toggle theme", () => {
+    const themeButton = makeIconButton(makeIcon("brightness_medium"), "Toggle theme", () => {
         const body = document.querySelector("body") as HTMLElement;
 
         body.classList.toggle("light-mode");
         body.classList.toggle("dark-mode");
     });
-    navbar.appendChild(themeButton);
+    navbar.append(themeButton);
 
     return navbar;
 }
@@ -357,11 +448,11 @@ export function main() {
     let library: Library | undefined = undefined;
 
     const navbar = createNavbar(() => library?.open());
-    body.appendChild(navbar);
+    body.append(navbar);
 
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
-    body.appendChild(screenDiv);
+    body.append(screenDiv);
 
     const screen = new CanvasScreen(screenDiv, false);
     let cassette = new EmptyCassette();

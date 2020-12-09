@@ -88,6 +88,38 @@ body, input, textarea {
     align-items: center;
 }
 
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+/* TODO rename these to .icon-button */
+.button {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    background-color: var(--background-highlights);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.button svg {
+    fill: var(--foreground-secondary);
+}
+
+.button:hover {
+    /* Nothing. */
+}
+
+.button:hover svg {
+    fill: var(--foreground-emphasized);
+}
+
+.close-button {
+    float: right;
+}
+
 /* ----------------------------------------------------------------------------------------------------- */
 
 .navbar {
@@ -149,13 +181,12 @@ body, input, textarea {
     color: var(--foreground);
 
     overflow-y: auto;
+
+    display: flex;
+    flex-flow: column nowrap;
 }
 
-.library .programs {
-    /* Nothing. */
-}
-
-.library h1 {
+.popup-content h1 {
     border-bottom: 1px solid var(--background-highlights);
     padding: var(--side-padding) var(--side-padding) 10px var(--side-padding);
     margin: 0;
@@ -163,6 +194,63 @@ body, input, textarea {
     font-weight: 100;
     color: var(--accent-color);
 }
+
+.popup-content h1 .back-button {
+    float: left;
+    margin-right: 20px;
+}
+
+.popup-content .action-bar {
+    border-top: 1px solid var(--background-highlights);
+    padding: var(--side-padding);
+    margin: 0;
+    background-color: var(--background-highlights);
+
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: flex-end;
+}
+
+.popup-content .action-bar button {
+    border: 1px solid var(--foreground-secondary);
+    padding: 4px 13px;
+    margin-left: 10px;
+    background-color: var(--background-highlights);
+    color: var(--foreground-secondary);
+    border-radius: 999px;
+    cursor: pointer;
+
+    transition: border-color 0.1s ease-in-out, color 0.1s ease-in-out;
+
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+}
+
+.popup-content .action-bar button:hover:not(:disabled) {
+    border-color: var(--foreground-emphasized);
+    color: var(--foreground-emphasized);
+}
+
+.popup-content .action-bar button:focus,
+.popup-content .action-bar button:active {
+    outline: 0;
+}
+
+.popup-content .action-bar button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.popup-content .action-bar button i {
+    margin-left: 6px;
+}
+
+.popup-content .action-bar button:first-of-type {
+    margin-left: 0;
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
 
 .library .program {
     padding: 10px var(--side-padding);
@@ -186,46 +274,62 @@ body, input, textarea {
     color: var(--foreground-secondary);
 }
 
-/* ----------------------------------------------------------------------------------------------------- */
-
-.button {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    background-color: var(--background-highlights);
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.button svg {
-    fill: var(--foreground-secondary);
-}
-
-.button:hover {
-    /* Nothing. */
-}
-
-.button:hover svg {
-    fill: var(--foreground-emphasized);
-}
-
-.close-button {
-    float: right;
-}
-
-.back-button {
-    float: left;
-    margin-right: 20px;
-}
-
-.play-button {
+.library .play-button {
     float: right;
     margin-right: 10px;
 }
 
-.info-button {
+.library .info-button {
     float: right;
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.file-info-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto 1fr;
+    column-gap: 20px;
+    row-gap: 20px;
+
+    flex-grow: 1;
+
+    padding: var(--side-padding);
+}
+
+.file-info-form > * {
+    xxxbackground-color: #ccc;
+}
+
+.file-info-form label {
+    display: block;
+    color: var(--foreground-secondary);
+    font-size: 80%;
+}
+
+.file-info-form input, .file-info-form textarea {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 5px;
+    color: var(--foreground-emphasized);
+    background-color: var(--background-highlights);
+    border: none;
+}
+
+.file-info-form .screenshots {
+    grid-column: 3 / -1;
+    grid-row: 1 / -1;
+}
+
+.file-info-form .filename input {
+    font-family: "Roboto Mono", monospace;
+}
+
+.file-info-form .note {
+    grid-column-end: span 2;
+}
+
+.file-info-form .misc {
+    grid-column-end: span 2;
 }
