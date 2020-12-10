@@ -315,6 +315,7 @@ body, input, textarea {
     color: var(--foreground-emphasized);
     background-color: var(--background-highlights);
     border: none;
+    border-radius: 3px;
 }
 
 .file-info-form .screenshots {
@@ -332,4 +333,20 @@ body, input, textarea {
 
 .file-info-form .misc {
     grid-column-end: span 2;
+}
+
+.file-info-form .misc table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.file-info-form .misc th {
+    font-weight: bold;
+    text-align: right;
+    padding: 0 10px 0 0;
+}
+
+.file-info-form .misc td {
+    padding: 0;
 }

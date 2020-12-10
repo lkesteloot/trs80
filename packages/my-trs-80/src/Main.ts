@@ -1,7 +1,7 @@
 import Navigo from "navigo";
 import {createHome} from "./Home";
 import {CanvasScreen, Cassette, ControlPanel, PanelType, ProgressBar, SettingsPanel, Trs80} from "trs80-emulator";
-import {CmdProgram} from "trs80-base";
+import {CmdProgram, isCmdProgram} from "trs80-base";
 import firebase from 'firebase/app';
 // These imports load individual services into the firebase namespace.
 import 'firebase/auth';
@@ -9,6 +9,7 @@ import 'firebase/firestore';
 import 'firebase/analytics';
 import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentData = firebase.firestore.DocumentData;
+import {withCommas} from "teamten-ts-utils";
 
 const MATERIAL_ICONS_CLASS = "material-icons-round";
 
@@ -29,6 +30,15 @@ class EmptyCassette extends Cassette {
 let inputIdCounter = 1;
 function makeId(): string {
     return "_input" + inputIdCounter++;
+}
+
+/**
+ * Format a long date without a time.
+ */
+function formatDate(date: Date): string {
+    const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+
+    return date.toLocaleDateString(undefined, options);
 }
 
 /**
@@ -115,6 +125,17 @@ class File {
         this.binary = (data.binary as firebase.firestore.Blob).toUint8Array();
         this.dateAdded = (data.dateAdded as firebase.firestore.Timestamp).toDate();
         this.dateModified = (data.dateModified as firebase.firestore.Timestamp).toDate();
+    }
+
+    /**
+     * Get the type of the file as a string.
+     */
+    public getType(): string {
+        if (isCmdProgram(this.binary)) {
+            return "CMD program";
+        } else {
+            return "Unknown type";
+        }
     }
 
     public static compare(a: File, b: File): number {
@@ -246,7 +267,31 @@ class Library {
 
         const miscDiv = document.createElement("div");
         miscDiv.classList.add("misc");
-        miscDiv.innerText = "misc";
+        {
+            // Misc pane.
+            const table = document.createElement("table");
+            miscDiv.append(table);
+
+            const entries = [
+                ["Size:", withCommas(file.binary.length) + " byte" + (file.binary.length === 1 ? "" : "s")],
+                ["Type:", file.getType()],
+                ["Date added:", formatDate(file.dateAdded)],
+                ["Date last modified:", formatDate(file.dateModified)],
+            ];
+
+            for (const [key, value] of entries) {
+                const tr = document.createElement("tr");
+                table.append(tr);
+
+                const th = document.createElement("th");
+                th.innerText = key;
+
+                const td = document.createElement("td");
+                td.innerText = value;
+
+                tr.append(th, td);
+            }
+        }
         form.append(miscDiv);
 
         const screenshotsDiv = document.createElement("div");

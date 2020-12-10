@@ -32,6 +32,7 @@
     "navigo": "^7.1.2",
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.6.7",
+    "teamten-ts-utils": "^1.0.0",
     "trs80-base": "file:../trs80-base",
     "trs80-emulator": "../trs80-emulator",
     "z80-base": "^1.0.4",
