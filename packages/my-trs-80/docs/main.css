@@ -180,8 +180,6 @@ body, input, textarea {
     background-color: var(--background);
     color: var(--foreground);
 
-    overflow-y: auto;
-
     display: flex;
     flex-flow: column nowrap;
 }
@@ -293,6 +291,7 @@ body, input, textarea {
     row-gap: 20px;
 
     flex-grow: 1;
+    overflow-y: hidden;
 
     padding: var(--side-padding);
 }
@@ -329,6 +328,7 @@ body, input, textarea {
 .file-info-form .screenshots {
     grid-column: 3 / -1;
     grid-row: 1 / -1;
+    overflow-y: auto;
 }
 
 .file-info-form .filename input {

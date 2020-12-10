@@ -279,7 +279,11 @@ class Library {
 
         const screenshotsDiv = document.createElement("div");
         screenshotsDiv.classList.add("screenshots");
-        screenshotsDiv.innerText = "screenshots";
+        let s = "screenshots ";
+        for (let i = 0; i < 8; i++) {
+            s = s + s;
+        }
+        screenshotsDiv.innerText = s;
         form.append(screenshotsDiv);
 
         const actionBar = document.createElement("div");
