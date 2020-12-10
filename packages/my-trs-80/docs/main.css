@@ -331,6 +331,23 @@ body, input, textarea {
     overflow-y: auto;
 }
 
+.file-info-form .screenshots::-webkit-scrollbar {
+    width: 8px;
+}
+
+.file-info-form .screenshots::-webkit-scrollbar-track {
+    /* Nothing. */
+}
+
+.file-info-form .screenshots::-webkit-scrollbar-thumb {
+    background: var(--background-highlights);
+    border-radius: 999px;
+}
+
+.file-info-form .screenshots::-webkit-scrollbar-thumb:hover {
+    /* Nothing */
+}
+
 .file-info-form .filename input {
     /* TODO makes the input field slightly taller than the non-mono ones */
     font-family: "Roboto Mono", monospace;
