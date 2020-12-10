@@ -288,7 +288,7 @@ body, input, textarea {
 .file-info-form {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
     column-gap: 20px;
     row-gap: 20px;
 
@@ -298,7 +298,7 @@ body, input, textarea {
 }
 
 .file-info-form > * {
-    xxxbackground-color: #ccc;
+    xbackground-color: #ECC;
 }
 
 .file-info-form label {
@@ -307,7 +307,8 @@ body, input, textarea {
     font-size: 80%;
 }
 
-.file-info-form input, .file-info-form textarea {
+.file-info-form input,
+.file-info-form textarea {
     display: block;
     box-sizing: border-box;
     width: 100%;
@@ -318,12 +319,20 @@ body, input, textarea {
     border-radius: 3px;
 }
 
+.file-info-form input:disabled,
+.file-info-form textarea:disabled {
+    background-color: transparent;
+    padding-left: 0;
+    padding-right: 0;
+}
+
 .file-info-form .screenshots {
     grid-column: 3 / -1;
     grid-row: 1 / -1;
 }
 
 .file-info-form .filename input {
+    /* TODO makes the input field slightly taller than the non-mono ones */
     font-family: "Roboto Mono", monospace;
 }
 
@@ -335,18 +344,3 @@ body, input, textarea {
     grid-column-end: span 2;
 }
 
-.file-info-form .misc table {
-    table-layout: fixed;
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.file-info-form .misc th {
-    font-weight: bold;
-    text-align: right;
-    padding: 0 10px 0 0;
-}
-
-.file-info-form .misc td {
-    padding: 0;
-}
