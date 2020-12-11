@@ -30,7 +30,7 @@ export function makeIcon(name: string): HTMLElement {
  */
 export function makeIconButton(icon: HTMLElement, title: string, clickCallback: () => void) {
     const button = document.createElement("div");
-    button.classList.add("button");
+    button.classList.add("icon-button");
     button.title = title;
     button.append(icon);
     button.addEventListener("click", clickCallback);

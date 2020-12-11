@@ -95,7 +95,7 @@ body, input, textarea {
 /* ----------------------------------------------------------------------------------------------------- */
 
 /* TODO rename these to .icon-button */
-.button {
+.icon-button {
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -108,12 +108,12 @@ body, input, textarea {
     align-items: center;
 }
 
-.button:hover {
+.icon-button:hover {
     /* Nothing. */
     border: 1px solid var(--foreground-emphasized);
 }
 
-.button:hover .material-icons-override {
+.icon-button:hover .material-icons-override {
     color: var(--foreground-emphasized);
 }
 
