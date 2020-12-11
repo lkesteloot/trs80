@@ -42,7 +42,7 @@ function addProgramToFirestore(db: firebase.firestore.Firestore, name: string, u
                 name: name,
                 filename: url.split("/").pop(),
                 note: note,
-                public: false,
+                shared: false,
                 hash: "",
                 binary: firebase.firestore.Blob.fromUint8Array(new Uint8Array(arrayBuffer)),
                 dateAdded: firebase.firestore.Timestamp.fromDate(new Date()),

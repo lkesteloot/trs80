@@ -1,10 +1,11 @@
 import {makeCloseIconButton, makeIcon, makeIconButton} from "./Utils";
 import {Panel} from "./Panel";
-import {File} from "./File";
+import {File, FileBuilder} from "./File";
 import {FilePanel} from "./FilePanel";
 import {Context} from "./Context";
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {clearElement} from "teamten-ts-utils";
+import firebase from "firebase";
 
 const FILE_ID_ATTR = "data-file-id";
 
@@ -20,7 +21,10 @@ export class LibraryPanel extends Panel {
         this.element.classList.add("library-panel");
 
         const header = document.createElement("h1");
-        header.innerText = "Library";
+        const headerTextNode = document.createElement("span");
+        headerTextNode.innerText = "Library";
+        header.append(headerTextNode);
+        header.append(makeIconButton(makeIcon("add"), "Upload file", () => this.uploadFile()));
         header.append(makeCloseIconButton(() => this.context.panelManager.close()));
         this.element.append(header);
 
@@ -45,6 +49,82 @@ export class LibraryPanel extends Panel {
         if (event instanceof LibraryRemoveEvent) {
             this.removeFile(event.oldFile.id);
         }
+    }
+
+    /**
+     * Configure and open the "open file" dialog for importing files.
+     */
+    private uploadFile(): void {
+        const uploadElement = document.createElement("input");
+        uploadElement.type = "file";
+        uploadElement.accept = ".cas, .bas, .cmd";
+        uploadElement.multiple = true;
+        uploadElement.addEventListener("change", () => {
+            const files = uploadElement.files ?? [];
+            const openFilePanel = files.length === 1;
+            for (const f of files) {
+                f.arrayBuffer()
+                    .then(arrayBuffer => {
+                        const bytes = new Uint8Array(arrayBuffer);
+                        this.importFile(f.name, bytes, openFilePanel);
+                    })
+                    .catch(() => {
+                        // TODO
+                    });
+            }
+        });
+        uploadElement.click();
+    }
+
+    /**
+     * Add an uploaded file to our library.
+     * @param filename original filename from the user.
+     * @param binary raw binary of the file.
+     * @param openFilePanel whether to open the file panel for this file after importing it.
+     */
+    private importFile(filename: string, binary: Uint8Array, openFilePanel: boolean): void {
+        let name = filename;
+
+        // Remove extension.
+        const i = name.lastIndexOf(".");
+        if (i > 0) {
+            name = name.substr(0, i);
+        }
+
+        // Capitalize.
+        name = name.substr(0, 1).toUpperCase() + name.substr(1).toLowerCase();
+
+        // All-caps for filename.
+        filename = filename.toUpperCase();
+
+        let file = new FileBuilder()
+            .withName(name)
+            .withFilename(filename)
+            .withBinary(binary)
+            .build();
+
+        this.context.db.collection("files").add({
+            uid: file.uid,
+            name: file.name,
+            filename: file.filename,
+            note: file.note,
+            shared: file.shared,
+            hash: file.hash,
+            binary: firebase.firestore.Blob.fromUint8Array(file.binary),
+            dateAdded: firebase.firestore.Timestamp.fromDate(file.dateAdded),
+            dateModified: firebase.firestore.Timestamp.fromDate(file.dateModified),
+        })
+            .then(docRef => {
+                file = file.builder().withId(docRef.id).build();
+                this.context.library.addFile(file);
+                if (openFilePanel) {
+                    this.openFilePanel(file);
+                }
+            })
+            .catch(error => {
+                // TODO
+                console.error("Error adding document: ", error);
+            });
     }
 
     /**
@@ -81,11 +161,18 @@ export class LibraryPanel extends Panel {
         fileDiv.append(playButton);
 
         const infoButton = makeIconButton(makeIcon("arrow_forward"), "File information", () => {
-            const filePanel = new FilePanel(this.context, file);
-            this.context.panelManager.pushPanel(filePanel);
+            this.openFilePanel(file);
         });
         infoButton.classList.add("info-button");
         fileDiv.append(infoButton);
+    }
+
+    /**
+     * Open a file panel on the given file.
+     */
+    private openFilePanel(file: File): void {
+        const filePanel = new FilePanel(this.context, file);
+        this.context.panelManager.pushPanel(filePanel);
     }
 
     /**

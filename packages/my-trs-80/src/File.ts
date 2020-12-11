@@ -115,6 +115,11 @@ export class FileBuilder {
         return builder;
     }
 
+    public withId(id: string): this {
+        this.id = id;
+        return this;
+    }
+
     public withName(name: string): this {
         this.name = name;
         return this;
@@ -129,6 +134,12 @@ export class FileBuilder {
         this.note = note;
         return this;
     }
+
+    public withBinary(binary: Uint8Array): this {
+        this.binary = binary;
+        return this;
+    }
+
     public withDateModified(dateModified: Date): this {
         this.dateModified = dateModified;
         return this;

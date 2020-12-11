@@ -196,7 +196,7 @@ body, input, textarea {
 
     display: grid;
     align-items: center;
-    gap: 20px;
+    gap: 10px;
     /* Set grid pattern in panel-specific rule. */
 }
 
@@ -255,7 +255,7 @@ body, input, textarea {
 /* ----------------------------------------------------------------------------------------------------- */
 
 .library-panel h1 {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
 }
 
 .library-panel .file {
