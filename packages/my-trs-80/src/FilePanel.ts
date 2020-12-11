@@ -93,7 +93,14 @@ export class FilePanel extends Panel {
         });
         actionBar.append(runButton);
         const deleteButton = makeButton("Delete File", "delete", "delete-button", () => {
-            // TODO.
+            this.context.db.collection("files").doc(this.file.id).delete()
+                .then(() => {
+                    this.context.library.removeFile(this.file);
+                    this.context.panelManager.popPanel();
+                })
+                .catch(error => {
+                    // TODO.
+                });
         });
         actionBar.append(deleteButton);
         this.revertButton = makeButton("Revert", "undo", "revert-button", undefined);

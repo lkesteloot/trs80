@@ -35,6 +35,9 @@ export class LibraryPanel extends Panel {
         this.context.library.onEvent.subscribe(e => this.onLibraryEvent(e));
     }
 
+    /**
+     * Handle change to library files.
+     */
     private onLibraryEvent(event: LibraryEvent): void {
         if (event instanceof LibraryAddEvent) {
             this.addFile(event.newFile);
