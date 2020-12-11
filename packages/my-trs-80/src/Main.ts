@@ -10,6 +10,8 @@ import {makeIcon, makeIconButton} from "./Utils";
 import {PanelManager} from "./PanelManager";
 import {LibraryPanel} from "./LibraryPanel";
 import {Context} from "./Context";
+import {Library} from "./Library";
+import {File, FileBuilder} from "./File";
 
 function configureRoutes() {
     const body = document.querySelector("body") as HTMLElement;
@@ -97,6 +99,7 @@ export function main() {
     }
 
     const panelManager = new PanelManager();
+    const library = new Library();
 
     const navbar = createNavbar(() => panelManager.open());
     const screenDiv = document.createElement("div");
@@ -154,8 +157,16 @@ export function main() {
 
     reboot();
 
-    const context = new Context(trs80, db, panelManager);
+    const context = new Context(library, trs80, db, panelManager);
 
     const libraryPanel = new LibraryPanel(context);
     panelManager.pushPanel(libraryPanel);
+
+    // Fetch all files.
+    context.db.collection("files").get().then((querySnapshot) => {
+        for (const doc of querySnapshot.docs) {
+            const file = FileBuilder.fromDoc(doc).build();
+            library.addFile(file);
+        }
+    });
 }

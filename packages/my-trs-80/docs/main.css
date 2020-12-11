@@ -258,7 +258,7 @@ body, input, textarea {
     grid-template-columns: 1fr auto;
 }
 
-.library-panel .program {
+.library-panel .file {
     padding: 10px var(--side-padding);
     border-bottom: 1px solid var(--background-highlights);
     cursor: default;
@@ -269,17 +269,17 @@ body, input, textarea {
     gap: 10px;
 }
 
-.library-panel .program .name {
+.library-panel .file .name {
     font-weight: 800;
     color: var(--accent-color);
 }
 
-.library-panel .program .filename {
+.library-panel .file .filename {
     font-family: "Roboto Mono", monospace;
     white-space: pre;
 }
 
-.library-panel .program .note {
+.library-panel .file .note {
     font-size: 80%;
     margin-top: 5px;
     color: var(--foreground-secondary);

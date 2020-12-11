@@ -3,11 +3,17 @@ import {Panel} from "./Panel";
 import {File, FileBuilder} from "./File";
 import {FilePanel} from "./FilePanel";
 import {Context} from "./Context";
+import {LibraryAddEvent, LibraryEvent} from "./Library";
+import {clearElement} from "teamten-ts-utils";
+
+const FILE_ID_ATTR = "data-file-id";
 
 /**
  * Panel showing the library of user's files.
  */
 export class LibraryPanel extends Panel {
+    private readonly filesDiv: HTMLElement;
+
     constructor(context: Context) {
         super(context);
 
@@ -18,30 +24,31 @@ export class LibraryPanel extends Panel {
         header.append(makeCloseIconButton(() => this.context.panelManager.close()));
         this.element.append(header);
 
-        const programsDiv = document.createElement("div");
-        programsDiv.classList.add("programs");
-        this.element.append(programsDiv);
+        this.filesDiv = document.createElement("div");
+        this.filesDiv.classList.add("files");
+        this.element.append(this.filesDiv);
 
-        // Fetch all files and display them.
-        this.context.db.collection("files").get().then((querySnapshot) => {
-            const files = querySnapshot.docs.map(d => FileBuilder.fromDoc(d).build());
-            files.sort(File.compare);
-            for (const file of files) {
-                this.addFile(programsDiv, file);
-            }
-        });
+        this.context.library.onEvent.subscribe(e => this.onLibraryEvent(e));
+    }
+
+    private onLibraryEvent(event: LibraryEvent): void {
+        if (event instanceof LibraryAddEvent) {
+            this.addFile(event.newFile);
+        }
+        this.sortFiles();
     }
 
     /**
      * Add a file to the list of files in the library.
      */
-    private addFile(parent: HTMLElement, file: File): void {
-        const programDiv = document.createElement("div");
-        programDiv.classList.add("program");
-        parent.append(programDiv);
+    private addFile(file: File): void {
+        const fileDiv = document.createElement("div");
+        fileDiv.classList.add("file");
+        fileDiv.setAttribute(FILE_ID_ATTR, file.id);
+        this.filesDiv.append(fileDiv);
 
         const infoDiv = document.createElement("div");
-        programDiv.append(infoDiv);
+        fileDiv.append(infoDiv);
 
         const nameDiv = document.createElement("div");
         nameDiv.classList.add("name");
@@ -62,13 +69,32 @@ export class LibraryPanel extends Panel {
             this.runProgram(file);
         });
         playButton.classList.add("play-button");
-        programDiv.append(playButton);
+        fileDiv.append(playButton);
 
         const infoButton = makeIconButton(makeIcon("arrow_forward"), "File information", () => {
             const filePanel = new FilePanel(this.context, file);
             this.context.panelManager.pushPanel(filePanel);
         });
         infoButton.classList.add("info-button");
-        programDiv.append(infoButton);
+        fileDiv.append(infoButton);
+    }
+
+    private sortFiles(): void {
+        // Sort existing files.
+        const fileElements: {file: File, element: Element}[] = [];
+        for (const element of this.filesDiv.children) {
+            const fileId = element.getAttribute(FILE_ID_ATTR);
+            if (fileId !== null) {
+                const file = this.context.library.getFile(fileId);
+                if (file !== undefined) {
+                    fileElements.push({file: file, element: element});
+                }
+            }
+        }
+        fileElements.sort((a, b) => File.compare(a.file, b.file));
+
+        // Repopulate the UI in the right order.
+        clearElement(this.filesDiv);
+        this.filesDiv.append(... fileElements.map(e => e.element));
     }
 }
