@@ -5,7 +5,7 @@ import {FilePanel} from "./FilePanel";
 import {Context} from "./Context";
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {clearElement} from "teamten-ts-utils";
-import firebase from "firebase";
+import firebase from "firebase/app";
 
 const FILE_ID_ATTR = "data-file-id";
 

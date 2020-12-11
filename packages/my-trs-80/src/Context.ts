@@ -1,5 +1,5 @@
 import {Trs80} from "trs80-emulator";
-import firebase from "firebase";
+import firebase from "firebase/app";
 import {PanelManager} from "./PanelManager";
 import {Library} from "./Library";
 

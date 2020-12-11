@@ -11,7 +11,7 @@ import {PanelManager} from "./PanelManager";
 import {LibraryPanel} from "./LibraryPanel";
 import {Context} from "./Context";
 import {Library} from "./Library";
-import {File, FileBuilder} from "./File";
+import {FileBuilder} from "./File";
 
 function configureRoutes() {
     const body = document.querySelector("body") as HTMLElement;
@@ -32,7 +32,7 @@ function makeId(): string {
     return "_input" + inputIdCounter++;
 }
 
-// For testing.
+// For testing. TODO delete
 function addProgramToFirestore(db: firebase.firestore.Firestore, name: string, url: string, note: string) {
     fetch(url)
         .then(response => response.arrayBuffer())
