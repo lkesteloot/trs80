@@ -58,6 +58,10 @@ function createNavbar(openLibrary: () => void): HTMLElement {
     const navbar = document.createElement("div");
     navbar.classList.add("navbar");
 
+    const title = document.createElement("span");
+    title.textContent = "My TRS-80";
+    navbar.append(title);
+
     const libraryButton = makeIconButton(makeIcon("folder_open"), "Open library (Ctrl-L)", openLibrary);
     navbar.append(libraryButton);
 

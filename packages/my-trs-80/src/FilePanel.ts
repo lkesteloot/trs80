@@ -24,19 +24,21 @@ export class FilePanel extends Panel {
 
         this.file = file;
 
-        this.element.classList.add("file-info");
+        this.element.classList.add("file-panel");
 
         const header = document.createElement("h1");
         const backButton = makeIconButton(makeIcon("arrow_back"), "Back", () => this.context.panelManager.popPanel());
         backButton.classList.add("back-button");
         header.append(backButton);
+        const headerTextNode = document.createElement("span");
+        headerTextNode.innerText = file.name;
+        header.append(headerTextNode);
         header.append(makeCloseIconButton(() => this.context.panelManager.close()));
-        header.append(document.createTextNode(file.name));
         this.element.append(header);
 
         // Form for editing file info.
         const form = document.createElement("form");
-        form.classList.add("file-info-form");
+        form.classList.add("file-panel-form");
         this.element.append(form);
 
         const makeInputBox = (label: string, cssClass: string | undefined, enabled: boolean): HTMLInputElement => {
@@ -102,6 +104,15 @@ export class FilePanel extends Panel {
         for (const input of [this.nameInput, this.filenameInput, this.noteInput]) {
             input.addEventListener("input", () => this.updateButtonStatus());
         }
+        this.nameInput.addEventListener("input", () => {
+            let name = this.fileFromUi().name;
+            if (name === "") {
+                // If we completely blank out the span, the H1 shrinks, so keep it constant height with a space.
+                headerTextNode.innerHTML = "&nbsp;";
+            } else {
+                headerTextNode.innerText = name;
+            }
+        });
 
         this.revertButton.addEventListener("click", () => {
             this.updateUi();

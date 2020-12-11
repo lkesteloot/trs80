@@ -116,20 +116,19 @@ body, input, textarea {
     fill: var(--foreground-emphasized);
 }
 
-.close-button {
-    float: right;
-}
-
 /* ----------------------------------------------------------------------------------------------------- */
 
 .navbar {
     height: 50px;
     background-color: var(--background-highlights);
-    padding: 0 10px;
+    padding: 3px 20px;
+    font-size: 20pt;
+    font-weight: 100;
+    color: var(--accent-color);
 
-    display: flex;
-    flex-flow: row nowrap;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 15px;
     align-items: center;
 }
 
@@ -193,11 +192,11 @@ body, input, textarea {
     font-size: 28pt;
     font-weight: 100;
     color: var(--accent-color);
-}
 
-.panel h1 .back-button {
-    float: left;
-    margin-right: 20px;
+    display: grid;
+    align-items: center;
+    gap: 20px;
+    /* Set grid pattern in panel-specific rule. */
 }
 
 .panel .action-bar {
@@ -252,41 +251,44 @@ body, input, textarea {
 
 /* ----------------------------------------------------------------------------------------------------- */
 
-.library .program {
+.library-panel h1 {
+    grid-template-columns: 1fr auto;
+}
+
+.library-panel .program {
     padding: 10px var(--side-padding);
     border-bottom: 1px solid var(--background-highlights);
     cursor: default;
+
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 10px;
 }
 
-.library .program .name {
+.library-panel .program .name {
     font-weight: 800;
     color: var(--accent-color);
 }
 
-.library .program .filename {
+.library-panel .program .filename {
     font-family: "Roboto Mono", monospace;
     white-space: pre;
 }
 
-.library .program .note {
+.library-panel .program .note {
     font-size: 80%;
     margin-top: 5px;
     color: var(--foreground-secondary);
 }
 
-.library .play-button {
-    float: right;
-    margin-right: 10px;
-}
-
-.library .info-button {
-    float: right;
-}
-
 /* ----------------------------------------------------------------------------------------------------- */
 
-/* TODO rename file-info to file-panel and library to library-panel */
-.file-info-form {
+.file-panel h1 {
+    grid-template-columns: auto 1fr auto;
+}
+
+.file-panel-form {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: auto auto auto 1fr;
@@ -299,18 +301,18 @@ body, input, textarea {
     padding: var(--side-padding);
 }
 
-.file-info-form > * {
+.file-panel-form > * {
     xbackground-color: #ECC;
 }
 
-.file-info-form label {
+.file-panel-form label {
     display: block;
     color: var(--foreground-secondary);
     font-size: 80%;
 }
 
-.file-info-form input,
-.file-info-form textarea {
+.file-panel-form input,
+.file-panel-form textarea {
     display: block;
     box-sizing: border-box;
     width: 100%;
@@ -321,46 +323,46 @@ body, input, textarea {
     border-radius: 3px;
 }
 
-.file-info-form input:disabled,
-.file-info-form textarea:disabled {
+.file-panel-form input:disabled,
+.file-panel-form textarea:disabled {
     background-color: transparent;
     padding-left: 0;
     padding-right: 0;
 }
 
-.file-info-form .screenshots {
+.file-panel-form .screenshots {
     grid-column: 3 / -1;
     grid-row: 1 / -1;
     overflow-y: auto;
 }
 
-.file-info-form .screenshots::-webkit-scrollbar {
+.file-panel-form .screenshots::-webkit-scrollbar {
     width: 8px;
 }
 
-.file-info-form .screenshots::-webkit-scrollbar-track {
+.file-panel-form .screenshots::-webkit-scrollbar-track {
     /* Nothing. */
 }
 
-.file-info-form .screenshots::-webkit-scrollbar-thumb {
+.file-panel-form .screenshots::-webkit-scrollbar-thumb {
     background: var(--background-highlights);
     border-radius: 999px;
 }
 
-.file-info-form .screenshots::-webkit-scrollbar-thumb:hover {
+.file-panel-form .screenshots::-webkit-scrollbar-thumb:hover {
     /* Nothing */
 }
 
-.file-info-form .filename input {
+.file-panel-form .filename input {
     /* TODO makes the input field slightly taller than the non-mono ones */
     font-family: "Roboto Mono", monospace;
 }
 
-.file-info-form .note {
+.file-panel-form .note {
     grid-column-end: span 2;
 }
 
-.file-info-form .misc {
+.file-panel-form .misc {
     grid-column-end: span 2;
 }
 
