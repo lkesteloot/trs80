@@ -139,6 +139,7 @@ export class FilePanel extends Panel {
                         this.saveButton.classList.remove("success");
                     }, 1000);
                     this.file = newFile;
+                    this.context.library.modifyFile(newFile);
                     this.updateUi();
                 })
                 .catch(error => {

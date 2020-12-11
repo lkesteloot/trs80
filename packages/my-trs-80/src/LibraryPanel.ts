@@ -1,9 +1,9 @@
 import {makeCloseIconButton, makeIcon, makeIconButton} from "./Utils";
 import {Panel} from "./Panel";
-import {File, FileBuilder} from "./File";
+import {File} from "./File";
 import {FilePanel} from "./FilePanel";
 import {Context} from "./Context";
-import {LibraryAddEvent, LibraryEvent} from "./Library";
+import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {clearElement} from "teamten-ts-utils";
 
 const FILE_ID_ATTR = "data-file-id";
@@ -34,8 +34,17 @@ export class LibraryPanel extends Panel {
     private onLibraryEvent(event: LibraryEvent): void {
         if (event instanceof LibraryAddEvent) {
             this.addFile(event.newFile);
+            this.sortFiles();
         }
-        this.sortFiles();
+        if (event instanceof LibraryModifyEvent) {
+            // Probably not worth modifying in-place.
+            this.removeFile(event.oldFile.id);
+            this.addFile(event.newFile);
+            this.sortFiles();
+        }
+        if (event instanceof LibraryRemoveEvent) {
+            this.removeFile(event.oldFile.id);
+        }
     }
 
     /**
@@ -79,6 +88,30 @@ export class LibraryPanel extends Panel {
         fileDiv.append(infoButton);
     }
 
+    /**
+     * Remove a file from the UI by its ID.
+     */
+    private removeFile(fileId: string): void {
+        const element = this.getFileElementById(fileId);
+        if (element !== undefined) {
+            element.remove();
+        } else {
+            console.error("removeFile(): No element with file ID " + fileId);
+        }
+    }
+
+    /**
+     * Return an element for a file given its ID, or undefined if not found.
+     */
+    private getFileElementById(fileId: string): Element | undefined {
+        let selectors = ":scope > [" + FILE_ID_ATTR + "=\"" + fileId + "\"]";
+        const element = this.filesDiv.querySelector(selectors);
+        return element === null ? undefined : element;
+    }
+
+    /**
+     * Sort files already displayed.
+     */
     private sortFiles(): void {
         // Sort existing files.
         const fileElements: {file: File, element: Element}[] = [];
