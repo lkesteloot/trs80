@@ -1,6 +1,4 @@
-import firebase from "firebase";
 import {makeCloseIconButton, makeIcon, makeIconButton} from "./Utils";
-import {CmdProgram} from "trs80-base";
 import {Panel} from "./Panel";
 import {File} from "./File";
 import {FilePanel} from "./FilePanel";
@@ -10,12 +8,8 @@ import {Context} from "./Context";
  * Panel showing the library of user's files.
  */
 export class LibraryPanel extends Panel {
-    private readonly db: firebase.firestore.Firestore;
-
-    constructor(context: Context, db: firebase.firestore.Firestore) {
+    constructor(context: Context) {
         super(context);
-
-        this.db = db;
 
         this.element.classList.add("library");
 
@@ -28,7 +22,8 @@ export class LibraryPanel extends Panel {
         programsDiv.classList.add("programs");
         this.element.append(programsDiv);
 
-        db.collection("files").get().then((querySnapshot) => {
+        // Fetch all files and display them.
+        this.context.db.collection("files").get().then((querySnapshot) => {
             const files = querySnapshot.docs.map(d => new File(d));
             files.sort(File.compare);
             for (const file of files) {
@@ -37,6 +32,9 @@ export class LibraryPanel extends Panel {
         });
     }
 
+    /**
+     * Add a file to the list of files in the library.
+     */
     private addFile(parent: HTMLElement, file: File): void {
         const programDiv = document.createElement("div");
         programDiv.classList.add("program");

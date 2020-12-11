@@ -152,6 +152,6 @@ export function main() {
 
     const context = new Context(trs80, db, panelManager);
 
-    const libraryPanel = new LibraryPanel(context, db);
+    const libraryPanel = new LibraryPanel(context);
     panelManager.pushPanel(libraryPanel);
 }

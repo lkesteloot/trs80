@@ -13,7 +13,7 @@ export class Panel {
         this.context = context;
 
         this.element = document.createElement("div");
-        this.element.classList.add("popup-content");
+        this.element.classList.add("panel");
     }
 
     /**

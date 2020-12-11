@@ -16,7 +16,7 @@ export class PanelManager {
         const body = document.querySelector("body") as HTMLElement;
 
         this.backgroundNode = document.createElement("div");
-        this.backgroundNode.classList.add("popup-background"); // TODO rename CSS popup->panel
+        this.backgroundNode.classList.add("panel-background");
         this.backgroundNode.addEventListener("click", e => {
             if (e.target === this.backgroundNode) {
                 this.close();
@@ -27,7 +27,7 @@ export class PanelManager {
         body.append(this.backgroundNode);
 
         this.positioningNode = document.createElement("div");
-        this.positioningNode.classList.add("popup-positioning");
+        this.positioningNode.classList.add("panel-positioning");
         this.backgroundNode.append(this.positioningNode);
 
         // Handler for the ESC key.
@@ -98,7 +98,7 @@ export class PanelManager {
             this.isOpen = true;
             document.addEventListener("keydown", this.escListener);
             this.onOpenClose.dispatch(true);
-            this.backgroundNode.classList.add("popup-shown");
+            this.backgroundNode.classList.add("panel-shown");
         }
     }
 
@@ -110,7 +110,7 @@ export class PanelManager {
             this.isOpen = false;
             document.removeEventListener("keydown", this.escListener);
             this.onOpenClose.dispatch(false);
-            this.backgroundNode.classList.remove("popup-shown");
+            this.backgroundNode.classList.remove("panel-shown");
         }
     }
 

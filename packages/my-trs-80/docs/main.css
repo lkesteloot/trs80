@@ -135,7 +135,7 @@ body, input, textarea {
 
 /* ----------------------------------------------------------------------------------------------------- */
 
-.popup-background {
+.panel-background {
     position: absolute;
     left: 0;
     top: 0;
@@ -151,12 +151,12 @@ body, input, textarea {
     transition: opacity .20s ease-in-out, visibility .20s ease-in-out;
 }
 
-.popup-shown {
+.panel-shown {
     opacity: 1;
     visibility: visible;
 }
 
-.popup-positioning {
+.panel-positioning {
     position: absolute;
     left: 50px;
     top: 50px;
@@ -166,7 +166,7 @@ body, input, textarea {
     overflow: visible visible;
 }
 
-.popup-content {
+.panel {
     --side-padding: 20px;
 
     /* Start off-screen */
@@ -186,7 +186,7 @@ body, input, textarea {
     flex-flow: column nowrap;
 }
 
-.popup-content h1 {
+.panel h1 {
     border-bottom: 1px solid var(--background-highlights);
     padding: var(--side-padding) var(--side-padding) 10px var(--side-padding);
     margin: 0;
@@ -195,12 +195,12 @@ body, input, textarea {
     color: var(--accent-color);
 }
 
-.popup-content h1 .back-button {
+.panel h1 .back-button {
     float: left;
     margin-right: 20px;
 }
 
-.popup-content .action-bar {
+.panel .action-bar {
     border-top: 1px solid var(--background-highlights);
     padding: var(--side-padding);
     margin: 0;
@@ -211,7 +211,7 @@ body, input, textarea {
     justify-content: flex-end;
 }
 
-.popup-content .action-bar button {
+.panel .action-bar button {
     border: 1px solid var(--foreground-secondary);
     padding: 4px 13px;
     margin-left: 10px;
@@ -227,26 +227,26 @@ body, input, textarea {
     align-items: center;
 }
 
-.popup-content .action-bar button:hover:not(:disabled) {
+.panel .action-bar button:hover:not(:disabled) {
     border-color: var(--foreground-emphasized);
     color: var(--foreground-emphasized);
 }
 
-.popup-content .action-bar button:focus,
-.popup-content .action-bar button:active {
+.panel .action-bar button:focus,
+.panel .action-bar button:active {
     outline: 0;
 }
 
-.popup-content .action-bar button:disabled {
+.panel .action-bar button:disabled {
     opacity: 0.3;
     cursor: default;
 }
 
-.popup-content .action-bar button i {
+.panel .action-bar button i {
     margin-left: 6px;
 }
 
-.popup-content .action-bar button:first-of-type {
+.panel .action-bar button:first-of-type {
     margin-left: 0;
 }
 
@@ -362,4 +362,3 @@ body, input, textarea {
 .file-info-form .misc {
     grid-column-end: span 2;
 }
-
