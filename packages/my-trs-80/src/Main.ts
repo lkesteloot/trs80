@@ -17,7 +17,6 @@ function configureRoutes() {
     const body = document.querySelector("body") as HTMLElement;
     const router = new Navigo(null, true, "#!");
     const s = createHome(router);
-    s.classList.add("screen");
     body.append(s);
     router.resolve();
 }
