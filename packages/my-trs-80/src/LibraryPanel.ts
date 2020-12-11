@@ -1,6 +1,6 @@
 import {makeCloseIconButton, makeIcon, makeIconButton} from "./Utils";
 import {Panel} from "./Panel";
-import {File} from "./File";
+import {File, FileBuilder} from "./File";
 import {FilePanel} from "./FilePanel";
 import {Context} from "./Context";
 
@@ -24,7 +24,7 @@ export class LibraryPanel extends Panel {
 
         // Fetch all files and display them.
         this.context.db.collection("files").get().then((querySnapshot) => {
-            const files = querySnapshot.docs.map(d => new File(d));
+            const files = querySnapshot.docs.map(d => FileBuilder.fromDoc(d).build());
             files.sort(File.compare);
             for (const file of files) {
                 this.addFile(programsDiv, file);

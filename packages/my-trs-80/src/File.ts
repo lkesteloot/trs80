@@ -18,19 +18,34 @@ export class File {
     public readonly dateAdded: Date;
     public readonly dateModified: Date;
 
-    constructor(doc: QueryDocumentSnapshot<DocumentData>) {
-        this.id = doc.id;
+    constructor(id: string, uid: string, name: string, filename: string, note: string, shared: boolean, hash: string, binary: Uint8Array, dateAdded: Date, dateModified: Date) {
+        this.id = id;
+        this.uid = uid;
+        this.name = name;
+        this.filename = filename;
+        this.note = note;
+        this.shared = shared;
+        this.hash = hash;
+        this.binary = binary;
+        this.dateAdded = dateAdded;
+        this.dateModified = dateModified;
+    }
 
-        const data = doc.data();
-        this.uid = data.uid;
-        this.name = data.name;
-        this.filename = data.filename;
-        this.note = data.note;
-        this.shared = data.shared ?? false;
-        this.hash = data.hash;
-        this.binary = (data.binary as firebase.firestore.Blob).toUint8Array();
-        this.dateAdded = (data.dateAdded as firebase.firestore.Timestamp).toDate();
-        this.dateModified = (data.dateModified as firebase.firestore.Timestamp).toDate();
+    public builder(): FileBuilder {
+        const builder = new FileBuilder();
+
+        builder.id = this.id;
+        builder.uid = this.uid;
+        builder.name = this.name;
+        builder.filename = this.filename;
+        builder.note = this.note;
+        builder.shared = this.shared;
+        builder.hash = this.hash;
+        builder.binary = this.binary;
+        builder.dateAdded = this.dateAdded;
+        builder.dateModified = this.dateModified;
+
+        return builder;
     }
 
     /**
@@ -64,5 +79,63 @@ export class File {
             // Shouldn't happen.
             return 0;
         }
+    }
+}
+
+/**
+ * Builder to help construct File objects.
+ */
+export class FileBuilder {
+    public id: string = "";
+    public uid: string = "";
+    public name: string = "";
+    public filename: string = "";
+    public note: string = "";
+    public shared: boolean = false;
+    public hash: string = "";
+    public binary: Uint8Array = new Uint8Array(0);
+    public dateAdded: Date = new Date();
+    public dateModified: Date = new Date();
+
+    public static fromDoc(doc: QueryDocumentSnapshot<DocumentData>): FileBuilder {
+        const builder = new FileBuilder();
+        builder.id = doc.id;
+
+        const data = doc.data();
+        builder.uid = data.uid;
+        builder.name = data.name;
+        builder.filename = data.filename;
+        builder.note = data.note;
+        builder.shared = data.shared ?? false;
+        builder.hash = data.hash;
+        builder.binary = (data.binary as firebase.firestore.Blob).toUint8Array();
+        builder.dateAdded = (data.dateAdded as firebase.firestore.Timestamp).toDate();
+        builder.dateModified = (data.dateModified as firebase.firestore.Timestamp).toDate();
+
+        return builder;
+    }
+
+    public withName(name: string): this {
+        this.name = name;
+        return this;
+    }
+
+    public withFilename(filename: string): this {
+        this.filename = filename;
+        return this;
+    }
+
+    public withNote(note: string): this {
+        this.note = note;
+        return this;
+    }
+    public withDateModified(dateModified: Date): this {
+        this.dateModified = dateModified;
+        return this;
+    }
+
+    public build(): File {
+        return new File(this.id, this.uid, this.name, this.filename, this.note, this.shared, this.hash,
+            this.binary, this.dateAdded, this.dateModified);
     }
 }

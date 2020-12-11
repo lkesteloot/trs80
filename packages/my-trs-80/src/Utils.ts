@@ -48,16 +48,23 @@ export function makeCloseIconButton(closeCallback: () => void) {
     return button;
 }
 
-export function makeButton(label: string, iconName: string | undefined, cssClass: string, clickCallback: (() => void) | undefined) {
+export function makeButton(label: string, iconName: string | string[] | undefined,
+                           cssClass: string, clickCallback: (() => void) | undefined): HTMLButtonElement {
+
     const button = document.createElement("button");
     button.innerText = label;
     button.classList.add(cssClass);
 
     if (iconName !== undefined) {
-        const icon = document.createElement("i");
-        icon.classList.add(MATERIAL_ICONS_CLASS);
-        icon.innerText = iconName;
-        button.append(icon);
+        if (typeof iconName === "string") {
+            iconName = [iconName];
+        }
+        for (const i of iconName) {
+            const icon = document.createElement("i");
+            icon.classList.add(MATERIAL_ICONS_CLASS);
+            icon.innerText = i;
+            button.append(icon);
+        }
     }
 
     if (clickCallback !== undefined) {
