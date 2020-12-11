@@ -98,7 +98,7 @@ export class FilePanel extends Panel {
         actionBar.append(deleteButton);
         this.revertButton = makeButton("Revert", "undo", "revert-button", undefined);
         actionBar.append(this.revertButton);
-        this.saveButton = makeButton("Save", ["save", "cached"], "save-button", undefined);
+        this.saveButton = makeButton("Save", ["save", "cached", "check"], "save-button", undefined);
         actionBar.append(this.saveButton);
 
         for (const input of [this.nameInput, this.filenameInput, this.noteInput]) {
@@ -122,6 +122,9 @@ export class FilePanel extends Panel {
 
             this.saveButton.classList.add("saving");
 
+            // Disable right away so it's not clicked again.
+            this.saveButton.disabled = true;
+
             // TODO turn save button into progress.
             this.context.db.collection("files").doc(file.id).update({
                 name: newFile.name,
@@ -131,7 +134,10 @@ export class FilePanel extends Panel {
             })
                 .then(() => {
                     this.saveButton.classList.remove("saving");
-                    console.log("Document successfully updated!");
+                    this.saveButton.classList.add("success");
+                    setTimeout(() => {
+                        this.saveButton.classList.remove("success");
+                    }, 1000);
                     this.file = newFile;
                     this.updateUi();
                 })
@@ -140,6 +146,7 @@ export class FilePanel extends Panel {
                     // TODO show error.
                     // The document probably doesn't exist.
                     console.error("Error updating document: ", error);
+                    this.updateUi();
                 });
         });
 
