@@ -20,6 +20,9 @@
 
     /* Horizontal margin for screens that are open. */
     --horiz-margin: 80px;
+
+    /* How long buttons colors/borders take to transition on hover. */
+    --button-transition-time: 0.1s;
 }
 .light-mode {
     --background: var(--base3);
@@ -64,8 +67,8 @@ body, input, textarea {
 
 /* Our own overrides for the material design icons. */
 .material-icons-override {
-    font-size: 30px;
     color: var(--foreground-secondary);
+    transition: color var(--button-transition-time) ease-in-out;
 }
 
 .screen {
@@ -93,27 +96,25 @@ body, input, textarea {
 
 /* TODO rename these to .icon-button */
 .button {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     cursor: pointer;
-    background-color: var(--background-highlights);
+    border: 1px solid var(--foreground-secondary);
+    transition: border var(--button-transition-time) ease-in-out;
 
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.button svg {
-    fill: var(--foreground-secondary);
-}
-
 .button:hover {
     /* Nothing. */
+    border: 1px solid var(--foreground-emphasized);
 }
 
-.button:hover svg {
-    fill: var(--foreground-emphasized);
+.button:hover .material-icons-override {
+    color: var(--foreground-emphasized);
 }
 
 /* ----------------------------------------------------------------------------------------------------- */
@@ -219,7 +220,9 @@ body, input, textarea {
     border-radius: 999px;
     cursor: pointer;
 
-    transition: border-color 0.1s ease-in-out, color 0.1s ease-in-out, opacity 0.1s ease-in-out;
+    transition: border-color var(--button-transition-time) ease-in-out,
+        color var(--button-transition-time) ease-in-out,
+        opacity var(--button-transition-time) ease-in-out;
 
     display: flex;
     flex-flow: row nowrap;
