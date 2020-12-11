@@ -1,18 +1,15 @@
 import Navigo from "navigo";
 import {createHome} from "./Home";
 import {CanvasScreen, Cassette, ControlPanel, PanelType, ProgressBar, SettingsPanel, Trs80} from "trs80-emulator";
-import {CmdProgram, isCmdProgram} from "trs80-base";
 import firebase from 'firebase/app';
 // These imports load individual services into the firebase namespace.
 import 'firebase/auth';
 import 'firebase/firestore';
 import 'firebase/analytics';
-import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
-import DocumentData = firebase.firestore.DocumentData;
-import {withCommas} from "teamten-ts-utils";
-import {createSecureServer} from "http2";
-
-const MATERIAL_ICONS_CLASS = "material-icons-round";
+import {makeIcon, makeIconButton} from "./Utils";
+import {PanelManager} from "./PanelManager";
+import {LibraryPanel} from "./LibraryPanel";
+import {Context} from "./Context";
 
 function configureRoutes() {
     const body = document.querySelector("body") as HTMLElement;
@@ -33,433 +30,7 @@ function makeId(): string {
     return "_input" + inputIdCounter++;
 }
 
-/**
- * Format a long date without a time.
- */
-function formatDate(date: Date): string {
-    const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
-
-    return date.toLocaleDateString(undefined, options);
-}
-
-/**
- * Make a material design icon with the given name.
- *
- * https://google.github.io/material-design-icons/
- * https://material.io/resources/icons/?style=round
- */
-function makeIcon(name: string): HTMLElement {
-    const icon = document.createElement("i");
-
-    icon.classList.add(MATERIAL_ICONS_CLASS);
-    icon.classList.add("material-icons-override");
-    icon.innerText = name;
-
-    return icon;
-}
-
-/**
- * Make a generic round button.
- */
-function makeIconButton(icon: HTMLElement, title: string, clickCallback: () => void) {
-    const button = document.createElement("div");
-    button.classList.add("button");
-    button.title = title;
-    button.append(icon);
-    button.addEventListener("click", clickCallback);
-
-    return button;
-}
-
-/**
- * Make a float-right close button for dialog boxes.
- */
-function makeCloseIconButton(closeCallback: () => void) {
-    const button = makeIconButton(makeIcon("close"), "Close window", closeCallback);
-    button.classList.add("close-button");
-
-    return button;
-}
-
-function makeButton(label: string, iconName: string | undefined, cssClass: string, clickCallback: (() => void) | undefined) {
-    const button = document.createElement("button");
-    button.innerText = label;
-    button.classList.add(cssClass);
-
-    if (iconName !== undefined) {
-        const icon = document.createElement("i");
-        icon.classList.add(MATERIAL_ICONS_CLASS);
-        icon.innerText = iconName;
-        button.append(icon);
-    }
-
-    if (clickCallback !== undefined) {
-        button.addEventListener("click", clickCallback);
-    }
-
-    return button;
-}
-
-/**
- * Represents a file that the user owns.
- */
-class File {
-    public readonly id: string;
-    public readonly uid: string;
-    public readonly name: string;
-    public readonly filename: string;
-    public readonly note: string;
-    public readonly shared: boolean;
-    public readonly hash: string;
-    public readonly binary: Uint8Array;
-    public readonly dateAdded: Date;
-    public readonly dateModified: Date;
-
-    constructor(doc: QueryDocumentSnapshot<DocumentData>) {
-        this.id = doc.id;
-
-        const data = doc.data();
-        this.uid = data.uid;
-        this.name = data.name;
-        this.filename = data.filename;
-        this.note = data.note;
-        this.shared = data.shared ?? false;
-        this.hash = data.hash;
-        this.binary = (data.binary as firebase.firestore.Blob).toUint8Array();
-        this.dateAdded = (data.dateAdded as firebase.firestore.Timestamp).toDate();
-        this.dateModified = (data.dateModified as firebase.firestore.Timestamp).toDate();
-    }
-
-    /**
-     * Get the type of the file as a string.
-     */
-    public getType(): string {
-        if (isCmdProgram(this.binary)) {
-            return "CMD program";
-        } else {
-            return "Unknown type";
-        }
-    }
-
-    public static compare(a: File, b: File): number {
-        if (a.name < b.name) {
-            return -1;
-        } else if (a.name > b.name) {
-            return 1;
-        }
-
-        if (a.id < b.id) {
-            return -1;
-        } else if (a.id > b.id) {
-            return 1;
-        } else {
-            // Shouldn't happen.
-            return 0;
-        }
-    }
-}
-
-/**
- * The library of user's files.
- */
-class Library {
-    private readonly backgroundNode: HTMLElement;
-    private readonly trs80: Trs80;
-    private readonly db: firebase.firestore.Firestore;
-    private readonly positioningNode: HTMLElement;
-    private readonly libraryNode: HTMLElement;
-    private readonly escListener: (e: KeyboardEvent) => void;
-    private readonly screens: HTMLElement[] = [];
-    private isOpen = false;
-    private trs80WasStarted = false;
-
-    constructor(parent: HTMLElement, trs80: Trs80, db: firebase.firestore.Firestore) {
-        this.backgroundNode = document.createElement("div");
-        this.trs80 = trs80;
-        this.db = db;
-
-        // Handler for the ESC key.
-        this.escListener = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                e.preventDefault();
-                e.stopPropagation();
-                this.close();
-            }
-        };
-
-        this.backgroundNode.classList.add("popup-background");
-        this.backgroundNode.addEventListener("click", e => {
-            if (e.target === this.backgroundNode) {
-                this.close();
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        });
-        parent.append(this.backgroundNode);
-
-        this.positioningNode = document.createElement("div");
-        this.positioningNode.classList.add("popup-positioning");
-        this.backgroundNode.append(this.positioningNode);
-
-        this.libraryNode = document.createElement("div");
-        this.libraryNode.classList.add("popup-content");
-        this.libraryNode.classList.add("library");
-        this.positioningNode.append(this.libraryNode);
-
-        const header = document.createElement("h1");
-        header.innerText = "Library";
-        header.append(makeCloseIconButton(() => this.close()));
-        this.libraryNode.append(header);
-
-        const programsDiv = document.createElement("div");
-        programsDiv.classList.add("programs");
-        this.libraryNode.append(programsDiv);
-
-        db.collection("files").get().then((querySnapshot) => {
-            const files = querySnapshot.docs.map(d => new File(d));
-            files.sort(File.compare);
-            for (const file of files) {
-                this.addFile(programsDiv, file);
-            }
-        });
-
-        this.pushScreen(this.libraryNode);
-    }
-
-    private showFileInfo(file: File): void {
-        const fileInfoDiv = document.createElement("div");
-        fileInfoDiv.classList.add("popup-content");
-        fileInfoDiv.classList.add("file-info");
-        this.positioningNode.append(fileInfoDiv);
-
-        const header = document.createElement("h1");
-        const backButton = makeIconButton(makeIcon("arrow_back"), "Back", () => this.popScreen());
-        backButton.classList.add("back-button");
-        header.append(backButton);
-        header.append(makeCloseIconButton(() => this.close()));
-        header.append(document.createTextNode(file.name));
-        fileInfoDiv.append(header);
-
-        // Form for editing file info.
-        const form = document.createElement("form");
-        form.classList.add("file-info-form");
-        fileInfoDiv.append(form);
-
-        const makeInputBox = (label: string, cssClass: string | undefined, initialValue: string, enabled: boolean): HTMLInputElement => {
-            const labelElement = document.createElement("label");
-            if (cssClass !== undefined) {
-                labelElement.classList.add(cssClass);
-            }
-            labelElement.innerText = label;
-            form.append(labelElement);
-
-            const inputElement = document.createElement("input");
-            inputElement.value = initialValue;
-            inputElement.disabled = !enabled;
-            labelElement.append(inputElement);
-
-            return inputElement;
-        };
-
-        const nameInput = makeInputBox("Name", "name", file.name, true);
-        const filenameInput = makeInputBox("Filename", "filename", file.filename, true);
-
-        const noteLabel = document.createElement("label");
-        noteLabel.classList.add("note");
-        noteLabel.innerText = "Note";
-        form.append(noteLabel);
-        const noteInput = document.createElement("textarea");
-        noteInput.rows = 10;
-        noteInput.value = file.note;
-        noteLabel.append(noteInput);
-
-        const miscDiv = document.createElement("div");
-        miscDiv.classList.add("misc");
-        makeInputBox("Type", undefined, file.getType(), false);
-        makeInputBox("Date added", undefined, formatDate(file.dateAdded), false);
-        makeInputBox("Size", undefined, withCommas(file.binary.length) + " byte" + (file.binary.length === 1 ? "" : "s"), false);
-        makeInputBox("Date last modified", undefined, formatDate(file.dateModified), false);
-        form.append(miscDiv);
-
-        const screenshotsDiv = document.createElement("div");
-        screenshotsDiv.classList.add("screenshots");
-        let s = "screenshots ";
-        for (let i = 0; i < 8; i++) {
-            s = s + s;
-        }
-        screenshotsDiv.innerText = s;
-        form.append(screenshotsDiv);
-
-        const actionBar = document.createElement("div");
-        actionBar.classList.add("action-bar");
-        fileInfoDiv.append(actionBar);
-
-        const runButton = makeButton("Run", "play_arrow", "play-button", () => {
-            this.runProgram(file);
-        });
-        actionBar.append(runButton);
-        const deleteButton = makeButton("Delete File", "delete", "delete-button", () => {
-            // TODO.
-        });
-        actionBar.append(deleteButton);
-        const revertButton = makeButton("Revert", "undo", "revert-button", undefined);
-        actionBar.append(revertButton);
-        const saveButton = makeButton("Save", "save", "save-button", undefined);
-        actionBar.append(saveButton);
-
-        // Update the save/restore buttons' enabled status based on input fields.
-        const updateButtonStatus = () => {
-            const isSame = nameInput.value === file.name &&
-                filenameInput.value === file.filename &&
-                noteInput.value === file.note;
-
-            revertButton.disabled = isSame;
-            saveButton.disabled = isSame;
-        };
-        for (const input of [nameInput, filenameInput, noteInput]) {
-            input.addEventListener("input", updateButtonStatus);
-        }
-
-        const setInterfaceFromFile = (file: File): void => {
-            nameInput.value = file.name;
-            filenameInput.value = file.filename;
-            noteInput.value = file.note;
-            updateButtonStatus();
-        };
-
-        revertButton.addEventListener("click", () => {
-            setInterfaceFromFile(file);
-            updateButtonStatus();
-        });
-
-        saveButton.addEventListener("click", () => {
-            // TODO turn save button into progress.
-            this.db.collection("files").doc(file.id).update({
-                name: nameInput.value.trim(),
-                filename: filenameInput.value.trim(),
-                note: noteInput.value.trim(),
-                dateModified: new Date(),
-            })
-                .then(() => {
-                    // TODO turn save button into normal.
-                    console.log("Document successfully updated!");
-                })
-                .catch(error => {
-                    // TODO turn save button into normal.
-                    // TODO show error.
-                    // The document probably doesn't exist.
-                    console.error("Error updating document: ", error);
-                });
-        });
-
-        setInterfaceFromFile(file);
-        updateButtonStatus();
-
-        this.pushScreen(fileInfoDiv);
-    }
-
-    private pushScreen(screen: HTMLElement): void {
-        this.screens.push(screen);
-        this.positionScreens(this.screens, this.screens.length - 2);
-        setTimeout(() => {
-            this.positionScreens(this.screens, this.screens.length - 1);
-        }, 0);
-    }
-
-    private popScreen(): void {
-        this.positionScreens(this.screens, this.screens.length - 2);
-        const screen = this.screens.pop();
-        setTimeout(() => {
-            if (screen !== undefined) {
-                screen.remove();
-            }
-        }, 1000);
-    }
-
-    private positionScreens(screens: HTMLElement[], active: number): void {
-        for (let i = 0; i < screens.length; i++) {
-            const screen = screens[i];
-            const offset = (i - active)*100;
-
-            screen.style.left = offset + "vw";
-            screen.style.right = -offset + "vw";
-        }
-    }
-
-    public open(): void {
-        if (!this.isOpen) {
-            this.isOpen = true;
-            document.addEventListener("keydown", this.escListener);
-            this.trs80WasStarted = this.trs80.stop();
-            this.backgroundNode.classList.add("popup-shown");
-        }
-    }
-
-    public close(): void {
-        if (this.isOpen) {
-            this.isOpen = false;
-            document.removeEventListener("keydown", this.escListener);
-            if (this.trs80WasStarted) {
-                this.trs80.start();
-            }
-            this.backgroundNode.classList.remove("popup-shown");
-        }
-    }
-
-    public toggle(): void {
-        if (this.isOpen) {
-            this.close();
-        } else {
-            this.open();
-        }
-    }
-
-    private addFile(parent: HTMLElement, file: File): void {
-        const programDiv = document.createElement("div");
-        programDiv.classList.add("program");
-        parent.append(programDiv);
-
-        const infoButton = makeIconButton(makeIcon("arrow_forward"), "File information", () => {
-            if (this.screens.length === 1) {
-                this.showFileInfo(file);
-            }
-        });
-        infoButton.classList.add("info-button");
-        programDiv.append(infoButton);
-
-        const playButton = makeIconButton(makeIcon("play_arrow"), "Run program", () => {
-            this.runProgram(file);
-        });
-        playButton.classList.add("play-button");
-        programDiv.append(playButton);
-
-        const nameDiv = document.createElement("div");
-        nameDiv.classList.add("name");
-        nameDiv.innerText = file.name;
-        programDiv.append(nameDiv);
-
-        const filenameDiv = document.createElement("div");
-        filenameDiv.classList.add("filename");
-        filenameDiv.innerText = file.filename;
-        programDiv.append(filenameDiv);
-
-        const noteDiv = document.createElement("div");
-        noteDiv.classList.add("note");
-        noteDiv.innerText = file.note;
-        programDiv.append(noteDiv);
-    }
-
-    private runProgram(file: File): void {
-        const cmdProgram = new CmdProgram(file.binary);
-        if (cmdProgram.error !== undefined) {
-            // TODO
-        } else {
-            this.trs80.runCmdProgram(cmdProgram);
-            this.close();
-        }
-    }
-}
-
+// For testing.
 function addProgramToFirestore(db: firebase.firestore.Firestore, name: string, url: string, note: string) {
     fetch(url)
         .then(response => response.arrayBuffer())
@@ -521,16 +92,11 @@ export function main() {
         addProgramToFirestore(db, "Ghosts", "tmp/GHOSTS.CMD", "Doesn't seem to work.");
     }
 
-    const body = document.querySelector("body") as HTMLElement;
+    const panelManager = new PanelManager();
 
-    let library: Library | undefined = undefined;
-
-    const navbar = createNavbar(() => library?.open());
-    body.append(navbar);
-
+    const navbar = createNavbar(() => panelManager.open());
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
-    body.append(screenDiv);
 
     const screen = new CanvasScreen(screenDiv, false);
     let cassette = new EmptyCassette();
@@ -558,16 +124,34 @@ export function main() {
     }*/
     controlPanel.addSettingsButton(hardwareSettingsPanel);
     controlPanel.addSettingsButton(viewPanel);
-    const progressBar = new ProgressBar(screen.getNode());
+    // const progressBar = new ProgressBar(screen.getNode());
     // cassette.setProgressBar(progressBar);
 
-    library = new Library(body, trs80, db);
+    const body = document.querySelector("body") as HTMLElement;
+    body.append(navbar);
+    body.append(screenDiv);
+
+    let wasTrs80Started = false;
+    panelManager.onOpenClose.subscribe(isOpen => {
+        if (isOpen) {
+            wasTrs80Started = trs80.stop();
+        } else {
+            if (wasTrs80Started) {
+                trs80.start();
+            }
+        }
+    });
 
     document.addEventListener("keydown", event => {
         if (event.ctrlKey && event.key === "l") {
-            library?.toggle();
+            panelManager.toggle();
         }
     });
 
     reboot();
+
+    const context = new Context(trs80, db, panelManager);
+
+    const libraryPanel = new LibraryPanel(context, db);
+    panelManager.pushPanel(libraryPanel);
 }
