@@ -218,7 +218,7 @@ body, input, textarea {
     border-radius: 999px;
     cursor: pointer;
 
-    transition: border-color 0.1s ease-in-out, color 0.1s ease-in-out;
+    transition: border-color 0.1s ease-in-out, color 0.1s ease-in-out, opacity 0.1s ease-in-out;
 
     display: flex;
     flex-flow: row nowrap;

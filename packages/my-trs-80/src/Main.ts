@@ -81,7 +81,7 @@ function makeCloseIconButton(closeCallback: () => void) {
     return button;
 }
 
-function makeButton(label: string, iconName: string | undefined, cssClass: string, clickCallback: () => void) {
+function makeButton(label: string, iconName: string | undefined, cssClass: string, clickCallback: (() => void) | undefined) {
     const button = document.createElement("button");
     button.innerText = label;
     button.classList.add(cssClass);
@@ -93,7 +93,9 @@ function makeButton(label: string, iconName: string | undefined, cssClass: strin
         button.append(icon);
     }
 
-    button.addEventListener("click", clickCallback);
+    if (clickCallback !== undefined) {
+        button.addEventListener("click", clickCallback);
+    }
 
     return button;
 }
@@ -163,6 +165,7 @@ class File {
 class Library {
     private readonly backgroundNode: HTMLElement;
     private readonly trs80: Trs80;
+    private readonly db: firebase.firestore.Firestore;
     private readonly positioningNode: HTMLElement;
     private readonly libraryNode: HTMLElement;
     private readonly escListener: (e: KeyboardEvent) => void;
@@ -173,6 +176,7 @@ class Library {
     constructor(parent: HTMLElement, trs80: Trs80, db: firebase.firestore.Firestore) {
         this.backgroundNode = document.createElement("div");
         this.trs80 = trs80;
+        this.db = db;
 
         // Handler for the ESC key.
         this.escListener = (e: KeyboardEvent) => {
@@ -241,7 +245,7 @@ class Library {
         form.classList.add("file-info-form");
         fileInfoDiv.append(form);
 
-        const makeInputBox = (label: string, cssClass: string | undefined, initialValue: string, enabled: boolean): HTMLElement => {
+        const makeInputBox = (label: string, cssClass: string | undefined, initialValue: string, enabled: boolean): HTMLInputElement => {
             const labelElement = document.createElement("label");
             if (cssClass !== undefined) {
                 labelElement.classList.add(cssClass);
@@ -298,16 +302,58 @@ class Library {
             // TODO.
         });
         actionBar.append(deleteButton);
-        const revertButton = makeButton("Revert", "undo", "revert-button", () => {
-            // TODO.
-        });
-        revertButton.disabled = true;
+        const revertButton = makeButton("Revert", "undo", "revert-button", undefined);
         actionBar.append(revertButton);
-        const saveButton = makeButton("Save", "save", "save-button", () => {
-            // TODO.
-        });
-        saveButton.disabled = true;
+        const saveButton = makeButton("Save", "save", "save-button", undefined);
         actionBar.append(saveButton);
+
+        // Update the save/restore buttons' enabled status based on input fields.
+        const updateButtonStatus = () => {
+            const isSame = nameInput.value === file.name &&
+                filenameInput.value === file.filename &&
+                noteInput.value === file.note;
+
+            revertButton.disabled = isSame;
+            saveButton.disabled = isSame;
+        };
+        for (const input of [nameInput, filenameInput, noteInput]) {
+            input.addEventListener("input", updateButtonStatus);
+        }
+
+        const setInterfaceFromFile = (file: File): void => {
+            nameInput.value = file.name;
+            filenameInput.value = file.filename;
+            noteInput.value = file.note;
+            updateButtonStatus();
+        };
+
+        revertButton.addEventListener("click", () => {
+            setInterfaceFromFile(file);
+            updateButtonStatus();
+        });
+
+        saveButton.addEventListener("click", () => {
+            // TODO turn save button into progress.
+            this.db.collection("files").doc(file.id).update({
+                name: nameInput.value.trim(),
+                filename: filenameInput.value.trim(),
+                note: noteInput.value.trim(),
+                dateModified: new Date(),
+            })
+                .then(() => {
+                    // TODO turn save button into normal.
+                    console.log("Document successfully updated!");
+                })
+                .catch(error => {
+                    // TODO turn save button into normal.
+                    // TODO show error.
+                    // The document probably doesn't exist.
+                    console.error("Error updating document: ", error);
+                });
+        });
+
+        setInterfaceFromFile(file);
+        updateButtonStatus();
 
         this.pushScreen(fileInfoDiv);
     }
