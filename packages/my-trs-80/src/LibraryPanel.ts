@@ -6,6 +6,7 @@ import {Context} from "./Context";
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {clearElement} from "teamten-ts-utils";
 import firebase from "firebase/app";
+import {CanvasScreen} from "trs80-emulator";
 
 const FILE_ID_ATTR = "data-file-id";
 
@@ -156,6 +157,17 @@ export class LibraryPanel extends Panel {
         noteDiv.classList.add("note");
         noteDiv.innerText = file.note;
         infoDiv.append(noteDiv);
+
+        const screenshotsDiv = document.createElement("div");
+        screenshotsDiv.classList.add("screenshots");
+        fileDiv.append(screenshotsDiv);
+        for (const screenshot of file.screenshots) {
+            // TODO put limit on this.
+            const screenDiv = document.createElement("div");
+            screenshotsDiv.append(screenDiv);
+            const screen = new CanvasScreen(screenDiv, 0.10);
+            screen.displayScreenshot(screenshot);
+        }
 
         const playButton = makeIconButton(makeIcon("play_arrow"), "Run program", () => {
             this.runProgram(file);

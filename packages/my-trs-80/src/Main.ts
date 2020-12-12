@@ -67,7 +67,7 @@ export function main() {
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
 
-    const screen = new CanvasScreen(screenDiv, false);
+    const screen = new CanvasScreen(screenDiv, 1.5);
     let cassette = new EmptyCassette();
     const trs80 = new Trs80(screen, cassette);
 
@@ -83,14 +83,6 @@ export function main() {
     controlPanel.addTapeRewindButton(() => {
         // cassette.rewind();
     });
-    /*
-    if (program !== undefined) {
-        controlPanel.addScreenshotButton(() => {
-            const screenshot = trs80.getScreenshot();
-            program.setScreenshot(screenshot);
-            this.tape.saveUserData();
-        });
-    }*/
     controlPanel.addSettingsButton(hardwareSettingsPanel);
     controlPanel.addSettingsButton(viewPanel);
     // const progressBar = new ProgressBar(screen.getNode());
@@ -120,6 +112,26 @@ export function main() {
     reboot();
 
     const context = new Context(library, trs80, db, panelManager);
+
+    // TODO make this button appear and disappear as we have/not have a program.
+    controlPanel.addScreenshotButton(() => {
+        if (context.runningFile !== undefined) {
+            let file = context.runningFile;
+            const screenshot = trs80.getScreenshot();
+            const screenshots = [...file.screenshots, screenshot];
+            file = file.builder().withScreenshots(screenshots).withDateModified(new Date()).build();
+            context.db.collection("files").doc(file.id).update({
+                screenshots: file.screenshots,
+                dateModified: file.dateModified,
+            })
+                .then(() => {
+                    context.library.modifyFile(file);
+                })
+                .catch(() => {
+                    // TODO.
+                });
+        }
+    });
 
     const libraryPanel = new LibraryPanel(context);
     panelManager.pushPanel(libraryPanel);

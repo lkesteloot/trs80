@@ -302,7 +302,7 @@ body, input, textarea {
     cursor: default;
 
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 25% 1fr auto auto;
     align-items: center;
     gap: 10px;
 }
@@ -321,6 +321,15 @@ body, input, textarea {
     font-size: 80%;
     margin-top: 5px;
     color: var(--foreground-secondary);
+}
+
+.library-panel .file .screenshots > * {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.library-panel .file .screenshots > *:first-child {
+    margin-left: 0;
 }
 
 /* ----------------------------------------------------------------------------------------------------- */

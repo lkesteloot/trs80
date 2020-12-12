@@ -207,7 +207,7 @@ class FileInfoTab {
 class HexdumpTab {
     private readonly binary: Uint8Array;
     private readonly hexdumpElement: HTMLElement;
-    private collapse = false;
+    private collapse = true;
 
     constructor(filePanel: FilePanel, pageTabs: PageTabs) {
         this.binary = filePanel.file.binary;

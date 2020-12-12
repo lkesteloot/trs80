@@ -14,11 +14,14 @@ export class File {
     public readonly note: string;
     public readonly shared: boolean;
     public readonly hash: string;
+    public readonly screenshots: string[]; // Don't modify this, treat as immutable.
     public readonly binary: Uint8Array;
     public readonly dateAdded: Date;
     public readonly dateModified: Date;
 
-    constructor(id: string, uid: string, name: string, filename: string, note: string, shared: boolean, hash: string, binary: Uint8Array, dateAdded: Date, dateModified: Date) {
+    constructor(id: string, uid: string, name: string, filename: string, note: string, shared: boolean, hash: string,
+                screenshots: string[], binary: Uint8Array, dateAdded: Date, dateModified: Date) {
+
         this.id = id;
         this.uid = uid;
         this.name = name;
@@ -26,6 +29,7 @@ export class File {
         this.note = note;
         this.shared = shared;
         this.hash = hash;
+        this.screenshots = screenshots;
         this.binary = binary;
         this.dateAdded = dateAdded;
         this.dateModified = dateModified;
@@ -41,6 +45,7 @@ export class File {
         builder.note = this.note;
         builder.shared = this.shared;
         builder.hash = this.hash;
+        builder.screenshots = this.screenshots;
         builder.binary = this.binary;
         builder.dateAdded = this.dateAdded;
         builder.dateModified = this.dateModified;
@@ -93,6 +98,7 @@ export class FileBuilder {
     public note: string = "";
     public shared: boolean = false;
     public hash: string = "";
+    public screenshots: string[] = [];
     public binary: Uint8Array = new Uint8Array(0);
     public dateAdded: Date = new Date();
     public dateModified: Date = new Date();
@@ -108,6 +114,7 @@ export class FileBuilder {
         builder.note = data.note;
         builder.shared = data.shared ?? false;
         builder.hash = data.hash;
+        builder.screenshots = data.screenshots ?? [];
         builder.binary = (data.binary as firebase.firestore.Blob).toUint8Array();
         builder.dateAdded = (data.dateAdded as firebase.firestore.Timestamp).toDate();
         builder.dateModified = (data.dateModified as firebase.firestore.Timestamp).toDate();
@@ -135,6 +142,11 @@ export class FileBuilder {
         return this;
     }
 
+    public withScreenshots(screenshots: string[]): this {
+        this.screenshots = screenshots;
+        return this;
+    }
+
     public withBinary(binary: Uint8Array): this {
         this.binary = binary;
         return this;
@@ -147,6 +159,6 @@ export class FileBuilder {
 
     public build(): File {
         return new File(this.id, this.uid, this.name, this.filename, this.note, this.shared, this.hash,
-            this.binary, this.dateAdded, this.dateModified);
+            this.screenshots, this.binary, this.dateAdded, this.dateModified);
     }
 }
