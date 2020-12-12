@@ -25,36 +25,6 @@ class EmptyCassette extends Cassette {
     // Nothing to do.
 }
 
-// Fresh IDs for inputs so that we can point labels at them. TODO delete?
-let inputIdCounter = 1;
-function makeId(): string {
-    return "_input" + inputIdCounter++;
-}
-
-// For testing. TODO delete
-function addProgramToFirestore(db: firebase.firestore.Firestore, name: string, url: string, note: string) {
-    fetch(url)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer =>
-            db.collection("files").add({
-                uid: "",
-                name: name,
-                filename: url.split("/").pop(),
-                note: note,
-                shared: false,
-                hash: "",
-                binary: firebase.firestore.Blob.fromUint8Array(new Uint8Array(arrayBuffer)),
-                dateAdded: firebase.firestore.Timestamp.fromDate(new Date()),
-                dateModified: firebase.firestore.Timestamp.fromDate(new Date()),
-            }))
-        .then(function (docRef) {
-            console.log("Document written with ID: ", docRef.id);
-        })
-        .catch(function (error) {
-            console.error("Error adding document: ", error);
-        });
-}
-
 function createNavbar(openLibrary: () => void): HTMLElement {
     const navbar = document.createElement("div");
     navbar.classList.add("navbar");
@@ -89,13 +59,6 @@ export function main() {
     firebase.analytics();
 
     const db = firebase.firestore();
-
-    if (false) {
-        addProgramToFirestore(db, "Breakdown", "tmp/BREAKDWN.CMD", "Breakout-like game from pski.");
-        addProgramToFirestore(db, "Memtest", "tmp/MEMTEST.CMD", "Standard MEMTEST program from TRS-DOS.");
-        addProgramToFirestore(db, "Armored Patrol", "tmp/ARMOR.CMD", "Space shoot-em-up.");
-        addProgramToFirestore(db, "Ghosts", "tmp/GHOSTS.CMD", "Doesn't seem to work.");
-    }
 
     const panelManager = new PanelManager();
     const library = new Library();

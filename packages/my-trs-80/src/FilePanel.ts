@@ -1,10 +1,10 @@
 import {Panel} from "./Panel";
 import {formatDate, makeButton, makeCloseIconButton, makeIcon, makeIconButton} from "./Utils";
-import {withCommas} from "teamten-ts-utils";
+import {clearElement, withCommas} from "teamten-ts-utils";
 import {File} from "./File";
 import {Context} from "./Context";
 import {PageTabs} from "./PageTabs";
-import {toHexByte, toHexWord} from "z80-base/dist/main";
+import {toHexByte, toHexWord} from "z80-base";
 
 /**
  * Handles the file info tab in the file panel.
@@ -25,7 +25,7 @@ class FileInfoTab {
         this.filePanel = filePanel;
 
         const infoTab = pageTabs.newTab("File Info");
-        infoTab.element.classList.add("file-info");
+        infoTab.element.classList.add("file-info-tab");
 
         // Form for editing file info.
         const form = document.createElement("form");
@@ -205,59 +205,187 @@ class FileInfoTab {
  * Tab for displaying the hex and ASCII of the binary.
  */
 class HexdumpTab {
+    private readonly binary: Uint8Array;
+    private readonly hexdumpElement: HTMLElement;
+    private collapse = false;
+
     constructor(filePanel: FilePanel, pageTabs: PageTabs) {
+        this.binary = filePanel.file.binary;
+
         const infoTab = pageTabs.newTab("Hexdump");
-        infoTab.element.classList.add("hexdump");
+        infoTab.element.classList.add("hexdump-tab");
 
-        let STRIDE = 16;
+        const outer = document.createElement("div");
+        outer.classList.add("hexdump-outer");
+        infoTab.element.append(outer);
 
-        const binary = filePanel.file.binary;
-        for (let addr = 0; addr < binary.length; addr += STRIDE) {
+        this.hexdumpElement = document.createElement("div");
+        this.hexdumpElement.classList.add("hexdump");
+        outer.append(this.hexdumpElement);
+        this.generateHexdump();
+
+        const actionBar = document.createElement("div");
+        actionBar.classList.add("action-bar");
+        infoTab.element.append(actionBar);
+
+        const collapseLabel = document.createElement("label");
+        const collapseCheckbox = document.createElement("input");
+        collapseCheckbox.type = "checkbox";
+        collapseCheckbox.checked = this.collapse;
+        collapseLabel.append(collapseCheckbox);
+        collapseLabel.append(" Collapse duplicate lines");
+        collapseCheckbox.addEventListener("change", () => {
+            this.collapse = collapseCheckbox.checked;
+            this.generateHexdump();
+        });
+        actionBar.append(collapseLabel);
+    }
+
+    /**
+     * Regenerate the HTML for the hexdump.
+     */
+    private generateHexdump(): void {
+        const lines: HTMLElement[] = [];
+
+        const STRIDE = 16;
+
+        const newLine = (): HTMLElement => {
             const line = document.createElement("div");
+            lines.push(line);
+            return line;
+        };
 
-            let e = document.createElement("span");
-            e.classList.add("address");
-            e.innerText = toHexWord(addr) + "  ";
+        const newSpan = (line: HTMLElement, cssClass: string, text: string): HTMLElement => {
+            const e = document.createElement("span");
+            e.classList.add(cssClass);
+            e.innerText = text;
             line.append(e);
+            return e;
+        };
 
-            // Hex.
-            let subAddr: number;
-            let s = "";
-            for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
-                s += toHexByte(binary[subAddr]) + " ";
-            }
-            for (; subAddr < addr + STRIDE; subAddr++) {
-                s += "   ";
-            }
-            s += "  ";
-            e = document.createElement("span");
-            e.classList.add("hex");
-            e.innerText = s;
-            line.append(e);
+        const binary = this.binary;
+        let lastAddr: number | undefined = undefined;
+        for (let addr = 0; addr < binary.length; addr += STRIDE) {
+            if (this.collapse && lastAddr !== undefined &&
+                binary.length - addr >= STRIDE && HexdumpTab.segmentsEqual(binary, lastAddr, addr, STRIDE)) {
 
-            // ASCII.
-            let currentCssClass = undefined;
-            for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
-                const c = binary[subAddr];
-                let cssClass;
-                let char;
-                if (c >= 32 && c < 127) {
-                    cssClass = "ascii";
-                    char = String.fromCharCode(c);
-                } else {
-                    cssClass = "ascii-unprintable";
-                    char = ".";
+                if (addr === lastAddr + STRIDE) {
+                    const line = newLine();
+
+                    if (HexdumpTab.allSameByte(binary, addr, STRIDE)) {
+                        // Lots of the same byte repeated. Say many there are.
+                        const count = HexdumpTab.countConsecutive(binary, addr);
+                        newSpan(line, "address", "      ... ");
+                        newSpan(line, "ascii", count.toString());
+                        newSpan(line, "address", " (");
+                        newSpan(line, "ascii", "0x" + count.toString(16).toUpperCase());
+                        newSpan(line, "address", ") consecutive bytes of ");
+                        newSpan(line, "hex", "0x" + toHexByte(binary[addr]));
+                        newSpan(line, "address", " ...");
+                    } else {
+                        // A repeating pattern, but not all the same byte. Say how many times repeated.
+                        let count = 1;
+                        for (let otherAddr = addr + STRIDE; otherAddr <= binary.length - STRIDE; otherAddr += STRIDE) {
+                            if (HexdumpTab.segmentsEqual(binary, lastAddr, otherAddr, STRIDE)) {
+                                count += 1;
+                            } else {
+                                break;
+                            }
+                        }
+                        newSpan(line, "address", "      ... ");
+                        newSpan(line, "ascii", count.toString());
+                        const plural = count === 1 ? "" : "s";
+                        newSpan(line, "address", ` repetition${plural} of previous row ...`);
+                    }
                 }
-                if (cssClass !== currentCssClass) {
-                    e = document.createElement("span");
-                    e.classList.add(cssClass);
-                    line.append(e);
-                    currentCssClass = cssClass;
+            } else {
+                lastAddr = addr;
+                const line = newLine();
+                newSpan(line, "address", toHexWord(addr) + "  ");
+
+                // Hex.
+                let subAddr: number;
+                let s = "";
+                for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
+                    s += toHexByte(binary[subAddr]) + " ";
                 }
-                e.innerText += char;
+                for (; subAddr < addr + STRIDE; subAddr++) {
+                    s += "   ";
+                }
+                s += "  ";
+                newSpan(line, "hex", s);
+
+                // ASCII.
+                let e: HTMLElement | undefined = undefined;
+                let currentCssClass = undefined;
+                for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
+                    const c = binary[subAddr];
+                    let cssClass;
+                    let char;
+                    if (c >= 32 && c < 127) {
+                        cssClass = "ascii";
+                        char = String.fromCharCode(c);
+                    } else {
+                        cssClass = "ascii-unprintable";
+                        char = ".";
+                    }
+                    if (e === undefined || cssClass !== currentCssClass) {
+                        e = newSpan(line, cssClass, "");
+                        currentCssClass = cssClass;
+                    }
+                    e.innerText += char;
+                }
             }
-            infoTab.element.append(line);
         }
+
+        newSpan(newLine(), "address", toHexWord(binary.length));
+
+        clearElement(this.hexdumpElement);
+        this.hexdumpElement.append(... lines);
+    }
+
+    /**
+     * Compare two parts of an array for equality.
+     */
+    private static segmentsEqual(binary: Uint8Array, start1: number, start2: number, length: number): boolean {
+        while (length-- > 0) {
+            if (binary[start1++] !== binary[start2++]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Count consecutive bytes that are around "addr".
+     */
+    private static countConsecutive(binary: Uint8Array, addr: number) {
+        const value = binary[addr];
+
+        let startAddr = addr;
+        while (startAddr > 0 && binary[startAddr - 1] === value) {
+            startAddr--;
+        }
+
+        while (addr < binary.length - 1 && binary[addr + 1] === value) {
+            addr++;
+        }
+
+        return addr - startAddr + 1;
+    }
+
+    /**
+     * Whether this segment is made up of the same value.
+     */
+    private static allSameByte(binary: Uint8Array, addr: number, length: number): boolean {
+        for (let i = 1; i < length; i++) {
+            if (binary[addr + i] !== binary[addr]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 

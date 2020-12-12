@@ -211,10 +211,12 @@ body, input, textarea {
 .panel .action-bar {
     padding: var(--side-padding);
     margin: 0;
+    min-height: 34px;
 
     display: flex;
     flex-flow: row nowrap;
     justify-content: flex-end;
+    align-items: center;
 }
 
 .panel .action-bar button {
@@ -327,7 +329,7 @@ body, input, textarea {
     grid-template-columns: auto 1fr auto;
 }
 
-.file-info {
+.file-info-tab {
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
 }
@@ -436,10 +438,25 @@ body, input, textarea {
 
 /* ----------------------------------------------------------------------------------------------------- */
 
-.hexdump {
+.hexdump-tab {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
+}
+
+.hexdump-tab .action-bar {
+    justify-content: flex-start;
+}
+
+.hexdump-outer {
     background-color: var(--background);
-    font-family: "Roboto Mono", monospace;
     padding: var(--side-padding);
+
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.hexdump {
+    font-family: "Roboto Mono", monospace;
     overflow-y: auto;
     white-space: pre;
 }
