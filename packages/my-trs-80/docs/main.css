@@ -168,9 +168,12 @@ body, input, textarea {
     bottom: 0;
     transition: left 0.5s ease-in-out, right 0.5s ease-in-out;
 
+    /* So that backgrounds of nested divs don't mess with our rounded corners. */
+    overflow: hidden;
+
     border-radius: 10px;
 
-    background-color: var(--background);
+    background-color: var(--background-highlights);
     color: var(--foreground);
 
     display: grid;
@@ -178,13 +181,11 @@ body, input, textarea {
 }
 
 .panel h1 {
-    border-bottom: 1px solid var(--background-highlights);
     padding: var(--side-padding) var(--side-padding) 10px var(--side-padding);
     margin: 0;
     font-size: 28pt;
     font-weight: 100;
     color: var(--accent-color);
-    background-color: var(--background-highlights);
 
     display: grid;
     align-items: center;
@@ -192,11 +193,14 @@ body, input, textarea {
     /* Set grid pattern in panel-specific rule. */
 }
 
+.panel h1 > div + span {
+    /* More space between back button and header text. */
+    padding-left: 10px;
+}
+
 .panel .action-bar {
-    border-top: 1px solid var(--background-highlights);
     padding: var(--side-padding);
     margin: 0;
-    background-color: var(--background-highlights);
 
     display: flex;
     flex-flow: row nowrap;
@@ -253,7 +257,6 @@ body, input, textarea {
 
 .page-tabs {
     padding: 5px var(--side-padding) 0 var(--side-padding);
-    background-color: var(--background-highlights);
 
     display: flex;
     flex-flow: row nowrap;
@@ -276,11 +279,14 @@ body, input, textarea {
     grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
 }
 
-
 /* ----------------------------------------------------------------------------------------------------- */
 
 .library-panel h1 {
     grid-template-columns: 1fr auto auto;
+}
+
+.library-panel .files {
+    background-color: var(--background);
 }
 
 .library-panel .file {
@@ -322,6 +328,7 @@ body, input, textarea {
     grid-template-rows: auto auto auto 1fr;
     column-gap: 20px;
     row-gap: 20px;
+    background-color: var(--background);
 
     flex-grow: 1;
     overflow-y: hidden;
@@ -330,6 +337,7 @@ body, input, textarea {
 }
 
 .file-panel-form > * {
+    /* TODO delete */
     xbackground-color: #ECC;
 }
 
