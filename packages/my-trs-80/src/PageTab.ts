@@ -1,5 +1,7 @@
 
-
+/**
+ * Represents a single page tab and its contents.
+ */
 export class PageTab {
     public name: string;
     public readonly element: Element;

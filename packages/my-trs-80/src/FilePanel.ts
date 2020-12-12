@@ -4,6 +4,7 @@ import {withCommas} from "teamten-ts-utils";
 import {File} from "./File";
 import {Context} from "./Context";
 import {PageTabs} from "./PageTabs";
+import {toHexByte, toHexWord} from "z80-base/dist/main";
 
 /**
  * Handles the file info tab in the file panel.
@@ -24,6 +25,7 @@ class FileInfoTab {
         this.filePanel = filePanel;
 
         const infoTab = pageTabs.newTab("File Info");
+        infoTab.element.classList.add("file-info");
 
         // Form for editing file info.
         const form = document.createElement("form");
@@ -200,11 +202,72 @@ class FileInfoTab {
 }
 
 /**
+ * Tab for displaying the hex and ASCII of the binary.
+ */
+class HexdumpTab {
+    constructor(filePanel: FilePanel, pageTabs: PageTabs) {
+        const infoTab = pageTabs.newTab("Hexdump");
+        infoTab.element.classList.add("hexdump");
+
+        let STRIDE = 16;
+
+        const binary = filePanel.file.binary;
+        for (let addr = 0; addr < binary.length; addr += STRIDE) {
+            const line = document.createElement("div");
+
+            let e = document.createElement("span");
+            e.classList.add("address");
+            e.innerText = toHexWord(addr) + "  ";
+            line.append(e);
+
+            // Hex.
+            let subAddr: number;
+            let s = "";
+            for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
+                s += toHexByte(binary[subAddr]) + " ";
+            }
+            for (; subAddr < addr + STRIDE; subAddr++) {
+                s += "   ";
+            }
+            s += "  ";
+            e = document.createElement("span");
+            e.classList.add("hex");
+            e.innerText = s;
+            line.append(e);
+
+            // ASCII.
+            let currentCssClass = undefined;
+            for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
+                const c = binary[subAddr];
+                let cssClass;
+                let char;
+                if (c >= 32 && c < 127) {
+                    cssClass = "ascii";
+                    char = String.fromCharCode(c);
+                } else {
+                    cssClass = "ascii-unprintable";
+                    char = ".";
+                }
+                if (cssClass !== currentCssClass) {
+                    e = document.createElement("span");
+                    e.classList.add(cssClass);
+                    line.append(e);
+                    currentCssClass = cssClass;
+                }
+                e.innerText += char;
+            }
+            infoTab.element.append(line);
+        }
+    }
+}
+
+/**
  * Panel to explore a file.
  */
 export class FilePanel extends Panel {
     public file: File;
     private readonly fileInfoTab: FileInfoTab;
+    private readonly hexdumpTab: HexdumpTab;
     public readonly headerTextNode: HTMLElement;
 
     constructor(context: Context, file: File) {
@@ -230,8 +293,6 @@ export class FilePanel extends Panel {
 
         const pageTabs = new PageTabs(content);
         this.fileInfoTab = new FileInfoTab(this, pageTabs);
-        // pageTabs.newTab("Hexdump");
-        // pageTabs.newTab("CMD File");
-
+        this.hexdumpTab = new HexdumpTab(this, pageTabs);
     }
 }

@@ -198,6 +198,16 @@ body, input, textarea {
     padding-left: 10px;
 }
 
+/* Make scrollbars blend in better. */
+.panel ::-webkit-scrollbar {
+    width: 8px;
+}
+
+.panel ::-webkit-scrollbar-thumb {
+    background: var(--background-highlights);
+    border-radius: 999px;
+}
+
 .panel .action-bar {
     padding: var(--side-padding);
     margin: 0;
@@ -274,11 +284,6 @@ body, input, textarea {
     border-top-right-radius: 5px;
 }
 
-.tab-content {
-    display: grid;
-    grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
-}
-
 /* ----------------------------------------------------------------------------------------------------- */
 
 .library-panel h1 {
@@ -320,6 +325,11 @@ body, input, textarea {
 
 .file-panel h1 {
     grid-template-columns: auto 1fr auto;
+}
+
+.file-info {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
 }
 
 .file-panel-form {
@@ -372,23 +382,6 @@ body, input, textarea {
     overflow-y: auto;
 }
 
-.file-panel-form .screenshots::-webkit-scrollbar {
-    width: 8px;
-}
-
-.file-panel-form .screenshots::-webkit-scrollbar-track {
-    /* Nothing. */
-}
-
-.file-panel-form .screenshots::-webkit-scrollbar-thumb {
-    background: var(--background-highlights);
-    border-radius: 999px;
-}
-
-.file-panel-form .screenshots::-webkit-scrollbar-thumb:hover {
-    /* Nothing */
-}
-
 .file-panel-form .filename input {
     /* TODO makes the input field slightly taller than the non-mono ones */
     font-family: "Roboto Mono", monospace;
@@ -439,4 +432,30 @@ body, input, textarea {
     to {
         transform:rotate(360deg);
     }
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.hexdump {
+    background-color: var(--background);
+    font-family: "Roboto Mono", monospace;
+    padding: var(--side-padding);
+    overflow-y: auto;
+    white-space: pre;
+}
+
+.hexdump .address {
+    color: var(--foreground-secondary);
+}
+
+.hexdump .hex {
+    color: var(--blue);
+}
+
+.hexdump .ascii {
+    color: var(--cyan);
+}
+
+.hexdump .ascii-unprintable {
+    color: var(--foreground-secondary);
 }

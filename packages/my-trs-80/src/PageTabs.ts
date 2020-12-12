@@ -1,6 +1,9 @@
 import {PageTab} from "./PageTab";
 import {clearElement} from "teamten-ts-utils";
 
+/**
+ * Set of page tabs.
+ */
 export class PageTabs {
     private readonly containerElement: Element;
     private readonly tabElement: HTMLElement;
@@ -15,17 +18,23 @@ export class PageTabs {
         this.tabElement = document.createElement("div");
         this.tabElement.classList.add("page-tabs");
         this.containerElement.append(this.tabElement);
-        this.recreateTabs();
+        this.setActiveTab(0);
     }
 
+    /**
+     * Create a new tab.
+     */
     public newTab(name: string): PageTab {
         const tab = new PageTab(name);
         this.tabs.push(tab);
         this.containerElement.append(tab.element);
-        this.recreateTabs();
+        this.setActiveTab(this.activeIndex);
         return tab;
     }
 
+    /**
+     * Recreate the set of page tabs (the UI).
+     */
     private recreateTabs(): void {
         clearElement(this.tabElement);
 
@@ -42,8 +51,10 @@ export class PageTabs {
         }
     }
 
+    /**
+     * Switch the active tab.
+     */
     private setActiveTab(activeIndex: number): void {
-        console.log(activeIndex);
         this.activeIndex = activeIndex;
         this.recreateTabs();
 
