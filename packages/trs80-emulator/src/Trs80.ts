@@ -1,4 +1,4 @@
-import {lo, toHex} from "z80-base";
+import {lo, hi, toHex} from "z80-base";
 import {Hal, Z80} from "z80-emulator";
 import {Cassette} from "./Cassette";
 import {Keyboard} from "./Keyboard";
@@ -8,6 +8,7 @@ import {model3Rom} from "./Model3Rom";
 import {Trs80Screen} from "./Trs80Screen";
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {BasicLevel, CGChip, Config, ModelType} from "./Config";
+import {CmdLoadBlockChunk, CmdProgram, CmdTransferAddressChunk} from "trs80-base";
 
 // IRQs
 const M1_TIMER_IRQ_MASK = 0x80;
@@ -245,12 +246,17 @@ export class Trs80 implements Hal {
 
     /**
      * Stop the CPU and no longer intercept browser keys.
+     *
+     * @return whether it was started.
      */
-    public stop(): void {
+    public stop(): boolean {
         if (this.started) {
             this.keyboard.interceptKeys = false;
             this.cancelTickTimeout();
             this.started = false;
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -851,5 +857,51 @@ export class Trs80 implements Hal {
         this.cassetteFallInterruptCount++;
         this.irqLatch = (this.irqLatch & ~M3_CASSETTE_FALL_IRQ_MASK) |
             (this.irqMask & M3_CASSETTE_FALL_IRQ_MASK);
+    }
+
+    /**
+     * Clear screen and home cursor.
+     */
+    private cls(): void {
+        for (let address = SCREEN_BEGIN; address < SCREEN_END; address++) {
+            this.writeMemory(address, 32);
+        }
+        this.positionCursor(0, 0);
+    }
+
+    /**
+     * Move the cursor (where the ROM's write routine will write to next) to the
+     * given location.
+     *
+     * @param col 0-based text column.
+     * @param row 0-based text row.
+     */
+    private positionCursor(col: number, row: number): void {
+        const address = SCREEN_BEGIN + row*64 + col;
+
+        // This works on Model III, not sure if it works on Model I or in wide mode.
+        this.writeMemory(0x4020, lo(address));
+        this.writeMemory(0x4021, hi(address));
+    }
+
+    /**
+     * Load a CMD program into memory and run it.
+     */
+    public runCmdProgram(cmdProgram: CmdProgram): void {
+        this.cls();
+
+        for (const chunk of cmdProgram.chunks) {
+            if (chunk instanceof CmdLoadBlockChunk) {
+                for (let i = 0; i < chunk.loadData.length; i++) {
+                    this.writeMemory(chunk.address + i, chunk.loadData[i]);
+                }
+            } else if (chunk instanceof CmdTransferAddressChunk) {
+                this.jumpTo(chunk.address);
+
+                // Don't load any more after this. I assume on a real machine the jump
+                // happens immediately and CMD parsing ends.
+                break;
+            }
+        }
     }
 }

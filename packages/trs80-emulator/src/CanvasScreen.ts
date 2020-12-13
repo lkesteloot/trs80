@@ -1,7 +1,8 @@
 import {Trs80Screen} from "./Trs80Screen";
-import {clearElement, CSS_PREFIX, SCREEN_BEGIN, SCREEN_END} from "./Utils";
+import {CSS_PREFIX, SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts";
 import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "./Config";
+import {clearElement} from "teamten-ts-utils";
 
 const gCssPrefix = CSS_PREFIX + "-canvas-screen";
 const gBlackBackgroundClass = gCssPrefix + "-black-background";
@@ -67,6 +68,7 @@ export function phosphorToRgb(phosphor: Phosphor): number[] {
  * TRS-80 screen based on an HTML canvas element.
  */
 export class CanvasScreen extends Trs80Screen {
+    private readonly scale: number = 1;
     private readonly node: HTMLElement;
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
@@ -77,8 +79,18 @@ export class CanvasScreen extends Trs80Screen {
     private glyphWidth = 0;
     private updateThumbnailTimeout: number | undefined;
 
-    constructor(parentNode: HTMLElement, isThumbnail: boolean) {
+    /**
+     * Create a canvas screen.
+     *
+     * @param parentNode note to put the screen into.
+     * @param scale size multiplier. Should be less than 1 for thumbnails, in which
+     * case you shouldn't update too often. If greater than 1, use multiples of 0.5.
+     */
+    constructor(parentNode: HTMLElement, scale: number = 1) {
         super();
+
+        // For thumbnails draw the original at regular resolution.
+        this.scale = Math.max(scale, 1);
 
         clearElement(parentNode);
 
@@ -88,18 +100,17 @@ export class CanvasScreen extends Trs80Screen {
         parentNode.appendChild(this.node);
 
         this.canvas = document.createElement("canvas");
-        this.canvas.width = 64*8;
-        this.canvas.height = 16*24;
+        this.canvas.width = 64*8*this.scale;
+        this.canvas.height = 16*24*this.scale;
         this.canvas.style.display = "block";
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
-        if (!isThumbnail) {
-            this.node.appendChild(this.canvas);
-        }
 
-        if (isThumbnail) {
+        if (scale >= 1) {
+            this.node.appendChild(this.canvas);
+        } else {
             this.thumbnailImage = document.createElement("img");
-            this.thumbnailImage.width = 64*8/3;
-            this.thumbnailImage.height = 16*24/3;
+            this.thumbnailImage.width = 64*8*scale;
+            this.thumbnailImage.height = 16*24*scale;
             this.node.appendChild(this.thumbnailImage);
         }
 
@@ -171,17 +182,19 @@ export class CanvasScreen extends Trs80Screen {
      * Draw a single character to the canvas.
      */
     private drawChar(offset: number, value: number): void {
-        const screenX = (offset % 64)*8;
-        const screenY = Math.floor(offset / 64)*24;
+        const screenX = (offset % 64)*8*this.scale;
+        const screenY = Math.floor(offset / 64)*24*this.scale;
 
         if (this.isExpandedCharacters()) {
             if (offset % 2 === 0) {
-                this.context.clearRect(screenX, screenY, 16, 24);
-                this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth * 2, 24, screenX, screenY, 16, 24);
+                this.context.clearRect(screenX, screenY, 16*this.scale, 24*this.scale);
+                this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth * 2, 24,
+                    screenX, screenY, 16*this.scale, 24*this.scale);
             }
         } else {
-            this.context.clearRect(screenX, screenY, 8, 24);
-            this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth, 24, screenX, screenY, 8, 24);
+            this.context.clearRect(screenX, screenY, 8*this.scale, 24*this.scale);
+            this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth, 24,
+                screenX, screenY, 8*this.scale, 24*this.scale);
         }
     }
 
@@ -241,5 +254,16 @@ export class CanvasScreen extends Trs80Screen {
         if (this.thumbnailImage !== undefined) {
             this.thumbnailImage.src = this.canvas.toDataURL();
         }
+    }
+
+    /**
+     * Returns the canvas as an <img> element that can be resized. This is relatively
+     * expensive.
+     */
+    public asImage(): HTMLImageElement {
+        const image = document.createElement("img");
+        image.src = this.canvas.toDataURL();
+
+        return image;
     }
 }

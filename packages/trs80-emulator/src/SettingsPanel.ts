@@ -27,7 +27,7 @@ const GLOBAL_CSS = `
     bottom: 0;
     opacity: 0;
     visibility: hidden;
-    transition: opacity .20s ease-in-out;
+    transition: opacity .20s ease-in-out, visibility .20s ease-in-out;
 }
 
 .${gPanelCssClass}.${gShownCssClass} {

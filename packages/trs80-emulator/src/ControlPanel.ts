@@ -92,8 +92,7 @@ const GLOBAL_CSS = `
     margin: 15px;
     cursor: pointer;
     opacity: 0.5;
-    transition: opacity .05s ease-in-out;
-    transition: transform 0.05s ease-in-out;
+    transition: opacity .05s ease-in-out, transform 0.05s ease-in-out;
 }
 
 .${gButtonCssClass}:hover {
