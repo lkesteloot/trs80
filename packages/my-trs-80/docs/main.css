@@ -323,8 +323,13 @@ body, input, textarea {
     color: var(--foreground-secondary);
 }
 
+.library-panel .file .screenshots {
+    display: flex;
+    flex-flow: row nowrap;
+}
+
 .library-panel .file .screenshots > * {
-    display: inline-block;
+    max-width: 75px;
     margin-left: 10px;
 }
 
@@ -391,6 +396,8 @@ body, input, textarea {
     grid-column: 3 / -1;
     grid-row: 1 / -1;
     overflow-y: auto;
+
+    text-align: center;
 }
 
 .file-panel-form .filename input {
@@ -404,6 +411,14 @@ body, input, textarea {
 
 .file-panel-form .misc {
     grid-column-end: span 2;
+}
+
+.file-panel-form .screenshots > * {
+    width: 100%;
+}
+
+.file-panel-form .screenshots > *:not(:first-child) {
+    margin-top: 10px;
 }
 
 .action-bar .save-button.saving i:nth-of-type(1),

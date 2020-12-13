@@ -163,10 +163,10 @@ export class LibraryPanel extends Panel {
         fileDiv.append(screenshotsDiv);
         for (const screenshot of file.screenshots) {
             // TODO put limit on this.
-            const screenDiv = document.createElement("div");
-            screenshotsDiv.append(screenDiv);
-            const screen = new CanvasScreen(screenDiv, 0.10);
+            const screen = new CanvasScreen();
             screen.displayScreenshot(screenshot);
+            const image = screen.asImage();
+            screenshotsDiv.append(image);
         }
 
         const playButton = makeIconButton(makeIcon("play_arrow"), "Run program", () => {

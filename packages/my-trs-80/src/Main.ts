@@ -67,7 +67,8 @@ export function main() {
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
 
-    const screen = new CanvasScreen(screenDiv, 1.5);
+    const screen = new CanvasScreen(1.5);
+    screenDiv.append(screen.getNode());
     let cassette = new EmptyCassette();
     const trs80 = new Trs80(screen, cassette);
 

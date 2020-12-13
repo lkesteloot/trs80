@@ -1,7 +1,7 @@
 import {Trs80} from "trs80-emulator";
 import firebase from "firebase/app";
 import {PanelManager} from "./PanelManager";
-import {Library} from "./Library";
+import {Library, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {File} from "./File";
 import {CmdProgram} from "trs80-base";
 
@@ -20,6 +20,18 @@ export class Context {
         this.trs80 = trs80;
         this.db = db;
         this.panelManager = panelManager;
+
+        // Listen for changes to the file we're running.
+        this.library.onEvent.subscribe(event => {
+            if (this.runningFile !== undefined) {
+                if (event instanceof LibraryModifyEvent && event.oldFile.id === this.runningFile.id) {
+                    this.runningFile = event.newFile;
+                }
+                if (event instanceof LibraryRemoveEvent && event.oldFile.id === this.runningFile.id) {
+                    this.runningFile = undefined;
+                }
+            }
+        });
     }
 
     /**

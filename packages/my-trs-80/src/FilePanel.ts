@@ -5,6 +5,7 @@ import {File} from "./File";
 import {Context} from "./Context";
 import {PageTabs} from "./PageTabs";
 import {toHexByte, toHexWord} from "z80-base";
+import {CanvasScreen} from "trs80-emulator";
 
 /**
  * Handles the file info tab in the file panel.
@@ -68,12 +69,13 @@ class FileInfoTab {
 
         const screenshotsDiv = document.createElement("div");
         screenshotsDiv.classList.add("screenshots");
-        let s = "screenshots ";
-        for (let i = 0; i < 8; i++) {
-            s = s + s;
-        }
-        screenshotsDiv.innerText = s;
         form.append(screenshotsDiv);
+        for (const screenshot of this.filePanel.file.screenshots) {
+            const screen = new CanvasScreen();
+            screen.displayScreenshot(screenshot);
+            const image = screen.asImage();
+            screenshotsDiv.append(image);
+        }
 
         const actionBar = document.createElement("div");
         actionBar.classList.add("action-bar");
