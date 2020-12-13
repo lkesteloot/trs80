@@ -7,6 +7,9 @@ import {PageTabs} from "./PageTabs";
 import {toHexByte, toHexWord} from "z80-base";
 import {CanvasScreen} from "trs80-emulator";
 import isEmpty from "lodash/isEmpty";
+import {LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
+import firebase from "firebase";
+import UpdateData = firebase.firestore.UpdateData;
 
 const SCREENSHOT_ATTR = "data-screenshot";
 
@@ -87,7 +90,7 @@ class FileInfoTab {
             this.filePanel.context.db.collection("files").doc(this.filePanel.file.id).delete()
                 .then(() => {
                     this.filePanel.context.library.removeFile(this.filePanel.file);
-                    this.filePanel.context.panelManager.popPanel();
+                    // We automatically close as a result of the file being removed from the library.
                 })
                 .catch(error => {
                     // TODO.
@@ -144,24 +147,50 @@ class FileInfoTab {
                 });
         });
 
+        this.filePanel.context.library.onEvent.subscribe(event => {
+            if (event instanceof LibraryModifyEvent && event.newFile.id === this.filePanel.file.id) {
+                // Make sure we don't clobber any user-entered data in the input fields.
+                const updateData = this.filePanel.file.getUpdateDataComparedTo(event.newFile);
+                this.filePanel.file = event.newFile;
+                this.updateUi(updateData);
+            }
+            if (event instanceof LibraryRemoveEvent && event.oldFile.id === this.filePanel.file.id) {
+                // We've been deleted.
+                this.filePanel.context.panelManager.popPanel();
+            }
+        });
+
         this.updateUi();
     }
 
     /**
      * Update UI after a change to file.
+     *
+     * @param updateData if specified, only fields defined in the object will be updated. (The _values_ of
+     * those fields are ignored -- only their presence is important because that indicates that the data
+     * is fresh in the file object.) The purpose is to avoid clobbering user-entered data in the various
+     * input fields when the file object changes elsewhere in unrelated ways, such as new screenshots.
      */
-    private updateUi(): void {
+    private updateUi(updateData?: UpdateData): void {
         const file = this.filePanel.file;
 
-        this.nameInput.value = file.name;
-        this.filenameInput.value = file.filename;
-        this.noteInput.value = file.note;
+        if (updateData === undefined || updateData.hasOwnProperty("name")) {
+            this.nameInput.value = file.name;
+        }
+        if (updateData === undefined || updateData.hasOwnProperty("filename")) {
+            this.filenameInput.value = file.filename;
+        }
+        if (updateData === undefined || updateData.hasOwnProperty("note")) {
+            this.noteInput.value = file.note;
+        }
         this.typeInput.value = file.getType();
         this.sizeInput.value = withCommas(file.binary.length) + " byte" + (file.binary.length === 1 ? "" : "s");
         this.dateAddedInput.value = formatDate(file.dateAdded);
         this.dateModifiedInput.value = formatDate(file.dateModified);
+        if (updateData === undefined || updateData.hasOwnProperty("screenshots")) {
+            this.populateScreenshots();
+        }
 
-        this.populateScreenshots();
         this.updateButtonStatus();
     }
 

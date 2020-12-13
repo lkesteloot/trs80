@@ -162,7 +162,6 @@ export class LibraryPanel extends Panel {
         screenshotsDiv.classList.add("screenshots");
         fileDiv.append(screenshotsDiv);
         for (const screenshot of file.screenshots) {
-            // TODO put limit on this.
             const screen = new CanvasScreen();
             screen.displayScreenshot(screenshot);
             const image = screen.asImage();

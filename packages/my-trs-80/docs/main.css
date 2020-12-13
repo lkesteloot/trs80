@@ -326,6 +326,7 @@ body, input, textarea {
 .library-panel .file .screenshots {
     display: flex;
     flex-flow: row nowrap;
+    overflow: hidden;
 }
 
 .library-panel .file .screenshots > * {
