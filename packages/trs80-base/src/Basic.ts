@@ -1,7 +1,7 @@
 
 // Tools for decoding Basic programs.
 
-import {ByteReader, concatByteArrays, EOF} from "teamten-utils";
+import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
 
 const BASIC_HEADER_BYTE = 0xD3;
 

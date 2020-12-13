@@ -21,10 +21,10 @@
   "devDependencies": {
     "@types/node": "^12.12.21",
     "tslint": "^5.20.1",
-    "typedoc": "^0.15.5",
+    "typedoc": "^0.19.2",
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "teamten-utils": "file:../teamten-utils"
+    "teamten-ts-utils": "file:../teamten-ts-utils"
   }
 }

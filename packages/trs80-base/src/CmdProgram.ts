@@ -4,7 +4,7 @@
  * http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/tape-and-file-formats-structures/#cmdfile
  */
 
-import {ByteReader, EOF} from "teamten-utils";
+import {ByteReader, EOF} from "teamten-ts-utils";
 
 // Chunk types.
 export const CMD_LOAD_BLOCK = 0x01;
