@@ -1,46 +1,13 @@
 import {Trs80Screen} from "./Trs80Screen";
-import {CSS_PREFIX, SCREEN_BEGIN, SCREEN_END} from "./Utils";
+import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts";
 import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "./Config";
-import {clearElement} from "teamten-ts-utils";
-
-const gCssPrefix = CSS_PREFIX + "-canvas-screen";
-const gBlackBackgroundClass = gCssPrefix + "-black-background";
 
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
 
-const BASE_CSS = `
-
-.${gCssPrefix} {
-    display: inline-block;
-    padding: 10px;
-    background-color: ${AUTHENTIC_BACKGROUND};
-    border-radius: 8px;
-    transition: background-color .5s ease-in-out;
-}
-
-.${gCssPrefix}.${gBlackBackgroundClass} {
-    background-color: ${BLACK_BACKGROUND};
-}
-
-`;
-
-/**
- * Make a global stylesheet for all TRS-80 emulators on this page. Idempotent.
- */
-export function configureStylesheet(): void {
-    const styleId = gCssPrefix;
-    if (document.getElementById(styleId) !== null) {
-        // Already created.
-        return;
-    }
-
-    const node = document.createElement("style");
-    node.id = styleId;
-    node.innerHTML = BASE_CSS;
-    document.head.appendChild(node);
-}
+const PADDING = 10;
+const BORDER_RADIUS = 8;
 
 // Run it on the next event cycle.
 const UPDATE_THUMBNAIL_TIMEOUT_MS = 0;
@@ -69,55 +36,37 @@ export function phosphorToRgb(phosphor: Phosphor): number[] {
  */
 export class CanvasScreen extends Trs80Screen {
     private readonly scale: number = 1;
+    private readonly padding: number;
     private readonly node: HTMLElement;
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
-    private readonly thumbnailImage: HTMLImageElement | undefined;
     private readonly memory: Uint8Array = new Uint8Array(SCREEN_END - SCREEN_BEGIN);
     private readonly glyphs: HTMLCanvasElement[] = [];
     private config: Config = Config.makeDefault();
     private glyphWidth = 0;
-    private updateThumbnailTimeout: number | undefined;
 
     /**
      * Create a canvas screen.
      *
-     * @param parentNode note to put the screen into.
-     * @param scale size multiplier. Should be less than 1 for thumbnails, in which
-     * case you shouldn't update too often. If greater than 1, use multiples of 0.5.
+     * @param scale size multiplier. If greater than 1, use multiples of 0.5.
      */
-    constructor(parentNode: HTMLElement, scale: number = 1) {
+    constructor(scale: number = 1) {
         super();
 
-        // For thumbnails draw the original at regular resolution.
-        this.scale = Math.max(scale, 1);
-
-        clearElement(parentNode);
-
-        // Make our own sub-node that we have control over.
         this.node = document.createElement("div");
-        this.node.classList.add(gCssPrefix);
-        parentNode.appendChild(this.node);
+
+        this.scale = scale;
+        this.padding = Math.round(PADDING*this.scale);
 
         this.canvas = document.createElement("canvas");
-        this.canvas.width = 64*8*this.scale;
-        this.canvas.height = 16*24*this.scale;
-        this.canvas.style.display = "block";
+        this.canvas.width = 64*8*this.scale + 2*this.padding;
+        this.canvas.height = 16*24*this.scale + 2*this.padding;
+        this.node.append(this.canvas);
+
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
-        if (scale >= 1) {
-            this.node.appendChild(this.canvas);
-        } else {
-            this.thumbnailImage = document.createElement("img");
-            this.thumbnailImage.width = 64*8*scale;
-            this.thumbnailImage.height = 16*24*scale;
-            this.node.appendChild(this.thumbnailImage);
-        }
-
+        this.drawBackground();
         this.updateFromConfig();
-
-        // Make global CSS if necessary.
-        configureStylesheet();
     }
 
     setConfig(config: Config): void {
@@ -148,17 +97,6 @@ export class CanvasScreen extends Trs80Screen {
                 break;
         }
 
-        switch (this.config.background) {
-            case Background.BLACK:
-                this.node.classList.add(gBlackBackgroundClass);
-                break;
-
-            case Background.AUTHENTIC:
-            default:
-                this.node.classList.remove(gBlackBackgroundClass);
-                break;
-        }
-
         const glyphOptions: GlyphOptions = {
             color: phosphorToRgb(this.config.phosphor),
             scanLines: this.config.scanLines === ScanLines.ON,
@@ -168,6 +106,7 @@ export class CanvasScreen extends Trs80Screen {
         }
         this.glyphWidth = font.width;
 
+        this.drawBackground();
         this.refresh();
     }
 
@@ -175,24 +114,39 @@ export class CanvasScreen extends Trs80Screen {
         const offset = address - SCREEN_BEGIN;
         this.memory[offset] = value;
         this.drawChar(offset, value);
-        this.scheduleUpdateThumbnail();
+    }
+
+    /**
+     * Get the background color as a CSS color based on the current config.
+     */
+    private getBackgroundColor(): string {
+        switch (this.config.background) {
+            case Background.BLACK:
+                return BLACK_BACKGROUND;
+
+            case Background.AUTHENTIC:
+            default:
+                return AUTHENTIC_BACKGROUND;
+        }
     }
 
     /**
      * Draw a single character to the canvas.
      */
     private drawChar(offset: number, value: number): void {
-        const screenX = (offset % 64)*8*this.scale;
-        const screenY = Math.floor(offset / 64)*24*this.scale;
+        const screenX = (offset % 64)*8*this.scale + this.padding;
+        const screenY = Math.floor(offset / 64)*24*this.scale + this.padding;
+
+        this.context.fillStyle = this.getBackgroundColor();
 
         if (this.isExpandedCharacters()) {
             if (offset % 2 === 0) {
-                this.context.clearRect(screenX, screenY, 16*this.scale, 24*this.scale);
+                this.context.fillRect(screenX, screenY, 16*this.scale, 24*this.scale);
                 this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth * 2, 24,
                     screenX, screenY, 16*this.scale, 24*this.scale);
             }
         } else {
-            this.context.clearRect(screenX, screenY, 8*this.scale, 24*this.scale);
+            this.context.fillRect(screenX, screenY, 8*this.scale, 24*this.scale);
             this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth, 24,
                 screenX, screenY, 8*this.scale, 24*this.scale);
         }
@@ -217,42 +171,29 @@ export class CanvasScreen extends Trs80Screen {
     }
 
     /**
+     * Draw the background of the canvas.
+     */
+    private drawBackground(): void {
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const radius = BORDER_RADIUS*this.scale;
+
+        this.context.fillStyle = this.getBackgroundColor();
+        this.context.beginPath();
+        this.context.moveTo(radius, 0);
+        this.context.arcTo(width, 0, width, radius, radius);
+        this.context.arcTo(width, height, width - radius, height, radius);
+        this.context.arcTo(0, height, 0, height - radius, radius);
+        this.context.arcTo(0, 0, radius, 0, radius);
+        this.context.fill();
+    }
+
+    /**
      * Refresh the display based on what we've kept track of.
      */
     private refresh(): void {
         for (let offset = 0; offset < this.memory.length; offset++) {
             this.drawChar(offset, this.memory[offset]);
-        }
-        this.scheduleUpdateThumbnail();
-    }
-
-    /**
-     * Schedule a future update of our thumbnail.
-     */
-    private scheduleUpdateThumbnail(): void {
-        this.cancelUpdateThumbnail();
-        this.updateThumbnailTimeout = window.setTimeout(() => {
-            this.updateThumbnailTimeout = undefined;
-            this.updateThumbnail();
-        }, UPDATE_THUMBNAIL_TIMEOUT_MS);
-    }
-
-    /**
-     * Cancel any previously-cancelled scheduled thumbnail update.
-     */
-    private cancelUpdateThumbnail(): void {
-        if (this.updateThumbnailTimeout !== undefined) {
-            window.clearTimeout(this.updateThumbnailTimeout);
-            this.updateThumbnailTimeout = undefined;
-        }
-    }
-
-    /**
-     * Synchronously update the thumbnail.
-     */
-    private updateThumbnail(): void {
-        if (this.thumbnailImage !== undefined) {
-            this.thumbnailImage.src = this.canvas.toDataURL();
         }
     }
 
