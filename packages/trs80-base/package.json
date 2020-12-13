@@ -25,6 +25,7 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "teamten-ts-utils": "file:../teamten-ts-utils"
+    "teamten-ts-utils": "file:../teamten-ts-utils",
+    "z80-base": "^1.0.5"
   }
 }
