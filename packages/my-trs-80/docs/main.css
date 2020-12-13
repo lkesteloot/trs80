@@ -142,7 +142,7 @@ body, input, textarea {
     transition: opacity .20s ease-in-out, visibility .20s ease-in-out;
 }
 
-.panel-shown {
+.panel-background.panel-shown {
     opacity: 1;
     visibility: visible;
 }
@@ -163,10 +163,10 @@ body, input, textarea {
     /* Start off-screen */
     position: absolute;
     left: 100vw;
-    top: 0;
+    top: 100vh;
     right: -100vw;
-    bottom: 0;
-    transition: left 0.5s ease-in-out, right 0.5s ease-in-out;
+    bottom: -100vh;
+    transition: left 0.5s ease-in-out, right 0.5s ease-in-out, top 0.2s ease-in-out, bottom 0.2s ease-in-out;
 
     /* So that backgrounds of nested divs don't mess with our rounded corners. */
     overflow: hidden;
@@ -178,6 +178,11 @@ body, input, textarea {
 
     display: grid;
     grid-template-rows: auto minmax(0, 1fr); /* h1 and panel-content */
+}
+
+.panel-background.panel-shown .panel {
+    top: 0;
+    bottom: 0;
 }
 
 .panel h1 {
