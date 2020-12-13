@@ -121,10 +121,8 @@ export function main() {
             const screenshot = trs80.getScreenshot();
             const screenshots = [...file.screenshots, screenshot];
             file = file.builder().withScreenshots(screenshots).withDateModified(new Date()).build();
-            context.db.collection("files").doc(file.id).update({
-                screenshots: file.screenshots,
-                dateModified: file.dateModified,
-            })
+            context.db.collection("files").doc(file.id)
+                .update(file.getUpdateDataComparedTo(context.runningFile))
                 .then(() => {
                     context.library.modifyFile(file);
                 })

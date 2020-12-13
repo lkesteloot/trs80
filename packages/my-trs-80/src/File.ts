@@ -2,6 +2,17 @@ import firebase from "firebase/app";
 import {isCmdProgram} from "trs80-base";
 import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentData = firebase.firestore.DocumentData;
+import UpdateData = firebase.firestore.UpdateData;
+
+/**
+ * Returns whether two string arrays are the same.
+ *
+ * Lodash has isEqual(), but it adds about 15 kB after minimization! (It's a deep comparison
+ * that has to deal with all sorts of data types.)
+ */
+function isSameStringArray(a: string[], b: string[]): boolean {
+    return a.length === b.length && a.every((value, index) => value === b[index]);
+}
 
 /**
  * Represents a file that the user owns.
@@ -62,6 +73,31 @@ export class File {
         } else {
             return "Unknown type";
         }
+    }
+
+    /**
+     * Returns a Firestore update object to convert oldFile to this.
+     */
+    public getUpdateDataComparedTo(oldFile: File): UpdateData {
+        const updateData: UpdateData = {};
+
+        if (this.name !== oldFile.name) {
+            updateData.name = this.name;
+        }
+        if (this.filename !== oldFile.filename) {
+            updateData.filename = this.filename;
+        }
+        if (this.note !== oldFile.note) {
+            updateData.note = this.note;
+        }
+        if (!isSameStringArray(this.screenshots, oldFile.screenshots)) {
+            updateData.screenshots = this.screenshots;
+        }
+        if (this.dateModified.getTime() !== oldFile.dateModified.getTime()) {
+            updateData.dateModified = this.dateModified;
+        }
+
+        return updateData;
     }
 
     /**

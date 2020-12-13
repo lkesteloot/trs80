@@ -397,7 +397,8 @@ body, input, textarea {
     grid-row: 1 / -1;
     overflow-y: auto;
 
-    text-align: center;
+    display: flex;
+    flex-flow: column nowrap;
 }
 
 .file-panel-form .filename input {
@@ -413,12 +414,36 @@ body, input, textarea {
     grid-column-end: span 2;
 }
 
-.file-panel-form .screenshots > * {
+.file-panel-form .screenshots .screenshot {
+    width: 100%;
+    position: relative;
+}
+
+.file-panel-form .screenshots .screenshot:not(:first-child) {
+    margin-top: 10px;
+}
+
+.file-panel-form .screenshots .screenshot img {
     width: 100%;
 }
 
-.file-panel-form .screenshots > *:not(:first-child) {
-    margin-top: 10px;
+.file-panel-form .screenshots .screenshot .icon-button {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease-in-out, visibility 0.25s ease-in-out;
+}
+
+.file-panel-form .screenshots .screenshot:hover .icon-button {
+    opacity: 1;
+    visibility: visible;
+}
+
+.file-panel-form .screenshots .screenshot:hover .icon-button:hover i {
+    color: var(--red);
 }
 
 .action-bar .save-button.saving i:nth-of-type(1),

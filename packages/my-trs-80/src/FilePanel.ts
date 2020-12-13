@@ -6,6 +6,9 @@ import {Context} from "./Context";
 import {PageTabs} from "./PageTabs";
 import {toHexByte, toHexWord} from "z80-base";
 import {CanvasScreen} from "trs80-emulator";
+import isEmpty from "lodash/isEmpty";
+
+const SCREENSHOT_ATTR = "data-screenshot";
 
 /**
  * Handles the file info tab in the file panel.
@@ -19,6 +22,7 @@ class FileInfoTab {
     private readonly sizeInput: HTMLInputElement;
     private readonly dateAddedInput: HTMLInputElement;
     private readonly dateModifiedInput: HTMLInputElement;
+    private readonly screenshotsDiv: HTMLElement;
     private readonly revertButton: HTMLButtonElement;
     private readonly saveButton: HTMLButtonElement;
 
@@ -67,15 +71,9 @@ class FileInfoTab {
         this.dateModifiedInput = makeInputBox("Date last modified", undefined, false);
         form.append(miscDiv);
 
-        const screenshotsDiv = document.createElement("div");
-        screenshotsDiv.classList.add("screenshots");
-        form.append(screenshotsDiv);
-        for (const screenshot of this.filePanel.file.screenshots) {
-            const screen = new CanvasScreen();
-            screen.displayScreenshot(screenshot);
-            const image = screen.asImage();
-            screenshotsDiv.append(image);
-        }
+        this.screenshotsDiv = document.createElement("div");
+        this.screenshotsDiv.classList.add("screenshots");
+        form.append(this.screenshotsDiv);
 
         const actionBar = document.createElement("div");
         actionBar.classList.add("action-bar");
@@ -125,13 +123,8 @@ class FileInfoTab {
             // Disable right away so it's not clicked again.
             this.saveButton.disabled = true;
 
-            // TODO turn save button into progress.
-            this.filePanel.context.db.collection("files").doc(this.filePanel.file.id).update({
-                name: newFile.name,
-                filename: newFile.filename,
-                note: newFile.note,
-                dateModified: newFile.dateModified,
-            })
+            this.filePanel.context.db.collection("files").doc(this.filePanel.file.id)
+                .update(newFile.getUpdateDataComparedTo(this.filePanel.file))
                 .then(() => {
                     this.saveButton.classList.remove("saving");
                     this.saveButton.classList.add("success");
@@ -168,7 +161,32 @@ class FileInfoTab {
         this.dateAddedInput.value = formatDate(file.dateAdded);
         this.dateModifiedInput.value = formatDate(file.dateModified);
 
+        this.populateScreenshots();
         this.updateButtonStatus();
+    }
+
+    /**
+     * Fill the screenshots UI with those from the file.
+     */
+    private populateScreenshots(): void {
+        clearElement(this.screenshotsDiv);
+
+        for (const screenshot of this.filePanel.file.screenshots) {
+            const screen = new CanvasScreen();
+            screen.displayScreenshot(screenshot);
+            const image = screen.asImage();
+
+            const screenshotDiv = document.createElement("div");
+            screenshotDiv.setAttribute(SCREENSHOT_ATTR, screenshot);
+            screenshotDiv.classList.add("screenshot");
+            screenshotDiv.append(image);
+            const deleteButton = makeIconButton(makeIcon("delete"), "Delete screenshot", () => {
+                screenshotDiv.remove();
+                this.updateButtonStatus();
+            });
+            screenshotDiv.append(deleteButton);
+            this.screenshotsDiv.append(screenshotDiv);
+        }
     }
 
     /**
@@ -178,10 +196,7 @@ class FileInfoTab {
         const file = this.filePanel.file;
         const newFile = this.fileFromUi();
 
-        const isSame = newFile.name === file.name &&
-            newFile.filename === file.filename &&
-            newFile.note === file.note;
-
+        const isSame = isEmpty(newFile.getUpdateDataComparedTo(file));
         const isValid = newFile.name.length > 0 &&
             newFile.filename.length > 0;
 
@@ -195,10 +210,22 @@ class FileInfoTab {
      * Make a new File object based on the user's inputs.
      */
     private fileFromUi(): File {
+        // Collect screenshots from UI.
+        const screenshots: string[] = [];
+        for (const screenshotDiv of this.screenshotsDiv.children) {
+            let screenshot = screenshotDiv.getAttribute(SCREENSHOT_ATTR);
+            if (screenshot === null) {
+                console.error("Screenshot attribute " + SCREENSHOT_ATTR + " is null");
+            } else {
+                screenshots.push(screenshot);
+            }
+        }
+
         return this.filePanel.file.builder()
             .withName(this.nameInput.value.trim())
             .withFilename(this.filenameInput.value.trim())
             .withNote(this.noteInput.value.trim())
+            .withScreenshots(screenshots)
             .build();
     }
 }

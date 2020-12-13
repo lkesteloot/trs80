@@ -37,6 +37,7 @@ module.exports = {
     },
 
     optimization: {
+        // Much faster to not minimize. About halves the size of the JS file.
         minimize: false
     },
 
