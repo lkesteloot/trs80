@@ -35,7 +35,7 @@
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.7.3",
     "teamten-ts-utils": "^1.0.0",
-    "trs80-base": "file:../trs80-base",
+    "trs80-base": "../trs80-base",
     "trs80-emulator": "../trs80-emulator",
     "z80-base": "^1.0.4",
     "z80-disasm": "^1.1.0"

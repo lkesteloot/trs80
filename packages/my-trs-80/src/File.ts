@@ -1,5 +1,4 @@
 import firebase from "firebase/app";
-import {isCmdProgram} from "trs80-base";
 import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 import UpdateData = firebase.firestore.UpdateData;
@@ -62,17 +61,6 @@ export class File {
         builder.dateModified = this.dateModified;
 
         return builder;
-    }
-
-    /**
-     * Get the type of the file as a string.
-     */
-    public getType(): string {
-        if (isCmdProgram(this.binary)) {
-            return "CMD program";
-        } else {
-            return "Unknown type";
-        }
     }
 
     /**

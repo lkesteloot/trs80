@@ -10,6 +10,7 @@ import isEmpty from "lodash/isEmpty";
 import {LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import firebase from "firebase";
 import UpdateData = firebase.firestore.UpdateData;
+import {decodeTrs80File, Trs80File} from "trs80-base";
 
 const SCREENSHOT_ATTR = "data-screenshot";
 
@@ -18,6 +19,7 @@ const SCREENSHOT_ATTR = "data-screenshot";
  */
 class FileInfoTab {
     private readonly filePanel: FilePanel;
+    private readonly trs80File: Trs80File;
     private readonly nameInput: HTMLInputElement;
     private readonly filenameInput: HTMLInputElement;
     private readonly noteInput: HTMLTextAreaElement;
@@ -29,8 +31,9 @@ class FileInfoTab {
     private readonly revertButton: HTMLButtonElement;
     private readonly saveButton: HTMLButtonElement;
 
-    constructor(filePanel: FilePanel, pageTabs: PageTabs) {
+    constructor(filePanel: FilePanel, pageTabs: PageTabs, trs80File: Trs80File) {
         this.filePanel = filePanel;
+        this.trs80File = trs80File;
 
         const infoTab = pageTabs.newTab("File Info");
         infoTab.element.classList.add("file-info-tab");
@@ -133,7 +136,7 @@ class FileInfoTab {
                     this.saveButton.classList.add("success");
                     setTimeout(() => {
                         this.saveButton.classList.remove("success");
-                    }, 1000);
+                    }, 2000);
                     this.filePanel.file = newFile;
                     this.filePanel.context.library.modifyFile(newFile);
                     this.updateUi();
@@ -183,7 +186,7 @@ class FileInfoTab {
         if (updateData === undefined || updateData.hasOwnProperty("note")) {
             this.noteInput.value = file.note;
         }
-        this.typeInput.value = file.getType();
+        this.typeInput.value = this.trs80File.getDescription();
         this.sizeInput.value = withCommas(file.binary.length) + " byte" + (file.binary.length === 1 ? "" : "s");
         this.dateAddedInput.value = formatDate(file.dateAdded);
         this.dateModifiedInput.value = formatDate(file.dateModified);
@@ -267,7 +270,7 @@ class HexdumpTab {
     private readonly hexdumpElement: HTMLElement;
     private collapse = true;
 
-    constructor(filePanel: FilePanel, pageTabs: PageTabs) {
+    constructor(filePanel: FilePanel, pageTabs: PageTabs, trs80File: Trs80File) {
         this.binary = filePanel.file.binary;
 
         const infoTab = pageTabs.newTab("Hexdump");
@@ -463,6 +466,10 @@ export class FilePanel extends Panel {
 
         this.element.classList.add("file-panel");
 
+        const trs80File = decodeTrs80File(file.binary);
+        console.log(trs80File); // TODO remove
+        console.log(trs80File.getDescription());
+
         const header = document.createElement("h1");
         const backButton = makeIconButton(makeIcon("arrow_back"), "Back", () => this.context.panelManager.popPanel());
         backButton.classList.add("back-button");
@@ -478,7 +485,7 @@ export class FilePanel extends Panel {
         this.element.append(content);
 
         const pageTabs = new PageTabs(content);
-        this.fileInfoTab = new FileInfoTab(this, pageTabs);
-        this.hexdumpTab = new HexdumpTab(this, pageTabs);
+        this.fileInfoTab = new FileInfoTab(this, pageTabs, trs80File);
+        this.hexdumpTab = new HexdumpTab(this, pageTabs, trs80File);
     }
 }

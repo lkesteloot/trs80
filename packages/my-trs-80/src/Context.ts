@@ -38,12 +38,13 @@ export class Context {
      * Run a program.
      */
     public runProgram(file: File): void {
+        /*
         const cmdProgram = new CmdProgram(file.binary);
         if (cmdProgram.error !== undefined) {
             // TODO
         } else {
             this.runningFile = file;
             this.trs80.runCmdProgram(cmdProgram);
-        }
+        }*/
     }
 }
