@@ -7,6 +7,7 @@
 import {ByteReader, EOF} from "teamten-ts-utils";
 import {toHexByte, toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation";
+import {Trs80File} from "./Trs80File";
 
 const FILE_HEADER = 0x55;
 const DATA_HEADER = 0x3C;
@@ -46,110 +47,30 @@ export class SystemChunk {
 }
 
 /**
- * Whether this is a program that can be loaded with the SYSTEM command.
- */
-export function isSystemProgram(binary: Uint8Array): boolean {
-    // TODO perhaps be more strict here, like check if next 6 bytes are ASCII,
-    // then next byte is either 3C or 78. The initial byte 55 is too similar to
-    // high-speed cassette header.
-    return binary != null &&
-        binary.length >= 1 &&
-        binary[0] === FILE_HEADER;
-}
-
-/**
  * Class representing a SYSTEM (machine language) program. If the "error" field is set, then something
  * went wrong with the program and the data may be partially loaded.
  */
-export class SystemProgram {
-    public filename = "";
-    public chunks: SystemChunk[] = [];
-    public entryPointAddress = 0;
-    public error: string | undefined;
-    public annotations: ProgramAnnotation[] = [];
+export class SystemProgram implements Trs80File {
+    public readonly binary: Uint8Array;
+    public readonly error: string | undefined;
+    public readonly filename: string;
+    public readonly chunks: SystemChunk[];
+    public readonly entryPointAddress: number;
+    public readonly annotations: ProgramAnnotation[];
 
-    constructor(binary: Uint8Array) {
-        const b = new ByteReader(binary);
+    constructor(binary: Uint8Array, error: string | undefined, filename: string, chunks: SystemChunk[],
+                entryPointAddress: number, annotations: ProgramAnnotation[]) {
 
-        this.annotations.push(new ProgramAnnotation("File\nHead", b.addr(), b.addr()));
-        const headerByte = b.read();
-        if (headerByte === EOF) {
-            this.error = "File is empty";
-            return;
-        }
-        if (headerByte !== FILE_HEADER) {
-            this.error = "Not a SYSTEM file";
-            return;
-        }
+        this.binary = binary;
+        this.error = error;
+        this.filename = filename;
+        this.chunks = chunks;
+        this.entryPointAddress = entryPointAddress;
+        this.annotations = annotations;
+    }
 
-        this.filename = b.readString(FILENAME_LENGTH);
-        if (this.filename.length < FILENAME_LENGTH) {
-            // Binary is truncated.
-            this.error = "File is truncated at filename";
-            return;
-        }
-        this.filename = this.filename.trim();
-        this.annotations.push(new ProgramAnnotation("Filename\n\"" + this.filename + "\"",
-            b.addr() - FILENAME_LENGTH, b.addr() - 1));
-
-        while (true) {
-            this.annotations.push(new ProgramAnnotation("Data\nHead", b.addr(), b.addr()));
-            const marker = b.read();
-            if (marker === EOF) {
-                this.error = "File is truncated at start of block";
-                return;
-            }
-            if (marker === END_OF_FILE_MARKER) {
-                break;
-            }
-            if (marker !== DATA_HEADER) {
-                this.error = "Unexpected byte " + toHexByte(marker) + " at start of block";
-                return;
-            }
-
-            let length = b.read();
-            if (length === EOF) {
-                this.error = "File is truncated at block length";
-                return;
-            }
-            // 0 means 256.
-            if (length === 0) {
-                length = 256;
-            }
-            this.annotations.push(new ProgramAnnotation("Len\n" + length, b.addr() - 1, b.addr() - 1));
-
-            const loadAddress = b.readShort(false);
-            if (loadAddress === EOF) {
-                this.error = "File is truncated at load address";
-                return;
-            }
-            this.annotations.push(new ProgramAnnotation("Addr\n" + toHexWord(loadAddress),
-                b.addr() - 2, b.addr() - 1));
-
-            const data = b.readBytes(length);
-            if (data.length < length) {
-                this.error = "File is truncated at data";
-                return;
-            }
-
-            const checksum = b.read();
-            if (loadAddress === EOF) {
-                this.error = "File is truncated at checksum";
-                return;
-            }
-            this.annotations.push(new ProgramAnnotation("XSum\n0x" + toHexByte(checksum), b.addr() - 1, b.addr() - 1));
-
-            this.chunks.push(new SystemChunk(loadAddress, data, checksum));
-        }
-
-        this.entryPointAddress = b.readShort(false);
-        if (this.entryPointAddress === EOF) {
-            this.error = "File is truncated at entry point address";
-            this.entryPointAddress = 0;
-            return;
-        }
-        this.annotations.push(new ProgramAnnotation("Run\n" + toHexWord(this.entryPointAddress),
-            b.addr() - 2, b.addr() - 1));
+    public getDescription(): string {
+        return "System program (" + this.filename + ")";
     }
 
     /**
@@ -171,4 +92,96 @@ export class SystemProgram {
 
         return undefined;
     }
+}
+
+/**
+ * Decodes a system program from the binary. If the binary is not at all a system
+ * program, returns undefined. If it's a system program with decoding errors, returns
+ * partially-decoded binary and sets the "error" field.
+ */
+export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefined {
+    const chunks: SystemChunk[] = [];
+    const annotations: ProgramAnnotation[] = [];
+
+    const b = new ByteReader(binary);
+
+    annotations.push(new ProgramAnnotation("File\nHead", b.addr(), b.addr()));
+    const headerByte = b.read();
+    if (headerByte === EOF) {
+        return undefined;
+    }
+    if (headerByte !== FILE_HEADER) {
+        return undefined;
+    }
+
+    let filename = b.readString(FILENAME_LENGTH);
+
+    // Make a SystemProgram object with what we have so far.
+    const makeSystemProgram = (error?: string) => {
+        const programBinary = binary.subarray(0, b.addr());
+        return new SystemProgram(programBinary, error, filename, chunks, entryPointAddress, annotations);
+    };
+
+    if (filename.length < FILENAME_LENGTH) {
+        // Binary is truncated.
+        return makeSystemProgram("File is truncated at filename");
+    }
+    filename = filename.trim();
+    annotations.push(new ProgramAnnotation("Filename\n\"" + filename + "\"",
+        b.addr() - FILENAME_LENGTH, b.addr() - 1));
+
+    while (true) {
+        annotations.push(new ProgramAnnotation("Data\nHead", b.addr(), b.addr()));
+        const marker = b.read();
+        if (marker === EOF) {
+            return makeSystemProgram("File is truncated at start of block");
+        }
+        if (marker === END_OF_FILE_MARKER) {
+            break;
+        }
+        if (marker !== DATA_HEADER) {
+            // Here if the marker is 0x55, we could guess that it's a high-speed cassette header.
+            return makeSystemProgram("Unexpected byte " + toHexByte(marker) + " at start of block");
+        }
+
+        let length = b.read();
+        if (length === EOF) {
+            return makeSystemProgram("File is truncated at block length");
+        }
+        // 0 means 256.
+        if (length === 0) {
+            length = 256;
+        }
+        annotations.push(new ProgramAnnotation("Len\n" + length, b.addr() - 1, b.addr() - 1));
+
+        const loadAddress = b.readShort(false);
+        if (loadAddress === EOF) {
+            return makeSystemProgram("File is truncated at load address");
+        }
+        annotations.push(new ProgramAnnotation("Addr\n" + toHexWord(loadAddress),
+            b.addr() - 2, b.addr() - 1));
+
+        const data = b.readBytes(length);
+        if (data.length < length) {
+            return makeSystemProgram("File is truncated at data");
+        }
+
+        const checksum = b.read();
+        if (loadAddress === EOF) {
+            return makeSystemProgram("File is truncated at checksum");
+        }
+        annotations.push(new ProgramAnnotation("XSum\n0x" + toHexByte(checksum), b.addr() - 1, b.addr() - 1));
+
+        chunks.push(new SystemChunk(loadAddress, data, checksum));
+    }
+
+    let entryPointAddress = b.readShort(false);
+    if (entryPointAddress === EOF) {
+        entryPointAddress = 0;
+        return makeSystemProgram("File is truncated at entry point address");
+    }
+    annotations.push(new ProgramAnnotation("Run\n" + toHexWord(entryPointAddress),
+        b.addr() - 2, b.addr() - 1));
+
+    return makeSystemProgram();
 }
