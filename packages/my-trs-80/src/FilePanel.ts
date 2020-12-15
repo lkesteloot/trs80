@@ -86,7 +86,9 @@ class FileInfoTab {
         infoTab.element.append(actionBar);
 
         const runButton = makeButton("Run", "play_arrow", "play-button", () => {
-            this.filePanel.runProgram(this.filePanel.file);
+            this.filePanel.context.runProgram(this.filePanel.file, this.trs80File);
+            this.filePanel.context.panelManager.close();
+
         });
         actionBar.append(runButton);
         const deleteButton = makeButton("Delete File", "delete", "delete-button", () => {

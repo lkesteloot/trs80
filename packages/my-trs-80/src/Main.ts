@@ -1,6 +1,6 @@
 import Navigo from "navigo";
 import {createHome} from "./Home";
-import {CanvasScreen, Cassette, ControlPanel, PanelType, ProgressBar, SettingsPanel, Trs80} from "trs80-emulator";
+import {CanvasScreen, CassettePlayer, ControlPanel, PanelType, ProgressBar, SettingsPanel, Trs80} from "trs80-emulator";
 import firebase from 'firebase/app';
 // These imports load individual services into the firebase namespace.
 import 'firebase/auth';
@@ -21,7 +21,7 @@ function configureRoutes() {
     router.resolve();
 }
 
-class EmptyCassette extends Cassette {
+class EmptyCassette extends CassettePlayer {
     // Nothing to do.
 }
 

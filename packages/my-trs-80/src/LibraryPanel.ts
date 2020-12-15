@@ -169,7 +169,8 @@ export class LibraryPanel extends Panel {
         }
 
         const playButton = makeIconButton(makeIcon("play_arrow"), "Run program", () => {
-            this.runProgram(file);
+            this.context.runProgram(file);
+            this.context.panelManager.close();
         });
         playButton.classList.add("play-button");
         fileDiv.append(playButton);

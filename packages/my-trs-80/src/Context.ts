@@ -3,7 +3,7 @@ import firebase from "firebase/app";
 import {PanelManager} from "./PanelManager";
 import {Library, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {File} from "./File";
-import {CmdProgram} from "trs80-base";
+import {decodeTrs80File, Trs80File} from "trs80-base";
 
 /**
  * Context of the whole app, with its global variables.
@@ -37,14 +37,16 @@ export class Context {
     /**
      * Run a program.
      */
-    public runProgram(file: File): void {
-        /*
-        const cmdProgram = new CmdProgram(file.binary);
-        if (cmdProgram.error !== undefined) {
+    public runProgram(file: File, trs80File?: Trs80File): void {
+        if (trs80File === undefined) {
+            trs80File = decodeTrs80File(file.binary);
+        }
+
+        if (trs80File.error !== undefined) {
             // TODO
         } else {
             this.runningFile = file;
-            this.trs80.runCmdProgram(cmdProgram);
-        }*/
+            this.trs80.runTrs80File(trs80File);
+        }
     }
 }
