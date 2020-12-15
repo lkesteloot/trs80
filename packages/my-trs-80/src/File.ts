@@ -2,16 +2,7 @@ import firebase from "firebase/app";
 import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 import UpdateData = firebase.firestore.UpdateData;
-
-/**
- * Returns whether two string arrays are the same.
- *
- * Lodash has isEqual(), but it adds about 15 kB after minimization! (It's a deep comparison
- * that has to deal with all sorts of data types.)
- */
-function isSameStringArray(a: string[], b: string[]): boolean {
-    return a.length === b.length && a.every((value, index) => value === b[index]);
-}
+import {isSameStringArray} from "./Utils";
 
 /**
  * Represents a file that the user owns.

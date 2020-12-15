@@ -73,3 +73,13 @@ export function makeButton(label: string, iconName: string | string[] | undefine
 
     return button;
 }
+
+/**
+ * Returns whether two string arrays are the same.
+ *
+ * Lodash has isEqual(), but it adds about 15 kB after minimization! (It's a deep comparison
+ * that has to deal with all sorts of data types.)
+ */
+export function isSameStringArray(a: string[], b: string[]): boolean {
+    return a.length === b.length && a.every((value, index) => value === b[index]);
+}

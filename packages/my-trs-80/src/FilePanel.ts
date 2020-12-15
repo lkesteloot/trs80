@@ -11,6 +11,7 @@ import {LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import firebase from "firebase";
 import UpdateData = firebase.firestore.UpdateData;
 import {decodeTrs80File, Trs80File} from "trs80-base";
+import {HexdumpGenerator} from "./HexdumpGenerator";
 
 const SCREENSHOT_ATTR = "data-screenshot";
 
@@ -269,11 +270,14 @@ class FileInfoTab {
  */
 class HexdumpTab {
     private readonly binary: Uint8Array;
+    private readonly trs80File: Trs80File;
     private readonly hexdumpElement: HTMLElement;
-    private collapse = true;
+    private collapse = false; // TODO re-enable.
+    private annotate = true;
 
     constructor(filePanel: FilePanel, pageTabs: PageTabs, trs80File: Trs80File) {
         this.binary = filePanel.file.binary;
+        this.trs80File = trs80File;
 
         const infoTab = pageTabs.newTab("Hexdump");
         infoTab.element.classList.add("hexdump-tab");
@@ -302,153 +306,30 @@ class HexdumpTab {
             this.generateHexdump();
         });
         actionBar.append(collapseLabel);
+
+        const annotateLabel = document.createElement("label");
+        const annotateCheckbox = document.createElement("input");
+        annotateCheckbox.type = "checkbox";
+        annotateCheckbox.checked = this.annotate;
+        annotateLabel.append(annotateCheckbox);
+        annotateLabel.append(" Show annotations");
+        annotateCheckbox.addEventListener("change", () => {
+            this.annotate = annotateCheckbox.checked;
+            this.generateHexdump();
+        });
+        actionBar.append(annotateLabel);
     }
 
     /**
      * Regenerate the HTML for the hexdump.
      */
     private generateHexdump(): void {
-        const lines: HTMLElement[] = [];
-
-        const STRIDE = 16;
-
-        const newLine = (): HTMLElement => {
-            const line = document.createElement("div");
-            lines.push(line);
-            return line;
-        };
-
-        const newSpan = (line: HTMLElement, cssClass: string, text: string): HTMLElement => {
-            const e = document.createElement("span");
-            e.classList.add(cssClass);
-            e.innerText = text;
-            line.append(e);
-            return e;
-        };
-
-        const binary = this.binary;
-        let lastAddr: number | undefined = undefined;
-        for (let addr = 0; addr < binary.length; addr += STRIDE) {
-            if (this.collapse && lastAddr !== undefined &&
-                binary.length - addr >= STRIDE && HexdumpTab.segmentsEqual(binary, lastAddr, addr, STRIDE)) {
-
-                if (addr === lastAddr + STRIDE) {
-                    const line = newLine();
-
-                    if (HexdumpTab.allSameByte(binary, addr, STRIDE)) {
-                        // Lots of the same byte repeated. Say many there are.
-                        const count = HexdumpTab.countConsecutive(binary, addr);
-                        newSpan(line, "address", "      ... ");
-                        newSpan(line, "ascii", count.toString());
-                        newSpan(line, "address", " (");
-                        newSpan(line, "ascii", "0x" + count.toString(16).toUpperCase());
-                        newSpan(line, "address", ") consecutive bytes of ");
-                        newSpan(line, "hex", "0x" + toHexByte(binary[addr]));
-                        newSpan(line, "address", " ...");
-                    } else {
-                        // A repeating pattern, but not all the same byte. Say how many times repeated.
-                        let count = 1;
-                        for (let otherAddr = addr + STRIDE; otherAddr <= binary.length - STRIDE; otherAddr += STRIDE) {
-                            if (HexdumpTab.segmentsEqual(binary, lastAddr, otherAddr, STRIDE)) {
-                                count += 1;
-                            } else {
-                                break;
-                            }
-                        }
-                        newSpan(line, "address", "      ... ");
-                        newSpan(line, "ascii", count.toString());
-                        const plural = count === 1 ? "" : "s";
-                        newSpan(line, "address", ` repetition${plural} of previous row ...`);
-                    }
-                }
-            } else {
-                lastAddr = addr;
-                const line = newLine();
-                newSpan(line, "address", toHexWord(addr) + "  ");
-
-                // Hex.
-                let subAddr: number;
-                let s = "";
-                for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
-                    s += toHexByte(binary[subAddr]) + " ";
-                }
-                for (; subAddr < addr + STRIDE; subAddr++) {
-                    s += "   ";
-                }
-                s += "  ";
-                newSpan(line, "hex", s);
-
-                // ASCII.
-                let e: HTMLElement | undefined = undefined;
-                let currentCssClass = undefined;
-                for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
-                    const c = binary[subAddr];
-                    let cssClass;
-                    let char;
-                    if (c >= 32 && c < 127) {
-                        cssClass = "ascii";
-                        char = String.fromCharCode(c);
-                    } else {
-                        cssClass = "ascii-unprintable";
-                        char = ".";
-                    }
-                    if (e === undefined || cssClass !== currentCssClass) {
-                        e = newSpan(line, cssClass, "");
-                        currentCssClass = cssClass;
-                    }
-                    e.innerText += char;
-                }
-            }
-        }
-
-        newSpan(newLine(), "address", toHexWord(binary.length));
+        const hexdumpGenerator = new HexdumpGenerator(this.binary, this.collapse,
+            this.annotate ? this.trs80File.annotations : []);
+        const lines = hexdumpGenerator.generate();
 
         clearElement(this.hexdumpElement);
         this.hexdumpElement.append(... lines);
-    }
-
-    /**
-     * Compare two parts of an array for equality.
-     */
-    private static segmentsEqual(binary: Uint8Array, start1: number, start2: number, length: number): boolean {
-        while (length-- > 0) {
-            if (binary[start1++] !== binary[start2++]) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Count consecutive bytes that are around "addr".
-     */
-    private static countConsecutive(binary: Uint8Array, addr: number) {
-        const value = binary[addr];
-
-        let startAddr = addr;
-        while (startAddr > 0 && binary[startAddr - 1] === value) {
-            startAddr--;
-        }
-
-        while (addr < binary.length - 1 && binary[addr + 1] === value) {
-            addr++;
-        }
-
-        return addr - startAddr + 1;
-    }
-
-    /**
-     * Whether this segment is made up of the same value.
-     */
-    private static allSameByte(binary: Uint8Array, addr: number, length: number): boolean {
-        for (let i = 1; i < length; i++) {
-            if (binary[addr + i] !== binary[addr]) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }
 

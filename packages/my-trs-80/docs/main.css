@@ -500,6 +500,7 @@ body, input, textarea {
 
 .hexdump-tab .action-bar {
     justify-content: flex-start;
+    gap: 20px;
 }
 
 .hexdump-outer {
@@ -530,4 +531,12 @@ body, input, textarea {
 
 .hexdump .ascii-unprintable {
     color: var(--foreground-secondary);
+}
+
+.hexdump .outside-annotation {
+    opacity: 0.2;
+}
+
+.hexdump .annotation {
+    color: var(--violet);
 }
