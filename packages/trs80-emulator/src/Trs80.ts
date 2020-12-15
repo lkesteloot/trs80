@@ -1,6 +1,6 @@
 import {lo, hi, toHex} from "z80-base";
 import {Hal, Z80} from "z80-emulator";
-import {Cassette} from "./Cassette";
+import {CassettePlayer} from "./CassettePlayer";
 import {Keyboard} from "./Keyboard";
 import {model1Level1Rom} from "./Model1Level1Rom";
 import {model1Level2Rom} from "./Model1Level2Rom";
@@ -8,7 +8,8 @@ import {model3Rom} from "./Model3Rom";
 import {Trs80Screen} from "./Trs80Screen";
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {BasicLevel, CGChip, Config, ModelType} from "./Config";
-import {CmdLoadBlockChunk, CmdProgram, CmdTransferAddressChunk} from "trs80-base";
+import {Trs80File, CmdLoadBlockChunk, CmdProgram, CmdTransferAddressChunk, Cassette, SystemProgram} from "trs80-base";
+import {toHexWord} from "z80-base/dist/main";
 
 // IRQs
 const M1_TIMER_IRQ_MASK = 0x80;
@@ -95,7 +96,7 @@ export class Trs80 implements Hal {
     public clockHz = M3_CLOCK_HZ;
     public tStateCount = 0;
     private readonly screen: Trs80Screen;
-    private cassette: Cassette;
+    private cassette: CassettePlayer;
     private memory = new Uint8Array(0);
     private keyboard = new Keyboard();
     private modeImage = 0x80;
@@ -136,7 +137,7 @@ export class Trs80 implements Hal {
     private scheduledEventCounter = 1;
     private scheduledEvents: ScheduledEvent[] = [];
 
-    constructor(screen: Trs80Screen, cassette: Cassette) {
+    constructor(screen: Trs80Screen, cassette: CassettePlayer) {
         this.screen = screen;
         this.cassette = cassette;
         this.config = Config.makeDefault();
@@ -220,6 +221,9 @@ export class Trs80 implements Hal {
         }
     }
 
+    /**
+     * Reset the state of the Z80 and hardware.
+     */
     public reset(): void {
         this.setIrqMask(0);
         this.setNmiMask(0);
@@ -229,6 +233,9 @@ export class Trs80 implements Hal {
         this.z80.reset();
     }
 
+    /**
+     * Jump the Z80 emulator to the specified address.
+     */
     public jumpTo(address: number): void {
         this.z80.regs.pc = address;
     }
@@ -260,12 +267,16 @@ export class Trs80 implements Hal {
         }
     }
 
-    // Set the mask for IRQ (regular) interrupts.
+    /**
+     * Set the mask for IRQ (regular) interrupts.
+     */
     public setIrqMask(irqMask: number): void {
         this.irqMask = irqMask;
     }
 
-    // Set the mask for non-maskable interrupts. (Yes.)
+    /**
+     * Set the mask for non-maskable interrupts. (Yes.)
+     */
     public setNmiMask(nmiMask: number): void {
         // Reset is always allowed:
         this.nmiMask = nmiMask | RESET_NMI_MASK;
@@ -283,6 +294,9 @@ export class Trs80 implements Hal {
         }
     }
 
+    /**
+     * Take one Z80 step and update the state of the hardware.
+     */
     public step(): void {
         this.z80.step();
 
@@ -490,12 +504,25 @@ export class Trs80 implements Hal {
         }
     }
 
-    // Reset cassette edge interrupts.
+    /**
+     * Write a block of data to memory.
+     */
+    public writeMemoryBlock(address: number, values: Uint8Array): void {
+        for (const value of values) {
+            this.writeMemory(address++, value);
+        }
+    }
+
+    /**
+     * Reset cassette edge interrupts.
+     */
     public cassetteClearInterrupt(): void {
         this.irqLatch &= ~CASSETTE_IRQ_MASKS;
     }
 
-    // Check whether the software has enabled these interrupts.
+    /**
+     * Check whether the software has enabled these interrupts.
+     */
     public cassetteInterruptsEnabled(): boolean {
         return (this.irqMask & CASSETTE_IRQ_MASKS) !== 0;
     }
@@ -885,17 +912,37 @@ export class Trs80 implements Hal {
     }
 
     /**
+     * Run a TRS-80 program. The exact behavior depends on the type of program.
+     */
+    public runTrs80File(trs80File: Trs80File): void {
+        if (trs80File instanceof CmdProgram) {
+            this.runCmdProgram(trs80File);
+        } else if (trs80File instanceof Cassette) {
+            if (trs80File.files.length === 1) {
+                this.runTrs80File(trs80File.files[0].file);
+            } else {
+                // TODO.
+            }
+        } else if (trs80File instanceof SystemProgram) {
+            this.runSystemProgram(trs80File);
+        } else {
+            // TODO.
+        }
+    }
+
+    /**
      * Load a CMD program into memory and run it.
      */
     public runCmdProgram(cmdProgram: CmdProgram): void {
         this.cls();
 
+        console.log("runCmdProgram: " + cmdProgram.filename);
         for (const chunk of cmdProgram.chunks) {
             if (chunk instanceof CmdLoadBlockChunk) {
-                for (let i = 0; i < chunk.loadData.length; i++) {
-                    this.writeMemory(chunk.address + i, chunk.loadData[i]);
-                }
+                console.log("Writing " + chunk.loadData.length + " at " + toHexWord(chunk.address));
+                this.writeMemoryBlock(chunk.address, chunk.loadData);
             } else if (chunk instanceof CmdTransferAddressChunk) {
+                console.log("Jumping to " + toHexWord(chunk.address));
                 this.jumpTo(chunk.address);
 
                 // Don't load any more after this. I assume on a real machine the jump
@@ -903,5 +950,21 @@ export class Trs80 implements Hal {
                 break;
             }
         }
+    }
+
+    /**
+     * Load a system program into memory and run it.
+     */
+    public runSystemProgram(systemProgram: SystemProgram): void {
+        this.cls();
+
+        console.log("runSystemProgram: " + systemProgram.filename);
+        for (const chunk of systemProgram.chunks) {
+            console.log("Writing " + chunk.data.length + " at " + toHexWord(chunk.loadAddress));
+            this.writeMemoryBlock(chunk.loadAddress, chunk.data);
+        }
+
+        console.log("Jumping to " + toHexWord(systemProgram.entryPointAddress));
+        this.jumpTo(systemProgram.entryPointAddress);
     }
 }

@@ -1,4 +1,4 @@
-export {Cassette} from "./Cassette";
+export {CassettePlayer} from "./CassettePlayer";
 export {Trs80} from "./Trs80";
 export {CanvasScreen} from "./CanvasScreen";
 export {ControlPanel} from "./ControlPanel";

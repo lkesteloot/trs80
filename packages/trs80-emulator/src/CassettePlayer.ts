@@ -2,7 +2,7 @@
  * Interface for fetching cassette audio data. We make this a concrete
  * class because rollup.js can't handle exported interfaces.
  */
-export class Cassette {
+export class CassettePlayer {
     /**
      * The number of samples per second that this audio represents.
      */
