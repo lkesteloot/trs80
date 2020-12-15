@@ -1,6 +1,7 @@
 import {RawBinaryFile} from "./RawBinaryFile";
 import {decodeSystemProgram} from "./SystemProgram";
 import {Trs80File} from "./Trs80File";
+import {ProgramAnnotation} from "./ProgramAnnotation";
 
 // Low-speed header and sync constants.
 const LOW_SPEED_HEADER_BYTE = 0x00;
@@ -70,14 +71,11 @@ export class CassetteFile {
 /**
  * Represents a cassette (CAS file).
  */
-export class Cassette implements Trs80File {
-    public readonly binary: Uint8Array;
-    public readonly error: string | undefined;
+export class Cassette extends Trs80File {
     public readonly files: CassetteFile[];
 
     constructor(binary: Uint8Array, error: string | undefined, files: CassetteFile[]) {
-        this.binary = binary;
-        this.error = error;
+        super(binary, error, []);
         this.files = files;
     }
 
@@ -137,6 +135,7 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
         let recentBits = 0xFFFFFFFF;
         let programBinary: Uint8Array | undefined;
         let speed: CassetteSpeed | undefined;
+        let programStartIndex = 0;
 
         for (let i = start; i < binary.length; i++) {
             const byte = binary[i];
@@ -150,7 +149,8 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
                 }
 
                 speed = CassetteSpeed.LOW_SPEED;
-                programBinary = binary.subarray(i + 1);
+                programStartIndex = i + 1;
+                programBinary = binary.subarray(programStartIndex);
                 break;
             }
 
@@ -163,7 +163,8 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
                 }
 
                 speed = CassetteSpeed.HIGH_SPEED;
-                programBinary = stripStartBits(binary.subarray(i + 1));
+                programStartIndex = i + 1;
+                programBinary = stripStartBits(binary.subarray(programStartIndex));
                 break;
             }
 

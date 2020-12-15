@@ -50,9 +50,7 @@ export class SystemChunk {
  * Class representing a SYSTEM (machine language) program. If the "error" field is set, then something
  * went wrong with the program and the data may be partially loaded.
  */
-export class SystemProgram implements Trs80File {
-    public readonly binary: Uint8Array;
-    public readonly error: string | undefined;
+export class SystemProgram extends Trs80File {
     public readonly filename: string;
     public readonly chunks: SystemChunk[];
     public readonly entryPointAddress: number;
@@ -61,8 +59,7 @@ export class SystemProgram implements Trs80File {
     constructor(binary: Uint8Array, error: string | undefined, filename: string, chunks: SystemChunk[],
                 entryPointAddress: number, annotations: ProgramAnnotation[]) {
 
-        this.binary = binary;
-        this.error = error;
+        super(binary, error, annotations);
         this.filename = filename;
         this.chunks = chunks;
         this.entryPointAddress = entryPointAddress;
@@ -128,7 +125,7 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
     }
     filename = filename.trim();
     annotations.push(new ProgramAnnotation("Filename\n\"" + filename + "\"",
-        b.addr() - FILENAME_LENGTH, b.addr() - 1));
+        b.addr() - FILENAME_LENGTH, b.addr() - 1)); // TODO all these annotations need to have their "end" incremented.
 
     while (true) {
         annotations.push(new ProgramAnnotation("Data\nHead", b.addr(), b.addr()));
