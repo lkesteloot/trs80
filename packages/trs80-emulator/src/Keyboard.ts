@@ -258,21 +258,28 @@ export class Keyboard {
             if (event.clipboardData) {
                 const pastedText = event.clipboardData.getData("text/plain");
                 if (pastedText) {
-                    for (let ch of pastedText) {
-                        if (ch === "\n" || ch === "\r") {
-                            ch = "Enter";
-                        }
-                        this.keyEvent(ch, true);
-                        this.keyEvent(ch, false);
-                    }
+                    this.simulateKeyboardText(pastedText);
                 }
             }
             event.preventDefault();
         });
     }
 
+    /**
+     * Simulate this text being entered by the user.
+     */
+    public simulateKeyboardText(text: string): void {
+        for (let ch of text) {
+            if (ch === "\n" || ch === "\r") {
+                ch = "Enter";
+            }
+            this.keyEvent(ch, true);
+            this.keyEvent(ch, false);
+        }
+    }
+
     // Dequeue the next key and set its bit. Return whether a key was processed.
-    private  processKeyQueue(): boolean {
+    private processKeyQueue(): boolean {
         const keyActivity = this.keyQueue.shift();
         if (keyActivity === undefined) {
             return false;

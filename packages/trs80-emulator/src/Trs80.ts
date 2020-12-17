@@ -82,7 +82,7 @@ class ScheduledEvent {
 
     constructor(handle: number, tStateCount: number, callback: () => void) {
         this.handle = handle;
-        this.tStateCount = tStateCount;
+        this.tStateCount = Math.round(tStateCount);
         this.callback = callback;
     }
 }
@@ -934,37 +934,37 @@ export class Trs80 implements Hal {
      * Load a CMD program into memory and run it.
      */
     public runCmdProgram(cmdProgram: CmdProgram): void {
-        this.cls();
+        this.reset();
+        this.setScheduledEvent(this.clockHz*0.1, () => {
+            this.cls();
 
-        console.log("runCmdProgram: " + cmdProgram.filename);
-        for (const chunk of cmdProgram.chunks) {
-            if (chunk instanceof CmdLoadBlockChunk) {
-                console.log("Writing " + chunk.loadData.length + " at " + toHexWord(chunk.address));
-                this.writeMemoryBlock(chunk.address, chunk.loadData);
-            } else if (chunk instanceof CmdTransferAddressChunk) {
-                console.log("Jumping to " + toHexWord(chunk.address));
-                this.jumpTo(chunk.address);
+            for (const chunk of cmdProgram.chunks) {
+                if (chunk instanceof CmdLoadBlockChunk) {
+                    this.writeMemoryBlock(chunk.address, chunk.loadData);
+                } else if (chunk instanceof CmdTransferAddressChunk) {
+                    this.jumpTo(chunk.address);
 
-                // Don't load any more after this. I assume on a real machine the jump
-                // happens immediately and CMD parsing ends.
-                break;
+                    // Don't load any more after this. I assume on a real machine the jump
+                    // happens immediately and CMD parsing ends.
+                    break;
+                }
             }
-        }
+        });
     }
 
     /**
      * Load a system program into memory and run it.
      */
     public runSystemProgram(systemProgram: SystemProgram): void {
-        this.cls();
+        this.reset();
+        this.setScheduledEvent(this.clockHz*0.1, () => {
+            this.cls();
 
-        console.log("runSystemProgram: " + systemProgram.filename);
-        for (const chunk of systemProgram.chunks) {
-            console.log("Writing " + chunk.data.length + " at " + toHexWord(chunk.loadAddress));
-            this.writeMemoryBlock(chunk.loadAddress, chunk.data);
-        }
+            for (const chunk of systemProgram.chunks) {
+                this.writeMemoryBlock(chunk.loadAddress, chunk.data);
+            }
 
-        console.log("Jumping to " + toHexWord(systemProgram.entryPointAddress));
-        this.jumpTo(systemProgram.entryPointAddress);
+            this.jumpTo(systemProgram.entryPointAddress);
+        });
     }
 }
