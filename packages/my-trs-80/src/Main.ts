@@ -6,7 +6,8 @@ import firebase from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/firestore';
 import 'firebase/analytics';
-import {makeIcon, makeIconButton} from "./Utils";
+import * as firebaseui from "firebaseui";
+import {makeButton, makeIcon, makeIconButton} from "./Utils";
 import {PanelManager} from "./PanelManager";
 import {LibraryPanel} from "./LibraryPanel";
 import {Context} from "./Context";
@@ -25,7 +26,9 @@ class EmptyCassette extends CassettePlayer {
     // Nothing to do.
 }
 
-function createNavbar(openLibrary: () => void): HTMLElement {
+function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () => void): HTMLElement {
+    const body = document.querySelector("body") as HTMLElement;
+
     const navbar = document.createElement("div");
     navbar.classList.add("navbar");
 
@@ -37,18 +40,25 @@ function createNavbar(openLibrary: () => void): HTMLElement {
     navbar.append(libraryButton);
 
     const themeButton = makeIconButton(makeIcon("brightness_medium"), "Toggle theme", () => {
-        const body = document.querySelector("body") as HTMLElement;
-
         body.classList.toggle("light-mode");
         body.classList.toggle("dark-mode");
     });
     navbar.append(themeButton);
 
+    const signInButton = makeButton("Sign In", undefined, "sign-in-button", signIn);
+    const signOutButton = makeButton("Sign Out", undefined, "sign-out-button", signOut);
+    navbar.append(signInButton, signOutButton);
+
     return navbar;
 }
 
+function showSignInScreen() {
+
+}
+
 export function main() {
-    const app = firebase.initializeApp({
+    // Configuration for Firebase.
+    firebase.initializeApp({
         apiKey: "AIzaSyAfGZY9BaDUmy4qNtg11JHd_kLd1JmgdBI",
         authDomain: "my-trs-80.firebaseapp.com",
         projectId: "my-trs-80",
@@ -58,12 +68,65 @@ export function main() {
     });
     firebase.analytics();
 
+    // Configuration for Firebase sign-in screen.
+    const uiConfig = {
+        signInSuccessUrl: '/',
+        signInOptions: [
+            // Leave the lines as is for the providers you want to offer your users.
+            firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+            firebase.auth.FacebookAuthProvider.PROVIDER_ID,
+            firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+            firebase.auth.GithubAuthProvider.PROVIDER_ID,
+            // firebase.auth.EmailAuthProvider.PROVIDER_ID,
+            // firebase.auth.PhoneAuthProvider.PROVIDER_ID,
+            // firebaseui.auth.AnonymousAuthProvider.PROVIDER_ID
+        ],
+        // Pop up a browser window for the actual sign-in page:
+        signInFlow: "popup",
+        callbacks: {
+            signInSuccessWithAuthResult: (authResult: any): boolean => {
+                // Don't use stuff here, the user will get passed to onAuthStateChanged().
+                // I don't see much else useful in authResult.
+                // console.log(authResult);
+
+                // Don't redirect, we've taken care of it.
+                return false;
+            },
+        },
+    };
+
+    let firebaseAuth = firebase.auth();
+    const firebaseAuthUi = new firebaseui.auth.AuthUI(firebaseAuth);
+
+    const signInDiv = document.createElement("div");
+    signInDiv.classList.add("hidden");
+
+    firebaseAuth.onAuthStateChanged(user => {
+        const body = document.querySelector("body") as HTMLElement;
+
+        if (user !== null) {
+            // Show user signed in screen. Reset if user just signed in. (Single page app)
+            console.log(user);
+            signInDiv.classList.add("hidden")
+        } else {
+            // No user signed in, render sign-in UI.
+            firebaseAuthUi.reset();
+            firebaseAuthUi.start(signInDiv, uiConfig);
+        }
+
+        body.classList.toggle("signed-in", user !== null);
+        body.classList.toggle("signed-out", user === null);
+    });
+
     const db = firebase.firestore();
 
     const panelManager = new PanelManager();
     const library = new Library();
 
-    const navbar = createNavbar(() => panelManager.open());
+    const navbar = createNavbar(
+        () => panelManager.open(),
+        () => signInDiv.classList.remove("hidden"),
+        () => firebase.auth().signOut());
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
 
@@ -91,6 +154,7 @@ export function main() {
 
     const body = document.querySelector("body") as HTMLElement;
     body.append(navbar);
+    body.append(signInDiv);
     body.append(screenDiv);
 
     let wasTrs80Started = false;

@@ -119,9 +119,17 @@ body, input, textarea {
     color: var(--accent-color);
 
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr auto auto auto auto;
     gap: 15px;
     align-items: center;
+}
+
+body.signed-in .navbar .sign-in-button {
+    display: none;
+}
+
+body.signed-out .navbar .sign-out-button {
+    display: none;
 }
 
 /* ----------------------------------------------------------------------------------------------------- */

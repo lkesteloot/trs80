@@ -27,6 +27,7 @@
     "chalk": "^4.1.0",
     "commander": "^4.1.0",
     "firebase": "^8.1.2",
+    "firebaseui": "^4.7.1",
     "jss": "^10.0.3",
     "jss-preset-default": "^10.0.3",
     "lodash": "^4.17.20",
