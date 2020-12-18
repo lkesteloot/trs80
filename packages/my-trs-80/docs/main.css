@@ -134,7 +134,8 @@ body.signed-out .navbar .sign-out-button {
 
 /* ----------------------------------------------------------------------------------------------------- */
 
-.panel-background {
+.panel-background,
+.dialog-box-background {
     position: absolute;
     left: 0;
     top: 0;
@@ -150,7 +151,12 @@ body.signed-out .navbar .sign-out-button {
     transition: opacity .20s ease-in-out, visibility .20s ease-in-out;
 }
 
-.panel-background.panel-shown {
+.dialog-box-background {
+    z-index: 20;
+}
+
+.panel-background.panel-shown,
+.dialog-box-background.dialog-box-shown {
     opacity: 1;
     visibility: visible;
 }
@@ -271,6 +277,42 @@ body.signed-out .navbar .sign-out-button {
 
 .panel .action-bar button:first-of-type {
     margin-left: 0;
+}
+
+.dialog-box-background {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dialog-box-background .dialog-box-frame {
+    --side-padding: 20px;
+
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: var(--background);
+    color: var(--foreground);
+
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr); /* h1 and content */
+
+    position: relative;
+    top: 100vh;
+    transition: top 0.2s ease-in-out;
+}
+
+.dialog-box-background.dialog-box-shown .dialog-box-frame {
+    top: 0;
+}
+
+.dialog-box-background .dialog-box-frame h1 {
+    padding: 10px;
+    margin: 0;
+    font-size: 28pt;
+    font-weight: 100;
+    background-color: var(--background-highlights);
+    color: var(--accent-color);
+    text-align: center;
 }
 
 /* ----------------------------------------------------------------------------------------------------- */

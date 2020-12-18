@@ -13,6 +13,8 @@ import {LibraryPanel} from "./LibraryPanel";
 import {Context} from "./Context";
 import {Library} from "./Library";
 import {FileBuilder} from "./File";
+import {DialogBox} from "./DialogBox";
+import {sign} from "crypto";
 
 function configureRoutes() {
     const body = document.querySelector("body") as HTMLElement;
@@ -57,6 +59,9 @@ function showSignInScreen() {
 }
 
 export function main() {
+    const body = document.querySelector("body") as HTMLElement;
+    body.classList.add("signed-out");
+
     // Configuration for Firebase.
     firebase.initializeApp({
         apiKey: "AIzaSyAfGZY9BaDUmy4qNtg11JHd_kLd1JmgdBI",
@@ -99,15 +104,17 @@ export function main() {
     const firebaseAuthUi = new firebaseui.auth.AuthUI(firebaseAuth);
 
     const signInDiv = document.createElement("div");
-    signInDiv.classList.add("hidden");
+    let signInDialog: DialogBox | undefined = undefined;
 
     firebaseAuth.onAuthStateChanged(user => {
-        const body = document.querySelector("body") as HTMLElement;
-
         if (user !== null) {
             // Show user signed in screen. Reset if user just signed in. (Single page app)
             console.log(user);
-            signInDiv.classList.add("hidden")
+
+            if (signInDialog !== undefined) {
+                signInDialog.close();
+                signInDialog = undefined;
+            }
         } else {
             // No user signed in, render sign-in UI.
             firebaseAuthUi.reset();
@@ -125,7 +132,12 @@ export function main() {
 
     const navbar = createNavbar(
         () => panelManager.open(),
-        () => signInDiv.classList.remove("hidden"),
+        () => {
+            if (signInDialog !== undefined) {
+                signInDialog.close();
+            }
+            signInDialog = new DialogBox("Sign In", signInDiv);
+        },
         () => firebase.auth().signOut());
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
@@ -152,9 +164,7 @@ export function main() {
     // const progressBar = new ProgressBar(screen.getNode());
     // cassette.setProgressBar(progressBar);
 
-    const body = document.querySelector("body") as HTMLElement;
     body.append(navbar);
-    body.append(signInDiv);
     body.append(screenDiv);
 
     let wasTrs80Started = false;
