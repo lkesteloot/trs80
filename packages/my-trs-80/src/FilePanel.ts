@@ -83,7 +83,7 @@ class FileInfoTab {
         form.append(this.screenshotsDiv);
 
         const actionBar = document.createElement("div");
-        actionBar.classList.add("action-bar");
+        actionBar.classList.add("action-bar", "button-set");
         infoTab.element.append(actionBar);
 
         const runButton = makeButton("Run", "play_arrow", "play-button", () => {

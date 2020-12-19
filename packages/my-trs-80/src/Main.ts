@@ -32,7 +32,7 @@ function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () =
     const body = document.querySelector("body") as HTMLElement;
 
     const navbar = document.createElement("div");
-    navbar.classList.add("navbar");
+    navbar.classList.add("navbar", "button-set");
 
     const title = document.createElement("span");
     title.textContent = "My TRS-80";
@@ -121,8 +121,7 @@ export function main() {
             firebaseAuthUi.start(signInDiv, uiConfig);
         }
 
-        body.classList.toggle("signed-in", user !== null);
-        body.classList.toggle("signed-out", user === null);
+        context.user = user ?? undefined;
     });
 
     const db = firebase.firestore();
@@ -187,6 +186,11 @@ export function main() {
     reboot();
 
     const context = new Context(library, trs80, db, panelManager);
+
+    context.onUser.subscribe(user => {
+        body.classList.toggle("signed-in", user !== undefined);
+        body.classList.toggle("signed-out", user === undefined);
+    });
 
     // TODO make this button appear and disappear as we have/not have a program.
     controlPanel.addScreenshotButton(() => {

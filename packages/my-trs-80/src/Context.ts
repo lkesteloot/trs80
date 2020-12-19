@@ -4,6 +4,8 @@ import {PanelManager} from "./PanelManager";
 import {Library, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {File} from "./File";
 import {decodeTrs80File, Trs80File} from "trs80-base";
+import {User} from "./User";
+import {SimpleEventDispatcher} from "strongly-typed-events";
 
 /**
  * Context of the whole app, with its global variables.
@@ -14,6 +16,8 @@ export class Context {
     public readonly db: firebase.firestore.Firestore;
     public readonly panelManager: PanelManager;
     public runningFile: File | undefined = undefined;
+    private _user: User | undefined = undefined;
+    public readonly onUser = new SimpleEventDispatcher<User | undefined>();
 
     constructor(library: Library, trs80: Trs80, db: firebase.firestore.Firestore, panelManager: PanelManager) {
         this.library = library;
@@ -48,5 +52,13 @@ export class Context {
             this.runningFile = file;
             this.trs80.runTrs80File(trs80File);
         }
+    }
+
+    /**
+     * Set the currently signed-in user.
+     */
+    set user(user: User | undefined) {
+        this._user = user;
+        this.onUser.dispatch(user);
     }
 }

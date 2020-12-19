@@ -23,7 +23,12 @@ export class DialogBox {
         const h1 = document.createElement("h1");
         h1.innerText = title;
         frame.append(h1);
-        frame.append(content);
+
+        const contentFrame = document.createElement("div");
+        contentFrame.classList.add("dialog-box-content-frame");
+        frame.append(contentFrame);
+
+        contentFrame.append(content);
 
         // Handler for the ESC key.
         this.escListener = (e: KeyboardEvent) => {
