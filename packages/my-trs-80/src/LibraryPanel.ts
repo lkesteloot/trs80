@@ -5,7 +5,6 @@ import {FilePanel} from "./FilePanel";
 import {Context} from "./Context";
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {clearElement} from "teamten-ts-utils";
-import firebase from "firebase/app";
 import {CanvasScreen} from "trs80-emulator";
 
 const FILE_ID_ATTR = "data-file-id";
@@ -107,17 +106,7 @@ export class LibraryPanel extends Panel {
             .withBinary(binary)
             .build();
 
-        this.context.db.collection("files").add({
-            uid: file.uid,
-            name: file.name,
-            filename: file.filename,
-            note: file.note,
-            shared: file.shared,
-            hash: file.hash,
-            binary: firebase.firestore.Blob.fromUint8Array(file.binary),
-            dateAdded: firebase.firestore.Timestamp.fromDate(file.dateAdded),
-            dateModified: firebase.firestore.Timestamp.fromDate(file.dateModified),
-        })
+        this.context.db.addFile(file)
             .then(docRef => {
                 file = file.builder().withId(docRef.id).build();
                 this.context.library.addFile(file);

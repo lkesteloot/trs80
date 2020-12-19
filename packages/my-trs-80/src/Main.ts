@@ -14,7 +14,8 @@ import {Context} from "./Context";
 import {Library} from "./Library";
 import {FileBuilder} from "./File";
 import {DialogBox} from "./DialogBox";
-import {sign} from "crypto";
+import {User} from "./User";
+import {Database} from "./Database";
 
 function configureRoutes() {
     const body = document.querySelector("body") as HTMLElement;
@@ -106,10 +107,13 @@ export function main() {
     const signInDiv = document.createElement("div");
     let signInDialog: DialogBox | undefined = undefined;
 
-    firebaseAuth.onAuthStateChanged(user => {
-        if (user !== null) {
-            // Show user signed in screen. Reset if user just signed in. (Single page app)
-            console.log(user);
+    firebaseAuth.onAuthStateChanged(firebaseUser => {
+        let user: User | undefined;
+
+        if (firebaseUser !== null) {
+            //console.log(firebaseUser);
+
+            user = new User(firebaseUser.uid);
 
             if (signInDialog !== undefined) {
                 signInDialog.close();
@@ -119,12 +123,14 @@ export function main() {
             // No user signed in, render sign-in UI.
             firebaseAuthUi.reset();
             firebaseAuthUi.start(signInDiv, uiConfig);
+
+            user = undefined;
         }
 
         context.user = user ?? undefined;
     });
 
-    const db = firebase.firestore();
+    const db = new Database(firebase.firestore());
 
     const panelManager = new PanelManager();
     const library = new Library();
@@ -198,12 +204,12 @@ export function main() {
             let file = context.runningFile;
             const screenshot = trs80.getScreenshot();
             const screenshots = [...file.screenshots, screenshot];
-            file = file.builder().withScreenshots(screenshots).withDateModified(new Date()).build();
-            context.db.collection("files").doc(file.id)
-                .update(file.getUpdateDataComparedTo(context.runningFile))
-                .then(() => {
-                    context.library.modifyFile(file);
-                })
+            file = file.builder()
+                .withScreenshots(screenshots)
+                .withDateModified(new Date())
+                .build();
+            context.db.updateFile(context.runningFile, file)
+                .then(() => context.library.modifyFile(file))
                 .catch(() => {
                     // TODO.
                 });
@@ -214,10 +220,11 @@ export function main() {
     panelManager.pushPanel(libraryPanel);
 
     // Fetch all files.
-    context.db.collection("files").get().then((querySnapshot) => {
-        for (const doc of querySnapshot.docs) {
-            const file = FileBuilder.fromDoc(doc).build();
-            library.addFile(file);
-        }
-    });
+    context.db.fetchAllFiles()
+        .then((querySnapshot) => {
+            for (const doc of querySnapshot.docs) {
+                const file = FileBuilder.fromDoc(doc).build();
+                library.addFile(file);
+            }
+        });
 }

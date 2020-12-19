@@ -93,7 +93,7 @@ class FileInfoTab {
         });
         actionBar.append(runButton);
         const deleteButton = makeButton("Delete File", "delete", "delete-button", () => {
-            this.filePanel.context.db.collection("files").doc(this.filePanel.file.id).delete()
+            this.filePanel.context.db.deleteFile(this.filePanel.file)
                 .then(() => {
                     this.filePanel.context.library.removeFile(this.filePanel.file);
                     // We automatically close as a result of the file being removed from the library.
@@ -132,8 +132,7 @@ class FileInfoTab {
             // Disable right away so it's not clicked again.
             this.saveButton.disabled = true;
 
-            this.filePanel.context.db.collection("files").doc(this.filePanel.file.id)
-                .update(newFile.getUpdateDataComparedTo(this.filePanel.file))
+            this.filePanel.context.db.updateFile(this.filePanel.file, newFile)
                 .then(() => {
                     this.saveButton.classList.remove("saving");
                     this.saveButton.classList.add("success");
