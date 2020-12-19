@@ -219,12 +219,17 @@ export function main() {
     const libraryPanel = new LibraryPanel(context);
     panelManager.pushPanel(libraryPanel);
 
-    // Fetch all files.
-    context.db.fetchAllFiles()
-        .then((querySnapshot) => {
-            for (const doc of querySnapshot.docs) {
-                const file = FileBuilder.fromDoc(doc).build();
-                library.addFile(file);
-            }
-        });
+    context.onUser.subscribe(user => {
+        library.removeAll();
+        if (user !== undefined) {
+            // Fetch all files.
+            context.db.getAllFiles(user.uid)
+                .then((querySnapshot) => {
+                    for (const doc of querySnapshot.docs) {
+                        const file = FileBuilder.fromDoc(doc).build();
+                        library.addFile(file);
+                    }
+                });
+        }
+    })
 }

@@ -103,4 +103,20 @@ export class Library {
             this.onEvent.dispatch(new LibraryRemoveEvent(oldFile));
         }
     }
+
+    /**
+     * Remove all files from the library. One event will be triggered per file.
+     */
+    public removeAll(): void {
+        // Make a separate list first since we'll be modifying the map as we go.
+        const files: File[] = [];
+        for (const file of this.files.values()) {
+            files.push(file);
+        }
+
+        // Then delete each.
+        for (const file of files) {
+            this.removeFile(file);
+        }
+    }
 }

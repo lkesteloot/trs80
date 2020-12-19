@@ -3,6 +3,7 @@ import {File} from "./File";
 import QuerySnapshot = firebase.firestore.QuerySnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 import DocumentReference = firebase.firestore.DocumentReference;
+import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 
 const FILES_COLLECTION_NAME = "files";
 const USERS_COLLECTION_NAME = "users";
@@ -18,10 +19,10 @@ export class Database {
     }
 
     /**
-     * Get all files in the entire database.
+     * Get all files for this user.
      */
-    public fetchAllFiles(): Promise<QuerySnapshot<DocumentData>> {
-        return this.firestore.collection(FILES_COLLECTION_NAME).get();
+    public getAllFiles(uid: string): Promise<QuerySnapshot<DocumentData>> {
+        return this.firestore.collection(FILES_COLLECTION_NAME).where("uid", "==", uid).get();
     }
 
     /**
@@ -58,5 +59,12 @@ export class Database {
      */
     public deleteFile(file: File): Promise<void> {
         return this.firestore.collection(FILES_COLLECTION_NAME).doc(file.id).delete();
+    }
+
+    /**
+     * Get user data for the given ID.
+     */
+    public getUser(uid: string): Promise<DocumentSnapshot<DocumentData>> {
+        return this.firestore.collection(USERS_COLLECTION_NAME).doc(uid).get();
     }
 }

@@ -61,4 +61,11 @@ export class Context {
         this._user = user;
         this.onUser.dispatch(user);
     }
+
+    /**
+     * Get the currently signed-in user.
+     */
+    get user(): User | undefined {
+        return this._user;
+    }
 }

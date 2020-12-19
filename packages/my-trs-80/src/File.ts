@@ -142,6 +142,11 @@ export class FileBuilder {
         return this;
     }
 
+    public withUid(uid: string): this {
+        this.uid = uid;
+        return this;
+    }
+
     public withName(name: string): this {
         this.name = name;
         return this;

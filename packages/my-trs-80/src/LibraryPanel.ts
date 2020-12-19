@@ -24,6 +24,7 @@ export class LibraryPanel extends Panel {
         const headerTextNode = document.createElement("span");
         headerTextNode.innerText = "Library";
         header.append(headerTextNode);
+        // TODO hide upload button if signed out.
         header.append(makeIconButton(makeIcon("add"), "Upload file", () => this.uploadFile()));
         header.append(makeCloseIconButton(() => this.context.panelManager.close()));
         this.element.append(header);
@@ -63,13 +64,18 @@ export class LibraryPanel extends Panel {
         uploadElement.accept = ".cas, .bas, .cmd";
         uploadElement.multiple = true;
         uploadElement.addEventListener("change", () => {
+            const user = this.context.user;
+            if (user === undefined) {
+                console.error("Can't import with signed-out user");
+                return;
+            }
             const files = uploadElement.files ?? [];
             const openFilePanel = files.length === 1;
             for (const f of files) {
                 f.arrayBuffer()
                     .then(arrayBuffer => {
                         const bytes = new Uint8Array(arrayBuffer);
-                        this.importFile(f.name, bytes, openFilePanel);
+                        this.importFile(user.uid, f.name, bytes, openFilePanel);
                     })
                     .catch(() => {
                         // TODO
@@ -81,11 +87,12 @@ export class LibraryPanel extends Panel {
 
     /**
      * Add an uploaded file to our library.
+     * @param uid user ID.
      * @param filename original filename from the user.
      * @param binary raw binary of the file.
      * @param openFilePanel whether to open the file panel for this file after importing it.
      */
-    private importFile(filename: string, binary: Uint8Array, openFilePanel: boolean): void {
+    private importFile(uid: string, filename: string, binary: Uint8Array, openFilePanel: boolean): void {
         let name = filename;
 
         // Remove extension.
@@ -101,6 +108,7 @@ export class LibraryPanel extends Panel {
         filename = filename.toUpperCase();
 
         let file = new FileBuilder()
+            .withUid(uid)
             .withName(name)
             .withFilename(filename)
             .withBinary(binary)
