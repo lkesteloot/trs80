@@ -14,7 +14,7 @@ import {Context} from "./Context";
 import {Library} from "./Library";
 import {FileBuilder} from "./File";
 import {DialogBox} from "./DialogBox";
-import {User} from "./User";
+import {AuthUser, User} from "./User";
 import {Database} from "./Database";
 
 function configureRoutes() {
@@ -107,13 +107,21 @@ export function main() {
     const signInDiv = document.createElement("div");
     let signInDialog: DialogBox | undefined = undefined;
 
-    firebaseAuth.onAuthStateChanged(firebaseUser => {
-        let user: User | undefined;
+    const db = new Database(firebase.firestore());
 
+    firebaseAuth.onAuthStateChanged(firebaseUser => {
         if (firebaseUser !== null) {
             //console.log(firebaseUser);
 
-            user = new User(firebaseUser.uid);
+            const authUser = AuthUser.fromFirebaseUser(firebaseUser);
+
+            db.userFromAuthUser(authUser)
+                .then(user => {
+                    context.user = user;
+                })
+                .catch(error => {
+                    // TODO.
+                });
 
             if (signInDialog !== undefined) {
                 signInDialog.close();
@@ -124,13 +132,9 @@ export function main() {
             firebaseAuthUi.reset();
             firebaseAuthUi.start(signInDiv, uiConfig);
 
-            user = undefined;
+            context.user = undefined;
         }
-
-        context.user = user ?? undefined;
     });
-
-    const db = new Database(firebase.firestore());
 
     const panelManager = new PanelManager();
     const library = new Library();

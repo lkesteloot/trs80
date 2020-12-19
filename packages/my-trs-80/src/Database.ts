@@ -4,6 +4,7 @@ import QuerySnapshot = firebase.firestore.QuerySnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 import DocumentReference = firebase.firestore.DocumentReference;
 import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
+import {AuthUser, User} from "./User";
 
 const FILES_COLLECTION_NAME = "files";
 const USERS_COLLECTION_NAME = "users";
@@ -62,9 +63,42 @@ export class Database {
     }
 
     /**
-     * Get user data for the given ID.
+     * Get or create a user for the given auth user.
      */
-    public getUser(uid: string): Promise<DocumentSnapshot<DocumentData>> {
-        return this.firestore.collection(USERS_COLLECTION_NAME).doc(uid).get();
+    public userFromAuthUser(authUser: AuthUser): Promise<User> {
+        const docRef = this.firestore.collection(USERS_COLLECTION_NAME).doc(authUser.uid);
+
+        return this.firestore.runTransaction(transaction => {
+            return transaction.get(docRef)
+                .then(doc => {
+                    let user: User;
+
+                    if (doc.exists) {
+                        // User already exists. Remember when they last signed in.
+                        user = authUser.toUser(doc.data() as DocumentData);
+
+                        // TODO make delta object.
+                        transaction.update(docRef, {
+                            emailAddress: user.emailAddress,
+                            name: user.name,
+                            modifiedAt: user.modifiedAt,
+                            lastActiveAt: firebase.firestore.Timestamp.fromDate(new Date()),
+                        });
+                    } else {
+                        // User does not yet exist, create it.
+                        user = authUser.toNewUser();
+                        transaction.set(docRef, {
+                            emailAddress: user.emailAddress,
+                            name: user.name,
+                            isAdmin: user.isAdmin,
+                            addedAt: user.addedAt,
+                            modifiedAt: user.modifiedAt,
+                            lastActiveAt: user.lastActiveAt,
+                        });
+                    }
+
+                    return user;
+                });
+        });
     }
 }
