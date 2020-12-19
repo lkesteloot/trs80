@@ -116,9 +116,7 @@ export function main() {
             const authUser = AuthUser.fromFirebaseUser(firebaseUser);
 
             db.userFromAuthUser(authUser)
-                .then(user => {
-                    context.user = user;
-                })
+                .then(user => context.user = user)
                 .catch(error => {
                     // TODO.
                 });
@@ -232,6 +230,13 @@ export function main() {
                     for (const doc of querySnapshot.docs) {
                         const file = FileBuilder.fromDoc(doc).build();
                         library.addFile(file);
+                    }
+                })
+                .catch(error => {
+                    // TODO
+                    if (error.name === "FirebaseError") {
+                        // code can be "permission-denied".
+                        console.log(error.code, error.message);
                     }
                 });
         }

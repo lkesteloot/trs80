@@ -3,7 +3,6 @@ import {File} from "./File";
 import QuerySnapshot = firebase.firestore.QuerySnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 import DocumentReference = firebase.firestore.DocumentReference;
-import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 import {AuthUser, User} from "./User";
 
 const FILES_COLLECTION_NAME = "files";

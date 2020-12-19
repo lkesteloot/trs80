@@ -349,8 +349,6 @@ export class FilePanel extends Panel {
         this.element.classList.add("file-panel");
 
         const trs80File = decodeTrs80File(file.binary);
-        console.log(trs80File); // TODO remove
-        console.log(trs80File.getDescription());
 
         const header = document.createElement("h1");
         const backButton = makeIconButton(makeIcon("arrow_back"), "Back", () => this.context.panelManager.popPanel());

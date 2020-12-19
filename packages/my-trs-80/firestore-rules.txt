@@ -1,0 +1,26 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /files/{fileId} {
+        // Allow reads and list for owner and public items.
+        allow read: if resource != null &&
+            (resource.data.shared ||
+                (request.auth != null &&
+                    resource.data.uid == request.auth.uid));
+        // Allow create by owner.
+        allow create: if request.auth != null &&
+            "resource" in request &&
+            request.resource.data.uid == request.auth.uid;
+        // Allow update and delete by owner.
+        allow update, delete: if request.auth != null &&
+            resource != null &&
+            resource.data.uid == request.auth.uid;
+    }
+    match /users/{userId} {
+        // Allow all operations by owner.
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+
