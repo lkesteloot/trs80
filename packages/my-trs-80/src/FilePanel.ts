@@ -26,8 +26,8 @@ class FileInfoTab {
     private readonly noteInput: HTMLTextAreaElement;
     private readonly typeInput: HTMLInputElement;
     private readonly sizeInput: HTMLInputElement;
-    private readonly dateAddedInput: HTMLInputElement;
-    private readonly dateModifiedInput: HTMLInputElement;
+    private readonly addedAtInput: HTMLInputElement;
+    private readonly modifiedAtInput: HTMLInputElement;
     private readonly screenshotsDiv: HTMLElement;
     private readonly revertButton: HTMLButtonElement;
     private readonly saveButton: HTMLButtonElement;
@@ -73,9 +73,9 @@ class FileInfoTab {
         const miscDiv = document.createElement("div");
         miscDiv.classList.add("misc");
         this.typeInput = makeInputBox("Type", undefined, false);
-        this.dateAddedInput = makeInputBox("Date added", undefined, false);
+        this.addedAtInput = makeInputBox("Date added", undefined, false);
         this.sizeInput = makeInputBox("Size", undefined, false);
-        this.dateModifiedInput = makeInputBox("Date last modified", undefined, false);
+        this.modifiedAtInput = makeInputBox("Date last modified", undefined, false);
         form.append(miscDiv);
 
         this.screenshotsDiv = document.createElement("div");
@@ -125,7 +125,7 @@ class FileInfoTab {
             this.updateUi();
         });
         this.saveButton.addEventListener("click", () => {
-            const newFile = this.fileFromUi().builder().withDateModified(new Date()).build();
+            const newFile = this.fileFromUi().builder().withModifiedAt(new Date()).build();
 
             this.saveButton.classList.add("saving");
 
@@ -190,8 +190,8 @@ class FileInfoTab {
         }
         this.typeInput.value = this.trs80File.getDescription();
         this.sizeInput.value = withCommas(file.binary.length) + " byte" + (file.binary.length === 1 ? "" : "s");
-        this.dateAddedInput.value = formatDate(file.dateAdded);
-        this.dateModifiedInput.value = formatDate(file.dateModified);
+        this.addedAtInput.value = formatDate(file.addedAt);
+        this.modifiedAtInput.value = formatDate(file.modifiedAt);
         if (updateData === undefined || updateData.hasOwnProperty("screenshots")) {
             this.populateScreenshots();
         }

@@ -206,7 +206,7 @@ export function main() {
             const screenshots = [...file.screenshots, screenshot];
             file = file.builder()
                 .withScreenshots(screenshots)
-                .withDateModified(new Date())
+                .withModifiedAt(new Date())
                 .build();
             context.db.updateFile(context.runningFile, file)
                 .then(() => context.library.modifyFile(file))

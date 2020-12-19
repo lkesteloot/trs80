@@ -17,11 +17,11 @@ export class File {
     public readonly hash: string;
     public readonly screenshots: string[]; // Don't modify this, treat as immutable.
     public readonly binary: Uint8Array;
-    public readonly dateAdded: Date;
-    public readonly dateModified: Date;
+    public readonly addedAt: Date;
+    public readonly modifiedAt: Date;
 
     constructor(id: string, uid: string, name: string, filename: string, note: string, shared: boolean, hash: string,
-                screenshots: string[], binary: Uint8Array, dateAdded: Date, dateModified: Date) {
+                screenshots: string[], binary: Uint8Array, addedAt: Date, modifiedAt: Date) {
 
         this.id = id;
         this.uid = uid;
@@ -32,8 +32,8 @@ export class File {
         this.hash = hash;
         this.screenshots = screenshots;
         this.binary = binary;
-        this.dateAdded = dateAdded;
-        this.dateModified = dateModified;
+        this.addedAt = addedAt;
+        this.modifiedAt = modifiedAt;
     }
 
     public builder(): FileBuilder {
@@ -48,8 +48,8 @@ export class File {
         builder.hash = this.hash;
         builder.screenshots = this.screenshots;
         builder.binary = this.binary;
-        builder.dateAdded = this.dateAdded;
-        builder.dateModified = this.dateModified;
+        builder.addedAt = this.addedAt;
+        builder.modifiedAt = this.modifiedAt;
 
         return builder;
     }
@@ -72,8 +72,8 @@ export class File {
         if (!isSameStringArray(this.screenshots, oldFile.screenshots)) {
             updateData.screenshots = this.screenshots;
         }
-        if (this.dateModified.getTime() !== oldFile.dateModified.getTime()) {
-            updateData.dateModified = this.dateModified;
+        if (this.modifiedAt.getTime() !== oldFile.modifiedAt.getTime()) {
+            updateData.modifiedAt = this.modifiedAt;
         }
 
         return updateData;
@@ -115,8 +115,8 @@ export class FileBuilder {
     public hash: string = "";
     public screenshots: string[] = [];
     public binary: Uint8Array = new Uint8Array(0);
-    public dateAdded: Date = new Date();
-    public dateModified: Date = new Date();
+    public addedAt: Date = new Date();
+    public modifiedAt: Date = new Date();
 
     public static fromDoc(doc: QueryDocumentSnapshot<DocumentData>): FileBuilder {
         const builder = new FileBuilder();
@@ -131,8 +131,8 @@ export class FileBuilder {
         builder.hash = data.hash;
         builder.screenshots = data.screenshots ?? [];
         builder.binary = (data.binary as firebase.firestore.Blob).toUint8Array();
-        builder.dateAdded = (data.dateAdded as firebase.firestore.Timestamp).toDate();
-        builder.dateModified = (data.dateModified as firebase.firestore.Timestamp).toDate();
+        builder.addedAt = (data.addedAt as firebase.firestore.Timestamp).toDate();
+        builder.modifiedAt = (data.modifiedAt as firebase.firestore.Timestamp).toDate();
 
         return builder;
     }
@@ -167,13 +167,13 @@ export class FileBuilder {
         return this;
     }
 
-    public withDateModified(dateModified: Date): this {
-        this.dateModified = dateModified;
+    public withModifiedAt(modifiedAt: Date): this {
+        this.modifiedAt = modifiedAt;
         return this;
     }
 
     public build(): File {
         return new File(this.id, this.uid, this.name, this.filename, this.note, this.shared, this.hash,
-            this.screenshots, this.binary, this.dateAdded, this.dateModified);
+            this.screenshots, this.binary, this.addedAt, this.modifiedAt);
     }
 }

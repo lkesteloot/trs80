@@ -36,8 +36,8 @@ export class Database {
             shared: file.shared,
             hash: file.hash,
             binary: firebase.firestore.Blob.fromUint8Array(file.binary),
-            dateAdded: firebase.firestore.Timestamp.fromDate(file.dateAdded),
-            dateModified: firebase.firestore.Timestamp.fromDate(file.dateModified),
+            addedAt: firebase.firestore.Timestamp.fromDate(file.addedAt),
+            modifiedAt: firebase.firestore.Timestamp.fromDate(file.modifiedAt),
         });
     }
 
