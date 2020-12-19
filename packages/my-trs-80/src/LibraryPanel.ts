@@ -77,8 +77,9 @@ export class LibraryPanel extends Panel {
                         const bytes = new Uint8Array(arrayBuffer);
                         this.importFile(user.uid, f.name, bytes, openFilePanel);
                     })
-                    .catch(() => {
+                    .catch(error => {
                         // TODO
+                        console.error(error);
                     });
             }
         });

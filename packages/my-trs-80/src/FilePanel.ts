@@ -100,6 +100,7 @@ class FileInfoTab {
                 })
                 .catch(error => {
                     // TODO.
+                    console.error(error);
                 });
         });
         actionBar.append(deleteButton);

@@ -89,7 +89,7 @@ export class Database {
                         transaction.set(docRef, {
                             emailAddress: user.emailAddress,
                             name: user.name,
-                            isAdmin: user.isAdmin,
+                            admin: user.admin,
                             addedAt: user.addedAt,
                             modifiedAt: user.modifiedAt,
                             lastActiveAt: user.lastActiveAt,

@@ -25,7 +25,7 @@ export class AuthUser {
             this.uid,
             this.emailAddress,
             this.name,
-            data.isAdmin,
+            data.admin,
             data.addedAt,
             changed ? new Date() : data.modifiedAt,
             data.lastActiveAt);
@@ -61,17 +61,17 @@ export class AuthUser {
  * Represents a user in our database, both basic data such as ID, as well as user preferences.
  */
 export class User extends AuthUser {
-    public readonly isAdmin: boolean;
+    public readonly admin: boolean;
     public readonly addedAt: Date;
     public readonly modifiedAt: Date;
     public readonly lastActiveAt: Date;
 
-    constructor(uid: string, emailAddress: string, name: string, isAdmin: boolean,
+    constructor(uid: string, emailAddress: string, name: string, admin: boolean,
                 addedAt: Date, modifiedAt: Date, lastActiveAt: Date) {
 
         super(uid, emailAddress, name);
 
-        this.isAdmin = isAdmin;
+        this.admin = admin;
         this.addedAt = addedAt;
         this.modifiedAt = modifiedAt;
         this.lastActiveAt = lastActiveAt;

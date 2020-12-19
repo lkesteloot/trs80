@@ -119,6 +119,7 @@ export function main() {
                 .then(user => context.user = user)
                 .catch(error => {
                     // TODO.
+                    console.error(error);
                 });
 
             if (signInDialog !== undefined) {
@@ -212,8 +213,9 @@ export function main() {
                 .build();
             context.db.updateFile(context.runningFile, file)
                 .then(() => context.library.modifyFile(file))
-                .catch(() => {
+                .catch(error => {
                     // TODO.
+                    console.error(error);
                 });
         }
     });
@@ -234,6 +236,7 @@ export function main() {
                 })
                 .catch(error => {
                     // TODO
+                    console.error(error);
                     if (error.name === "FirebaseError") {
                         // code can be "permission-denied".
                         console.log(error.code, error.message);

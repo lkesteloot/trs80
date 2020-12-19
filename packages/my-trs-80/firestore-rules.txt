@@ -1,26 +1,54 @@
 
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    match /files/{fileId} {
-        // Allow reads and list for owner and public items.
-        allow read: if resource != null &&
-            (resource.data.shared ||
-                (request.auth != null &&
-                    resource.data.uid == request.auth.uid));
-        // Allow create by owner.
-        allow create: if request.auth != null &&
-            "resource" in request &&
-            request.resource.data.uid == request.auth.uid;
-        // Allow update and delete by owner.
-        allow update, delete: if request.auth != null &&
-            resource != null &&
-            resource.data.uid == request.auth.uid;
+    match /databases/{database}/documents {
+        // Rules for files.
+        match /files/{fileId} {
+            // Allow reads and list for owner and public items.
+            allow read: if
+                // We match an existing resource.
+                resource != null &&
+                // Allow if file is shared.
+                (resource.data.shared ||
+                 // Else the user must be signed in and owner of file.
+                 (request.auth != null && resource.data.uid == request.auth.uid));
+
+            // Allow create by owner.
+            allow create: if
+                // User is signed in.
+                request.auth != null &&
+                // New file is owned by user.
+                request.resource.data.uid == request.auth.uid;
+
+            // Allow update by owner.
+            allow update: if
+                // User is signed in.
+                request.auth != null &&
+                // Old data is owned by user.
+                resource != null && resource.data.uid == request.auth.uid &&
+                // Can't change owner.
+                request.resource.data.uid == resource.data.uid;
+
+            // Allow delete by owner.
+            allow delete: if
+                // User is signed in and owns file.
+                request.auth != null && resource.data.uid == request.auth.uid;
+        }
+
+        // Rules for users.
+        match /users/{userId} {
+            // User can read and delete their own data.
+            allow read, delete: if request.auth != null &&
+                request.auth.uid == userId;
+            // Can create your own record, but can't be admin.
+            allow create: if request.auth != null &&
+                request.auth.uid == userId &&
+                request.resource.data.admin == false;
+            // Can update your own record, but can't change admin.
+            allow update: if request.auth != null &&
+                request.auth.uid == userId &&
+                request.resource.data.admin == resource.data.admin;
+        }
     }
-    match /users/{userId} {
-        // Allow all operations by owner.
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
 }
 
