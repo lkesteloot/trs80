@@ -8,7 +8,7 @@ export class PageTabs {
     private readonly containerElement: Element;
     private readonly tabElement: HTMLElement;
     private readonly tabs: PageTab[] = [];
-    private activeIndex = 0;
+    private activeIndex: number | undefined = undefined;
 
     constructor(element: Element) {
         this.containerElement = element;
@@ -18,7 +18,6 @@ export class PageTabs {
         this.tabElement = document.createElement("div");
         this.tabElement.classList.add("page-tabs");
         this.containerElement.append(this.tabElement);
-        this.setActiveTab(0);
     }
 
     /**
@@ -28,7 +27,7 @@ export class PageTabs {
         const tab = new PageTab(name);
         this.tabs.push(tab);
         this.containerElement.append(tab.element);
-        this.setActiveTab(this.activeIndex);
+        this.setActiveTab(this.activeIndex ?? 0);
         return tab;
     }
 
@@ -55,12 +54,17 @@ export class PageTabs {
      * Switch the active tab.
      */
     private setActiveTab(activeIndex: number): void {
+        if (this.activeIndex !== undefined) {
+            this.tabs[this.activeIndex].onHide.dispatch();
+        }
+
         this.activeIndex = activeIndex;
         this.recreateTabs();
 
         for (let index = 0; index < this.tabs.length; index++) {
-            const tab = this.tabs[index];
-            tab.element.classList.toggle("hidden", index !== this.activeIndex);
+            this.tabs[index].element.classList.toggle("hidden", index !== this.activeIndex);
         }
+
+        this.tabs[this.activeIndex].onShow.dispatch();
     }
 }

@@ -83,3 +83,18 @@ export function makeTextButton(label: string, iconName: string | string[] | unde
 export function isSameStringArray(a: string[], b: string[]): boolean {
     return a.length === b.length && a.every((value, index) => value === b[index]);
 }
+
+/**
+ * Start a timer, and return a function that will evaluate to how many milliseconds
+ * the timer has been running. Calling the function restarts the timer.
+ */
+export function startTimer(): () => number {
+    let timerStart = new Date().getTime();
+
+    return () => {
+        const now = new Date().getTime();
+        const elapsed = now - timerStart;
+        timerStart = now;
+        return elapsed;
+    };
+}

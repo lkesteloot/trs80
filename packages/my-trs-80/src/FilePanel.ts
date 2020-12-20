@@ -1,5 +1,5 @@
 import {Panel} from "./Panel";
-import {formatDate, makeTextButton, makeCloseIconButton, makeIcon, makeIconButton} from "./Utils";
+import {formatDate, makeTextButton, makeCloseIconButton, makeIcon, makeIconButton, startTimer} from "./Utils";
 import {clearElement, withCommas} from "teamten-ts-utils";
 import {File} from "./File";
 import {Context} from "./Context";
@@ -72,9 +72,9 @@ class FileInfoTab {
         const miscDiv = document.createElement("div");
         miscDiv.classList.add("misc");
         this.typeInput = makeInputBox("Type", undefined, false);
-        this.addedAtInput = makeInputBox("Date added", undefined, false);
+        this.addedAtInput = makeInputBox("Added", undefined, false);
         this.sizeInput = makeInputBox("Size", undefined, false);
-        this.modifiedAtInput = makeInputBox("Date last modified", undefined, false);
+        this.modifiedAtInput = makeInputBox("Last modified", undefined, false);
         form.append(miscDiv);
 
         this.screenshotsDiv = document.createElement("div");
@@ -271,7 +271,8 @@ class HexdumpTab {
     private readonly binary: Uint8Array;
     private readonly trs80File: Trs80File;
     private readonly hexdumpElement: HTMLElement;
-    private collapse = false; // TODO re-enable.
+    private needGeneration = true;
+    private collapse = true;
     private annotate = true;
 
     constructor(filePanel: FilePanel, pageTabs: PageTabs, trs80File: Trs80File) {
@@ -288,7 +289,15 @@ class HexdumpTab {
         this.hexdumpElement = document.createElement("div");
         this.hexdumpElement.classList.add("hexdump");
         outer.append(this.hexdumpElement);
-        this.generateHexdump();
+        infoTab.onShow.subscribe(() => {
+            // Wait until user switches to tab to compute initial display, so that
+            // it doesn't slow down the animation to the file panel. Also do it
+            // asynchronously so that we don't block the display of the tab change.
+            if (this.needGeneration) {
+                this.needGeneration = false;
+                setTimeout(() => this.generateHexdump(), 0);
+            }
+        });
 
         const actionBar = document.createElement("div");
         actionBar.classList.add("action-bar");
@@ -337,8 +346,6 @@ class HexdumpTab {
  */
 export class FilePanel extends Panel {
     public file: File;
-    private readonly fileInfoTab: FileInfoTab;
-    private readonly hexdumpTab: HexdumpTab;
     public readonly headerTextNode: HTMLElement;
 
     constructor(context: Context, file: File) {
@@ -365,7 +372,10 @@ export class FilePanel extends Panel {
         this.element.append(content);
 
         const pageTabs = new PageTabs(content);
-        this.fileInfoTab = new FileInfoTab(this, pageTabs, trs80File);
-        this.hexdumpTab = new HexdumpTab(this, pageTabs, trs80File);
+        let timer = startTimer();
+        new FileInfoTab(this, pageTabs, trs80File);
+        console.log("Make file info tab: " + timer());
+        new HexdumpTab(this, pageTabs, trs80File);
+        console.log("Make hexdump tab: " + timer());
     }
 }
