@@ -1,5 +1,6 @@
 import Navigo from "navigo";
 import {createHome} from "./Home";
+import * as RetroStoreProto from "./RetroStoreProto";
 import {CanvasScreen, CassettePlayer, ControlPanel, PanelType, ProgressBar, SettingsPanel, Trs80} from "trs80-emulator";
 import firebase from 'firebase/app';
 // These imports load individual services into the firebase namespace.
@@ -243,5 +244,5 @@ export function main() {
                     }
                 });
         }
-    })
+    });
 }

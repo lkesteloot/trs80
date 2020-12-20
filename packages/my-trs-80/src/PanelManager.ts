@@ -65,16 +65,18 @@ export class PanelManager {
      * Start the animation to pop the most screen panel.
      */
     public popPanel(): void {
-        // Slide it off-screen.
-        this.positionPanels(this.panels.length - 2);
+        if (this.panels.length > 1) {
+            // Slide it off-screen.
+            this.positionPanels(this.panels.length - 2);
 
-        // Remove it from the DOM.
-        const panel = this.panels.pop();
-        setTimeout(() => {
-            if (panel !== undefined) {
-                panel.element.remove();
-            }
-        }, 1000);
+            // Remove it from the DOM.
+            const panel = this.panels.pop();
+            setTimeout(() => {
+                if (panel !== undefined) {
+                    panel.element.remove();
+                }
+            }, 1000);
+        }
     }
 
     /**

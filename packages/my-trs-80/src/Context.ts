@@ -6,6 +6,7 @@ import {decodeTrs80File, Trs80File} from "trs80-base";
 import {User} from "./User";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Database} from "./Database";
+import {FilePanel} from "./FilePanel";
 
 /**
  * Context of the whole app, with its global variables.
@@ -52,6 +53,14 @@ export class Context {
             this.runningFile = file;
             this.trs80.runTrs80File(trs80File);
         }
+    }
+
+    /**
+     * Open a file panel on the given file.
+     */
+    public openFilePanel(file: File): void {
+        const filePanel = new FilePanel(this, file);
+        this.panelManager.pushPanel(filePanel);
     }
 
     /**

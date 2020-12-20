@@ -353,11 +353,20 @@ body.signed-out .navbar .sign-out-button {
     grid-template-columns: 1fr auto auto;
 }
 
-.library-panel .files {
-    background-color: var(--background);
+/* ----------------------------------------------------------------------------------------------------- */
+
+.your-files-tab {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
 }
 
-.library-panel .file {
+.your-files-tab .files {
+    background-color: var(--background);
+
+    overflow: auto;
+}
+
+.your-files-tab .file {
     padding: 10px var(--side-padding);
     border-bottom: 1px solid var(--background-highlights);
     cursor: default;
@@ -368,35 +377,107 @@ body.signed-out .navbar .sign-out-button {
     gap: 10px;
 }
 
-.library-panel .file .name {
+.your-files-tab .file .name {
     font-weight: 800;
     color: var(--accent-color);
 }
 
-.library-panel .file .filename {
+.your-files-tab .file .filename {
     font-family: "Roboto Mono", monospace;
     white-space: pre;
 }
 
-.library-panel .file .note {
+.your-files-tab .file .note {
     font-size: 80%;
     margin-top: 5px;
     color: var(--foreground-secondary);
 }
 
-.library-panel .file .screenshots {
+.your-files-tab .file .screenshots {
     display: flex;
     flex-flow: row nowrap;
     overflow: hidden;
 }
 
-.library-panel .file .screenshots > * {
+.your-files-tab .file .screenshots > * {
+    /* TODO can replace this with grid */
+    border-radius: 5px;
     max-width: 75px;
     margin-left: 10px;
 }
 
-.library-panel .file .screenshots > *:first-child {
+.your-files-tab .file .screenshots > *:first-child {
     margin-left: 0;
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.retro-store-tab {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr); /* contents */
+}
+
+.retro-store-tab .retro-store-apps {
+    background-color: var(--background);
+    overflow: auto;
+    padding: var(--side-padding);
+
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--side-padding);
+}
+
+.retro-store-tab .retro-store-app {
+    cursor: default;
+}
+
+.retro-store-tab .retro-store-app .screenshot {
+    width: 100%;
+    border-radius: 5px;
+    object-fit: cover;
+    margin-bottom: 8px;
+}
+
+.retro-store-tab .retro-store-app .button-set {
+    margin: 10px 0;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: auto auto;
+    justify-content: left;
+}
+
+.retro-store-tab .retro-store-app .name {
+    font-weight: 800;
+    color: var(--accent-color);
+    margin-bottom: 3px;
+}
+
+.retro-store-tab .retro-store-app .version {
+    font-weight: 100;
+    color: var(--foreground);
+    font-size: 80%;
+}
+
+.retro-store-tab .retro-store-app .release-year {
+    font-weight: 100;
+    color: var(--foreground);
+    font-size: 80%;
+    margin-left: 3px;
+}
+
+.retro-store-tab .retro-store-app .description {
+    font-size: 80%;
+    margin-top: 5px;
+    color: var(--foreground-secondary);
+}
+
+.signed-out .retro-store-app .import-button {
+    display: none;
+}
+
+.retro-store-app .icon-button.disabled {
+    opacity: 0.3;
+    cursor: default;
 }
 
 /* ----------------------------------------------------------------------------------------------------- */

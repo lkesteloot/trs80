@@ -4,7 +4,6 @@ import {clearElement, withCommas} from "teamten-ts-utils";
 import {File} from "./File";
 import {Context} from "./Context";
 import {PageTabs} from "./PageTabs";
-import {toHexByte, toHexWord} from "z80-base";
 import {CanvasScreen} from "trs80-emulator";
 import isEmpty from "lodash/isEmpty";
 import {LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
