@@ -1,4 +1,4 @@
-import {makeCloseIconButton, makeIcon, makeIconButton} from "./Utils";
+import {makeCloseIconButton} from "./Utils";
 import {Panel} from "./Panel";
 import {Context} from "./Context";
 import {PageTabs} from "./PageTabs";

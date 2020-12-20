@@ -2,7 +2,7 @@ import {PageTabs} from "./PageTabs";
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {File, FileBuilder} from "./File";
 import {CanvasScreen} from "trs80-emulator";
-import {makeButton, makeIcon, makeIconButton} from "./Utils";
+import {makeTextButton, makeIcon, makeIconButton} from "./Utils";
 import {clearElement} from "teamten-ts-utils";
 import {Context} from "./Context";
 
@@ -28,10 +28,10 @@ export class YourFilesTab {
         this.context.library.onEvent.subscribe(e => this.onLibraryEvent(e));
 
         const actionBar = document.createElement("div");
-        actionBar.classList.add("action-bar", "button-set");
+        actionBar.classList.add("action-bar");
         tab.element.append(actionBar);
 
-        const uploadButton = makeButton("Import File", "publish", "import-file-button",
+        const uploadButton = makeTextButton("Import File", "publish", "import-file-button",
             () => this.uploadFile());
         actionBar.append(uploadButton);
     }

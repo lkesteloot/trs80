@@ -29,7 +29,7 @@ export function makeIcon(name: string): HTMLElement {
  * Make a generic round button.
  */
 export function makeIconButton(icon: HTMLElement, title: string, clickCallback: () => void) {
-    const button = document.createElement("div");
+    const button = document.createElement("button");
     button.classList.add("icon-button");
     button.title = title;
     button.append(icon);
@@ -48,12 +48,12 @@ export function makeCloseIconButton(closeCallback: () => void) {
     return button;
 }
 
-export function makeButton(label: string, iconName: string | string[] | undefined,
-                           cssClass: string, clickCallback: (() => void) | undefined): HTMLButtonElement {
+export function makeTextButton(label: string, iconName: string | string[] | undefined,
+                               cssClass: string, clickCallback: (() => void) | undefined): HTMLButtonElement {
 
     const button = document.createElement("button");
     button.innerText = label;
-    button.classList.add(cssClass);
+    button.classList.add("text-button", cssClass);
 
     if (iconName !== undefined) {
         if (typeof iconName === "string") {

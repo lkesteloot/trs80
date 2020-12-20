@@ -8,7 +8,7 @@ import 'firebase/auth';
 import 'firebase/firestore';
 import 'firebase/analytics';
 import * as firebaseui from "firebaseui";
-import {makeButton, makeIcon, makeIconButton} from "./Utils";
+import {makeTextButton, makeIcon, makeIconButton} from "./Utils";
 import {PanelManager} from "./PanelManager";
 import {LibraryPanel} from "./LibraryPanel";
 import {Context} from "./Context";
@@ -34,7 +34,7 @@ function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () =
     const body = document.querySelector("body") as HTMLElement;
 
     const navbar = document.createElement("div");
-    navbar.classList.add("navbar", "button-set");
+    navbar.classList.add("navbar");
 
     const title = document.createElement("span");
     title.textContent = "My TRS-80";
@@ -49,8 +49,8 @@ function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () =
     });
     navbar.append(themeButton);
 
-    const signInButton = makeButton("Sign In", undefined, "sign-in-button", signIn);
-    const signOutButton = makeButton("Sign Out", undefined, "sign-out-button", signOut);
+    const signInButton = makeTextButton("Sign In", undefined, "sign-in-button", signIn);
+    const signOutButton = makeTextButton("Sign Out", undefined, "sign-out-button", signOut);
     navbar.append(signInButton, signOutButton);
 
     return navbar;

@@ -1,5 +1,5 @@
 import {Panel} from "./Panel";
-import {formatDate, makeButton, makeCloseIconButton, makeIcon, makeIconButton} from "./Utils";
+import {formatDate, makeTextButton, makeCloseIconButton, makeIcon, makeIconButton} from "./Utils";
 import {clearElement, withCommas} from "teamten-ts-utils";
 import {File} from "./File";
 import {Context} from "./Context";
@@ -82,16 +82,16 @@ class FileInfoTab {
         form.append(this.screenshotsDiv);
 
         const actionBar = document.createElement("div");
-        actionBar.classList.add("action-bar", "button-set");
+        actionBar.classList.add("action-bar");
         infoTab.element.append(actionBar);
 
-        const runButton = makeButton("Run", "play_arrow", "play-button", () => {
+        const runButton = makeTextButton("Run", "play_arrow", "play-button", () => {
             this.filePanel.context.runProgram(this.filePanel.file, this.trs80File);
             this.filePanel.context.panelManager.close();
 
         });
         actionBar.append(runButton);
-        const deleteButton = makeButton("Delete File", "delete", "delete-button", () => {
+        const deleteButton = makeTextButton("Delete File", "delete", "delete-button", () => {
             this.filePanel.context.db.deleteFile(this.filePanel.file)
                 .then(() => {
                     this.filePanel.context.library.removeFile(this.filePanel.file);
@@ -103,9 +103,9 @@ class FileInfoTab {
                 });
         });
         actionBar.append(deleteButton);
-        this.revertButton = makeButton("Revert", "undo", "revert-button", undefined);
+        this.revertButton = makeTextButton("Revert", "undo", "revert-button", undefined);
         actionBar.append(this.revertButton);
-        this.saveButton = makeButton("Save", ["save", "cached", "check"], "save-button", undefined);
+        this.saveButton = makeTextButton("Save", ["save", "cached", "check"], "save-button", undefined);
         actionBar.append(this.saveButton);
 
         for (const input of [this.nameInput, this.filenameInput, this.noteInput]) {

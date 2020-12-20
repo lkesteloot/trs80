@@ -189,7 +189,7 @@ export class RetroStoreTab {
                 this.context.panelManager.close();
             }
         });
-        playButton.classList.add("disabled");
+        playButton.disabled = true;
         buttonDiv.append(playButton);
         const importButton = makeIconButton(makeIcon("get_app"), "Import app", () => {
             if (validMediaImage !== undefined && validMediaImage.data !== undefined && this.context.user !== undefined) {
@@ -223,7 +223,8 @@ export class RetroStoreTab {
                     });
             }
         });
-        importButton.classList.add("import-button", "disabled");
+        importButton.classList.add("import-button");
+        importButton.disabled = true;
         buttonDiv.append(importButton);
         if (app.id !== undefined) {
             fetchMediaImages(app.id)
@@ -232,11 +233,11 @@ export class RetroStoreTab {
                     for (const mediaImage of mediaImages) {
                         if (mediaImage.type === RetroStoreProto.MediaType.COMMAND) {
                             validMediaImage = mediaImage;
-                            playButton.classList.remove("disabled");
-                            importButton.classList.remove("disabled");
+                            playButton.disabled = false;
+                            importButton.disabled = false;
                         } else if (mediaImage.type === RetroStoreProto.MediaType.BASIC) {
                             validMediaImage = mediaImage;
-                            importButton.classList.remove("disabled");
+                            importButton.disabled = false;
                         }
                     }
                 })
