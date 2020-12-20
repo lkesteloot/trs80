@@ -1,5 +1,5 @@
 import {Panel} from "./Panel";
-import {formatDate, makeTextButton, makeCloseIconButton, makeIcon, makeIconButton, startTimer} from "./Utils";
+import {formatDate, makeTextButton, makeIcon, makeIconButton} from "./Utils";
 import {clearElement, withCommas} from "teamten-ts-utils";
 import {File} from "./File";
 import {Context} from "./Context";
@@ -346,36 +346,15 @@ class HexdumpTab {
  */
 export class FilePanel extends Panel {
     public file: File;
-    public readonly headerTextNode: HTMLElement;
 
     constructor(context: Context, file: File) {
-        super(context);
+        super(context, file.name, "file-panel", true);
 
         this.file = file;
-
-        this.element.classList.add("file-panel");
-
         const trs80File = decodeTrs80File(file.binary);
 
-        const header = document.createElement("h1");
-        const backButton = makeIconButton(makeIcon("arrow_back"), "Back", () => this.context.panelManager.popPanel());
-        backButton.classList.add("back-button");
-        header.append(backButton);
-        this.headerTextNode = document.createElement("span");
-        this.headerTextNode.innerText = file.name;
-        header.append(this.headerTextNode);
-        header.append(makeCloseIconButton(() => this.context.panelManager.close()));
-        this.element.append(header);
-
-        const content = document.createElement("div");
-        content.classList.add("panel-content");
-        this.element.append(content);
-
-        const pageTabs = new PageTabs(content);
-        let timer = startTimer();
+        const pageTabs = new PageTabs(this.content);
         new FileInfoTab(this, pageTabs, trs80File);
-        console.log("Make file info tab: " + timer());
         new HexdumpTab(this, pageTabs, trs80File);
-        console.log("Make hexdump tab: " + timer());
     }
 }

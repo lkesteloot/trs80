@@ -1,4 +1,4 @@
-import {makeCloseIconButton} from "./Utils";
+
 import {Panel} from "./Panel";
 import {Context} from "./Context";
 import {PageTabs} from "./PageTabs";
@@ -10,22 +10,9 @@ import {RetroStoreTab} from "./RetroStoreTab";
  */
 export class LibraryPanel extends Panel {
     constructor(context: Context) {
-        super(context);
+        super(context, "Library", "library-panel", false);
 
-        this.element.classList.add("library-panel");
-
-        const header = document.createElement("h1");
-        const headerTextNode = document.createElement("span");
-        headerTextNode.innerText = "Library";
-        header.append(headerTextNode);
-        header.append(makeCloseIconButton(() => this.context.panelManager.close()));
-        this.element.append(header);
-
-        const content = document.createElement("div");
-        content.classList.add("panel-content");
-        this.element.append(content);
-
-        const pageTabs = new PageTabs(content);
+        const pageTabs = new PageTabs(this.content);
         new YourFilesTab(pageTabs, context);
         new RetroStoreTab(pageTabs, context);
     }
