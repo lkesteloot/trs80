@@ -1,3 +1,4 @@
+// Generate this with: npx pbjs ApiProtos.proto --ts RetroStoreProto.ts
 import * as RetroStoreProto from "./RetroStoreProto";
 import {PageTabs} from "./PageTabs";
 import {clearElement} from "teamten-ts-utils";
@@ -179,10 +180,10 @@ export class RetroStoreTab {
         buttonDiv.classList.add("button-set");
         appDiv.append(buttonDiv);
 
-        let cmdProgramMediaImage: RetroStoreProto.MediaImage | undefined = undefined;
+        let validMediaImage: RetroStoreProto.MediaImage | undefined = undefined;
         const playButton = makeIconButton(makeIcon("play_arrow"), "Run app", () => {
-            if (cmdProgramMediaImage !== undefined && cmdProgramMediaImage.data !== undefined) {
-                const cmdProgram = decodeTrs80File(cmdProgramMediaImage.data);
+            if (validMediaImage !== undefined && validMediaImage.data !== undefined) {
+                const cmdProgram = decodeTrs80File(validMediaImage.data);
                 // TODO should set context.runningFile
                 this.context.trs80.runTrs80File(cmdProgram);
                 this.context.panelManager.close();
@@ -191,13 +192,13 @@ export class RetroStoreTab {
         playButton.classList.add("disabled");
         buttonDiv.append(playButton);
         const importButton = makeIconButton(makeIcon("get_app"), "Import app", () => {
-            if (cmdProgramMediaImage !== undefined && cmdProgramMediaImage.data !== undefined && this.context.user !== undefined) {
+            if (validMediaImage !== undefined && validMediaImage.data !== undefined && this.context.user !== undefined) {
                 const noteParts: string[] = [];
                 if (app.description !== undefined && app.description !== "") {
                     noteParts.push(app.description);
                 }
-                if (cmdProgramMediaImage.description !== undefined && cmdProgramMediaImage.description !== "") {
-                    noteParts.push(cmdProgramMediaImage.description);
+                if (validMediaImage.description !== undefined && validMediaImage.description !== "") {
+                    noteParts.push(validMediaImage.description);
                 }
                 noteParts.push("Imported from RetroStore.org.");
                 const note = noteParts.join("\n\n");
@@ -206,8 +207,8 @@ export class RetroStoreTab {
                     .withUid(this.context.user.uid)
                     .withName(appName)
                     .withNote(note)
-                    .withFilename(cmdProgramMediaImage.filename ?? "UNKNOWN")
-                    .withBinary(cmdProgramMediaImage.data)
+                    .withFilename(validMediaImage.filename ?? "UNKNOWN")
+                    .withBinary(validMediaImage.data)
                     .build();
 
                 this.context.db.addFile(file)
@@ -230,8 +231,11 @@ export class RetroStoreTab {
                     console.log(app.id, app.name, mediaImages);
                     for (const mediaImage of mediaImages) {
                         if (mediaImage.type === RetroStoreProto.MediaType.COMMAND) {
-                            cmdProgramMediaImage = mediaImage;
+                            validMediaImage = mediaImage;
                             playButton.classList.remove("disabled");
+                            importButton.classList.remove("disabled");
+                        } else if (mediaImage.type === RetroStoreProto.MediaType.BASIC) {
+                            validMediaImage = mediaImage;
                             importButton.classList.remove("disabled");
                         }
                     }

@@ -26,7 +26,7 @@ export class LibraryPanel extends Panel {
         this.element.append(content);
 
         const pageTabs = new PageTabs(content);
-        new RetroStoreTab(pageTabs, context);
         new YourFilesTab(pageTabs, context);
+        new RetroStoreTab(pageTabs, context);
     }
 }

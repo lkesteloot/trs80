@@ -145,6 +145,7 @@ body.signed-out .navbar .sign-out-button {
     border-radius: 999px;
     cursor: pointer;
     min-height: var(--button-height);
+    font-size: 13px;
 
     transition: border var(--button-transition-time) ease-in-out,
     color var(--button-transition-time) ease-in-out,
@@ -345,6 +346,7 @@ body.signed-out .navbar .sign-out-button {
     background-color: var(--background);
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
+    cursor: default;
 }
 
 /* ----------------------------------------------------------------------------------------------------- */
@@ -372,7 +374,7 @@ body.signed-out .navbar .sign-out-button {
     cursor: default;
 
     display: grid;
-    grid-template-columns: 25% 1fr auto auto;
+    grid-template-columns: 1fr auto auto auto;
     align-items: center;
     gap: 10px;
 }
@@ -391,6 +393,17 @@ body.signed-out .navbar .sign-out-button {
     font-size: 80%;
     margin-top: 5px;
     color: var(--foreground-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    /* Max two lines. */
+    line-height: 1.3;
+    max-height: 2.6em;
+
+    /* Put ellipsis at end of second line. This appears to be webkit-only, but seems to work on Firefox too. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .your-files-tab .file .screenshots {
