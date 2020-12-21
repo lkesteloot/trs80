@@ -7,6 +7,7 @@ import {clearElement} from "teamten-ts-utils";
 import {Context} from "./Context";
 
 const FILE_ID_ATTR = "data-file-id";
+const IMPORT_FILE_LABEL = "Import File";
 
 /**
  * Tap for the Your Files UI.
@@ -14,6 +15,8 @@ const FILE_ID_ATTR = "data-file-id";
 export class YourFilesTab {
     private readonly context: Context;
     private readonly filesDiv: HTMLElement;
+    private readonly emptyLibrary: HTMLElement;
+    private libraryInSync = false;
 
     constructor(pageTabs: PageTabs, context: Context) {
         this.context = context;
@@ -26,15 +29,30 @@ export class YourFilesTab {
         this.filesDiv.classList.add("files");
         tab.element.append(this.filesDiv);
 
+        this.emptyLibrary = document.createElement("div");
+        this.emptyLibrary.classList.add("empty-library");
+        tab.element.append(this.emptyLibrary);
+
+        const emptyTitle = document.createElement("h2");
+        emptyTitle.innerText = "You have no files in your library!";
+        const emptyBody = document.createElement("article");
+        emptyBody.innerHTML= `Upload a <code>CAS</code> or <code>CMD</code> file from your computer using the “${IMPORT_FILE_LABEL.replace(/ /g, "&nbsp;")}” button below, or import it from the RetroStore tab.`;
+        const demon = document.createElement("img");
+        demon.src = "/demon.png";
+        this.emptyLibrary.append(emptyTitle, emptyBody, demon);
+
         this.context.library.onEvent.subscribe(e => this.onLibraryEvent(e));
+        this.context.library.onInSync.subscribe(inSync => this.onLibraryInSync(inSync));
 
         const actionBar = document.createElement("div");
         actionBar.classList.add("action-bar");
         tab.element.append(actionBar);
 
-        const uploadButton = makeTextButton("Import File", "publish", "import-file-button",
+        const uploadButton = makeTextButton(IMPORT_FILE_LABEL, "publish", "import-file-button",
             () => this.uploadFile());
         actionBar.append(uploadButton);
+
+        this.updateSplashScreen();
     }
 
     /**
@@ -54,6 +72,26 @@ export class YourFilesTab {
         if (event instanceof LibraryRemoveEvent) {
             this.removeFile(event.oldFile.id);
         }
+
+        this.updateSplashScreen();
+    }
+
+    /**
+     * React to whether library is now fully in sync.
+     */
+    private onLibraryInSync(inSync: boolean): void {
+        this.libraryInSync = inSync;
+        this.updateSplashScreen();
+    }
+
+    /**
+     * Update whether the splash screen is shown.
+     */
+    private updateSplashScreen(): void {
+        const displaySplashScreen = this.libraryInSync && this.filesDiv.children.length === 0;
+
+        this.filesDiv.classList.toggle("hidden", displaySplashScreen);
+        this.emptyLibrary.classList.toggle("hidden", !displaySplashScreen);
     }
 
     /**

@@ -234,6 +234,8 @@ export function main() {
                         const file = FileBuilder.fromDoc(doc).build();
                         library.addFile(file);
                     }
+                    // We should now be in sync with the cloud database.
+                    library.setInSync(true);
                 })
                 .catch(error => {
                     // TODO

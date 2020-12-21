@@ -346,7 +346,7 @@ button.icon-button {
 
 .your-files-tab {
     display: grid;
-    grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
+    grid-template-rows: minmax(0, 1fr) auto; /* content (files or empty-library) and action-bar */
 }
 
 .your-files-tab .files {
@@ -408,6 +408,49 @@ button.icon-button {
 
 .your-files-tab .file .screenshots > *:first-child {
     margin-left: 0;
+}
+
+.your-files-tab .empty-library {
+    background-color: var(--background);
+    padding: var(--side-padding);
+    overflow: hidden;
+
+    display: grid;
+    grid:
+        "...... demon" 1fr
+        "header demon" auto
+        "...... demon" 50px
+        " body  demon" auto
+        "...... demon" 2fr /
+         4fr    3fr;
+    column-gap: 40px;
+}
+
+.your-files-tab .empty-library h2 {
+    grid-area: header;
+    margin: 0;
+    font-size: 20pt;
+    font-weight: 100;
+    color: var(--accent-color);
+    text-align: right;
+}
+
+.your-files-tab .empty-library article {
+    grid-area: body;
+    margin: 0;
+    font-size: 14pt;
+    font-weight: normal;
+    color: var(--foreground);
+    text-align: right;
+}
+
+.your-files-tab .empty-library img {
+    grid-area: demon;
+}
+
+.your-files-tab .empty-library article code {
+    font-family: "Roboto Mono", monospace;
+    color: var(--blue);
 }
 
 /* ----------------------------------------------------------------------------------------------------- */

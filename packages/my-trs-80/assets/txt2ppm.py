@@ -1,7 +1,8 @@
 
 import sys
 
-FG = [122, 244, 96]
+# FG = [122, 244, 96]
+FG = [0x26, 0x8b, 0xd2] # Blue from Solarized.
 BG = [0, 0, 0]
 TRANSPARENT = [0, 0, 255]
 ERROR = [255, 0, 0]
