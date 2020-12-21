@@ -166,8 +166,8 @@ export class Keyboard {
 
     // Read a byte from the keyboard memory bank. This is an odd system where
     // bits in the address map to the various bytes, and you can read the OR'ed
-    // addresses to read more than one byte at a time. This isn't used by the
-    // ROM, I don't think. For the last byte we fake the Shift key if necessary.
+    // addresses to read more than one byte at a time. For the last byte we fake
+    // the Shift key if necessary.
     public readKeyboard(addr: number, clock: number): number {
         addr -= BEGIN_ADDR;
         let b = 0;

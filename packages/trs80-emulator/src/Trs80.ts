@@ -1,4 +1,4 @@
-import {lo, hi, toHex} from "z80-base";
+import {hi, lo, toHex} from "z80-base";
 import {Hal, Z80} from "z80-emulator";
 import {CassettePlayer} from "./CassettePlayer";
 import {Keyboard} from "./Keyboard";
@@ -8,8 +8,17 @@ import {model3Rom} from "./Model3Rom";
 import {Trs80Screen} from "./Trs80Screen";
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {BasicLevel, CGChip, Config, ModelType} from "./Config";
-import {Trs80File, CmdLoadBlockChunk, CmdProgram, CmdTransferAddressChunk, Cassette, SystemProgram} from "trs80-base";
-import {toHexWord} from "z80-base/dist/main";
+import {
+    BasicProgram,
+    Cassette,
+    CmdLoadBlockChunk,
+    CmdProgram,
+    CmdTransferAddressChunk,
+    ElementType,
+    SystemProgram,
+    Trs80File
+} from "trs80-base";
+import {toHexWord} from "z80-base";
 
 // IRQs
 const M1_TIMER_IRQ_MASK = 0x80;
@@ -323,6 +332,7 @@ export class Trs80 implements Hal {
         // Update cassette state.
         this.updateCassette();
 
+        // Dispatch scheduled events.
         while (this.scheduledEvents.length > 0 && this.tStateCount >= this.scheduledEvents[0].tStateCount) {
             const scheduledEvent = this.scheduledEvents.shift() as ScheduledEvent;
             scheduledEvent.callback();
@@ -506,11 +516,17 @@ export class Trs80 implements Hal {
 
     /**
      * Write a block of data to memory.
+     *
+     * @return the address just past the block.
      */
-    public writeMemoryBlock(address: number, values: Uint8Array): void {
-        for (const value of values) {
-            this.writeMemory(address++, value);
+    public writeMemoryBlock(address: number, values: Uint8Array, startIndex: number = 0, length?: number): number {
+        length = length ?? values.length;
+
+        for (let i = 0; i < length; i++) {
+            this.writeMemory(address++, values[startIndex + i]);
         }
+
+        return address;
     }
 
     /**
@@ -925,6 +941,8 @@ export class Trs80 implements Hal {
             }
         } else if (trs80File instanceof SystemProgram) {
             this.runSystemProgram(trs80File);
+        } else if (trs80File instanceof BasicProgram) {
+            this.runBasicProgram(trs80File);
         } else {
             // TODO.
         }
@@ -965,6 +983,76 @@ export class Trs80 implements Hal {
             }
 
             this.jumpTo(systemProgram.entryPointAddress);
+        });
+    }
+
+    /**
+     * Load a Basic program into memory and run it.
+     */
+    public runBasicProgram(basicProgram: BasicProgram): void {
+        this.reset();
+
+        // Wait for Cass?
+        this.setScheduledEvent(this.clockHz*0.1, () => {
+            this.keyboard.simulateKeyboardText("\n0\n");
+
+            // Wait for Ready prompt.
+            this.setScheduledEvent(this.clockHz*0.2, () => {
+                // Find address to load to.
+                let addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
+                if (addr < 0x4200 || addr >= 0x4500) {
+                    console.error("Basic load address (0x" + toHexWord(addr) + ") is uninitialized");
+                    return;
+                }
+
+                // Terminate current line (if any) and set up the new one.
+                let lineStart: number | undefined;
+                const newLine = () => {
+                    if (lineStart !== undefined) {
+                        // End-of-line marker.
+                        this.writeMemory(addr++, 0);
+
+                        // Update previous line's next-line pointer.
+                        this.writeMemory(lineStart, lo(addr));
+                        this.writeMemory(lineStart + 1, hi(addr));
+                    }
+
+                    // Remember address of next-line pointer.
+                    lineStart = addr;
+
+                    // Next-line pointer.
+                    this.writeMemory(addr++, 0);
+                    this.writeMemory(addr++, 0);
+                };
+
+                // Write elements to memory.
+                for (const e of basicProgram.elements) {
+                    if (e.offset !== undefined) {
+                        if (e.elementType === ElementType.LINE_NUMBER) {
+                            newLine();
+                        }
+
+                        // Write element.
+                        addr = this.writeMemoryBlock(addr, basicProgram.binary, e.offset, e.length);
+                    }
+                }
+
+                newLine();
+
+                // End of Basic program pointer.
+                this.writeMemory(0x40F9, lo(addr));
+                this.writeMemory(0x40FA, hi(addr));
+
+                // Start of array variables pointer.
+                this.writeMemory(0x40FB, lo(addr));
+                this.writeMemory(0x40FC, hi(addr));
+
+                // Start of free memory pointer.
+                this.writeMemory(0x40FD, lo(addr));
+                this.writeMemory(0x40FE, hi(addr));
+
+                this.keyboard.simulateKeyboardText("RUN\n");
+            });
         });
     }
 }
