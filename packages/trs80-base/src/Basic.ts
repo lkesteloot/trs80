@@ -2,8 +2,12 @@
 // Tools for decoding Basic programs.
 
 import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
+import {toHexWord} from "z80-base";
+import {ProgramAnnotation} from "./ProgramAnnotation";
+import {Trs80File} from "./Trs80File";
 
-const BASIC_HEADER_BYTE = 0xD3;
+const BASIC_TAPE_HEADER_BYTE = 0xD3;
+const BASIC_HEADER_BYTE = 0xFF;
 
 // Starts at 0x80.
 const TOKENS = [
@@ -95,12 +99,32 @@ export class BasicElement {
 }
 
 /**
+ * Class representing a Basic program. If the "error" field is set, then something
+ * went wrong with the program and the data may be partially loaded.
+ */
+export class BasicProgram extends Trs80File {
+    public elements: BasicElement[];
+
+    constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
+                elements: BasicElement[]) {
+
+        super(binary, error, annotations);
+        this.elements = elements;
+    }
+
+    public getDescription(): string {
+        // Don't include filename, it's usually worthless.
+        return "Basic program";
+    }
+}
+
+/**
  * Adds the header bytes necessary for writing Basic cassettes.
  */
 export function wrapBasic(bytes: Uint8Array): Uint8Array {
     // Add Basic header.
     const buffers = [
-        new Uint8Array([BASIC_HEADER_BYTE, BASIC_HEADER_BYTE, BASIC_HEADER_BYTE]),
+        new Uint8Array([BASIC_TAPE_HEADER_BYTE, BASIC_TAPE_HEADER_BYTE, BASIC_TAPE_HEADER_BYTE]),
         bytes,
     ];
     return concatByteArrays(buffers);
@@ -108,23 +132,36 @@ export function wrapBasic(bytes: Uint8Array): Uint8Array {
 
 /**
  * Decode a tokenized Basic program.
- * @param bytes tokenized program.
- * @return array of generated BasicElements, index by byte index.
+ * @param bytes tokenized program. May be in tape format (D3 D3 D3 followed by a one-letter program
+ * name) or not (FF).
+ * @return the Basic program, or undefined if the header did not indicate that this was a Basic program.
  */
-export function fromTokenized(bytes: Uint8Array): BasicElement[] {
+export function decodeBasicProgram(bytes: Uint8Array): BasicProgram | undefined {
     const b = new ByteReader(bytes);
     let state;
+    let error: string | undefined;
+    const annotations: ProgramAnnotation[] = [];
 
     // Map from byte address to BasicElement for that byte.
     const elements: BasicElement[] = [];
 
-    if (b.read() !== BASIC_HEADER_BYTE || b.read() !== BASIC_HEADER_BYTE || b.read() !== BASIC_HEADER_BYTE) {
-        elements.push(new BasicElement(undefined, "Basic: missing magic -- not a BASIC file.", ElementType.ERROR));
-        return elements;
-    }
+    const firstByte = b.read();
+    if (firstByte === BASIC_TAPE_HEADER_BYTE) {
+        if (b.read() !== BASIC_TAPE_HEADER_BYTE || b.read() !== BASIC_TAPE_HEADER_BYTE) {
+            return undefined;
+        }
 
-    // One-byte ASCII program name. This is nearly always meaningless, so we do nothing with it.
-    b.read();
+        annotations.push(new ProgramAnnotation("Header", 0, b.addr()));
+
+        // One-byte ASCII program name. This is nearly always meaningless, so we do nothing with it.
+        b.read();
+        annotations.push(new ProgramAnnotation("Name", b.addr() - 1, b.addr()));
+    } else if (firstByte === BASIC_HEADER_BYTE) {
+        // All good.
+        annotations.push(new ProgramAnnotation("Header", 0, b.addr()));
+    } else {
+        return undefined;
+    }
 
     while (true) {
         // Read the address of the next line. We ignore this (as does Basic when
@@ -132,26 +169,32 @@ export function fromTokenized(bytes: Uint8Array): BasicElement[] {
         // Basic these are regenerated after loading.)
         const address = b.readShort(true);
         if (address === EOF) {
-            elements.push(new BasicElement(undefined, "[EOF in next line's address]", ElementType.ERROR));
+            error = "EOF in next line's address";
             break;
         }
         // Zero address indicates end of program.
         if (address === 0) {
+            annotations.push(new ProgramAnnotation("End-of-program marker", b.addr() - 2, b.addr()));
             break;
         }
+        annotations.push(new ProgramAnnotation(
+            "Address of next line (0x" + toHexWord(address) + ")", b.addr() - 2, b.addr()));
 
         // Read current line number.
         const lineNumber = b.readShort(false);
         if (lineNumber === EOF) {
-            elements.push(new BasicElement(undefined, "[EOF in line number]", ElementType.ERROR));
+            error = "EOF in line number";
             break;
         }
+        annotations.push(new ProgramAnnotation("Line number (" + lineNumber + ")", b.addr() - 2, b.addr()));
         const lineNumberElement = new BasicElement(b.addr() - 2, lineNumber.toString(), ElementType.LINE_NUMBER);
         lineNumberElement.length = 2;
         elements.push(lineNumberElement);
         elements.push(new BasicElement(undefined, " ", ElementType.REGULAR));
 
         // Read rest of line.
+        const lineAddr = b.addr();
+        const lineElementsIndex = elements.length;
         let c; // Uint8 value.
         let ch; // String value.
         let colonAddr = 0;
@@ -236,7 +279,8 @@ export function fromTokenized(bytes: Uint8Array): BasicElement[] {
             }
         }
         if (c === EOF) {
-            elements.push(new BasicElement(undefined, "[EOF in line]", ElementType.ERROR));
+            error = "EOF in line";
+            annotations.push(new ProgramAnnotation("Partial line", lineAddr, b.addr()));
             break;
         }
 
@@ -249,7 +293,18 @@ export function fromTokenized(bytes: Uint8Array): BasicElement[] {
             /// state = NORMAL;
             /// colonAddr = 0;
         }
+
+        const textLineParts: string[] = [];
+        for (let i = lineElementsIndex; i < elements.length; i++) {
+            textLineParts.push(elements[i].text);
+        }
+        let textLine = textLineParts.join("");
+        if (textLine.length > 33) {
+            textLine = textLine.substr(0, 30) + "...";
+        }
+        annotations.push(new ProgramAnnotation("Line: " + textLine, lineAddr, b.addr() - 1));
+        annotations.push(new ProgramAnnotation("End-of-line marker", b.addr() - 1, b.addr()));
     }
 
-    return elements;
+    return new BasicProgram(bytes, error, annotations, elements);
 }

@@ -171,6 +171,9 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
         // First byte is type of chunk.
         const type = b.read();
         if (type === EOF || type > CMD_MAX_TYPE || error !== undefined) {
+            if (chunks.length === 0) {
+                return undefined;
+            }
             return new CmdProgram(binary.subarray(0, b.addr()), error, annotations,
                 chunks, filename, entryPointAddress);
         }

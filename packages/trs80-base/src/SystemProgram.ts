@@ -99,6 +99,7 @@ export class SystemProgram extends Trs80File {
 export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefined {
     const chunks: SystemChunk[] = [];
     const annotations: ProgramAnnotation[] = [];
+    let entryPointAddress = 0;
 
     const b = new ByteReader(binary);
 
@@ -172,7 +173,7 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
         chunks.push(new SystemChunk(loadAddress, data, checksum));
     }
 
-    let entryPointAddress = b.readShort(false);
+    entryPointAddress = b.readShort(false);
     if (entryPointAddress === EOF) {
         entryPointAddress = 0;
         return makeSystemProgram("File is truncated at entry point address");
