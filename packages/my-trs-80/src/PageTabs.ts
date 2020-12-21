@@ -8,7 +8,11 @@ export class PageTabs {
     private readonly containerElement: Element;
     private readonly tabElement: HTMLElement;
     private readonly tabs: PageTab[] = [];
-    private activeIndex: number | undefined = undefined;
+    // The tab last selected by the user.
+    private activeIndex = 0;
+    // Same as activeIndex, unless it's not visible, in which case some other
+    // visible tab, or undefined if no tab is visible.
+    private effectiveActiveIndex: number | undefined = undefined;
 
     constructor(element: Element) {
         this.containerElement = element;
@@ -23,12 +27,69 @@ export class PageTabs {
     /**
      * Create a new tab.
      */
-    public newTab(name: string): PageTab {
-        const tab = new PageTab(name);
+    public newTab(name: string, visible: boolean = true): PageTab {
+        const tab = new PageTab(name, visible);
         this.tabs.push(tab);
         this.containerElement.append(tab.element);
-        this.setActiveTab(this.activeIndex ?? 0);
+        this.configurationChanged();
         return tab;
+    }
+
+    /**
+     * Set the visibility of a tab.
+     */
+    public setVisible(tab: PageTab, visible: boolean): void {
+        tab.visible = visible;
+        this.configurationChanged();
+    }
+
+    /**
+     * Switch the active tab.
+     */
+    private setActiveTab(activeIndex: number): void {
+        if (activeIndex !== this.activeIndex) {
+            this.activeIndex = activeIndex;
+            this.configurationChanged();
+        }
+    }
+
+    /**
+     * Update all tabs given a new configuration.
+     */
+    private configurationChanged(): void {
+        const oldEffectiveActiveIndex = this.effectiveActiveIndex;
+        this.computeEffectiveActiveIndex();
+        if (oldEffectiveActiveIndex !== this.effectiveActiveIndex) {
+            if (oldEffectiveActiveIndex !== undefined) {
+                this.tabs[oldEffectiveActiveIndex].onHide.dispatch();
+            }
+            if (this.effectiveActiveIndex !== undefined) {
+                this.tabs[this.effectiveActiveIndex].onShow.dispatch();
+            }
+        }
+
+        this.recreateTabs();
+        this.updateTabContentVisibility();
+    }
+
+    /**
+     * Get the current active index. If it's hidden, return another one. If none
+     * exist, return undefined.
+     */
+    private computeEffectiveActiveIndex() {
+        this.effectiveActiveIndex = this.activeIndex;
+
+        // If the active tab is hidden, find another one.
+        if (this.effectiveActiveIndex >= this.tabs.length || !this.tabs[this.effectiveActiveIndex].visible) {
+            // Pick any.
+            this.effectiveActiveIndex = undefined;
+            for (let i = 0; i < this.tabs.length; i++) {
+                if (this.tabs[i].visible) {
+                    this.effectiveActiveIndex = i;
+                    break;
+                }
+            }
+        }
     }
 
     /**
@@ -39,32 +100,25 @@ export class PageTabs {
 
         for (let index = 0; index < this.tabs.length; index++) {
             const tab = this.tabs[index];
-            const tabDiv = document.createElement("div");
-            tabDiv.innerText = tab.name;
-            tabDiv.classList.toggle("page-tab-active", index === this.activeIndex);
-            tabDiv.addEventListener("click", () => {
-                this.setActiveTab(index);
-            });
+            if (tab.visible) {
+                const tabDiv = document.createElement("div");
+                tabDiv.innerText = tab.name;
+                tabDiv.classList.toggle("page-tab-active", index === this.effectiveActiveIndex);
+                tabDiv.addEventListener("click", () => {
+                    this.setActiveTab(index);
+                });
 
-            this.tabElement.append(tabDiv);
+                this.tabElement.append(tabDiv);
+            }
         }
     }
 
     /**
-     * Switch the active tab.
+     * Update which tab contents are visible based on which is selected.
      */
-    private setActiveTab(activeIndex: number): void {
-        if (this.activeIndex !== undefined) {
-            this.tabs[this.activeIndex].onHide.dispatch();
-        }
-
-        this.activeIndex = activeIndex;
-        this.recreateTabs();
-
+    private updateTabContentVisibility(): void {
         for (let index = 0; index < this.tabs.length; index++) {
-            this.tabs[index].element.classList.toggle("hidden", index !== this.activeIndex);
+            this.tabs[index].element.classList.toggle("hidden", index !== this.effectiveActiveIndex);
         }
-
-        this.tabs[this.activeIndex].onShow.dispatch();
     }
 }

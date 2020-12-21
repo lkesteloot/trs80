@@ -18,8 +18,9 @@ export class YourFilesTab {
     constructor(pageTabs: PageTabs, context: Context) {
         this.context = context;
 
-        const tab = pageTabs.newTab("Your Files");
+        const tab = pageTabs.newTab("Your Files", context.user !== undefined);
         tab.element.classList.add("your-files-tab");
+        context.onUser.subscribe(user => pageTabs.setVisible(tab, user !== undefined));
 
         this.filesDiv = document.createElement("div");
         this.filesDiv.classList.add("files");
