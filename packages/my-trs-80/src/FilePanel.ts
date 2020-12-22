@@ -27,6 +27,7 @@ class FileInfoTab {
     private readonly sizeInput: HTMLInputElement;
     private readonly addedAtInput: HTMLInputElement;
     private readonly modifiedAtInput: HTMLInputElement;
+    private readonly sharedInput: HTMLInputElement;
     private readonly screenshotsDiv: HTMLElement;
     private readonly revertButton: HTMLButtonElement;
     private readonly saveButton: HTMLButtonElement;
@@ -75,6 +76,23 @@ class FileInfoTab {
         this.addedAtInput = makeInputBox("Added", undefined, false);
         this.sizeInput = makeInputBox("Size", undefined, false);
         this.modifiedAtInput = makeInputBox("Last modified", undefined, false);
+        {
+            const labelElement = document.createElement("label");
+            labelElement.classList.add("shared");
+            labelElement.innerText = "Shared";
+            form.append(labelElement);
+
+            this.sharedInput = document.createElement("input");
+            this.sharedInput.type = "checkbox";
+
+            const offIcon = makeIcon("toggle_off");
+            offIcon.classList.add("off-state");
+
+            const onIcon = makeIcon("toggle_on");
+            onIcon.classList.add("on-state");
+
+            labelElement.append(this.sharedInput, offIcon, onIcon);
+        }
         form.append(miscDiv);
 
         this.screenshotsDiv = document.createElement("div");
@@ -111,6 +129,7 @@ class FileInfoTab {
         for (const input of [this.nameInput, this.filenameInput, this.noteInput]) {
             input.addEventListener("input", () => this.updateButtonStatus());
         }
+        this.sharedInput.addEventListener("change", () => this.updateButtonStatus());
         this.nameInput.addEventListener("input", () => {
             let name = this.fileFromUi().name;
             if (name === "") {
@@ -192,6 +211,7 @@ class FileInfoTab {
         this.sizeInput.value = withCommas(file.binary.length) + " byte" + (file.binary.length === 1 ? "" : "s");
         this.addedAtInput.value = formatDate(file.addedAt);
         this.modifiedAtInput.value = formatDate(file.modifiedAt);
+        this.sharedInput.checked = file.shared;
         if (updateData === undefined || updateData.hasOwnProperty("screenshots")) {
             this.populateScreenshots();
         }
@@ -259,6 +279,7 @@ class FileInfoTab {
             .withName(this.nameInput.value.trim())
             .withFilename(this.filenameInput.value.trim())
             .withNote(this.noteInput.value.trim())
+            .withShared(this.sharedInput.checked)
             .withScreenshots(screenshots)
             .build();
     }

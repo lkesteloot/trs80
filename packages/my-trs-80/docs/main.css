@@ -86,6 +86,10 @@ body, input, textarea {
     align-items: center;
 }
 
+i.material-icons-round {
+    user-select: none;
+}
+
 /* ----------------------------------------------------------------------------------------------------- */
 
 .navbar {
@@ -532,7 +536,7 @@ button.icon-button {
 .file-panel-form {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto auto auto 1fr;
+    grid-template-rows: auto auto auto auto 1fr;
     column-gap: 20px;
     row-gap: 20px;
     background-color: var(--background);
@@ -593,6 +597,27 @@ button.icon-button {
 
 .file-panel-form .misc {
     grid-column-end: span 2;
+}
+
+.file-panel-form .shared input {
+    display: none;
+}
+
+.file-panel-form .shared i {
+    font-size: 36px;
+    display: block;
+}
+
+.file-panel-form .shared i.on-state {
+    color: var(--blue);
+}
+
+.file-panel-form .shared input:checked ~ i.off-state {
+    display: none;
+}
+
+.file-panel-form .shared input:not(:checked) ~ i.on-state {
+    display: none;
 }
 
 .file-panel-form .screenshots .screenshot {

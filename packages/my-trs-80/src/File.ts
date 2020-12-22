@@ -69,6 +69,9 @@ export class File {
         if (this.note !== oldFile.note) {
             updateData.note = this.note;
         }
+        if (this.shared !== oldFile.shared) {
+            updateData.shared = this.shared;
+        }
         if (!isSameStringArray(this.screenshots, oldFile.screenshots)) {
             updateData.screenshots = this.screenshots;
         }
@@ -159,6 +162,11 @@ export class FileBuilder {
 
     public withNote(note: string): this {
         this.note = note;
+        return this;
+    }
+
+    public withShared(shared: boolean): this {
+        this.shared = shared;
         return this;
     }
 
