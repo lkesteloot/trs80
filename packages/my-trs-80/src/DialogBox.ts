@@ -3,7 +3,7 @@ export class DialogBox {
     private backgroundNode: HTMLElement | undefined = undefined;
     private readonly escListener: (e: KeyboardEvent) => void;
 
-    constructor(title: string, content: HTMLElement) {
+    constructor(title: string, content: HTMLElement, cssClass?: string) {
         const body = document.querySelector("body") as HTMLElement;
         this.backgroundNode = document.createElement("div");
         this.backgroundNode.classList.add("dialog-box-background");
@@ -18,6 +18,9 @@ export class DialogBox {
 
         const frame = document.createElement("div");
         frame.classList.add("dialog-box-frame");
+        if (cssClass !== undefined) {
+            frame.classList.add(cssClass);
+        }
         this.backgroundNode.append(frame);
 
         const h1 = document.createElement("h1");

@@ -82,9 +82,9 @@ export function main() {
         signInOptions: [
             // Leave the lines as is for the providers you want to offer your users.
             firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-            firebase.auth.FacebookAuthProvider.PROVIDER_ID,
-            firebase.auth.TwitterAuthProvider.PROVIDER_ID,
-            firebase.auth.GithubAuthProvider.PROVIDER_ID,
+            // firebase.auth.FacebookAuthProvider.PROVIDER_ID,
+            // firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+            // firebase.auth.GithubAuthProvider.PROVIDER_ID,
             // firebase.auth.EmailAuthProvider.PROVIDER_ID,
             // firebase.auth.PhoneAuthProvider.PROVIDER_ID,
             // firebaseui.auth.AnonymousAuthProvider.PROVIDER_ID
@@ -107,6 +107,11 @@ export function main() {
     const firebaseAuthUi = new firebaseui.auth.AuthUI(firebaseAuth);
 
     const signInDiv = document.createElement("div");
+    const signInInstructions = document.createElement("div");
+    signInInstructions.classList.add("sign-in-instructions");
+    signInInstructions.innerText = "Sign in to My TRS-80 to have a persistent place to store your files.";
+    const signInFirebase = document.createElement("div");
+    signInDiv.append(signInInstructions, signInFirebase);
     let signInDialog: DialogBox | undefined = undefined;
 
     const db = new Database(firebase.firestore());
@@ -131,7 +136,7 @@ export function main() {
         } else {
             // No user signed in, render sign-in UI.
             firebaseAuthUi.reset();
-            firebaseAuthUi.start(signInDiv, uiConfig);
+            firebaseAuthUi.start(signInFirebase, uiConfig);
 
             context.user = undefined;
         }
@@ -146,7 +151,7 @@ export function main() {
             if (signInDialog !== undefined) {
                 signInDialog.close();
             }
-            signInDialog = new DialogBox("Sign In", signInDiv);
+            signInDialog = new DialogBox("Sign In", signInDiv, "sign-in-dialog-box");
         },
         () => firebase.auth().signOut());
     const screenDiv = document.createElement("div");
@@ -211,7 +216,7 @@ export function main() {
         if (context.runningFile !== undefined) {
             let file = context.runningFile;
             const screenshot = trs80.getScreenshot();
-            const screenshots = [...file.screenshots, screenshot];
+            const screenshots = [...file.screenshots, screenshot]; // Don't modify original array.
             file = file.builder()
                 .withScreenshots(screenshots)
                 .withModifiedAt(new Date())

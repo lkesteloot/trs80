@@ -317,7 +317,7 @@ button.icon-button {
 }
 
 .dialog-box-background .dialog-box-frame .dialog-box-content-frame {
-    margin: 20px;
+    padding: 20px;
 }
 
 /* ----------------------------------------------------------------------------------------------------- */
@@ -345,6 +345,14 @@ button.icon-button {
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
     cursor: default;
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.sign-in-instructions {
+    max-width: 250px;
+    margin-bottom: 2em;
+    text-align: center;
 }
 
 /* ----------------------------------------------------------------------------------------------------- */
