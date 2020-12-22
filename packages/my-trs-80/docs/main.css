@@ -106,6 +106,13 @@ i.material-icons-round {
     align-items: center;
 }
 
+.navbar a:link,
+.navbar a:visited,
+.navbar a:active {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
 body.signed-in .navbar .sign-in-button {
     display: none;
 }

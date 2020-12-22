@@ -1,8 +1,9 @@
 import firebase from "firebase/app";
-import {File} from "./File";
+import {File, FileBuilder} from "./File";
 import QuerySnapshot = firebase.firestore.QuerySnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 import DocumentReference = firebase.firestore.DocumentReference;
+import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 import {AuthUser, User} from "./User";
 
 const FILES_COLLECTION_NAME = "files";
@@ -23,6 +24,26 @@ export class Database {
      */
     public getAllFiles(uid: string): Promise<QuerySnapshot<DocumentData>> {
         return this.firestore.collection(FILES_COLLECTION_NAME).where("uid", "==", uid).get();
+    }
+
+    /**
+     * Get a file by its ID. Rejects without argument if can't be found or has insufficient permission.
+     */
+    public getFile(fileId: string): Promise<File> {
+        return this.firestore.collection(FILES_COLLECTION_NAME).doc(fileId).get()
+            .then(snapshot => {
+                if (snapshot.exists) {
+                    return Promise.resolve(FileBuilder.fromDoc(snapshot).build());
+                } else {
+                    // I don't know when this can happen because both missing and non-shared
+                    // files show up in the catch clause.
+                    return Promise.reject();
+                }
+            })
+            .catch(error => {
+                console.error(`Can't get file ${fileId}`, error);
+                return Promise.reject();
+            });
     }
 
     /**

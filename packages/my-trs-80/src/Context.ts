@@ -8,6 +8,8 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Database} from "./Database";
 import {FilePanel} from "./FilePanel";
 
+const FRAGMENT_PREFIX = "#!";
+
 /**
  * Context of the whole app, with its global variables.
  */
@@ -16,9 +18,13 @@ export class Context {
     public readonly trs80: Trs80;
     public readonly db: Database;
     public readonly panelManager: PanelManager;
-    public runningFile: File | undefined = undefined;
+    private _runningFile: File | undefined = undefined;
     private _user: User | undefined = undefined;
+    private userResolved = false;
     public readonly onUser = new SimpleEventDispatcher<User | undefined>();
+    public readonly onFragment = new SimpleEventDispatcher<string>();
+    // Dispatched when we initially figure out if we're signed in or not.
+    public readonly onUserResolved = new SimpleEventDispatcher<void>();
 
     constructor(library: Library, trs80: Trs80, db: Database, panelManager: PanelManager) {
         this.library = library;
@@ -28,11 +34,11 @@ export class Context {
 
         // Listen for changes to the file we're running.
         this.library.onEvent.subscribe(event => {
-            if (this.runningFile !== undefined) {
-                if (event instanceof LibraryModifyEvent && event.oldFile.id === this.runningFile.id) {
+            if (this._runningFile !== undefined) {
+                if (event instanceof LibraryModifyEvent && event.oldFile.id === this._runningFile.id) {
                     this.runningFile = event.newFile;
                 }
-                if (event instanceof LibraryRemoveEvent && event.oldFile.id === this.runningFile.id) {
+                if (event instanceof LibraryRemoveEvent && event.oldFile.id === this._runningFile.id) {
                     this.runningFile = undefined;
                 }
             }
@@ -64,11 +70,30 @@ export class Context {
     }
 
     /**
+     * Get the currently-running file, if any.
+     */
+    get runningFile(): File | undefined {
+        return this._runningFile;
+    }
+
+    /**
+     * Set the currently-running file, if any.
+     */
+    set runningFile(value: File | undefined) {
+        this._runningFile = value;
+        this.onFragment.dispatch(this.getFragment());
+    }
+
+    /**
      * Set the currently signed-in user.
      */
     set user(user: User | undefined) {
         this._user = user;
         this.onUser.dispatch(user);
+        if (!this.userResolved) {
+            this.userResolved = true;
+            this.onUserResolved.dispatch();
+        }
     }
 
     /**
@@ -76,5 +101,50 @@ export class Context {
      */
     get user(): User | undefined {
         return this._user;
+    }
+
+    /**
+     * Return the URL fragment for this context, including the leading hash.
+     */
+    public getFragment(): string {
+        const parts: string[] = [];
+
+        if (this._runningFile !== undefined) {
+            parts.push("runFile=" + this._runningFile.id);
+        }
+
+        const fragment = parts.join(",");
+
+        return fragment === "" ? "" : FRAGMENT_PREFIX + fragment;
+    }
+
+    /**
+     * Returns a map of variables in the fragment. Every value array will have at least one element.
+     */
+    public static parseFragment(fragment: string): Map<string,string[]> {
+        const args = new Map<string,string[]>();
+
+        if (fragment.startsWith(FRAGMENT_PREFIX)) {
+            fragment = fragment.substr(FRAGMENT_PREFIX.length);
+
+            const parts = fragment.split(",");
+            for (const part of parts) {
+                const subparts = part.split("=");
+                if (subparts.length !== 2) {
+                    console.error(`Fragment part "${part}" is malformed.`);
+                } else {
+                    const key = subparts[0];
+                    const value = subparts[1];
+                    let values = args.get(key);
+                    if (values === undefined) {
+                        values = [];
+                        args.set(key, values);
+                    }
+                    values.push(value);
+                }
+            }
+        }
+
+        return args;
     }
 }

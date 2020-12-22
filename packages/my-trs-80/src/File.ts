@@ -3,6 +3,7 @@ import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 import UpdateData = firebase.firestore.UpdateData;
 import {isSameStringArray} from "./Utils";
+import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 
 /**
  * Represents a file that the user owns.
@@ -121,11 +122,12 @@ export class FileBuilder {
     public addedAt: Date = new Date();
     public modifiedAt: Date = new Date();
 
-    public static fromDoc(doc: QueryDocumentSnapshot<DocumentData>): FileBuilder {
+    public static fromDoc(doc: DocumentSnapshot<DocumentData>): FileBuilder {
         const builder = new FileBuilder();
         builder.id = doc.id;
 
-        const data = doc.data();
+        // Assume data() is valid, either because it's a query or because we checked "exists".
+        const data = doc.data() as DocumentData;
         builder.uid = data.uid;
         builder.name = data.name;
         builder.filename = data.filename;

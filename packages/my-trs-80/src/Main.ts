@@ -36,8 +36,9 @@ function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () =
     const navbar = document.createElement("div");
     navbar.classList.add("navbar");
 
-    const title = document.createElement("span");
+    const title = document.createElement("a");
     title.textContent = "My TRS-80";
+    title.href = "/";
     navbar.append(title);
 
     const libraryButton = makeIconButton(makeIcon("folder_open"), "Open library (Ctrl-L)", openLibrary);
@@ -196,6 +197,9 @@ export function main() {
     reboot();
 
     const context = new Context(library, trs80, db, panelManager);
+    context.onFragment.subscribe(fragment => {
+        window.location.hash = fragment;
+    });
 
     context.onUser.subscribe(user => {
         body.classList.toggle("signed-in", user !== undefined);
@@ -242,8 +246,24 @@ export function main() {
                     console.error(error);
                     if (error.name === "FirebaseError") {
                         // code can be "permission-denied".
-                        console.log(error.code, error.message);
+                        console.error(error.code, error.message);
                     }
+                });
+        }
+    });
+
+    // See if we should run an app right away.
+    const args = Context.parseFragment(window.location.hash);
+    const runFileId = args.get("runFile")?.[0];
+    context.onUserResolved.subscribe(() => {
+        // We're signed in, or not, and can now read the database.
+        if (runFileId !== undefined) {
+            db.getFile(runFileId)
+                .then(file => {
+                    context.runProgram(file);
+                })
+                .catch(() => {
+                    // TODO Should probably display error message.
                 });
         }
     });
