@@ -476,7 +476,7 @@ button.icon-button {
 
 .retro-store-tab {
     display: grid;
-    grid-template-rows: minmax(0, 1fr); /* contents */
+    grid-template-rows: minmax(0, 1fr); /* retro-store-apps */
 }
 
 .retro-store-tab .retro-store-apps {
@@ -535,6 +535,19 @@ button.icon-button {
 
 .signed-out .retro-store-app .import-button {
     display: none;
+}
+
+.retro-store-tab .retro-store-more {
+    display: grid;
+    justify-content: center;
+    align-content: center;
+}
+
+.retro-store-tab .retro-store-more i {
+    font-size: 60px;
+    opacity: .2;
+
+    animation: spin 1s infinite linear, rainbow 2s infinite linear;
 }
 
 /* ----------------------------------------------------------------------------------------------------- */
@@ -683,10 +696,7 @@ button.icon-button {
 }
 
 .action-bar .save-button i:nth-of-type(2) {
-    animation-name: spin;
-    animation-duration: 1000ms;
-    animation-iteration-count: infinite;
-    animation-timing-function: linear;
+    animation: spin 1s infinite linear;
 }
 
 .action-bar .save-button i:nth-of-type(3) {
@@ -704,6 +714,18 @@ button.icon-button {
     to {
         transform:rotate(360deg);
     }
+}
+
+@keyframes rainbow {
+    0% { color: var(--yellow); }
+    12.5% { color: var(--orange); }
+    25% { color: var(--red); }
+    37.5% { color: var(--magenta); }
+    50% { color: var(--violet); }
+    62.5% { color: var(--blue); }
+    75% { color: var(--cyan); }
+    87.5% { color: var(--green); }
+    100% { color: var(--yellow); }
 }
 
 /* ----------------------------------------------------------------------------------------------------- */
