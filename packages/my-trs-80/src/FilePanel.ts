@@ -347,6 +347,24 @@ class HexdumpTab {
             this.generateHexdump();
         });
         actionBar.append(annotateLabel);
+
+        // Take the hexdump out of the dom when the panel is hidden because it slows down things
+        // like changing themes (the animations aren't smooth).
+        let hideHandle: number | undefined = undefined;
+        const cancelHide = () => {
+            if (hideHandle !== undefined) {
+                window.clearTimeout(hideHandle);
+                hideHandle = undefined;
+            }
+        };
+        filePanel.context.panelManager.onOpenClose.subscribe(isOpen => {
+            cancelHide();
+            if (isOpen) {
+                this.hexdumpElement.classList.remove("hidden");
+            } else {
+                hideHandle = window.setTimeout(() => this.hexdumpElement.classList.add("hidden"), 400);
+            }
+        });
     }
 
     /**
