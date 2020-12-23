@@ -556,6 +556,7 @@ button.icon-button {
     display: grid;
     justify-content: center;
     align-content: center;
+    min-height: 200px;
 }
 
 .retro-store-tab .retro-store-more i {
