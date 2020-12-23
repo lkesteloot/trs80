@@ -42,10 +42,6 @@ const NORMAL = 0;
 const STRING_LITERAL = 1;
 // After REM or DATA statement to end of line.
 const RAW = 2;
-// Just ate a colon.
-const COLON = 3;
-// Just ate a colon and a REM.
-const COLON_REM = 4;
 
 /**
  * Get the token for the byte value, or undefined if the value does
@@ -79,11 +75,12 @@ export enum ElementType {
  * Piece of a Basic program (token, character, line number).
  */
 export class BasicElement {
-    // Byte offset in "bytes" array, or undefined if this is an error message or otherwise not selectable.
+    // Byte offset in "bytes" array, or undefined if this is an error message or otherwise
+    // not selectable, such as the space between line numbers and the rest of the line.
     public offset: number | undefined;
 
-    // Length of section in "bytes" array.
-    public length: number = 1;
+    // Length of section in "binary" array.
+    public length: number;
 
     // Text of element.
     public text: string;
@@ -91,8 +88,9 @@ export class BasicElement {
     // Type of element (line number, token, string literal, etc.).
     public elementType: ElementType;
 
-    constructor(offset: number | undefined, text: string, elementType: ElementType) {
+    constructor(offset: number | undefined, text: string, elementType: ElementType, length: number = 1) {
         this.offset = offset;
+        this.length = length;
         this.text = text;
         this.elementType = elementType;
     }
@@ -132,12 +130,12 @@ export function wrapBasic(bytes: Uint8Array): Uint8Array {
 
 /**
  * Decode a tokenized Basic program.
- * @param bytes tokenized program. May be in tape format (D3 D3 D3 followed by a one-letter program
+ * @param binary tokenized program. May be in tape format (D3 D3 D3 followed by a one-letter program
  * name) or not (FF).
  * @return the Basic program, or undefined if the header did not indicate that this was a Basic program.
  */
-export function decodeBasicProgram(bytes: Uint8Array): BasicProgram | undefined {
-    const b = new ByteReader(bytes);
+export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined {
+    const b = new ByteReader(binary);
     let state;
     let error: string | undefined;
     const annotations: ProgramAnnotation[] = [];
@@ -187,9 +185,7 @@ export function decodeBasicProgram(bytes: Uint8Array): BasicProgram | undefined 
             break;
         }
         annotations.push(new ProgramAnnotation("Line number (" + lineNumber + ")", b.addr() - 2, b.addr()));
-        const lineNumberElement = new BasicElement(b.addr() - 2, lineNumber.toString(), ElementType.LINE_NUMBER);
-        lineNumberElement.length = 2;
-        elements.push(lineNumberElement);
+        elements.push(new BasicElement(b.addr() - 2, lineNumber.toString(), ElementType.LINE_NUMBER, 2));
         elements.push(new BasicElement(undefined, " ", ElementType.REGULAR));
 
         // Read rest of line.
@@ -197,7 +193,6 @@ export function decodeBasicProgram(bytes: Uint8Array): BasicProgram | undefined 
         const lineElementsIndex = elements.length;
         let c; // Uint8 value.
         let ch; // String value.
-        let colonAddr = 0;
         state = NORMAL;
         while (true) {
             c = b.read();
@@ -206,37 +201,25 @@ export function decodeBasicProgram(bytes: Uint8Array): BasicProgram | undefined 
             }
             ch = String.fromCharCode(c);
 
-            // Detect the ":REM'" sequence (colon, REM, single quote), because
-            // that translates to a single quote. Must be a backward-compatible
-            // way to add a single quote as a comment.
+            // Special handling of sequences of characters that start with a colon.
             if (ch === ":" && state === NORMAL) {
-                state = COLON;
-                colonAddr = b.addr() - 1;
-            } else if (ch === ":" && state === COLON) {
-                elements.push(new BasicElement(colonAddr, ":", ElementType.PUNCTUATION));
-                colonAddr = b.addr() - 1;
-            } else if (c === REM && state === COLON) {
-                state = COLON_REM;
-                colonAddr = 0;
-            } else if (c === REMQUOT && state === COLON_REM) {
-                elements.push(new BasicElement(b.addr() - 1, "'", ElementType.COMMENT));
-                state = RAW;
-            } else if (c === ELSE && state === COLON) {
-                elements.push(new BasicElement(b.addr() - 1, "ELSE", ElementType.KEYWORD));
-                state = NORMAL;
-                colonAddr = 0;
-            } else {
-                if (state === COLON || state === COLON_REM) {
+                const colonAddr = b.addr() - 1;
+                if (b.peek(0) === ELSE) {
+                    // :ELSE gets translated to just ELSE, probably because an old version
+                    // of Basic only supported ELSE after a colon.
+                    b.read(); // ELSE
+                    elements.push(new BasicElement(colonAddr, "ELSE", ElementType.KEYWORD, b.addr() - colonAddr));
+                } else if (b.peek(0) === REM && b.peek(1) === REMQUOT) {
+                    // Detect the ":REM'" sequence (colon, REM, single quote), because
+                    // that translates to a single quote. Must be a backward-compatible
+                    // way to add a single quote as a comment.
+                    b.read(); // REM
+                    b.read(); // REMQUOT
+                    elements.push(new BasicElement(colonAddr, "'", ElementType.COMMENT, b.addr() - colonAddr));
+                } else {
                     elements.push(new BasicElement(colonAddr, ":", ElementType.PUNCTUATION));
-                    if (state === COLON_REM) {
-                        elements.push(new BasicElement(b.addr() - 1, "REM", ElementType.COMMENT));
-                        state = RAW;
-                    } else {
-                        state = NORMAL;
-                    }
-                    colonAddr = 0;
                 }
-
+            } else {
                 switch (state) {
                     case NORMAL:
                         const token = getToken(c);
@@ -284,16 +267,6 @@ export function decodeBasicProgram(bytes: Uint8Array): BasicProgram | undefined 
             break;
         }
 
-        // Deal with eaten tokens.
-        if (state === COLON || state === COLON_REM) {
-            elements.push(new BasicElement(colonAddr, ":", ElementType.PUNCTUATION));
-            if (state === COLON_REM) {
-                elements.push(new BasicElement(b.addr() - 1, "REM", ElementType.COMMENT));
-            }
-            /// state = NORMAL;
-            /// colonAddr = 0;
-        }
-
         const textLineParts: string[] = [];
         for (let i = lineElementsIndex; i < elements.length; i++) {
             textLineParts.push(elements[i].text);
@@ -306,5 +279,5 @@ export function decodeBasicProgram(bytes: Uint8Array): BasicProgram | undefined 
         annotations.push(new ProgramAnnotation("End-of-line marker", b.addr() - 1, b.addr()));
     }
 
-    return new BasicProgram(bytes, error, annotations, elements);
+    return new BasicProgram(binary, error, annotations, elements);
 }
