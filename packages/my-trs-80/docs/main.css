@@ -101,16 +101,31 @@ i.material-icons-round {
     color: var(--accent-color);
 
     display: grid;
-    grid-template-columns: 1fr auto auto auto auto;
+    grid: "home-button . library-button theme-button sign-in-out-button" auto /
+        auto 1fr auto auto auto;
     gap: 15px;
     align-items: center;
 }
 
-.navbar a:link,
-.navbar a:visited,
-.navbar a:active {
+.navbar .home-button:link,
+.navbar .home-button:visited,
+.navbar .home-button:active {
+    grid-area: home-button;
     color: var(--accent-color);
     text-decoration: none;
+}
+
+.navbar .library-button {
+    grid-area: library-button;
+}
+
+.navbar .theme-button {
+    grid-area: theme-button;
+}
+
+.navbar .sign-in-button,
+.navbar .sign-out-button {
+    grid-area: sign-in-out-button;
 }
 
 body.signed-in .navbar .sign-in-button {

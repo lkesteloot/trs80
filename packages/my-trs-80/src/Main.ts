@@ -12,7 +12,7 @@ import {Context} from "./Context";
 import {Library} from "./Library";
 import {FileBuilder} from "./File";
 import {DialogBox} from "./DialogBox";
-import {AuthUser, User} from "./User";
+import {AuthUser} from "./User";
 import {Database} from "./Database";
 
 class EmptyCassette extends CassettePlayer {
@@ -26,17 +26,20 @@ function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () =
     navbar.classList.add("navbar");
 
     const title = document.createElement("a");
+    title.classList.add("home-button");
     title.textContent = "My TRS-80";
     title.href = "/";
     navbar.append(title);
 
     const libraryButton = makeIconButton(makeIcon("folder_open"), "Open library (Ctrl-L)", openLibrary);
+    libraryButton.classList.add("library-button");
     navbar.append(libraryButton);
 
     const themeButton = makeIconButton(makeIcon("brightness_medium"), "Toggle theme", () => {
         body.classList.toggle("light-mode");
         body.classList.toggle("dark-mode");
     });
+    themeButton.classList.add("theme-button");
     navbar.append(themeButton);
 
     const signInButton = makeTextButton("Sign In", undefined, "sign-in-button", signIn);
