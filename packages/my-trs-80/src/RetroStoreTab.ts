@@ -231,12 +231,11 @@ export class RetroStoreTab {
                 .then(mediaImages => {
                     console.log(app.id, app.name, mediaImages);
                     for (const mediaImage of mediaImages) {
-                        if (mediaImage.type === RetroStoreProto.MediaType.COMMAND) {
+                        if (mediaImage.type === RetroStoreProto.MediaType.COMMAND ||
+                            mediaImage.type === RetroStoreProto.MediaType.BASIC) {
+
                             validMediaImage = mediaImage;
                             playButton.disabled = false;
-                            importButton.disabled = false;
-                        } else if (mediaImage.type === RetroStoreProto.MediaType.BASIC) {
-                            validMediaImage = mediaImage;
                             importButton.disabled = false;
                         }
                     }
