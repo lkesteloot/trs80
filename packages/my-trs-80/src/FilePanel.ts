@@ -11,6 +11,7 @@ import firebase from "firebase";
 import UpdateData = firebase.firestore.UpdateData;
 import {decodeTrs80File, Trs80File} from "trs80-base";
 import {HexdumpGenerator} from "./HexdumpGenerator";
+import {PageTab} from "./PageTab";
 
 const SCREENSHOT_ATTR = "data-screenshot";
 
@@ -36,13 +37,13 @@ class FileInfoTab {
         this.filePanel = filePanel;
         this.trs80File = trs80File;
 
-        const infoTab = pageTabs.newTab("File Info");
-        infoTab.element.classList.add("file-info-tab");
+        const tab = new PageTab("File Info");
+        tab.element.classList.add("file-info-tab");
 
         // Form for editing file info.
         const form = document.createElement("form");
         form.classList.add("file-panel-form");
-        infoTab.element.append(form);
+        tab.element.append(form);
 
         const makeInputBox = (label: string, cssClass: string | undefined, enabled: boolean): HTMLInputElement => {
             const labelElement = document.createElement("label");
@@ -101,7 +102,7 @@ class FileInfoTab {
 
         const actionBar = document.createElement("div");
         actionBar.classList.add("action-bar");
-        infoTab.element.append(actionBar);
+        tab.element.append(actionBar);
 
         const runButton = makeTextButton("Run", "play_arrow", "play-button", () => {
             this.filePanel.context.runProgram(this.filePanel.file, this.trs80File);
@@ -185,6 +186,7 @@ class FileInfoTab {
         });
 
         this.updateUi();
+        pageTabs.addTab(tab);
     }
 
     /**
@@ -300,17 +302,17 @@ class HexdumpTab {
         this.binary = filePanel.file.binary;
         this.trs80File = trs80File;
 
-        const infoTab = pageTabs.newTab("Hexdump");
-        infoTab.element.classList.add("hexdump-tab");
+        const tab = new PageTab("Hexdump");
+        tab.element.classList.add("hexdump-tab");
 
         const outer = document.createElement("div");
         outer.classList.add("hexdump-outer");
-        infoTab.element.append(outer);
+        tab.element.append(outer);
 
         this.hexdumpElement = document.createElement("div");
         this.hexdumpElement.classList.add("hexdump");
         outer.append(this.hexdumpElement);
-        infoTab.onShow.subscribe(() => {
+        tab.onShow.subscribe(() => {
             // Wait until user switches to tab to compute initial display, so that
             // it doesn't slow down the animation to the file panel. Also do it
             // asynchronously so that we don't block the display of the tab change.
@@ -322,7 +324,7 @@ class HexdumpTab {
 
         const actionBar = document.createElement("div");
         actionBar.classList.add("action-bar");
-        infoTab.element.append(actionBar);
+        tab.element.append(actionBar);
 
         const collapseLabel = document.createElement("label");
         const collapseCheckbox = document.createElement("input");
@@ -365,6 +367,8 @@ class HexdumpTab {
                 hideHandle = window.setTimeout(() => this.hexdumpElement.classList.add("hidden"), 400);
             }
         });
+
+        pageTabs.addTab(tab);
     }
 
     /**

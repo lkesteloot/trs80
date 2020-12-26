@@ -6,6 +6,7 @@ import {makeIcon, makeIconButton} from "./Utils";
 import {Context} from "./Context";
 import {decodeTrs80File} from "trs80-base";
 import {FileBuilder} from "./File";
+import {PageTab} from "./PageTab";
 
 const RETRO_STORE_API_URL = "https://retrostore.org/api/";
 
@@ -117,7 +118,7 @@ export class RetroStoreTab {
     constructor(pageTabs: PageTabs, context: Context) {
         this.context = context;
 
-        const tab = pageTabs.newTab("RetroStore");
+        const tab = new PageTab("RetroStore");
         tab.element.classList.add("retro-store-tab");
 
         this.appsDiv = document.createElement("div");
@@ -132,6 +133,8 @@ export class RetroStoreTab {
         // When showing the tab, wait for laying and maybe fetch more.
         tab.onShow.subscribe(() => setTimeout(() => this.fetchNextBatchIfNecessary(), 0));
         this.populateApps();
+
+        pageTabs.addTab(tab);
     }
 
     /**

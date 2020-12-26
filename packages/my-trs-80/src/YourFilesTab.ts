@@ -5,6 +5,7 @@ import {CanvasScreen} from "trs80-emulator";
 import {makeTextButton, makeIcon, makeIconButton} from "./Utils";
 import {clearElement} from "teamten-ts-utils";
 import {Context} from "./Context";
+import {PageTab} from "./PageTab";
 
 const FILE_ID_ATTR = "data-file-id";
 const IMPORT_FILE_LABEL = "Import File";
@@ -21,7 +22,7 @@ export class YourFilesTab {
     constructor(pageTabs: PageTabs, context: Context) {
         this.context = context;
 
-        const tab = pageTabs.newTab("Your Files", context.user !== undefined);
+        const tab = new PageTab("Your Files", context.user !== undefined);
         tab.element.classList.add("your-files-tab");
         context.onUser.subscribe(user => pageTabs.setVisible(tab, user !== undefined));
 
@@ -53,6 +54,8 @@ export class YourFilesTab {
         actionBar.append(uploadButton);
 
         this.updateSplashScreen();
+
+        pageTabs.addTab(tab);
     }
 
     /**

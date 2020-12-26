@@ -25,14 +25,13 @@ export class PageTabs {
     }
 
     /**
-     * Create a new tab.
+     * Add a new tab. Be sure it's fully configured, because its onShow
+     * listener might be called synchronously.
      */
-    public newTab(name: string, visible: boolean = true): PageTab {
-        const tab = new PageTab(name, visible);
+    public addTab(tab: PageTab): void {
         this.tabs.push(tab);
         this.containerElement.append(tab.element);
         this.configurationChanged();
-        return tab;
     }
 
     /**
@@ -59,6 +58,7 @@ export class PageTabs {
     private configurationChanged(): void {
         const oldEffectiveActiveIndex = this.effectiveActiveIndex;
         this.computeEffectiveActiveIndex();
+        console.log(oldEffectiveActiveIndex, this.effectiveActiveIndex);
         if (oldEffectiveActiveIndex !== this.effectiveActiveIndex) {
             if (oldEffectiveActiveIndex !== undefined) {
                 this.tabs[oldEffectiveActiveIndex].onHide.dispatch();
