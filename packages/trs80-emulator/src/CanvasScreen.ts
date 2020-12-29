@@ -9,9 +9,6 @@ export const BLACK_BACKGROUND = "#000000";
 const PADDING = 10;
 const BORDER_RADIUS = 8;
 
-// Run it on the next event cycle.
-const UPDATE_THUMBNAIL_TIMEOUT_MS = 0;
-
 const WHITE_PHOSPHOR = [230, 231, 252];
 const AMBER_PHOSPHOR = [247, 190, 64];
 const GREEN_PHOSPHOR = [122, 244, 96];
@@ -54,6 +51,9 @@ export class CanvasScreen extends Trs80Screen {
         super();
 
         this.node = document.createElement("div");
+        // Fit canvas horizontally so that the nested objects (panels and progress bars) are
+        // displayed in the canvas.
+        this.node.style.maxWidth = "max-content";
 
         this.scale = scale;
         this.padding = Math.round(PADDING*this.scale);
