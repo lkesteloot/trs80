@@ -121,8 +121,8 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
     }
 
     // Prepare screenshot, in case loading process writes to screen.
-    const screenDiv = document.createElement("div");
-    const screen = new CanvasScreen(screenDiv, false);
+    const screen = new CanvasScreen();
+
     let wroteToScreen = false;
 
     // List chunks on tape.
@@ -187,7 +187,9 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         h1.innerText = "Loading Screen";
         out.appendChild(h1);
 
-        out.appendChild(screenDiv);
+        const screenDiv = document.createElement("div");
+        screenDiv.append(screen.asImage());
+        out.append(screenDiv);
     }
 
     h1 = document.createElement("h1");

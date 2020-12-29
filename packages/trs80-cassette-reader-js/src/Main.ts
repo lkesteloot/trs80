@@ -88,8 +88,9 @@ function populateBrowseScreen(browseScreen: HTMLElement): void {
             if (programData.screenshot) {
                 const div = document.createElement("div");
                 browseScreen.appendChild(div);
-                const screen = new CanvasScreen(div, false);
+                const screen = new CanvasScreen();
                 screen.displayScreenshot(programData.screenshot);
+                div.append(screen.asImage());
             }
         }
     }

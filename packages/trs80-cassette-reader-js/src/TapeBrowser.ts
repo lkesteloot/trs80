@@ -6,7 +6,7 @@ import * as CmdProgramRender from "./CmdProgramRender";
 import * as Hexdump from "./Hexdump";
 import {Program} from "./Program";
 import {Tape} from "./Tape";
-import {Cassette, ControlPanel, CanvasScreen, ProgressBar, Trs80, SettingsPanel, PanelType} from "trs80-emulator";
+import {CassettePlayer, ControlPanel, CanvasScreen, ProgressBar, Trs80, SettingsPanel, PanelType} from "trs80-emulator";
 import {WaveformDisplay} from "./WaveformDisplay";
 import * as Edtasm from "./Edtasm";
 import {BitType} from "./BitType";
@@ -22,7 +22,7 @@ import {DEFAULT_SAMPLE_RATE} from "./WavFile";
 /**
  * Generic cassette that reads from a Int16Array.
  */
-class Int16Cassette extends Cassette {
+class Int16Cassette extends CassettePlayer {
     private readonly samples: Int16Array;
     private frame: number = 0;
     private progressBar: ProgressBar | undefined;
@@ -451,11 +451,18 @@ export class TapeBrowser {
             const screenshotDiv = document.createElement("div");
             screenshotDiv.style.marginLeft = "20pt";
             div.appendChild(screenshotDiv);
-            const screenshotScreen = new CanvasScreen(screenshotDiv, false);
-            screenshotScreen.displayScreenshot(program.screenshot);
+            const screenshotScreen = new CanvasScreen();
+            const updateScreenshot = (screenshot: string) => {
+                clearElement(screenshotDiv);
+                if (screenshot !== "") {
+                    screenshotScreen.displayScreenshot(program.screenshot);
+                    screenshotDiv.append(screenshotScreen.asImage());
+                }
+            };
             program.onScreenshot.subscribe(screenshot => {
-                screenshotScreen.displayScreenshot(screenshot)
+                updateScreenshot(screenshot);
             });
+            updateScreenshot(program.screenshot);
         } else {
             const screenshotsDiv = document.createElement("div");
             div.appendChild(screenshotsDiv);
@@ -469,11 +476,18 @@ export class TapeBrowser {
                     screenshotDiv.addEventListener("click", () => onProgramClick(subprogram));
                 }
                 screenshotsDiv.appendChild(screenshotDiv);
-                const screenshotScreen = new CanvasScreen(screenshotDiv, true);
-                screenshotScreen.getNode().classList.add("thumbnail");
+                const screenshotScreen = new CanvasScreen();
                 const updateScreenshot = function (screenshot: string) {
-                    screenshotScreen.displayScreenshot(screenshot);
-                    screenshotDiv.style.display = screenshot === "" ? "none" : "block";
+                    clearElement(screenshotDiv);
+                    if (screenshot !== "") {
+                        screenshotScreen.displayScreenshot(screenshot);
+                        const image = screenshotScreen.asImage();
+                        image.style.maxWidth = "200px";
+                        screenshotDiv.append(image);
+                        screenshotDiv.style.display = "block";
+                    } else {
+                        screenshotDiv.style.display = "none";
+                    }
                 };
                 updateScreenshot(subprogram.screenshot);
                 subprogram.onScreenshot.subscribe(screenshot => {
@@ -699,7 +713,8 @@ export class TapeBrowser {
         const screenDiv = document.createElement("div");
         div.appendChild(screenDiv);
 
-        const screen = new CanvasScreen(screenDiv, false);
+        const screen = new CanvasScreen();
+        screenDiv.append(screen.getNode());
         const trs80 = new Trs80(screen, cassette ?? new EmptyCassette());
 
         const reboot = () => {
