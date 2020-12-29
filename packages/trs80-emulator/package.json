@@ -22,8 +22,8 @@
   "repository": "https://github.com/lkesteloot/trs80-emulator",
   "license": "MIT",
   "dependencies": {
-    "teamten-ts-utils": "../teamten-ts-utils",
-    "trs80-base": "../trs80-base",
+    "teamten-ts-utils": "^1.0.1",
+    "trs80-base": "^1.0.1",
     "z80-base": "^1.0.3",
     "z80-emulator": "^1.0.2"
   },
