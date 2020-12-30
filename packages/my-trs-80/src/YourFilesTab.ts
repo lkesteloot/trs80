@@ -42,8 +42,13 @@ export class YourFilesTab {
         demon.src = "/demon.png";
         this.emptyLibrary.append(emptyTitle, emptyBody, demon);
 
+        // Register for changes to library.
         this.context.library.onEvent.subscribe(e => this.onLibraryEvent(e));
         this.context.library.onInSync.subscribe(inSync => this.onLibraryInSync(inSync));
+
+        // Populate initial library state.
+        this.context.library.getAllFiles().forEach(f => this.addFile(f));
+        this.sortFiles();
 
         const actionBar = document.createElement("div");
         actionBar.classList.add("action-bar");

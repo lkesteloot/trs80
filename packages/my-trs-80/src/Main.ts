@@ -1,11 +1,11 @@
-import {CanvasScreen, CassettePlayer, ControlPanel, PanelType, ProgressBar, SettingsPanel, Trs80} from "trs80-emulator";
+import {CanvasScreen, CassettePlayer, ControlPanel, PanelType, SettingsPanel, Trs80} from "trs80-emulator";
 import firebase from 'firebase/app';
 // These imports load individual services into the firebase namespace.
 import 'firebase/auth';
 import 'firebase/firestore';
 import 'firebase/analytics';
 import * as firebaseui from "firebaseui";
-import {makeTextButton, makeIcon, makeIconButton} from "./Utils";
+import {makeIcon, makeIconButton, makeTextButton} from "./Utils";
 import {PanelManager} from "./PanelManager";
 import {LibraryPanel} from "./LibraryPanel";
 import {Context} from "./Context";
@@ -170,8 +170,14 @@ export function main() {
     body.append(navbar);
     body.append(screenDiv);
 
+    let createdLibraryPanel = false;
     let wasTrs80Started = false;
     panelManager.onOpenClose.subscribe(isOpen => {
+        if (isOpen && !createdLibraryPanel) {
+            panelManager.pushPanel(new LibraryPanel(context));
+            createdLibraryPanel = true;
+        }
+
         if (isOpen) {
             wasTrs80Started = trs80.stop();
         } else {
@@ -217,9 +223,6 @@ export function main() {
                 });
         }
     });
-
-    const libraryPanel = new LibraryPanel(context);
-    panelManager.pushPanel(libraryPanel);
 
     context.onUser.subscribe(user => {
         library.removeAll();

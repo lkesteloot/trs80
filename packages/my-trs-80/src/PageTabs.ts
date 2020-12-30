@@ -58,7 +58,6 @@ export class PageTabs {
     private configurationChanged(): void {
         const oldEffectiveActiveIndex = this.effectiveActiveIndex;
         this.computeEffectiveActiveIndex();
-        console.log(oldEffectiveActiveIndex, this.effectiveActiveIndex);
         if (oldEffectiveActiveIndex !== this.effectiveActiveIndex) {
             if (oldEffectiveActiveIndex !== undefined) {
                 this.tabs[oldEffectiveActiveIndex].onHide.dispatch();
