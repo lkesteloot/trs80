@@ -109,7 +109,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             // We expect a pulse every period.
             const expectedPulse = this.isPulseAt(frame, this.peakThreshold);
             if (expectedPulse.resultType !== PulseResultType.PULSE) {
-                waveformAnnotations.push(new LabelAnnotation("Missing pulse", startFrame, expectedPulse.frame, false));
+                waveformAnnotations.push(new LabelAnnotation("Missing pulse", startFrame, frame, false));
                 return false;
             }
             lastPulseFrame = expectedPulse.frame;
@@ -122,6 +122,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             }
 
             frame = expectedPulse.frame + this.period;
+            this.peakThreshold = Math.round(expectedPulse.range/4);
         }
 
         waveformAnnotations.push(new LabelAnnotation("Proof", startFrame, lastPulseFrame, false));
@@ -151,6 +152,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
             allowLateClockPulse = false;
             if (clockPulse.resultType === PulseResultType.SILENCE) {
                 // End of program.
+                waveformAnnotations.push(new LabelAnnotation("Silence", frame, frame, false));
                 break;
             }
             if (clockPulse.resultType === PulseResultType.NOISE) {

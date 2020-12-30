@@ -168,8 +168,8 @@ export class LabelAnnotation implements WaveformAnnotation {
 
     constructor(label: string, left: number, right: number, onTop: boolean) {
         this.label = label;
-        this.left = left;
-        this.right = right;
+        this.left = Math.min(left, right);
+        this.right = Math.max(left, right);
         this.onTop = onTop;
     }
 
