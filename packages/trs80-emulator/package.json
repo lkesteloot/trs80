@@ -23,7 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "teamten-ts-utils": "^1.0.1",
-    "trs80-base": "^1.0.1",
+    "trs80-base": "../trs80-base",
     "z80-base": "^1.0.3",
     "z80-emulator": "^1.0.2"
   },

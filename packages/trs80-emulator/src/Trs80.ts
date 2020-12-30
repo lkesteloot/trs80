@@ -938,6 +938,7 @@ export class Trs80 implements Hal {
                 this.runTrs80File(trs80File.files[0].file);
             } else {
                 // TODO.
+                console.error("Can't currently run multiple cassette files");
             }
         } else if (trs80File instanceof SystemProgram) {
             this.runSystemProgram(trs80File);
@@ -945,6 +946,7 @@ export class Trs80 implements Hal {
             this.runBasicProgram(trs80File);
         } else {
             // TODO.
+            console.error("Don't know how to run", trs80File);
         }
     }
 
