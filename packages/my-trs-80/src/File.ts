@@ -1,9 +1,9 @@
 import firebase from "firebase/app";
-import QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 import UpdateData = firebase.firestore.UpdateData;
 import {isSameStringArray} from "./Utils";
 import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
+import * as base64js from "base64-js";
 
 /**
  * Represents a file that the user owns.
@@ -35,6 +35,24 @@ export class File {
         this.binary = binary;
         this.addedAt = addedAt;
         this.modifiedAt = modifiedAt;
+    }
+
+    /**
+     * Return the file as an object that can be converted to JSON and exported.
+     */
+    public asMap(): {[key: string]: any} {
+        return {
+            id: this.id,
+            uid: this.uid,
+            name: this.name,
+            filename: this.filename,
+            note: this.note,
+            shared: this.shared,
+            screenshots: this.screenshots,
+            binary: base64js.fromByteArray(this.binary),
+            addedAt: this.addedAt.getTime(),
+            modifiedAt: this.modifiedAt.getTime(),
+        };
     }
 
     public builder(): FileBuilder {

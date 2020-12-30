@@ -65,6 +65,13 @@ export class Library {
     }
 
     /**
+     * Return all the files we currently know about.
+     */
+    public getAllFiles(): File[] {
+        return Array.from(this.files.values());
+    }
+
+    /**
      * Specify whether the in-memory library is now in sync with the cloud database.
      */
     public setInSync(inSync: boolean): void {

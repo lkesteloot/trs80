@@ -49,6 +49,10 @@ export class YourFilesTab {
         actionBar.classList.add("action-bar");
         tab.element.append(actionBar);
 
+        const exportAllButton = makeTextButton("Export All", "get_app", "export-all-button",
+            () => this.exportAll());
+        actionBar.append(exportAllButton);
+
         const uploadButton = makeTextButton(IMPORT_FILE_LABEL, "publish", "import-file-button",
             () => this.uploadFile());
         actionBar.append(uploadButton);
@@ -95,6 +99,24 @@ export class YourFilesTab {
 
         this.filesDiv.classList.toggle("hidden", displaySplashScreen);
         this.emptyLibrary.classList.toggle("hidden", !displaySplashScreen);
+    }
+
+    /**
+     * Start a download of all data in the database.
+     */
+    private exportAll(): void {
+        // Download info about all files.
+        const allFiles = {
+            version: 1,
+            files: this.context.library.getAllFiles().map(f => f.asMap()),
+        };
+        const contents = JSON.stringify(allFiles);
+        const blob = new Blob([contents], {type: "application/json"});
+
+        const a = document.createElement("a");
+        a.href = window.URL.createObjectURL(blob);
+        a.download = "my-trs-80.json";
+        a.click();
     }
 
     /**
