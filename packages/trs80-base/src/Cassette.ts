@@ -1,7 +1,6 @@
-import {RawBinaryFile} from "./RawBinaryFile";
 import {decodeSystemProgram} from "./SystemProgram";
 import {Trs80File} from "./Trs80File";
-import {ProgramAnnotation} from "./ProgramAnnotation";
+import {decodeTrs80File} from "./Trs80FileDecoder";
 
 // Low-speed header and sync constants.
 const LOW_SPEED_HEADER_BYTE = 0x00;
@@ -184,16 +183,11 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
         }
 
         // See what kind of file it is.
-        const systemProgram = decodeSystemProgram(programBinary);
-        if (systemProgram !== undefined) {
-            const cassetteFile = new CassetteFile(speed, systemProgram);
-            cassetteFiles.push(cassetteFile);
-        } else {
-            // Unrecognized file. Treat as raw data.
-            const rawBinaryFile = new RawBinaryFile(programBinary);
-            const cassetteFile = new CassetteFile(speed, rawBinaryFile);
-            cassetteFiles.push(cassetteFile);
+        let file: Trs80File | undefined = decodeSystemProgram(programBinary);
+        if (file === undefined) {
+            file = decodeTrs80File(programBinary);
         }
+        cassetteFiles.push(new CassetteFile(speed, file));
 
         // TODO handle multiple files. See HAUNT.CAS.
         break;
