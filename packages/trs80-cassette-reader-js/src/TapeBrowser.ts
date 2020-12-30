@@ -368,13 +368,14 @@ export class TapeBrowser {
         addKeyValue("Duration", frameToTimestamp(endFrame - startFrame, this.tape.sampleRate, true), () =>
             this.originalWaveformDisplay.zoomToFit(startFrame, endFrame));
         if (program instanceof Program) {
-            addKeyValues("Download", [".BIN", ".CAS"], (value: string) => {
+            addKeyValues("Download", [".BIN", ".CAS"], (extension: string) => {
                 // Download binary.
                 const a = document.createElement("a");
-                const contents = value === ".BIN" ? program.binary : program.asCasFile();
+                const contents = extension === ".BIN" ? program.binary : program.asCasFile();
                 const blob = new Blob([contents], {type: "application/octet-stream"});
                 a.href = window.URL.createObjectURL(blob);
-                a.download = program.getShortLabel().replace(" ", "-") + value.toLowerCase();
+
+                a.download = (this.tape.name + " " + program.getShortLabel()).replace(/ /g, "-") + extension.toLowerCase();
                 a.click();
             });
             if (basicPane !== undefined) {
@@ -810,7 +811,7 @@ export class TapeBrowser {
 
         // Create panes for each program.
         let previousTrackNumber = -1;
-        let firstCopyOfTrack: Program | undefined = undefined;
+        let copiesOfTrack: Program[] = [];
 
         // Add a pane to the top-right, register it, and add it to table of contents.
         const addPane = (label: string, pane: Pane) => {
@@ -839,7 +840,7 @@ export class TapeBrowser {
 
         // Section for each program.
         for (const program of this.tape.programs) {
-            let duplicateCopy = false;
+            let duplicateOfCopy: Program | undefined = undefined;
 
             sectionDiv = addSection();
 
@@ -852,14 +853,18 @@ export class TapeBrowser {
             if (program.trackNumber !== previousTrackNumber) {
                 row.classList.add("new_track");
                 previousTrackNumber = program.trackNumber;
-                firstCopyOfTrack = program;
-            } else if (firstCopyOfTrack !== undefined) {
-                // Non-first copies.
-                if (program.sameBinaryAs(firstCopyOfTrack)) {
-                    sectionDiv.classList.add("duplicate_copy");
-                    duplicateCopy = true;
+                copiesOfTrack = [];
+            } else {
+                // See if this is an exact version of a previous copy.
+                for (const previousProgram of copiesOfTrack) {
+                    if (program.sameBinaryAs(previousProgram)) {
+                        sectionDiv.classList.add("duplicate_copy");
+                        duplicateOfCopy = previousProgram;
+                        break;
+                    }
                 }
             }
+            copiesOfTrack.push(program);
 
             // Make these panes here so they're accessible from the metadata page.
             const basicPane = program.isBasicProgram() ? this.makeBasicPane(program) : undefined;
@@ -886,7 +891,7 @@ export class TapeBrowser {
             });
 
             // Make the various panes.
-            addPane("Binary" + (duplicateCopy ? " (same as copy " + firstCopyOfTrack?.copyNumber + ")" : ""),
+            addPane("Binary" + (duplicateOfCopy !== undefined ? " (same as copy " + duplicateOfCopy.copyNumber + ")" : ""),
                 this.makeBinaryPane(program));
             if (program.reconstructedSamples !== undefined) {
                 addPane("Reconstructed", this.makeReconstructedPane(program.reconstructedSamples));
