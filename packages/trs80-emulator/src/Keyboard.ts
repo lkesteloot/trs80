@@ -255,6 +255,11 @@ export class Keyboard {
         body.addEventListener("keydown", (event) => keyEvent(event, true));
         body.addEventListener("keyup", (event) => keyEvent(event, false));
         body.addEventListener("paste", (event) => {
+            // Don't do anything if we're not active.
+            if (!this.interceptKeys) {
+                return;
+            }
+
             if (event.clipboardData) {
                 const pastedText = event.clipboardData.getData("text/plain");
                 if (pastedText) {
