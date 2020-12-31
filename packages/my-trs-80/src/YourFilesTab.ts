@@ -2,7 +2,7 @@ import {PageTabs} from "./PageTabs";
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {File, FileBuilder} from "./File";
 import {CanvasScreen} from "trs80-emulator";
-import {makeTextButton, makeIcon, makeIconButton} from "./Utils";
+import {defer, makeIcon, makeIconButton, makeTextButton} from "./Utils";
 import {clearElement} from "teamten-ts-utils";
 import {Context} from "./Context";
 import {PageTab} from "./PageTab";
@@ -229,10 +229,14 @@ export class YourFilesTab {
         screenshotsDiv.classList.add("screenshots");
         fileDiv.append(screenshotsDiv);
         for (const screenshot of file.screenshots) {
-            const screen = new CanvasScreen();
-            screen.displayScreenshot(screenshot);
-            const image = screen.asImage();
-            screenshotsDiv.append(image);
+            // Don't do these all at once, they can take tens of milliseconds each, and in a large
+            // library that can hang the page for several seconds. Dribble them in later.
+            defer(() => {
+                const screen = new CanvasScreen();
+                screen.displayScreenshot(screenshot);
+                const image = screen.asImage();
+                screenshotsDiv.append(image)
+            });
         }
 
         const playButton = makeIconButton(makeIcon("play_arrow"), "Run program", () => {

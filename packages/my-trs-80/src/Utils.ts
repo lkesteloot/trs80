@@ -1,5 +1,42 @@
 const MATERIAL_ICONS_CLASS = "material-icons-round";
 
+// Next function to call in the deferred chain.
+let nextDeferredFunction: (() => void) | undefined = undefined;
+// Whether we've already created a timer to call the deferred function.
+let deferredFunctionScheduled = false;
+
+/**
+ * Defer a function until later. All deferred functions are queued up and
+ * executed sequentially, but not necessarily in the order that defer()
+ * was called.
+ */
+export function defer(f: () => void): void {
+    // Get the current function to call next.
+    const nextDeferredFunctionCopy = nextDeferredFunction;
+
+    // Set ourselves up to be called next, but restore the previous pointer when done.
+    nextDeferredFunction = () => {
+        f();
+        nextDeferredFunction = nextDeferredFunctionCopy;
+    };
+
+    // Call the next deferred function.
+    const callback = () => {
+        if (nextDeferredFunction === undefined) {
+            deferredFunctionScheduled = false
+        } else {
+            nextDeferredFunction();
+            setTimeout(callback, 0);
+        }
+    };
+
+    // Kick it all off if necessary.
+    if (!deferredFunctionScheduled) {
+        setTimeout(callback, 0);
+        deferredFunctionScheduled = true;
+    }
+}
+
 /**
  * Format a long date without a time.
  */
