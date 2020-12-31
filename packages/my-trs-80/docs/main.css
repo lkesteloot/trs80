@@ -405,6 +405,13 @@ button.icon-button {
     color: var(--accent-color);
 }
 
+.your-files-tab .file .name .release-year {
+    font-weight: 100;
+    color: var(--foreground);
+    font-size: 80%;
+    margin-left: 3px;
+}
+
 .your-files-tab .file .filename {
     font-family: "Roboto Mono", monospace;
     white-space: pre;
