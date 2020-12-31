@@ -130,9 +130,12 @@ export class RetroStoreTab {
         this.moreDiv.classList.add("retro-store-more");
         this.moreDiv.append(makeIcon("cached"));
 
-        // When showing the tab, wait for laying and maybe fetch more.
+        // When showing the tab, wait for layout and maybe fetch more.
         tab.onShow.subscribe(() => setTimeout(() => this.fetchNextBatchIfNecessary(), 0));
         this.populateApps();
+
+        // If the window is resized, it might reveal slots to load.
+        window.addEventListener("resize", () => this.fetchNextBatchIfNecessary());
 
         pageTabs.addTab(tab);
     }
@@ -162,6 +165,9 @@ export class RetroStoreTab {
                     }
                     this.apps.push(...apps.map(a => new RetroStoreApp(a)));
                     this.populateApps();
+
+                    // See if we need to fetch any more.
+                    this.fetchNextBatchIfNecessary();
                 })
                 .catch(error => {
                     // TODO.
