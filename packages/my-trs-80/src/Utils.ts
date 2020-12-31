@@ -1,35 +1,27 @@
 const MATERIAL_ICONS_CLASS = "material-icons-round";
 
-// Next function to call in the deferred chain.
-let nextDeferredFunction: (() => void) | undefined = undefined;
-// Whether we've already created a timer to call the deferred function.
-let deferredFunctionScheduled = false;
+// Functions to call.
+const deferredFunctions: (() => void)[] = [];
+// Whether we've already created a timer to call the deferred functions.
+let deferredFunctionsScheduled = false;
 
 /**
  * Defer a function until later. All deferred functions are queued up and
- * executed sequentially, but not necessarily in the order that defer()
- * was called.
+ * executed sequentially, in order.
  */
 export function defer(f: () => void): void {
-    // Get the current function to call next.
-    const nextDeferredFunctionCopy = nextDeferredFunction;
-
-    // Set ourselves up to be called next.
-    nextDeferredFunction = () => {
-        // Restore the previous pointer first in case f() calls defer().
-        nextDeferredFunction = nextDeferredFunctionCopy;
-
-        f();
-    };
+    // Add our function in order.
+    deferredFunctions.push(f);
 
     // Call the next deferred function.
     const timeoutCallback = () => {
-        if (nextDeferredFunction === undefined) {
-            deferredFunctionScheduled = false
+        const deferredFunction = deferredFunctions.shift();
+        if (deferredFunction === undefined) {
+            deferredFunctionsScheduled = false
         } else {
-            // Make sure we don't kill the process if the function fails.
+            // Make sure we don't kill the process if the function throws.
             try {
-                nextDeferredFunction();
+                deferredFunction();
             } finally {
                 setTimeout(timeoutCallback, 0);
             }
@@ -37,9 +29,9 @@ export function defer(f: () => void): void {
     };
 
     // Kick it all off if necessary.
-    if (!deferredFunctionScheduled) {
+    if (!deferredFunctionsScheduled) {
         setTimeout(timeoutCallback, 0);
-        deferredFunctionScheduled = true;
+        deferredFunctionsScheduled = true;
     }
 }
 

@@ -1,5 +1,5 @@
 import {Panel} from "./Panel";
-import {formatDate, makeTextButton, makeIcon, makeIconButton, defer} from "./Utils";
+import {defer, formatDate, makeIcon, makeIconButton, makeTextButton} from "./Utils";
 import {clearElement, withCommas} from "teamten-ts-utils";
 import {File} from "./File";
 import {Context} from "./Context";
@@ -8,10 +8,10 @@ import {CanvasScreen} from "trs80-emulator";
 import isEmpty from "lodash/isEmpty";
 import {LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import firebase from "firebase";
-import UpdateData = firebase.firestore.UpdateData;
 import {decodeTrs80File, Trs80File} from "trs80-base";
 import {HexdumpGenerator} from "./HexdumpGenerator";
 import {PageTab} from "./PageTab";
+import UpdateData = firebase.firestore.UpdateData;
 
 const SCREENSHOT_ATTR = "data-screenshot";
 
@@ -228,23 +228,22 @@ class FileInfoTab {
         clearElement(this.screenshotsDiv);
 
         for (const screenshot of this.filePanel.file.screenshots) {
+            const screenshotDiv = document.createElement("div");
+            screenshotDiv.setAttribute(SCREENSHOT_ATTR, screenshot);
+            screenshotDiv.classList.add("screenshot");
+            const deleteButton = makeIconButton(makeIcon("delete"), "Delete screenshot", () => {
+                screenshotDiv.remove();
+                this.updateButtonStatus();
+            });
+            screenshotDiv.append(deleteButton);
+            this.screenshotsDiv.append(screenshotDiv);
+
             // Defer this so that if we have a lot of screenshots it doesn't hang the browser when
             // creating this panel.
             defer(() => {
                 const screen = new CanvasScreen();
                 screen.displayScreenshot(screenshot);
-                const image = screen.asImage();
-
-                const screenshotDiv = document.createElement("div");
-                screenshotDiv.setAttribute(SCREENSHOT_ATTR, screenshot);
-                screenshotDiv.classList.add("screenshot");
-                screenshotDiv.append(image);
-                const deleteButton = makeIconButton(makeIcon("delete"), "Delete screenshot", () => {
-                    screenshotDiv.remove();
-                    this.updateButtonStatus();
-                });
-                screenshotDiv.append(deleteButton);
-                this.screenshotsDiv.append(screenshotDiv);
+                screenshotDiv.append(screen.asImage());
             });
         }
     }
