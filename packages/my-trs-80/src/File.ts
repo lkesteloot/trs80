@@ -15,6 +15,8 @@ export class File {
     public readonly name: string;
     public readonly filename: string;
     public readonly note: string;
+    public readonly author: string;
+    public readonly releaseYear: string;
     public readonly shared: boolean;
     public readonly hash: string;
     public readonly screenshots: string[]; // Don't modify this, treat as immutable.
@@ -22,7 +24,8 @@ export class File {
     public readonly addedAt: Date;
     public readonly modifiedAt: Date;
 
-    constructor(id: string, uid: string, name: string, filename: string, note: string, shared: boolean, hash: string,
+    constructor(id: string, uid: string, name: string, filename: string, note: string,
+                author: string, releaseYear: string, shared: boolean, hash: string,
                 screenshots: string[], binary: Uint8Array, addedAt: Date, modifiedAt: Date) {
 
         this.id = id;
@@ -30,6 +33,8 @@ export class File {
         this.name = name;
         this.filename = filename;
         this.note = note;
+        this.author = author;
+        this.releaseYear = releaseYear;
         this.shared = shared;
         this.hash = hash;
         this.screenshots = screenshots;
@@ -48,6 +53,8 @@ export class File {
             name: this.name,
             filename: this.filename,
             note: this.note,
+            author: this.author,
+            releaseYear: this.releaseYear,
             shared: this.shared,
             hash: this.hash,
             screenshots: this.screenshots,
@@ -65,6 +72,8 @@ export class File {
         builder.name = this.name;
         builder.filename = this.filename;
         builder.note = this.note;
+        builder.author = this.author;
+        builder.releaseYear = this.releaseYear;
         builder.shared = this.shared;
         builder.hash = this.hash;
         builder.screenshots = this.screenshots;
@@ -89,6 +98,12 @@ export class File {
         }
         if (this.note !== oldFile.note) {
             updateData.note = this.note;
+        }
+        if (this.author !== oldFile.author) {
+            updateData.author = this.author;
+        }
+        if (this.releaseYear !== oldFile.releaseYear) {
+            updateData.releaseYear = this.releaseYear;
         }
         if (this.shared !== oldFile.shared) {
             updateData.shared = this.shared;
@@ -133,17 +148,19 @@ export class File {
  * Builder to help construct File objects.
  */
 export class FileBuilder {
-    public id: string = "";
-    public uid: string = "";
-    public name: string = "";
-    public filename: string = "";
-    public note: string = "";
-    public shared: boolean = false;
-    public hash: string = "";
+    public id = "";
+    public uid = "";
+    public name = "";
+    public filename = "";
+    public note = "";
+    public author = "";
+    public releaseYear = "";
+    public shared = false;
+    public hash = "";
     public screenshots: string[] = [];
-    public binary: Uint8Array = new Uint8Array(0);
-    public addedAt: Date = new Date();
-    public modifiedAt: Date = new Date();
+    public binary = new Uint8Array(0);
+    public addedAt = new Date();
+    public modifiedAt = new Date();
 
     public static fromDoc(doc: DocumentSnapshot<DocumentData>): FileBuilder {
         const builder = new FileBuilder();
@@ -155,6 +172,8 @@ export class FileBuilder {
         builder.name = data.name;
         builder.filename = data.filename;
         builder.note = data.note;
+        builder.author = data.author ?? "";
+        builder.releaseYear = data.releaseYear ?? "";
         builder.shared = data.shared ?? false;
         builder.hash = data.hash;
         builder.screenshots = data.screenshots ?? [];
@@ -190,6 +209,16 @@ export class FileBuilder {
         return this;
     }
 
+    public withAuthor(author: string): this {
+        this.author = author;
+        return this;
+    }
+
+    public withReleaseYear(releaseYear: string): this {
+        this.releaseYear = releaseYear;
+        return this;
+    }
+
     public withShared(shared: boolean): this {
         this.shared = shared;
         return this;
@@ -212,7 +241,8 @@ export class FileBuilder {
     }
 
     public build(): File {
-        return new File(this.id, this.uid, this.name, this.filename, this.note, this.shared, this.hash,
+        return new File(this.id, this.uid, this.name, this.filename, this.note,
+            this.author, this.releaseYear, this.shared, this.hash,
             this.screenshots, this.binary, this.addedAt, this.modifiedAt);
     }
 }

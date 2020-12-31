@@ -274,6 +274,8 @@ export class RetroStoreTab {
                     .withUid(this.context.user.uid)
                     .withName(appName)
                     .withNote(note)
+                    .withAuthor(app.author ?? "")
+                    .withReleaseYear(app.release_year === undefined ? "" : app.release_year.toString())
                     .withFilename(validMediaImage.filename ?? "UNKNOWN")
                     .withBinary(validMediaImage.data)
                     .build();

@@ -55,6 +55,8 @@ export class Database {
             name: file.name,
             filename: file.filename,
             note: file.note,
+            author: file.author,
+            releaseYear: file.releaseYear,
             shared: file.shared,
             hash: file.hash,
             binary: firebase.firestore.Blob.fromUint8Array(file.binary),

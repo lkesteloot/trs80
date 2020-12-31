@@ -24,6 +24,8 @@ class FileInfoTab {
     private readonly nameInput: HTMLInputElement;
     private readonly filenameInput: HTMLInputElement;
     private readonly noteInput: HTMLTextAreaElement;
+    private readonly authorInput: HTMLInputElement;
+    private readonly releaseYearInput: HTMLInputElement;
     private readonly typeInput: HTMLInputElement;
     private readonly sizeInput: HTMLInputElement;
     private readonly addedAtInput: HTMLInputElement;
@@ -71,8 +73,8 @@ class FileInfoTab {
         this.noteInput.rows = 10;
         noteLabel.append(this.noteInput);
 
-        const miscDiv = document.createElement("div");
-        miscDiv.classList.add("misc");
+        this.authorInput = makeInputBox("Author", undefined, true);
+        this.releaseYearInput = makeInputBox("Release year", undefined, true);
         this.typeInput = makeInputBox("Type", undefined, false);
         this.addedAtInput = makeInputBox("Added", undefined, false);
         this.sizeInput = makeInputBox("Size", undefined, false);
@@ -94,7 +96,6 @@ class FileInfoTab {
 
             labelElement.append(this.sharedInput, offIcon, onIcon);
         }
-        form.append(miscDiv);
 
         this.screenshotsDiv = document.createElement("div");
         this.screenshotsDiv.classList.add("screenshots");
@@ -127,7 +128,7 @@ class FileInfoTab {
         this.saveButton = makeTextButton("Save", ["save", "cached", "check"], "save-button", undefined);
         actionBar.append(this.saveButton);
 
-        for (const input of [this.nameInput, this.filenameInput, this.noteInput]) {
+        for (const input of [this.nameInput, this.filenameInput, this.noteInput, this.authorInput, this.releaseYearInput]) {
             input.addEventListener("input", () => this.updateButtonStatus());
         }
         this.sharedInput.addEventListener("change", () => this.updateButtonStatus());
@@ -209,6 +210,12 @@ class FileInfoTab {
         if (updateData === undefined || updateData.hasOwnProperty("note")) {
             this.noteInput.value = file.note;
         }
+        if (updateData === undefined || updateData.hasOwnProperty("author")) {
+            this.authorInput.value = file.author;
+        }
+        if (updateData === undefined || updateData.hasOwnProperty("releaseYear")) {
+            this.releaseYearInput.value = file.releaseYear;
+        }
         this.typeInput.value = this.trs80File.getDescription();
         this.sizeInput.value = withCommas(file.binary.length) + " byte" + (file.binary.length === 1 ? "" : "s");
         this.addedAtInput.value = formatDate(file.addedAt);
@@ -284,6 +291,8 @@ class FileInfoTab {
             .withName(this.nameInput.value.trim())
             .withFilename(this.filenameInput.value.trim())
             .withNote(this.noteInput.value.trim())
+            .withAuthor(this.authorInput.value.trim())
+            .withReleaseYear(this.releaseYearInput.value.trim())
             .withShared(this.sharedInput.checked)
             .withScreenshots(screenshots)
             .build();
