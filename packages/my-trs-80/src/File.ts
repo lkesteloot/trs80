@@ -4,6 +4,7 @@ import UpdateData = firebase.firestore.UpdateData;
 import {isSameStringArray} from "./Utils";
 import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 import * as base64js from "base64-js";
+import {sha1} from "./sha1";
 
 /**
  * Represents a file that the user owns.
@@ -48,6 +49,7 @@ export class File {
             filename: this.filename,
             note: this.note,
             shared: this.shared,
+            hash: this.hash,
             screenshots: this.screenshots,
             binary: base64js.fromByteArray(this.binary),
             addedAt: this.addedAt.getTime(),
@@ -90,6 +92,9 @@ export class File {
         }
         if (this.shared !== oldFile.shared) {
             updateData.shared = this.shared;
+        }
+        if (this.hash !== oldFile.hash) {
+            updateData.hash = this.hash;
         }
         if (!isSameStringArray(this.screenshots, oldFile.screenshots)) {
             updateData.screenshots = this.screenshots;
@@ -197,6 +202,7 @@ export class FileBuilder {
 
     public withBinary(binary: Uint8Array): this {
         this.binary = binary;
+        this.hash = sha1(binary);
         return this;
     }
 

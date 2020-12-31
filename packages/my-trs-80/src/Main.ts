@@ -233,6 +233,17 @@ export function main() {
                     for (const doc of querySnapshot.docs) {
                         const file = FileBuilder.fromDoc(doc).build();
                         library.addFile(file);
+
+                        // Update hash if necessary. We can probably remove this now that all files
+                        // have a hash in the DB and we make one when we import.
+                        if (file.hash === "" && file.binary.length !== 0) {
+                            // This updates the hash.
+                            const newFile = file.builder().withBinary(file.binary).build();
+                            context.db.updateFile(file, newFile)
+                                .then(() => {
+                                    library.modifyFile(newFile);
+                                });
+                        }
                     }
                     // We should now be in sync with the cloud database.
                     library.setInSync(true);
