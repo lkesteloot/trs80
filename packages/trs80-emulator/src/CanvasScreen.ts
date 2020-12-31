@@ -65,7 +65,6 @@ export class CanvasScreen extends Trs80Screen {
 
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
-        this.drawBackground();
         this.updateFromConfig();
     }
 

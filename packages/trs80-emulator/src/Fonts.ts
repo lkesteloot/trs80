@@ -607,6 +607,8 @@ export class Font {
     public readonly height: number;
     // Index of each 64-character bank, or -1 for graphics characters.
     private readonly banks: number[];
+    // Cache from glyph key (see makeImage()) to the canvas element for it.
+    private readonly glyphCache = new Map<string,HTMLCanvasElement>();
 
     constructor(bits: number[], width: number, height: number, banks: number[]) {
         this.bits = bits;
@@ -620,6 +622,27 @@ export class Font {
      * specified color, "off" pixels are fully transparent.
      */
     public makeImage(char: number, expanded: boolean, options: GlyphOptions): HTMLCanvasElement {
+        const key = {
+            char: char,
+            expanded: expanded,
+            options: options,
+        };
+        const stringKey = JSON.stringify(key);
+
+        // Cache the glyph since we create a set of these for each created canvas.
+        let glyph = this.glyphCache.get(stringKey);
+        if (glyph === undefined) {
+            glyph = this.makeImageInternal(char, expanded, options);
+            this.glyphCache.set(stringKey, glyph);
+        }
+
+        return glyph;
+    }
+
+    /**
+     * Actually creates the glyph.
+     */
+    private makeImageInternal(char: number, expanded: boolean, options: GlyphOptions): HTMLCanvasElement {
         const canvas = document.createElement("canvas");
         let expandedMultiplier = expanded ? 2 : 1;
         canvas.width = this.width*expandedMultiplier;
