@@ -14,25 +14,31 @@ export function defer(f: () => void): void {
     // Get the current function to call next.
     const nextDeferredFunctionCopy = nextDeferredFunction;
 
-    // Set ourselves up to be called next, but restore the previous pointer when done.
+    // Set ourselves up to be called next.
     nextDeferredFunction = () => {
-        f();
+        // Restore the previous pointer first in case f() calls defer().
         nextDeferredFunction = nextDeferredFunctionCopy;
+
+        f();
     };
 
     // Call the next deferred function.
-    const callback = () => {
+    const timeoutCallback = () => {
         if (nextDeferredFunction === undefined) {
             deferredFunctionScheduled = false
         } else {
-            nextDeferredFunction();
-            setTimeout(callback, 0);
+            // Make sure we don't kill the process if the function fails.
+            try {
+                nextDeferredFunction();
+            } finally {
+                setTimeout(timeoutCallback, 0);
+            }
         }
     };
 
     // Kick it all off if necessary.
     if (!deferredFunctionScheduled) {
-        setTimeout(callback, 0);
+        setTimeout(timeoutCallback, 0);
         deferredFunctionScheduled = true;
     }
 }
@@ -119,19 +125,4 @@ export function makeTextButton(label: string, iconName: string | string[] | unde
  */
 export function isSameStringArray(a: string[], b: string[]): boolean {
     return a.length === b.length && a.every((value, index) => value === b[index]);
-}
-
-/**
- * Start a timer, and return a function that will evaluate to how many milliseconds
- * the timer has been running. Calling the function restarts the timer.
- */
-export function startTimer(): () => number {
-    let timerStart = new Date().getTime();
-
-    return () => {
-        const now = new Date().getTime();
-        const elapsed = now - timerStart;
-        timerStart = now;
-        return elapsed;
-    };
 }
