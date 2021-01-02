@@ -185,7 +185,7 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
         // See what kind of file it is.
         let file: Trs80File | undefined = decodeSystemProgram(programBinary);
         if (file === undefined) {
-            file = decodeTrs80File(programBinary);
+            file = decodeTrs80File(programBinary, undefined);
         }
         cassetteFiles.push(new CassetteFile(speed, file));
 

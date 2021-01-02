@@ -3,7 +3,7 @@ import {ProgramAnnotation} from "./ProgramAnnotation";
 /**
  * Base class for decoded TRS-80 files.
  */
-export class Trs80File {
+export abstract class Trs80File {
     /**
      * The binary representing just this one file.
      */
@@ -28,8 +28,5 @@ export class Trs80File {
     /**
      * Brief description (e.g., "Basic program").
      */
-    public getDescription(): string {
-        throw new Error("Trs80File must implement getDescription()");
-    }
+    public abstract getDescription(): string;
 }
-
