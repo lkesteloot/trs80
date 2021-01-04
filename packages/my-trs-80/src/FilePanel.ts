@@ -406,7 +406,7 @@ export class FilePanel extends Panel {
         super(context, file.name, "file-panel", true);
 
         this.file = file;
-        const trs80File = decodeTrs80File(file.binary);
+        const trs80File = decodeTrs80File(file.binary, file.filename);
 
         const pageTabs = new PageTabs(this.content);
         new FileInfoTab(this, pageTabs, trs80File);
