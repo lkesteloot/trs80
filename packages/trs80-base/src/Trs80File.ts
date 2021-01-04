@@ -22,6 +22,9 @@ export abstract class Trs80File {
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
         this.binary = binary;
         this.error = error;
+
+        // Sort in case they were generated out of order.
+        annotations.sort((a, b) => a.begin - b.begin);
         this.annotations = annotations;
     }
 
