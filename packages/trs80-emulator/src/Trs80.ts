@@ -19,6 +19,11 @@ import {
     Trs80File
 } from "trs80-base";
 import {toHexWord} from "z80-base";
+import {FloppyDisk} from "trs80-base/dist/FloppyDisk";
+import {FloppyDiskController} from "./FloppyDiskController";
+import {Machine} from "./Machine";
+import {toHexByte} from "z80-base/dist/main";
+import {EventScheduler} from "./EventScheduler";
 
 // IRQs
 const M1_TIMER_IRQ_MASK = 0x80;
@@ -82,29 +87,15 @@ function computeVideoBit6(value: number): number {
 }
 
 /**
- * An event scheduled for the future.
- */
-class ScheduledEvent {
-    public readonly handle: number;
-    public readonly tStateCount: number;
-    public readonly callback: () => void;
-
-    constructor(handle: number, tStateCount: number, callback: () => void) {
-        this.handle = handle;
-        this.tStateCount = Math.round(tStateCount);
-        this.callback = callback;
-    }
-}
-
-/**
  * HAL for the TRS-80 Model III.
  */
-export class Trs80 implements Hal {
+export class Trs80 implements Hal, Machine {
     private config: Config;
     private timerHz = M3_TIMER_HZ;
     public clockHz = M3_CLOCK_HZ;
     public tStateCount = 0;
     private readonly screen: Trs80Screen;
+    private readonly fdc = new FloppyDiskController(this);
     private cassette: CassettePlayer;
     private memory = new Uint8Array(0);
     private keyboard = new Keyboard();
@@ -142,9 +133,7 @@ export class Trs80 implements Hal {
     private cassetteRiseInterruptCount = 0;
     private cassetteFallInterruptCount = 0;
 
-    // The list is sorted by tStateCount.
-    private scheduledEventCounter = 1;
-    private scheduledEvents: ScheduledEvent[] = [];
+    public readonly eventScheduler = new EventScheduler();
 
     constructor(screen: Trs80Screen, cassette: CassettePlayer) {
         this.screen = screen;
@@ -154,6 +143,8 @@ export class Trs80 implements Hal {
         this.loadRom();
         this.tStateCount = 0;
         this.keyboard.configureKeyboard();
+
+        this.fdc.onMotorOn.subscribe(drive => console.log("Drive " + drive));
     }
 
     /**
@@ -314,8 +305,8 @@ export class Trs80 implements Hal {
             this.z80.nonMaskableInterrupt();
             this.nmiSeen = true;
 
-            // Simulate the reset button being released. TODO
-            // this.resetButtonInterrupt(false);
+            // Simulate the reset button being released.
+            this.resetButtonInterrupt(false);
         }
 
         // Handle interrupts.
@@ -333,10 +324,7 @@ export class Trs80 implements Hal {
         this.updateCassette();
 
         // Dispatch scheduled events.
-        while (this.scheduledEvents.length > 0 && this.tStateCount >= this.scheduledEvents[0].tStateCount) {
-            const scheduledEvent = this.scheduledEvents.shift() as ScheduledEvent;
-            scheduledEvent.callback();
-        }
+        this.eventScheduler.dispatch(this.tStateCount);
     }
 
     public contendMemory(address: number): void {
@@ -358,7 +346,7 @@ export class Trs80 implements Hal {
             return this.keyboard.readKeyboard(address, this.tStateCount);
         } else {
             // Unmapped memory.
-            console.log("Reading from unmapped memory at 0x" + toHex(address, 4));
+            console.error("Reading from unmapped memory at 0x" + toHex(address, 4));
             return 0;
         }
     }
@@ -399,9 +387,24 @@ export class Trs80 implements Hal {
                 break;
 
             case 0xF0:
-                // No diskette.
-                value = 0xFF;
+                value = this.fdc.readStatus();
                 break;
+
+            case 0xF1:
+                value = this.fdc.readTrack();
+                break;
+
+            case 0xF2:
+                value = this.fdc.readSector();
+                break;
+
+            case 0xF3:
+                value = this.fdc.readData();
+                break;
+
+            case 0xF8:
+                // Printer status. Printer selected, ready, with paper, not busy.
+                return 0x30;
 
             case 0xFF:
                 // Cassette and various flags.
@@ -417,7 +420,7 @@ export class Trs80 implements Hal {
                 break;
 
             default:
-                console.log("Reading from unknown port 0x" + toHex(lo(address), 2));
+                console.error("Reading from unknown port 0x" + toHex(lo(address), 2));
                 return 0;
         }
         // console.log("Reading 0x" + toHex(value, 2) + " from port 0x" + toHex(lo(address), 2));
@@ -458,18 +461,34 @@ export class Trs80 implements Hal {
                 break;
 
             case 0xF0:
-                // Disk command.
-                // TODO
-                // this.writeDiskCommand(value)
+                this.fdc.writeCommand(value);
+                break;
+
+            case 0xF1:
+                this.fdc.writeTrack(value);
+                break;
+
+            case 0xF2:
+                this.fdc.writeSector(value);
+                break;
+
+            case 0xF3:
+                this.fdc.writeData(value);
                 break;
 
             case 0xF4:
             case 0xF5:
             case 0xF6:
             case 0xF7:
-                // Disk select.
-                // TODO
-                // this.writeDiskSelect(value)
+                this.fdc.writeSelect(value);
+                break;
+
+            case 0xF8:
+            case 0xF9:
+            case 0xFA:
+            case 0xFB:
+                // Printer write.
+                console.log("Writing \"" + String.fromCodePoint(value) + "\" to printer");
                 break;
 
             case 0xFC:
@@ -671,41 +690,6 @@ export class Trs80 implements Hal {
     }
 
     /**
-     * Schedule an event to happen tStateCount clocks in the future. The callback will be called
-     * at the end of an instruction step.
-     *
-     * @return a handle that can be passed to cancelScheduledEvent().
-     */
-    public setScheduledEvent(tStateCount: number, callback: () => void): number {
-        let handle = this.scheduledEventCounter++;
-
-        this.scheduledEvents.push(new ScheduledEvent(handle, this.tStateCount + tStateCount, callback));
-        this.scheduledEvents.sort((a, b) => {
-            if (a.tStateCount < b.tStateCount) {
-                return -1;
-            } else if (a.tStateCount > b.tStateCount) {
-                return 1;
-            } else {
-                return 0;
-            }
-        });
-
-        return handle;
-    }
-
-    /**
-     * Cancel an event scheduled by setScheduledEvent().
-     */
-    public cancelScheduledEvent(handle: number): void {
-        for (let i = 0; i < this.scheduledEvents.length; i++) {
-            if (this.scheduledEvents[i].handle === handle) {
-                this.scheduledEvents.splice(i, 1);
-                break;
-            }
-        }
-    }
-
-    /**
      * Stop the tick timeout, if it's running.
      */
     private cancelTickTimeout(): void {
@@ -735,6 +719,41 @@ export class Trs80 implements Hal {
     // What to do when the hardware timer goes off.
     private handleTimer(): void {
         this.setTimerInterrupt(true);
+    }
+
+    // Set the state of the reset button interrupt.
+    private resetButtonInterrupt(state: boolean): void {
+        if (state) {
+            this.nmiLatch |= RESET_NMI_MASK;
+        } else {
+            this.nmiLatch &= ~RESET_NMI_MASK;
+        }
+        this.updateNmiSeen();
+    }
+
+    // Set the state of the disk motor off interrupt.
+    public diskMotorOffInterrupt(state: boolean): void {
+        if (state) {
+            this.nmiLatch |= DISK_MOTOR_OFF_NMI_MASK;
+        } else {
+            this.nmiLatch &= ~DISK_MOTOR_OFF_NMI_MASK;
+        }
+        this.updateNmiSeen();
+    }
+
+    // Set the state of the disk interrupt.
+    public diskIntrqInterrupt(state: boolean): void {
+        if (state) {
+            this.nmiLatch |= DISK_INTRQ_NMI_MASK;
+        } else {
+            this.nmiLatch &= ~DISK_INTRQ_NMI_MASK;
+        }
+        this.updateNmiSeen();
+    }
+
+    // Set the state of the disk interrupt.
+    public diskDrqInterrupt(state: boolean): void {
+        // No effect.
     }
 
     // Reset the controller to a known state.
@@ -944,6 +963,8 @@ export class Trs80 implements Hal {
             this.runSystemProgram(trs80File);
         } else if (trs80File instanceof BasicProgram) {
             this.runBasicProgram(trs80File);
+        } else if (trs80File instanceof FloppyDisk) {
+            this.runFloppyDisk(trs80File);
         } else {
             // TODO.
             console.error("Don't know how to run", trs80File);
@@ -955,7 +976,7 @@ export class Trs80 implements Hal {
      */
     public runCmdProgram(cmdProgram: CmdProgram): void {
         this.reset();
-        this.setScheduledEvent(this.clockHz*0.1, () => {
+        this.eventScheduler.add(undefined, this.tStateCount + this.clockHz*0.1, () => {
             this.cls();
 
             for (const chunk of cmdProgram.chunks) {
@@ -977,7 +998,7 @@ export class Trs80 implements Hal {
      */
     public runSystemProgram(systemProgram: SystemProgram): void {
         this.reset();
-        this.setScheduledEvent(this.clockHz*0.1, () => {
+        this.eventScheduler.add(undefined, this.tStateCount + this.clockHz*0.1, () => {
             this.cls();
 
             for (const chunk of systemProgram.chunks) {
@@ -995,11 +1016,11 @@ export class Trs80 implements Hal {
         this.reset();
 
         // Wait for Cass?
-        this.setScheduledEvent(this.clockHz*0.1, () => {
+        this.eventScheduler.add(undefined, this.tStateCount + this.clockHz*0.1, () => {
             this.keyboard.simulateKeyboardText("\n0\n");
 
             // Wait for Ready prompt.
-            this.setScheduledEvent(this.clockHz*0.2, () => {
+            this.eventScheduler.add(undefined, this.tStateCount + this.clockHz*0.2, () => {
                 // Find address to load to.
                 let addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
                 if (addr < 0x4200 || addr >= 0x4500) {
@@ -1056,5 +1077,16 @@ export class Trs80 implements Hal {
                 this.keyboard.simulateKeyboardText("RUN\n");
             });
         });
+    }
+
+    /**
+     * Load a floppy and reboot into it.
+     */
+    private runFloppyDisk(floppyDisk: FloppyDisk): void {
+        // Mount floppy.
+        this.fdc.loadFloppyDisk(floppyDisk, 0);
+
+        // Reboot.
+        this.reset();
     }
 }
