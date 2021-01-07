@@ -301,11 +301,13 @@ export class RetroStoreTab {
                     console.log(app.id, app.name, mediaImages);
                     for (const mediaImage of mediaImages) {
                         if (mediaImage.type === RetroStoreProto.MediaType.COMMAND ||
-                            mediaImage.type === RetroStoreProto.MediaType.BASIC) {
+                            mediaImage.type === RetroStoreProto.MediaType.BASIC ||
+                            mediaImage.type === RetroStoreProto.MediaType.DISK) {
 
                             validMediaImage = mediaImage;
                             playButton.disabled = false;
                             importButton.disabled = false;
+                            break;
                         }
                     }
                 })
