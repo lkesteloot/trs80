@@ -114,11 +114,29 @@ export class HexdumpGenerator {
                             const plural = count === 1 ? "" : "s";
                             newSpan(line, ` repetition${plural} of previous row ...`, "address");
                         }
+
+                        // Draw vertical ellipsis.
+                        if (annotation.text !== "" && addr !== beginAddr) {
+                            // This doesn't trigger a reflow. Don't use innerText, which does.
+                            const lineText = line.textContent ?? "";
+                            const width = STRIDE*4 + 13;
+                            const label = String.fromCodePoint(0x22EE).padStart(width - lineText.length, " ");
+                            newSpan(line, label, "annotation");
+                        }
                     }
                 } else {
                     lastAddr = addr;
-                    this.generateRow(lines, addr, annotation.begin, annotation.end,
-                        addr === beginAddr ? annotation.text : "");
+
+                    let label: string = "";
+                    if (annotation.text !== "") {
+                        if (addr === beginAddr) {
+                            label = annotation.text;
+                        } else {
+                            // Vertical ellipsis.
+                            label = "  " + String.fromCodePoint(0x22EE);
+                        }
+                    }
+                    this.generateRow(lines, addr, annotation.begin, annotation.end, label);
                 }
             }
         };
