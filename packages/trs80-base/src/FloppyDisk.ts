@@ -1,10 +1,24 @@
-import {Trs80File} from "./Trs80File";
 import {ProgramAnnotation} from "./ProgramAnnotation";
+import {Trs80File} from "./Trs80File";
 
 // Side of a floppy disk.
 export enum Side {
     FRONT,
     BACK,
+}
+
+/**
+ * Convert a number to a side, where 0 maps to FRONT and 1 maps to BACK.
+ * Other numbers throw an exception.
+ */
+export function numberToSide(number: number): Side {
+    if (number === 0) {
+        return Side.FRONT;
+    }
+    if (number === 1) {
+        return Side.BACK;
+    }
+    throw new Error("Invalid side number " + number);
 }
 
 /**

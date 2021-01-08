@@ -1,6 +1,7 @@
 import {toHexWord} from "z80-base";
+import {toHexByte} from "z80-base";
 import {CRC_16_CCITT} from "./Crc16";
-import {FloppyDisk, SectorData, Side} from "./FloppyDisk";
+import {FloppyDisk, numberToSide, SectorData, Side} from "./FloppyDisk";
 import {ProgramAnnotation} from "./ProgramAnnotation";
 
 const FILE_HEADER_SIZE = 16;
@@ -19,14 +20,19 @@ class DmkSector {
      */
     public readonly doubleDensity: boolean;
     /**
-     * Offset into the track, including the header.
+     * Offset of IDAM (0xFE byte) into the track, including the track header.
      */
     public readonly offset: number;
+    /**
+     * Index into the sector of the start of the user data.
+     */
+    public readonly dataIndex: number;
 
     constructor(track: DmkTrack, doubleDensity: boolean, offset: number) {
         this.track = track;
         this.doubleDensity = doubleDensity;
         this.offset = offset;
+        this.dataIndex = this.findDataIndex();
     }
 
     /**
@@ -37,10 +43,10 @@ class DmkSector {
     }
 
     /**
-     * Get the side for this sector, 0 for front and 1 for back.
+     * Get the side for this sector.
      */
-    public getSide(): number {
-        return this.getByte(2);
+    public getSide(): Side {
+        return numberToSide(this.getByte(2));
     }
 
     /**
@@ -83,7 +89,7 @@ class DmkSector {
      */
     public getDataCrc(): number {
         // Bit endian.
-        const index = this.getSectorIndex() + this.getLength();
+        const index = this.dataIndex + this.getLength();
         return (this.getByte(index) << 8) + this.getByte(index + 1);
     }
 
@@ -93,7 +99,7 @@ class DmkSector {
     public computeDataCrc(): number {
         let crc = 0xFFFF;
 
-        const index = this.getSectorIndex();
+        const index = this.dataIndex;
         const begin = index - 4;
         const end = index + this.getLength();
         for (let i = begin; i < end; i++) {
@@ -104,10 +110,12 @@ class DmkSector {
     }
 
     /**
-     * Get the index into the sector binary for the first data byte.
+     * Whether the sector data should be considered invalid.
      */
-    public getSectorIndex(): number {
-        return 45;
+    public isDeleted(): boolean {
+        console.log("DAM: " + toHexByte(this.getByte(this.dataIndex - 1)));
+        // Normally, 0xFB, but 0xF8 if sector is considered deleted.
+        return this.getByte(this.dataIndex - 1) === 0xF8;
     }
 
     /**
@@ -117,6 +125,24 @@ class DmkSector {
      */
     private getByte(index: number): number {
         return this.track.floppyDisk.binary[this.track.offset + this.offset + index];
+    }
+
+    /**
+     * Look for the byte that indicates the start of data (0xFB or 0xF8). Various
+     * floppy disk documentation specify an exact number here, but I've seen a variety
+     * of values, so just search.
+     */
+    private findDataIndex(): number {
+        for (let i = 7; i < 55; i++) {
+            const byte = this.track.floppyDisk.binary[this.track.offset + this.offset + i];
+            if (byte === 0xFB || byte === 0xF8) {
+                // Maybe also check that the previous three bytes are 0xA1.
+                return i + 1;
+            }
+        }
+
+        // Not sure what to do here. trs80gp says that this is valid.
+        throw new Error(`Can't find byte at start of DAM (track ${this.track.trackNumber}, offset 0x${toHexWord(this.offset)})`);
     }
 }
 
@@ -128,6 +154,8 @@ class DmkTrack {
      * Disk the track is in.
      */
     public readonly floppyDisk: DmkFloppyDisk;
+    public readonly trackNumber: number;
+    public readonly side: Side;
     /**
      * Offset of the track (start of its header) in the binary.
      */
@@ -137,8 +165,10 @@ class DmkTrack {
      */
     public readonly sectors: DmkSector[] = [];
 
-    constructor(floppyDisk: DmkFloppyDisk, offset: number) {
+    constructor(floppyDisk: DmkFloppyDisk, trackNumber: number, side: Side, offset: number) {
         this.floppyDisk = floppyDisk;
+        this.trackNumber = trackNumber;
+        this.side = side;
         this.offset = offset;
     }
 }
@@ -171,7 +201,32 @@ export class DmkFloppyDisk extends FloppyDisk {
         return "Floppy disk (DMK)";
     }
 
-    public readSector(track: number, sector: number | undefined, side: Side | undefined): SectorData | undefined {
+    public readSector(trackNumber: number, sectorNumber: number | undefined,
+                      side: Side | undefined): SectorData | undefined {
+
+        console.log(`readSector(${trackNumber}, ${sectorNumber}, ${side})`);
+        for (const track of this.tracks) {
+            if (track.trackNumber === trackNumber) { // TODO not checking side.
+                for (const sector of track.sectors) {
+                    if (sectorNumber === undefined || sector.getSectorNumber() === sectorNumber) {
+                        if (side !== undefined && side !== sector.getSide()) {
+                            console.error("DMK: Invalid side on sector");
+                            return undefined;
+                        }
+
+                        const begin = track.offset + sector.offset + sector.dataIndex;
+                        const end = begin + sector.getLength();
+                        console.log(begin, end);
+                        const sectorData = new SectorData(this.binary.subarray(begin, end));
+                        sectorData.crcError = sector.getDataCrc() !== sector.computeDataCrc();
+                        sectorData.deleted = sector.isDeleted();
+                        console.log(sectorData);
+                        return sectorData;
+                    }
+                }
+            }
+        }
+
         return undefined;
     }
 }
@@ -242,13 +297,6 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     }
     annotations.push(new ProgramAnnotation(trackLength + " bytes per track", 2, 4));
 
-    // Sanity check.
-    const expectedLength = FILE_HEADER_SIZE + trackCount*trackLength;
-    if (binary.length !== expectedLength) {
-        console.error(`DMK file wrong size (${binary.length} != ${expectedLength})`);
-        return undefined;
-    }
-
     // [DMK] Virtual disk option flags.
     //
     // [DMK] Bit 4 of this byte, if set, means this is a single sided ONLY disk. This bit is set if the
@@ -276,7 +324,8 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // in single density.
     const flags = binary[4];
     const flagParts = [];
-    if ((flags & 0x10) !== 0) {
+    const singleSided = (flags & 0x10) !== 0;
+    if (singleSided) {
         flagParts.push("SS");
     }
     if ((flags & 0x40) !== 0) {
@@ -287,7 +336,21 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     }
     annotations.push(new ProgramAnnotation("Flags: [" + flagParts.join(",") + "]", 4, 5));
 
-    // Should we check that these are zero?
+    // Sanity check.
+    const sideCount = singleSided ? 1 : 2;
+    const expectedLength = FILE_HEADER_SIZE + sideCount*trackCount*trackLength;
+    if (binary.length !== expectedLength) {
+        console.error(`DMK file wrong size (${binary.length} != ${expectedLength})`);
+        return undefined;
+    }
+
+    // Check that these are zero.
+    for (let i = 5; i < 12; i++) {
+        if (binary[i] !== 0x00) {
+            console.error("DMK: Reserved byte " + i + " is not zero: 0x" + toHexByte(binary[i]));
+            return undefined;
+        }
+    }
     annotations.push(new ProgramAnnotation("Reserved", 5, 12));
 
     // [DMK] Must be zero if virtual disk is in emulator's native format.
@@ -305,98 +368,102 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // Read the tracks.
     let binaryOffset = FILE_HEADER_SIZE;
     for (let trackNumber = 0; trackNumber < trackCount; trackNumber++) {
-        const trackOffset = binaryOffset;
-        const track = new DmkTrack(floppyDisk, trackOffset);
+        for (let side = 0; side < sideCount; side++) {
+            const trackOffset = binaryOffset;
+            const track = new DmkTrack(floppyDisk, trackNumber, numberToSide(side), trackOffset);
 
-        // Read the track header. The term "IDAM" in the comment below refers to the "ID access mark",
-        // where "ID" is referring to the sector ID, the few byte just before the sector data.
+            // Read the track header. The term "IDAM" in the comment below refers to the "ID access mark",
+            // where "ID" is referring to the sector ID, the few byte just before the sector data.
 
-        // [DMK] Each side of each track has a 128 (80H) byte header which contains an offset pointer
-        // to each IDAM in the track. This allows a maximum of 64 sector IDAMs/track. This is more than
-        // twice what an 8 inch disk would require and 3.5 times that of a normal TRS-80 5 inch DD disk.
-        // This should more than enough for any protected disk also.
-        //
-        // [DMK] These IDAM pointers MUST adhere to the following rules:
-        //
-        // * Each pointer is a 2 byte offset to the FEh byte of the IDAM. In double byte single density
-        //   the pointer is to the first FEh.
-        // * The offset includes the 128 byte header. For example, an IDAM 10h bytes into the track would
-        //   have a pointer of 90h, 10h+80h=90h.
-        // * The IDAM offsets MUST be in ascending order with no unused or bad pointers.
-        // * If all the entries are not used the header is terminated with a 0000h entry. Unused entries
-        //   must also be zero filled..
-        // * Any IDAMs overwritten during a sector write command should have their entry removed from the
-        //   header and all other pointer entries shifted to fill in.
-        // * The IDAM pointers are created during the track write command (format). A completed track write
-        //   MUST remove all previous IDAM pointers. A partial track write (aborted with the forced interrupt
-        //   command) MUST have it's previous pointers that were not overwritten added to the new IDAM pointers.
-        // * The pointer bytes are stored in reverse order (LSB/MSB).
-        //
-        // [DMK] Each IDAM pointer has two flags. Bit 15 is set if the sector is double density. Bit 14 is
-        // currently undefined. These bits must be masked to get the actual sector offset. For example,
-        // an offset to an IDAM at byte 90h would be 0090h if single density and 8090h if double density.
+            // [DMK] Each side of each track has a 128 (80H) byte header which contains an offset pointer
+            // to each IDAM in the track. This allows a maximum of 64 sector IDAMs/track. This is more than
+            // twice what an 8 inch disk would require and 3.5 times that of a normal TRS-80 5 inch DD disk.
+            // This should more than enough for any protected disk also.
+            //
+            // [DMK] These IDAM pointers MUST adhere to the following rules:
+            //
+            // * Each pointer is a 2 byte offset to the FEh byte of the IDAM. In double byte single density
+            //   the pointer is to the first FEh.
+            // * The offset includes the 128 byte header. For example, an IDAM 10h bytes into the track would
+            //   have a pointer of 90h, 10h+80h=90h.
+            // * The IDAM offsets MUST be in ascending order with no unused or bad pointers.
+            // * If all the entries are not used the header is terminated with a 0000h entry. Unused entries
+            //   must also be zero filled..
+            // * Any IDAMs overwritten during a sector write command should have their entry removed from the
+            //   header and all other pointer entries shifted to fill in.
+            // * The IDAM pointers are created during the track write command (format). A completed track write
+            //   MUST remove all previous IDAM pointers. A partial track write (aborted with the forced interrupt
+            //   command) MUST have it's previous pointers that were not overwritten added to the new IDAM pointers.
+            // * The pointer bytes are stored in reverse order (LSB/MSB).
+            //
+            // [DMK] Each IDAM pointer has two flags. Bit 15 is set if the sector is double density. Bit 14 is
+            // currently undefined. These bits must be masked to get the actual sector offset. For example,
+            // an offset to an IDAM at byte 90h would be 0090h if single density and 8090h if double density.
 
-        for (let i = 0; i < TRACK_HEADER_SIZE; i += 2) {
-            const sectorOffset = binary[binaryOffset + i] + (binary[binaryOffset + i + 1] << 8);
-            if (sectorOffset !== 0) {
-                track.sectors.push(new DmkSector(track, (sectorOffset & 0x8000) !== 0, sectorOffset & 0x7FFF));
+            for (let i = 0; i < TRACK_HEADER_SIZE; i += 2) {
+                const sectorOffset = binary[binaryOffset + i] + (binary[binaryOffset + i + 1] << 8);
+                if (sectorOffset !== 0) {
+                    track.sectors.push(new DmkSector(track,
+                        (sectorOffset & 0x8000) !== 0,
+                        sectorOffset & 0x3FFF));
+                }
             }
+            annotations.push(new ProgramAnnotation(`Track ${trackNumber} header`,
+                binaryOffset, binaryOffset + TRACK_HEADER_SIZE));
+
+            for (const sector of track.sectors) {
+                let i = trackOffset + sector.offset;
+
+                annotations.push(new ProgramAnnotation("Sector ID access mark",
+                    i, i + 1));
+                i++;
+
+                annotations.push(new ProgramAnnotation("Cylinder " + sector.getCylinder(),
+                    i, i + 1));
+                i++;
+
+                annotations.push(new ProgramAnnotation("Side " + sector.getSide(),
+                    i, i + 1));
+                i++;
+
+                annotations.push(new ProgramAnnotation("Sector " + sector.getSectorNumber(),
+                    i, i + 1));
+                i++;
+
+                const sectorLength = sector.getLength();
+                annotations.push(new ProgramAnnotation("Length " + sectorLength, i, i + 1));
+                i++;
+
+                const actualIdamCrc = sector.computeIdemCrc();
+                const expectedIdamCrc = sector.getIdamCrc();
+                let idamCrcLabel = "IDAM CRC";
+                if (actualIdamCrc === expectedIdamCrc) {
+                    idamCrcLabel += " (valid)";
+                } else {
+                    idamCrcLabel += ` (got 0x${toHexWord(actualIdamCrc)}, expected 0x${toHexWord(expectedIdamCrc)})`;
+                }
+                annotations.push(new ProgramAnnotation(idamCrcLabel, i, i + 2));
+                i += 2;
+
+                i = trackOffset + sector.offset + sector.dataIndex;
+                annotations.push(new ProgramAnnotation("Sector data", i, i + sectorLength));
+                i += sectorLength;
+
+                const actualDataCrc = sector.computeDataCrc();
+                const expectedDataCrc = sector.getDataCrc();
+                let dataCrcLabel = "Data CRC";
+                if (actualDataCrc === expectedDataCrc) {
+                    dataCrcLabel += " (valid)";
+                } else {
+                    dataCrcLabel += ` (got 0x${toHexWord(actualDataCrc)}, expected 0x${toHexWord(expectedDataCrc)})`;
+                }
+                annotations.push(new ProgramAnnotation(dataCrcLabel, i, i + 2));
+                i += 2;
+            }
+
+            floppyDisk.tracks.push(track);
+            binaryOffset += trackLength;
         }
-        annotations.push(new ProgramAnnotation(`Track ${trackNumber} header`,
-            binaryOffset, binaryOffset + TRACK_HEADER_SIZE));
-
-        for (const sector of track.sectors) {
-            let i = trackOffset + sector.offset;
-
-            annotations.push(new ProgramAnnotation("Sector ID access mark",
-                i, i + 1));
-            i++;
-
-            annotations.push(new ProgramAnnotation("Cylinder " + sector.getCylinder(),
-                i, i + 1));
-            i++;
-
-            annotations.push(new ProgramAnnotation("Side " + sector.getSide(),
-                i, i + 1));
-            i++;
-
-            annotations.push(new ProgramAnnotation("Sector " + sector.getSectorNumber(),
-                i, i + 1));
-            i++;
-
-            const sectorLength = sector.getLength();
-            annotations.push(new ProgramAnnotation("Length " + sectorLength, i, i + 1));
-            i++;
-
-            const actualIdamCrc = sector.computeIdemCrc();
-            const expectedIdamCrc = sector.getIdamCrc();
-            let idamCrcLabel = "IDAM CRC";
-            if (actualIdamCrc === expectedIdamCrc) {
-                idamCrcLabel += " (valid)";
-            } else {
-                idamCrcLabel += ` (got 0x${toHexWord(actualIdamCrc)}, expected 0x${toHexWord(expectedIdamCrc)})`;
-            }
-            annotations.push(new ProgramAnnotation(idamCrcLabel, i, i + 2));
-            i += 2;
-
-            i = trackOffset + sector.offset + sector.getSectorIndex();
-            annotations.push(new ProgramAnnotation("Sector data", i, i + sectorLength));
-            i += sectorLength;
-
-            const actualDataCrc = sector.computeDataCrc();
-            const expectedDataCrc = sector.getDataCrc();
-            let dataCrcLabel = "Data CRC";
-            if (actualDataCrc === expectedDataCrc) {
-                dataCrcLabel += " (valid)";
-            } else {
-                dataCrcLabel += ` (got 0x${toHexWord(actualDataCrc)}, expected 0x${toHexWord(expectedDataCrc)})`;
-            }
-            annotations.push(new ProgramAnnotation(dataCrcLabel, i, i + 2));
-            i += 2;
-        }
-
-        floppyDisk.tracks.push(track);
-        binaryOffset += trackLength;
     }
 
     return floppyDisk;
