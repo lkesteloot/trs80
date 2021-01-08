@@ -5,9 +5,9 @@
  */
 
 import {ByteReader, EOF} from "teamten-ts-utils";
+import {toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation";
 import {Trs80File} from "./Trs80File";
-import {toHexWord} from "z80-base/dist/main";
 
 // Chunk types.
 export const CMD_LOAD_BLOCK = 0x01;

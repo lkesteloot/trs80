@@ -26,6 +26,6 @@
   },
   "dependencies": {
     "teamten-ts-utils": "^1.0.1",
-    "z80-base": "^1.0.5"
+    "z80-base": "^1.0.6"
   }
 }

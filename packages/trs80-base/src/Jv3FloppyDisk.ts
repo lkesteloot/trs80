@@ -1,4 +1,4 @@
-import {toHexByte} from "z80-base/dist/main";
+import {toHexByte} from "z80-base";
 import {FloppyDisk, SectorData, Side} from "./FloppyDisk";
 import {ProgramAnnotation} from "./ProgramAnnotation";
 
