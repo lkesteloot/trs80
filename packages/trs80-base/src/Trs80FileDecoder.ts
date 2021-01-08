@@ -5,6 +5,7 @@ import {RawBinaryFile} from "./RawBinaryFile";
 import {Trs80File} from "./Trs80File";
 import {decodeJv1FloppyDisk} from "./Jv1FloppyDisk";
 import {decodeJv3FloppyDisk} from "./Jv3FloppyDisk";
+import {decodeDmkFloppyDisk} from "./DmkFloppyDisk";
 
 /**
  * Get the extension of the filename, including the dot, in upper case, or
@@ -32,7 +33,14 @@ function decodeDsk(binary: Uint8Array): Trs80File | undefined {
     // TODO see trs_disk.c:trs_disk_emutype()
     // TODO see DiskDrive.cpp:Dectect_JV1, etc.
 
-    let trs80File = decodeJv1FloppyDisk(binary);
+    let trs80File: Trs80File | undefined;
+
+    trs80File = decodeDmkFloppyDisk(binary);
+    if (trs80File !== undefined) {
+        return trs80File;
+    }
+
+    trs80File = decodeJv1FloppyDisk(binary);
     if (trs80File !== undefined) {
         return trs80File;
     }
@@ -61,6 +69,10 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
 
     if (extension === ".DSK") {
         return decodeDsk(binary) ?? new RawBinaryFile(binary);
+    }
+
+    if (extension === ".DMK") {
+        return decodeDmkFloppyDisk(binary) ?? new RawBinaryFile(binary);
     }
 
     trs80File = decodeCassette(binary);

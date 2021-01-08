@@ -136,13 +136,15 @@ class SectorInfo {
  * Floppy disk in the JV3 format.
  */
 export class Jv3FloppyDisk extends FloppyDisk {
+    public readonly writeProtected: boolean;
     private readonly sectorInfos: SectorInfo[];
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
-                sectorInfos: SectorInfo[]) {
+                sectorInfos: SectorInfo[], writeProtected: boolean) {
 
         super(binary, error, annotations, true);
         this.sectorInfos = sectorInfos;
+        this.writeProtected = writeProtected;
     }
 
     public getDescription(): string {
@@ -230,9 +232,9 @@ export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk {
     if (writable !== 0 && writable !== 0xFF) {
         error = "Invalid \"writable\" byte: 0x" + toHexByte(writable);
     }
-    const copyProtected = writable === 0;
-    annotations.push(new ProgramAnnotation(copyProtected ? "Copy protected" : "Writable",
+    const writeProtected = writable === 0;
+    annotations.push(new ProgramAnnotation(writeProtected ? "Write protected" : "Writable",
         writableOffset, writableOffset + 1));
 
-    return new Jv3FloppyDisk(binary, error, annotations, sectorInfos);
+    return new Jv3FloppyDisk(binary, error, annotations, sectorInfos, writeProtected);
 }
