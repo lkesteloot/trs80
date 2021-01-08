@@ -23,6 +23,20 @@ export function toHexWord(value: number): string {
 }
 
 /**
+ * Convert a long (32-bit value) to hex.
+ */
+export function toHexLong(value: number): string {
+    value &= 0xFFFFFFFF;
+
+    // Convert two's complement negative numbers to positive numbers.
+    if (value < 0) {
+        value += 0x100000000;
+    }
+
+    return value.toString(16).toUpperCase().padStart(8, "0");
+}
+
+/**
  * Return the high byte of a word.
  */
 export function hi(value: number): number {
