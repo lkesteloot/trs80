@@ -141,16 +141,22 @@ export class HexdumpGenerator {
             }
         };
 
+        // Sort in case they were generated out of order.
+        this.annotations.sort((a, b) => a.begin - b.begin);
+
         let lastAnnotation: ProgramAnnotation | undefined = undefined;
         for (const annotation of this.annotations) {
-            if (lastAnnotation !== undefined && lastAnnotation.end !== annotation.begin) {
+            if (lastAnnotation !== undefined && lastAnnotation.end < annotation.begin) {
                 generateAnnotation(new ProgramAnnotation("", lastAnnotation.end, annotation.begin));
             }
-            generateAnnotation(annotation);
+            // Make sure there are no overlapping annotations.
+            if (lastAnnotation === undefined || lastAnnotation.end <= annotation.begin) {
+                generateAnnotation(annotation);
+            }
             lastAnnotation = annotation;
         }
         const lastAnnotationEnd = lastAnnotation !== undefined ? lastAnnotation.end : 0;
-        if (lastAnnotationEnd !== binary.length) {
+        if (lastAnnotationEnd < binary.length) {
             generateAnnotation(new ProgramAnnotation("", lastAnnotationEnd, binary.length));
         }
 
