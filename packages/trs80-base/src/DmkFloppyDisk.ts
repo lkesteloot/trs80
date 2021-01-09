@@ -1,3 +1,11 @@
+/**
+ * Handles DMK floppy disk images.
+ *
+ * https://retrocomputing.stackexchange.com/questions/15282/understanding-the-dmk-disk-image-file-format-used-by-trs-80-emulators
+ * http://www.classiccmp.org/cpmarchives/trs80/mirrors/trs-80.com/early/www.trs-80.com/trs80-dm.htm
+ * http://www.classiccmp.org/cpmarchives/trs80/mirrors/www.discover-net.net/~dmkeil/trs80/trstech.htm
+ */
+
 import {toHexWord} from "z80-base";
 import {toHexByte} from "z80-base";
 import {CRC_16_CCITT} from "./Crc16";
