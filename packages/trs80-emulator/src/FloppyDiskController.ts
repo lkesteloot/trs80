@@ -12,6 +12,10 @@ import {Machine} from "./Machine";
 import {toHexByte} from "z80-base";
 import {EventType} from "./EventScheduler";
 
+// Whether this controller supports writing.
+const SUPPORT_WRITING = false;
+
+// Number of physical drives.
 const DRIVE_COUNT = 4;
 
 // Width of the index hole as a fraction of the circumference.
@@ -101,10 +105,10 @@ const COMMAND_READ = 0x80; // Single sector.
 const COMMAND_READM = 0x90; // Multiple sectors.
 const COMMAND_WRITE = 0xA0;
 const COMMAND_WRITEM = 0xB0;
-const MASK_B = 0x08;
+const MASK_B = 0x08; // Side (0 = front, 1 = back).
 const MASK_E = 0x04;
-const MASK_C = 0x02;
-const MASK_D = 0x01;
+const MASK_C = 0x02; // Whether side (MASK_B) is defined.
+const MASK_D = 0x01; // Deleted: 0 = Data is valid, DAM is 0xFB; 1 = Data is invalid, DAM is 0xF8.
 
 // Type III commands: ccccxxxs (?), where
 //     cccc = command number
@@ -364,6 +368,10 @@ export class FloppyDiskController {
                 }
                 break;
 
+            case COMMAND_WRITE:
+                this.status = STATUS_WRITE_PROTECTED;
+                break;
+
             case COMMAND_FORCE_INTERRUPT:
                 // Stop whatever is going on and forget it.
                 this.machine.eventScheduler.cancelByEventTypeMask(EventType.DISK_ALL);
@@ -513,7 +521,7 @@ export class FloppyDiskController {
             }
 
             // See if the diskette is write protected.
-            if (drive.writeProtected) {
+            if (drive.writeProtected || !SUPPORT_WRITING) {
                 this.status |= STATUS_WRITE_PROTECTED;
             } else {
                 this.status &= ~STATUS_WRITE_PROTECTED;
