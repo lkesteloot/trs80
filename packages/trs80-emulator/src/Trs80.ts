@@ -22,7 +22,6 @@ import {toHexWord} from "z80-base";
 import {FloppyDisk} from "trs80-base/dist/FloppyDisk";
 import {FloppyDiskController} from "./FloppyDiskController";
 import {Machine} from "./Machine";
-import {toHexByte} from "z80-base/dist/main";
 import {EventScheduler} from "./EventScheduler";
 
 // IRQs
@@ -404,7 +403,8 @@ export class Trs80 implements Hal, Machine {
 
             case 0xF8:
                 // Printer status. Printer selected, ready, with paper, not busy.
-                return 0x30;
+                value = 0x30;
+                break;
 
             case 0xFF:
                 // Cassette and various flags.
@@ -420,9 +420,12 @@ export class Trs80 implements Hal, Machine {
                 break;
 
             default:
+                // Not sure what a good default value is, but other emulators use 0xFF.
                 console.error("Reading from unknown port 0x" + toHex(lo(address), 2));
-                return 0;
+                value = 0xFF;
+                break;
         }
+
         // console.log("Reading 0x" + toHex(value, 2) + " from port 0x" + toHex(lo(address), 2));
         return value;
     }
@@ -509,7 +512,7 @@ export class Trs80 implements Hal, Machine {
                 break;
 
             default:
-                console.log("Writing 0x" + toHex(value, 2) + " to unknown port 0x" + toHex(port, 2));
+                console.error("Writing 0x" + toHex(value, 2) + " to unknown port 0x" + toHex(port, 2));
                 return;
         }
         // console.log("Wrote 0x" + toHex(value, 2) + " to port 0x" + toHex(port, 2));

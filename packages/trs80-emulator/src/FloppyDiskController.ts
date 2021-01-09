@@ -337,11 +337,13 @@ export class FloppyDiskController {
                 // Read the sector. The bytes will be read later.
                 this.lastReadAddress = undefined;
                 this.status = STATUS_BUSY;
+                // Not sure how to use this. Ignored for now:
                 const goalSide = (cmd & MASK_C) === 0 ? undefined : booleanToSide((cmd & MASK_B) !== 0);
 
+                console.log(`Sector read: ${drive.physicalTrack}, ${this.sector}, ${this.side}`);
                 const sectorData = drive.floppyDisk === undefined
                     ? undefined
-                    : drive.floppyDisk.readSector(drive.physicalTrack, this.sector, goalSide);
+                    : drive.floppyDisk.readSector(drive.physicalTrack, this.side, this.sector);
 
                 if (sectorData === undefined) {
                     this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 512,
@@ -478,7 +480,7 @@ export class FloppyDiskController {
             this.status |= STATUS_SEEK_ERROR;
         } else {
             // Make sure a sector exists on this track.
-            const sectorData = drive.floppyDisk.readSector(this.track, undefined, undefined);
+            const sectorData = drive.floppyDisk.readSector(this.track, Side.FRONT, undefined);
             if (sectorData === undefined) {
                 this.status |= STATUS_NOT_FOUND;
             }
