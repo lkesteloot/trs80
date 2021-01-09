@@ -151,13 +151,9 @@ export class Jv3FloppyDisk extends FloppyDisk {
         return "Floppy disk (JV3)";
     }
 
-    public readSector(track: number, sector: number | undefined, side: Side | undefined): SectorData | undefined {
-        const sectorInfo = this.findSectorInfo(track, sector);
+    public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
+        const sectorInfo = this.findSectorInfo(trackNumber, side, sectorNumber);
         if (sectorInfo === undefined) {
-            return undefined;
-        }
-
-        if (side !== undefined && side !== sectorInfo.getSide()) {
             return undefined;
         }
 
@@ -170,10 +166,14 @@ export class Jv3FloppyDisk extends FloppyDisk {
         return sectorData;
     }
 
-    private findSectorInfo(track: number, sector: number | undefined): SectorInfo | undefined {
+    /**
+     * Find the sector for the specified track and side.
+     */
+    private findSectorInfo(track: number, side: Side, sector: number | undefined): SectorInfo | undefined {
         for (const sectorInfo of this.sectorInfos) {
             if (!sectorInfo.isFree() &&
                 sectorInfo.track === track &&
+                sectorInfo.getSide() === side &&
                 (sector === undefined || sectorInfo.sector === sector)) {
 
                 return sectorInfo;

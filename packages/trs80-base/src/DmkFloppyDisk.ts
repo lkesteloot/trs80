@@ -113,9 +113,13 @@ class DmkSector {
      * Whether the sector data should be considered invalid.
      */
     public isDeleted(): boolean {
-        console.log("DAM: " + toHexByte(this.getByte(this.dataIndex - 1)));
+        const dam = this.getByte(this.dataIndex - 1);
+        if (dam !== 0xF8 && dam !== 0xFB) {
+            console.error("Unknown DAM: " + toHexByte(dam));
+        }
+
         // Normally, 0xFB, but 0xF8 if sector is considered deleted.
-        return this.getByte(this.dataIndex - 1) === 0xF8;
+        return dam === 0xF8;
     }
 
     /**
@@ -201,22 +205,18 @@ export class DmkFloppyDisk extends FloppyDisk {
         return "Floppy disk (DMK)";
     }
 
-    public readSector(trackNumber: number, sectorNumber: number | undefined,
-                      side: Side | undefined): SectorData | undefined {
+    public readSector(trackNumber: number, side: Side,
+                      sectorNumber: number | undefined): SectorData | undefined {
 
         console.log(`readSector(${trackNumber}, ${sectorNumber}, ${side})`);
         for (const track of this.tracks) {
             if (track.trackNumber === trackNumber) { // TODO not checking side.
                 for (const sector of track.sectors) {
-                    if (sectorNumber === undefined || sector.getSectorNumber() === sectorNumber) {
-                        if (side !== undefined && side !== sector.getSide()) {
-                            console.error("DMK: Invalid side on sector");
-                            return undefined;
-                        }
+                    if (sectorNumber === undefined || (sector.getSectorNumber() === sectorNumber &&
+                        sector.getSide() === side)) {
 
                         const begin = track.offset + sector.offset + sector.dataIndex;
                         const end = begin + sector.getLength();
-                        console.log(begin, end);
                         const sectorData = new SectorData(this.binary.subarray(begin, end));
                         sectorData.crcError = sector.getDataCrc() !== sector.computeDataCrc();
                         sectorData.deleted = sector.isDeleted();

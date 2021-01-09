@@ -18,23 +18,23 @@ export class Jv1FloppyDisk extends FloppyDisk {
         return "Floppy disk (JV1)";
     }
 
-    public readSector(track: number, sector: number | undefined, side: Side | undefined): SectorData | undefined {
-        sector = sector ?? 0;
+    public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
+        sectorNumber = sectorNumber ?? 0;
 
         // Check for errors.
-        if (track < 0 ||
+        if (trackNumber < 0 ||
             side === Side.BACK ||
-            sector >= SECTORS_PER_TRACK) {
+            sectorNumber >= SECTORS_PER_TRACK) {
 
             return undefined;
         }
 
         // Offset straight into data.
-        const offset = (SECTORS_PER_TRACK*track + sector)*BYTES_PER_SECTOR;
+        const offset = (SECTORS_PER_TRACK*trackNumber + sectorNumber)*BYTES_PER_SECTOR;
         const data = this.padSector(this.binary.subarray(offset, offset + BYTES_PER_SECTOR), BYTES_PER_SECTOR);
 
         const sectorData = new SectorData(data);
-        if (track === DIRECTORY_TRACK) {
+        if (trackNumber === DIRECTORY_TRACK) {
             // I don't know why "deleted" is used for the directory track.
             sectorData.deleted = true;
         }

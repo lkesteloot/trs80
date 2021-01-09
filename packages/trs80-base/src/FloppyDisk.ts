@@ -11,14 +11,14 @@ export enum Side {
  * Convert a number to a side, where 0 maps to FRONT and 1 maps to BACK.
  * Other numbers throw an exception.
  */
-export function numberToSide(number: number): Side {
-    if (number === 0) {
+export function numberToSide(n: number): Side {
+    if (n === 0) {
         return Side.FRONT;
     }
-    if (number === 1) {
+    if (n === 1) {
         return Side.BACK;
     }
-    throw new Error("Invalid side number " + number);
+    throw new Error("Invalid side number " + n);
 }
 
 /**
@@ -65,15 +65,15 @@ export abstract class FloppyDisk extends Trs80File {
     }
 
     /**
-     * Read a sector on the specified track and sector.
+     * Read a sector on the specified track, side, and sector.
      *
-     * @param track the track the sector resides on.
-     * @param sector the sector on the track, or undefined to choose the first sector on the track.
-     * @param side optional side to make sure the sector is on the side we expect.
+     * @param trackNumber the track the sector resides on.
+     * @param side the side the sector resides on.
+     * @param sectorNumber the sector on the track, or undefined to choose any sector on the track.
      * @return the sector, or undefined if an error occurs.
      */
-    public abstract readSector(track: number, sector: number | undefined,
-                               side: Side | undefined): SectorData | undefined;
+    public abstract readSector(trackNumber: number, side: Side,
+                               sectorNumber: number | undefined): SectorData | undefined;
 
     /**
      * Pad a sector to its full length.
