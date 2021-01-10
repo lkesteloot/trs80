@@ -23,15 +23,35 @@ const SECTORS_PER_TRACK = 18;
 // Copyright in the last 16 bytes of each directory sector.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
 
-// For converting ASCII in binary code to strings. This defaults to UTF-8. They
-// don't support ASCII directly, but we don't expect non-ASCII letter.s
-const TEXT_DECODER = new TextDecoder();
-
 // Password value that means "no password".
 const NO_PASSWORD = 0xEF5C;
 
 // Password value for "PASSWORD".
 const PASSWORD = 0xD38F;
+
+/**
+ * Decodes binary into an ASCII string. Returns undefined if any non-ASCII value is
+ * found in the string, where "ASCII" is defined as being in the range 32 to 126 inclusive.
+ */
+function decodeAscii(binary: Uint8Array, trim: boolean = true): string | undefined {
+    const parts: string[] = [];
+
+    for (const b of binary) {
+        if (b < 32 || b >= 127) {
+            return undefined;
+        }
+
+        parts.push(String.fromCodePoint(b));
+    }
+
+    let s = parts.join("");
+
+    if (trim) {
+        s = s.trim();
+    }
+
+    return s;
+}
 
 /**
  * Lowest three bits of the directory entry's flag.
@@ -98,7 +118,9 @@ export class TrsdosExtent {
  * @param end index past last extent in binary.
  * @param trackFirst whether the track comes first or second.
  */
-function decodeExtents(binary: Uint8Array, begin: number, end: number, trackFirst: boolean) {
+function decodeExtents(binary: Uint8Array, begin: number, end: number,
+                       trackFirst: boolean): TrsdosExtent[] | undefined {
+
     const extents: TrsdosExtent[] = [];
 
     for (let i = begin; i < end; i += 2) {
@@ -110,6 +132,11 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number, trackFirs
         const granuleByte = binary[trackFirst ? i + 1 : i];
         const granuleOffset = granuleByte >> 5;
         const granuleCount = granuleByte & 0x1F;
+
+        if (trackNumber >= 40) {
+            // Not a TRSDOS disk.
+            return undefined;
+        }
 
         extents.push(new TrsdosExtent(trackNumber, granuleOffset, granuleCount));
     }
@@ -137,16 +164,29 @@ export class TrsdosGatInfo {
 }
 
 /**
- * Converts a sector to a GAT object.
+ * Converts a sector to a GAT object, or undefined if we don't think this is a GAT sector.
  */
-function decodeGatInfo(binary: Uint8Array): TrsdosGatInfo {
+function decodeGatInfo(binary: Uint8Array): TrsdosGatInfo | undefined {
     // One byte for each track.
     const gat = binary.subarray(0, 40);
+
+    // Top two bits don't map to anything, so must be zero.
+    for (const g of gat) {
+        if ((g & 0xC0) !== 0) {
+            return undefined;
+        }
+    }
+
     // Assume big endian.
     const password = (binary[0xCE] << 8) | binary[0xCF];
-    const name = TEXT_DECODER.decode(binary.subarray(0xD0, 0xD8)).trim();
-    const date = TEXT_DECODER.decode(binary.subarray(0xD8, 0xE0)).trim();
-    const autoCommand = binary[0xE0] === 0x0D ? "" : TEXT_DECODER.decode(binary.subarray(0xE0)).trim();
+    const name = decodeAscii(binary.subarray(0xD0, 0xD8));
+    const date = decodeAscii(binary.subarray(0xD8, 0xE0));
+    const autoCommand = binary[0xE0] === 0x0D ? "" : decodeAscii(binary.subarray(0xE0));
+
+    // Implies that this is not a TRSDOS disk.
+    if (name === undefined || date === undefined || autoCommand === undefined) {
+        return undefined;
+    }
 
     return new TrsdosGatInfo(gat, password, name, date, autoCommand);
 }
@@ -165,12 +205,15 @@ export class TrsdosHitInfo {
 }
 
 /**
- * Decode the Hash Index Table sector.
+ * Decode the Hash Index Table sector, or undefined if we don't think this is a TRSDOS disk.
  */
-function decodeHitInfo(binary: Uint8Array): TrsdosHitInfo {
+function decodeHitInfo(binary: Uint8Array): TrsdosHitInfo | undefined {
     // One byte for each file.
     const hit = binary.subarray(0, 80);
     const systemFiles = decodeExtents(binary, 0xE0, binary.length, false);
+    if (systemFiles === undefined) {
+        return undefined;
+    }
 
     return new TrsdosHitInfo(hit, systemFiles);
 }
@@ -331,13 +374,18 @@ function decodeDirEntry(binary: Uint8Array): TrsdosDirEntry | undefined {
     const year = binary[2];
     const lastSectorSize = binary[3];
     const lrl = ((binary[4] - 1) & 0xFF) + 1; // 0 -> 256.
-    const filename = TEXT_DECODER.decode(binary.subarray(5, 16)).trim();
+    const filename = decodeAscii(binary.subarray(5, 16));
     // Not sure how to convert these two into a number. Just use big endian.
     const updatePassword = (binary[16] << 8) | binary[17];
     const accessPassword = (binary[18] << 8) | binary[19];
     // Little endian.
     const sectorCount = (binary[21] << 8) | binary[20];
     const extents = decodeExtents(binary, 22, binary.length, true);
+
+    if (filename === undefined || extents === undefined) {
+        // This signals empty directory, but really should imply a non-TRSDOS disk.
+        return undefined;
+    }
 
     return new TrsdosDirEntry(flags, month, year, lastSectorSize, lrl, filename, updatePassword,
         accessPassword, sectorCount, extents);
@@ -413,22 +461,32 @@ export class Trsdos {
  * Decode a TRSDOS diskette, or return undefined if this does not look like such a diskette.
  */
 export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
+    // Decode Granule Allocation Table sector.
     const gatSector = disk.readSector(17, Side.FRONT, 1);
     if (gatSector === undefined || gatSector.deleted) {
         return undefined;
     }
     const gatInfo = decodeGatInfo(gatSector.data);
+    if (gatInfo === undefined) {
+        return undefined;
+    }
+
+    // Decode Hash Index Table sector.
     const hitSector = disk.readSector(17, Side.FRONT, 2);
     if (hitSector === undefined || hitSector.deleted) {
         return undefined;
     }
     const hitInfo = decodeHitInfo(hitSector.data);
+    if (hitInfo === undefined) {
+        return undefined;
+    }
 
+    // Decode directory entries.
     const dirEntries: TrsdosDirEntry[] = [];
     for (let k = 0; k < 16; k++) {
         const dirSector = disk.readSector(17, Side.FRONT, k + 3);
         if (dirSector !== undefined) {
-            const tandy = TEXT_DECODER.decode(dirSector.data.subarray(5*DIR_ENTRY_LENGTH)).trim();
+            const tandy = decodeAscii(dirSector.data.subarray(5*DIR_ENTRY_LENGTH));
             if (tandy !== EXPECTED_TANDY) {
                 console.error(`Expected "${EXPECTED_TANDY}", got "${tandy}"`);
                 // return undefined?
