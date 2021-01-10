@@ -9,6 +9,7 @@
     "start": "npm run build && http-server docs"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "repository": "https://github.com/lkesteloot/my-trs-80",
   "license": "MIT",
   "devDependencies": {
     "@types/lodash": "^4.14.165",
@@ -35,7 +36,7 @@
     "teamten-ts-utils": "^1.0.0",
     "trs80-base": "../trs80-base",
     "trs80-emulator": "../trs80-emulator",
-    "z80-base": "^1.0.4",
-    "z80-disasm": "^1.1.0"
+    "z80-base": "^1.0.6",
+    "z80-disasm": "^1.1.1"
   }
 }
