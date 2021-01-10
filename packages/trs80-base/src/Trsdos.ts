@@ -11,6 +11,9 @@ import {FloppyDisk, Side} from "./FloppyDisk";
 // Number of bytes per dir entry in the sector.
 const DIR_ENTRY_LENGTH = 48;
 
+// Apparently this is constant in TRSDOS.
+const BYTES_PER_SECTOR = 256;
+
 // Apparently this is 3, but somewhere else I read 6.
 const SECTORS_PER_GRANULE = 3;
 
@@ -179,25 +182,27 @@ export class TrsdosDirEntry {
     public readonly flags: number;
     public readonly month: number;
     public readonly year: number;
-    public readonly eof: number;
+    public readonly lastSectorSize: number;
     // Logical record length.
     public readonly lrl: number;
-    public readonly filename: string;
+    public readonly rawFilename: string;
     public readonly updatePassword: number;
     public readonly accessPassword: number;
+    // This is the number of *full* sectors. It doesn't include a possible
+    // additional partial sector of "lastSectorSize" bytes.
     public readonly sectorCount: number;
     public readonly extents: TrsdosExtent[];
 
-    constructor(flags: number, month: number, year: number, eof: number, lrl: number,
+    constructor(flags: number, month: number, year: number, lastSectorSize: number, lrl: number,
                 filename: string, updatePassword: number, accessPassword: number,
                 sectorCount: number, extents: TrsdosExtent[]) {
 
         this.flags = flags;
         this.month = month;
         this.year = year;
-        this.eof = eof;
+        this.lastSectorSize = lastSectorSize;
         this.lrl = lrl;
-        this.filename = filename;
+        this.rawFilename = filename;
         this.updatePassword = updatePassword;
         this.accessPassword = accessPassword;
         this.sectorCount = sectorCount;
@@ -278,23 +283,37 @@ export class TrsdosDirEntry {
      * Get the basename (part before the period) of the filename.
      */
     public getBasename(): string {
-        return this.filename.substr(0, 8).trim();
+        return this.rawFilename.substr(0, 8).trim();
     }
 
     /**
-     * Get the extension of the filename, including the period. If the filename
-     * has no extension, returns an empty string.
+     * Get the extension of the filename.
      */
     public getExtension(): string {
-        const extension = this.filename.substr(8).trim();
-        return extension === "" ? "" : "." + extension;
+        return this.rawFilename.substr(8).trim();
     }
 
     /**
-     * Get a modern filename in the format of "foo.ext" or just "foo" if no extension is specified.
+     * Get the full filename (without the internal spaces of the raw filename). If the
+     * file has an extension, it will be preceded by the specified separator.
      */
-    public getModernFilename(): string {
-        return this.getBasename() + this.getExtension();
+    public getFilename(extensionSeparator: string): string {
+        const extension = this.getExtension();
+        return this.getBasename() + (extension === "" ? "" : extensionSeparator + extension);
+    }
+
+    /**
+     * Return the size in bytes.
+     */
+    public getSize(): number {
+        return this.sectorCount*BYTES_PER_SECTOR + this.lastSectorSize;
+    }
+
+    /**
+     * Return the date in MM/YY format.
+     */
+    public getDate(): string {
+        return this.month.toString().padStart(2, "0") + "/" +  this.year.toString().padStart(2, "0");
     }
 }
 
@@ -310,7 +329,7 @@ function decodeDirEntry(binary: Uint8Array): TrsdosDirEntry | undefined {
 
     const month = binary[1];
     const year = binary[2];
-    const eof = ((binary[3] - 1) & 0xFF) + 1; // 0 -> 256.
+    const lastSectorSize = binary[3];
     const lrl = ((binary[4] - 1) & 0xFF) + 1; // 0 -> 256.
     const filename = TEXT_DECODER.decode(binary.subarray(5, 16)).trim();
     // Not sure how to convert these two into a number. Just use big endian.
@@ -320,7 +339,7 @@ function decodeDirEntry(binary: Uint8Array): TrsdosDirEntry | undefined {
     const sectorCount = (binary[21] << 8) | binary[20];
     const extents = decodeExtents(binary, 22, binary.length, true);
 
-    return new TrsdosDirEntry(flags, month, year, eof, lrl, filename, updatePassword,
+    return new TrsdosDirEntry(flags, month, year, lastSectorSize, lrl, filename, updatePassword,
         accessPassword, sectorCount, extents);
 }
 
@@ -348,9 +367,9 @@ export class Trsdos {
     public readFile(dirEntry: TrsdosDirEntry): Uint8Array {
         const parts: Uint8Array[] = [];
 
-        console.log("---------- " + dirEntry.getModernFilename());
+        console.log("---------- " + dirEntry.getFilename("."));
 
-        let sectorCount = dirEntry.sectorCount;
+        let sectorCount = dirEntry.sectorCount + (dirEntry.lastSectorSize > 0 ? 1 : 0);
         for (const extent of dirEntry.extents) {
             let trackNumber = extent.trackNumber;
             let sectorNumber = extent.granuleOffset*SECTORS_PER_GRANULE + 1;
@@ -382,9 +401,8 @@ export class Trsdos {
         }
 
         // Clip last sector.
-        if (parts.length > 0) {
-            console.log("Clipping from " + parts[parts.length - 1].length + " to " + dirEntry.eof);
-            parts[parts.length - 1] = parts[parts.length - 1].subarray(0, dirEntry.eof);
+        if (parts.length > 0 && dirEntry.lastSectorSize > 0) {
+            parts[parts.length - 1] = parts[parts.length - 1].subarray(0, dirEntry.lastSectorSize);
         }
 
         return concatByteArrays(parts);
