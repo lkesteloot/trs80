@@ -191,6 +191,8 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
         // Adjust load block length.
         if (type === CMD_LOAD_BLOCK && length <= 2) {
             length += 256;
+        } else if (type === CMD_LOAD_MODULE_HEADER && length === 0) {
+            length = 256;
         }
 
         annotations.push(new ProgramAnnotation("Length of chunk (" + length +

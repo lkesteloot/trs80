@@ -216,7 +216,7 @@ export class DmkFloppyDisk extends FloppyDisk {
     public readSector(trackNumber: number, side: Side,
                       sectorNumber: number | undefined): SectorData | undefined {
 
-        console.log(`readSector(${trackNumber}, ${sectorNumber}, ${side})`);
+        // console.log(`readSector(${trackNumber}, ${sectorNumber}, ${side})`);
         for (const track of this.tracks) {
             if (track.trackNumber === trackNumber) { // TODO not checking side.
                 for (const sector of track.sectors) {
@@ -228,7 +228,7 @@ export class DmkFloppyDisk extends FloppyDisk {
                         const sectorData = new SectorData(this.binary.subarray(begin, end));
                         sectorData.crcError = sector.getDataCrc() !== sector.computeDataCrc();
                         sectorData.deleted = sector.isDeleted();
-                        console.log(sectorData);
+                        // console.log(sectorData);
                         return sectorData;
                     }
                 }

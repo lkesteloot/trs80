@@ -8,3 +8,4 @@ export * from "./RawBinaryFile";
 export * from "./Trs80FileDecoder";
 export * from "./FloppyDisk";
 export * from "./Jv1FloppyDisk";
+export * from "./Trsdos";

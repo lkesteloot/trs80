@@ -11,6 +11,7 @@
     "lint": "tslint --project . --format codeFrame",
     "lint:fix": "npm run lint -- --fix",
     "clean": "rm -rf dist",
+    "watch": "tsc -p tsconfig.json --watch",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
