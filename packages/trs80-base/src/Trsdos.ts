@@ -72,7 +72,7 @@ export enum TrsdosProtectionLevel {
  * Gets the string version of the protection level enum.
  * @param level
  */
-function trsdosProtectionLevelToString(level: TrsdosProtectionLevel): string {
+export function trsdosProtectionLevelToString(level: TrsdosProtectionLevel): string {
     switch (level) {
         case TrsdosProtectionLevel.FULL:
             return "FULL";
@@ -355,8 +355,15 @@ export class TrsdosDirEntry {
     /**
      * Return the date in MM/YY format.
      */
-    public getDate(): string {
+    public getDateString(): string {
         return this.month.toString().padStart(2, "0") + "/" +  this.year.toString().padStart(2, "0");
+    }
+
+    /**
+     * Return the date as an object.
+     */
+    public getDate(): Date {
+        return new Date(1900 + this.year, this.month - 1);
     }
 }
 
