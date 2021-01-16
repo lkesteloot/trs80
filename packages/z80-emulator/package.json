@@ -2,20 +2,18 @@
   "name": "z80-emulator",
   "version": "1.0.4",
   "description": "Z80 emulator in TypeScript",
-  "main": "dist/main/index.js",
-  "typing": "dist/main/index.d.ts",
-  "module": "dist/module/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "npm run build:main && npm run build:module",
-    "build:main": "tsc -p tsconfig.json",
-    "build:module": "tsc -p tsconfig.module.json",
+    "build": "tsc -p tsconfig.json",
     "build:test": "tsc -p tsconfig.test.json",
     "generate": "tsc --project opcodes && node opcodes/dist/GenerateOpcodes.js",
     "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
     "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
     "lint:fix": "npm run lint -- --fix",
     "test": "npm run build:test && node dist-tests/tests/Test.js",
-    "clean": "rm -rf dist dist-tests"
+    "clean": "rm -rf dist dist-tests",
+    "prepare": "npm run build"
   },
   "directories": {
     "test": "tests"
@@ -36,6 +34,6 @@
     "z80-test": "^1.0.5"
   },
   "dependencies": {
-    "z80-base": "^1.0.3"
+    "z80-base": "^1.0.6"
   }
 }
