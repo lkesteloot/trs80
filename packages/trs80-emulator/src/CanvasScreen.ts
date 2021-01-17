@@ -202,6 +202,7 @@ export class CanvasScreen extends Trs80Screen {
      */
     public asImage(): HTMLImageElement {
         const image = document.createElement("img");
+        // TODO use canvas.toBlob() instead, it might not block the UI thread.
         image.src = this.canvas.toDataURL();
 
         return image;

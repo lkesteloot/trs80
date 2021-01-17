@@ -13,7 +13,7 @@
     "moduleResolution": "Node",
     "lib": [
         "dom",
-        "es6"
+        "es2018"
     ]
   },
   "include": [

@@ -8,8 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
     "lint:fix": "npm run lint -- --fix",
-    "start": "rollup -c && http-server docs",
-    "watch": "rollup -c --watch",
+    "start": "webpack && http-server docs",
+    "watch": "webpack --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
   },
@@ -26,13 +26,15 @@
     "teamten-ts-utils": "^1.0.1",
     "trs80-base": "../trs80-base",
     "z80-base": "^1.0.6",
-    "z80-emulator": "^1.0.2"
+    "z80-emulator": "^1.0.5"
   },
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^6.0.0",
-    "@rollup/plugin-typescript": "^2.0.1",
+    "source-map-loader": "^0.2.4",
+    "ts-loader": "^6.2.1",
+    "webpack": "^4.41.5",
+    "webpack-build-notifier": "^2.0.0",
+    "webpack-cli": "^3.3.10",
     "http-server": "^0.12.0",
-    "rollup": "^1.27.14",
     "tslib": "^1.10.0",
     "tslint": "^5.20.1",
     "typescript": "^3.7.4"

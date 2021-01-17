@@ -6,7 +6,7 @@
  * https://hansotten.file-hunter.com/technical-info/wd1793/
  */
 
-import {FloppyDisk, SectorData, Side} from "trs80-base/dist/FloppyDisk";
+import {FloppyDisk, SectorData, Side} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Machine} from "./Machine";
 import {toHexByte} from "z80-base";
@@ -369,6 +369,7 @@ export class FloppyDiskController {
                 break;
 
             case COMMAND_WRITE:
+                console.log(`Sector write: ${drive.physicalTrack}, ${this.sector}, ${this.side}`);
                 this.status = STATUS_WRITE_PROTECTED;
                 break;
 
