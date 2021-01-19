@@ -2,6 +2,7 @@ import {Trs80Screen} from "./Trs80Screen";
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts";
 import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "./Config";
+import {toHexByte} from "z80-base";
 
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
@@ -32,8 +33,8 @@ export function phosphorToRgb(phosphor: Phosphor): number[] {
  * TRS-80 screen based on an HTML canvas element.
  */
 export class CanvasScreen extends Trs80Screen {
-    private readonly scale: number = 1;
-    private readonly padding: number;
+    public readonly scale: number = 1;
+    public readonly padding: number;
     private readonly node: HTMLElement;
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
@@ -66,6 +67,14 @@ export class CanvasScreen extends Trs80Screen {
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
         this.updateFromConfig();
+    }
+
+    public getWidth(): number {
+        return this.canvas.width;
+    }
+
+    public getHeight(): number {
+        return this.canvas.height;
     }
 
     setConfig(config: Config): void {
@@ -115,10 +124,15 @@ export class CanvasScreen extends Trs80Screen {
         this.drawChar(offset, value);
     }
 
+    public getForegroundColor(): string {
+        const color = phosphorToRgb(this.config.phosphor);
+        return "#" + toHexByte(color[0]) + toHexByte(color[1]) + toHexByte(color[2]);
+    }
+
     /**
      * Get the background color as a CSS color based on the current config.
      */
-    private getBackgroundColor(): string {
+    public getBackgroundColor(): string {
         switch (this.config.background) {
             case Background.BLACK:
                 return BLACK_BACKGROUND;
@@ -127,6 +141,10 @@ export class CanvasScreen extends Trs80Screen {
             default:
                 return AUTHENTIC_BACKGROUND;
         }
+    }
+
+    public getBorderRadius(): number {
+        return BORDER_RADIUS*this.scale;
     }
 
     /**
@@ -175,7 +193,7 @@ export class CanvasScreen extends Trs80Screen {
     private drawBackground(): void {
         const width = this.canvas.width;
         const height = this.canvas.height;
-        const radius = BORDER_RADIUS*this.scale;
+        const radius = this.getBorderRadius();
 
         this.context.fillStyle = this.getBackgroundColor();
         this.context.beginPath();

@@ -215,8 +215,7 @@ export class Keyboard {
         // Look up the key info.
         const keyInfo = keyMap.get(key);
         if (keyInfo === undefined) {
-            // Meta is noisy.
-            if (key !== "Meta") {
+            if (key !== "Meta" && key !== "Control" && key !== "Alt") {
                 console.log("Unknown key \"" + key + "\"");
             }
         } else {

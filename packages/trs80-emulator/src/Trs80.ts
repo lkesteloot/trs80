@@ -9,11 +9,12 @@ import {Trs80Screen} from "./Trs80Screen";
 import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {BasicLevel, CGChip, Config, ModelType} from "./Config";
 import {
+    BASIC_HEADER_BYTE,
     BasicProgram,
     Cassette,
     CmdLoadBlockChunk,
     CmdProgram,
-    CmdTransferAddressChunk,
+    CmdTransferAddressChunk, decodeBasicProgram,
     ElementType,
     SystemProgram,
     Trs80File
@@ -114,7 +115,7 @@ export class Trs80 implements Hal, Machine {
     private clocksPerTick = INITIAL_CLICKS_PER_TICK;
     private startTime = Date.now();
     private tickHandle: number | undefined;
-    private started = false;
+    public started = false;
 
     // Internal state of the cassette controller.
     // Whether the motor is running.
@@ -1024,62 +1025,68 @@ export class Trs80 implements Hal, Machine {
 
             // Wait for Ready prompt.
             this.eventScheduler.add(undefined, this.tStateCount + this.clockHz*0.2, () => {
-                // Find address to load to.
-                let addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
-                if (addr < 0x4200 || addr >= 0x4500) {
-                    console.error("Basic load address (0x" + toHexWord(addr) + ") is uninitialized");
-                    return;
-                }
-
-                // Terminate current line (if any) and set up the new one.
-                let lineStart: number | undefined;
-                const newLine = () => {
-                    if (lineStart !== undefined) {
-                        // End-of-line marker.
-                        this.writeMemory(addr++, 0);
-
-                        // Update previous line's next-line pointer.
-                        this.writeMemory(lineStart, lo(addr));
-                        this.writeMemory(lineStart + 1, hi(addr));
-                    }
-
-                    // Remember address of next-line pointer.
-                    lineStart = addr;
-
-                    // Next-line pointer.
-                    this.writeMemory(addr++, 0);
-                    this.writeMemory(addr++, 0);
-                };
-
-                // Write elements to memory.
-                for (const e of basicProgram.elements) {
-                    if (e.offset !== undefined) {
-                        if (e.elementType === ElementType.LINE_NUMBER) {
-                            newLine();
-                        }
-
-                        // Write element.
-                        addr = this.writeMemoryBlock(addr, basicProgram.binary, e.offset, e.length);
-                    }
-                }
-
-                newLine();
-
-                // End of Basic program pointer.
-                this.writeMemory(0x40F9, lo(addr));
-                this.writeMemory(0x40FA, hi(addr));
-
-                // Start of array variables pointer.
-                this.writeMemory(0x40FB, lo(addr));
-                this.writeMemory(0x40FC, hi(addr));
-
-                // Start of free memory pointer.
-                this.writeMemory(0x40FD, lo(addr));
-                this.writeMemory(0x40FE, hi(addr));
-
+                this.loadBasicProgram(basicProgram);
                 this.keyboard.simulateKeyboardText("RUN\n");
             });
         });
+    }
+
+    /**
+     * Load a Basic program into memory, replacing the one that's there. Does not run it.
+     */
+    public loadBasicProgram(basicProgram: BasicProgram): void {
+        // Find address to load to.
+        let addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
+        if (addr < 0x4200 || addr >= 0x4500) {
+            console.error("Basic load address (0x" + toHexWord(addr) + ") is uninitialized");
+            return;
+        }
+
+        // Terminate current line (if any) and set up the new one.
+        let lineStart: number | undefined;
+        const newLine = () => {
+            if (lineStart !== undefined) {
+                // End-of-line marker.
+                this.writeMemory(addr++, 0);
+
+                // Update previous line's next-line pointer.
+                this.writeMemory(lineStart, lo(addr));
+                this.writeMemory(lineStart + 1, hi(addr));
+            }
+
+            // Remember address of next-line pointer.
+            lineStart = addr;
+
+            // Next-line pointer.
+            this.writeMemory(addr++, 0);
+            this.writeMemory(addr++, 0);
+        };
+
+        // Write elements to memory.
+        for (const e of basicProgram.elements) {
+            if (e.offset !== undefined) {
+                if (e.elementType === ElementType.LINE_NUMBER) {
+                    newLine();
+                }
+
+                // Write element.
+                addr = this.writeMemoryBlock(addr, basicProgram.binary, e.offset, e.length);
+            }
+        }
+
+        newLine();
+
+        // End of Basic program pointer.
+        this.writeMemory(0x40F9, lo(addr));
+        this.writeMemory(0x40FA, hi(addr));
+
+        // Start of array variables pointer.
+        this.writeMemory(0x40FB, lo(addr));
+        this.writeMemory(0x40FC, hi(addr));
+
+        // Start of free memory pointer.
+        this.writeMemory(0x40FD, lo(addr));
+        this.writeMemory(0x40FE, hi(addr));
     }
 
     /**
@@ -1091,5 +1098,44 @@ export class Trs80 implements Hal, Machine {
 
         // Reboot.
         this.reset();
+    }
+
+    /**
+     * Pulls the Basic program currently in memory, or returns a string with an error.
+     */
+    public getBasicProgramFromMemory(): BasicProgram | string {
+        let addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
+        if (addr < 0x4200 || addr >= 0x4500) {
+            return "Basic load address (0x" + toHexWord(addr) + ") is uninitialized";
+        }
+
+        // Walk through the program lines to find the end.
+        const beginAddr = addr;
+        while (true) {
+            // Find end address.
+            const nextLine = this.readMemory(addr) + (this.readMemory(addr + 1) << 8);
+            if (nextLine === 0) {
+                break;
+            }
+            if (nextLine < addr) {
+                // Error, went backward.
+                return `Next address 0x${toHexWord(nextLine)} is less than current address 0x${toHexWord(addr)}`;
+            }
+            addr = nextLine;
+        }
+        const endAddr = addr + 2;
+
+        // Put together the binary of just the program.
+        const binary = new Uint8Array(endAddr - beginAddr + 1);
+        binary[0] = BASIC_HEADER_BYTE;
+        binary.set(this.memory.subarray(beginAddr, endAddr), 1);
+
+        // Decode the program.
+        const basic = decodeBasicProgram(binary);
+        if (basic === undefined) {
+            return "Basic couldn't be decoded";
+        }
+
+        return basic;
     }
 }
