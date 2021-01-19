@@ -2,14 +2,14 @@
 // Tools for decoding Basic programs.
 
 import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
-import {toHexWord} from "z80-base";
+import {hi, lo, toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation";
 import {Trs80File} from "./Trs80File";
 
-const BASIC_TAPE_HEADER_BYTE = 0xD3;
-const BASIC_HEADER_BYTE = 0xFF;
+export const BASIC_TAPE_HEADER_BYTE = 0xD3;
+export const BASIC_HEADER_BYTE = 0xFF;
 
-// Starts at 0x80.
+const FIRST_TOKEN = 0x80;
 const TOKENS = [
     "END", "FOR", "RESET", "SET", "CLS", "CMD", "RANDOM", "NEXT", // 0x80
     "DATA", "INPUT", "DIM", "READ", "LET", "GOTO", "RUN", "IF", // 0x88
@@ -28,6 +28,9 @@ const TOKENS = [
     "CSNG", "CDBL", "FIX", "LEN", "STR$", "VAL", "ASC", "CHR$", // 0xF0
     "LEFT$", "RIGHT$", "MID$", // 0xF8
 ];
+const DOUBLE_QUOTE = 0x22;
+const SINGLE_QUOTE = 0x27;
+const COLON = 0x3A;
 const REM = 0x93;
 const DATA = 0x88;
 const REMQUOT = 0xFB;
@@ -36,19 +39,23 @@ const ELSE = 0x95;
 /**
  * Parser state.
  */
-// Normal part of line.
-const NORMAL = 0;
-// Inside string literal.
-const STRING_LITERAL = 1;
-// After REM or DATA statement to end of line.
-const RAW = 2;
+enum ParserState {
+    // Normal part of line.
+    NORMAL,
+    // Inside string literal.
+    STRING,
+    // After REM token to end of line.
+    REM,
+    // After DATA token to end of statement.
+    DATA,
+}
 
 /**
  * Get the token for the byte value, or undefined if the value does
  * not map to a token.
  */
 export function getToken(c: number): string | undefined {
-    return c >= 128 && c < 128 + TOKENS.length ? TOKENS[c - 128] : undefined;
+    return c >= FIRST_TOKEN && c < FIRST_TOKEN + TOKENS.length ? TOKENS[c - FIRST_TOKEN] : undefined;
 }
 
 /**
@@ -136,7 +143,8 @@ export function wrapBasic(bytes: Uint8Array): Uint8Array {
  */
 export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined {
     const b = new ByteReader(binary);
-    let state;
+    let state: ParserState;
+    let preStringState = ParserState.NORMAL;
     let error: string | undefined;
     const annotations: ProgramAnnotation[] = [];
 
@@ -193,7 +201,7 @@ export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined
         const lineElementsIndex = elements.length;
         let c; // Uint8 value.
         let ch; // String value.
-        state = NORMAL;
+        state = ParserState.NORMAL;
         while (true) {
             c = b.read();
             if (c === EOF || c === 0) {
@@ -202,7 +210,7 @@ export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined
             ch = String.fromCharCode(c);
 
             // Special handling of sequences of characters that start with a colon.
-            if (ch === ":" && state === NORMAL) {
+            if (ch === ":" && state === ParserState.NORMAL) {
                 const colonAddr = b.addr() - 1;
                 if (b.peek(0) === ELSE) {
                     // :ELSE gets translated to just ELSE, probably because an old version
@@ -216,12 +224,13 @@ export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined
                     b.read(); // REM
                     b.read(); // REMQUOT
                     elements.push(new BasicElement(colonAddr, "'", ElementType.COMMENT, b.addr() - colonAddr));
+                    state = ParserState.REM;
                 } else {
                     elements.push(new BasicElement(colonAddr, ":", ElementType.PUNCTUATION));
                 }
             } else {
                 switch (state) {
-                    case NORMAL:
+                    case ParserState.NORMAL:
                         const token = getToken(c);
                         elements.push(token !== undefined
                             ? new BasicElement(b.addr() - 1, token,
@@ -230,14 +239,17 @@ export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined
                                     : ElementType.KEYWORD)
                             : new BasicElement(b.addr() - 1,
                                 ch, ch === '"' ? ElementType.STRING : ElementType.REGULAR));
-                        if (c === DATA || c === REM) {
-                            state = RAW;
+                        if (c === REM) {
+                            state = ParserState.REM;
+                        } else if (c === DATA) {
+                            state = ParserState.DATA;
                         } else if (ch === '"') {
-                            state = STRING_LITERAL;
+                            preStringState = state;
+                            state = ParserState.STRING;
                         }
                         break;
 
-                    case STRING_LITERAL:
+                    case ParserState.STRING:
                         let e: BasicElement;
                         if (ch === "\r") {
                             e = new BasicElement(b.addr() - 1, "\\n", ElementType.PUNCTUATION);
@@ -251,12 +263,26 @@ export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined
                         elements.push(e);
                         if (ch === '"') {
                             // End of string.
-                            state = NORMAL;
+                            state = preStringState;
                         }
                         break;
 
-                    case RAW:
+                    case ParserState.REM:
                         elements.push(new BasicElement(b.addr() - 1, ch, ElementType.COMMENT));
+                        break;
+
+                    case ParserState.DATA:
+                        let elementType = ElementType.COMMENT;
+                        if (ch === ":") {
+                            elementType = ElementType.PUNCTUATION;
+                            state = ParserState.NORMAL;
+                        }
+                        if (ch === '"') {
+                            elementType = ElementType.STRING;
+                            preStringState = state;
+                            state = ParserState.STRING;
+                        }
+                        elements.push(new BasicElement(b.addr() - 1, ch, elementType));
                         break;
                 }
             }
@@ -280,4 +306,211 @@ export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined
     }
 
     return new BasicProgram(binary, error, annotations, elements);
+}
+
+/**
+ * Parser for a single line of Basic code.
+ */
+class BasicParser {
+    private readonly line: string;
+    private readonly result: number[] = [];
+    public lineNumber: number | undefined = undefined;
+    private pos = 0;
+
+    constructor(line: string) {
+        // Only trim the start, spaces at the end should be kept.
+        this.line = line.trimStart();
+    }
+
+    /**
+     * Parse the line, returning the binary for it or an error. The binary includes
+     * the line number and the terminating nul, but not the "next-line" pointer.
+     */
+    public parse(): Uint8Array | string {
+        // Parse line number.
+        this.lineNumber = this.readNumber();
+        if (this.lineNumber === undefined) {
+            return "Missing line number: " + this.line;
+        }
+
+        this.result.push(lo(this.lineNumber));
+        this.result.push(hi(this.lineNumber));
+
+        // We only trim at the start, so there could be only spaces here, but that's not allowed.
+        if (this.line.substr(this.pos).trim() === "") {
+            return "Empty line " + this.lineNumber;
+        }
+
+        // Skip single optional whitespace
+        if (this.pos < this.line.length && BasicParser.isWhitespace(this.line.charCodeAt(this.pos))) {
+            this.pos++;
+        }
+
+        while (this.pos < this.line.length) {
+            let ch = this.line.charCodeAt(this.pos);
+
+            // Lower case anything outside of strings.
+            if (ch >= 0x61 && ch < 0x61 + 26) {
+                ch -= 0x20;
+            }
+
+            // Handle single-quote comment.
+            if (ch === SINGLE_QUOTE) {
+                // Single quote is the start of a comment, but it's encoded in a backward-compatible
+                // way with several tokens.
+                this.result.push(COLON, REM, REMQUOT);
+                this.pos++;
+                // We're done, copy the rest of the line.
+                break;
+            }
+
+            // Handle string.
+            if (ch === DOUBLE_QUOTE) {
+                this.result.push(ch);
+                this.pos++;
+                while (this.pos < this.line.length) {
+                    ch = this.line.charCodeAt(this.pos++);
+                    this.result.push(ch);
+                    if (ch === DOUBLE_QUOTE) {
+                        break;
+                    }
+                }
+            } else {
+                // See if it should be a token.
+                const token = this.readToken();
+                if (token === undefined) {
+                    // Just a regular letter.
+                    this.result.push(ch);
+                    this.pos++;
+                } else {
+                    // Prefix ELSE with colon for backward compatibility.
+                    if (token === ELSE && this.result[this.result.length - 1] !== COLON) {
+                        this.result.push(COLON);
+                    }
+
+                    this.result.push(token);
+                    this.pos += TOKENS[token - FIRST_TOKEN].length;
+
+                    if (token === REM) {
+                        // We're done, copy the rest of the line.
+                        break;
+                    }
+
+                    if (token === DATA) {
+                        // Copy to end of statement.
+                        let inString = false;
+                        while (this.pos < this.line.length) {
+                            ch = this.line.charCodeAt(this.pos);
+                            if (ch === DOUBLE_QUOTE) {
+                                inString = !inString;
+                            } else if (ch === COLON && !inString) {
+                                break;
+                            }
+                            this.result.push(ch);
+                            this.pos++;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Copy rest of line (for comments).
+        while (this.pos < this.line.length) {
+            this.result.push(this.line.charCodeAt(this.pos++));
+        }
+
+        // End-of-line marker.
+        this.result.push(0);
+
+        return new Uint8Array(this.result);
+    }
+
+    /**
+     * If we're at a token, return it, else return undefined. Does not advance past the token.
+     */
+    private readToken(): number | undefined {
+        for (let i = 0; i < TOKENS.length; i++) {
+            const token = TOKENS[i];
+            if (token === this.line.substr(this.pos, token.length).toUpperCase()) {
+                return FIRST_TOKEN + i;
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Reads a decimal number and advances past it, or returns undefined if not at a number.
+     */
+    private readNumber(): number | undefined {
+        let n: number | undefined;
+
+        while (this.pos < this.line.length && BasicParser.isDigit(this.line.charCodeAt(this.pos))) {
+            if (n === undefined) {
+                n = 0;
+            }
+
+            n = n*10 + this.line.charCodeAt(this.pos) - 0x30;
+
+            this.pos++;
+        }
+
+        return n;
+    }
+
+    /**
+     * Whether the ASCII value is whitespace.
+     */
+    private static isWhitespace(ch: number): boolean {
+        return ch === 0x20 || ch === 0x09;
+    }
+
+    /**
+     * Whether the ASCII value is a digit.
+     */
+    private static isDigit(ch: number): boolean {
+        return ch >= 0x30 && ch < 0x3A;
+    }
+}
+
+/**
+ * Parse a Basic program into a binary with the initial 0xFF header.
+ *
+ * @return the binary or an error.
+ */
+export function parseBasicText(text: string): Uint8Array | string {
+    // Split into lines. Only trim the start, spaces at the end should be kept.
+    const lines = text.split(/[\n\r]+/)
+        .map((line) => line.trimStart())
+        .filter((line) => line !== "");
+
+    const binaryParts: Uint8Array[] = [];
+
+    binaryParts.push(new Uint8Array([BASIC_HEADER_BYTE]));
+
+    // Parse each line.
+    let lineNumber: number | undefined;
+    for (const line of lines) {
+        const parser = new BasicParser(line);
+        const binary = parser.parse();
+        if (typeof binary === "string") {
+            return binary;
+        }
+
+        // Make sure line numbers are consecutive.
+        if (lineNumber !== undefined && parser.lineNumber !== undefined && parser.lineNumber <= lineNumber) {
+            return "Line " + parser.lineNumber + " is out of order";
+        }
+        lineNumber = parser.lineNumber;
+
+        // Push next-line pointer. Can be anything as long as it's not 0x0000,
+        // it'll get fixed up later.
+        binaryParts.push(new Uint8Array([0xFF, 0xFF]));
+        binaryParts.push(binary);
+    }
+
+    // End-of-program marker.
+    binaryParts.push(new Uint8Array([0x00, 0x00]));
+
+    return concatByteArrays(binaryParts);
 }

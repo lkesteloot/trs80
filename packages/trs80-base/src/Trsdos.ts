@@ -422,8 +422,6 @@ export class Trsdos {
     public readFile(dirEntry: TrsdosDirEntry): Uint8Array {
         const parts: Uint8Array[] = [];
 
-        console.log("---------- " + dirEntry.getFilename("."));
-
         let sectorCount = dirEntry.sectorCount + (dirEntry.lastSectorSize > 0 ? 1 : 0);
         for (const extent of dirEntry.extents) {
             let trackNumber = extent.trackNumber;
@@ -437,7 +435,6 @@ export class Trsdos {
                     sectorNumber -= SECTORS_PER_TRACK;
                     trackNumber += 1;
                 }
-                console.log(`About to read ${trackNumber}, ${sectorNumber}`);
                 const sector = this.disk.readSector(trackNumber, Side.FRONT, sectorNumber);
                 if (sector === undefined) {
                     console.log(`Sector couldn't be read ${trackNumber}, ${sectorNumber}`);
@@ -496,7 +493,7 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
             const tandy = decodeAscii(dirSector.data.subarray(5*DIR_ENTRY_LENGTH));
             if (tandy !== EXPECTED_TANDY) {
                 console.error(`Expected "${EXPECTED_TANDY}", got "${tandy}"`);
-                // return undefined?
+                return undefined;
             }
             for (let j = 0; j < 5; j++) {
                 const dirEntry = decodeDirEntry(dirSector.data.subarray(j*DIR_ENTRY_LENGTH, (j + 1)*DIR_ENTRY_LENGTH));

@@ -91,8 +91,11 @@ export class CmdLoadModuleHeaderChunk extends CmdChunk {
  * A friendly (not so technical) name for the block type.
  * See page 43 of The LDOS Quarterly, Volume 1, Number 4.
  * https://www.tim-mann.org/trs80/doc/ldosq1-4.pdf
+ * http://www.vintagecomputer.net/fjkraan/comp/trs80/doc/Trscmdff.txt
+ * https://tim-mann.org/trs80/doc/gocmd.pdf
+ * http://www.manmrk.net/tutorials/TRS80/Software/ldos/trs80/doc/ldosq1-4.txt
  */
-const CHUNK_NAME = new Map<number, string>([
+export const CMD_CHUNK_TYPE_NAME = new Map<number, string>([
     [0x01, "data"], // Originally "object code".
     [0x02, "jump address"], // Originally "transfer address".
     [0x04, "end of partitioned data set member"],
@@ -179,7 +182,7 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
         }
 
         annotations.push(new ProgramAnnotation("Type of chunk (" +
-            (CHUNK_NAME.get(type) ?? "unknown") + ")", b.addr() - 1, b.addr()));
+            (CMD_CHUNK_TYPE_NAME.get(type) ?? "unknown") + ")", b.addr() - 1, b.addr()));
 
         // Second byte is length, in bytes.
         let length = b.read();
