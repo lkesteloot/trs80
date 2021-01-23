@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require("../dist/main/Main.js");
+require("../dist/Main.js");

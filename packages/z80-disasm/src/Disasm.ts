@@ -289,7 +289,7 @@ export class Disasm {
             if (sources.length !== 0) {
                 if (label === undefined) {
                     // Make anonymous label.
-                    label = "L" + labelCounter++;
+                    label = "label" + labelCounter++;
                 }
             }
             if (label !== undefined) {
@@ -306,7 +306,12 @@ export class Disasm {
         // jumps that go outside our disassembled code.
         for (const instruction of instructions) {
             if (instruction.jumpTarget !== undefined) {
-                instruction.replaceArgVariable(TARGET, "0x" + toHexWord(instruction.jumpTarget));
+                let label = this.knownLabels.get(instruction.jumpTarget);
+                if (label === undefined) {
+                    label = "0x" + toHexWord(instruction.jumpTarget);
+                }
+
+                instruction.replaceArgVariable(TARGET, label);
             }
         }
 
