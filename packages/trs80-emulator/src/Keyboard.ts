@@ -3,8 +3,11 @@
 // places, so we must occasionally fake a Shift key being up or down when it's
 // really not.
 
+// Keyboard is in several identical (mirrored) banks.
+const BANK_SIZE = 0x100;
+const BANK_COUNT = 4;
 const BEGIN_ADDR = 0x3800;
-const END_ADDR = BEGIN_ADDR + 256;
+const END_ADDR = BEGIN_ADDR + BANK_SIZE*BANK_COUNT;
 const KEY_DELAY_CLOCK_CYCLES = 50000;
 
 // Whether to force a Shift key, and how.
@@ -169,7 +172,7 @@ export class Keyboard {
     // addresses to read more than one byte at a time. For the last byte we fake
     // the Shift key if necessary.
     public readKeyboard(addr: number, clock: number): number {
-        addr -= BEGIN_ADDR;
+        addr = (addr - BEGIN_ADDR) % BANK_SIZE;
         let b = 0;
 
         // Dequeue if necessary.
