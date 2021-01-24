@@ -1,6 +1,7 @@
 import opcodeMap from "./Opcodes.json";
 import {Instruction} from "./Instruction";
 import {inc16, signedByte, toHex, toHexByte, toHexWord, word} from "z80-base";
+import {Preamble} from "./Preamble";
 
 // Temporary string used for address substitution.
 const TARGET = "TARGET";
@@ -8,6 +9,9 @@ const TARGET = "TARGET";
 // Number of bytes in memory.
 const MEM_SIZE = 64*1024;
 
+/**
+ * Main class for disassembling a binary.
+ */
 export class Disasm {
     private readonly memory = new Uint8Array(MEM_SIZE);
     private readonly hasContent = new Uint8Array(MEM_SIZE);
@@ -208,12 +212,41 @@ export class Disasm {
     }
 
     /**
+     * Whether we have a label with this name. This is pretty slow currently, but is only used
+     * where that doesn't matter. Speed up with a set later if necessary.
+     */
+    public haveLabel(label: string): boolean {
+        for (const l of this.knownLabels.values()) {
+            if (l === label) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Disassemble all instructions and assign labels.
      */
     public disassemble(): Instruction[] {
+        // First, see if there's a preamble that copies the program else where in memory and jumps to it.
+        for (const entryPoint of this.entryPoints) {
+            const preamble = Preamble.detect(this.memory, entryPoint);
+            if (preamble !== undefined) {
+                const begin = preamble.sourceAddress;
+                const end = begin + preamble.copyLength;
+                this.addChunk(this.memory.subarray(begin, end), preamble.destinationAddress);
+                // Unmark this so that we don't decode it as data. It's possible that the program makes use of
+                // it, but unlikely.
+                this.hasContent.fill(0, begin, end);
+                if (!this.haveLabel("real_main")) {
+                    this.addLabels([[preamble.jumpAddress, "real_main"]]);
+                }
+            }
+        }
+
         // Create set of addresses we want to decode, starting with our entry points.
         const addressesToDecode = new Set<number>();
-
         const addAddressToDecode = (number: number | undefined): void => {
             if (number !== undefined &&
                 this.hasContent[number] &&
@@ -232,7 +265,7 @@ export class Disasm {
                 }
             }
             if (this.entryPoints.length === 0) {
-                throw new Error("not binary content was specified");
+                throw new Error("no binary content was specified");
             }
         } else {
             for (const address of this.entryPoints) {
