@@ -368,14 +368,18 @@ export class TapeBrowser {
         addKeyValue("Duration", frameToTimestamp(endFrame - startFrame, this.tape.sampleRate, true), () =>
             this.originalWaveformDisplay.zoomToFit(startFrame, endFrame));
         if (program instanceof Program) {
-            addKeyValues("Download", [".BIN", ".CAS"], (extension: string) => {
+            const binExtention = basicPane !== undefined ? ".BAS"
+                : systemPane !== undefined ? ".3BN"
+                    : cmdPane !== undefined ? ".CMD"
+                        : ".BIN";
+            addKeyValues("Download", [binExtention, ".CAS"], (extension: string) => {
                 // Download binary.
                 const a = document.createElement("a");
-                const contents = extension === ".BIN" ? program.binary : program.asCasFile();
+                const contents = extension === binExtention ? program.binary : program.asCasFile();
                 const blob = new Blob([contents], {type: "application/octet-stream"});
                 a.href = window.URL.createObjectURL(blob);
 
-                a.download = (this.tape.name + " " + program.getShortLabel()).replace(/ /g, "-") + extension.toLowerCase();
+                a.download = (this.tape.name + "-" + program.getShortLabel()).replace(/ /g, "-") + extension;
                 a.click();
             });
             if (basicPane !== undefined) {
@@ -722,7 +726,7 @@ export class TapeBrowser {
             trs80.reset();
 
             if (autoRun && program !== undefined) {
-                trs80.setScheduledEvent(trs80.clockHz/30, () => {
+                trs80.eventScheduler.add(undefined, trs80.clockHz/30, () => {
                     this.loadProgram(trs80, program);
                 });
             }
