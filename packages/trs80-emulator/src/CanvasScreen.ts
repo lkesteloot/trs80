@@ -1,8 +1,8 @@
 import {Trs80Screen} from "./Trs80Screen";
-import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts";
 import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "./Config";
 import {toHexByte} from "z80-base";
+import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
@@ -38,7 +38,7 @@ export class CanvasScreen extends Trs80Screen {
     private readonly node: HTMLElement;
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
-    private readonly memory: Uint8Array = new Uint8Array(SCREEN_END - SCREEN_BEGIN);
+    private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_END - TRS80_SCREEN_BEGIN);
     private readonly glyphs: HTMLCanvasElement[] = [];
     private config: Config = Config.makeDefault();
     private glyphWidth = 0;
@@ -119,7 +119,7 @@ export class CanvasScreen extends Trs80Screen {
     }
 
     writeChar(address: number, value: number): void {
-        const offset = address - SCREEN_BEGIN;
+        const offset = address - TRS80_SCREEN_BEGIN;
         this.memory[offset] = value;
         this.drawChar(offset, value);
     }

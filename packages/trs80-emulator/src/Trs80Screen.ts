@@ -1,5 +1,5 @@
-import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {Config} from "./Config";
+import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 
 /**
  * Abstract base class for displaying a screen.
@@ -82,7 +82,7 @@ export class Trs80Screen {
         // Set expanded mode.
         this.setExpandedCharacters(s.charCodeAt(0) === 1);
 
-        let address = SCREEN_BEGIN;
+        let address = TRS80_SCREEN_BEGIN;
         for (let i = 1; i < s.length; i++) {
             const value = s.charCodeAt(i);
             let count = 1;
@@ -102,7 +102,7 @@ export class Trs80Screen {
             }
         }
 
-        if (address !== SCREEN_END) {
+        if (address !== TRS80_SCREEN_END) {
             throw new Error("Screenshot was of the wrong length");
         }
     }

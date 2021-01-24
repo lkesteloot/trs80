@@ -6,7 +6,6 @@ import {model1Level1Rom} from "./Model1Level1Rom";
 import {model1Level2Rom} from "./Model1Level2Rom";
 import {model3Rom} from "./Model3Rom";
 import {Trs80Screen} from "./Trs80Screen";
-import {SCREEN_BEGIN, SCREEN_END} from "./Utils";
 import {BasicLevel, CGChip, Config, ModelType} from "./Config";
 import {
     BASIC_HEADER_BYTE,
@@ -16,7 +15,7 @@ import {
     CmdProgram,
     CmdTransferAddressChunk, decodeBasicProgram,
     ElementType,
-    SystemProgram,
+    SystemProgram, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END,
     Trs80File
 } from "trs80-base";
 import {toHexWord} from "z80-base";
@@ -72,7 +71,7 @@ enum CassetteValue {
  * Whether the memory address maps to a screen location.
  */
 function isScreenAddress(address: number): boolean {
-    return address >= SCREEN_BEGIN && address < SCREEN_END;
+    return address >= TRS80_SCREEN_BEGIN && address < TRS80_SCREEN_END;
 }
 
 /**
@@ -238,6 +237,28 @@ export class Trs80 implements Hal, Machine {
      */
     public jumpTo(address: number): void {
         this.z80.regs.pc = address;
+    }
+
+    /**
+     * Set the stack pointer to the specified address.
+     */
+    private setStackPointer(address: number): void {
+        this.z80.regs.sp = address;
+    }
+
+    /**
+     * Start the executable at the given address. This sets up some
+     * state and jumps to the address.
+     */
+    private startExecutable(address: number): void {
+        // Disable the cursor.
+        this.writeMemory(0x4022, 0);
+
+        // Disable interrupts.
+        this.z80.regs.iff1 = 0;
+        this.z80.regs.iff2 = 0;
+
+        this.jumpTo(address);
     }
 
     /**
@@ -523,7 +544,7 @@ export class Trs80 implements Hal, Machine {
         if (address < ROM_SIZE) {
             console.log("Warning: Writing to ROM location 0x" + toHex(address, 4));
         } else {
-            if (address >= SCREEN_BEGIN && address < SCREEN_END) {
+            if (address >= TRS80_SCREEN_BEGIN && address < TRS80_SCREEN_END) {
                 if (this.config.cgChip === CGChip.ORIGINAL) {
                     // No bit 6 in video memory, need to compute it.
                     value = computeVideoBit6(value);
@@ -577,7 +598,7 @@ export class Trs80 implements Hal, Machine {
 
         // Run-length encode bytes with (value,count) pairs, with a max count of 255. Bytes
         // in the range 33 to 127 inclusive have an implicit count of 1.
-        for (let address = SCREEN_BEGIN; address < SCREEN_END; address++) {
+        for (let address = TRS80_SCREEN_BEGIN; address < TRS80_SCREEN_END; address++) {
             const value = this.memory[address];
             if (value > 32 && value < 128) {
                 // Bytes in this range don't store a count.
@@ -929,7 +950,7 @@ export class Trs80 implements Hal, Machine {
      * Clear screen and home cursor.
      */
     private cls(): void {
-        for (let address = SCREEN_BEGIN; address < SCREEN_END; address++) {
+        for (let address = TRS80_SCREEN_BEGIN; address < TRS80_SCREEN_END; address++) {
             this.writeMemory(address, 32);
         }
         this.positionCursor(0, 0);
@@ -943,7 +964,7 @@ export class Trs80 implements Hal, Machine {
      * @param row 0-based text row.
      */
     private positionCursor(col: number, row: number): void {
-        const address = SCREEN_BEGIN + row*64 + col;
+        const address = TRS80_SCREEN_BEGIN + row*64 + col;
 
         // This works on Model III, not sure if it works on Model I or in wide mode.
         this.writeMemory(0x4020, lo(address));
@@ -987,7 +1008,7 @@ export class Trs80 implements Hal, Machine {
                 if (chunk instanceof CmdLoadBlockChunk) {
                     this.writeMemoryBlock(chunk.address, chunk.loadData);
                 } else if (chunk instanceof CmdTransferAddressChunk) {
-                    this.jumpTo(chunk.address);
+                    this.startExecutable(chunk.address);
 
                     // Don't load any more after this. I assume on a real machine the jump
                     // happens immediately and CMD parsing ends.
@@ -1009,7 +1030,9 @@ export class Trs80 implements Hal, Machine {
                 this.writeMemoryBlock(chunk.loadAddress, chunk.data);
             }
 
-            this.jumpTo(systemProgram.entryPointAddress);
+            // Do what the SYSTEM command does.
+            this.setStackPointer(0x4288);
+            this.startExecutable(systemProgram.entryPointAddress);
         });
     }
 
