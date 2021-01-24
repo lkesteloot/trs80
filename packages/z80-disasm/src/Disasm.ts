@@ -226,11 +226,31 @@ export class Disasm {
     }
 
     /**
+     * Add the label or, if it's already there, add a suffix to make it unique.
+     */
+    public addUniqueLabel(address: number, label: string): void {
+        let suffix = 1;
+
+        while (suffix < 1000) {
+            const uniqueLabel = label + (suffix === 1 ? "" : suffix);
+            if (this.haveLabel(uniqueLabel)) {
+                suffix += 1;
+            } else {
+                this.addLabels([[address, uniqueLabel]]);
+                break;
+            }
+        }
+    }
+
+    /**
      * Disassemble all instructions and assign labels.
      */
     public disassemble(): Instruction[] {
         // First, see if there's a preamble that copies the program else where in memory and jumps to it.
-        for (const entryPoint of this.entryPoints) {
+        // Use numerical for-loop instead of for-of because we modify the array in the loop and I
+        // don't know what guarantees JavaScript makes about that.
+        for (let i = 0; i < this.entryPoints.length; i++) {
+            const entryPoint = this.entryPoints[i];
             const preamble = Preamble.detect(this.memory, entryPoint);
             if (preamble !== undefined) {
                 const begin = preamble.sourceAddress;
@@ -239,9 +259,9 @@ export class Disasm {
                 // Unmark this so that we don't decode it as data. It's possible that the program makes use of
                 // it, but unlikely.
                 this.hasContent.fill(0, begin, end);
-                if (!this.haveLabel("real_main")) {
-                    this.addLabels([[preamble.jumpAddress, "real_main"]]);
-                }
+                this.addUniqueLabel(preamble.jumpAddress, "main");
+                // It might have a preamble! See Galaxy Invasion.
+                this.addEntryPoint(preamble.jumpAddress);
             }
         }
 

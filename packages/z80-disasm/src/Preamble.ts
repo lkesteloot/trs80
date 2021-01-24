@@ -42,7 +42,7 @@ export class Preamble {
 
         const sourceAddress = memory[start + 0x01] | (memory[start + 0x02] << 8);
         const destinationAddress = memory[start + 0x04] | (memory[start + 0x05] << 8);
-        const length = memory[start + 0x07] | (memory[start + 0x08] << 8);
+        const copyLength = memory[start + 0x07] | (memory[start + 0x08] << 8);
         const jumpAddress = memory[start + 0x0C] | (memory[start + 0x0D] << 8);
 
         if (memory[start + 0x00] === 0x21 && // LD HL,nnnn
@@ -50,9 +50,9 @@ export class Preamble {
             memory[start + 0x06] === 0x01 && // LD BC,nnnn
             memory[start + 0x09] === 0xED && memory[start + 0x0A] === 0xB0 && // LDIR
             memory[start + 0x0B] === 0xC3 && // JP nnnn
-            sourceAddress == entryPoint + preambleLength) {
+            jumpAddress >= destinationAddress && jumpAddress < destinationAddress + copyLength) {
 
-            return new Preamble(preambleLength, sourceAddress, destinationAddress, length, jumpAddress);
+            return new Preamble(preambleLength, sourceAddress, destinationAddress, copyLength, jumpAddress);
         }
 
         return undefined;
