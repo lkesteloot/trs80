@@ -103,7 +103,6 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
 
     const b = new ByteReader(binary);
 
-    annotations.push(new ProgramAnnotation("File\nHead", b.addr(), b.addr()));
     const headerByte = b.read();
     if (headerByte === EOF) {
         return undefined;
@@ -111,6 +110,7 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
     if (headerByte !== FILE_HEADER) {
         return undefined;
     }
+    annotations.push(new ProgramAnnotation("System file header", b.addr() - 1, b.addr()));
 
     let filename = b.readString(FILENAME_LENGTH);
 
@@ -125,22 +125,23 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
         return makeSystemProgram("File is truncated at filename");
     }
     filename = filename.trim();
-    annotations.push(new ProgramAnnotation("Filename\n\"" + filename + "\"",
-        b.addr() - FILENAME_LENGTH, b.addr() - 1)); // TODO all these annotations need to have their "end" incremented.
+    annotations.push(new ProgramAnnotation(`Filename "${filename}"`,
+        b.addr() - FILENAME_LENGTH, b.addr()));
 
     while (true) {
-        annotations.push(new ProgramAnnotation("Data\nHead", b.addr(), b.addr()));
         const marker = b.read();
         if (marker === EOF) {
             return makeSystemProgram("File is truncated at start of block");
         }
         if (marker === END_OF_FILE_MARKER) {
+            annotations.push(new ProgramAnnotation("End of file marker", b.addr() - 1, b.addr()));
             break;
         }
         if (marker !== DATA_HEADER) {
             // Here if the marker is 0x55, we could guess that it's a high-speed cassette header.
             return makeSystemProgram("Unexpected byte " + toHexByte(marker) + " at start of block");
         }
+        annotations.push(new ProgramAnnotation("Data chunk marker", b.addr() - 1, b.addr()));
 
         let length = b.read();
         if (length === EOF) {
@@ -150,27 +151,34 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
         if (length === 0) {
             length = 256;
         }
-        annotations.push(new ProgramAnnotation("Len\n" + length, b.addr() - 1, b.addr() - 1));
+        annotations.push(new ProgramAnnotation(`Length (${length} byte${length === 1 ? "" : "s"})`,
+            b.addr() - 1, b.addr()));
 
         const loadAddress = b.readShort(false);
         if (loadAddress === EOF) {
             return makeSystemProgram("File is truncated at load address");
         }
-        annotations.push(new ProgramAnnotation("Addr\n" + toHexWord(loadAddress),
-            b.addr() - 2, b.addr() - 1));
+        annotations.push(new ProgramAnnotation(`Address (0x${toHexWord(loadAddress)})`,
+            b.addr() - 2, b.addr()));
 
+        const dataStartAddr = b.addr();
         const data = b.readBytes(length);
         if (data.length < length) {
             return makeSystemProgram("File is truncated at data");
         }
+        annotations.push(new ProgramAnnotation(`Chunk data`, dataStartAddr, b.addr()));
 
         const checksum = b.read();
         if (loadAddress === EOF) {
             return makeSystemProgram("File is truncated at checksum");
         }
-        annotations.push(new ProgramAnnotation("XSum\n0x" + toHexByte(checksum), b.addr() - 1, b.addr() - 1));
 
-        chunks.push(new SystemChunk(loadAddress, data, checksum));
+        const systemChunk = new SystemChunk(loadAddress, data, checksum);
+        chunks.push(systemChunk);
+
+        annotations.push(new ProgramAnnotation(
+            `Checksum (0x${toHexByte(checksum)}, ${systemChunk.isChecksumValid() ? "" : "in"}valid)`,
+            b.addr() - 1, b.addr()));
     }
 
     entryPointAddress = b.readShort(false);
@@ -178,8 +186,8 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
         entryPointAddress = 0;
         return makeSystemProgram("File is truncated at entry point address");
     }
-    annotations.push(new ProgramAnnotation("Run\n" + toHexWord(entryPointAddress),
-        b.addr() - 2, b.addr() - 1));
+    annotations.push(new ProgramAnnotation(`Jump address (0x${toHexWord(entryPointAddress)})`,
+        b.addr() - 2, b.addr()));
 
     return makeSystemProgram();
 }

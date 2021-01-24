@@ -6,6 +6,7 @@ import {Trs80File} from "./Trs80File";
 import {decodeJv1FloppyDisk} from "./Jv1FloppyDisk";
 import {decodeJv3FloppyDisk} from "./Jv3FloppyDisk";
 import {decodeDmkFloppyDisk} from "./DmkFloppyDisk";
+import {decodeSystemProgram} from "./SystemProgram";
 
 /**
  * Get the extension of the filename, including the dot, in upper case, or
@@ -73,6 +74,12 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
 
     if (extension === ".DMK") {
         return decodeDmkFloppyDisk(binary) ?? new RawBinaryFile(binary);
+    }
+
+    // "Model III BiNary" format, invented by George Phillips for trs80gp.
+    // Rarely used as a stand-alone file, usually just embedded in .CAS files.
+    if (extension === ".3BN") {
+        return decodeSystemProgram(binary) ?? new RawBinaryFile(binary);
     }
 
     trs80File = decodeCassette(binary);

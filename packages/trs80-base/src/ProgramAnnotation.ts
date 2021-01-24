@@ -22,4 +22,11 @@ export class ProgramAnnotation {
         this.begin = begin;
         this.end = end;
     }
+
+    /**
+     * Create a new program annotation with the begin and end increased by the specified offset.
+     */
+    public adjusted(offset: number): ProgramAnnotation {
+        return new ProgramAnnotation(this.text, this.begin + offset, this.end + offset);
+    }
 }

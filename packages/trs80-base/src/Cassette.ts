@@ -1,6 +1,7 @@
 import {decodeSystemProgram} from "./SystemProgram";
 import {Trs80File} from "./Trs80File";
 import {decodeTrs80File} from "./Trs80FileDecoder";
+import {ProgramAnnotation} from "./ProgramAnnotation";
 
 // Low-speed header and sync constants.
 const LOW_SPEED_HEADER_BYTE = 0x00;
@@ -58,12 +59,22 @@ function checkMatch(actual: number, reference: number): number | undefined {
  * Represents a file on a cassette. (Not the CAS file itself.)
  */
 export class CassetteFile {
+    // Offset into the cassette's binary.
+    public readonly offset: number;
     public readonly speed: CassetteSpeed;
     public readonly file: Trs80File;
 
-    constructor(speed: CassetteSpeed, file: Trs80File) {
+    constructor(offset: number, speed: CassetteSpeed, file: Trs80File) {
+        this.offset = offset;
         this.speed = speed;
         this.file = file;
+    }
+
+    /**
+     * Return the file's annotations adjusted by the offset into the cassette.
+     */
+    public adjustedAnnotations(): ProgramAnnotation[] {
+        return this.file.annotations.map(annotation => annotation.adjusted(this.offset));
     }
 }
 
@@ -73,8 +84,9 @@ export class CassetteFile {
 export class Cassette extends Trs80File {
     public readonly files: CassetteFile[];
 
-    constructor(binary: Uint8Array, error: string | undefined, files: CassetteFile[]) {
-        super(binary, error, []);
+    constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
+                files: CassetteFile[]) {
+        super(binary, error, annotations);
         this.files = files;
     }
 
@@ -128,6 +140,7 @@ function stripStartBits(inBytes: Uint8Array): Uint8Array {
  */
 export function decodeCassette(binary: Uint8Array): Cassette | undefined {
     const start = 0;
+    const annotations: ProgramAnnotation[] = [];
     const cassetteFiles: CassetteFile[] = [];
 
     while (true) {
@@ -147,6 +160,9 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
                     throw new Error("We don't yet handle low-speed cassettes with bit offsets of " + lowSpeedBitOffset);
                 }
 
+                annotations.push(new ProgramAnnotation("Low speed header", 0, i));
+                annotations.push(new ProgramAnnotation("Low speed sync byte", i, i + 1));
+
                 speed = CassetteSpeed.LOW_SPEED;
                 programStartIndex = i + 1;
                 programBinary = binary.subarray(programStartIndex);
@@ -160,6 +176,9 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
                     throw new Error("We don't yet handle high-speed cassettes with bit offsets of " +
                         highSpeedBitOffset);
                 }
+
+                annotations.push(new ProgramAnnotation("High speed header", 0, i));
+                annotations.push(new ProgramAnnotation("High speed sync byte", i, i + 1));
 
                 speed = CassetteSpeed.HIGH_SPEED;
                 programStartIndex = i + 1;
@@ -182,16 +201,22 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
             return undefined;
         }
 
-        // See what kind of file it is.
+        // See what kind of file it is. System program aren't decoded by decodeTrs80File() because
+        // these are always on cassettes or with a .3BN extension. So try that ourselves first.
         let file: Trs80File | undefined = decodeSystemProgram(programBinary);
         if (file === undefined) {
             file = decodeTrs80File(programBinary, undefined);
         }
-        cassetteFiles.push(new CassetteFile(speed, file));
+        cassetteFiles.push(new CassetteFile(programStartIndex, speed, file));
 
         // TODO handle multiple files. See HAUNT.CAS.
         break;
     }
 
-    return new Cassette(binary, undefined, cassetteFiles);
+    // Merge the annotations of the files into ours.
+    for (const file of cassetteFiles) {
+        annotations.push(... file.adjustedAnnotations());
+    }
+
+    return new Cassette(binary, undefined, annotations, cassetteFiles);
 }

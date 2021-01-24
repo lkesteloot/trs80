@@ -10,6 +10,7 @@
         "interface-name": false,
         "max-classes-per-file": false,
         "member-ordering": false,
+        "arrow-parens": false,
         "whitespace": [
             true,
             "check-branch",
