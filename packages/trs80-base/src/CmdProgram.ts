@@ -173,7 +173,16 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
     while (true) {
         // First byte is type of chunk.
         const type = b.read();
-        if (type === EOF || type > CMD_MAX_TYPE || error !== undefined) {
+
+        // End of file?
+        if (type === EOF ||
+            // Invalid type byte?
+            type > CMD_MAX_TYPE ||
+            // Error earlier?
+            error !== undefined ||
+            // Just saw jump? There's typically junk after this and it can make it seem like there's an error.
+            (chunks.length > 0 && chunks[chunks.length - 1] instanceof CmdTransferAddressChunk)) {
+
             if (chunks.length === 0) {
                 return undefined;
             }
