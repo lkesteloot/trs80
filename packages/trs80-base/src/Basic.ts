@@ -19,12 +19,12 @@ const TOKENS = [
     "MERGE", "NAME", "KILL", "LSET", "RSET", "SAVE", "SYSTEM", "LPRINT", // 0xA8
     "DEF", "POKE", "PRINT", "CONT", "LIST", "LLIST", "DELETE", "AUTO", // 0xB0
     "CLEAR", "CLOAD", "CSAVE", "NEW", "TAB(", "TO", "FN", "USING", // 0xB8
-    "VARPTR", "USR", "ERL", "ERR", "STRING", "INSTR", "POINT", "TIME$", // 0xC0
+    "VARPTR", "USR", "ERL", "ERR", "STRING$", "INSTR", "POINT", "TIME$", // 0xC0
     "MEM", "INKEY$", "THEN", "NOT", "STEP", "+", "-", "*", // 0xC8
     "/", "[", "AND", "OR", ">", "=", "<", "SGN", // 0xD0
     "INT", "ABS", "FRE", "INP", "POS", "SQR", "RND", "LOG", // 0xD8
     "EXP", "COS", "SIN", "TAN", "ATN", "PEEK", "CVI", "CVS", // 0xE0
-    "CVD", "EOF", "LOC", "LOF", "MKI", "MKS$", "MKD$", "CINT", // 0xE8
+    "CVD", "EOF", "LOC", "LOF", "MKI$", "MKS$", "MKD$", "CINT", // 0xE8
     "CSNG", "CDBL", "FIX", "LEN", "STR$", "VAL", "ASC", "CHR$", // 0xF0
     "LEFT$", "RIGHT$", "MID$", // 0xF8
 ];
