@@ -297,7 +297,7 @@ export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined
         for (let i = lineElementsIndex; i < elements.length; i++) {
             textLineParts.push(elements[i].text);
         }
-        let textLine = textLineParts.join("");
+        let textLine = textLineParts.join("").replace(/[\n\r]+/, " ");
         if (textLine.length > 33) {
             textLine = textLine.substr(0, 30) + "...";
         }
