@@ -9,6 +9,17 @@ const TARGET = "TARGET";
 // Number of bytes in memory.
 const MEM_SIZE = 64*1024;
 
+// Whether the byte can be converted to readable ASCII.
+function isPrintable(b: number) {
+    return b >= 32 && b < 127;
+}
+
+// Whether the byte is appropriate for a .text instruction.
+function isText(b: number){
+    // The TRS-80 $VDLINE routine uses 0x03 to terminate the string without printing a newline.
+    return isPrintable(b) || b === 0x0A || b === 0x0D || b === 0x03;
+}
+
 /**
  * Main class for disassembling a binary.
  */
@@ -22,6 +33,11 @@ export class Disasm {
      * Addresses that might be jumped to when running the code.
      */
     private entryPoints: number[] = [];
+    /**
+     * Values that were loaded into a 16-bit register. We can't be sure that these were meant to be
+     * addresses, but guess that they were if it helps make a nicer disassembly.
+     */
+    private referencedAddresses = new Set<number>();
 
     /**
      * Add a chunk of binary somewhere in memory.
@@ -99,6 +115,10 @@ export class Disasm {
                                 target = TARGET;
                             } else {
                                 target = "0x" + toHex(nnnn, 4);
+
+                                // Perhaps we should only do this if the destination register is HL, since that's
+                                // often an address and other registers are more often lengths.
+                                this.referencedAddresses.add(nnnn);
                             }
                             arg = arg.substr(0, pos) + target + arg.substr(pos + 4);
                             changed = true;
@@ -144,17 +164,17 @@ export class Disasm {
     private makeDataInstruction(address: number): Instruction {
         const startAddress = address;
 
-        // Whether the byte is appropriate for a .text instruction.
-        const isPrintable = (b: number) => b >= 32 && b < 127;
-        const isText = (b: number) => isPrintable(b) || b === 10 || b === 13;
-
         const parts: string[] = [];
         let mnemonic: string | undefined = undefined;
 
         // Look for contiguous sequence of either text or not text.
         if (isText(this.memory[address])) {
+            // Gobble as much text as we can.
             mnemonic = ".text";
-            while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] && isText(this.memory[address]) && address - startAddress < 50) {
+            while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] &&
+                isText(this.memory[address]) && address - startAddress < 50 &&
+                !(address > startAddress && this.referencedAddresses.has(address))) {
+
                 const byte = this.memory[address];
                 if (isPrintable(byte)) {
                     let char = String.fromCharCode(byte);
@@ -176,6 +196,7 @@ export class Disasm {
                 address += 1;
             }
 
+            // See if it's too short.
             if (address - startAddress < 2) {
                 // Probably not actual text.
                 mnemonic = undefined;
@@ -183,7 +204,10 @@ export class Disasm {
                 address = startAddress;
             } else {
                 // Allow terminating NUL.
-                if (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] && this.memory[address] === 0) {
+                if (address < MEM_SIZE && this.hasContent[address] &&
+                    !(address > startAddress && this.referencedAddresses.has(address)) &&
+                    !this.isDecoded[address] && this.memory[address] === 0) {
+
                     parts.push("0x" + toHexByte(0));
                     address += 1;
                 }
@@ -192,7 +216,9 @@ export class Disasm {
 
         if (mnemonic === undefined) {
             mnemonic = ".byte";
-            while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] && address - startAddress < 8) {
+            while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] &&
+                address - startAddress < 8 && !(address > startAddress && this.referencedAddresses.has(address))) {
+
                 parts.push("0x" + toHexByte(this.memory[address]));
                 address += 1;
             }
@@ -311,6 +337,7 @@ export class Disasm {
         // Map from jump target to list of instructions that jump there.
         const jumpTargetMap = new Map<number, Instruction[]>();
 
+        // Make list of instructions in memory order.
         const instructions: Instruction[] = [];
         for (let address = 0; address < MEM_SIZE; address++) {
             if (this.hasContent[address]) {
