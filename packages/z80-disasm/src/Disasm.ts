@@ -16,8 +16,7 @@ function isPrintable(b: number) {
 
 // Whether the byte is appropriate for a .text instruction.
 function isText(b: number){
-    // The TRS-80 $VDLINE routine uses 0x03 to terminate the string without printing a newline.
-    return isPrintable(b) || b === 0x0A || b === 0x0D || b === 0x03;
+    return isPrintable(b) || b === 0x0A || b === 0x0D;
 }
 
 /**
@@ -203,12 +202,12 @@ export class Disasm {
                 parts.splice(0, parts.length);
                 address = startAddress;
             } else {
-                // Allow terminating NUL.
+                // Allow terminating NUL. Also allow terminating 0x03, it was used by the TRS-80 $VDLINE routine.
                 if (address < MEM_SIZE && this.hasContent[address] &&
                     !(address > startAddress && this.referencedAddresses.has(address)) &&
-                    !this.isDecoded[address] && this.memory[address] === 0) {
+                    !this.isDecoded[address] && (this.memory[address] === 0x00 || this.memory[address] === 0x03)) {
 
-                    parts.push("0x" + toHexByte(0));
+                    parts.push("0x" + toHexByte(this.memory[address]));
                     address += 1;
                 }
             }
