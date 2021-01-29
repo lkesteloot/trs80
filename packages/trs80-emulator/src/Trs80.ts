@@ -85,6 +85,19 @@ function computeVideoBit6(value: number): number {
     return (value & 0xBF) | (bit6 << 6);
 }
 
+const WARN_ONCE_SET = new Set<string>();
+
+/**
+ * Send this warning message to the console once. This is to avoid a program repeatedly doing something
+ * that results in a warning (such as reading from an unmapped memory address) and crashing the browser.
+ */
+function warnOnce(message: string): void {
+    if (!WARN_ONCE_SET.has(message)) {
+        WARN_ONCE_SET.add(message);
+        console.warn(message + " (further warnings suppressed)");
+    }
+}
+
 /**
  * HAL for the TRS-80 Model III.
  */
@@ -367,7 +380,7 @@ export class Trs80 implements Hal, Machine {
             return this.keyboard.readKeyboard(address, this.tStateCount);
         } else {
             // Unmapped memory.
-            console.error("Reading from unmapped memory at 0x" + toHex(address, 4));
+            warnOnce("Reading from unmapped memory at 0x" + toHex(address, 4));
             return 0;
         }
     }
@@ -443,7 +456,7 @@ export class Trs80 implements Hal, Machine {
 
             default:
                 // Not sure what a good default value is, but other emulators use 0xFF.
-                console.error("Reading from unknown port 0x" + toHex(lo(address), 2));
+                warnOnce("Reading from unknown port 0x" + toHex(lo(address), 2));
                 value = 0xFF;
                 break;
         }
@@ -534,7 +547,7 @@ export class Trs80 implements Hal, Machine {
                 break;
 
             default:
-                console.error("Writing 0x" + toHex(value, 2) + " to unknown port 0x" + toHex(port, 2));
+                warnOnce("Writing 0x" + toHex(value, 2) + " to unknown port 0x" + toHex(port, 2));
                 return;
         }
         // console.log("Wrote 0x" + toHex(value, 2) + " to port 0x" + toHex(port, 2));
@@ -542,7 +555,7 @@ export class Trs80 implements Hal, Machine {
 
     public writeMemory(address: number, value: number): void {
         if (address < ROM_SIZE) {
-            console.log("Warning: Writing to ROM location 0x" + toHex(address, 4));
+            warnOnce("Warning: Writing to ROM location 0x" + toHex(address, 4));
         } else {
             if (address >= TRS80_SCREEN_BEGIN && address < TRS80_SCREEN_END) {
                 if (this.config.cgChip === CGChip.ORIGINAL) {
@@ -552,7 +565,7 @@ export class Trs80 implements Hal, Machine {
 
                 this.screen.writeChar(address, value);
             } else if (address < RAM_START) {
-                console.log("Writing to unmapped memory at 0x" + toHex(address, 4));
+                warnOnce("Writing to unmapped memory at 0x" + toHex(address, 4));
             }
             this.memory[address] = value;
         }

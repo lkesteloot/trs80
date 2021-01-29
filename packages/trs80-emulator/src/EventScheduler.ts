@@ -59,7 +59,7 @@ export class EventScheduler {
     }
 
     /**
-     * Schedule an event to happen tStateCount clocks. The callback will be called
+     * Schedule an event to happen at tStateCount clocks. The callback will be called
      * at the end of an instruction step.
      *
      * @return a handle that can be passed to cancel().
