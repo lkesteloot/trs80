@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
-    "build-node": "cp package.json build && tsc --build tsconfig.node.json",
+    "build-node": "mkdir -p build && cp package.json build && tsc --build tsconfig.node.json",
     "lint": "tslint --project . --format codeFrame",
     "lint:fix": "npm run lint -- --fix",
     "start": "npm run build && http-server docs",
@@ -49,8 +49,8 @@
     "progress": "^2.0.3",
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.6.7",
-    "trs80-emulator": "^1.1.5",
-    "z80-base": "^1.0.6",
+    "trs80-base": "^1.0.2",
+    "trs80-emulator": "^1.1.7",
     "z80-disasm": "^1.1.0"
   }
 }
