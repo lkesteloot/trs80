@@ -217,12 +217,37 @@ export class CanvasScreen extends Trs80Screen {
     /**
      * Returns the canvas as an <img> element that can be resized. This is relatively
      * expensive.
+     *
+     * This method is deprecated, use asImageAsync instead.
      */
     public asImage(): HTMLImageElement {
         const image = document.createElement("img");
-        // TODO use canvas.toBlob() instead, it might not block the UI thread.
         image.src = this.canvas.toDataURL();
-
         return image;
+    }
+
+    /**
+     * Returns the canvas as an <img> element that can be resized. Despite the
+     * "async" name, there's still some synchronous work, about 13ms.
+     */
+    public asImageAsync(): Promise<HTMLImageElement> {
+        return new Promise<HTMLImageElement>((resolve, reject) => {
+            // According to this answer:
+            //     https://stackoverflow.com/a/59025746/211234
+            // the toBlob() method still has to copy the image synchronously, so this whole method still
+            // takes about 13ms. It's better than toDataUrl() because it doesn't have to make an actual
+            // base64 string. The Object URL is just a reference to the blob.
+            this.canvas.toBlob(blob => {
+                if (blob === null) {
+                    reject("Cannot make image from screen");
+                } else {
+                    const image = document.createElement("img");
+                    const url = URL.createObjectURL(blob);
+                    image.addEventListener("load", () => URL.revokeObjectURL(url));
+                    image.src = url;
+                    resolve(image);
+                }
+            });
+        });
     }
 }
