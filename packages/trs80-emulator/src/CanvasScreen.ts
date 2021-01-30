@@ -243,9 +243,12 @@ export class CanvasScreen extends Trs80Screen {
                 } else {
                     const image = document.createElement("img");
                     const url = URL.createObjectURL(blob);
-                    image.addEventListener("load", () => URL.revokeObjectURL(url));
+                    image.addEventListener("load", () => {
+                        URL.revokeObjectURL(url);
+                        // Resolve when the image is fully loaded so that there's no UI glitching.
+                        resolve(image);
+                    });
                     image.src = url;
-                    resolve(image);
                 }
             });
         });
