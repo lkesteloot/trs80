@@ -1126,11 +1126,20 @@ export class Trs80 implements Hal, Machine {
     }
 
     /**
+     * Load the floppy disk into the specified drive.
+     * @param floppyDisk the floppy, or undefined to unmount.
+     * @param driveNumber the drive number, 0-based.
+     */
+    public loadFloppyDisk(floppyDisk: FloppyDisk | undefined, driveNumber: number): void {
+        this.fdc.loadFloppyDisk(floppyDisk, driveNumber);
+    }
+
+    /**
      * Load a floppy and reboot into it.
      */
     private runFloppyDisk(floppyDisk: FloppyDisk): void {
         // Mount floppy.
-        this.fdc.loadFloppyDisk(floppyDisk, 0);
+        this.loadFloppyDisk(floppyDisk, 0);
 
         // Reboot.
         this.reset();
