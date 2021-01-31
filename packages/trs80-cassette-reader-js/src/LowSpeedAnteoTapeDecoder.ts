@@ -155,37 +155,37 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                 waveformAnnotations.push(new LabelAnnotation("Silence", frame, frame, false));
                 break;
             }
+
+            let nextFrame: number;
+            let bitType: BitType;
             if (clockPulse.resultType === PulseResultType.NOISE) {
-                const nextFrame = frame + this.period;
-                recentBits = (recentBits << 1) | 0;
-                bitData.push(new BitData(nextFrame - this.quarterPeriod, nextFrame + this.period - this.quarterPeriod, BitType.BAD));
-                frame = nextFrame;
+                nextFrame = frame + this.period;
+                bitType = BitType.BAD;
             } else {
-                const nextFrame = clockPulse.frame;
-                recentBits = (recentBits << 1) | (bit ? 1 : 0);
-                bitData.push(new BitData(nextFrame - this.quarterPeriod, nextFrame + this.period - this.quarterPeriod,
-                    bit ? BitType.ONE : BitType.ZERO));
-
-                if (foundSyncByte) {
-                    bitCount += 1;
-                    if (bitCount === 8) {
-                        const byteValue = recentBits & 0xFF;
-                        binary.push(byteValue);
-                        byteData.push(new ByteData(byteValue, bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame));
-                        bitCount = 0;
-                    }
-                } else {
-                    if (recentBits === SYNC_BYTE) {
-                        waveformAnnotations.push(new LabelAnnotation("Sync", bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame, false));
-                        foundSyncByte = true;
-                        allowLateClockPulse = true;
-                        bitCount = 0;
-                    }
-                }
-
-                frame = nextFrame;
-                this.peakThreshold = Math.round(clockPulse.range/4);
+                nextFrame = clockPulse.frame;
+                bitType = bit ? BitType.ONE : BitType.ZERO;
             }
+            bitData.push(new BitData(nextFrame - this.quarterPeriod, nextFrame + this.period - this.quarterPeriod, bitType));
+            recentBits = (recentBits << 1) | (bit ? 1 : 0);
+            if (foundSyncByte) {
+                bitCount += 1;
+                if (bitCount === 8) {
+                    const byteValue = recentBits & 0xFF;
+                    binary.push(byteValue);
+                    byteData.push(new ByteData(byteValue, bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame));
+                    bitCount = 0;
+                }
+            } else {
+                if (recentBits === SYNC_BYTE) {
+                    waveformAnnotations.push(new LabelAnnotation("Sync", bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame, false));
+                    foundSyncByte = true;
+                    allowLateClockPulse = true;
+                    bitCount = 0;
+                }
+            }
+
+            frame = nextFrame;
+            this.peakThreshold = Math.round(clockPulse.range / 4);
         }
 
         // Remove trailing BAD bits, they're probably just junk after the last bit.
