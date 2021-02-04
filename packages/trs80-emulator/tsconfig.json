@@ -10,11 +10,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
-    "moduleResolution": "Node",
-    "lib": [
-        "dom",
-        "es2018"
-    ]
+    "moduleResolution": "Node"
   },
   "include": [
       "src/**/*.ts"

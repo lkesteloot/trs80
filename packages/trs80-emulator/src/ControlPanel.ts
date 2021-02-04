@@ -1,11 +1,13 @@
 
 import {CSS_PREFIX} from "./Utils";
 import {PanelType, SettingsPanel} from "./SettingsPanel";
+import {Mutable} from "./Mutable";
 
 const gCssPrefix = CSS_PREFIX + "-control-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
 const gPanelCssClass = gCssPrefix + "-panel";
 const gButtonCssClass = gCssPrefix + "-button";
+const gButtonHiddenCssClass = gCssPrefix + "-button-hidden";
 const gShowingOtherPanelCssClass = gCssPrefix + "-showing-other-panel";
 
 // https://thenounproject.com/search/?q=reset&i=3012384
@@ -95,6 +97,22 @@ const CROSS_ICON = `
 </svg>
 `;
 
+// https://thenounproject.com/term/mute/1915537
+const MUTED_ICON = `
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" viewBox="-100 0 1024 1024">
+    <path fill="white" d="M 706,852.3 V 781 c -6.7,-6.6 -13.3,-13.3 -20,-19.9 -6.7,-6.6 -13.3,-13.3 -20,-19.9 -2.3,-2.2 -4.5,-4.5 -6.8,-6.7 L 469,545.2 c -61.6,-61.3 -123.3,-122.6 -184.9,-184 -1.6,-1.6 -3.3,-3.2 -4.9,-4.9 -5.2,-5.1 -10.3,-10.2 -15.5,-15.4 -6.7,-6.7 -13.4,-13 -20.1,-20 H 90 c -10.8,0 -20,9.1 -20,20 v 299.9 c 0,13.8 -0.4,27.7 0,41.5 v 0.6 c 0,10.8 9.2,20 20,20 h 214.7 c 22,19 44,37.6 66,56.3 46.5,39.8 93.1,79.5 139.6,119.3 29.3,25 58.7,50.1 88,75.2 22.8,19.5 58,30.7 83.1,9.3 17.3,-14.7 23.1,-40.3 24.5,-62 1,-16 0.1,-32.5 0.1,-48.7 z"/>
+    <path fill="white" d="m 694.3,70.7 c -8,-11.7 -19.6,-19.1 -33.6,-21 -16.8,-2.3 -34.9,2.8 -49.5,11.3 -5.1,2.9 -9.6,7.5 -14,11.3 -10.3,8.8 -20.7,17.6 -31,26.4 -33.9,28.9 -67.8,57.7 -101.7,86.5 -23.5,19.9 -47,39.8 -70.4,59.8 4.7,4.7 9.4,9.4 14.2,14.1 4.7,4.7 9.4,9.4 14.2,14.1 6.5,6.5 13,13 19.6,19.5 63.4,63.1 126.8,126.1 190.1,189.2 11.3,11.2 22.6,22.5 33.8,33.7 6.7,6.6 13.3,13.3 20,19.9 6.7,6.6 13.3,13.3 20,19.9 V 119 c -0.1,-16.3 -2.2,-34.5 -11.7,-48.3 z"/>
+    <path stroke="white" stroke-width="80.1" stroke-linecap="round" d="M 139.75018,103.02184 934.53553,895.07339"/>
+</svg>
+`;
+
+// https://thenounproject.com/term/mute/1915537 (modified by me to get rid of line).
+const UNMUTED_ICON = `
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" viewBox="-100 0 1024 1024">
+    <path fill="white" d="M 88.65873,702.7619 304.7,702.9 605.71429,960 c 40.51022,32.06833 100.31746,5.28523 100.31746,-46.98413 l -0.41421,-806.94435 c 0,-57.136329 -64.88295,-70.781271 -94.96826,-45.714278 L 304.7,320.8616 93.968254,321.01984 c -14.687138,0 -23.396825,7.42695 -23.396825,21.27778 l -0.08532,344.06151 c 0,7.13959 8.057136,16.40277 18.172619,16.40277 z"/>
+</svg>
+`;
+
 const GLOBAL_CSS = `
 .${gPanelCssClass} {
     background-color: rgba(40, 40, 40, 0.8);
@@ -136,6 +154,11 @@ const GLOBAL_CSS = `
 .${gButtonCssClass}:active {
     transform: scale(1.15);
 }
+
+.${gButtonCssClass}.${gButtonHiddenCssClass} {
+    display: none;
+}
+
 `;
 
 /**
@@ -163,15 +186,18 @@ export class ControlPanel {
     /**
      * Generic function to add a button to the control panel.
      */
-    private addButton(iconSvg: string, title: string, callback: () => void): void {
+    private addButton(iconSvg: string, title: string, callback?: () => void): HTMLElement {
         let icon = document.createElement("img");
         icon.classList.add(gButtonCssClass);
         icon.width = 30;
         icon.height = 30;
         icon.src = "data:image/svg+xml;base64," + btoa(iconSvg);
         icon.title = title;
-        icon.addEventListener("click", callback);
-        this.panelNode.appendChild(icon);
+        if (callback !== undefined) {
+            icon.addEventListener("click", callback);
+        }
+        this.panelNode.append(icon);
+        return icon;
     }
 
     /**
@@ -227,6 +253,31 @@ export class ControlPanel {
      */
     public addEditorButton(callback: () => void): void {
         this.addButton(EDIT_ICON, "Edit the program (Ctrl-Enter)", callback);
+    }
+
+    /**
+     * Add button to toggle mute.
+     */
+    public addMuteButton(mutable: Mutable): void {
+        const mutedButton = this.addButton(MUTED_ICON, "Unmute");
+        const unmutedButton = this.addButton(UNMUTED_ICON, "Mute");
+
+        const updateVisibility = () => {
+            const isMuted = mutable.isMuted();
+            mutedButton.classList.toggle(gButtonHiddenCssClass, !isMuted);
+            unmutedButton.classList.toggle(gButtonHiddenCssClass, isMuted);
+        };
+
+        mutedButton.addEventListener("click", () => {
+            mutable.unmute();
+            updateVisibility();
+        });
+        unmutedButton.addEventListener("click", () => {
+            mutable.mute();
+            updateVisibility();
+        });
+
+        updateVisibility();
     }
 
     /**

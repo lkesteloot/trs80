@@ -1,4 +1,4 @@
-import {hi, lo, toHex} from "z80-base";
+import {hi, lo, toHex, toHexWord} from "z80-base";
 import {Hal, Z80} from "z80-emulator";
 import {CassettePlayer} from "./CassettePlayer";
 import {Keyboard} from "./Keyboard";
@@ -13,16 +13,19 @@ import {
     Cassette,
     CmdLoadBlockChunk,
     CmdProgram,
-    CmdTransferAddressChunk, decodeBasicProgram,
+    CmdTransferAddressChunk,
+    decodeBasicProgram,
     ElementType,
-    SystemProgram, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END,
+    SystemProgram,
+    TRS80_SCREEN_BEGIN,
+    TRS80_SCREEN_END,
     Trs80File
 } from "trs80-base";
-import {toHexWord} from "z80-base";
 import {FloppyDisk} from "trs80-base/dist/FloppyDisk";
 import {FloppyDiskController} from "./FloppyDiskController";
 import {Machine} from "./Machine";
 import {EventScheduler} from "./EventScheduler";
+import {SoundPlayer} from "./SoundPlayer";
 
 // IRQs
 const M1_TIMER_IRQ_MASK = 0x80;
@@ -54,6 +57,11 @@ const M3_CLOCK_HZ = 2_027_520;
 const M4_CLOCK_HZ = 4_055_040;
 
 const INITIAL_CLICKS_PER_TICK = 2000;
+
+/**
+ * Converts the two-bit cassette port to an audio value.
+ */
+const CASSETTE_BITS_TO_AUDIO_VALUE = [-1, 1, -1, 0];
 
 const CASSETTE_THRESHOLD = 5000/32768.0;
 
@@ -128,7 +136,6 @@ export class Trs80 implements Hal, Machine {
     private startTime = Date.now();
     private tickHandle: number | undefined;
     public started = false;
-
     // Internal state of the cassette controller.
     // Whether the motor is running.
     private cassetteMotorOn = false;
@@ -144,7 +151,7 @@ export class Trs80 implements Hal, Machine {
     private cassetteSamplesRead = 0;
     private cassetteRiseInterruptCount = 0;
     private cassetteFallInterruptCount = 0;
-
+    public readonly soundPlayer = new SoundPlayer();
     public readonly eventScheduler = new EventScheduler();
 
     constructor(screen: Trs80Screen, cassette: CassettePlayer) {
@@ -828,6 +835,8 @@ export class Trs80 implements Hal, Machine {
                 this.updateCassette();
                 this.cassetteFlipFlop = false;
             }
+        } else {
+            this.soundPlayer.setAudioValue(CASSETTE_BITS_TO_AUDIO_VALUE[b], this.tStateCount, this.clockHz);
         }
     }
 
