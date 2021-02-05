@@ -37,6 +37,10 @@ function decodeAscii(binary: Uint8Array, trim: boolean = true): string | undefin
     const parts: string[] = [];
 
     for (const b of binary) {
+        if (b === 0x0D) {
+            // Auto command ends with carriage return.
+            break;
+        }
         if (b < 32 || b >= 127) {
             return undefined;
         }
@@ -181,7 +185,7 @@ function decodeGatInfo(binary: Uint8Array): TrsdosGatInfo | undefined {
     const password = (binary[0xCE] << 8) | binary[0xCF];
     const name = decodeAscii(binary.subarray(0xD0, 0xD8));
     const date = decodeAscii(binary.subarray(0xD8, 0xE0));
-    const autoCommand = binary[0xE0] === 0x0D ? "" : decodeAscii(binary.subarray(0xE0));
+    const autoCommand = decodeAscii(binary.subarray(0xE0));
 
     // Implies that this is not a TRSDOS disk.
     if (name === undefined || date === undefined || autoCommand === undefined) {

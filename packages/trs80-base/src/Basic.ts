@@ -136,6 +136,35 @@ export function wrapBasic(bytes: Uint8Array): Uint8Array {
 }
 
 /**
+ * Set the one-letter Basic name in the binary to the first letter of the name.
+ *
+ * @return a new array with the modified name.
+ */
+export function setBasicName(bytes: Uint8Array, name: string): Uint8Array {
+    if (name === "") {
+        // Pick anything.
+        name = "A";
+    }
+
+    // Make a copy for modifying.
+    const newName = new Uint8Array(bytes);
+
+    if (newName[0] === BASIC_TAPE_HEADER_BYTE &&
+        newName[1] === BASIC_TAPE_HEADER_BYTE &&
+        newName[2] === BASIC_TAPE_HEADER_BYTE &&
+        newName.length > 3) {
+
+        newName[3] = name.charCodeAt(0);
+    } else if (newName[0] === BASIC_HEADER_BYTE &&
+        newName.length > 1) {
+
+        newName[1] = name.charCodeAt(0);
+    }
+
+    return newName;
+}
+
+/**
  * Decode a tokenized Basic program.
  * @param binary tokenized program. May be in tape format (D3 D3 D3 followed by a one-letter program
  * name) or not (FF).
