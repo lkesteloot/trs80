@@ -47,6 +47,12 @@ registerProcessor("${PROCESSOR_NAME}", Trs80SoundProcessor);
 `;
 
 /**
+ * Minimum time of silence before we suspend the audio player. Be generous here because we lose a bit of
+ * audio after resuming, so you really only want to do it after the sound-making program has stopped.
+ */
+const MIN_SILENT_TIME_S = 30;
+
+/**
  * Simple node to access the processor.
  */
 class Trs80SoundNode extends AudioWorkletNode {
@@ -64,23 +70,33 @@ export class SoundPlayer implements Mutable {
     private audioValue: AudioParam | undefined = undefined;
     // Difference between computer time and audio time, in seconds.
     private adjustment = 0;
+    private lastAudioTime = 0;
+    private isSuspended = false;
 
     /**
      * Sets the value sent to the cassette, from the set -1, 0, or 1.
      */
     public setAudioValue(value: number, tStateCount: number, clockHz: number): void {
         if (!this.muted && this.audioContext !== undefined && this.audioValue !== undefined) {
+            if (this.isSuspended) {
+                this.audioContext.resume();
+                this.isSuspended = false;
+            }
+
             const computerTime = tStateCount / clockHz;
             const audioTime = this.audioContext.currentTime;
 
             const delta = computerTime - audioTime;
             const error = delta - this.adjustment;
-            if (error < 0 || error > 0.05) {
+            if (error < 0 || error > 0.050) {
                 // We always need computer time to be ahead of audio time or it won't be heard.
-                this.adjustment = delta - 0.005;
+                this.adjustment = delta - 0.025;
             }
 
             this.audioValue.setValueAtTime(value, computerTime - this.adjustment);
+
+            // Remember when we last played audio.
+            this.lastAudioTime = audioTime;
         }
     }
 
@@ -90,6 +106,10 @@ export class SoundPlayer implements Mutable {
     public mute(): void {
         if (!this.muted) {
             this.muted = true;
+            if (this.audioContext !== undefined) {
+                this.audioContext.suspend();
+                this.isSuspended = true;
+            }
         }
     }
 
@@ -102,6 +122,10 @@ export class SoundPlayer implements Mutable {
                 this.enableAudio();
             }
             this.muted = false;
+            if (this.audioContext !== undefined) {
+                this.audioContext.resume();
+                this.isSuspended = false;
+            }
         }
     }
 
@@ -110,6 +134,17 @@ export class SoundPlayer implements Mutable {
      */
     public isMuted(): boolean {
         return this.muted;
+    }
+
+    /**
+     * Check whether it's been too long since we played audio and we should suspend the player (so that the
+     * speaker icon disappears from the tab).
+     */
+    private checkAutoSuspend(): void {
+        if (this.audioContext !== undefined && !this.isSuspended && this.audioContext.currentTime - this.lastAudioTime >= MIN_SILENT_TIME_S) {
+            this.audioContext.suspend();
+            this.isSuspended = true;
+        }
     }
 
     /**
@@ -137,6 +172,9 @@ export class SoundPlayer implements Mutable {
             if (this.audioValue === undefined) {
                 throw new Error("Unknown param audioValue");
             }
+
+            // Automatically suspend the audio if we've not played sound in a while.
+            setInterval(() => this.checkAutoSuspend(), 1000);
 
             // Hook up the pipeline.
             constantSourceNode.connect(node).connect(audioContext.destination);
