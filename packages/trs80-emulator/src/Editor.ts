@@ -200,7 +200,8 @@ export class Editor {
                 parts.push("\n");
             }
 
-            parts.push(element.text);
+            // Convert to the font we're using.
+            parts.push(element.asAnotherMansTreasure());
         }
 
         const fullText = parts.join("");
