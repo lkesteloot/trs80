@@ -2,8 +2,8 @@
 import program from "commander";
 import * as fs from "fs";
 import {Disasm} from "./Disasm";
-import {toHexWord, toHexByte} from "z80-base";
 import {Z80_KNOWN_LABELS} from "./KnownLabels";
+import {instructionsToText} from "./TextFormatter";
 
 program
     .option('--org <address>', 'where to assume the binary is loaded (0)')
@@ -31,20 +31,6 @@ if (program.start !== undefined) {
     }
 }
 const instructions = disasm.disassemble();
-for (const instruction of instructions) {
-    if (instruction.label !== undefined) {
-        console.log("                 " + instruction.label + ":");
-    }
-
-    let address = instruction.address;
-    const bytes = instruction.bin;
-
-    while (bytes.length > 0) {
-        const subbytes = bytes.slice(0, Math.min(3, bytes.length));
-        console.log(toHexWord(address) + " " +
-            subbytes.map(toHexByte).join(" ").padEnd(12) +
-            (address === instruction.address ? "        " + instruction.toText() : ""));
-        address += subbytes.length;
-        bytes.splice(0, subbytes.length);
-    }
+for (const line of instructionsToText(instructions)) {
+    console.log(line);
 }
