@@ -1,6 +1,6 @@
 {
   "name": "z80-disasm",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Z80 disassembler in TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
