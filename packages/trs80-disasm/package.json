@@ -1,0 +1,32 @@
+{
+  "name": "trs80-disasm",
+  "version": "1.0.0",
+  "description": "Configures z80-disasm for TRS-80 programs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": "https://github.com/lkesteloot/trs80-disasm",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
+    "lint": "tslint --project . --format codeFrame",
+    "lint:fix": "npm run lint -- --fix",
+    "clean": "rm -rf dist",
+    "watch": "tsc -p tsconfig.json --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "trs-80"
+  ],
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^12.12.21",
+    "tslint": "^5.20.1",
+    "typedoc": "^0.19.2",
+    "typescript": "^3.7.4"
+  },
+  "dependencies": {
+    "trs80-base": "^1.0.3",
+    "z80-disasm": "^1.1.1"
+  }
+}
