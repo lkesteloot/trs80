@@ -203,7 +203,15 @@ export class Editor {
             parts.push(element.text);
         }
 
-        this.textarea.value = parts.join("");
+        const fullText = parts.join("");
+        if (fullText !== this.textarea.value) {
+            // Try to keep the selection where it is.
+            const selectionStart = this.textarea.selectionStart;
+            const selectionEnd = this.textarea.selectionEnd;
+            this.textarea.value = fullText;
+            this.textarea.selectionStart = selectionStart;
+            this.textarea.selectionEnd = selectionEnd;
+        }
     }
 
     /**
