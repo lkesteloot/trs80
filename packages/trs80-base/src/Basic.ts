@@ -101,6 +101,55 @@ export class BasicElement {
         this.text = text;
         this.elementType = elementType;
     }
+
+    /**
+     * Get the element's text so that it will display properly in "Another Man's Treasure" font.
+     *
+     * https://www.kreativekorp.com/software/fonts/trs80.shtml
+     */
+    public asAnotherMansTreasure(): string {
+        if (this.elementType === ElementType.STRING) {
+            const parts: string[] = [];
+
+            // Convert non-ASCII to the right value for our font.
+            for (const ch of this.text) {
+                let c = ch.charCodeAt(0);
+                if (c < 32 || c >= 127) {
+                    c += 0xE000;
+                }
+                parts.push(String.fromCodePoint(c));
+            }
+
+            return parts.join("");
+        } else {
+            return this.text;
+        }
+    }
+
+    /**
+     * Get the element's text so that it will display properly in ASCII.
+     */
+    public asAscii(): string {
+        if (this.elementType === ElementType.STRING) {
+            const parts: string[] = [];
+
+            for (const ch of this.text) {
+                const c = ch.charCodeAt(0);
+
+                if (ch === "\r") {
+                    parts.push("\\r");
+                } else if (c >= 32 && c < 128 && ch !== "\\") {
+                    parts.push(ch);
+                } else {
+                    parts.push("\\" + toOctal(c));
+                }
+            }
+
+            return parts.join("");
+        } else {
+            return this.text;
+        }
+    }
 }
 
 /**
@@ -279,17 +328,9 @@ export function decodeBasicProgram(binary: Uint8Array): BasicProgram | undefined
                         break;
 
                     case ParserState.STRING:
-                        let e: BasicElement;
-                        if (ch === "\r") {
-                            e = new BasicElement(b.addr() - 1, "\\n", ElementType.PUNCTUATION);
-                        } else if (ch === "\\") {
-                            e = new BasicElement(b.addr() - 1, "\\" + toOctal(c), ElementType.PUNCTUATION);
-                        } else if (c >= 32 && c < 128) {
-                            e = new BasicElement(b.addr() - 1, ch, ElementType.STRING);
-                        } else {
-                            e = new BasicElement(b.addr() - 1, "\\" + toOctal(c), ElementType.PUNCTUATION);
-                        }
-                        elements.push(e);
+                        // Put the real value in the string. Code displaying can use the methods of
+                        // BasicElement to convert it before printing.
+                        elements.push(new BasicElement(b.addr() - 1, ch, ElementType.STRING));
                         if (ch === '"') {
                             // End of string.
                             state = preStringState;
