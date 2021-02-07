@@ -26,6 +26,7 @@ import {FloppyDiskController} from "./FloppyDiskController";
 import {Machine} from "./Machine";
 import {EventScheduler} from "./EventScheduler";
 import {SoundPlayer} from "./SoundPlayer";
+import {SimpleEventDispatcher} from "strongly-typed-events";
 
 // IRQs
 const M1_TIMER_IRQ_MASK = 0x80;
@@ -162,8 +163,6 @@ export class Trs80 implements Hal, Machine {
         this.loadRom();
         this.tStateCount = 0;
         this.keyboard.configureKeyboard();
-
-        this.fdc.onMotorOn.subscribe(drive => console.log("Drive " + drive));
     }
 
     /**
@@ -238,6 +237,13 @@ export class Trs80 implements Hal, Machine {
         for (let i = 0; i < raw.length; i++) {
             this.memory[i] = raw.charCodeAt(i);
         }
+    }
+
+    /**
+     * Event dispatcher for floppy drive activity, indicating which drive (0-based) has its motor on, if any.
+     */
+    get onMotorOn(): SimpleEventDispatcher<number | undefined> {
+        return this.fdc.onMotorOn;
     }
 
     /**

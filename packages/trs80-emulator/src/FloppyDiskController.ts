@@ -16,7 +16,7 @@ import {EventType} from "./EventScheduler";
 const SUPPORT_WRITING = false;
 
 // Number of physical drives.
-const DRIVE_COUNT = 4;
+export const FLOPPY_DRIVE_COUNT = 4;
 
 // Width of the index hole as a fraction of the circumference.
 const HOLE_WIDTH = 0.01;
@@ -218,7 +218,7 @@ export class FloppyDiskController {
     constructor(foo: Machine) {
         this.machine = foo;
 
-        for (let i = 0; i < DRIVE_COUNT; i++) {
+        for (let i = 0; i < FLOPPY_DRIVE_COUNT; i++) {
             this.drives.push(new FloppyDrive());
         }
     }

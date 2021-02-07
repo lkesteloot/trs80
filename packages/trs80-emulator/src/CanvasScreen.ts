@@ -60,6 +60,8 @@ export class CanvasScreen extends Trs80Screen {
         this.padding = Math.round(PADDING*this.scale);
 
         this.canvas = document.createElement("canvas");
+        // Make it block so we don't have any weird text margins on the bottom.
+        this.canvas.style.display = "block";
         this.canvas.width = 64*8*this.scale + 2*this.padding;
         this.canvas.height = 16*24*this.scale + 2*this.padding;
         this.node.append(this.canvas);
