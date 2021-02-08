@@ -76,6 +76,18 @@
             "wavUrl": "bits05.wav",
             "type": "low-speed-bits",
             "bin": "0010 0000 000"
+        },
+        {
+            "name": "0.5ms gap between bits",
+            "wavUrl": "bits06.wav",
+            "type": "low-speed-bits",
+            "bin": "00101010101001100011"
+        },
+        {
+            "name": "4ms gap between bits",
+            "wavUrl": "bits07.wav",
+            "type": "low-speed-bits",
+            "bin": "0000010000000101110110"
         }
     ]
 }

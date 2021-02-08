@@ -142,14 +142,12 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         let frame = startFrame;
         let foundSyncByte = false;
         let bitCount = 0;
-        let allowLateClockPulse = false;
         const bitData: BitData[] = [];
         const byteData: ByteData[] = [];
         const binary: number[] = [];
 
         while (true) {
-            const [bit, clockPulse, dataPulse] = this.readBit(frame, allowLateClockPulse);
-            allowLateClockPulse = false;
+            const [bit, clockPulse, dataPulse] = this.readBit(frame);
             if (clockPulse.resultType === PulseResultType.SILENCE) {
                 // End of program.
                 waveformAnnotations.push(new LabelAnnotation("Silence", frame, frame, false));
@@ -179,7 +177,6 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
                 if (recentBits === SYNC_BYTE) {
                     waveformAnnotations.push(new LabelAnnotation("Sync", bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame, false));
                     foundSyncByte = true;
-                    allowLateClockPulse = true;
                     bitCount = 0;
                 }
             }
@@ -201,21 +198,17 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
      * Read a bit at position "frame", which should be the position of the previous bit's clock pulse.
      * @return the value of the bit, the clock pulse, and the data pulse.
      */
-    private readBit(frame: number, allowLateClockPulse: boolean, includeExplanation?: boolean): [boolean,Pulse,Pulse] {
+    private readBit(frame: number, includeExplanation?: boolean): [boolean, Pulse, Pulse] {
         // Clock pulse is one period away.
         let clockPulse = this.isPulseAt(frame + this.period, this.peakThreshold, includeExplanation);
         if (clockPulse.resultType !== PulseResultType.PULSE) {
-            if (allowLateClockPulse) {
-                const latePulse = this.findNextClosePulse(frame + this.period, this.peakThreshold, this.samples[frame] > 0);
-                if (latePulse === undefined) {
-                    // Failed to find late pulse.
-                    return [false, clockPulse, clockPulse];
-                }
-
-                clockPulse = latePulse;
-            } else {
+            const latePulse = this.findNextClosePulse(frame + this.period, this.peakThreshold, this.samples[frame] > 0);
+            if (latePulse === undefined) {
+                // Failed to find late pulse.
                 return [false, clockPulse, clockPulse];
             }
+
+            clockPulse = latePulse;
         }
 
         // Data pulse is half a period after the clock pulse.
@@ -239,7 +232,7 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
         while (true) {
             const expectedNextFrame = frame + this.period;
 
-            const [bit, clockPulse, dataPulse] = this.readBit(frame, false, true);
+            const [bit, clockPulse, dataPulse] = this.readBit(frame, true);
 
             if (clockPulse.resultType === PulseResultType.NOISE || clockPulse.resultType === PulseResultType.SILENCE) {
                 const left = expectedNextFrame - this.quarterPeriod;
@@ -310,10 +303,10 @@ export class LowSpeedAnteoTapeDecoder implements TapeDecoder {
     }
 
     /**
-     * Find the very next pulse of the specified polarity. The pulse must be in the next two periods.
+     * Find the very next pulse of the specified polarity. The pulse must be in the next six periods.
      */
     public findNextClosePulse(frame: number, threshold: number, positive: boolean): Pulse | undefined {
-        for (let i = 0; i < this.period * 2; i += this.pulseSearchRadius) {
+        for (let i = 0; i < this.period * 6; i += this.pulseSearchRadius) {
             const pulse = this.isPulseAt(frame + i, threshold);
             if (pulse.resultType === PulseResultType.PULSE && (positive ? (pulse.value > 0) : (pulse.value < 0))) {
                 return pulse;
