@@ -509,6 +509,15 @@ export class WaveformDisplay {
                 updateSelectionAdjustMode();
             }
         });
+        canvas.addEventListener("wheel", event => {
+            // Can't do both at once, so just pick major axis.
+            if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+                const mag = Math.pow(2, this.zoom);
+                this.centerSample = Math.round(this.centerSample + event.deltaX * mag);
+                this.draw();
+                event.preventDefault();
+            }
+        });
 
         // Keyboard events.
         document.addEventListener("keydown", event => {
