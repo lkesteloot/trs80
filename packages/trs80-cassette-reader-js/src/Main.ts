@@ -218,6 +218,38 @@ function makePassFailLabel(pass: boolean): HTMLElement {
     return result;
 }
 
+/**
+ * Get HTML for a string where the prefix and suffix are dimmed.
+ */
+function getPrefixSuffixHtml(s: string, prefix: number, suffix: number): string {
+    return "<span style='opacity: 30%'>" + s.substr(0, prefix) + "</span>" +
+        s.substr(prefix, s.length - prefix - suffix) +
+        "<span style='opacity: 30%'>" + s.substr(s.length - suffix) + "</span>";
+}
+
+/**
+ * Return an HTML string for showing the differences between these bit strings.
+ */
+function getDiffHtml(expectedBits: string, actualBits: string): string {
+    if (expectedBits === actualBits) {
+        // Shouldn't happen.
+        return "";
+    }
+
+    let commonPrefix = 0;
+    while (expectedBits.substr(0, commonPrefix + 1) === actualBits.substr(0, commonPrefix + 1)) {
+        commonPrefix += 1;
+    }
+
+    let commonSuffix = 0;
+    while (expectedBits.substr(-(commonSuffix + 1)) === actualBits.substr(-(commonSuffix + 1))) {
+        commonSuffix += 1;
+    }
+
+    return "Expected " + getPrefixSuffixHtml(expectedBits, commonPrefix, commonSuffix) +
+        " but got " + getPrefixSuffixHtml(actualBits, commonPrefix, commonSuffix);
+}
+
 function runTests(parent: HTMLElement, testFile: TestFile): void {
     if (testFile.name !== undefined) {
         const pageHeader = document.createElement("h2");
@@ -332,7 +364,7 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                             if (pass) {
                                 explanation.remove();
                             } else {
-                                explanation.innerText = "Expected " + expectBits + " but got " + actualBits + ".";
+                                explanation.innerHTML = getDiffHtml(expectBits, actualBits);
                             }
                         }
                         break;
@@ -351,10 +383,7 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                         const expectBits = test.bin.replace(/ /g, "");
                         waveformDisplay.addWaveformAnnotations(waveformAnnotations);
                         pass = actualBits === expectBits;
-                        if (!pass) {
-                            explanations.unshift("Expected " + expectBits + " but got " + actualBits + ".");
-                        }
-                        if (explanations.length === 0) {
+                        if (explanations.length === 0 && pass) {
                             explanation.remove();
                         } else {
                             let html = "";
@@ -363,6 +392,9 @@ function runTests(parent: HTMLElement, testFile: TestFile): void {
                                     html += "<br>";
                                 }
                                 html += escapeHtml(e);
+                            }
+                            if (!pass) {
+                                html += "<br>" + getDiffHtml(expectBits, actualBits);
                             }
                             explanation.innerHTML = html;
                         }
