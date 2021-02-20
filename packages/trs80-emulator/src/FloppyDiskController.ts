@@ -215,6 +215,9 @@ export class FloppyDiskController {
     // Which drive is currently active, for lighting up an LED.
     public readonly onActiveDrive = new SimpleEventDispatcher<number | undefined>();
 
+    // Event when a drive moves the head this many tracks.
+    public readonly onTrackMove = new SimpleEventDispatcher<number>();
+
     constructor(foo: Machine) {
         this.machine = foo;
 
@@ -320,7 +323,11 @@ export class FloppyDiskController {
 
             case COMMAND_SEEK:
                 this.lastReadAddress = undefined;
-                drive.physicalTrack += this.data - this.track;
+                const moveCount = this.data - this.track;
+                if (moveCount !== 0) {
+                    this.onTrackMove.dispatch(moveCount);
+                }
+                drive.physicalTrack += moveCount;
                 this.track = this.data;
                 if (drive.physicalTrack <= 0) {
                     // this.track too?

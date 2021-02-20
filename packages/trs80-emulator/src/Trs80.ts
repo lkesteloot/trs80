@@ -165,6 +165,7 @@ export class Trs80 implements Hal, Machine {
         this.tStateCount = 0;
         this.keyboard.configureKeyboard();
         this.fdc.onActiveDrive.subscribe(activeDrive => this.soundPlayer.setFloppyMotorOn(activeDrive !== undefined));
+        this.fdc.onTrackMove.subscribe(moveCount => this.soundPlayer.trackMoved(moveCount));
     }
 
     /**

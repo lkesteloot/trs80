@@ -2,7 +2,12 @@ import {Mutable} from "./Mutable";
 
 const PROCESSOR_NAME = "trs80-audio-processor";
 
+// Get these straight from my GitHub repo.
 const SPIN_URL = "https://raw.githubusercontent.com/lkesteloot/trs80-emulator/83e7fabd7d26f3e197329ee05a7c8ffc4063362c/sounds/spin.mp3";
+const TRACK_URL = "https://raw.githubusercontent.com/lkesteloot/trs80-emulator/83845b15b3c99daa8237e22b48f00426fcdc0cbf/sounds/track.mp3";
+
+const SPIN_VOLUME = 0.6;
+const TRACK_VOLUME = 0.3;
 
 const PROCESSOR_JS = `
 // Generates the TRS-80 sound.
@@ -74,6 +79,7 @@ export class SoundPlayer implements Mutable {
     private floppySpinAudioBuffer: AudioBuffer | undefined = undefined;
     private floppySpinSourceNode: AudioBufferSourceNode | undefined = undefined;
     private floppySpinGainNode: GainNode | undefined = undefined;
+    private trackAudioBuffer: AudioBuffer | undefined = undefined;
     // Difference between computer time and audio time, in seconds.
     private adjustment = 0;
     private lastAudioTime = 0;
@@ -160,7 +166,7 @@ export class SoundPlayer implements Mutable {
             // Stop playing spin sound.
 
             const endTime = this.audioContext.currentTime + 0.2;
-            this.floppySpinGainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
+            this.floppySpinGainNode.gain.setValueAtTime(SPIN_VOLUME, this.audioContext.currentTime);
             this.floppySpinGainNode.gain.linearRampToValueAtTime(0, endTime);
             this.floppySpinSourceNode.stop(endTime);
             this.floppySpinSourceNode = undefined;
@@ -175,7 +181,7 @@ export class SoundPlayer implements Mutable {
             this.floppySpinGainNode = this.audioContext.createGain();
             this.floppySpinGainNode.connect(this.audioContext.destination);
             this.floppySpinGainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-            this.floppySpinGainNode.gain.linearRampToValueAtTime(1, this.audioContext.currentTime + 0.2);
+            this.floppySpinGainNode.gain.linearRampToValueAtTime(SPIN_VOLUME, this.audioContext.currentTime + 0.2);
 
             this.floppySpinSourceNode = this.audioContext.createBufferSource();
             this.floppySpinSourceNode.buffer = this.floppySpinAudioBuffer;
@@ -186,6 +192,36 @@ export class SoundPlayer implements Mutable {
             // Remember when we last played audio.
             this.lastAudioTime = this.audioContext.currentTime;
         }
+    }
+
+    /**
+     * Play the sound of the head moving one track over.
+     */
+    private playTrackSound(): void {
+        if (this.audioContext !== undefined && this.trackAudioBuffer !== undefined) {
+            this.resumeAudio();
+
+            const gainNode = this.audioContext.createGain();
+            gainNode.connect(this.audioContext.destination);
+            gainNode.gain.setValueAtTime(TRACK_VOLUME, this.audioContext.currentTime);
+
+            const sourceNode = this.audioContext.createBufferSource();
+            sourceNode.buffer = this.trackAudioBuffer;
+            sourceNode.connect(gainNode);
+            sourceNode.start();
+
+            // Remember when we last played audio.
+            this.lastAudioTime = this.audioContext.currentTime;
+        }
+    }
+
+    /**
+     * Inform the sound system that a drive head has moved.
+     */
+    public trackMoved(moveCount: number): void {
+        // We don't currently pay attention to the track move count. We tried spacing them out by 5ms or 10ms
+        // and it didn't sound good. So just play one track move sound.
+        this.playTrackSound();
     }
 
     /**
@@ -257,6 +293,26 @@ export class SoundPlayer implements Mutable {
             .then(audioBuffer => {
                 this.floppySpinAudioBuffer = audioBuffer;
                 this.updateFloppySpin();
+            })
+            .catch(e => {
+                // TODO.
+                console.error(e);
+            });
+
+
+        // Get the track movement sound.
+        fetch(TRACK_URL)
+            .then(response => {
+                if (response.status === 200) {
+                    return response.blob();
+                } else {
+                    return Promise.reject("fetch failed: " + response.statusText);
+                }
+            })
+            .then(blob => blob.arrayBuffer())
+            .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+            .then(audioBuffer => {
+                this.trackAudioBuffer = audioBuffer;
             })
             .catch(e => {
                 // TODO.
