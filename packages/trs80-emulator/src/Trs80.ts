@@ -60,9 +60,10 @@ const M4_CLOCK_HZ = 4_055_040;
 const INITIAL_CLICKS_PER_TICK = 2000;
 
 /**
- * Converts the two-bit cassette port to an audio value.
+ * Converts the two-bit cassette port to an audio value. These values are from "More TRS-80 Assembly
+ * Language Programming", page 222, with the last value taken from trs80gp.
  */
-const CASSETTE_BITS_TO_AUDIO_VALUE = [-1, 1, -1, 0];
+const CASSETTE_BITS_TO_AUDIO_VALUE = [0, 1, -1, 0];
 
 const CASSETTE_THRESHOLD = 5000/32768.0;
 
@@ -163,6 +164,7 @@ export class Trs80 implements Hal, Machine {
         this.loadRom();
         this.tStateCount = 0;
         this.keyboard.configureKeyboard();
+        this.fdc.onActiveDrive.subscribe(activeDrive => this.soundPlayer.setFloppyMotorOn(activeDrive !== undefined));
     }
 
     /**
@@ -243,7 +245,7 @@ export class Trs80 implements Hal, Machine {
      * Event dispatcher for floppy drive activity, indicating which drive (0-based) has its motor on, if any.
      */
     get onMotorOn(): SimpleEventDispatcher<number | undefined> {
-        return this.fdc.onMotorOn;
+        return this.fdc.onActiveDrive;
     }
 
     /**

@@ -2,6 +2,8 @@ import {Mutable} from "./Mutable";
 
 const PROCESSOR_NAME = "trs80-audio-processor";
 
+const SPIN_URL = "https://raw.githubusercontent.com/lkesteloot/trs80-emulator/83e7fabd7d26f3e197329ee05a7c8ffc4063362c/sounds/spin.mp3";
+
 const PROCESSOR_JS = `
 // Generates the TRS-80 sound.
 class Trs80SoundProcessor extends AudioWorkletProcessor {
@@ -68,20 +70,31 @@ export class SoundPlayer implements Mutable {
     private muted = true;
     private audioContext: AudioContext | undefined = undefined;
     private audioValue: AudioParam | undefined = undefined;
+    private floppyMotorOn = false;
+    private floppySpinAudioBuffer: AudioBuffer | undefined = undefined;
+    private floppySpinSourceNode: AudioBufferSourceNode | undefined = undefined;
+    private floppySpinGainNode: GainNode | undefined = undefined;
     // Difference between computer time and audio time, in seconds.
     private adjustment = 0;
     private lastAudioTime = 0;
     private isSuspended = false;
 
     /**
+     * Resume the audio context if necessary.
+     */
+    private resumeAudio(): void {
+        if (this.isSuspended && this.audioContext !== undefined) {
+            this.audioContext.resume();
+            this.isSuspended = false;
+        }
+    }
+
+    /**
      * Sets the value sent to the cassette, from the set -1, 0, or 1.
      */
     public setAudioValue(value: number, tStateCount: number, clockHz: number): void {
         if (!this.muted && this.audioContext !== undefined && this.audioValue !== undefined) {
-            if (this.isSuspended) {
-                this.audioContext.resume();
-                this.isSuspended = false;
-            }
+            this.resumeAudio();
 
             const computerTime = tStateCount / clockHz;
             const audioTime = this.audioContext.currentTime;
@@ -130,6 +143,52 @@ export class SoundPlayer implements Mutable {
     }
 
     /**
+     * Update the sound system about the state of the floppy motors.
+     */
+    public setFloppyMotorOn(motorOn: boolean): void {
+        this.floppyMotorOn = motorOn;
+        this.updateFloppySpin();
+    }
+
+    /**
+     * Start or stop the background floppy spinning noise depending on the state of the motor.
+     */
+    private updateFloppySpin(): void {
+        if (!this.floppyMotorOn && this.floppySpinSourceNode !== undefined &&
+            this.floppySpinGainNode !== undefined && this.audioContext !== undefined) {
+
+            // Stop playing spin sound.
+
+            const endTime = this.audioContext.currentTime + 0.2;
+            this.floppySpinGainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
+            this.floppySpinGainNode.gain.linearRampToValueAtTime(0, endTime);
+            this.floppySpinSourceNode.stop(endTime);
+            this.floppySpinSourceNode = undefined;
+            this.floppySpinGainNode = undefined;
+        } else if (this.floppyMotorOn && this.floppySpinSourceNode === undefined &&
+            this.floppySpinAudioBuffer !== undefined && this.audioContext !== undefined) {
+
+            // Start playing spin sound.
+
+            this.resumeAudio();
+
+            this.floppySpinGainNode = this.audioContext.createGain();
+            this.floppySpinGainNode.connect(this.audioContext.destination);
+            this.floppySpinGainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+            this.floppySpinGainNode.gain.linearRampToValueAtTime(1, this.audioContext.currentTime + 0.2);
+
+            this.floppySpinSourceNode = this.audioContext.createBufferSource();
+            this.floppySpinSourceNode.buffer = this.floppySpinAudioBuffer;
+            this.floppySpinSourceNode.connect(this.floppySpinGainNode);
+            this.floppySpinSourceNode.loop = true;
+            this.floppySpinSourceNode.start();
+
+            // Remember when we last played audio.
+            this.lastAudioTime = this.audioContext.currentTime;
+        }
+    }
+
+    /**
      * Whether we're muted.
      */
     public isMuted(): boolean {
@@ -141,7 +200,10 @@ export class SoundPlayer implements Mutable {
      * speaker icon disappears from the tab).
      */
     private checkAutoSuspend(): void {
-        if (this.audioContext !== undefined && !this.isSuspended && this.audioContext.currentTime - this.lastAudioTime >= MIN_SILENT_TIME_S) {
+        if (this.audioContext !== undefined && !this.isSuspended &&
+            this.floppySpinSourceNode === undefined &&
+            this.audioContext.currentTime - this.lastAudioTime >= MIN_SILENT_TIME_S) {
+
             this.audioContext.suspend();
             this.isSuspended = true;
         }
@@ -180,5 +242,25 @@ export class SoundPlayer implements Mutable {
             constantSourceNode.connect(node).connect(audioContext.destination);
             constantSourceNode.start();
         });
+
+        // Get the background spin sound.
+        fetch(SPIN_URL)
+            .then(response => {
+                if (response.status === 200) {
+                    return response.blob();
+                } else {
+                    return Promise.reject("fetch failed: " + response.statusText);
+                }
+            })
+            .then(blob => blob.arrayBuffer())
+            .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+            .then(audioBuffer => {
+                this.floppySpinAudioBuffer = audioBuffer;
+                this.updateFloppySpin();
+            })
+            .catch(e => {
+                // TODO.
+                console.error(e);
+            });
     }
 }

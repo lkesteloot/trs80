@@ -213,7 +213,7 @@ export class FloppyDiskController {
     private motorOffTimeoutHandle: number | undefined = undefined;
 
     // Which drive is currently active, for lighting up an LED.
-    public readonly onMotorOn = new SimpleEventDispatcher<number | undefined>();
+    public readonly onActiveDrive = new SimpleEventDispatcher<number | undefined>();
 
     constructor(foo: Machine) {
         this.machine = foo;
@@ -559,7 +559,7 @@ export class FloppyDiskController {
      * Dispatch a change to the motor light.
      */
     private updateMotorOn(): void {
-        this.onMotorOn.dispatch(this.motorOn ? this.currentDrive : undefined);
+        this.onActiveDrive.dispatch(this.motorOn ? this.currentDrive : undefined);
     }
 
     // Return a value in [0,1) indicating how far we've rotated
