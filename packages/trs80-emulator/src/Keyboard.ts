@@ -45,6 +45,7 @@ const keyMap = new Map<string, KeyInfo>();
 
 // http://www.trs-80.com/trs80-zaps-internals.htm#keyboard13
 keyMap.set("@", new KeyInfo(0, 0, ShiftState.FORCE_UP));
+keyMap.set("`", new KeyInfo(0, 0, ShiftState.FORCE_DOWN));
 
 keyMap.set("A", new KeyInfo(0, 1, ShiftState.FORCE_DOWN));
 keyMap.set("B", new KeyInfo(0, 2, ShiftState.FORCE_DOWN));
@@ -111,7 +112,7 @@ keyMap.set("7", new KeyInfo(4, 7, ShiftState.FORCE_UP));
 keyMap.set("8", new KeyInfo(5, 0, ShiftState.FORCE_UP));
 keyMap.set("9", new KeyInfo(5, 1, ShiftState.FORCE_UP));
 
-keyMap.set("`", new KeyInfo(4, 0, ShiftState.FORCE_DOWN)); // Simulate Shift-0.
+keyMap.set("_", new KeyInfo(4, 0, ShiftState.FORCE_DOWN)); // Simulate Shift-0, like trsemu.
 keyMap.set("!", new KeyInfo(4, 1, ShiftState.FORCE_DOWN));
 keyMap.set("\"", new KeyInfo(4, 2, ShiftState.FORCE_DOWN));
 keyMap.set("#", new KeyInfo(4, 3, ShiftState.FORCE_DOWN));
