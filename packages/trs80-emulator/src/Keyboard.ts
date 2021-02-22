@@ -138,7 +138,7 @@ keyMap.set(">", new KeyInfo(5, 6, ShiftState.FORCE_DOWN));
 keyMap.set("?", new KeyInfo(5, 7, ShiftState.FORCE_DOWN));
 
 keyMap.set("Enter", new KeyInfo(6, 0, ShiftState.NEUTRAL));
-keyMap.set("Tab", new KeyInfo(6, 1, ShiftState.NEUTRAL)); // Clear
+keyMap.set("\\", new KeyInfo(6, 1, ShiftState.NEUTRAL)); // Clear
 keyMap.set("Escape", new KeyInfo(6, 2, ShiftState.NEUTRAL)); // Break
 keyMap.set("ArrowUp", new KeyInfo(6, 3, ShiftState.NEUTRAL));
 keyMap.set("ArrowDown", new KeyInfo(6, 4, ShiftState.NEUTRAL));
