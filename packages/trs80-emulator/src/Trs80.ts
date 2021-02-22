@@ -22,7 +22,7 @@ import {
     Trs80File
 } from "trs80-base";
 import {FloppyDisk} from "trs80-base/dist/FloppyDisk";
-import {FloppyDiskController} from "./FloppyDiskController";
+import {FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController";
 import {Machine} from "./Machine";
 import {EventScheduler} from "./EventScheduler";
 import {SoundPlayer} from "./SoundPlayer";
@@ -1006,6 +1006,8 @@ export class Trs80 implements Hal, Machine {
      * Run a TRS-80 program. The exact behavior depends on the type of program.
      */
     public runTrs80File(trs80File: Trs80File): void {
+        this.ejectAllFloppyDisks();
+
         if (trs80File instanceof CmdProgram) {
             this.runCmdProgram(trs80File);
         } else if (trs80File instanceof Cassette) {
@@ -1141,6 +1143,15 @@ export class Trs80 implements Hal, Machine {
         // Start of free memory pointer.
         this.writeMemory(0x40FD, lo(addr));
         this.writeMemory(0x40FE, hi(addr));
+    }
+
+    /**
+     * Remove floppy disks from all drives.
+     */
+    public ejectAllFloppyDisks(): void {
+        for (let i = 0; i < FLOPPY_DRIVE_COUNT; i++) {
+            this.loadFloppyDisk(undefined, i);
+        }
     }
 
     /**
