@@ -48,12 +48,14 @@ export function disasmForTrs80Program(program: SystemProgram | CmdProgram): Disa
                 break;
             }
         }
-    } else {
+    } else if (program instanceof SystemProgram) {
         for (const chunk of program.chunks) {
             if (shouldDisassembleSystemProgramChunk(chunk)) {
                 disasm.addChunk(chunk.data, chunk.loadAddress);
             }
         }
+    } else {
+        throw new Error("program is neither SystemProgram nor CmdProgram");
     }
     if (program.entryPointAddress !== undefined) {
         disasm.addEntryPoint(program.entryPointAddress);
