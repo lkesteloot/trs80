@@ -1,6 +1,6 @@
 {
   "name": "trs80-emulator",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "TRS-80 Model III emulator",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
