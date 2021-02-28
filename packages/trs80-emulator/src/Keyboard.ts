@@ -219,7 +219,7 @@ export class Keyboard {
         // Look up the key info.
         const keyInfo = keyMap.get(key);
         if (keyInfo === undefined) {
-            if (key !== "Meta" && key !== "Control" && key !== "Alt") {
+            if (key !== "Meta" && key !== "Control" && key !== "Alt" && key !== "Tab") {
                 console.log("Unknown key \"" + key + "\"");
             }
         } else {

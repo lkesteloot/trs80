@@ -61,9 +61,9 @@ const INITIAL_CLICKS_PER_TICK = 2000;
 
 /**
  * Converts the two-bit cassette port to an audio value. These values are from "More TRS-80 Assembly
- * Language Programming", page 222, with the last value taken from trs80gp.
+ * Language Programming", page 222, with the last value taken from "The B00K" volume 2 (page 5-2).
  */
-const CASSETTE_BITS_TO_AUDIO_VALUE = [0, 1, -1, 0];
+const CASSETTE_BITS_TO_AUDIO_VALUE = [0, 1, -1, -1];
 
 const CASSETTE_THRESHOLD = 5000/32768.0;
 
