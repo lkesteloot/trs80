@@ -206,28 +206,28 @@ export class ControlPanel {
     /**
      * Add a reset button.
      */
-    public addResetButton(callback: () => void) {
-        this.addButton(RESET_ICON, callback);
+    public addResetButton(callback: () => void): HTMLElement {
+        return this.addButton(RESET_ICON, callback);
     }
 
     /**
      * Add a screenshot button.
      */
-    public addScreenshotButton(callback: () => void) {
-        this.addButton(CAMERA_ICON, callback);
+    public addScreenshotButton(callback: () => void): HTMLElement {
+        return this.addButton(CAMERA_ICON, callback);
     }
 
     /**
      * Add a tape rewind button.
      */
-    public addTapeRewindButton(callback: () => void) {
-        this.addButton(PREVIOUS_TRACK_ICON, callback);
+    public addTapeRewindButton(callback: () => void): HTMLElement {
+        return this.addButton(PREVIOUS_TRACK_ICON, callback);
     }
 
     /**
      * Add a settings button.
      */
-    public addSettingsButton(settingsPanel: SettingsPanel) {
+    public addSettingsButton(settingsPanel: SettingsPanel): HTMLElement {
         settingsPanel.onOpen = () => this.screenNode.classList.add(gShowingOtherPanelCssClass);
         settingsPanel.onClose = () => this.screenNode.classList.remove(gShowingOtherPanelCssClass);
 
@@ -242,14 +242,14 @@ export class ControlPanel {
                 break;
         }
 
-        this.addButton(iconSvg, () => settingsPanel.open());
+        return this.addButton(iconSvg, () => settingsPanel.open());
     }
 
     /**
      * Add a button to edit the program.
      */
-    public addEditorButton(callback: () => void): void {
-        this.addButton(EDIT_ICON, callback);
+    public addEditorButton(callback: () => void): HTMLElement {
+        return this.addButton(EDIT_ICON, callback);
     }
 
     /**
