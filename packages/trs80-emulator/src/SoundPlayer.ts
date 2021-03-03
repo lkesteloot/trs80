@@ -60,15 +60,6 @@ registerProcessor("${PROCESSOR_NAME}", Trs80SoundProcessor);
 const MIN_SILENT_TIME_S = 30;
 
 /**
- * Simple node to access the processor.
- */
-class Trs80SoundNode extends AudioWorkletNode {
-    constructor(context: AudioContext) {
-        super(context, PROCESSOR_NAME);
-    }
-}
-
-/**
  * Handles playing of sound through the cassette port.
  */
 export class SoundPlayer implements Mutable {
@@ -256,28 +247,40 @@ export class SoundPlayer implements Mutable {
 
         const audioContext = this.audioContext;
 
-        // Load our module.
-        const moduleUrl = "data:text/javascript;base64," + btoa(PROCESSOR_JS);
-        this.audioContext.audioWorklet.addModule(moduleUrl).then(() => {
-            // I don't know why we need this, but I can't figure out a way to "start" our own node.
-            const constantSourceNode = audioContext.createConstantSource();
+        // Safari doesn't have this.
+        if (window.AudioWorkletNode !== undefined) {
+            // Load our module.
+            const moduleUrl = "data:text/javascript;base64," + btoa(PROCESSOR_JS);
+            this.audioContext.audioWorklet.addModule(moduleUrl).then(() => {
+                // I don't know why we need this, but I can't figure out a way to "start" our own node.
+                const constantSourceNode = audioContext.createConstantSource();
 
-            // Our own node, which ignores its input and generates the audio.
-            const node = new Trs80SoundNode(audioContext);
+                /**
+                 * Simple node to access the processor.
+                 */
+                class Trs80SoundNode extends AudioWorkletNode {
+                    constructor(context: AudioContext) {
+                        super(context, PROCESSOR_NAME);
+                    }
+                }
 
-            // Into this parameter we'll write the actual audio values.
-            this.audioValue = node.parameters.get("audioValue");
-            if (this.audioValue === undefined) {
-                throw new Error("Unknown param audioValue");
-            }
+                // Our own node, which ignores its input and generates the audio.
+                const node = new Trs80SoundNode(audioContext);
 
-            // Automatically suspend the audio if we've not played sound in a while.
-            setInterval(() => this.checkAutoSuspend(), 1000);
+                // Into this parameter we'll write the actual audio values.
+                this.audioValue = node.parameters.get("audioValue");
+                if (this.audioValue === undefined) {
+                    throw new Error("Unknown param audioValue");
+                }
 
-            // Hook up the pipeline.
-            constantSourceNode.connect(node).connect(audioContext.destination);
-            constantSourceNode.start();
-        });
+                // Automatically suspend the audio if we've not played sound in a while.
+                setInterval(() => this.checkAutoSuspend(), 1000);
+
+                // Hook up the pipeline.
+                constantSourceNode.connect(node).connect(audioContext.destination);
+                constantSourceNode.start();
+            });
+        }
 
         // Get the background spin sound.
         fetch(SPIN_URL)
