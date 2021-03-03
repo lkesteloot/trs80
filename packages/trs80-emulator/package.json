@@ -22,7 +22,7 @@
   "repository": "https://github.com/lkesteloot/trs80-emulator",
   "license": "MIT",
   "dependencies": {
-    "strongly-typed-events": "^2.0.6",
+    "strongly-typed-events": "^1.7.3",
     "teamten-ts-utils": "^1.0.1",
     "trs80-base": "^1.0.4",
     "z80-base": "^1.0.6",
