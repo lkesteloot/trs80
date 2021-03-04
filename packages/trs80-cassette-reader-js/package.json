@@ -1,6 +1,6 @@
 {
   "name": "trs80-cassette-reader",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Processes TRS-80 cassettes and cleans them up.",
   "main": "index.js",
   "scripts": {
