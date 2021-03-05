@@ -43,6 +43,7 @@ export class Editor {
         const screenNode = screen.getNode();
         screenNode.style.position = "absolute";
         screenNode.style.backfaceVisibility = "hidden";
+        screenNode.style.webkitBackfaceVisibility = "hidden";
         screenNode.style.transform = "rotateY(0deg)"; // Need this for backface-visibility to work.
 
         // This is the "back" of the card, which is the editor.
@@ -51,6 +52,7 @@ export class Editor {
         this.editorNode.style.width = width + "px";
         this.editorNode.style.height = height + "px";
         this.editorNode.style.backfaceVisibility = "hidden";
+        this.editorNode.style.webkitBackfaceVisibility = "hidden";
         this.editorNode.style.transform = "rotateY(180deg)";
 
         this.card.append(screenNode, this.editorNode);
