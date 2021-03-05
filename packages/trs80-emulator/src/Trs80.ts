@@ -1088,15 +1088,28 @@ export class Trs80 implements Hal, Machine {
     }
 
     /**
+     * Get the address of the first line of the Basic program, or a string explaining the error.
+     */
+    private getBasicAddress(): number | string {
+        const addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
+        if (addr < 0x4200) {
+            return `Basic load address (0x${toHexWord(addr)}) is uninitialized (0x${toHexWord(addr)})`;
+        }
+
+        return addr;
+    }
+
+    /**
      * Load a Basic program into memory, replacing the one that's there. Does not run it.
      */
     public loadBasicProgram(basicProgram: BasicProgram): void {
         // Find address to load to.
-        let addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
-        if (addr < 0x4200 || addr >= 0x4500) {
-            console.error("Basic load address (0x" + toHexWord(addr) + ") is uninitialized");
+        const addrOrError = this.getBasicAddress();
+        if (typeof(addrOrError) === "string") {
+            console.error(addrOrError);
             return;
         }
+        let addr = addrOrError as number;
 
         // Terminate current line (if any) and set up the new one.
         let lineStart: number | undefined;
@@ -1178,10 +1191,11 @@ export class Trs80 implements Hal, Machine {
      * Pulls the Basic program currently in memory, or returns a string with an error.
      */
     public getBasicProgramFromMemory(): BasicProgram | string {
-        let addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
-        if (addr < 0x4200 || addr >= 0x4500) {
-            return "Basic load address (0x" + toHexWord(addr) + ") is uninitialized";
+        const addrOrError = this.getBasicAddress();
+        if (typeof(addrOrError) === "string") {
+            return addrOrError;
         }
+        let addr = addrOrError as number;
 
         // Walk through the program lines to find the end.
         const beginAddr = addr;
