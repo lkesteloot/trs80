@@ -1,5 +1,5 @@
 import {ProgramAnnotation} from "./ProgramAnnotation";
-import {Trs80File} from "./Trs80File";
+import {AbstractTrs80File} from "./Trs80File";
 
 // Side of a floppy disk.
 export enum Side {
@@ -54,7 +54,7 @@ export class SectorData {
 /**
  * Abstract class for virtual floppy disk file formats.
  */
-export abstract class FloppyDisk extends Trs80File {
+export abstract class FloppyDisk extends AbstractTrs80File {
     public readonly supportsDoubleDensity: boolean;
 
     protected constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],

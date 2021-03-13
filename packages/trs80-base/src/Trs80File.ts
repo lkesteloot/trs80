@@ -3,7 +3,11 @@ import {ProgramAnnotation} from "./ProgramAnnotation";
 /**
  * Base class for decoded TRS-80 files.
  */
-export abstract class Trs80File {
+export abstract class AbstractTrs80File {
+    /**
+     * Field to identify which subclass we are at runtime.
+     */
+    public abstract readonly className: string;
     /**
      * The binary representing just this one file.
      */

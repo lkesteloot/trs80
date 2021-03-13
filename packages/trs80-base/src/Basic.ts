@@ -4,7 +4,7 @@
 import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
 import {hi, lo, toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation";
-import {Trs80File} from "./Trs80File";
+import {AbstractTrs80File} from "./Trs80File";
 
 export const BASIC_TAPE_HEADER_BYTE = 0xD3;
 export const BASIC_HEADER_BYTE = 0xFF;
@@ -156,7 +156,8 @@ export class BasicElement {
  * Class representing a Basic program. If the "error" field is set, then something
  * went wrong with the program and the data may be partially loaded.
  */
-export class BasicProgram extends Trs80File {
+export class BasicProgram extends AbstractTrs80File {
+    public readonly className = "BasicProgram";
     public elements: BasicElement[];
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],

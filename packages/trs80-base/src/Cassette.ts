@@ -1,7 +1,8 @@
 import {decodeSystemProgram} from "./SystemProgram";
-import {Trs80File} from "./Trs80File";
+import {AbstractTrs80File} from "./Trs80File";
 import {decodeTrs80File} from "./Trs80FileDecoder";
 import {ProgramAnnotation} from "./ProgramAnnotation";
+import {Trs80File} from "./Trs80FileDecoder";
 
 // Low-speed header and sync constants.
 const LOW_SPEED_HEADER_BYTE = 0x00;
@@ -81,7 +82,8 @@ export class CassetteFile {
 /**
  * Represents a cassette (CAS file).
  */
-export class Cassette extends Trs80File {
+export class Cassette extends AbstractTrs80File {
+    public readonly className = "Cassette";
     public readonly files: CassetteFile[];
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],

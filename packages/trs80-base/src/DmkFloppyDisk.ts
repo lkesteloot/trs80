@@ -192,6 +192,7 @@ class DmkTrack {
  * http://www.classiccmp.org/cpmarchives/trs80/mirrors/www.discover-net.net/~dmkeil/trs80/trstech.htm
  */
 export class DmkFloppyDisk extends FloppyDisk {
+    public readonly className = "DmkFloppyDisk";
     public readonly writeProtected: boolean;
     public readonly trackCount: number;
     public readonly trackLength: number;

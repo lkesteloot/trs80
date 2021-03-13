@@ -7,7 +7,7 @@
 import {ByteReader, EOF} from "teamten-ts-utils";
 import {toHexByte, toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation";
-import {Trs80File} from "./Trs80File";
+import {AbstractTrs80File} from "./Trs80File";
 
 const FILE_HEADER = 0x55;
 const DATA_HEADER = 0x3C;
@@ -50,7 +50,8 @@ export class SystemChunk {
  * Class representing a SYSTEM (machine language) program. If the "error" field is set, then something
  * went wrong with the program and the data may be partially loaded.
  */
-export class SystemProgram extends Trs80File {
+export class SystemProgram extends AbstractTrs80File {
+    public readonly className = "SystemProgram";
     public readonly filename: string;
     public readonly chunks: SystemChunk[];
     public readonly entryPointAddress: number;

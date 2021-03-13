@@ -10,6 +10,8 @@ const DIRECTORY_TRACK = 17;
  * Floppy disk in the JV1 format.
  */
 export class Jv1FloppyDisk extends FloppyDisk {
+    public readonly className = "Jv1FloppyDisk";
+
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
         super(binary, error, annotations, false);
     }

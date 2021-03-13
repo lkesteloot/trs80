@@ -7,7 +7,7 @@
 import {ByteReader, EOF} from "teamten-ts-utils";
 import {toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation";
-import {Trs80File} from "./Trs80File";
+import {AbstractTrs80File} from "./Trs80File";
 
 // Chunk types.
 export const CMD_LOAD_BLOCK = 0x01;
@@ -18,11 +18,12 @@ export const CMD_MAX_TYPE = 0x1F;
 /**
  * Represents a chunk of bytes from the file.
  */
-export class CmdChunk {
+abstract class CmdAbstractChunk {
+    public abstract readonly className: string;
     public readonly type: number;
     public readonly rawData: Uint8Array;
 
-    constructor(type: number, data: Uint8Array) {
+    protected constructor(type: number, data: Uint8Array) {
         this.type = type;
         this.rawData = data;
     }
@@ -38,7 +39,8 @@ export class CmdChunk {
 /**
  * A chunk for loading data into memory.
  */
-export class CmdLoadBlockChunk extends CmdChunk {
+export class CmdLoadBlockChunk extends CmdAbstractChunk {
+    public readonly className = "CmdLoadBlockChunk";
     public readonly address: number;
     public readonly loadData: Uint8Array;
 
@@ -58,7 +60,8 @@ export class CmdLoadBlockChunk extends CmdChunk {
 /**
  * A chunk for jumping to the start of the program.
  */
-export class CmdTransferAddressChunk extends CmdChunk {
+export class CmdTransferAddressChunk extends CmdAbstractChunk {
+    public readonly className = "CmdTransferAddressChunk";
     public readonly address: number;
 
     constructor(type: number, data: Uint8Array) {
@@ -74,7 +77,8 @@ export class CmdTransferAddressChunk extends CmdChunk {
 /**
  * A header chunk for the filename.
  */
-export class CmdLoadModuleHeaderChunk extends CmdChunk {
+export class CmdLoadModuleHeaderChunk extends CmdAbstractChunk {
+    public readonly className = "CmdLoadModuleHeaderChunk";
     public readonly filename: string;
 
     constructor(type: number, data: Uint8Array) {
@@ -86,6 +90,25 @@ export class CmdLoadModuleHeaderChunk extends CmdChunk {
         annotations.push(new ProgramAnnotation("Name (" + this.filename + ")", addr, addr + this.rawData.length));
     }
 }
+
+/**
+ * A chunk of unknown meaning.
+ */
+export class CmdUnknownChunk extends CmdAbstractChunk {
+    public readonly className = "CmdUnknownChunk";
+
+    constructor(type: number, data: Uint8Array) {
+        super(type, data);
+    }
+}
+
+/**
+ * One of the four possible kinds of blocks.
+ */
+export type CmdChunk = CmdLoadBlockChunk |
+    CmdTransferAddressChunk |
+    CmdLoadModuleHeaderChunk |
+    CmdUnknownChunk;
 
 /**
  * A friendly (not so technical) name for the block type.
@@ -114,7 +137,8 @@ export const CMD_CHUNK_TYPE_NAME = new Map<number, string>([
  * Class representing a CMD (machine language) program. If the "error" field is set, then something
  * went wrong with the program and the data may be partially loaded.
  */
-export class CmdProgram extends Trs80File {
+export class CmdProgram extends AbstractTrs80File {
+    public readonly className = "CmdProgram";
     public chunks: CmdChunk[];
     public filename: string | undefined;
     public entryPointAddress: number | undefined;
@@ -141,7 +165,7 @@ export class CmdProgram extends Trs80File {
         let offset = 0;
 
         for (const chunk of this.chunks) {
-            if (chunk instanceof CmdLoadBlockChunk) {
+            if (chunk.className === "CmdLoadBlockChunk") {
                 if (address >= chunk.address && address < chunk.address + chunk.loadData.length) {
                     // Skip type, length, and address.
                     return offset + 4 + (address - chunk.address);
@@ -181,7 +205,7 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
             // Error earlier?
             error !== undefined ||
             // Just saw jump? There's typically junk after this and it can make it seem like there's an error.
-            (chunks.length > 0 && chunks[chunks.length - 1] instanceof CmdTransferAddressChunk)) {
+            (chunks.length > 0 && chunks[chunks.length - 1].className === "CmdTransferAddressChunk")) {
 
             if (chunks.length === 0) {
                 return undefined;
@@ -244,7 +268,7 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
             }
 
             default:
-                chunk = new CmdChunk(type, data);
+                chunk = new CmdUnknownChunk(type, data);
                 break;
         }
 

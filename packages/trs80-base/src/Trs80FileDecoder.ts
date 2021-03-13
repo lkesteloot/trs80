@@ -1,12 +1,23 @@
-import {decodeBasicProgram} from "./Basic";
-import {decodeCassette} from "./Cassette";
-import {decodeCmdProgram} from "./CmdProgram";
+import {BasicProgram, decodeBasicProgram} from "./Basic";
+import {Cassette, decodeCassette} from "./Cassette";
+import {CmdProgram, decodeCmdProgram} from "./CmdProgram";
 import {RawBinaryFile} from "./RawBinaryFile";
-import {Trs80File} from "./Trs80File";
-import {decodeJv1FloppyDisk} from "./Jv1FloppyDisk";
-import {decodeJv3FloppyDisk} from "./Jv3FloppyDisk";
-import {decodeDmkFloppyDisk} from "./DmkFloppyDisk";
-import {decodeSystemProgram} from "./SystemProgram";
+import {decodeJv1FloppyDisk, Jv1FloppyDisk} from "./Jv1FloppyDisk";
+import {decodeJv3FloppyDisk, Jv3FloppyDisk} from "./Jv3FloppyDisk";
+import {decodeDmkFloppyDisk, DmkFloppyDisk} from "./DmkFloppyDisk";
+import {decodeSystemProgram, SystemProgram} from "./SystemProgram";
+
+/**
+ * All the possible programs we can decode.
+ */
+export type Trs80File = BasicProgram |
+    Jv1FloppyDisk |
+    Jv3FloppyDisk |
+    DmkFloppyDisk |
+    Cassette |
+    SystemProgram |
+    CmdProgram |
+    RawBinaryFile;
 
 /**
  * Get the extension of the filename, including the dot, in upper case, or

@@ -136,6 +136,7 @@ class SectorInfo {
  * Floppy disk in the JV3 format.
  */
 export class Jv3FloppyDisk extends FloppyDisk {
+    public readonly className = "Jv3FloppyDisk";
     public readonly writeProtected: boolean;
     private readonly sectorInfos: SectorInfo[];
 
