@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2018",
-    "module": "commonjs",
+    "module": "es6",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -10,6 +10,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
+    "incremental": true,
     "moduleResolution": "Node"
   },
   "include": [

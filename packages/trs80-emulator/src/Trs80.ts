@@ -1008,24 +1008,32 @@ export class Trs80 implements Hal, Machine {
     public runTrs80File(trs80File: Trs80File): void {
         this.ejectAllFloppyDisks();
 
-        if (trs80File instanceof CmdProgram) {
-            this.runCmdProgram(trs80File);
-        } else if (trs80File instanceof Cassette) {
-            if (trs80File.files.length === 1) {
-                this.runTrs80File(trs80File.files[0].file);
-            } else {
-                // TODO.
-                console.error("Can't currently run multiple cassette files");
-            }
-        } else if (trs80File instanceof SystemProgram) {
-            this.runSystemProgram(trs80File);
-        } else if (trs80File instanceof BasicProgram) {
-            this.runBasicProgram(trs80File);
-        } else if (trs80File instanceof FloppyDisk) {
-            this.runFloppyDisk(trs80File);
-        } else {
-            // TODO.
-            console.error("Don't know how to run", trs80File);
+        switch (trs80File.className) {
+            case "CmdProgram":
+                this.runCmdProgram(trs80File);
+                break;
+            case "Cassette":
+                if (trs80File.files.length === 1) {
+                    this.runTrs80File(trs80File.files[0].file);
+                } else {
+                    // TODO.
+                    console.error("Can't currently run multiple cassette files");
+                }
+                break;
+            case "SystemProgram":
+                this.runSystemProgram(trs80File);
+                break;
+            case "BasicProgram":
+                this.runBasicProgram(trs80File);
+                break;
+            case "Jv1FloppyDisk":
+            case "Jv3FloppyDisk":
+            case "DmkFloppyDisk":
+                this.runFloppyDisk(trs80File);
+                break;
+            default:
+                console.error("Don't know how to run", trs80File);
+                break;
         }
     }
 
@@ -1038,9 +1046,9 @@ export class Trs80 implements Hal, Machine {
             this.cls();
 
             for (const chunk of cmdProgram.chunks) {
-                if (chunk instanceof CmdLoadBlockChunk) {
+                if (chunk.className === "CmdLoadBlockChunk") {
                     this.writeMemoryBlock(chunk.address, chunk.loadData);
-                } else if (chunk instanceof CmdTransferAddressChunk) {
+                } else if (chunk.className === "CmdTransferAddressChunk") {
                     this.startExecutable(chunk.address);
 
                     // Don't load any more after this. I assume on a real machine the jump
