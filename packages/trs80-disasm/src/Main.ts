@@ -35,7 +35,7 @@ export function disasmForTrs80Program(program: SystemProgram | CmdProgram): Disa
     if (program.entryPointAddress !== undefined) {
         disasm.addLabels([[program.entryPointAddress, "main"]]);
     }
-    if (program instanceof CmdProgram) {
+    if (program.className === "CmdProgram") {
         for (const chunk of program.chunks) {
             if (chunk instanceof CmdLoadBlockChunk) {
                 disasm.addChunk(chunk.loadData, chunk.address);
@@ -48,7 +48,7 @@ export function disasmForTrs80Program(program: SystemProgram | CmdProgram): Disa
                 break;
             }
         }
-    } else if (program instanceof SystemProgram) {
+    } else if (program.className === "SystemProgram") {
         for (const chunk of program.chunks) {
             if (shouldDisassembleSystemProgramChunk(chunk)) {
                 disasm.addChunk(chunk.data, chunk.loadAddress);
