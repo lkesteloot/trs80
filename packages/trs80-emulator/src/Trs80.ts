@@ -10,10 +10,7 @@ import {BasicLevel, CGChip, Config, ModelType} from "./Config";
 import {
     BASIC_HEADER_BYTE,
     BasicProgram,
-    Cassette,
-    CmdLoadBlockChunk,
     CmdProgram,
-    CmdTransferAddressChunk,
     decodeBasicProgram,
     ElementType,
     SystemProgram,
@@ -26,7 +23,7 @@ import {FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController";
 import {Machine} from "./Machine";
 import {EventScheduler} from "./EventScheduler";
 import {SoundPlayer} from "./SoundPlayer";
-import {SimpleEventDispatcher} from "strongly-typed-events";
+import {SignalDispatcher,SimpleEventDispatcher} from "strongly-typed-events";
 
 // IRQs
 const M1_TIMER_IRQ_MASK = 0x80;
@@ -120,7 +117,7 @@ export class Trs80 implements Hal, Machine {
     private readonly fdc = new FloppyDiskController(this);
     private cassette: CassettePlayer;
     private memory = new Uint8Array(0);
-    private keyboard = new Keyboard();
+    private readonly keyboard = new Keyboard();
     private modeImage = 0x80;
     // Which IRQs should be handled.
     private irqMask = 0;
@@ -133,7 +130,7 @@ export class Trs80 implements Hal, Machine {
     // Whether we've seen this NMI and handled it.
     private nmiSeen = false;
     private previousTimerClock = 0;
-    private z80 = new Z80(this);
+    public readonly z80 = new Z80(this);
     private clocksPerTick = INITIAL_CLICKS_PER_TICK;
     private startTime = Date.now();
     private tickHandle: number | undefined;
@@ -155,6 +152,7 @@ export class Trs80 implements Hal, Machine {
     private cassetteFallInterruptCount = 0;
     public readonly soundPlayer = new SoundPlayer();
     public readonly eventScheduler = new EventScheduler();
+    public readonly onStep = new SignalDispatcher();
 
     constructor(screen: Trs80Screen, cassette: CassettePlayer) {
         this.screen = screen;
@@ -348,6 +346,7 @@ export class Trs80 implements Hal, Machine {
      * Take one Z80 step and update the state of the hardware.
      */
     public step(): void {
+        this.onStep.dispatch();
         this.z80.step();
 
         // Handle non-maskable interrupts.
@@ -1101,7 +1100,7 @@ export class Trs80 implements Hal, Machine {
     private getBasicAddress(): number | string {
         const addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
         if (addr < 0x4200) {
-            return `Basic load address (0x${toHexWord(addr)}) is uninitialized (0x${toHexWord(addr)})`;
+            return `Basic load address is uninitialized (0x${toHexWord(addr)})`;
         }
 
         return addr;
