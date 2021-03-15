@@ -131,6 +131,13 @@ export class RegisterSet {
     get rCombined(): number {
         return (this.r7 & 0x80) | (this.r & 0xF7);
     }
+
+    /**
+     * Get a register by name.
+     */
+    public getValue(registerName: Register): number {
+        return this[registerName];
+    }
 }
 
 /**
