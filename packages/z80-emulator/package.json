@@ -13,7 +13,7 @@
     "lint:fix": "npm run lint -- --fix",
     "test": "npm run build:test && node dist-tests/tests/Test.js",
     "clean": "rm -rf dist dist-tests",
-    "prepare": "npm run build"
+    "prepublishOnly": "npm run build"
   },
   "directories": {
     "test": "tests"
@@ -27,10 +27,10 @@
   "repository": "https://github.com/lkesteloot/z80-emulator",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^12.12.22",
+    "@types/node": "^12.20.5",
     "tslint": "^5.20.1",
-    "typedoc": "^0.15.6",
-    "typescript": "^3.7.4",
+    "typedoc": "^0.15.8",
+    "typescript": "^3.9.9",
     "z80-test": "^1.0.5"
   },
   "dependencies": {
