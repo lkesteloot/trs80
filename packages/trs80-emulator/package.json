@@ -26,7 +26,7 @@
     "teamten-ts-utils": "^1.0.1",
     "trs80-base": "^1.0.5",
     "z80-base": "^1.0.6",
-    "z80-emulator": "^1.0.5"
+    "z80-emulator": "^1.0.6"
   },
   "devDependencies": {
     "source-map-loader": "^0.2.4",
