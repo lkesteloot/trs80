@@ -24,6 +24,7 @@ function isText(b: number){
  */
 export class Disasm {
     private readonly memory = new Uint8Array(MEM_SIZE);
+    private readonly readMemory = (address: number) => this.memory[address];
     private readonly hasContent = new Uint8Array(MEM_SIZE);
     private readonly isDecoded = new Uint8Array(MEM_SIZE);
     private readonly instructions: (Instruction | undefined)[] = new Array(MEM_SIZE);
@@ -58,14 +59,15 @@ export class Disasm {
      * Disassemble one instruction.
      *
      * @param address the address to disassemble.
+     * @param readMemory function for reading a byte of memory at the specified address.
      */
-    private disassembleOne(address: number): Instruction {
+    private disassembleOne(address: number, readMemory: (address: number) => number): Instruction {
         // Bytes decoded so far in the instruction being disassembled.
         let bytes: number[] = [];
 
         // Get the next byte.
         const next = (): number => {
-            const byte = this.memory[address];
+            const byte = readMemory(address);
             bytes.push(byte);
             address = inc16(address);
             return byte;
@@ -268,6 +270,17 @@ export class Disasm {
     }
 
     /**
+     * Disassemble a single instruction for tracing. This is intended when tracing a live CPU and
+     * we want to print the currently-executing instructions.
+     */
+    public disassembleTrace(address: number, readMemory: (address: number) => number): Instruction {
+        const instruction = this.disassembleOne(address, readMemory);
+        this.replaceTargetAddress(instruction);
+
+        return instruction;
+    }
+
+    /**
      * Disassemble all instructions and assign labels.
      */
     public disassemble(): Instruction[] {
@@ -323,7 +336,7 @@ export class Disasm {
             // Pick any to do next.
             const address = addressesToDecode.values().next().value;
             addressesToDecode.delete(address);
-            const instruction = this.disassembleOne(address);
+            const instruction = this.disassembleOne(address, this.readMemory);
             this.instructions[address] = instruction;
             this.isDecoded.fill(1, address, address + instruction.bin.length);
             addAddressToDecode(instruction.jumpTarget);
@@ -384,16 +397,20 @@ export class Disasm {
         // Replace the target variable with the actual address for those
         // jumps that go outside our disassembled code.
         for (const instruction of instructions) {
-            if (instruction.jumpTarget !== undefined) {
-                let label = this.knownLabels.get(instruction.jumpTarget);
-                if (label === undefined) {
-                    label = "0x" + toHexWord(instruction.jumpTarget);
-                }
-
-                instruction.replaceArgVariable(TARGET, label);
-            }
+            this.replaceTargetAddress(instruction);
         }
 
         return instructions;
+    }
+
+    private replaceTargetAddress(instruction: Instruction): void {
+        if (instruction.jumpTarget !== undefined) {
+            let label = this.knownLabels.get(instruction.jumpTarget);
+            if (label === undefined) {
+                label = "0x" + toHexWord(instruction.jumpTarget);
+            }
+
+            instruction.replaceArgVariable(TARGET, label);
+        }
     }
 }
