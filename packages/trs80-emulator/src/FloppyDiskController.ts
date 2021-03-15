@@ -12,6 +12,9 @@ import {Machine} from "./Machine";
 import {toHexByte} from "z80-base";
 import {EventType} from "./EventScheduler";
 
+// Enable debug logging.
+const DEBUG_LOG = false;
+
 // Whether this controller supports writing.
 const SUPPORT_WRITING = false;
 
@@ -218,6 +221,11 @@ export class FloppyDiskController {
     // Event when a drive moves the head this many tracks.
     public readonly onTrackMove = new SimpleEventDispatcher<number>();
 
+    // The number of debug readStatus() calls we've had to print. We use this to collapse
+    // consecutive calls, otherwise Chrome's devtools melt down.
+    private readStatusCounter = 1;
+    private readStatusLast = 0;
+
     constructor(foo: Machine) {
         this.machine = foo;
 
@@ -238,26 +246,52 @@ export class FloppyDiskController {
     }
 
     public readStatus(): number {
+        let status;
+
         // If no disk was loaded into drive 0, just pretend that we don't
         // have a disk system. Otherwise we have to hold down Break while
         // booting (to get to cassette BASIC) and that's annoying.
         if (this.drives[0].floppyDisk === undefined) {
-            return 0xFF;
+            status = 0xFF;
+        } else {
+            this.updateStatus();
+
+            // Clear interrupt.
+            this.machine.diskIntrqInterrupt(false);
+
+            status = this.status;
         }
 
-        this.updateStatus();
+        if (DEBUG_LOG) {
+            if (status !== this.readStatusLast) {
+                this.readStatusLast = status;
+                this.readStatusCounter = 1;
+            }
+            // See if it's a power of 2.
+            if ((this.readStatusCounter & (this.readStatusCounter - 1)) === 0) {
+                console.log("readStatus() = " + toHexByte(status) + " (x" + this.readStatusCounter + ")");
+            }
+            this.readStatusCounter += 1;
+        }
 
-        // Clear interrupt.
-        this.machine.diskIntrqInterrupt(false);
-
-        return this.status;
+        return status;
     }
 
     public readTrack(): number {
+        if (DEBUG_LOG) {
+            console.log("readTrack() = " + toHexByte(this.track));
+            this.readStatusCounter = 1;
+        }
+
         return this.track;
     }
 
     public readSector(): number {
+        if (DEBUG_LOG) {
+            console.log("readSector() = " + toHexByte(this.sector));
+            this.readStatusCounter = 1;
+        }
+
         return this.sector;
     }
 
@@ -291,6 +325,11 @@ export class FloppyDiskController {
                 throw new Error("Unhandled case in readData()");
         }
 
+        if (DEBUG_LOG) {
+            // console.log("readData() = " + toHexByte(this.data));
+            this.readStatusCounter = 1;
+        }
+
         return this.data;
     }
 
@@ -298,6 +337,10 @@ export class FloppyDiskController {
      * Set current command.
      */
     public writeCommand(cmd: number): void {
+        if (DEBUG_LOG) {
+            console.log("writeCommand(" + toHexByte(cmd) + ")");
+        }
+
         const drive = this.drives[this.currentDrive];
 
         // Cancel "lost data" event.
@@ -401,14 +444,26 @@ export class FloppyDiskController {
     }
 
     public writeTrack(track: number): void {
+        if (DEBUG_LOG) {
+            console.log("writeTrack(" + toHexByte(track) + ")");
+        }
+
         this.track = track;
     }
 
     public writeSector(sector: number): void {
+        if (DEBUG_LOG) {
+            console.log("writeSector(" + toHexByte(sector) + ")");
+        }
+
         this.sector = sector;
     }
 
     public writeData(data: number): void {
+        if (DEBUG_LOG) {
+            // console.log("writeData(" + toHexByte(data) + ")");
+        }
+
         const command = this.currentCommand & COMMAND_MASK;
         if (command === COMMAND_WRITE || command === COMMAND_WRITE_TRACK) {
             throw new Error("Can't yet write data");
@@ -421,6 +476,10 @@ export class FloppyDiskController {
      * Select a drive.
      */
     public writeSelect(value: number): void {
+        if (DEBUG_LOG) {
+            console.log("writeSelect(" + toHexByte(value) + ")");
+        }
+
         this.status &= ~STATUS_NOT_READY;
         this.side = booleanToSide((value & SELECT_SIDE) !== 0);
         this.doubleDensity = (value & SELECT_MFM) != 0;
