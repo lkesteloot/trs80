@@ -1,6 +1,6 @@
 {
   "name": "trs80-disasm",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Configures z80-disasm for TRS-80 programs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
