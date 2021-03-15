@@ -5,7 +5,7 @@ import {
     CmdTransferAddressChunk, SystemChunk,
     SystemProgram,
     TRS80_SCREEN_BEGIN,
-    TRS80_SCREEN_END
+    TRS80_SCREEN_END,
 } from "trs80-base";
 import {Disasm, Z80_KNOWN_LABELS} from "z80-disasm";
 import {TRS80_MODEL_III_KNOWN_LABELS} from "./KnownLabels";
@@ -25,13 +25,23 @@ function shouldDisassembleSystemProgramChunk(chunk: SystemChunk): boolean {
 }
 
 /**
- * Create and configure a disassembler for the specified program.
+ * Create and configure a disassembler for the TRS-80.
  */
-export function disasmForTrs80Program(program: SystemProgram | CmdProgram): Disasm {
+export function disasmForTrs80(): Disasm {
     const disasm = new Disasm();
 
     disasm.addLabels(Z80_KNOWN_LABELS);
     disasm.addLabels(TRS80_MODEL_III_KNOWN_LABELS);
+
+    return disasm;
+}
+
+/**
+ * Create and configure a disassembler for the specified program.
+ */
+export function disasmForTrs80Program(program: SystemProgram | CmdProgram): Disasm {
+    const disasm = disasmForTrs80();
+
     if (program.entryPointAddress !== undefined) {
         disasm.addLabels([[program.entryPointAddress, "main"]]);
     }
