@@ -152,7 +152,8 @@ export class Trs80 implements Hal, Machine {
     private cassetteFallInterruptCount = 0;
     public readonly soundPlayer = new SoundPlayer();
     public readonly eventScheduler = new EventScheduler();
-    public readonly onStep = new SignalDispatcher();
+    public readonly onPreStep = new SignalDispatcher();
+    public readonly onPostStep = new SignalDispatcher();
 
     constructor(screen: Trs80Screen, cassette: CassettePlayer) {
         this.screen = screen;
@@ -346,7 +347,8 @@ export class Trs80 implements Hal, Machine {
      * Take one Z80 step and update the state of the hardware.
      */
     public step(): void {
-        this.onStep.dispatch();
+        this.onPreStep.dispatch();
+
         this.z80.step();
 
         // Handle non-maskable interrupts.
@@ -374,6 +376,8 @@ export class Trs80 implements Hal, Machine {
 
         // Dispatch scheduled events.
         this.eventScheduler.dispatch(this.tStateCount);
+
+        this.onPostStep.dispatch();
     }
 
     public contendMemory(address: number): void {
