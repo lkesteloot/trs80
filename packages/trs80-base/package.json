@@ -4,6 +4,7 @@
   "description": "Utility functions and classes for TRS-80 software and emulation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "module",
   "repository": "https://github.com/lkesteloot/trs80-base",
   "scripts": {
     "build": "tsc -p tsconfig.json",
