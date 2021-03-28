@@ -4,7 +4,8 @@
   "description": "Processes TRS-80 cassettes and cleans them up.",
   "main": "index.js",
   "scripts": {
-    "build": "webpack",
+    "build": "echo skipped",
+    "build:real": "webpack",
     "build-node": "mkdir -p build && cp package.json build && tsc --build tsconfig.node.json",
     "lint": "tslint --project . --format codeFrame",
     "lint:fix": "npm run lint -- --fix",
