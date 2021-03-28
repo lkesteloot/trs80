@@ -1,10 +1,10 @@
 import firebase from "firebase/app";
 import DocumentData = firebase.firestore.DocumentData;
-import UpdateData = firebase.firestore.UpdateData;
 import {isSameStringArray} from "./Utils";
 import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 import * as base64js from "base64-js";
 import {sha1} from "./sha1";
+type UpdateData = firebase.firestore.UpdateData;
 
 /**
  * Represents a file that the user owns.

@@ -8,8 +8,8 @@ import {CanvasScreen} from "trs80-emulator";
 import isEmpty from "lodash/isEmpty";
 import {File} from "./File";
 import {IFilePanel} from "./IFilePanel";
-import firebase from "firebase";
-import UpdateData = firebase.firestore.UpdateData;
+import type firebase from "firebase";
+type UpdateData = firebase.firestore.UpdateData;
 
 const SCREENSHOT_ATTR = "data-screenshot";
 

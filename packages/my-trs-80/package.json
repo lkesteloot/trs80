@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "TRS-80 emulator website",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "build": "webpack",
-    "watch": "webpack --watch",
-    "start": "npm run build && http-server docs"
+    "start": "npx snowpack dev",
+    "build": "npx snowpack build",
+    "publish": "npm run build && rsync -a build/ lk@hitch.headcode.com:my-trs-80-website/"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": "https://github.com/lkesteloot/my-trs-80",
@@ -16,13 +17,11 @@
     "@types/navigo": "^7.0.1",
     "@types/node": "^13.5.2",
     "http-server": "^0.12.0",
+    "snowpack": "^3.1.2",
     "source-map-loader": "^0.2.4",
     "ts-loader": "^6.2.1",
     "tslint": "^5.20.1",
-    "typescript": "^3.7.4",
-    "webpack": "^4.41.5",
-    "webpack-build-notifier": "^2.0.0",
-    "webpack-cli": "^3.3.10"
+    "typescript": "^3.7.4"
   },
   "dependencies": {
     "base64-js": "^1.5.1",
@@ -34,8 +33,8 @@
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.7.3",
     "teamten-ts-utils": "^1.0.0",
-    "trs80-base": "../trs80-base",
-    "trs80-emulator": "../trs80-emulator",
+    "trs80-base": "^1.0.6",
+    "trs80-emulator": "^1.1.17",
     "z80-base": "^1.0.6",
     "z80-disasm": "^1.1.1"
   }

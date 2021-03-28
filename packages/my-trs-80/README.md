@@ -1,7 +1,7 @@
 # My TRS-80
 
 Your virtual TRS-80 Model I and III, along with your library of
-files and apps.
+files and apps. [Try it in your browser](https://www.my-trs-80.com/).
 
 # Credits
 

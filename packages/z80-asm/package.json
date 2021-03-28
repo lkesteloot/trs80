@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Z80 assembler and IDE",
   "scripts": {
-    "build": "webpack",
+    "build": "echo skipped",
+    "build:real": "webpack",
     "build:test": "tsc -p tsconfig.test.json",
     "start": "electron dist/electron-main.js",
     "generate": "tsc --project src/opcodes && node src/opcodes/dist/opcodes/GenerateJson.js",
