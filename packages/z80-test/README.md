@@ -8,7 +8,7 @@ file for an example.
     % npm install
     % npm run test
 
-See the [z80-emulator](https://github.com/lkesteloot/z80-emulator)
+See the [z80-emulator](../z80-emulator)
 project for a CPU that passes all the tests.
 
 # License

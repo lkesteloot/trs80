@@ -4,13 +4,6 @@ Web app and command-line tool to read programs off of TRS-80 Model I and Model
 III cassettes.
 
 [Try it now in your browser](https://lkesteloot.github.io/trs80-cassette-reader-js/)
-or run it locally:
-
-    (clone repo)
-    % npm install
-    % npm start
-
-Open http://127.0.0.1:8080 in your browser.
 
 # Command-line usage
 

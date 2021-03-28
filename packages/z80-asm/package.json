@@ -2,6 +2,7 @@
   "name": "z80-asm",
   "version": "1.0.0",
   "description": "Z80 assembler and IDE",
+  "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
     "build": "echo skipped",
     "build:real": "webpack",

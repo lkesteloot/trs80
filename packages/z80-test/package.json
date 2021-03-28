@@ -5,7 +5,7 @@
   "main": "dist/main/index.js",
   "typing": "dist/main/index.d.ts",
   "module": "dist/module/index.js",
-  "repository": "https://github.com/lkesteloot/z80-test",
+  "repository": "https://github.com/lkesteloot/trs80.git",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
   "directories": {

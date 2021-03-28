@@ -1,15 +1,7 @@
 # TRS-80 Model I and Model III emulator
 
 This is a TypeScript-based TRS-80 Model I and Model III emulator.
-[Try it in your browser](https://lkesteloot.github.io/trs80-emulator/).
-
-To run a local build:
-
-    % npm install
-    % npm run build
-    % npm start
-
-Then visit http://127.0.0.1:8080/
+[Try it in your browser](https://www.my-trs-80.com/).
 
 # Credits
 
@@ -26,5 +18,5 @@ Icons from the Noun Project:
 
 # License
 
-Copyright (c) Lawrence Kesteloot, [MIT license](LICENSE).
+Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).
 

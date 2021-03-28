@@ -19,7 +19,7 @@
     "emulator"
   ],
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
-  "repository": "https://github.com/lkesteloot/trs80-emulator",
+  "repository": "https://github.com/lkesteloot/trs80.git",
   "license": "MIT",
   "dependencies": {
     "strongly-typed-events": "^1.7.3",

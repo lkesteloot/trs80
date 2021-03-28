@@ -4,7 +4,7 @@
   "description": "Configures z80-disasm for TRS-80 programs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "repository": "https://github.com/lkesteloot/trs80-disasm",
+  "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",

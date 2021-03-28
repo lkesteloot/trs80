@@ -10,7 +10,7 @@
     "publish": "npm run build && rsync -a build/ lk@hitch.headcode.com:my-trs-80-website/"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
-  "repository": "https://github.com/lkesteloot/my-trs-80",
+  "repository": "https://github.com/lkesteloot/trs80.git",
   "license": "MIT",
   "devDependencies": {
     "@types/lodash": "^4.14.165",

@@ -15,10 +15,7 @@
     "test": "npm run build-node && node build/RegressionTest.js run tests.json",
     "prepublishOnly": "npm run build-node"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/lkesteloot/trs80-cassette-reader-js.git"
-  },
+  "repository": "https://github.com/lkesteloot/trs80.git",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
   "bugs": {

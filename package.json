@@ -1,6 +1,7 @@
 {
   "name": "root",
   "private": true,
+  "repository": "https://github.com/lkesteloot/trs80.git",
   "devDependencies": {
     "lerna": "^4.0.0"
   }

@@ -24,7 +24,7 @@
     "emulator"
   ],
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
-  "repository": "https://github.com/lkesteloot/z80-emulator",
+  "repository": "https://github.com/lkesteloot/trs80.git",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^12.20.5",
