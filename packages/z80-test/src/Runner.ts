@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
 import {registerSetFields, toHex} from "z80-base";
-import {CpuEvent} from "./CpuEvent";
-import {CpuEventType, parseCpuEventType} from "./CpuEventType";
-import {Delegate} from "./Delegate";
-import {Test} from "./Test";
+import {CpuEvent} from "./CpuEvent.js";
+import {CpuEventType, parseCpuEventType} from "./CpuEventType.js";
+import {Delegate} from "./Delegate.js";
+import {Test} from "./Test.js";
 
 const IN_FILENAME = "tests.in";
 const EXPECTED_FILENAME = "tests.expected";
@@ -61,7 +61,8 @@ export class Runner {
      * Load tests from the text files.
      */
     public loadTests() {
-        const moduleDir = path.join(__dirname, "../..");
+        const dirname = path.dirname(new URL(import.meta.url).pathname);
+        const moduleDir = path.join(dirname, "..");
         const testDir = path.join(moduleDir, "z80-tests");
         const inPathname = path.join(testDir, IN_FILENAME);
         const expectedPathname = path.join(testDir, EXPECTED_FILENAME);

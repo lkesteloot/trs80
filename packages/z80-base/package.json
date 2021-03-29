@@ -4,6 +4,7 @@
   "description": "Base classes and utilities for Z80 emulation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "module",
   "repository": "https://github.com/lkesteloot/trs80.git",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",

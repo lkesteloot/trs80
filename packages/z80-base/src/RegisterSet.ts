@@ -1,5 +1,5 @@
-import {Register} from "./Register";
-import {hi, lo, word} from "./Utils";
+import {Register} from "./Register.js";
+import {hi, lo, word} from "./Utils.js";
 
 /**
  * All registers in a Z80.

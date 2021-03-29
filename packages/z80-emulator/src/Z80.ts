@@ -1,6 +1,6 @@
 import {Flag, hi, inc16, lo, RegisterSet, word} from "z80-base";
-import {decode} from "./Decode";
-import {Hal} from "./Hal";
+import {decode} from "./Decode.js";
+import {Hal} from "./Hal.js";
 
 /**
  * Emulated Z80 processor.

@@ -1,6 +1,6 @@
 import {RegisterSet} from "z80-base";
-import {CpuEvent} from "./CpuEvent";
-import {MemoryContent} from "./MemoryContent";
+import {CpuEvent} from "./CpuEvent.js";
+import {MemoryContent} from "./MemoryContent.js";
 
 /**
  * All the information (in and expected) about one test.

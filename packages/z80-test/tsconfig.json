@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2018",
-    "module": "commonjs",
+    "module": "esnext",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "dist/main",
+    "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

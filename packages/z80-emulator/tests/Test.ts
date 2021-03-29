@@ -2,7 +2,8 @@
 
 import {hi, Register, toHex} from "z80-base";
 import {CpuEvent, CpuEventType, Delegate, Runner} from "z80-test";
-import {Hal, Z80} from "../src";
+import {Hal} from "../src/Hal.js";
+import {Z80} from "../src/Z80.js";
 
 /**
  * HAL for the test suite.

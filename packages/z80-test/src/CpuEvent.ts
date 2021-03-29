@@ -1,5 +1,5 @@
 import {toHex} from "z80-base";
-import {CpuEventType, cpuEventTypeToString} from "./CpuEventType";
+import {CpuEventType, cpuEventTypeToString} from "./CpuEventType.js";
 
 /**
  * Records a CPU event, such as reading from memory at a particular time. These

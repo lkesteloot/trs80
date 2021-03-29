@@ -1,5 +1,5 @@
 
-export * from "./Register";
-export * from "./RegisterSet";
-export * from "./Utils";
-export * from "./Flag";
+export * from "./Register.js";
+export * from "./RegisterSet.js";
+export * from "./Utils.js";
+export * from "./Flag.js";
