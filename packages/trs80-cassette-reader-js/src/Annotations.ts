@@ -1,37 +1,5 @@
 
 /**
- * Information about one particular section of a program. Because this is program-based, the indices
- * are byte-oriented.
- */
-export class ProgramAnnotation {
-    /**
-     * Text to display.
-     */
-    public readonly text: string;
-    /**
-     * First byte index into the binary array of the highlight, inclusive.
-     */
-    public readonly firstIndex: number;
-    /**
-     * Last byte index into the binary array of the highlight, inclusive.
-     */
-    public readonly lastIndex: number;
-
-    /**
-     * Create an object representing a section to annotate.
-     *
-     * @param text any text to display for that section.
-     * @param firstIndex the first index into the binary, inclusive.
-     * @param lastIndex the last index into the binary, inclusive.
-     */
-    constructor(text: string, firstIndex: number, lastIndex: number) {
-        this.text = text;
-        this.firstIndex = firstIndex;
-        this.lastIndex = lastIndex;
-    }
-}
-
-/**
  * Context that a WaveformAnnotation can use to draw into the waveform display.
  */
 export interface AnnotationContext {
@@ -92,20 +60,31 @@ export interface WaveformAnnotation {
 export class PointAnnotation implements WaveformAnnotation {
     public readonly frame: number;
     public readonly value: number;
+    public readonly solid: boolean;
 
-    constructor(frame: number, value: number) {
+    constructor(frame: number, value: number, solid: boolean) {
         this.frame = frame;
         this.value = value;
+        this.solid = solid;
     }
 
     draw(ctx: AnnotationContext): void {
         const x = ctx.frameToX(this.frame);
         const y = ctx.valueToY(this.value);
 
-        ctx.context.fillStyle = ctx.highlightColor;
+        if (this.solid) {
+            ctx.context.fillStyle = ctx.highlightColor;
+        } else {
+            ctx.context.strokeStyle = ctx.highlightColor;
+            ctx.context.lineWidth = 1;
+        }
         ctx.context.beginPath();
         ctx.context.arc(x, y, 3, 0, 2 * Math.PI);
-        ctx.context.fill();
+        if (this.solid) {
+            ctx.context.fill();
+        } else {
+            ctx.context.stroke();
+        }
 
     }
 }

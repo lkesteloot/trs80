@@ -1,14 +1,10 @@
 import jss from './Jss'
-import {Disasm, TRS80_MODEL_III_KNOWN_LABELS, Z80_KNOWN_LABELS} from "z80-disasm";
 import {toHexByte, toHexWord} from "z80-base";
-import {SystemChunk, SystemProgram} from "./SystemProgram";
 import {Highlightable} from "./Highlighter";
-import {ProgramAnnotation} from "./Annotations";
 import {CanvasScreen} from "trs80-emulator";
-
-// RAM address range of screen.
-const SCREEN_BEGIN = 15 * 1024;
-const SCREEN_END = 16 * 1024;
+import {disasmForTrs80Program} from "trs80-disasm";
+import {SystemProgram, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
+import {ProgramAnnotation} from "trs80-base/dist/ProgramAnnotation";
 
 /**
  * Add text to the line with the specified class.
@@ -108,18 +104,6 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         add(line, systemProgram.error, classes.error);
     }
 
-    function okChunk(chunk: SystemChunk): boolean {
-        if (chunk.loadAddress >= SCREEN_BEGIN && chunk.loadAddress + chunk.data.length <= SCREEN_END) {
-            return false;
-        }
-
-        if (chunk.loadAddress === 0x4210 || chunk.loadAddress === 0x401E) {
-            return false;
-        }
-
-        return true;
-    }
-
     // Prepare screenshot, in case loading process writes to screen.
     const screen = new CanvasScreen();
 
@@ -150,7 +134,7 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         add(line, text, classes.hex);
 
         // Write explanation.
-        if (chunk.loadAddress >= SCREEN_BEGIN && chunk.loadAddress + chunk.data.length <= SCREEN_END) {
+        if (chunk.loadAddress >= TRS80_SCREEN_BEGIN && chunk.loadAddress + chunk.data.length <= TRS80_SCREEN_END) {
             add(line, "Screen", classes.opcodes);
             if (!wroteToScreen) {
                 add(line, " (see screenshot below)", classes.error);
@@ -196,16 +180,7 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
     h1.innerText = "Disassembly";
     out.appendChild(h1);
 
-    const disasm = new Disasm();
-    disasm.addLabels(Z80_KNOWN_LABELS);
-    disasm.addLabels(TRS80_MODEL_III_KNOWN_LABELS);
-    disasm.addLabels([[systemProgram.entryPointAddress, "MAIN"]]);
-    for (const chunk of systemProgram.chunks) {
-        if (okChunk(chunk)) {
-            disasm.addChunk(chunk.data, chunk.loadAddress);
-        }
-    }
-    disasm.addEntryPoint(systemProgram.entryPointAddress);
+    const disasm = disasmForTrs80Program(systemProgram);
     const instructions = disasm.disassemble();
 
     for (const instruction of instructions) {
@@ -236,9 +211,9 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
 
             const byteOffset = systemProgram.addressToByteOffset(address);
             if (byteOffset !== undefined) {
-                const lastIndex = byteOffset + subbytes.length - 1;
-                elements.push(new Highlightable(byteOffset, lastIndex, line));
-                annotations.push(new ProgramAnnotation(instruction.toText() + "\n" + instruction.binText(), byteOffset, lastIndex));
+                const endIndex = byteOffset + subbytes.length;
+                elements.push(new Highlightable(byteOffset, endIndex - 1, line));
+                annotations.push(new ProgramAnnotation(instruction.toText() + "\n" + instruction.binText(), byteOffset, endIndex));
             }
 
             address += subbytes.length;

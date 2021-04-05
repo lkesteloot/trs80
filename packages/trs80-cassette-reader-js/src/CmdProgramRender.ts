@@ -1,13 +1,9 @@
 import jss from './Jss'
-import {Disasm, TRS80_MODEL_III_KNOWN_LABELS, Z80_KNOWN_LABELS} from "z80-disasm";
 import {toHexByte, toHexWord} from "z80-base";
 import {Highlightable} from "./Highlighter";
-import {ProgramAnnotation} from "./Annotations";
-import {
-    CMD_LOAD_BLOCK,
-    CmdLoadBlockChunk, CmdLoadModuleHeaderChunk,
-    CmdProgram, CmdTransferAddressChunk
-} from "./CmdProgram";
+import {disasmForTrs80Program} from "trs80-disasm";
+import {CmdLoadBlockChunk, CmdLoadModuleHeaderChunk, CmdProgram, CmdTransferAddressChunk} from "trs80-base";
+import {ProgramAnnotation} from "trs80-base/dist/ProgramAnnotation";
 
 /**
  * Add text to the line with the specified class.
@@ -121,34 +117,40 @@ export function toDiv(cmdProgram: CmdProgram, out: HTMLElement): [Highlightable[
         // Chunk type.
         add(line, toHexByte(chunk.type) + "  ", classes.address);
 
-        if (chunk instanceof CmdLoadBlockChunk) {
-            add(line, "Load at ", classes.opcodes);
-            add(line, toHexWord(chunk.address), classes.address);
-            add(line, ": ", classes.opcodes);
-            const bytes = chunk.loadData.slice(0, Math.min(3, chunk.loadData.length));
-            const text = Array.from(bytes).map(toHexByte).join(" ") + (bytes.length < chunk.loadData.length ? " ..." : "");
-            add(line, text, classes.hex);
-            add(line, " (" + chunk.loadData.length + " byte" + (chunk.loadData.length == 1 ? "" : "s") + ")", classes.address);
-            if (programAddress !== undefined && chunk.address !== programAddress) {
-                add(line, " (not contiguous, expected " + toHexWord(programAddress) + ")", classes.error);
-            }
-            programAddress = chunk.address + chunk.loadData.length;
-        } else if (chunk instanceof CmdTransferAddressChunk) {
-            if (chunk.rawData.length !== 2) {
-                add(line, "Transfer address chunk has invalid length " + chunk.rawData.length, classes.error);
-            } else {
-                add(line, "Jump to ", classes.opcodes);
+        switch (chunk.className) {
+            case "CmdLoadBlockChunk": {
+                add(line, "Load at ", classes.opcodes);
                 add(line, toHexWord(chunk.address), classes.address);
+                add(line, ": ", classes.opcodes);
+                const bytes = chunk.loadData.slice(0, Math.min(3, chunk.loadData.length));
+                const text = Array.from(bytes).map(toHexByte).join(" ") + (bytes.length < chunk.loadData.length ? " ..." : "");
+                add(line, text, classes.hex);
+                add(line, " (" + chunk.loadData.length + " byte" + (chunk.loadData.length == 1 ? "" : "s") + ")", classes.address);
+                if (programAddress !== undefined && chunk.address !== programAddress) {
+                    add(line, " (not contiguous, expected " + toHexWord(programAddress) + ")", classes.error);
+                }
+                programAddress = chunk.address + chunk.loadData.length;
+                break;
             }
-        } else if (chunk instanceof CmdLoadModuleHeaderChunk) {
-            add(line, "Load module header: ", classes.opcodes);
-            add(line, chunk.filename, classes.hex);
-        } else {
-            add(line, "Unknown type: ", classes.error);
-            const bytes = chunk.rawData.slice(0, Math.min(3, chunk.rawData.length));
-            const text = Array.from(bytes).map(toHexByte).join(" ") + (bytes.length < chunk.rawData.length ? " ..." : "");
-            add(line, text, classes.hex);
-            add(line, " (" + chunk.rawData.length + " byte" + (chunk.rawData.length == 1 ? "" : "s") + ")", classes.address);
+            case "CmdTransferAddressChunk":
+                if (chunk.rawData.length !== 2) {
+                    add(line, "Transfer address chunk has invalid length " + chunk.rawData.length, classes.error);
+                } else {
+                    add(line, "Jump to ", classes.opcodes);
+                    add(line, toHexWord(chunk.address), classes.address);
+                }
+                break;
+            case "CmdLoadModuleHeaderChunk":
+                add(line, "Load module header: ", classes.opcodes);
+                add(line, chunk.filename, classes.hex);
+                break;
+            default:
+                add(line, "Unknown type: ", classes.error);
+                const bytes = chunk.rawData.slice(0, Math.min(3, chunk.rawData.length));
+                const text = Array.from(bytes).map(toHexByte).join(" ") + (bytes.length < chunk.rawData.length ? " ..." : "");
+                add(line, text, classes.hex);
+                add(line, " (" + chunk.rawData.length + " byte" + (chunk.rawData.length == 1 ? "" : "s") + ")", classes.address);
+                break;
         }
     }
 
@@ -156,17 +158,7 @@ export function toDiv(cmdProgram: CmdProgram, out: HTMLElement): [Highlightable[
     h1.innerText = "Disassembly";
     out.appendChild(h1);
 
-    const disasm = new Disasm();
-    disasm.addLabels(Z80_KNOWN_LABELS);
-    disasm.addLabels(TRS80_MODEL_III_KNOWN_LABELS);
-    disasm.addLabels([[cmdProgram.entryPointAddress, "MAIN"]]);
-    for (const chunk of cmdProgram.chunks) {
-        if (chunk.type === CMD_LOAD_BLOCK) {
-            const address = chunk.rawData[0] + chunk.rawData[1] * 256;
-            disasm.addChunk(chunk.rawData.slice(2), address);
-        }
-    }
-    disasm.addEntryPoint(cmdProgram.entryPointAddress);
+    const disasm = disasmForTrs80Program(cmdProgram);
     const instructions = disasm.disassemble();
 
     for (const instruction of instructions) {
@@ -197,9 +189,9 @@ export function toDiv(cmdProgram: CmdProgram, out: HTMLElement): [Highlightable[
 
             const byteOffset = cmdProgram.addressToByteOffset(address);
             if (byteOffset !== undefined) {
-                const lastIndex = byteOffset + subbytes.length - 1;
-                elements.push(new Highlightable(byteOffset, lastIndex, line));
-                annotations.push(new ProgramAnnotation(instruction.toText() + "\n" + instruction.binText(), byteOffset, lastIndex));
+                const endIndex = byteOffset + subbytes.length;
+                elements.push(new Highlightable(byteOffset, endIndex - 1, line));
+                annotations.push(new ProgramAnnotation(instruction.toText() + "\n" + instruction.binText(), byteOffset, endIndex));
             }
 
             address += subbytes.length;

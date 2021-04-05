@@ -78,7 +78,7 @@ export function frameDurationToString(frame: number, hz: number) {
     min -= hour * 60;
 
     return (hour !== 0 ? hour + ":" + pad(min, 10, 2) : min) + ":" + pad(sec, 10, 2) + "." +
-        withCommas(pad(us, 10, 6)) + " (" + withCommas(frame) + " frames)";
+        withCommas(pad(us, 10, 6)) + " (" + withCommas(frame) + " frame" + (frame === 1 ? "" : "s") + ")";
 }
 
 /**

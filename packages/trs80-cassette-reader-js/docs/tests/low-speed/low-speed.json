@@ -88,6 +88,24 @@
             "wavUrl": "bits07.wav",
             "type": "low-speed-bits",
             "bin": "0000010000000101110110"
+        },
+        {
+            "name": "Spread out bits (2.3 ms)",
+            "wavUrl": "bits08.wav",
+            "type": "low-speed-bits",
+            "bin": "100000001000000010000001110110"
+        },
+        {
+            "name": "Spread out bits (2.3 ms)",
+            "wavUrl": "bits09.wav",
+            "type": "low-speed-bits",
+            "bin": "111011001100010"
+        },
+        {
+            "name": "Bits too close",
+            "wavUrl": "bits10.wav",
+            "type": "low-speed-bits",
+            "bin": "011000010"
         }
     ]
 }

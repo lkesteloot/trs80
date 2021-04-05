@@ -47,7 +47,9 @@ function addByte(samplesList: Int16Array[], b: number, cycle: Int16Array, silenc
 export function wrapLowSpeed(bytes: Uint8Array): Uint8Array {
     // Add tape header.
     const buffers = [
-        new Uint8Array(256),
+        // We used to generate 256 zero bytes, but Knut's wav2cas uses 255 bytes,
+        // so use that so we can binary-compare the outputs.
+        new Uint8Array(255),
         new Uint8Array([SYNC_BYTE]),
         bytes,
     ];

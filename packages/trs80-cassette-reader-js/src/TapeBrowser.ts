@@ -1,5 +1,4 @@
 import {frameToTimestamp} from "./AudioUtils";
-import * as Basic from "./Basic";
 import * as BasicRender from "./BasicRender";
 import * as SystemProgramRender from "./SystemProgramRender";
 import * as CmdProgramRender from "./CmdProgramRender";
@@ -14,10 +13,15 @@ import {Highlight} from "./Highlight";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {DisplaySamples} from "./DisplaySamples";
 import {clearElement} from "./Utils";
-import {SystemProgram} from "./SystemProgram";
 import {Highlighter} from "./Highlighter";
-import {CmdLoadBlockChunk, CmdProgram, CmdTransferAddressChunk} from "./CmdProgram";
 import {DEFAULT_SAMPLE_RATE} from "./WavFile";
+import {
+    BasicProgram,
+    CmdProgram,
+    decodeBasicProgram,
+    decodeCmdProgram,
+    decodeSystemProgram, SystemProgram, Trs80File
+} from "trs80-base";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -372,11 +376,24 @@ export class TapeBrowser {
                 : systemPane !== undefined ? ".3BN"
                     : cmdPane !== undefined ? ".CMD"
                         : ".BIN";
-            addKeyValues("Download", [binExtention, ".CAS"], (extension: string) => {
+            addKeyValues("Download", [binExtention, ".CAS", ".WAV"], (extension: string) => {
                 // Download binary.
                 const a = document.createElement("a");
-                const contents = extension === binExtention ? program.binary : program.asCasFile();
-                const blob = new Blob([contents], {type: "application/octet-stream"});
+                let contents;
+                let type;
+
+                if (extension === ".CAS") {
+                    contents = program.asCasFile();
+                    type = "application/octet-stream";
+                } else if (extension === ".WAV") {
+                    contents = program.asWavFile();
+                    type = "audio/wav";
+                } else {
+                    contents = program.binary;
+                    type = "application/octet-stream";
+                }
+
+                const blob = new Blob([contents], {type: type});
                 a.href = window.URL.createObjectURL(blob);
 
                 a.download = (this.tape.name + "-" + program.getShortLabel()).replace(/ /g, "-") + extension;
@@ -396,6 +413,26 @@ export class TapeBrowser {
             } else {
                 addKeyValue("Type", "Unknown");
             }
+        } else {
+            addKeyValues("Download", [".CAS", ".WAV"], (extension: string) => {
+                // Download binary.
+                const a = document.createElement("a");
+                let contents;
+                let type;
+
+                if (extension === ".CAS") {
+                    contents = program.asCasFile();
+                    type = "application/octet-stream";
+                } else {
+                    contents = program.asWavFile();
+                    type = "audio/wav";
+                }
+
+                const blob = new Blob([contents], {type: type});
+                a.href = window.URL.createObjectURL(blob);
+                a.download = (this.tape.name).replace(/ /g, "-") + extension;
+                a.click();
+            });
         }
 
         // Add editable fields.
@@ -555,11 +592,11 @@ export class TapeBrowser {
         return new Pane(div);
     }
 
-    private makeBasicPane(program: Program): Pane {
+    private makeBasicPane(program: Program, basicProgram: BasicProgram): Pane {
         const div = document.createElement("div");
         div.classList.add("program");
 
-        const highlightables = BasicRender.toDiv(Basic.fromTokenized(program.binary), div);
+        const highlightables = BasicRender.toDiv(basicProgram, div);
 
         const highlighter = new Highlighter(this, program, div);
         highlighter.addHighlightables(highlightables);
@@ -583,12 +620,10 @@ export class TapeBrowser {
         return pane;
     }
 
-    private makeSystemPane(program: Program): Pane {
+    private makeSystemPane(program: Program, systemProgram: SystemProgram): Pane | undefined {
         const div = document.createElement("div");
         div.classList.add("program");
         div.classList.add("system-program");
-
-        const systemProgram = new SystemProgram(program.binary);
 
         const [highlightables, annotations] = SystemProgramRender.toDiv(systemProgram, div);
         const highlighter = new Highlighter(this, program, div);
@@ -620,12 +655,10 @@ export class TapeBrowser {
         return pane;
     }
 
-    private makeCmdPane(program: Program): Pane {
+    private makeCmdPane(program: Program, cmdProgram: CmdProgram): Pane | undefined {
         const div = document.createElement("div");
         div.classList.add("program");
         div.classList.add("cmd-program");
-
-        const cmdProgram = new CmdProgram(program.binary);
 
         const [highlightables, annotations] = CmdProgramRender.toDiv(cmdProgram, div);
         const highlighter = new Highlighter(this, program, div);
@@ -686,33 +719,10 @@ export class TapeBrowser {
         return pane;
     }
 
-    private loadProgram(trs80: Trs80, program: Program): void {
-        if (program.isCmdProgram()) {
-            const cmdProgram = new CmdProgram(program.binary);
-            for (const chunk of cmdProgram.chunks) {
-                if (chunk instanceof CmdLoadBlockChunk) {
-                    for (let i = 0; i < chunk.loadData.length; i++) {
-                        trs80.writeMemory(chunk.address + i, chunk.loadData[i]);
-                    }
-                } else if (chunk instanceof CmdTransferAddressChunk) {
-                    trs80.jumpTo(chunk.address);
-                }
-            }
-        } else if (program.isSystemProgram()) {
-            const systemProgram = new SystemProgram(program.binary);
-            for (const chunk of systemProgram.chunks) {
-                for (let i = 0; i < chunk.data.length; i++) {
-                    trs80.writeMemory(chunk.loadAddress + i, chunk.data[i]);
-                }
-            }
-            trs80.jumpTo(systemProgram.entryPointAddress);
-        }
-    }
-
     /**
      * Create a pane with an emulator pointing at the cassette and program.
      */
-    private makeEmulatorPane(program: Program | undefined, cassette: Int16Cassette | undefined, autoRun?: boolean): Pane {
+    private makeEmulatorPane(program: Program | undefined, cassette: Int16Cassette | undefined, trs80File?: Trs80File): Pane {
         const div = document.createElement("div");
 
         const screenDiv = document.createElement("div");
@@ -725,10 +735,8 @@ export class TapeBrowser {
         const reboot = () => {
             trs80.reset();
 
-            if (autoRun && program !== undefined) {
-                trs80.eventScheduler.add(undefined, trs80.clockHz/30, () => {
-                    this.loadProgram(trs80, program);
-                });
+            if (trs80File !== undefined) {
+                trs80.runTrs80File(trs80File);
             }
         };
 
@@ -870,11 +878,16 @@ export class TapeBrowser {
             }
             copiesOfTrack.push(program);
 
+            // Decode the programs.
+            const basicProgram = decodeBasicProgram(program.binary);
+            const systemProgram = decodeSystemProgram(program.binary);
+            const cmdProgram = decodeCmdProgram(program.binary);
+
             // Make these panes here so they're accessible from the metadata page.
-            const basicPane = program.isBasicProgram() ? this.makeBasicPane(program) : undefined;
-            const systemPane = program.isSystemProgram() ? this.makeSystemPane(program) : undefined;
+            const basicPane = basicProgram !== undefined ? this.makeBasicPane(program, basicProgram) : undefined;
+            const systemPane = systemProgram !== undefined ? this.makeSystemPane(program, systemProgram) : undefined;
             const edtasmPane = program.isEdtasmProgram() ? this.makeEdtasmPane(program) : undefined;
-            const cmdPane = program.isCmdProgram() ? this.makeCmdPane(program) : undefined;
+            const cmdPane = cmdProgram !== undefined ? this.makeCmdPane(program, cmdProgram) : undefined;
 
             // Metadata pane.
             let metadataLabel = frameToTimestamp(program.startFrame, this.tape.sampleRate, true) + " to " +
@@ -920,8 +933,10 @@ export class TapeBrowser {
                         this.makeEmulatorPane(program, new ReconstructedCassette(program.reconstructedSamples, this.tape.sampleRate)));
                 }
             }
-            if (cmdPane !== undefined || systemPane !== undefined) {
-                addPane("Emulator (auto-run)", this.makeEmulatorPane(program, undefined, true));
+
+            const trs80File = systemProgram ?? cmdProgram ?? basicProgram;
+            if (trs80File !== undefined) {
+                addPane("Emulator (auto-run)", this.makeEmulatorPane(program, undefined, trs80File));
             }
         }
 

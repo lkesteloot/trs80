@@ -4,7 +4,7 @@ import {AudioFile} from "./AudioUtils";
 import {DEFAULT_SAMPLE_RATE, readWavFile} from "./WavFile";
 import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
 import {encodeHighSpeed} from "./HighSpeedTapeEncoder";
-import {wrapBasic} from "./Basic";
+import {wrapBasic} from "trs80-base";
 
 export class Uploader {
     private readonly uploadInput: HTMLInputElement;

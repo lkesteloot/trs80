@@ -6,7 +6,6 @@ import {TapeDecoderState} from "./TapeDecoderState";
 import {ByteData} from "./ByteData";
 import {Program} from "./Program";
 import {LabelAnnotation, WaveformAnnotation} from "./Annotations";
-import {DEFAULT_SAMPLE_RATE} from "./WavFile";
 
 // What distance away from 0 counts as "positive" (or, when negative, "negative").
 const THRESHOLD = 500;
@@ -25,12 +24,12 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
     constructor(tape: Tape) {
         this.tape = tape;
 
-        // Our "number of samples" comparisons assume DEFAULT_SAMPLE_RATE, so adjust for that.
-        this.lengthMultiplier = tape.sampleRate/DEFAULT_SAMPLE_RATE;
+        // Our "number of samples" comparisons assume 44100 Hz, so adjust for that.
+        this.lengthMultiplier = tape.sampleRate/44100;
     }
 
     public getName(): string {
-        return "High speed";
+        return "1500 baud";
     }
 
     public isHighSpeed(): boolean {
@@ -106,7 +105,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
             return undefined;
         }
 
-        return new Program(0, 0, programStartFrame, startFrame, this,
+        return new Program(0, 0, programStartFrame, startFrame, this, 1500,
             this.getBinary(), this.getBitData(), this.getByteData());
     }
 

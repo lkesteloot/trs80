@@ -1,7 +1,7 @@
 
 import jss from './Jss'
-import {BasicElement, ElementType} from "./Basic";
 import {Highlightable} from "./Highlighter";
+import {BasicProgram, ElementType} from "trs80-base";
 
 /**
  * Add text to the line with the specified class.
@@ -84,16 +84,20 @@ export const selectClassName = sheet.classes.selected;
 /**
  * Render an array of Basic elements to a DIV.
  */
-export function toDiv(basicElements: BasicElement[], out: HTMLElement): Highlightable[] {
+export function toDiv(basicProgram: BasicProgram | undefined, out: HTMLElement): Highlightable[] {
     sheet.attach();
     const classes = sheet.classes;
 
     // Map from byte address to HTML element for that byte.
     const elements: Highlightable[] = [];
 
-    let line: HTMLElement | undefined = undefined;
+    if (basicProgram === undefined) {
+        // Not sure what to do here.
+        return elements;
+    }
 
-    for (const basicElement of basicElements) {
+    let line: HTMLElement | undefined = undefined;
+    for (const basicElement of basicProgram.elements) {
         let className: string;
 
         if (line === undefined || basicElement.elementType === ElementType.LINE_NUMBER) {

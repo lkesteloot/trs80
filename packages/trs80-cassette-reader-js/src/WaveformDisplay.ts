@@ -3,13 +3,13 @@ import {BitType} from "./BitType";
 import {BitData} from "./BitData";
 import {Program} from "./Program";
 import {Highlight} from "./Highlight";
-import * as Basic from "./Basic";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {toHexByte} from "z80-base";
 import {AnnotationContext, drawBraceAndLabel, WaveformAnnotation} from "./Annotations";
 import {clearElement, withCommas} from "./Utils";
 import {frameDurationToString, frameToTimestamp} from "./AudioUtils";
 import {writeWavFile} from "./WavFile";
+import {getToken} from "trs80-base";
 
 let gRadioButtonCounter = 1;
 
@@ -66,6 +66,10 @@ export class WaveformDisplay {
      * The max value that zoom can have.
      */
     private maxZoom: number = 0;
+    /**
+     * The min value that zoom can have.
+     */
+    private minZoom: number = -4;
     /**
      * The sample in the middle of the display, in original samples.
      */
@@ -343,7 +347,7 @@ export class WaveformDisplay {
         // We want to flip this horizontally, so make the slider's value
         // the negative of the real zoom.
         input.min = (-this.maxZoom).toString();
-        input.max = "0";
+        input.max = (-this.minZoom).toString();
         this.onMaxZoom.subscribe(maxZoom => input.min = (-maxZoom).toString());
         this.onZoom.subscribe(zoom => input.value = (-zoom).toString());
 
@@ -614,47 +618,61 @@ export class WaveformDisplay {
         ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, width, height);
 
-        const samplesList = displaySamples.samplesList;
-        const samples = samplesList[this.zoom];
-        const mag = Math.pow(2, this.zoom);
-        const centerSample = Math.floor(this.centerSample / mag);
+        // Terminology:
+        //
+        // "zoom" is user-visible zoom (0 = one-to-one with pixels, positive = zoomed out, negative = zoomed in).
+        // "orig sample" is sample at zoom level 0.
+        // "view sample" is sample at whatever zoom level we're showing.
 
-        // From zoom space sample to X.
-        const frameToX = (i: number) => Math.floor(width / 2) + (i - centerSample);
+        // Which samples series we're going to use.
+        const samplesZoom = Math.max(this.zoom, 0);
+        // Actual samples we plan to use.
+        const viewSamples = displaySamples.samplesList[samplesZoom];
+        // Number of horizontal pixels per sample.
+        const pixelsPerViewSample = Math.pow(2, samplesZoom - this.zoom);
+        // How many original samples in each view sample.
+        const origSamplesPerViewSamples = Math.pow(2, samplesZoom);
+        // Index of center view sample.
+        const centerViewSample = Math.round(this.centerSample / origSamplesPerViewSamples);
 
-        // Compute viewing window in zoom space.
-        const firstSample = Math.max(centerSample - Math.floor(width / 2), 0);
-        const lastSample = Math.min(centerSample + width - 1, samples.length - 1);
+        // From view sample index to X coordinate in canvas.
+        const viewSampleToX = (viewSample: number) => Math.round((viewSample - centerViewSample)*pixelsPerViewSample + width/2);
+
+        // Compute viewing window in view space.
+        const halfWindowViewSamples = width/2/pixelsPerViewSample;
+        const firstViewSample = Math.floor(Math.max(centerViewSample - halfWindowViewSamples, 0));
+        const lastViewSample = Math.ceil(Math.min(centerViewSample + halfWindowViewSamples, viewSamples.length - 1));
 
         // Compute viewing window in original space.
-        const firstOrigSample = Math.floor(firstSample * mag);
-        const lastOrigSample = Math.ceil(lastSample * mag);
+        const firstOrigSample = Math.floor(firstViewSample * origSamplesPerViewSamples);
+        const lastOrigSample = Math.ceil(lastViewSample * origSamplesPerViewSamples);
 
         // Whether we're zoomed in enough to draw and line and individual bits.
         const drawingLine: boolean = this.zoom < 3;
 
+        // Draw selection and highlight.
         if (this.selectionMode === SelectionMode.BYTES) {
             // Selection.
             if (this.startSelectionFrame !== undefined && this.endSelectionFrame !== undefined) {
                 ctx.fillStyle = selectionColor;
-                const x1 = frameToX(this.startSelectionFrame / mag);
-                const x2 = frameToX(this.endSelectionFrame / mag);
+                const x1 = viewSampleToX(this.startSelectionFrame / origSamplesPerViewSamples);
+                const x2 = viewSampleToX(this.endSelectionFrame / origSamplesPerViewSamples);
                 ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
             }
 
             // Highlight.
             if (this.startHighlightFrame !== undefined && this.endHighlightFrame !== undefined) {
                 ctx.fillStyle = highlightColor;
-                const x1 = frameToX(this.startHighlightFrame / mag);
-                const x2 = frameToX(this.endHighlightFrame / mag);
+                const x1 = viewSampleToX(this.startHighlightFrame / origSamplesPerViewSamples);
+                const x2 = viewSampleToX(this.endHighlightFrame / origSamplesPerViewSamples);
                 ctx.fillRect(x1, 0, Math.max(x2 - x1, 1), height);
             }
         } else {
             // Selecting samples.
             if (this.startSampleSelectionFrame !== undefined && this.endSampleSelectionFrame !== undefined) {
                 ctx.fillStyle = selectionColor;
-                let x1 = frameToX(this.startSampleSelectionFrame / mag);
-                let x2 = frameToX(this.endSampleSelectionFrame / mag);
+                let x1 = viewSampleToX(this.startSampleSelectionFrame / origSamplesPerViewSamples);
+                let x2 = viewSampleToX(this.endSampleSelectionFrame / origSamplesPerViewSamples);
                 if (x2 < x1) {
                     // Might be backwards while dragging.
                     const tmp = x1;
@@ -687,8 +705,8 @@ export class WaveformDisplay {
                 // Highlight bits.
                 for (const bitInfo of program.bitData) {
                     if (bitInfo.endFrame >= firstOrigSample && bitInfo.startFrame <= lastOrigSample) {
-                        const x1 = frameToX(bitInfo.startFrame / mag);
-                        const x2 = frameToX(bitInfo.endFrame / mag);
+                        const x1 = viewSampleToX(bitInfo.startFrame / origSamplesPerViewSamples);
+                        const x2 = viewSampleToX(bitInfo.endFrame / origSamplesPerViewSamples);
 
                         let bitBraceColor: string;
                         let label: string;
@@ -725,7 +743,7 @@ export class WaveformDisplay {
                     for (const annotation of program.annotations) {
                         let startFrame: number | undefined = undefined;
                         let endFrame: number | undefined = undefined;
-                        for (let i = annotation.firstIndex; i <= annotation.lastIndex; i++) {
+                        for (let i = annotation.begin; i < annotation.end; i++) {
                             const byteInfo = program.byteData[i];
                             if (byteInfo !== undefined) {
                                 if (startFrame === undefined || endFrame === undefined) {
@@ -740,8 +758,8 @@ export class WaveformDisplay {
                         if (endFrame !== undefined && startFrame !== undefined &&
                             endFrame >= firstOrigSample && startFrame <= lastOrigSample) {
 
-                            const x1 = frameToX(startFrame / mag);
-                            const x2 = frameToX(endFrame / mag);
+                            const x1 = viewSampleToX(startFrame / origSamplesPerViewSamples);
+                            const x2 = viewSampleToX(endFrame / origSamplesPerViewSamples);
                             drawBraceAndLabel(ctx, height, x1, x2, braceColor, annotation.text, labelColor, true);
                         }
                     }
@@ -749,10 +767,10 @@ export class WaveformDisplay {
                     // Highlight bytes.
                     for (const byteInfo of program.byteData) {
                         if (byteInfo.endFrame >= firstOrigSample && byteInfo.startFrame <= lastOrigSample) {
-                            const x1 = frameToX(byteInfo.startFrame / mag);
-                            const x2 = frameToX(byteInfo.endFrame / mag);
+                            const x1 = viewSampleToX(byteInfo.startFrame / origSamplesPerViewSamples);
+                            const x2 = viewSampleToX(byteInfo.endFrame / origSamplesPerViewSamples);
                             let byteValue = byteInfo.value;
-                            const basicToken = Basic.getToken(byteValue);
+                            const basicToken = getToken(byteValue);
                             const label = byteValue < 32 ? "^" + String.fromCodePoint(byteValue + 64)
                                 : byteValue === 32 ? '\u2423' // Open box to represent space.
                                     : byteValue < 128 ? String.fromCodePoint(byteValue)
@@ -765,8 +783,8 @@ export class WaveformDisplay {
                 }
             } else {
                 // Highlight the whole program.
-                const x1 = frameToX(program.startFrame / mag);
-                const x2 = frameToX(program.endFrame / mag);
+                const x1 = viewSampleToX(program.startFrame / origSamplesPerViewSamples);
+                const x2 = viewSampleToX(program.endFrame / origSamplesPerViewSamples);
                 drawBraceAndLabel(ctx, height, x1, x2, braceColor, program.getShortLabel(), labelColor, true);
             }
         }
@@ -776,13 +794,13 @@ export class WaveformDisplay {
         if (drawingLine) {
             ctx.beginPath();
         }
-        for (let i = firstSample; i <= lastSample; i++) {
-            const value = samples[i];
-            const x = frameToX(i);
+        for (let viewSample = firstViewSample; viewSample <= lastViewSample; viewSample++) {
+            const value = viewSamples[viewSample];
+            const x = viewSampleToX(viewSample);
             const y = value * height / 65536;
 
             if (drawingLine) {
-                if (i === firstSample) {
+                if (viewSample === firstViewSample) {
                     ctx.moveTo(x, height / 2 - y);
                 } else {
                     ctx.lineTo(x, height / 2 - y);
@@ -803,7 +821,7 @@ export class WaveformDisplay {
             width: width,
             height: height,
             frameToX(frame: number): number {
-                return frameToX(frame / mag);
+                return viewSampleToX(frame / origSamplesPerViewSamples);
             },
             valueToY(value: number): number {
                 return height/2 - value * height / 65536;
@@ -829,7 +847,7 @@ export class WaveformDisplay {
             screenX = Math.round(this.displayWidth / 2);
         }
 
-        const newZoom = Math.min(Math.max(0, zoom), this.maxZoom);
+        const newZoom = Math.min(Math.max(this.minZoom, zoom), this.maxZoom);
         if (newZoom !== this.zoom) {
             const frame = this.screenXToOriginalFrame(screenX);
             this.zoom = newZoom;
@@ -898,7 +916,7 @@ export class WaveformDisplay {
         // Clamp at start.
         frame = Math.max(frame, 0);
 
-        return frame;
+        return Math.round(frame);
     }
 
     /**

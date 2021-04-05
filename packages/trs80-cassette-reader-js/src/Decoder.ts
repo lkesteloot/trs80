@@ -6,7 +6,7 @@ import {Program} from "./Program";
 import {Tape} from "./Tape";
 import {TapeDecoder} from "./TapeDecoder";
 import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder";
-import {LowSpeedAnteoTapeDecoder} from "./LowSpeedAnteoTapeDecoder";
+import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
 import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
 
 class Transition {
@@ -35,14 +35,12 @@ export class Decoder {
      * Decode the tape, populating the tape's "programs" array.
      */
     public decode() {
-        let sampleLength = this.tape.filteredSamples.samplesList[0].length;
-
         // All decoders we're interested in. We use factories because they're created
         // multiple times, once for each program found.
         let tapeDecoderFactories: (() => TapeDecoder)[] = [
-            // () => new LowSpeedTapeDecoder(this.tape, true),
-            // () => new LowSpeedTapeDecoder(this.tape, false),
-            () => new LowSpeedAnteoTapeDecoder(this.tape),
+            () => new LowSpeedTapeDecoder(this.tape, 250),
+            () => new LowSpeedTapeDecoder(this.tape, 500),
+            () => new LowSpeedTapeDecoder(this.tape, 1000),
             () => new HighSpeedTapeDecoder(this.tape),
         ];
 
