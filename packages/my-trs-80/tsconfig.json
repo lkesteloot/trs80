@@ -1,14 +1,5 @@
 {
-    "compilerOptions": {
-        "module": "es6",
-        "target": "ES2015",
-        "sourceMap": false,
-        "moduleResolution": "Node",
-        "strict": true,
-        "resolveJsonModule": true,
-        "incremental": true,
-        "allowSyntheticDefaultImports": true
-    },
+    "extends": "../../tsconfig.webapp.json",
     "include": [
         "src/**/*"
     ]

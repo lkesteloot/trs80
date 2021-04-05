@@ -1,10 +1,6 @@
 {
+    "extends": "../../tsconfig.webapp.json",
     "compilerOptions": {
-        "module": "es6",
-        "target": "ES2015",
-        "sourceMap": false,
-        "moduleResolution": "Node",
-        "strict": true,
         "resolveJsonModule": true,
         "allowSyntheticDefaultImports": true
     },

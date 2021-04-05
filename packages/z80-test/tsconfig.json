@@ -1,18 +1,10 @@
 {
-  "compilerOptions": {
-    "target": "ES2018",
-    "module": "esnext",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true,
-    "moduleResolution": "Node"
-  },
-  "include": [
-    "src/**/*"
-  ]
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "resolveJsonModule": true,
+        "outDir": "dist"
+    },
+    "include": [
+        "src/**/*"
+    ]
 }

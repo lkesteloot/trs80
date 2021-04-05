@@ -1,18 +1,9 @@
 {
-  "compilerOptions": {
-    "target": "ES2019",
-    "module": "es6",
-    "moduleResolution": "node",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true
-  },
-  "include": [
-    "src/**/*"
-  ]
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "dist"
+    },
+    "include": [
+        "src/**/*"
+    ]
 }

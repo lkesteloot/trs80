@@ -1,22 +1,10 @@
 {
-  "compilerOptions": {
-    "target": "ES2019",
-    "module": "es6",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true,
-    "resolveJsonModule": true,
-    "moduleResolution": "Node"
-  },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "src/**/*.template.ts"
-  ]
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "resolveJsonModule": true,
+        "outDir": "dist"
+    },
+    "include": [
+        "src/**/*"
+    ]
 }
