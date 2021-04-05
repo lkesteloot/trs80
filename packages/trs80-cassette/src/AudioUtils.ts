@@ -1,5 +1,6 @@
 
-import {pad, withCommas} from "./Utils";
+import {pad} from "./Utils";
+import {withCommas} from "teamten-ts-utils";
 
 export class AudioFile {
     // In samples per second.

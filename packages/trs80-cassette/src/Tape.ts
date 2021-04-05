@@ -9,8 +9,8 @@ import {Program} from "./Program";
 import {WaveformAnnotation} from "./Annotations";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
-import {concatByteArrays} from "./Utils";
 import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile";
+import {concatByteArrays} from "teamten-ts-utils";
 
 const LOCAL_DATA_KEY = "tapes";
 

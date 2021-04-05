@@ -1,6 +1,6 @@
 
 import {concatAudio} from "./AudioUtils";
-import {concatByteArrays} from "./Utils";
+import {concatByteArrays} from "teamten-ts-utils";
 
 const SYNC_BYTE = 0x7F;
 

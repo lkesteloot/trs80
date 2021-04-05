@@ -13,8 +13,8 @@ import {
     VerticalLineAnnotation,
     WaveformAnnotation
 } from "./Annotations";
-import {withCommas} from "./Utils";
 import {clampToInt16, highPassFilter} from "./AudioUtils";
+import {withCommas} from "teamten-ts-utils";
 
 const SYNC_BYTE = 0xA5;
 
