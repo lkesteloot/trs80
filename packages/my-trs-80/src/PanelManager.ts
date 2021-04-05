@@ -8,7 +8,6 @@ export class PanelManager {
     private readonly backgroundNode: HTMLElement;
     private readonly positioningNode: HTMLElement;
     private readonly panels: Panel[] = [];
-    private readonly escListener: (e: KeyboardEvent) => void;
     public readonly onOpenClose = new SimpleEventDispatcher<boolean>();
     private isOpen = false;
 
@@ -30,14 +29,40 @@ export class PanelManager {
         this.positioningNode.classList.add("panel-positioning");
         this.backgroundNode.append(this.positioningNode);
 
-        // Handler for the ESC key.
-        this.escListener = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
+        // Pass key events to panels.
+        document.addEventListener("keydown", e => {
+            let handled = false;
+
+            // Ctrl-L anywhere to toggle the panels.
+            if (e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey && e.key === "l") {
+                this.toggle();
+                handled = true;
+            }
+
+            // Ctrl-Backspace to pop a panel.
+            if (!handled && this.panels.length > 1 && e.ctrlKey && !e.metaKey && !e.shiftKey &&
+                !e.altKey && e.key === "Backspace") {
+
+                this.popPanel();
+                handled = true;
+            }
+
+            // If panel is open, pass key to visible panel.
+            if (!handled && this.isOpen) {
+                // Give panel first chance, in case they need Esc for something more useful
+                // than closing the panel.
+                handled = this.panels[this.panels.length - 1].onKeyDown(e);
+                if (!handled && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey && e.key === "Escape") {
+                    this.close();
+                    handled = true;
+                }
+            }
+
+            if (handled) {
                 e.preventDefault();
                 e.stopPropagation();
-                this.close();
             }
-        };
+        });
     }
 
     /**
@@ -73,6 +98,7 @@ export class PanelManager {
             const panel = this.panels.pop();
             setTimeout(() => {
                 if (panel !== undefined) {
+                    panel.onPanelDestroy();
                     panel.element.remove();
                 }
             }, 1000);
@@ -98,7 +124,6 @@ export class PanelManager {
     public open(): void {
         if (!this.isOpen) {
             this.isOpen = true;
-            document.addEventListener("keydown", this.escListener);
             this.onOpenClose.dispatch(true);
             this.backgroundNode.classList.add("panel-shown");
         }
@@ -110,7 +135,6 @@ export class PanelManager {
     public close(): void {
         if (this.isOpen) {
             this.isOpen = false;
-            document.removeEventListener("keydown", this.escListener);
             this.onOpenClose.dispatch(false);
             this.backgroundNode.classList.remove("panel-shown");
         }

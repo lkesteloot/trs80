@@ -1,10 +1,35 @@
 import firebase from "firebase/app";
-import DocumentData = firebase.firestore.DocumentData;
-import {isSameStringArray} from "./Utils";
-import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
+import {isSameStringArray, TRASH_TAG} from "./Utils";
 import * as base64js from "base64-js";
-import {sha1} from "./sha1";
+import {sha1} from "./Sha1";
+import {TagSet} from "./TagSet";
+import DocumentData = firebase.firestore.DocumentData;
+import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
+import {BasicProgram, Cassette, decodeTrs80File, setBasicName} from "trs80-base";
 type UpdateData = firebase.firestore.UpdateData;
+
+// What's considered a "new" file.
+const NEW_TIME_MS = 60*60*24*7*1000;
+
+// Prefix for version of hash. Increment this number when the hash algorithm changes.
+const HASH_PREFIX = "1:";
+
+/**
+ * Return whether the test string starts with the filter prefix.
+ */
+function prefixMatches(testString: string, filterPrefix: string): boolean {
+    return testString.substr(0, filterPrefix.length).localeCompare(filterPrefix, undefined, {
+        usage: "search",
+        sensitivity: "base",
+    }) === 0;
+}
+
+/**
+ * Return whether any word in the test string starts with the filter prefix.
+ */
+function prefixMatchesAnyWord(testString: string, filterPrefix: string): boolean {
+    return testString.split(/\W+/).some(word => prefixMatches(word, filterPrefix));
+}
 
 /**
  * Represents a file that the user owns.
@@ -18,14 +43,16 @@ export class File {
     public readonly author: string;
     public readonly releaseYear: string;
     public readonly shared: boolean;
+    public readonly tags: string[]; // Don't modify this, treat as immutable. Always sorted alphabetically.
     public readonly hash: string;
+    public readonly isDeleted: boolean;
     public readonly screenshots: string[]; // Don't modify this, treat as immutable.
     public readonly binary: Uint8Array;
     public readonly addedAt: Date;
     public readonly modifiedAt: Date;
 
     constructor(id: string, uid: string, name: string, filename: string, note: string,
-                author: string, releaseYear: string, shared: boolean, hash: string,
+                author: string, releaseYear: string, shared: boolean, tags: string[], hash: string,
                 screenshots: string[], binary: Uint8Array, addedAt: Date, modifiedAt: Date) {
 
         this.id = id;
@@ -36,6 +63,8 @@ export class File {
         this.author = author;
         this.releaseYear = releaseYear;
         this.shared = shared;
+        this.tags = [...tags].sort(); // Guarantee it's sorted.
+        this.isDeleted = this.tags.indexOf(TRASH_TAG) >= 0;
         this.hash = hash;
         this.screenshots = screenshots;
         this.binary = binary;
@@ -56,6 +85,7 @@ export class File {
             author: this.author,
             releaseYear: this.releaseYear,
             shared: this.shared,
+            tags: this.tags,
             hash: this.hash,
             screenshots: this.screenshots,
             binary: base64js.fromByteArray(this.binary),
@@ -75,6 +105,7 @@ export class File {
         builder.author = this.author;
         builder.releaseYear = this.releaseYear;
         builder.shared = this.shared;
+        builder.tags = this.tags;
         builder.hash = this.hash;
         builder.screenshots = this.screenshots;
         builder.binary = this.binary;
@@ -108,6 +139,9 @@ export class File {
         if (this.shared !== oldFile.shared) {
             updateData.shared = this.shared;
         }
+        if (!isSameStringArray(this.tags, oldFile.tags)) {
+            updateData.tags = this.tags;
+        }
         if (this.hash !== oldFile.hash) {
             updateData.hash = this.hash;
         }
@@ -122,25 +156,98 @@ export class File {
     }
 
     /**
+     * Get all tags, both stored in the file and the automatically created ones.
+     * TODO could cache this, assume the auto ones don't change over time. The "new" would
+     * change but not much.
+     */
+    public getAllTags(): TagSet {
+        const allTags = new TagSet();
+
+        if (this.shared) {
+            allTags.add("Shared");
+        }
+        const now = Date.now();
+        if (now - this.addedAt.getTime() < NEW_TIME_MS) {
+            allTags.add("New");
+        }
+
+        // TODO better extension algorithm.
+        const i = this.filename.lastIndexOf(".");
+        if (i > 0) {
+            allTags.add(this.filename.substr(i + 1).toUpperCase());
+        }
+
+        if (this.note === "") {
+            allTags.add("Missing note");
+        }
+        if (this.screenshots.length === 0) {
+            allTags.add("Missing screenshot");
+        }
+
+        allTags.add(...this.tags);
+
+        return allTags;
+    }
+
+    /**
+     * Whether this file would match the specified filter prefix.
+     */
+    public matchesFilterPrefix(filterPrefix: string): boolean {
+        // Always match empty string.
+        if (filterPrefix === "") {
+            return true;
+        }
+
+        // Check various fields.
+        if (prefixMatchesAnyWord(this.name, filterPrefix)) {
+            return true;
+        }
+        if (prefixMatches(this.filename, filterPrefix)) {
+            return true;
+        }
+        if (prefixMatchesAnyWord(this.note, filterPrefix)) {
+            return true;
+        }
+        if (prefixMatchesAnyWord(this.author, filterPrefix)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether the hash was computed with an outdated algorithm.
+     */
+    public isOldHash(): boolean {
+        return !this.hash.startsWith(HASH_PREFIX);
+    }
+
+    /**
      * Compare two files for sorting.
      */
     public static compare(a: File, b: File): number {
         // Primary sort by name.
-        if (a.name < b.name) {
-            return -1;
-        } else if (a.name > b.name) {
-            return 1;
+        let cmp = a.name.localeCompare(b.name, undefined, {
+            usage: "sort",
+            sensitivity: "base",
+            ignorePunctuation: true,
+            numeric: true,
+        });
+        if (cmp !== 0) {
+            return cmp;
+        }
+
+        // Secondary sort is filename.
+        cmp = a.filename.localeCompare(b.filename, undefined, {
+            usage: "sort",
+            numeric: true,
+        });
+        if (cmp !== 0) {
+            return cmp;
         }
 
         // Break ties with ID so the sort is stable.
-        if (a.id < b.id) {
-            return -1;
-        } else if (a.id > b.id) {
-            return 1;
-        } else {
-            // Shouldn't happen.
-            return 0;
-        }
+        return a.id.localeCompare(b.id);
     }
 }
 
@@ -156,6 +263,7 @@ export class FileBuilder {
     public author = "";
     public releaseYear = "";
     public shared = false;
+    public tags: string[] = [];
     public hash = "";
     public screenshots: string[] = [];
     public binary = new Uint8Array(0);
@@ -175,6 +283,7 @@ export class FileBuilder {
         builder.author = data.author ?? "";
         builder.releaseYear = data.releaseYear ?? "";
         builder.shared = data.shared ?? false;
+        builder.tags = data.tags ?? [];
         builder.hash = data.hash;
         builder.screenshots = data.screenshots ?? [];
         builder.binary = (data.binary as firebase.firestore.Blob).toUint8Array();
@@ -224,6 +333,11 @@ export class FileBuilder {
         return this;
     }
 
+    public withTags(tags: string[]): this {
+        this.tags = tags;
+        return this;
+    }
+
     public withScreenshots(screenshots: string[]): this {
         this.screenshots = screenshots;
         return this;
@@ -231,7 +345,27 @@ export class FileBuilder {
 
     public withBinary(binary: Uint8Array): this {
         this.binary = binary;
-        this.hash = sha1(binary);
+
+        // We used to do the raw binary, but that doesn't catch some irrelevant changes, like differences
+        // in CAS header or the Basic name. So decode the binary and see if we can zero out the differences.
+        // This might create an unfortunate preference for setting the filename first.
+        let trs80File = decodeTrs80File(binary, this.filename);
+
+        // Pull the program out of the cassette.
+        if (trs80File.className === "Cassette") {
+            if (trs80File.files.length > 0) {
+                trs80File = trs80File.files[0].file;
+                binary = trs80File.binary;
+            }
+        }
+
+        // Clear out the Basic name.
+        if (trs80File.className === "BasicProgram") {
+            binary = setBasicName(binary, "A");
+        }
+
+        // Prefix with version number.
+        this.hash = HASH_PREFIX + sha1(binary);
         return this;
     }
 
@@ -242,7 +376,7 @@ export class FileBuilder {
 
     public build(): File {
         return new File(this.id, this.uid, this.name, this.filename, this.note,
-            this.author, this.releaseYear, this.shared, this.hash,
+            this.author, this.releaseYear, this.shared, this.tags, this.hash,
             this.screenshots, this.binary, this.addedAt, this.modifiedAt);
     }
 }

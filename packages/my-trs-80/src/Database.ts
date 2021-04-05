@@ -3,7 +3,6 @@ import {File, FileBuilder} from "./File";
 import QuerySnapshot = firebase.firestore.QuerySnapshot;
 import DocumentData = firebase.firestore.DocumentData;
 import DocumentReference = firebase.firestore.DocumentReference;
-import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 import {AuthUser, User} from "./User";
 
 const FILES_COLLECTION_NAME = "files";
@@ -58,6 +57,7 @@ export class Database {
             author: file.author,
             releaseYear: file.releaseYear,
             shared: file.shared,
+            tags: file.tags,
             hash: file.hash,
             binary: firebase.firestore.Blob.fromUint8Array(file.binary),
             addedAt: firebase.firestore.Timestamp.fromDate(file.addedAt),

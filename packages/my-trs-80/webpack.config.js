@@ -1,19 +1,28 @@
 const path = require("path");
-var WebpackBuildNotifierPlugin = require("webpack-build-notifier");
+const WebpackBuildNotifierPlugin = require("webpack-build-notifier");
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 module.exports = {
-    mode: "production",
+    mode: "development",
 
     output: {
         path: path.resolve(__dirname, 'docs/dist'),
-        filename: "main.js"
+        filename: "[name].js"
     },
 
     // Enable sourcemaps for debugging webpack's output.
     devtool: "source-map",
 
     resolve: {
-        extensions: [".ts", ".js"]
+        extensions: [".ts", ".js"],
+        symlinks: false,
+    },
+
+    // Disable making source maps, they double the build time.
+    devtool: false,
+
+    cache: {
+        type: "filesystem",
     },
 
     module: {
@@ -21,11 +30,11 @@ module.exports = {
             {
                 test: /\.ts$/,
                 exclude: /node_modules/,
-                use: [
-                    {
-                        loader: "ts-loader"
-                    }
-                ]
+                loader: "ts-loader",
+                options: {
+                    // Shaves about 2 seconds:
+                    // transpileOnly: true,
+                },
             },
             // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
             {
@@ -38,7 +47,36 @@ module.exports = {
 
     optimization: {
         // Much faster to not minimize. About halves the size of the JS file.
-        minimize: false
+        minimize: false,
+
+        splitChunks: {
+            cacheGroups: {
+                "trs80-emulator": {
+                    test: /\/node_modules\/trs80-emulator/,
+                    name: "trs80-emulator",
+                    priority: 10,
+                    chunks: "all",
+                },
+                "z80-emulator": {
+                    test: /\/node_modules\/z80-emulator/,
+                    name: "z80-emulator",
+                    priority: 10,
+                    chunks: "all",
+                },
+                "trs80-z80": {
+                    test: /\/node_modules\/(z80|trs80)/,
+                    name: "trs80-z80",
+                    priority: 5,
+                    chunks: "all",
+                },
+                vendors: {
+                    test: /\/node_modules\//,
+                    name: "vendors",
+                    priority: 0,
+                    chunks: "all",
+                },
+            },
+        },
     },
 
     plugins: [
@@ -52,18 +90,9 @@ module.exports = {
                 timeout: 1,
             },
         }),
+        // new BundleAnalyzerPlugin(),
     ],
 
-    // When importing a module whose path matches one of the following, just
-    // assume a corresponding global variable exists and use that instead.
-    // This is important because it allows us to avoid bundling all of our
-    // dependencies, which allows browsers to cache those libraries between builds.
-    /*
-    externals: {
-        "react": "React",
-        "react-dom": "ReactDOM"
-    }
-     */
     performance: {
         hints: false,
         maxEntrypointSize: 1024*1024,

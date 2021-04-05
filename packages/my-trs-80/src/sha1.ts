@@ -1,16 +1,5 @@
 
-
-// Convert a 32-bit unsigned number to a hex string.
-// TODO use the z80-base version of this.
-function toHexLong(value: number): string {
-    value &= 0xFFFFFFFF;
-
-    if (value < 0) {
-        value = 0xFFFFFFFF + value + 1;
-    }
-
-    return value.toString(16).padStart(8, "0").toUpperCase();
-}
+import {toHexLong} from "z80-base";
 
 /**
  * Rotate the 32-bit value left "count" bits.

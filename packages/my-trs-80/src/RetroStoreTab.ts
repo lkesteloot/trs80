@@ -1,6 +1,5 @@
 // Generate this with: npx pbjs ApiProtos.proto --ts RetroStoreProto.ts
 import * as RetroStoreProto from "./RetroStoreProto";
-import {PageTabs} from "./PageTabs";
 import {clearElement} from "teamten-ts-utils";
 import {makeIcon, makeIconButton} from "./Utils";
 import {Context} from "./Context";
@@ -107,7 +106,7 @@ function fetchMediaImages(appId: string): Promise<RetroStoreProto.MediaImage[]> 
 /**
  * The tab for showing apps from RetroStore.org.
  */
-export class RetroStoreTab {
+export class RetroStoreTab extends PageTab {
     private readonly context: Context;
     private readonly appsDiv: HTMLElement;
     private readonly moreDiv: HTMLElement;
@@ -115,29 +114,31 @@ export class RetroStoreTab {
     private complete = false;
     private fetching = false;
 
-    constructor(pageTabs: PageTabs, context: Context) {
+    constructor(context: Context) {
+        super("RetroStore");
+
         this.context = context;
 
-        const tab = new PageTab("RetroStore");
-        tab.element.classList.add("retro-store-tab");
+        this.element.classList.add("retro-store-tab");
 
         this.appsDiv = document.createElement("div");
         this.appsDiv.classList.add("retro-store-apps");
         this.appsDiv.addEventListener("scroll", () => this.fetchNextBatchIfNecessary());
-        tab.element.append(this.appsDiv);
+        this.element.append(this.appsDiv);
 
         this.moreDiv = document.createElement("div");
         this.moreDiv.classList.add("retro-store-more");
         this.moreDiv.append(makeIcon("cached"));
 
-        // When showing the tab, wait for layout and maybe fetch more.
-        tab.onShow.subscribe(() => setTimeout(() => this.fetchNextBatchIfNecessary(), 0));
         this.populateApps();
 
         // If the window is resized, it might reveal slots to load.
         window.addEventListener("resize", () => this.fetchNextBatchIfNecessary());
+    }
 
-        pageTabs.addTab(tab);
+    public onShow(): void {
+        // When showing the tab, wait for layout and maybe fetch more.
+        setTimeout(() => this.fetchNextBatchIfNecessary(), 0);
     }
 
     /**
@@ -276,6 +277,7 @@ export class RetroStoreTab {
                     .withNote(note)
                     .withAuthor(app.author ?? "")
                     .withReleaseYear(app.release_year === undefined ? "" : app.release_year.toString())
+                    .withTags(["RetroStore"])
                     .withFilename(validMediaImage.filename ?? "UNKNOWN")
                     .withBinary(validMediaImage.data)
                     .build();

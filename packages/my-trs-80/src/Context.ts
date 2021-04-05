@@ -22,7 +22,7 @@ export class Context {
     private _user: User | undefined = undefined;
     private userResolved = false;
     public readonly onUser = new SimpleEventDispatcher<User | undefined>();
-    public readonly onFragment = new SimpleEventDispatcher<string>();
+    public readonly onRunningFile = new SimpleEventDispatcher<File | undefined>();
     // Dispatched when we initially figure out if we're signed in or not.
     public readonly onUserResolved = new SimpleEventDispatcher<void>();
 
@@ -80,9 +80,9 @@ export class Context {
     /**
      * Set the currently-running file, if any.
      */
-    set runningFile(value: File | undefined) {
-        this._runningFile = value;
-        this.onFragment.dispatch(this.getFragment());
+    set runningFile(file: File | undefined) {
+        this._runningFile = file;
+        this.onRunningFile.dispatch(file);
     }
 
     /**

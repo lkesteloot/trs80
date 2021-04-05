@@ -52,6 +52,8 @@
 }
 
 body {
+    --icon-color: var(--foreground-secondary);
+
     margin: 0;
     padding: 0;
     background-color: var(--background);
@@ -68,9 +70,13 @@ body, input, textarea {
     font-size: 16px;
 }
 
+input::placeholder {
+    opacity: 50%;
+}
+
 /* Our own overrides for the material design icons. */
 .material-icons-override {
-    color: var(--foreground-secondary);
+    color: var(--icon-color);
     transition: color var(--button-transition-time) ease-in-out;
 }
 
@@ -87,7 +93,23 @@ body, input, textarea {
 }
 
 i.material-icons-round {
+    /* Don't allow selecting the text. */
     user-select: none;
+}
+
+/* Slightly reduce size of these icons. Normal is 24px. */
+.smaller-icon {
+    font-size: 20px;
+}
+
+.authentic-cursor {
+    /* The cursor font is tall and affects vertical centering of the text, so take it out of the
+    flow. Be sure to add some margin to make space for it. */
+    position: absolute;
+
+    /* This is loaded because we use the TRS-80 emulator, which uses it for its editor. */
+    font-family: "TreasureMIII64C", monospace;
+    font-size: 20px;
 }
 
 /* ----------------------------------------------------------------------------------------------------- */
@@ -184,8 +206,82 @@ button.icon-button {
     border-radius: 50%;
 }
 
+button i {
+    transition: color var(--button-transition-time) ease-in-out,
+        opacity var(--button-transition-time) ease-in-out;
+}
+
 .icon-button:hover:not(:disabled) .material-icons-override {
     color: var(--foreground-emphasized);
+}
+
+.tag {
+    position: relative; /* For absolute-positioned exclude mark. */
+
+    border-radius: 999px;
+    color: white;
+    font-size: 11px;
+    padding: 2px 7px;
+
+    white-space: nowrap;
+    user-select: none;
+
+    display: flex;
+    gap: 3px; /* Between text and delete icon. */
+    align-items: center; /* To align delete icon and text. */
+}
+
+.tag i {
+    /* Delete icon size */
+    font-size: 13px;
+}
+
+.tag-clickable {
+    cursor: pointer;
+}
+
+.tag-faint {
+    opacity: 30%;
+}
+
+/* See computeTagColor() */
+.tag-0 { background-color: var(--green); }
+.tag-1 { background-color: var(--orange); }
+.tag-2 { background-color: var(--magenta); }
+.tag-3 { background-color: var(--violet); }
+.tag-4 { background-color: var(--blue); }
+.tag-5 { background-color: var(--cyan); }
+.tag-trash { background-color: var(--red); }
+
+.tag .tag-exclude-icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    font-size: 40px;
+    transform: translate(-50%, -50%);
+    color: black;
+    opacity: 50%;
+}
+
+@keyframes spin {
+    from {
+        transform:rotate(360deg);
+    }
+    to {
+        transform:rotate(0deg);
+    }
+}
+
+@keyframes rainbow {
+    0% { color: var(--yellow); }
+    12.5% { color: var(--orange); }
+    25% { color: var(--red); }
+    37.5% { color: var(--magenta); }
+    50% { color: var(--violet); }
+    62.5% { color: var(--blue); }
+    75% { color: var(--cyan); }
+    87.5% { color: var(--green); }
+    100% { color: var(--yellow); }
 }
 
 /* ----------------------------------------------------------------------------------------------------- */
@@ -295,6 +391,10 @@ button.icon-button {
     gap: 10px;
 }
 
+.panel .action-bar .action-bar-spacer {
+    flex-grow: 1;
+}
+
 .dialog-box-background {
     display: flex;
     justify-content: center;
@@ -385,24 +485,39 @@ button.icon-button {
 
 .your-files-tab .files {
     background-color: var(--background);
-
     overflow: auto;
+    padding: var(--side-padding);
+
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    column-gap: var(--side-padding);
+    row-gap: 40px;
+    align-content: start;
 }
 
 .your-files-tab .file {
-    padding: 10px var(--side-padding);
-    border-bottom: 1px solid var(--background-highlights);
     cursor: default;
+    /* For long URLs that would force the box to be larger. */
+    overflow-wrap: break-word;
+}
 
-    display: grid;
-    grid-template-columns: 1fr auto auto auto;
-    align-items: center;
-    gap: 10px;
+.your-files-tab .file .screenshots > :not(:first-child) {
+    display: none;
+}
+
+.your-files-tab .file .screenshots > * {
+    border-radius: 10px;
+    max-width: 100%;
+}
+
+.your-files-tab .file .screenshots.missing {
+    opacity: 30%;
 }
 
 .your-files-tab .file .name {
     font-weight: 800;
     color: var(--accent-color);
+    margin-top: 5px;
 }
 
 .your-files-tab .file .name .release-year {
@@ -415,40 +530,28 @@ button.icon-button {
 .your-files-tab .file .filename {
     font-family: "Roboto Mono", monospace;
     white-space: pre;
+    overflow: hidden;
 }
 
 .your-files-tab .file .note {
     font-size: 80%;
     margin-top: 5px;
     color: var(--foreground-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    /* Max two lines. */
-    line-height: 1.3;
-    max-height: 2.6em;
-
-    /* Put ellipsis at end of second line. This appears to be webkit-only, but seems to work on Firefox too. */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
 }
 
-.your-files-tab .file .screenshots {
+.your-files-tab .file .tags {
+    margin-top: 10px;
     display: flex;
-    flex-flow: row nowrap;
-    overflow: hidden;
+    flex-flow: row wrap;
+    gap: 5px;
 }
 
-.your-files-tab .file .screenshots > * {
-    /* TODO can replace this with grid */
-    border-radius: 5px;
-    max-width: 75px;
-    margin-left: 10px;
-}
-
-.your-files-tab .file .screenshots > *:first-child {
-    margin-left: 0;
+.your-files-tab .file .buttons {
+    margin: 15px 0;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: start;
+    gap: 10px;
 }
 
 .your-files-tab .empty-library {
@@ -462,7 +565,7 @@ button.icon-button {
         "header demon" auto
         "...... demon" 50px
         " body  demon" auto
-        "...... demon" 2fr /
+        "...... demon" 1.2fr /
          4fr    3fr;
     column-gap: 40px;
 }
@@ -480,17 +583,42 @@ button.icon-button {
     grid-area: body;
     margin: 0;
     font-size: 14pt;
-    font-weight: normal;
+    font-weight: 100;
     color: var(--foreground);
     text-align: right;
 }
 
 .your-files-tab .empty-library img {
     grid-area: demon;
+    align-self: center;
 }
 
 .your-files-tab .empty-library article code {
     font-family: "Roboto Mono", monospace;
+    color: var(--blue);
+}
+
+.your-files-tab .action-bar .tag-editor {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.your-files-tab .action-bar .search-string {
+    /* Make space after "Search:". */
+    margin-left: 0.4em;
+
+    white-space: pre-wrap;
+}
+
+.your-files-tab .action-bar .search-button i {
+    /* Make space for the cursor, which is positioned absolutely and takes no space. */
+    margin-left: 5px;
+}
+
+.your-files-tab .action-bar .search-string,
+.your-files-tab .action-bar .search-button .authentic-cursor {
+
     color: var(--blue);
 }
 
@@ -584,23 +712,20 @@ button.icon-button {
     grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
 }
 
+.file-panel-form-container {
+    background-color: var(--background);
+    padding: var(--side-padding);
+    overflow-y: hidden;
+}
+
 .file-panel-form {
+    height: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: auto auto auto auto auto 1fr;
     column-gap: 20px;
     row-gap: 20px;
-    background-color: var(--background);
-
-    flex-grow: 1;
-    overflow-y: hidden;
-
-    padding: var(--side-padding);
-}
-
-.file-panel-form > * {
-    /* TODO delete */
-    xbackground-color: #ECC;
+    overflow-y: auto;
 }
 
 .file-panel-form label {
@@ -614,11 +739,17 @@ button.icon-button {
     display: block;
     box-sizing: border-box;
     width: 100%;
-    margin-top: 5px;
     color: var(--foreground-emphasized);
     background-color: var(--background-highlights);
     border: none;
     border-radius: 3px;
+}
+
+.file-panel-form input,
+.file-panel-form textarea,
+.file-panel-form .tags-editor {
+
+    margin-top: 5px;
 }
 
 .file-panel-form input:disabled,
@@ -631,10 +762,18 @@ button.icon-button {
 .file-panel-form .screenshots {
     grid-column: 3 / -1;
     grid-row: 1 / -1;
-    overflow-y: auto;
 
     display: flex;
     flex-flow: column nowrap;
+
+    height: max-content;
+}
+
+.file-panel-form .screenshots-instructions,
+.file-panel-form .tags-instructions {
+    margin-top: 5px;
+    font-style: italic;
+    color: var(--foreground-secondary);
 }
 
 .file-panel-form .filename input {
@@ -650,6 +789,27 @@ button.icon-button {
     grid-column-end: span 2;
 }
 
+.file-panel-form .tags-editor .tag-list {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 5px;
+    align-items: center;
+}
+
+.file-panel-form .tags-editor .new-tag-form {
+    /*margin-top: 8px;*/
+}
+
+.file-panel-form .tags-editor .new-tag-form input {
+    font-size: 12px;
+    width: 8em;
+    margin: 0;
+    border-radius: 999px;
+    padding-left: 10px;
+    padding-right: 10px;
+    outline: 0;
+}
+
 .file-panel-form .shared input {
     display: none;
 }
@@ -657,6 +817,11 @@ button.icon-button {
 .file-panel-form .shared i {
     font-size: 36px;
     display: block;
+    cursor: pointer;
+}
+
+.file-panel-form .shared input:disabled ~ i {
+    cursor: default;
 }
 
 .file-panel-form .shared i.on-state {
@@ -703,52 +868,31 @@ button.icon-button {
     color: var(--red);
 }
 
-.action-bar .save-button.saving i:nth-of-type(1),
-.action-bar .save-button.saving i:nth-of-type(3) {
+.file-panel .action-bar .save-button.saving i:nth-of-type(1),
+.file-panel .action-bar .save-button.saving i:nth-of-type(3) {
     display: none;
 }
 
-.action-bar .save-button.success i:nth-of-type(1),
-.action-bar .save-button.success i:nth-of-type(2) {
+.file-panel .action-bar .save-button.success i:nth-of-type(1),
+.file-panel .action-bar .save-button.success i:nth-of-type(2) {
     display: none;
 }
 
-.action-bar .save-button:not(.saving):not(.success) i:nth-of-type(2),
-.action-bar .save-button:not(.saving):not(.success) i:nth-of-type(3) {
+.file-panel .action-bar .save-button:not(.saving):not(.success) i:nth-of-type(2),
+.file-panel .action-bar .save-button:not(.saving):not(.success) i:nth-of-type(3) {
     display: none;
 }
 
-.action-bar .save-button i:nth-of-type(2) {
+.file-panel .action-bar .save-button i:nth-of-type(2) {
     animation: spin 1s infinite linear;
 }
 
-.action-bar .save-button i:nth-of-type(3) {
+.file-panel .action-bar .save-button i:nth-of-type(3) {
     color: var(--green);
 }
 
-.panel .action-bar button.save-button.saving:disabled {
+.file-panel .action-bar button.save-button.saving:disabled {
     opacity: 1;
-}
-
-@keyframes spin {
-    from {
-        transform:rotate(360deg);
-    }
-    to {
-        transform:rotate(0deg);
-    }
-}
-
-@keyframes rainbow {
-    0% { color: var(--yellow); }
-    12.5% { color: var(--orange); }
-    25% { color: var(--red); }
-    37.5% { color: var(--magenta); }
-    50% { color: var(--violet); }
-    62.5% { color: var(--blue); }
-    75% { color: var(--cyan); }
-    87.5% { color: var(--green); }
-    100% { color: var(--yellow); }
 }
 
 /* ----------------------------------------------------------------------------------------------------- */
@@ -799,4 +943,374 @@ button.icon-button {
 
 .hexdump .annotation {
     color: var(--violet);
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.basic-tab {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr); /* contents */
+}
+
+.basic-outer {
+    background-color: var(--background);
+    padding: var(--side-padding);
+
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.basic {
+    font-family: "Roboto Mono", monospace;
+    overflow-y: auto;
+    white-space: pre;
+}
+
+.basic .basic-error {
+    color: var(--red);
+}
+
+.basic .basic-line-number {
+    color: var(--foreground-secondary);
+}
+
+.basic .basic-punctuation {
+    color: var(--foreground-secondary);
+}
+
+.basic .basic-keyword {
+    color: var(--blue);
+}
+
+.basic .basic-regular {
+    color: var(--foreground);
+}
+
+.basic .basic-string {
+    color: var(--orange);
+}
+
+.basic .basic-comment {
+    color: var(--cyan);
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.cmd-tab {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr); /* contents */
+}
+
+.cmd-outer {
+    background-color: var(--background);
+    padding: var(--side-padding);
+
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.cmd {
+    font-family: "Roboto Mono", monospace;
+    overflow-y: auto;
+    white-space: pre;
+}
+
+.cmd .cmd-error {
+    color: var(--red);
+}
+
+.cmd .cmd-address {
+    color: var(--foreground-secondary);
+}
+
+.cmd .cmd-hex {
+    color: var(--blue);
+}
+
+.cmd .cmd-opcodes {
+    color: var(--cyan);
+}
+
+.cmd .cmd-label {
+    color: var(--orange);
+}
+
+.cmd .cmd-space {
+    color: var(--foreground-secondary);
+}
+
+.cmd .cmd-punctuation {
+    color: var(--foreground-secondary);
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.system-program-tab {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr); /* contents */
+}
+
+.system-program-outer {
+    background-color: var(--background);
+    padding: var(--side-padding);
+
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.system-program {
+    font-family: "Roboto Mono", monospace;
+    overflow-y: auto;
+    white-space: pre;
+}
+
+.system-program .system-program-error,
+.system-program .system-program-highlight {
+    color: var(--red);
+}
+
+.system-program .system-program-address {
+    color: var(--foreground-secondary);
+}
+
+.system-program .system-program-hex {
+    color: var(--blue);
+}
+
+.system-program .system-program-explanation {
+    color: var(--cyan);
+}
+
+.system-program .system-program-entry-point {
+    margin-top: 10px;
+}
+
+.system-program .system-program-screenshot {
+    margin-bottom: 20px;
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.disassembly-tab {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr); /* contents */
+}
+
+.disassembly-outer {
+    background-color: var(--background);
+    padding: var(--side-padding);
+
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.disassembly {
+    font-family: "Roboto Mono", monospace;
+    overflow-y: auto;
+    white-space: pre;
+}
+
+.disassembly-space {
+    color: var(--foreground-secondary);
+}
+
+.disassembly-label {
+    color: var(--orange);
+}
+
+.disassembly-punctuation {
+    color: var(--foreground-secondary);
+}
+
+.disassembly-address {
+    color: var(--foreground-secondary);
+}
+
+.disassembly-hex {
+    color: var(--blue);
+}
+
+.disassembly-opcodes {
+    color: var(--cyan);
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.trsdos-tab {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
+}
+
+.trsdos-tab .action-bar {
+    justify-content: flex-end;
+    gap: 20px;
+}
+
+.trsdos {
+    background-color: var(--background);
+    padding: var(--side-padding);
+    overflow-y: auto;
+}
+
+.trsdos .info {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 15px;
+    width: fit-content;
+}
+
+.trsdos .info .label {
+    font-weight: bold;
+    text-align: right;
+    color: var(--cyan);
+}
+
+.trsdos .info .value {
+    color: var(--blue);
+}
+
+.trsdos .info .empty-field {
+    opacity: 30%;
+}
+
+.trsdos .dir {
+    margin-top: 30px;
+    display: grid;
+    width: fit-content;
+    grid-template-columns: auto auto auto auto auto auto;
+    column-gap: 25px;
+    align-items: center;
+}
+
+/* Untested */
+body.signed-out .trsdos .dir {
+    /* Missing import button. Might be easier to disable it. */
+    grid-template-columns: auto auto auto auto auto;
+}
+
+.trsdos .dir .filename {
+    color: var(--magenta);
+}
+
+.trsdos .dir .size {
+    text-align: right;
+    color: var(--cyan);
+}
+
+.trsdos .dir .date {
+    color: var(--blue);
+}
+
+.trsdos .dir .protection-level {
+    color: var(--violet);
+}
+
+.trsdos .dir .run,
+.trsdos .dir .import {
+    cursor: pointer;
+    text-align: center;
+}
+
+.trsdos .dir .header {
+    font-weight: bold;
+    margin-bottom: 6px;
+    padding-bottom: 2px;
+}
+
+.trsdos .dir .filename.header {
+    border-bottom: 1px solid var(--magenta);
+}
+
+.trsdos .dir .size.header {
+    border-bottom: 1px solid var(--cyan);
+}
+
+.trsdos .dir .date.header {
+    border-bottom: 1px solid var(--blue);
+}
+
+.trsdos .dir .protection-level.header {
+    border-bottom: 1px solid var(--violet);
+}
+
+.trsdos .dir .run.header,
+.trsdos .dir .import.header {
+    border-bottom: 1px solid var(--icon-color);
+}
+
+.trsdos .dir .hidden-file {
+    opacity: 30%;
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.duplicates-tab {
+    display: grid;
+    grid-template-rows: 1fr; /* contents */
+
+    background-color: var(--background);
+    padding: var(--side-padding);
+    overflow-y: auto;
+}
+
+.duplicates {
+    display: grid;
+    width: fit-content;
+    grid-template-columns: auto auto auto auto auto;
+    column-gap: 25px;
+    align-items: center;
+    align-content: start;
+}
+
+.duplicates .name {
+    color: var(--magenta);
+}
+
+.duplicates .filename {
+    color: var(--cyan);
+}
+
+.duplicates .type {
+    color: var(--blue);
+}
+
+.duplicates .in-trash {
+    color: var(--violet);
+    text-align: center;
+}
+
+.duplicates .edit {
+    cursor: pointer;
+    text-align: center;
+}
+
+.duplicates .edit.disabled {
+    cursor: default;
+    opacity: 30%;
+}
+
+.duplicates .header {
+    font-weight: bold;
+    margin-bottom: 6px;
+    padding-bottom: 2px;
+}
+
+.duplicates .name.header {
+    border-bottom: 1px solid var(--magenta);
+}
+
+.duplicates .filename.header {
+    border-bottom: 1px solid var(--cyan);
+}
+
+.duplicates .type.header {
+    border-bottom: 1px solid var(--blue);
+}
+
+.duplicates .in-trash.header {
+    border-bottom: 1px solid var(--violet);
+}
+
+.duplicates .edit.header {
+    border-bottom: 1px solid var(--icon-color);
 }

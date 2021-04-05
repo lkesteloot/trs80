@@ -1,4 +1,12 @@
-import {CanvasScreen, CassettePlayer, ControlPanel, PanelType, SettingsPanel, Trs80} from "trs80-emulator";
+import {
+    CanvasScreen,
+    CassettePlayer,
+    ControlPanel,
+    DriveIndicators,
+    PanelType,
+    SettingsPanel,
+    Trs80
+} from "trs80-emulator";
 import firebase from 'firebase/app';
 // These imports load individual services into the firebase namespace.
 import 'firebase/auth';
@@ -14,6 +22,10 @@ import {FileBuilder} from "./File";
 import {DialogBox} from "./DialogBox";
 import {AuthUser} from "./User";
 import {Database} from "./Database";
+import {File} from "./File";
+import {Editor} from "trs80-emulator/dist/Editor";
+import {isRegisterSetField, isWordReg, Register, toHexWord} from "z80-base";
+import {disasmForTrs80, disasmForTrs80Program} from "trs80-disasm";
 
 class EmptyCassette extends CassettePlayer {
     // Nothing to do.
@@ -42,14 +54,34 @@ function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () =
     themeButton.classList.add("theme-button");
     navbar.append(themeButton);
 
-    const signInButton = makeTextButton("Sign In", undefined, "sign-in-button", signIn);
-    const signOutButton = makeTextButton("Sign Out", undefined, "sign-out-button", signOut);
+    const signInButton = makeTextButton("Sign In", "person", "sign-in-button", signIn);
+    const signOutButton = makeTextButton("Sign Out", "person", "sign-out-button", signOut);
     navbar.append(signInButton, signOutButton);
 
     return navbar;
 }
 
+const FLAG_STRING = "CNP3H5ZS"; // From LSB to MSB.
+/**
+ * Convert an 8-bit flag byte to a debug string.
+ * TODO: Move this to z80-base.
+ */
+function makeFlagString(f: number): string {
+    let flagString = "";
+
+    for (let i = 0; i < 8; i++) {
+        flagString += (f & 0x01) !== 0 ? FLAG_STRING[i] : "-";
+        f >>= 1;
+    }
+
+    return flagString;
+}
+
 export function main() {
+    const args = Context.parseFragment(window.location.hash);
+    const runFileId = args.get("runFile")?.[0];
+    const userId = args.get("user")?.[0];
+
     const body = document.querySelector("body") as HTMLElement;
     body.classList.add("signed-out");
 
@@ -146,9 +178,10 @@ export function main() {
     screenDiv.classList.add("main-computer-screen");
 
     const screen = new CanvasScreen(1.5);
-    screenDiv.append(screen.getNode());
     let cassette = new EmptyCassette();
     const trs80 = new Trs80(screen, cassette);
+    const editor = new Editor(trs80, screen);
+    screenDiv.append(editor.node);
 
     const reboot = () => {
         trs80.reset();
@@ -159,14 +192,19 @@ export function main() {
     const viewPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.VIEW);
     const controlPanel = new ControlPanel(screen.getNode());
     controlPanel.addResetButton(reboot);
+    /* We don't currently mount a cassette.
     controlPanel.addTapeRewindButton(() => {
         // cassette.rewind();
     });
+     */
     controlPanel.addSettingsButton(hardwareSettingsPanel);
     controlPanel.addSettingsButton(viewPanel);
     // const progressBar = new ProgressBar(screen.getNode());
     // cassette.setProgressBar(progressBar);
     controlPanel.addMuteButton(trs80.soundPlayer);
+
+    const driveIndicators = new DriveIndicators(screen.getNode());
+    trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
 
     body.append(navbar);
     body.append(screenDiv);
@@ -188,26 +226,11 @@ export function main() {
         }
     });
 
-    document.addEventListener("keydown", event => {
-        if (event.ctrlKey && event.key === "l") {
-            panelManager.toggle();
-        }
-    });
-
     reboot();
 
     const context = new Context(library, trs80, db, panelManager);
-    context.onFragment.subscribe(fragment => {
-        window.location.hash = fragment;
-    });
 
-    context.onUser.subscribe(user => {
-        body.classList.toggle("signed-in", user !== undefined);
-        body.classList.toggle("signed-out", user === undefined);
-    });
-
-    // TODO make this button appear and disappear as we have/not have a program.
-    controlPanel.addScreenshotButton(() => {
+    const screenshotButton = controlPanel.addScreenshotButton(() => {
         if (context.runningFile !== undefined) {
             let file = context.runningFile;
             const screenshot = trs80.getScreenshot();
@@ -224,22 +247,100 @@ export function main() {
                 });
         }
     });
+    // Start hidden, since the user isn't signed in until later.
+    screenshotButton.classList.add("hidden");
+
+    controlPanel.addEditorButton(() => editor.startEdit());
+
+    let logging = false;
+    const logs: string[] = [];
+    const MAX_LOGS = 16*1024;
+    const disasm = disasmForTrs80();
+    const readMemory = (address: number): number => trs80.readMemory(address);
+    let stepPc = 0;
+    trs80.onPreStep.subscribe(() => {
+        stepPc = trs80.z80.regs.pc;
+    });
+    trs80.onPostStep.subscribe(() => {
+        if (logging) {
+            const instruction = disasm.disassembleTrace(stepPc, readMemory);
+            const values: string[] = [];
+            for (const arg of instruction.args) {
+                for (const reg of arg.split(/[^a-zA-Z']+/)) {
+                    const regExpanded = reg.replace("'", "Prime");
+                    if (isRegisterSetField(regExpanded)) {
+                        const value = trs80.z80.regs.getValue(regExpanded);
+                        values.push(reg + "=" + toHexWord(value));
+                    }
+                }
+            }
+            const line = toHexWord(stepPc) + "  " +
+                instruction.binText().padEnd(11) + "  " +
+                instruction.toText().padEnd(20) + "  " +
+                makeFlagString(trs80.z80.regs.f) + "  " +
+                values.join(", ");
+            logs.push(line.trimEnd());
+            if (logs.length > MAX_LOGS) {
+                logs.splice(0, logs.length - MAX_LOGS);
+            }
+        }
+    });
+    controlPanel.addResetButton(() => {
+        if (logging) {
+            const dump = logs.join("\n");
+            const blob = new Blob([dump], {type: "text/plain"});
+            const a = document.createElement("a");
+            a.href = window.URL.createObjectURL(blob);
+            a.download = "trace.lst";
+            a.click();
+
+            logging = false;
+        } else {
+            logs.splice(0, logs.length);
+            logging = true;
+        }
+    });
+
+    /**
+     * Update whether the user can take a screenshot of the running program.
+     */
+    function updateScreenshotButtonVisibility() {
+        const canSaveScreenshot = context.runningFile !== undefined &&
+            context.user !== undefined &&
+            context.runningFile.uid === context.user.uid;
+        screenshotButton.classList.toggle("hidden", !canSaveScreenshot);
+    }
+
+    context.onRunningFile.subscribe(() => {
+        window.location.hash = context.getFragment();
+        updateScreenshotButtonVisibility();
+    });
 
     context.onUser.subscribe(user => {
+        body.classList.toggle("signed-in", user !== undefined);
+        body.classList.toggle("signed-out", user === undefined);
+        updateScreenshotButtonVisibility();
+
         library.removeAll();
         if (user !== undefined) {
             // Fetch all files.
-            context.db.getAllFiles(user.uid)
+            context.db.getAllFiles(userId ?? user.uid)
                 .then((querySnapshot) => {
+                    // Sort files before adding them to the library so that they show up in the UI in order
+                    // and the screenshots get loaded with the visible ones first.
+                    const files: File[] = [];
                     for (const doc of querySnapshot.docs) {
-                        const file = FileBuilder.fromDoc(doc).build();
+                        files.push(FileBuilder.fromDoc(doc).build());
+                    }
+                    files.sort(File.compare);
+                    for (const file of files) {
                         library.addFile(file);
 
-                        // Update hash if necessary. We can probably remove this now that all files
-                        // have a hash in the DB and we make one when we import.
-                        if (file.hash === "" && file.binary.length !== 0) {
+                        // Update hash if necessary.
+                        if (file.binary.length !== 0 && file.isOldHash()) {
                             // This updates the hash.
                             const newFile = file.builder().withBinary(file.binary).build();
+                            console.log("Hash for " + file.name + " has been recomputed");
                             context.db.updateFile(file, newFile)
                                 .then(() => {
                                     library.modifyFile(newFile);
@@ -261,8 +362,6 @@ export function main() {
     });
 
     // See if we should run an app right away.
-    const args = Context.parseFragment(window.location.hash);
-    const runFileId = args.get("runFile")?.[0];
     context.onUserResolved.subscribe(() => {
         // We're signed in, or not, and can now read the database.
         if (runFileId !== undefined) {

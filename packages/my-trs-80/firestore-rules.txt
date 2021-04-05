@@ -10,6 +10,8 @@ service cloud.firestore {
                 resource != null &&
                 // Allow if file is shared.
                 (resource.data.shared ||
+                 // Currently allow all resources to be read.
+                 true ||
                  // Else the user must be signed in and owner of file.
                  (request.auth != null && resource.data.uid == request.auth.uid));
 
