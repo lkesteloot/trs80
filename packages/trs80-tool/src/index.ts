@@ -2,9 +2,34 @@
 import * as fs from "fs";
 import * as path from "path";
 import { program } from "commander";
+import {decodeTrs80File, decodeTrsdos} from "trs80-base";
 
 function dir(infile: string): void {
+    let buffer;
+    try {
+        buffer = fs.readFileSync(infile);
+    } catch (e) {
+        console.error("Can't open \"" + infile + "\": " + e.message);
+        process.exit(1);
+    }
 
+    const binary = new Uint8Array(buffer);
+    const file = decodeTrs80File(binary, infile);
+    console.log(file.className);
+
+    switch (file.className) {
+        case "Jv1FloppyDisk":
+        case "Jv3FloppyDisk":
+        case "DmkFloppyDisk":
+            const trsdos = decodeTrsdos(file);
+            if (trsdos !== undefined) {
+                for (const dirEntry of trsdos.dirEntries) {
+                    console.log(dirEntry.getFilename("/") + " " +
+                        dirEntry.getSize() + " " + dirEntry.getDateString() + " " + dirEntry.getProtectionLevel());
+                }
+            }
+            break;
+    }
 }
 
 function extract(infile: string, outfile: string): void {
@@ -26,7 +51,7 @@ function main() {
     program
         .command("dir <infile>")
         .description("list files in the infile", {
-            infile: "WAV, JV1, JV3, or DMK file",
+            infile: "WAV, JV1, JV3, or DMK file (TRSDOS floppies only)",
         })
         .action(infile => {
             dir(infile);
