@@ -1,11 +1,11 @@
-import {BasicProgram, decodeBasicProgram} from "./Basic";
-import {Cassette, decodeCassette} from "./Cassette";
-import {CmdProgram, decodeCmdProgram} from "./CmdProgram";
-import {RawBinaryFile} from "./RawBinaryFile";
-import {decodeJv1FloppyDisk, Jv1FloppyDisk} from "./Jv1FloppyDisk";
-import {decodeJv3FloppyDisk, Jv3FloppyDisk} from "./Jv3FloppyDisk";
-import {decodeDmkFloppyDisk, DmkFloppyDisk} from "./DmkFloppyDisk";
-import {decodeSystemProgram, SystemProgram} from "./SystemProgram";
+import {BasicProgram, decodeBasicProgram} from "./Basic.js";
+import {Cassette, decodeCassette} from "./Cassette.js";
+import {CmdProgram, decodeCmdProgram} from "./CmdProgram.js";
+import {RawBinaryFile} from "./RawBinaryFile.js";
+import {decodeJv1FloppyDisk, Jv1FloppyDisk} from "./Jv1FloppyDisk.js";
+import {decodeJv3FloppyDisk, Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
+import {decodeDmkFloppyDisk, DmkFloppyDisk} from "./DmkFloppyDisk.js";
+import {decodeSystemProgram, SystemProgram} from "./SystemProgram.js";
 
 /**
  * All the possible programs we can decode.

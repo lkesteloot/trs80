@@ -1,5 +1,5 @@
-import {ProgramAnnotation} from "./ProgramAnnotation";
-import {AbstractTrs80File} from "./Trs80File";
+import {ProgramAnnotation} from "./ProgramAnnotation.js";
+import {AbstractTrs80File} from "./Trs80File.js";
 
 // Side of a floppy disk.
 export enum Side {

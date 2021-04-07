@@ -6,7 +6,7 @@
  */
 
 import {concatByteArrays} from "teamten-ts-utils";
-import {FloppyDisk, Side} from "./FloppyDisk";
+import {FloppyDisk, Side} from "./FloppyDisk.js";
 
 // Number of bytes per dir entry in the sector.
 const DIR_ENTRY_LENGTH = 48;

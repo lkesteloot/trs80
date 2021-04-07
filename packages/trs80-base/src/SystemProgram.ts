@@ -6,8 +6,8 @@
 
 import {ByteReader, EOF} from "teamten-ts-utils";
 import {toHexByte, toHexWord} from "z80-base";
-import {ProgramAnnotation} from "./ProgramAnnotation";
-import {AbstractTrs80File} from "./Trs80File";
+import {ProgramAnnotation} from "./ProgramAnnotation.js";
+import {AbstractTrs80File} from "./Trs80File.js";
 
 const FILE_HEADER = 0x55;
 const DATA_HEADER = 0x3C;

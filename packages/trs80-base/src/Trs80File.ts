@@ -1,4 +1,4 @@
-import {ProgramAnnotation} from "./ProgramAnnotation";
+import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 /**
  * Base class for decoded TRS-80 files.

@@ -1,6 +1,6 @@
 import {toHexByte} from "z80-base";
-import {FloppyDisk, SectorData, Side} from "./FloppyDisk";
-import {ProgramAnnotation} from "./ProgramAnnotation";
+import {FloppyDisk, SectorData, Side} from "./FloppyDisk.js";
+import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 // The JV3 file consists of sectors of different sizes all bunched together. Before that
 // comes a directory of these sectors, with three bytes per directory entry (track,

@@ -3,8 +3,8 @@
 
 import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
 import {hi, lo, toHexWord} from "z80-base";
-import {ProgramAnnotation} from "./ProgramAnnotation";
-import {AbstractTrs80File} from "./Trs80File";
+import {ProgramAnnotation} from "./ProgramAnnotation.js";
+import {AbstractTrs80File} from "./Trs80File.js";
 
 export const BASIC_TAPE_HEADER_BYTE = 0xD3;
 export const BASIC_HEADER_BYTE = 0xFF;

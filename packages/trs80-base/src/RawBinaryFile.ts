@@ -1,4 +1,4 @@
-import {AbstractTrs80File} from "./Trs80File";
+import {AbstractTrs80File} from "./Trs80File.js";
 
 /**
  * File when we don't recognize the type.

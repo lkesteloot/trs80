@@ -8,9 +8,9 @@
 
 import {toHexWord} from "z80-base";
 import {toHexByte} from "z80-base";
-import {CRC_16_CCITT} from "./Crc16";
-import {FloppyDisk, numberToSide, SectorData, Side} from "./FloppyDisk";
-import {ProgramAnnotation} from "./ProgramAnnotation";
+import {CRC_16_CCITT} from "./Crc16.js";
+import {FloppyDisk, numberToSide, SectorData, Side} from "./FloppyDisk.js";
+import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 const FILE_HEADER_SIZE = 16;
 const TRACK_HEADER_SIZE = 128;
@@ -349,7 +349,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const sideCount = singleSided ? 1 : 2;
     const expectedLength = FILE_HEADER_SIZE + sideCount*trackCount*trackLength;
     if (binary.length !== expectedLength) {
-        console.error(`DMK file wrong size (${binary.length} != ${expectedLength})`);
+        // console.error(`DMK file wrong size (${binary.length} != ${expectedLength})`);
         return undefined;
     }
 

@@ -1,8 +1,8 @@
-import {decodeSystemProgram} from "./SystemProgram";
-import {AbstractTrs80File} from "./Trs80File";
-import {decodeTrs80File} from "./Trs80FileDecoder";
-import {ProgramAnnotation} from "./ProgramAnnotation";
-import {Trs80File} from "./Trs80FileDecoder";
+import {decodeSystemProgram} from "./SystemProgram.js";
+import {AbstractTrs80File} from "./Trs80File.js";
+import {decodeTrs80File} from "./Trs80FileDecoder.js";
+import {ProgramAnnotation} from "./ProgramAnnotation.js";
+import {Trs80File} from "./Trs80FileDecoder.js";
 
 // Low-speed header and sync constants.
 const LOW_SPEED_HEADER_BYTE = 0x00;

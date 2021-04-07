@@ -1,5 +1,5 @@
-import {FloppyDisk, SectorData, Side} from "./FloppyDisk";
-import {ProgramAnnotation} from "./ProgramAnnotation";
+import {FloppyDisk, SectorData, Side} from "./FloppyDisk.js";
+import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 const BYTES_PER_SECTOR = 256;
 const SECTORS_PER_TRACK = 10;
