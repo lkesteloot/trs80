@@ -12,6 +12,7 @@ import {
 } from "trs80-base";
 import {withCommas} from "teamten-ts-utils";
 import {BitType, Decoder, Program, readWavFile, Tape} from "trs80-cassette";
+import {version} from "./version.js";
 
 /**
  * Return the singular or plural version of a string depending on the count.
@@ -332,10 +333,11 @@ function hexdump(infile: string): void {
 
 }
 
-function main() {
+export function main() {
     program
         .storeOptionsAsProperties(false)
-        .name("trs80-tool");
+        .name("trs80-tool")
+        .version(version);
     program
         .command("dir <infile>")
         .description("list files in the infile", {
@@ -374,4 +376,3 @@ function main() {
         .parse(process.argv);
 }
 
-main();
