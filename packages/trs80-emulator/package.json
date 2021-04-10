@@ -1,6 +1,6 @@
 {
   "name": "trs80-emulator",
-  "version": "1.1.17",
+  "version": "2.0.1",
   "description": "TRS-80 Model III emulator",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,19 +24,19 @@
   "dependencies": {
     "strongly-typed-events": "^1.7.3",
     "teamten-ts-utils": "^1.0.1",
-    "trs80-base": "^1.0.5",
-    "z80-base": "^1.0.6",
-    "z80-emulator": "^1.0.6"
+    "trs80-base": "^2.0.1",
+    "z80-base": "^2.0.1",
+    "z80-emulator": "^2.0.1"
   },
   "devDependencies": {
+    "http-server": "^0.12.0",
     "source-map-loader": "^0.2.4",
     "ts-loader": "^6.2.1",
-    "webpack": "^4.41.5",
-    "webpack-build-notifier": "^2.0.0",
-    "webpack-cli": "^3.3.10",
-    "http-server": "^0.12.0",
     "tslib": "^1.10.0",
     "tslint": "^5.20.1",
-    "typescript": "^3.7.4"
+    "typescript": "^3.7.4",
+    "webpack": "^4.41.5",
+    "webpack-build-notifier": "^2.0.0",
+    "webpack-cli": "^3.3.10"
   }
 }

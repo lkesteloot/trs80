@@ -1,6 +1,6 @@
 {
   "name": "z80-emulator",
-  "version": "1.0.6",
+  "version": "2.0.1",
   "description": "Z80 emulator in TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,9 +32,9 @@
     "tslint": "^5.20.1",
     "typedoc": "^0.15.8",
     "typescript": "^3.9.9",
-    "z80-test": "^1.0.5"
+    "z80-test": "^2.0.1"
   },
   "dependencies": {
-    "z80-base": "^1.0.6"
+    "z80-base": "^2.0.1"
   }
 }

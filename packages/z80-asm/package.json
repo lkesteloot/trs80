@@ -1,6 +1,6 @@
 {
   "name": "z80-asm",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "description": "Z80 assembler and IDE",
   "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
@@ -28,7 +28,7 @@
     "codemirror": "^5.52.2",
     "electron-store": "^5.1.1",
     "tippy.js": "^6.1.1",
-    "z80-base": "^1.0.5"
+    "z80-base": "^2.0.1"
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",

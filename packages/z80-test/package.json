@@ -1,6 +1,6 @@
 {
   "name": "z80-test",
-  "version": "1.0.5",
+  "version": "2.0.1",
   "description": "Z80 test suite",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -26,6 +26,6 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "z80-base": "^1.0.3"
+    "z80-base": "^2.0.1"
   }
 }
