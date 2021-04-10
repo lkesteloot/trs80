@@ -3,13 +3,13 @@
 // filtered-down samples for display, and other information
 // we got from it.
 
-import {AudioFile, concatAudio, highPassFilter} from "./AudioUtils";
-import {DisplaySamples} from "./DisplaySamples";
-import {Program} from "./Program";
-import {WaveformAnnotation} from "./Annotations";
+import {AudioFile, concatAudio, highPassFilter} from "./AudioUtils.js";
+import {DisplaySamples} from "./DisplaySamples.js";
+import {Program} from "./Program.js";
+import {WaveformAnnotation} from "./Annotations.js";
 import {SimpleEventDispatcher} from "strongly-typed-events";
-import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
-import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile";
+import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder.js";
+import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile.js";
 import {concatByteArrays} from "teamten-ts-utils";
 
 const LOCAL_DATA_KEY = "tapes";

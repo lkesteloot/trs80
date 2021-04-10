@@ -1,5 +1,5 @@
 
-import {pad} from "./Utils";
+import {pad} from "./Utils.js";
 import {withCommas} from "teamten-ts-utils";
 
 export class AudioFile {

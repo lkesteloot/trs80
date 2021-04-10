@@ -1,11 +1,11 @@
-import {BitData} from "./BitData";
-import {BitType} from "./BitType";
-import {Tape} from "./Tape";
-import {TapeDecoder} from "./TapeDecoder";
-import {TapeDecoderState} from "./TapeDecoderState";
-import {ByteData} from "./ByteData";
-import {Program} from "./Program";
-import {LabelAnnotation, WaveformAnnotation} from "./Annotations";
+import {BitData} from "./BitData.js";
+import {BitType} from "./BitType.js";
+import {Tape} from "./Tape.js";
+import {TapeDecoder} from "./TapeDecoder.js";
+import {TapeDecoderState} from "./TapeDecoderState.js";
+import {ByteData} from "./ByteData.js";
+import {Program} from "./Program.js";
+import {LabelAnnotation, WaveformAnnotation} from "./Annotations.js";
 
 // What distance away from 0 counts as "positive" (or, when negative, "negative").
 const THRESHOLD = 500;

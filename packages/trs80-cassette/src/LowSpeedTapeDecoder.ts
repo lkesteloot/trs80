@@ -1,19 +1,19 @@
 
-import {TapeDecoder} from "./TapeDecoder";
-import {Tape} from "./Tape";
-import {TapeDecoderState} from "./TapeDecoderState";
-import {BitData} from "./BitData";
-import {ByteData} from "./ByteData";
-import {Program} from "./Program";
-import {BitType} from "./BitType";
+import {TapeDecoder} from "./TapeDecoder.js";
+import {Tape} from "./Tape.js";
+import {TapeDecoderState} from "./TapeDecoderState.js";
+import {BitData} from "./BitData.js";
+import {ByteData} from "./ByteData.js";
+import {Program} from "./Program.js";
+import {BitType} from "./BitType.js";
 import {
     HorizontalLineAnnotation,
     LabelAnnotation,
     PointAnnotation,
     VerticalLineAnnotation,
     WaveformAnnotation
-} from "./Annotations";
-import {clampToInt16, highPassFilter} from "./AudioUtils";
+} from "./Annotations.js";
+import {clampToInt16, highPassFilter} from "./AudioUtils.js";
 import {withCommas} from "teamten-ts-utils";
 
 const SYNC_BYTE = 0xA5;

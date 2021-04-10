@@ -1,11 +1,11 @@
 
 // Interface for tape decoders.
 
-import {BitData} from "./BitData";
-import {TapeDecoderState} from "./TapeDecoderState";
-import {ByteData} from "./ByteData";
-import {Program} from "./Program";
-import {WaveformAnnotation} from "./Annotations";
+import {BitData} from "./BitData.js";
+import {TapeDecoderState} from "./TapeDecoderState.js";
+import {ByteData} from "./ByteData.js";
+import {Program} from "./Program.js";
+import {WaveformAnnotation} from "./Annotations.js";
 
 export interface TapeDecoder {
     /**

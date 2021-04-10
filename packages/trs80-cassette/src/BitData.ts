@@ -1,5 +1,5 @@
 
-import {BitType} from "./BitType";
+import {BitType} from "./BitType.js";
 
 /**
  * Information about one particular bit (its position and status).

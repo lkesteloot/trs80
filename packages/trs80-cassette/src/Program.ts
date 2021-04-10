@@ -1,14 +1,14 @@
 
-import {BitData} from "./BitData";
-import {DisplaySamples} from "./DisplaySamples";
-import {ByteData} from "./ByteData";
+import {BitData} from "./BitData.js";
+import {DisplaySamples} from "./DisplaySamples.js";
+import {ByteData} from "./ByteData.js";
 import {SimpleEventDispatcher} from "strongly-typed-events";
-import {BitType} from "./BitType";
-import {TapeDecoder} from "./TapeDecoder";
-import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder";
-import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
-import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile";
-import {ProgramAnnotation} from "trs80-base/dist/ProgramAnnotation";
+import {BitType} from "./BitType.js";
+import {TapeDecoder} from "./TapeDecoder.js";
+import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder.js";
+import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder.js";
+import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile.js";
+import {ProgramAnnotation} from "trs80-base";
 
 export class Program {
     public trackNumber: number;
@@ -64,6 +64,13 @@ export class Program {
      */
     public getShortLabel(): string {
         return "T" + this.trackNumber + " C" + this.copyNumber;
+    }
+
+    /**
+     * Returns a filename-like string for this program, without an extension.
+     */
+    public getPseudoFilename(): string {
+        return "T" + this.trackNumber + "-C" + this.copyNumber;
     }
 
     /**

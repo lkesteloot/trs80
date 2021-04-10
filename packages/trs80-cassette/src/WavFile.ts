@@ -1,4 +1,4 @@
-import {AudioFile} from "./AudioUtils";
+import {AudioFile} from "./AudioUtils.js";
 import {toHexByte} from "z80-base";
 
 /**

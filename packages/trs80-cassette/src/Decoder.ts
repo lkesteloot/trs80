@@ -1,13 +1,13 @@
 
 // Uses tape decoders to work through the tape, finding programs and decoding them.
 
-import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder";
-import {Program} from "./Program";
-import {Tape} from "./Tape";
-import {TapeDecoder} from "./TapeDecoder";
-import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder";
-import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder";
-import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder";
+import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder.js";
+import {Program} from "./Program.js";
+import {Tape} from "./Tape.js";
+import {TapeDecoder} from "./TapeDecoder.js";
+import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder.js";
+import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder.js";
+import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder.js";
 
 class Transition {
     public candidate: Program;

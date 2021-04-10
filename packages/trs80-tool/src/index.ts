@@ -2,7 +2,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import { program } from "commander";
-import {decodeTrs80File, decodeTrsdos} from "trs80-base";
+import {decodeSystemProgram, decodeTrs80File, decodeTrsdos, trsdosProtectionLevelToString} from "trs80-base";
+import {withCommas} from "teamten-ts-utils";
+import {Decoder, readWavFile, Tape} from "trs80-cassette";
 
 function dir(infile: string): void {
     let buffer;
@@ -13,22 +15,51 @@ function dir(infile: string): void {
         process.exit(1);
     }
 
-    const binary = new Uint8Array(buffer);
-    const file = decodeTrs80File(binary, infile);
-    console.log(file.className);
+    if (infile.toLowerCase().endsWith(".wav")) {
+        const wavFile = readWavFile(buffer.buffer);
+        const tape = new Tape(infile, wavFile);
+        const decoder = new Decoder(tape);
+        decoder.decode();
 
-    switch (file.className) {
-        case "Jv1FloppyDisk":
-        case "Jv3FloppyDisk":
-        case "DmkFloppyDisk":
-            const trsdos = decodeTrsdos(file);
-            if (trsdos !== undefined) {
-                for (const dirEntry of trsdos.dirEntries) {
-                    console.log(dirEntry.getFilename("/") + " " +
-                        dirEntry.getSize() + " " + dirEntry.getDateString() + " " + dirEntry.getProtectionLevel());
-                }
+        for (const program of tape.programs) {
+            let extension = ".BIN";
+            if (program.isEdtasmProgram()) {
+                extension = ".ASM";
+            } else if (program.isBasicProgram()) {
+                extension = ".BAS";
+            } else if (decodeSystemProgram(program.binary) !== undefined) {
+                extension = ".3BN";
             }
-            break;
+            const filename = program.getPseudoFilename() + extension;
+
+            console.log(filename.padEnd(12) + " " +
+                withCommas(program.binary.length).padStart(8) + "  " +
+                program.baud + " baud");
+        }
+    } else {
+        const file = decodeTrs80File(buffer, infile);
+
+        switch (file.className) {
+            case "Jv1FloppyDisk":
+            case "Jv3FloppyDisk":
+            case "DmkFloppyDisk":
+                const trsdos = decodeTrsdos(file);
+                if (trsdos !== undefined) {
+                    for (const dirEntry of trsdos.dirEntries) {
+                        console.log(dirEntry.getFilename(".").padEnd(12) + " " +
+                            withCommas(dirEntry.getSize()).padStart(8) + " " +
+                            dirEntry.getDateString() + " " +
+                            trsdosProtectionLevelToString(dirEntry.getProtectionLevel()));
+                    }
+                } else {
+                    console.log("Can only show directory of TRSDOS floppies.");
+                }
+                break;
+
+            default:
+                console.log("Can't show a directory of this file type (" + file.className + ").");
+                break;
+        }
     }
 }
 

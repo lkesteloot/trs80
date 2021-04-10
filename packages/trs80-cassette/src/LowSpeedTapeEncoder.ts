@@ -1,5 +1,5 @@
 
-import {concatAudio, makeSilence} from "./AudioUtils";
+import {concatAudio, makeSilence} from "./AudioUtils.js";
 import {concatByteArrays} from "teamten-ts-utils";
 
 const SYNC_BYTE = 0xA5;

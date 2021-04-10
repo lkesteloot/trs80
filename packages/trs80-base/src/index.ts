@@ -9,3 +9,4 @@ export * from "./FloppyDisk.js";
 export * from "./Jv1FloppyDisk.js";
 export * from "./Trsdos.js";
 export * from "./Addresses.js";
+export * from "./ProgramAnnotation.js";
