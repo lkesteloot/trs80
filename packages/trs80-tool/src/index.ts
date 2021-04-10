@@ -355,6 +355,7 @@ export function main() {
         .action((infile, outfile) => {
             extract(infile, outfile);
         });
+    /*
     program
         .command("convert <infile> <outfile>")
         .description("convert infile to outfile", {
@@ -371,7 +372,7 @@ export function main() {
         })
         .action(infile => {
             hexdump(infile);
-        });
+        });*/
     program
         .parse(process.argv);
 }
