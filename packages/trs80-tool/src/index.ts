@@ -5,7 +5,7 @@ import { program } from "commander";
 import {
     decodeSystemProgram,
     decodeTrs80File,
-    decodeTrsdos,
+    decodeTrsdos, Trsdos,
     TrsdosDirEntry,
     trsdosProtectionLevelToString
 } from "trs80-base";
@@ -17,12 +17,15 @@ import {Decoder, Program, readWavFile, Tape} from "trs80-cassette";
  */
 abstract class ArchiveFile {
     public readonly filename: string;
+    public readonly date: Date | undefined;
 
-    constructor(filename: string) {
+    constructor(filename: string, date: Date | undefined) {
         this.filename = filename;
+        this.date = date;
     }
 
     public abstract getDirString(): string;
+    public abstract getBinary(): Uint8Array;
 }
 
 /**
@@ -32,7 +35,7 @@ class WavFile extends ArchiveFile {
     public readonly program: Program;
 
     constructor(program: Program) {
-        super(WavFile.getFilename(program));
+        super(WavFile.getFilename(program), undefined);
         this.program = program;
     }
 
@@ -53,16 +56,22 @@ class WavFile extends ArchiveFile {
             withCommas(this.program.binary.length).padStart(8) + "  " +
             this.program.baud + " baud";
     }
+
+    public getBinary(): Uint8Array {
+        return this.program.binary;
+    }
 }
 
 /**
  * Nested file that came from a TRSDOS floppy.
  */
 class TrsdosFile extends ArchiveFile {
+    public readonly trsdos: Trsdos;
     public readonly file: TrsdosDirEntry;
 
-    constructor(file: TrsdosDirEntry) {
-        super(file.getFilename("."));
+    constructor(trsdos: Trsdos, file: TrsdosDirEntry) {
+        super(file.getFilename("."), file.getDate());
+        this.trsdos = trsdos;
         this.file = file;
     }
 
@@ -71,6 +80,10 @@ class TrsdosFile extends ArchiveFile {
             withCommas(this.file.getSize()).padStart(8) + " " +
             this.file.getDateString() + " " +
             trsdosProtectionLevelToString(this.file.getProtectionLevel());
+    }
+
+    public getBinary(): Uint8Array {
+        return this.trsdos.readFile(this.file);
     }
 }
 
@@ -112,7 +125,7 @@ class Archive {
                     const trsdos = decodeTrsdos(file);
                     if (trsdos !== undefined) {
                         for (const dirEntry of trsdos.dirEntries) {
-                            this.files.push(new TrsdosFile(dirEntry));
+                            this.files.push(new TrsdosFile(trsdos, dirEntry));
                         }
                     } else {
                         this.error = "Can only handle TRSDOS floppies.";
@@ -124,6 +137,21 @@ class Archive {
                     break;
             }
         }
+    }
+
+    /**
+     * Get the file for the given filename, which should have a dot separator for the extension.
+     */
+    public getFileByFilename(filename: string): ArchiveFile | undefined {
+        filename = filename.toUpperCase();
+
+        for (const file of this.files) {
+            if (file.filename === filename) {
+                return file;
+            }
+        }
+
+        return undefined;
     }
 }
 
@@ -145,7 +173,47 @@ function dir(infile: string): void {
  * Handle the "extract" command.
  */
 function extract(infile: string, outfile: string): void {
+    const archive = new Archive(infile);
+    if (archive.error !== undefined) {
+        console.log(archive.error);
+    } else {
+        // See if outfile is an existing directory.
+        if (fs.existsSync(outfile) && fs.statSync(outfile).isDirectory()) {
+            // Extract all files to this directory.
+            for (const file of archive.files) {
+                const binary = file.getBinary();
+                const outPathname = path.join(outfile, file.filename);
+                fs.writeFileSync(outPathname, binary);
+                if (file.date !== undefined) {
+                    fs.utimesSync(outPathname, file.date, file.date);
+                }
+                console.log("Extracted " + file.filename + " to " + outPathname);
+            }
+        } else {
+            // Break apart outfile.
+            const { dir, base, name, ext } = path.parse(outfile);
 
+            // See if it's a JSON file.
+            if (ext.toLowerCase() === ".json") {
+                // Output metadata to JSON file.
+                // TODO
+            } else {
+                // Output file contents to file.
+                const file = archive.getFileByFilename(base);
+                if (file === undefined) {
+                    // TODO: Look by name and different extension.
+                    console.log("Can't find file " + base);
+                } else {
+                    const binary = file.getBinary();
+                    fs.writeFileSync(outfile, binary);
+                    if (file.date !== undefined) {
+                        fs.utimesSync(outfile, file.date, file.date);
+                    }
+                    console.log("Extracted " + file.filename + " to " + outfile);
+                }
+            }
+        }
+    }
 }
 
 /**
