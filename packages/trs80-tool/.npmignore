@@ -1,0 +1,8 @@
+/x
+/.idea
+tsconfig.tsbuildinfo
+/src
+/dist/*.map
+/dist/*.d.ts
+update_version.py
+tsconfig.json
