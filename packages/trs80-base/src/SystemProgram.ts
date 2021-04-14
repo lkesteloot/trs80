@@ -4,8 +4,8 @@
  * http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/tape-and-file-formats-structures/
  */
 
-import {ByteReader, EOF} from "teamten-ts-utils";
-import {toHexByte, toHexWord} from "z80-base";
+import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
+import {hi, lo, toHexByte, toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
 
@@ -13,6 +13,7 @@ const FILE_HEADER = 0x55;
 const DATA_HEADER = 0x3C;
 const END_OF_FILE_MARKER = 0x78;
 const FILENAME_LENGTH = 6;
+export const MAX_SYSTEM_CHUNK_DATA_SIZE = 256;
 
 /**
  * Represents a chunk of bytes from the file, with a checksum.
@@ -22,27 +23,36 @@ export class SystemChunk {
     public readonly data: Uint8Array;
     public readonly checksum: number;
 
-    constructor(loadAddress: number, data: Uint8Array, checksum: number) {
+    constructor(loadAddress: number, data: Uint8Array, checksum?: number) {
+        if (data.length > MAX_SYSTEM_CHUNK_DATA_SIZE) {
+            throw new Error("system chunks can at most hold " + MAX_SYSTEM_CHUNK_DATA_SIZE + " bytes");
+        }
         this.loadAddress = loadAddress;
         this.data = data;
-        this.checksum = checksum;
+        this.checksum = checksum ?? SystemChunk.computeChecksum(loadAddress, data);
     }
 
     /**
      * Whether the checksum supplied on tape matches what we compute.
      */
     public isChecksumValid(): boolean {
+        return SystemChunk.computeChecksum(this.loadAddress, this.data) === this.checksum;
+    }
+
+    /**
+     * Compute the chunk checksum of load address and its data.
+     */
+    private static computeChecksum(loadAddress: number, data: Uint8Array): number {
         let checksum = 0;
 
         // Include load address and data.
-        checksum += (this.loadAddress >> 8) & 0xFF;
-        checksum += this.loadAddress & 0xFF;
-        for (const b of this.data) {
+        checksum += (loadAddress >> 8) & 0xFF;
+        checksum += loadAddress & 0xFF;
+        for (const b of data) {
             checksum += b;
         }
-        checksum &= 0xFF;
 
-        return checksum === this.checksum;
+        return checksum & 0xFF;
     }
 }
 
@@ -191,4 +201,38 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
         b.addr() - 2, b.addr()));
 
     return makeSystemProgram();
+}
+
+/**
+ * Generate a binary for the specified parts of a system program.
+ * @param filename a six-character max filename, preferably in upper case.
+ * @param chunks a list of chunks to load into memory.
+ * @param entryPointAddress where to launch the program.
+ */
+export function encodeSystemProgram(filename: string, chunks: SystemChunk[], entryPointAddress: number): Uint8Array {
+    const binaryParts: Uint8Array[] = [];
+
+    binaryParts.push(new Uint8Array([FILE_HEADER]));
+
+    if (filename.length > FILENAME_LENGTH) {
+        filename = filename.substring(0, FILENAME_LENGTH);
+    }
+    filename = filename.padEnd(FILENAME_LENGTH, " ");
+    binaryParts.push(new TextEncoder().encode(filename));
+
+    for (const chunk of chunks) {
+        let length = chunk.data.length;
+        if (length === 256) {
+            length = 0;
+        }
+
+        binaryParts.push(new Uint8Array([DATA_HEADER, length,
+            lo(chunk.loadAddress), hi(chunk.loadAddress),
+            ... chunk.data, chunk.checksum]));
+    }
+
+    binaryParts.push(new Uint8Array([END_OF_FILE_MARKER,
+        lo(entryPointAddress), hi(entryPointAddress)]));
+
+    return concatByteArrays(binaryParts);
 }

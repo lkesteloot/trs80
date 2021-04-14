@@ -8,6 +8,7 @@ import {ByteReader, EOF} from "teamten-ts-utils";
 import {toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
+import {encodeSystemProgram, MAX_SYSTEM_CHUNK_DATA_SIZE, SystemChunk, SystemProgram} from "./SystemProgram.js";
 
 // Chunk types.
 export const CMD_LOAD_BLOCK = 0x01;
@@ -83,7 +84,7 @@ export class CmdLoadModuleHeaderChunk extends CmdAbstractChunk {
 
     constructor(type: number, data: Uint8Array) {
         super(type, data);
-        this.filename = new TextDecoder("ascii").decode(data).trim().replace(/ +/g, " ");
+        this.filename = new TextDecoder().decode(data).trim().replace(/ +/g, " ");
     }
 
     public addAnnotations(annotations: ProgramAnnotation[], addr: number): void {
@@ -177,6 +178,53 @@ export class CmdProgram extends AbstractTrs80File {
         }
 
         return undefined;
+    }
+
+    /**
+     * Convert the Command program to an equivalent system program, dropping any
+     * chunks that can't be encoded in system programs.
+     *
+     * @param filename optional filename to use for system program, in case the
+     * command program doesn't have one.
+     */
+    public toSystemProgram(filename?: string): SystemProgram {
+        // Prefer the filename in the command program.
+        if (this.filename !== undefined && this.filename !== "") {
+            filename = this.filename;
+        } else if (filename === undefined || filename === "") {
+            filename = "CMD";
+        }
+
+        const systemChunks: SystemChunk[] = [];
+        let firstChunkAddress = 0;
+        for (const chunk of this.chunks) {
+            switch (chunk.className) {
+                case "CmdLoadBlockChunk":
+                    if (firstChunkAddress === 0) {
+                        firstChunkAddress = chunk.address;
+                    }
+                    // CMD chunks can hold more than system program chunks can (by two bytes!) so
+                    // we have to split them up.
+                    let begin = 0;
+                    while (begin < chunk.loadData.length) {
+                        const length = Math.min(chunk.loadData.length - begin, MAX_SYSTEM_CHUNK_DATA_SIZE);
+                        systemChunks.push(new SystemChunk(chunk.address + begin,
+                            chunk.loadData.subarray(begin, begin + length)));
+                        begin += length;
+                    }
+                    break;
+
+                case "CmdTransferAddressChunk":
+                case "CmdLoadModuleHeaderChunk":
+                case "CmdUnknownChunk":
+                    // Drop it.
+                    break;
+            }
+        }
+
+        const entryPointAddress = this.entryPointAddress ?? firstChunkAddress;
+        const binary = encodeSystemProgram(filename, systemChunks, entryPointAddress);
+        return new SystemProgram(binary, undefined, filename, systemChunks, entryPointAddress, []);
     }
 }
 
