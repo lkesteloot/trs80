@@ -11,6 +11,10 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder.js";
 import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile.js";
 import {concatByteArrays} from "teamten-ts-utils";
+import {Cassette, CassetteSpeed} from "trs80-base";
+import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder.js";
+import {ByteData} from "./ByteData.js";
+import {BitData} from "./BitData.js";
 
 const LOCAL_DATA_KEY = "tapes";
 
@@ -59,6 +63,39 @@ export class Tape {
             this.filteredSamples.samplesList[0], audioFile.rate));
         this.sampleRate = audioFile.rate;
         this.programs = [];
+    }
+
+    /**
+     * Create a fake Tape object from a CAS file.
+     */
+    public static fromCas(name: string, cas: Cassette): Tape {
+        // Empty audio file.
+        const tape = new Tape(name, new AudioFile(DEFAULT_SAMPLE_RATE, new Int16Array(0)));
+
+        let track = 1;
+        let lastOffset = 0;
+        let lastFrame = 0;
+        for (const file of cas.files) {
+            const baud = file.speed === CassetteSpeed.LOW_SPEED ? 500 : 1500;
+            const bitsPerByte = file.speed === CassetteSpeed.LOW_SPEED ? 8 : 9;
+            const startFrame = Math.round(lastFrame + (file.offset - lastOffset)*bitsPerByte/baud*DEFAULT_SAMPLE_RATE);
+            const endOffset = file.offset + file.file.binary.length;
+            const endFrame = Math.round(lastFrame + (endOffset - lastOffset)*bitsPerByte/baud*DEFAULT_SAMPLE_RATE);
+            lastOffset = endOffset;
+            lastFrame = endFrame;
+            const decoder = file.speed === CassetteSpeed.LOW_SPEED
+                ? new LowSpeedTapeDecoder(tape, baud)
+                : new HighSpeedTapeDecoder(tape);
+            const bitData: BitData[] = [];
+            const byteData: ByteData[] = [];
+
+            const program = new Program(track, 1, startFrame, endFrame, decoder, baud,
+                file.file.binary, bitData, byteData);
+
+            tape.addProgram(program);
+        }
+
+        return tape;
     }
 
     public addProgram(program: Program) {

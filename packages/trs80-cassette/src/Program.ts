@@ -10,6 +10,9 @@ import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder.js";
 import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile.js";
 import {ProgramAnnotation} from "trs80-base";
 
+/**
+ * Represents a program on a tape.
+ */
 export class Program {
     public trackNumber: number;
     public copyNumber: number;
