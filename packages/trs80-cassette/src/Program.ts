@@ -190,12 +190,17 @@ export class Program {
 
     /**
      * Return just the audio portion of a WAV file for this program.
+     *
+     * @param baud the output baud rate, or undefined to use the original.
      */
-    public asAudio(): Int16Array {
+    public asAudio(baud?: number): Int16Array {
         const bytes = this.asCasFile();
-        return this.decoder.isHighSpeed()
+        if (baud === undefined) {
+            baud = this.decoder.isHighSpeed() ? 1500 : 500;
+        }
+        return baud === 1500
             ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE)
-            : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE);
+            : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE, baud);
     }
 
     /**

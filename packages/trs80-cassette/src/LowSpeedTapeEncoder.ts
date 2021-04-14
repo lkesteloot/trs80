@@ -57,13 +57,20 @@ export function wrapLowSpeed(bytes: Uint8Array): Uint8Array {
 }
 
 /**
- * Encode the sequence of bytes as an array of audio samples for low-speed (500 baud) cassettes.
+ * Encode the sequence of bytes as an array of audio samples for low-speed cassettes.
  * @param bytes cas-style array of bytes, including 256 zero bytes, sync byte, and trailing zero bytes.
  * @param sampleRate number of samples per second in the generated audio.
+ * @param baud the baud rate (250, 500, or 1000).
  */
-export function encodeLowSpeed(bytes: Uint8Array, sampleRate: number): Int16Array {
-    // Length of one cycle, in samples. They're all 1ms.
-    const cycleLength = Math.round(0.001*sampleRate);
+export function encodeLowSpeed(bytes: Uint8Array, sampleRate: number, baud: number): Int16Array {
+    // The period of a bit, in seconds.
+    const bitPeriod = 1/baud;
+
+    // The period of a cycle (half a bit), in seconds.
+    const cyclePeriod = bitPeriod/2;
+
+    // Length of one cycle, in samples.
+    const cycleLength = Math.round(cyclePeriod*sampleRate);
 
     // Samples representing one cycle.
     const cycle = generatePulse(cycleLength);

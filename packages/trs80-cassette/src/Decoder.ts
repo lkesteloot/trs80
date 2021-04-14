@@ -135,7 +135,7 @@ export class Decoder {
         // Here we could re-encode in either low speed or high speed. Do low speed so that
         // the audio is usable on a Model I.
         if (true) { // TODO fix this
-            return encodeLowSpeed(wrapLowSpeed(binary), this.tape.sampleRate);
+            return encodeLowSpeed(wrapLowSpeed(binary), this.tape.sampleRate, 500);
         } else {
             // Low-speed programs end in two 0x00, but high-speed programs
             // end in three 0x00. Add the additional 0x00 since we're
