@@ -179,13 +179,15 @@ export class Program {
 
     /**
      * Return a .cas file version of the binary.
+     *
+     * @param baud the baud rate, or undefined to use the original. 1500 is considered high speed,
+     * anything below that is considered low speed.
      */
-    public asCasFile(): Uint8Array {
-        if (this.decoder.isHighSpeed()) {
-            return wrapHighSpeed(this.binary);
-        } else {
-            return wrapLowSpeed(this.binary);
+    public asCasFile(baud?: number): Uint8Array {
+        if (baud === undefined) {
+            baud = this.decoder.isHighSpeed() ? 1500 : 500;
         }
+        return baud >= 1500 ? wrapHighSpeed(this.binary) : wrapLowSpeed(this.binary);
     }
 
     /**
@@ -194,10 +196,10 @@ export class Program {
      * @param baud the output baud rate, or undefined to use the original.
      */
     public asAudio(baud?: number): Int16Array {
-        const bytes = this.asCasFile();
         if (baud === undefined) {
             baud = this.decoder.isHighSpeed() ? 1500 : 500;
         }
+        const bytes = this.asCasFile(baud);
         return baud === 1500
             ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE)
             : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE, baud);
