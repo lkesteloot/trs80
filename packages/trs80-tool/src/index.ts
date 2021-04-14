@@ -159,6 +159,13 @@ class Archive {
                     }
                     break;
 
+                case "Cassette":
+                    const tape = Tape.fromCas(filename, file);
+                    for (const program of tape.programs) {
+                        this.files.push(new WavFile(program));
+                    }
+                    break;
+
                 default:
                     this.error = "This file type (" + file.className + ") does not have nested files.";
                     break;
@@ -331,6 +338,37 @@ function extract(infile: string, outfile: string): void {
 }
 
 /**
+ * Convert WAV file in Tape format.
+ */
+function convertTape(tape: Tape, outfile: string, baud: number | undefined): void {
+    if (outfile.toLowerCase().endsWith(".wav")) {
+        // Generate clean WAV file.
+        const wavFileParts: Int16Array[] = [];
+        for (const program of tape.programs) {
+            if (wavFileParts.length > 0) {
+                // Insert some silence between the recordings.
+                wavFileParts.push(makeSilence(2, DEFAULT_SAMPLE_RATE));
+            }
+            wavFileParts.push(program.asAudio(baud));
+        }
+
+        fs.writeFileSync(outfile, writeWavFile(concatAudio(wavFileParts), DEFAULT_SAMPLE_RATE));
+        console.log("Generated " + outfile + " with " + pluralizeWithCount(tape.programs.length, "program"));
+    } else if (outfile.toLowerCase().endsWith(".cas")) {
+        // Output CAS version of WAV file.
+        const casFileParts: Uint8Array[] = [];
+        for (const program of tape.programs) {
+            casFileParts.push(program.asCasFile(baud));
+        }
+        fs.writeFileSync(outfile, concatByteArrays(casFileParts));
+        console.log("Generated " + outfile + " with " + pluralizeWithCount(tape.programs.length, "program"));
+    } else {
+        console.log("Can only convert WAV files to WAV and CAS files.");
+        process.exit(1);
+    }
+}
+
+/**
  * Handle the "convert" command.
  */
 function convert(infile: string, outfile: string, baud: number | undefined): void {
@@ -350,54 +388,28 @@ function convert(infile: string, outfile: string, baud: number | undefined): voi
         const tape = new Tape(infile, wavFile);
         const decoder = new Decoder(tape);
         decoder.decode();
-
-        if (outfile.toLowerCase().endsWith(".wav")) {
-            // Generate clean WAV file.
-            const wavFileParts: Int16Array[] = [];
-            for (const program of tape.programs) {
-                if (wavFileParts.length > 0) {
-                    // Insert some silence between the recordings.
-                    wavFileParts.push(makeSilence(2, DEFAULT_SAMPLE_RATE));
-                }
-                wavFileParts.push(program.asAudio(baud));
-            }
-
-            fs.writeFileSync(outfile, writeWavFile(concatAudio(wavFileParts), DEFAULT_SAMPLE_RATE));
-            console.log("Generated " + outfile + " with " + pluralizeWithCount(tape.programs.length, "program"));
-        } else if (outfile.toLowerCase().endsWith(".cas")) {
-            // Output CAS version of WAV file.
-            const casFileParts: Uint8Array[] = [];
-            for (const program of tape.programs) {
-                casFileParts.push(program.asCasFile(baud));
-            }
-            fs.writeFileSync(outfile, concatByteArrays(casFileParts));
-            console.log("Generated " + outfile + " with " + pluralizeWithCount(tape.programs.length, "program"));
-        } else {
-            console.log("Can only convert WAV files to WAV and CAS files.");
-            process.exit(1);
-        }
+        convertTape(tape, outfile, baud);
     } else {
-        // Decode the floppy.
         const file = decodeTrs80File(buffer, infile);
-/*
         switch (file.className) {
-            case "Jv1FloppyDisk":
-            case "Jv3FloppyDisk":
-            case "DmkFloppyDisk":
-                const trsdos = decodeTrsdos(file);
-                if (trsdos !== undefined) {
-                    for (const dirEntry of trsdos.dirEntries) {
-                        this.files.push(new TrsdosFile(trsdos, dirEntry));
-                    }
-                } else {
-                    this.error = "Can only handle TRSDOS floppies.";
-                }
+            case "BasicProgram":
+                break;
+
+            case "Cassette":
+                convertTape(Tape.fromCas(infile, file), outfile, baud);
+                break;
+
+            case "SystemProgram":
+                break;
+
+            case "CmdProgram":
                 break;
 
             default:
-                this.error = "This file type (" + file.className + ") does not have nested files.";
+                console.log("Can't convert files of type " + file.className);
+                process.exit(1);
                 break;
-        }*/
+        }
     }
 }
 
@@ -416,7 +428,7 @@ export function main() {
     program
         .command("dir <infile>")
         .description("list files in the infile", {
-            infile: "WAV, JV1, JV3, or DMK file (TRSDOS floppies only)",
+            infile: "WAV, CAS, JV1, JV3, or DMK file (TRSDOS floppies only)",
         })
         .action(infile => {
             dir(infile);
@@ -424,7 +436,7 @@ export function main() {
     program
         .command("extract <infile> <outfile>")
         .description("extract files in the infile", {
-            infile: "WAV, JV1, JV3, or DMK file (TRSDOS floppies only)",
+            infile: "WAV, CAS, JV1, JV3, or DMK file (TRSDOS floppies only)",
             outfile: "path to file or directory, or to JSON file for metadata",
         })
         .action((infile, outfile) => {
