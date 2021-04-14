@@ -110,9 +110,6 @@ export class Cassette extends AbstractTrs80File {
  * we re-insert them below when encoding. We could also remove the
  * writing of start bits below, but we don't really know how many bits
  * there are at the end that we shouldn't write.
- *
- * Update: We no longer insert start bits in encodeHighSpeed(), so this
- * routine is no longer necessary, but we keep it around anyway.
  */
 function stripStartBits(inBytes: Uint8Array): Uint8Array {
     // Compute new size of array.

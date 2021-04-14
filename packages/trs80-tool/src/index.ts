@@ -10,8 +10,18 @@ import {
     TrsdosDirEntry,
     trsdosProtectionLevelToString
 } from "trs80-base";
-import {withCommas} from "teamten-ts-utils";
-import {BitType, Decoder, Program, readWavFile, Tape} from "trs80-cassette";
+import {concatByteArrays, withCommas} from "teamten-ts-utils";
+import {
+    BitType,
+    concatAudio,
+    Decoder,
+    DEFAULT_SAMPLE_RATE,
+    makeSilence,
+    Program,
+    readWavFile,
+    Tape,
+    writeWavFile
+} from "trs80-cassette";
 import {version} from "./version.js";
 
 /**
@@ -193,6 +203,7 @@ function extract(infile: string, outfile: string): void {
     const archive = new Archive(infile);
     if (archive.error !== undefined) {
         console.log(archive.error);
+        process.exit(1);
     } else {
         // See if outfile is an existing directory.
         if (fs.existsSync(outfile) && fs.statSync(outfile).isDirectory()) {
@@ -322,8 +333,72 @@ function extract(infile: string, outfile: string): void {
 /**
  * Handle the "convert" command.
  */
-function convert(infile: string, outfile: string): void {
+function convert(infile: string, outfile: string, baud: number | undefined): void {
+    // Read the file.
+    let buffer;
+    try {
+        buffer = fs.readFileSync(infile);
+    } catch (e) {
+        console.log("Can't open \"" + infile + "\": " + e.message);
+        process.exit(1);
+        return;
+    }
 
+    if (infile.toLowerCase().endsWith(".wav")) {
+        // Decode the cassette.
+        const wavFile = readWavFile(buffer.buffer);
+        const tape = new Tape(infile, wavFile);
+        const decoder = new Decoder(tape);
+        decoder.decode();
+
+        if (outfile.toLowerCase().endsWith(".wav")) {
+            // Generate clean WAV file.
+            const wavFileParts: Int16Array[] = [];
+            for (const program of tape.programs) {
+                if (wavFileParts.length > 0) {
+                    // Insert some silence between the recordings.
+                    wavFileParts.push(makeSilence(2, DEFAULT_SAMPLE_RATE));
+                }
+                wavFileParts.push(program.asAudio(baud));
+            }
+
+            fs.writeFileSync(outfile, writeWavFile(concatAudio(wavFileParts), DEFAULT_SAMPLE_RATE));
+            console.log("Generated " + outfile + " with " + pluralizeWithCount(tape.programs.length, "program"));
+        } else if (outfile.toLowerCase().endsWith(".cas")) {
+            // Output CAS version of WAV file.
+            const casFileParts: Uint8Array[] = [];
+            for (const program of tape.programs) {
+                casFileParts.push(program.asCasFile(baud));
+            }
+            fs.writeFileSync(outfile, concatByteArrays(casFileParts));
+            console.log("Generated " + outfile + " with " + pluralizeWithCount(tape.programs.length, "program"));
+        } else {
+            console.log("Can only convert WAV files to WAV and CAS files.");
+            process.exit(1);
+        }
+    } else {
+        // Decode the floppy.
+        const file = decodeTrs80File(buffer, infile);
+/*
+        switch (file.className) {
+            case "Jv1FloppyDisk":
+            case "Jv3FloppyDisk":
+            case "DmkFloppyDisk":
+                const trsdos = decodeTrsdos(file);
+                if (trsdos !== undefined) {
+                    for (const dirEntry of trsdos.dirEntries) {
+                        this.files.push(new TrsdosFile(trsdos, dirEntry));
+                    }
+                } else {
+                    this.error = "Can only handle TRSDOS floppies.";
+                }
+                break;
+
+            default:
+                this.error = "This file type (" + file.className + ") does not have nested files.";
+                break;
+        }*/
+    }
 }
 
 /**
@@ -355,16 +430,18 @@ export function main() {
         .action((infile, outfile) => {
             extract(infile, outfile);
         });
-    /*
     program
         .command("convert <infile> <outfile>")
         .description("convert infile to outfile", {
             infile: "WAV, CAS, CMD, 3BN, or BAS file",
             outfile: "WAV, CAS, CMD, 3BN, BAS, or LST file",
         })
-        .action((infile, outfile) => {
-            convert(infile, outfile);
+        .option("--baud <baud>", "output baud rate (250, 500, 1000, or 1500)")
+        .action((infile, outfile, options) => {
+            const baud = options.baud !== undefined ? parseInt(options.baud) : undefined;
+            convert(infile, outfile, baud);
         });
+    /*
     program
         .command("hexdump <infile>")
         .description("display an annotated hexdump of infile", {
