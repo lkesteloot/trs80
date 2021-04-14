@@ -403,6 +403,24 @@ function convert(infile: string, outfile: string, baud: number | undefined): voi
                 break;
 
             case "CmdProgram":
+                if (outfile.toLowerCase().endsWith(".3bn")) {
+                    let filename = outfile;
+                    // Strip directory.
+                    let i = filename.lastIndexOf("/");
+                    if (i >= 0) {
+                        filename = filename.substring(i + 1);
+                    }
+                    // Strip extension.
+                    i = filename.lastIndexOf(".");
+                    if (i >= 0) {
+                        filename = filename.substring(0, i);
+                    }
+                    // Upper case, for kicks.
+                    filename = filename.toUpperCase();
+
+                    fs.writeFileSync(outfile, file.toSystemProgram(filename).binary);
+                    console.log("Converted " + infile + " to " + outfile);
+                }
                 break;
 
             default:
