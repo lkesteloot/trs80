@@ -7,7 +7,8 @@
   "type": "module",
   "scripts": {
     "start": "npx snowpack dev",
-    "build": "npx snowpack build"
+    "build": "npx snowpack build",
+    "publish": "npm run build && rsync -a build/ lk@hitch.headcode.com:my-trs-80-website/cassette/"
   },
   "repository": "https://github.com/lkesteloot/trs80.git",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
