@@ -116,6 +116,7 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
     let rate: number | undefined = undefined;
     let samples: Int16Array | undefined = undefined;
     let bitDepth: number | undefined = undefined;
+    let channels = 1;
 
     // Read ID.
     const riffId = reader.readString(4);
@@ -154,7 +155,7 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
                 }
 
                 const audioFormat = reader.readUint16();
-                const channels = reader.readUint16();
+                channels = reader.readUint16();
                 rate = reader.readUint32();
                 const byteRate = reader.readUint32(); // useless...
                 const blockAlign = reader.readUint16(); // useless...
@@ -162,10 +163,7 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
                 if (audioFormat !== WAVE_FORMAT_PCM) {
                     throw new Error("Can only handle PCM, not " + audioFormat);
                 }
-                if (channels !== 1) {
-                    throw new Error("Can only handle mono streams, not " + channels + " channels");
-                }
-                const expectBlockAlign = Math.ceil(bitDepth/8);
+                const expectBlockAlign = Math.ceil(bitDepth*channels/8);
                 if (blockAlign !== expectBlockAlign) {
                     throw new Error("Expected block align of " + expectBlockAlign + ", not " + blockAlign);
                 }
@@ -204,13 +202,23 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
                 if (bitDepth === 8) {
                     const samples8 = reader.readUint8Array(chunkSize);
 
-                    // Convert from 8-bit unsigned to 16-bit signed.
-                    samples = new Int16Array(samples8.length);
+                    // Convert from 8-bit unsigned to 16-bit signed; pick first channel.
+                    samples = new Int16Array(samples8.length/channels);
                     for (let i = 0; i < samples.length; i++) {
-                        samples[i] = (samples8[i] - 128)*255;
+                        samples[i] = (samples8[i*channels] - 128)*255;
                     }
                 } else if (bitDepth === 16) {
-                    samples = reader.readInt16Array(chunkSize);
+                    const samples16 = reader.readInt16Array(chunkSize);
+
+                    if (channels === 1) {
+                        samples = samples16;
+                    } else {
+                        // Pick first channel.
+                        samples = new Int16Array(samples16.length/channels);
+                        for (let i = 0; i < samples.length; i++) {
+                            samples[i] = samples16[i*channels];
+                        }
+                    }
                 } else {
                     throw new Error("Can only handle bit depths of 8 and 16, not " + bitDepth);
                 }
