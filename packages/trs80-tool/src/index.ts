@@ -525,6 +525,38 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                     break;
 
                 case "SystemProgram":
+                    switch (outExt) {
+                        case ".3bn":
+                            // Write as-is.
+                            outBinary = infile.trs80File.binary;
+                            break;
+
+                        case ".cmd":
+                            // Convert to CMD program.
+                            outBinary = infile.trs80File.toCmdProgram(inName.toUpperCase()).binary;
+                            break;
+
+                        case ".cas": {
+                            // Encode in CAS file.
+                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            outBinary = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            break;
+                        }
+
+                        case ".wav": {
+                            // Encode in WAV file.
+                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const cas = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
+                            outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
+                            break;
+                        }
+
+                        default:
+                            console.log("Can't convert a CMD program to " + outExt.toUpperCase());
+                            process.exit(1);
+                            break;
+                    }
                     break;
 
                 case "CmdProgram":
@@ -535,6 +567,7 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                             break;
 
                         case ".3bn":
+                            // Convert to system program.
                             outBinary = infile.trs80File.toSystemProgram(inName.toUpperCase()).binary;
                             break;
 

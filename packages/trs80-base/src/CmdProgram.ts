@@ -4,8 +4,8 @@
  * http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/tape-and-file-formats-structures/#cmdfile
  */
 
-import {ByteReader, EOF} from "teamten-ts-utils";
-import {toHexWord} from "z80-base";
+import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
+import {hi, lo, toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
 import {encodeSystemProgram, MAX_SYSTEM_CHUNK_DATA_SIZE, SystemChunk, SystemProgram} from "./SystemProgram.js";
@@ -51,6 +51,14 @@ export class CmdLoadBlockChunk extends CmdAbstractChunk {
         this.loadData = data.slice(2);
     }
 
+    /**
+     * Make a chunk from the data to load into memory.
+     */
+    public static fromData(address: number, chunkData: Uint8Array): CmdLoadBlockChunk {
+        const data = new Uint8Array([lo(address), hi(address), ... chunkData]);
+        return new CmdLoadBlockChunk(CMD_LOAD_BLOCK, data);
+    }
+
     public addAnnotations(annotations: ProgramAnnotation[], addr: number): void {
         annotations.push(new ProgramAnnotation("Load address (0x" + toHexWord(this.address) + ")", addr, addr + 2));
         annotations.push(new ProgramAnnotation("Data (" + this.loadData.length + " byte" +
@@ -70,6 +78,14 @@ export class CmdTransferAddressChunk extends CmdAbstractChunk {
         this.address = data.length === 2 ? (data[0] + data[1]*256) : 0;
     }
 
+    /**
+     * Make a chunk from an entry point address.
+     */
+    public static fromEntryPointAddress(entryPointAddress: number): CmdTransferAddressChunk {
+        const data = new Uint8Array([lo(entryPointAddress), hi(entryPointAddress)]);
+        return new CmdTransferAddressChunk(CMD_TRANSFER_ADDRESS, data);
+    }
+
     public addAnnotations(annotations: ProgramAnnotation[], addr: number): void {
         annotations.push(new ProgramAnnotation("Jump address (0x" + toHexWord(this.address) + ")", addr, addr + 2));
     }
@@ -85,6 +101,14 @@ export class CmdLoadModuleHeaderChunk extends CmdAbstractChunk {
     constructor(type: number, data: Uint8Array) {
         super(type, data);
         this.filename = new TextDecoder().decode(data).trim().replace(/ +/g, " ");
+    }
+
+    /**
+     * Make a chunk from the filename.
+     */
+    public static fromFilename(filename: string): CmdLoadModuleHeaderChunk {
+        const data = new TextEncoder().encode(filename);
+        return new CmdLoadModuleHeaderChunk(CMD_LOAD_MODULE_HEADER, data);
     }
 
     public addAnnotations(annotations: ProgramAnnotation[], addr: number): void {
@@ -323,4 +347,18 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
         chunk.addAnnotations(annotations, dataAddr);
         chunks.push(chunk);
     }
+}
+
+/**
+ * Create the binary version of a Cmd program from a list of chunks.
+ */
+export function encodeCmdProgram(chunks: CmdChunk[]): Uint8Array {
+    const binaryParts: Uint8Array[] = [];
+
+    for (const chunk of chunks) {
+        binaryParts.push(new Uint8Array([chunk.type, chunk.rawData.length % 256]));
+        binaryParts.push(chunk.rawData);
+    }
+
+    return concatByteArrays(binaryParts);
 }

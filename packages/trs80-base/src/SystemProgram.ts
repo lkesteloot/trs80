@@ -8,6 +8,13 @@ import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
 import {hi, lo, toHexByte, toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
+import {
+    CmdLoadBlockChunk,
+    CmdLoadModuleHeaderChunk,
+    CmdProgram,
+    CmdTransferAddressChunk,
+    encodeCmdProgram
+} from "./CmdProgram.js";
 
 const FILE_HEADER = 0x55;
 const DATA_HEADER = 0x3C;
@@ -99,6 +106,29 @@ export class SystemProgram extends AbstractTrs80File {
         }
 
         return undefined;
+    }
+
+    /**
+     * Create the CMD version of this system program.
+     *
+     * @param filename name to use in case the system program doesn't have one.
+     */
+    public toCmdProgram(filename?: string): CmdProgram {
+        const cmdChunks = [];
+
+        const cmdFilename = this.filename !== "" ? this.filename : (filename ?? "");
+        if (cmdFilename !== "") {
+            cmdChunks.push(CmdLoadModuleHeaderChunk.fromFilename(cmdFilename));
+        }
+
+        for (const chunk of this.chunks) {
+            cmdChunks.push(CmdLoadBlockChunk.fromData(chunk.loadAddress, chunk.data));
+        }
+
+        cmdChunks.push(CmdTransferAddressChunk.fromEntryPointAddress(this.entryPointAddress));
+
+        const binary = encodeCmdProgram(cmdChunks);
+        return new CmdProgram(binary, undefined, [], cmdChunks, this.filename, this.entryPointAddress);
     }
 }
 
