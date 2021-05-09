@@ -171,6 +171,25 @@ export class BasicProgram extends AbstractTrs80File {
         // Don't include filename, it's usually worthless.
         return "Basic program";
     }
+
+    /**
+     * Generate a plain ASCII version of the Basic program.
+     */
+    public asAscii(): string {
+        const parts: string[] = [];
+
+        for (const basicElement of this.elements) {
+            if (parts.length > 0 && basicElement.elementType === ElementType.LINE_NUMBER) {
+                parts.push("\n");
+            }
+
+            parts.push(basicElement.text);
+        }
+
+        parts.push("\n");
+
+        return parts.join("");
+    }
 }
 
 /**

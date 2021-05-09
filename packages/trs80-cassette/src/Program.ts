@@ -1,4 +1,3 @@
-
 import {BitData} from "./BitData.js";
 import {DisplaySamples} from "./DisplaySamples.js";
 import {ByteData} from "./ByteData.js";
@@ -9,6 +8,22 @@ import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder.js";
 import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder.js";
 import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile.js";
 import {ProgramAnnotation} from "trs80-base";
+
+/**
+ * Get the binary wrapped in a CAS.
+ */
+export function binaryAsCasFile(binary: Uint8Array, baud: number): Uint8Array {
+    return baud >= 1500 ? wrapHighSpeed(binary) : wrapLowSpeed(binary);
+}
+
+/**
+ * Get the audio for a CAS binary (not including the WAV header).
+ */
+export function casAsAudio(cas: Uint8Array, baud: number, sampleRate: number): Int16Array {
+    return baud === 1500
+        ? encodeHighSpeed(cas, sampleRate)
+        : encodeLowSpeed(cas, sampleRate, baud);
+}
 
 /**
  * Represents a program on a tape.
@@ -190,7 +205,7 @@ export class Program {
         if (baud === undefined) {
             baud = this.decoder.isHighSpeed() ? 1500 : 500;
         }
-        return baud >= 1500 ? wrapHighSpeed(this.binary) : wrapLowSpeed(this.binary);
+        return binaryAsCasFile(this.binary, baud);
     }
 
     /**
@@ -202,10 +217,7 @@ export class Program {
         if (baud === undefined) {
             baud = this.decoder.isHighSpeed() ? 1500 : 500;
         }
-        const bytes = this.asCasFile(baud);
-        return baud === 1500
-            ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE)
-            : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE, baud);
+        return casAsAudio(this.asCasFile(baud), baud, DEFAULT_SAMPLE_RATE);
     }
 
     /**

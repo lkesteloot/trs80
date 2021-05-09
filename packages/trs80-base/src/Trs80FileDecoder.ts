@@ -19,11 +19,29 @@ export type Trs80File = BasicProgram |
     CmdProgram |
     RawBinaryFile;
 
+const CLASS_NAME_TO_EXTENSION = {
+    BasicProgram: ".BAS",
+    Cassette: ".CAS",
+    CmdProgram: ".CMD",
+    DmkFloppyDisk: ".DMK",
+    Jv1FloppyDisk: ".JV1",
+    Jv3FloppyDisk: ".JV3",
+    RawBinaryFile: ".BIN",
+    SystemProgram: ".3BN",
+};
+
+/**
+ * Get the upper-case extension for the given file.
+ */
+export function getTrs80FileExtension(trs80File: Trs80File): string {
+    return CLASS_NAME_TO_EXTENSION[trs80File.className] ?? ".BIN";
+}
+
 /**
  * Get the extension of the filename, including the dot, in upper case, or
  * an empty string if the filename does not contain an extension.
  */
-function getExtension(filename: string): string {
+function getFilenameExtension(filename: string): string {
     // Strip pathname, in case the filename has no dot but a path component does.
     // Not sure if we need to support backslash here.
     const slash = filename.lastIndexOf("/");
@@ -84,7 +102,7 @@ export function isFloppy(trs80File: Trs80File): trs80File is Jv1FloppyDisk | Jv3
  */
 export function decodeTrs80File(binary: Uint8Array, filename: string | undefined): Trs80File {
     let trs80File: Trs80File | undefined;
-    const extension = filename === undefined ? "" : getExtension(filename);
+    const extension = filename === undefined ? "" : getFilenameExtension(filename);
 
     if (extension === ".JV1") {
         return decodeJv1FloppyDisk(binary) ?? new RawBinaryFile(binary);

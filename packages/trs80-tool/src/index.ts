@@ -6,7 +6,7 @@ import {
     decodeSystemProgram,
     decodeTrs80CassetteFile,
     decodeTrs80File,
-    decodeTrsdos,
+    decodeTrsdos, getTrs80FileExtension,
     isFloppy,
     Trs80File,
     Trsdos,
@@ -23,7 +23,8 @@ import {
     Program,
     readWavFile,
     Tape,
-    writeWavFile
+    writeWavFile,
+    wrapHighSpeed, wrapLowSpeed, binaryAsCasFile, casAsAudio
 } from "trs80-cassette";
 import {version} from "./version.js";
 
@@ -198,29 +199,13 @@ class Archive {
 class InputFile {
     public readonly filename: string;
     public readonly trs80File: Trs80File;
+    public readonly baud: number | undefined;
 
-    constructor(filename: string, trs80File: Trs80File) {
+    constructor(filename: string, trs80File: Trs80File, baud?: number) {
         this.filename = filename;
         this.trs80File = trs80File;
+        this.baud = baud;
     }
-}
-
-const CLASS_NAME_TO_EXTENSION = {
-    RawBinaryFile: ".BIN",
-    BasicProgram: ".BAS",
-    Jv1FloppyDisk: ".JV1",
-    Jv3FloppyDisk: ".JV3",
-    DmkFloppyDisk: ".DMK",
-    Cassette: ".CAS",
-    SystemProgram: ".3BN",
-    CmdProgram: ".CMD",
-};
-
-/**
- * Get the upper-case extension for the given file.
- */
-function getExtension(trs80File: Trs80File): string {
-    return CLASS_NAME_TO_EXTENSION[trs80File.className] ?? ".BIN";
 }
 
 /**
@@ -405,7 +390,7 @@ function convertTape(tape: Tape, outfile: string, baud: number | undefined): voi
 /**
  * Handle the "convert" command.
  */
-function convert(infilenames: string[], outfilename: string, baud: number | undefined): void {
+function convert(infilenames: string[], outFilename: string, baud: number | undefined): void {
     const infiles: InputFile[] = [];
 
     // Read all input files into an internal data structure, expanding archives like cassettes and floppies.
@@ -428,8 +413,8 @@ function convert(infilenames: string[], outfilename: string, baud: number | unde
             decoder.decode();
             for (const program of tape.programs) {
                 const trs80File = decodeTrs80CassetteFile(program.binary);
-                const filename = name + "-" + program.getPseudoFilename() + getExtension(trs80File);
-                infiles.push(new InputFile(filename, trs80File));
+                const filename = name + "-" + program.getPseudoFilename() + getTrs80FileExtension(trs80File);
+                infiles.push(new InputFile(filename, trs80File, program.baud));
             }
         } else {
             const trs80File = decodeTrs80File(buffer, infilename);
@@ -458,16 +443,96 @@ function convert(infilenames: string[], outfilename: string, baud: number | unde
         }
     }
 
-    for (const infile of infiles) {
-        console.log(infile.filename, infile.trs80File.className);
+    if (false) {
+        for (const infile of infiles) {
+            console.log(infile.filename, infile.trs80File.className);
+        }
     }
 
     // If output is existing directory, put all input files there.
-    if (fs.statSync(outfilename).isDirectory()) {
+    if (fs.existsSync(outFilename) && fs.statSync(outFilename).isDirectory()) {
         for (const infile of infiles) {
-            const outpath = path.join(outfilename, infile.filename);
+            const outpath = path.join(outFilename, infile.filename);
             console.log("Writing " + outpath);
             fs.writeFileSync(outpath, infile.trs80File.binary);
+        }
+    } else {
+        // Output is a file. Its extension will help us determine how to convert the input files.
+        const outext = path.parse(outFilename).ext.toLowerCase();
+        if (outext === "") {
+            console.log("No file extension on output file \"" + outFilename + "\", don't know how to convert");
+            process.exit(1);
+        }
+
+        // See if input is a single file.
+        if (infiles.length === 1) {
+            // Convert individual file.
+            const infile = infiles[0];
+            let outBinary: Uint8Array = new Uint8Array(0); // TODO delete init.
+
+            switch (infile.trs80File.className) {
+                case "RawBinaryFile":
+                    console.log("Cannot convert unknown file type of " + infile.filename);
+                    process.exit(1);
+                    break;
+
+                case "BasicProgram":
+                    switch (outext) {
+                        case ".bas":
+                            // Write as-is.
+                            outBinary = infile.trs80File.binary;
+                            break;
+
+                        case ".asc":
+                            // Convert to ASCII.
+                            outBinary = Buffer.from(infile.trs80File.asAscii());
+                            break;
+
+                        case ".cas": {
+                            // Encode in CAS file.
+                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            outBinary = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            break;
+                        }
+
+                        case ".wav": {
+                            // Encode in WAV file.
+                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const cas = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
+                            outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
+                            break;
+                        }
+
+                        default:
+                            console.log("Can't convert a Basic program to " + outext.toUpperCase());
+                            process.exit(1);
+                            break;
+                    }
+                    break;
+
+                case "Jv1FloppyDisk":
+                    break;
+
+                case "Jv3FloppyDisk":
+                    break;
+
+                case "DmkFloppyDisk":
+                    break;
+
+                case "Cassette":
+                    break;
+
+                case "SystemProgram":
+                    break;
+
+                case "CmdProgram":
+                    break;
+            }
+
+            fs.writeFileSync(outFilename, outBinary);
+        } else {
+            // Make archive.
         }
     }
 
