@@ -1,6 +1,6 @@
 import {decodeSystemProgram} from "./SystemProgram.js";
 import {AbstractTrs80File} from "./Trs80File.js";
-import {decodeTrs80File} from "./Trs80FileDecoder.js";
+import {decodeTrs80CassetteFile, decodeTrs80File} from "./Trs80FileDecoder.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {Trs80File} from "./Trs80FileDecoder.js";
 
@@ -200,12 +200,8 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
             return undefined;
         }
 
-        // See what kind of file it is. System program aren't decoded by decodeTrs80File() because
-        // these are always on cassettes or with a .3BN extension. So try that ourselves first.
-        let file: Trs80File | undefined = decodeSystemProgram(programBinary);
-        if (file === undefined) {
-            file = decodeTrs80File(programBinary, undefined);
-        }
+        // See what kind of file it is.
+        const file = decodeTrs80CassetteFile(programBinary);
         cassetteFiles.push(new CassetteFile(programStartIndex, speed, file));
 
         // TODO handle multiple files. See HAUNT.CAS.

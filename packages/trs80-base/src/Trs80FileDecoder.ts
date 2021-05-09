@@ -66,6 +66,17 @@ function decodeDsk(binary: Uint8Array): Trs80File | undefined {
 }
 
 /**
+ * Whether the Trs80File object is one of the floppy disk types.
+ */
+export function isFloppy(trs80File: Trs80File): trs80File is Jv1FloppyDisk | Jv3FloppyDisk | DmkFloppyDisk {
+    const className = trs80File.className;
+
+    return className === "Jv1FloppyDisk" ||
+        className === "Jv3FloppyDisk" ||
+        className === "DmkFloppyDisk";
+}
+
+/**
  * Top-level decoder for any TRS-80 file.
  *
  * @param binary the bytes of the file.
@@ -99,6 +110,25 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
     }
 
     trs80File = decodeCmdProgram(binary);
+    if (trs80File !== undefined) {
+        return trs80File;
+    }
+
+    trs80File = decodeBasicProgram(binary);
+    if (trs80File !== undefined) {
+        return trs80File;
+    }
+
+    return new RawBinaryFile(binary);
+}
+
+/**
+ * Decode a binary that originated on a cassette.
+ */
+export function decodeTrs80CassetteFile(binary: Uint8Array): Trs80File {
+    let trs80File: Trs80File | undefined;
+
+    trs80File = decodeSystemProgram(binary);
     if (trs80File !== undefined) {
         return trs80File;
     }
