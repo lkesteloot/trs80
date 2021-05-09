@@ -458,8 +458,8 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
         }
     } else {
         // Output is a file. Its extension will help us determine how to convert the input files.
-        const outext = path.parse(outFilename).ext.toLowerCase();
-        if (outext === "") {
+        const outExt = path.parse(outFilename).ext.toLowerCase();
+        if (outExt === "") {
             console.log("No file extension on output file \"" + outFilename + "\", don't know how to convert");
             process.exit(1);
         }
@@ -468,6 +468,7 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
         if (infiles.length === 1) {
             // Convert individual file.
             const infile = infiles[0];
+            const inName = path.parse(infile.filename).name;
             let outBinary: Uint8Array = new Uint8Array(0); // TODO delete init.
 
             switch (infile.trs80File.className) {
@@ -477,7 +478,7 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                     break;
 
                 case "BasicProgram":
-                    switch (outext) {
+                    switch (outExt) {
                         case ".bas":
                             // Write as-is.
                             outBinary = infile.trs80File.binary;
@@ -505,7 +506,7 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                         }
 
                         default:
-                            console.log("Can't convert a Basic program to " + outext.toUpperCase());
+                            console.log("Can't convert a Basic program to " + outExt.toUpperCase());
                             process.exit(1);
                             break;
                     }
@@ -527,6 +528,39 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                     break;
 
                 case "CmdProgram":
+                    switch (outExt) {
+                        case ".cmd":
+                            // Write as-is.
+                            outBinary = infile.trs80File.binary;
+                            break;
+
+                        case ".3bn":
+                            outBinary = infile.trs80File.toSystemProgram(inName.toUpperCase()).binary;
+                            break;
+
+                        case ".cas": {
+                            // Encode in CAS file.
+                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const sysBinary = infile.trs80File.toSystemProgram(inName.toUpperCase()).binary;
+                            outBinary = binaryAsCasFile(sysBinary, outBaud);
+                            break;
+                        }
+
+                        case ".wav": {
+                            // Encode in WAV file.
+                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const sysBinary = infile.trs80File.toSystemProgram(inName.toUpperCase()).binary;
+                            const cas = binaryAsCasFile(sysBinary, outBaud);
+                            const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
+                            outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
+                            break;
+                        }
+
+                        default:
+                            console.log("Can't convert a CMD program to " + outExt.toUpperCase());
+                            process.exit(1);
+                            break;
+                    }
                     break;
             }
 
