@@ -2,11 +2,13 @@ import * as fs from "fs";
 import * as path from "path";
 import {program} from "commander";
 import {
+    CassetteSpeed,
     decodeBasicProgram,
     decodeSystemProgram,
     decodeTrs80CassetteFile,
     decodeTrs80File,
-    decodeTrsdos, getTrs80FileExtension,
+    decodeTrsdos,
+    getTrs80FileExtension,
     isFloppy,
     Trs80File,
     Trsdos,
@@ -15,7 +17,9 @@ import {
 } from "trs80-base";
 import {concatByteArrays, withCommas} from "teamten-ts-utils";
 import {
+    binaryAsCasFile,
     BitType,
+    casAsAudio,
     concatAudio,
     Decoder,
     DEFAULT_SAMPLE_RATE,
@@ -23,8 +27,7 @@ import {
     Program,
     readWavFile,
     Tape,
-    writeWavFile,
-    wrapHighSpeed, wrapLowSpeed, binaryAsCasFile, casAsAudio
+    writeWavFile
 } from "trs80-cassette";
 import {version} from "./version.js";
 
@@ -430,12 +433,22 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                     // what the user wants.
                     infiles.push(new InputFile(base, trs80File));
                 } else {
+                    // Expand floppy.
                     for (const dirEntry of trsdos.dirEntries) {
                         const trsdosFilename = dirEntry.getFilename(".");
                         const trsdosBinary = trsdos.readFile(dirEntry);
                         const trsdosTrs80File = decodeTrs80File(trsdosBinary, trsdosFilename);
                         infiles.push(new InputFile(trsdosFilename, trsdosTrs80File));
                     }
+                }
+            } else if (trs80File.className === "Cassette") {
+                // Expand .CAS file.
+                let counter = 1;
+                for (const cassetteFile of trs80File.files) {
+                    const filename = name + "-T" + counter + getTrs80FileExtension(cassetteFile.file);
+                    const baud = cassetteFile.speed === CassetteSpeed.LOW_SPEED ? 500 : 1500;
+                    infiles.push(new InputFile(filename, cassetteFile.file, baud));
+                    counter++;
                 }
             } else {
                 infiles.push(new InputFile(base, trs80File));
