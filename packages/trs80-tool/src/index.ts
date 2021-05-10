@@ -360,51 +360,20 @@ function extract(infile: string, outfile: string): void {
 }
 
 /**
- * Convert WAV file in Tape format.
- */
-function convertTape(tape: Tape, outfile: string, baud: number | undefined): void {
-    if (outfile.toLowerCase().endsWith(".wav")) {
-        // Generate clean WAV file.
-        const wavFileParts: Int16Array[] = [];
-        for (const program of tape.programs) {
-            if (wavFileParts.length > 0) {
-                // Insert some silence between the recordings.
-                wavFileParts.push(makeSilence(2, DEFAULT_SAMPLE_RATE));
-            }
-            wavFileParts.push(program.asAudio(baud));
-        }
-
-        fs.writeFileSync(outfile, writeWavFile(concatAudio(wavFileParts), DEFAULT_SAMPLE_RATE));
-        console.log("Generated " + outfile + " with " + pluralizeWithCount(tape.programs.length, "program"));
-    } else if (outfile.toLowerCase().endsWith(".cas")) {
-        // Output CAS version of WAV file.
-        const casFileParts: Uint8Array[] = [];
-        for (const program of tape.programs) {
-            casFileParts.push(program.asCasFile(baud));
-        }
-        fs.writeFileSync(outfile, concatByteArrays(casFileParts));
-        console.log("Generated " + outfile + " with " + pluralizeWithCount(tape.programs.length, "program"));
-    } else {
-        console.log("Can only convert WAV files to WAV and CAS files.");
-        process.exit(1);
-    }
-}
-
-/**
  * Handle the "convert" command.
  */
-function convert(infilenames: string[], outFilename: string, baud: number | undefined): void {
-    const infiles: InputFile[] = [];
+function convert(inFilenames: string[], outFilename: string, baud: number | undefined): void {
+    const inFiles: InputFile[] = [];
 
     // Read all input files into an internal data structure, expanding archives like cassettes and floppies.
-    for (const infilename of infilenames) {
-        const { base, name, ext } = path.parse(infilename);
+    for (const inFilename of inFilenames) {
+        const { base, name, ext } = path.parse(inFilename);
 
         let buffer;
         try {
-            buffer = fs.readFileSync(infilename);
+            buffer = fs.readFileSync(inFilename);
         } catch (e) {
-            console.log("Can't open \"" + infilename + "\": " + e.message);
+            console.log("Can't open \"" + inFilename + "\": " + e.message);
             process.exit(1);
         }
 
@@ -417,12 +386,12 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
             for (const program of tape.programs) {
                 const trs80File = decodeTrs80CassetteFile(program.binary);
                 const filename = name + "-" + program.getPseudoFilename() + getTrs80FileExtension(trs80File);
-                infiles.push(new InputFile(filename, trs80File, program.baud));
+                inFiles.push(new InputFile(filename, trs80File, program.baud));
             }
         } else {
-            const trs80File = decodeTrs80File(buffer, infilename);
+            const trs80File = decodeTrs80File(buffer, inFilename);
             if (trs80File.error !== undefined) {
-                console.log("Can't open \"" + infilename + "\": " + trs80File.error);
+                console.log("Can't open \"" + inFilename + "\": " + trs80File.error);
                 process.exit(1);
             }
 
@@ -431,14 +400,14 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                 if (trsdos === undefined) {
                     // Should probably fail here. Having the floppy disk itself is probably not
                     // what the user wants.
-                    infiles.push(new InputFile(base, trs80File));
+                    inFiles.push(new InputFile(base, trs80File));
                 } else {
                     // Expand floppy.
                     for (const dirEntry of trsdos.dirEntries) {
                         const trsdosFilename = dirEntry.getFilename(".");
                         const trsdosBinary = trsdos.readFile(dirEntry);
                         const trsdosTrs80File = decodeTrs80File(trsdosBinary, trsdosFilename);
-                        infiles.push(new InputFile(trsdosFilename, trsdosTrs80File));
+                        inFiles.push(new InputFile(trsdosFilename, trsdosTrs80File));
                     }
                 }
             } else if (trs80File.className === "Cassette") {
@@ -447,24 +416,24 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                 for (const cassetteFile of trs80File.files) {
                     const filename = name + "-T" + counter + getTrs80FileExtension(cassetteFile.file);
                     const baud = cassetteFile.speed === CassetteSpeed.LOW_SPEED ? 500 : 1500;
-                    infiles.push(new InputFile(filename, cassetteFile.file, baud));
+                    inFiles.push(new InputFile(filename, cassetteFile.file, baud));
                     counter++;
                 }
             } else {
-                infiles.push(new InputFile(base, trs80File));
+                inFiles.push(new InputFile(base, trs80File));
             }
         }
     }
 
     if (false) {
-        for (const infile of infiles) {
+        for (const infile of inFiles) {
             console.log(infile.filename, infile.trs80File.className);
         }
     }
 
     // If output is existing directory, put all input files there.
     if (fs.existsSync(outFilename) && fs.statSync(outFilename).isDirectory()) {
-        for (const infile of infiles) {
+        for (const infile of inFiles) {
             const outpath = path.join(outFilename, infile.filename);
             console.log("Writing " + outpath);
             fs.writeFileSync(outpath, infile.trs80File.binary);
@@ -478,9 +447,9 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
         }
 
         // See if input is a single file.
-        if (infiles.length === 1) {
+        if (inFiles.length === 1) {
             // Convert individual file.
-            const infile = infiles[0];
+            const infile = inFiles[0];
             const inName = path.parse(infile.filename).name;
             let outBinary: Uint8Array = new Uint8Array(0); // TODO delete init.
 
@@ -535,6 +504,7 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                     break;
 
                 case "Cassette":
+                    // Shouldn't happen, we expand them above.
                     break;
 
                 case "SystemProgram":
@@ -620,18 +590,18 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
             if (outExt === ".wav") {
                 const audioParts: Int16Array[] = [];
 
-                for (const infile of infiles) {
+                for (const inFile of inFiles) {
                     // One second of silence before each program.
                     audioParts.push(new Int16Array(DEFAULT_SAMPLE_RATE));
 
                     // Convert to cassette format if necessary.
                     let outBinary: Uint8Array;
-                    switch (infile.trs80File.className) {
+                    switch (inFile.trs80File.className) {
                         case "RawBinaryFile":
                         case "BasicProgram":
                         case "SystemProgram": {
                             // Keep as-is.
-                            outBinary = infile.trs80File.binary;
+                            outBinary = inFile.trs80File.binary;
                             break;
                         }
                         case "Jv1FloppyDisk":
@@ -639,19 +609,19 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
                         case "DmkFloppyDisk":
                         case "Cassette":
                             // Shouldn't happen, we split up archives.
-                            console.log("Can't put " + infile.trs80File.getDescription() + " into a WAV file");
+                            console.log("Can't put " + inFile.trs80File.getDescription() + " into a WAV file");
                             process.exit(1);
                             break;
                         case "CmdProgram": {
                             // Convert to system program first.
-                            const inName = path.parse(infile.filename).name;
-                            outBinary = infile.trs80File.toSystemProgram(inName.toUpperCase()).binary;
+                            const inName = path.parse(inFile.filename).name;
+                            outBinary = inFile.trs80File.toSystemProgram(inName.toUpperCase()).binary;
                             break;
                         }
                     }
 
                     // Convert program to audio.
-                    const outBaud = (baud ?? infile.baud) ?? 500;
+                    const outBaud = (baud ?? inFile.baud) ?? 500;
                     audioParts.push(casAsAudio(binaryAsCasFile(outBinary, outBaud), outBaud, DEFAULT_SAMPLE_RATE));
 
                     // One second of silence after each program.
@@ -666,65 +636,6 @@ function convert(infilenames: string[], outFilename: string, baud: number | unde
             }
         }
     }
-
-/*
-
-    // Read the file.
-    let buffer;
-    try {
-        buffer = fs.readFileSync(infile);
-    } catch (e) {
-        process.exit(1);
-        return;
-    }
-
-    if (infile.toLowerCase().endsWith(".wav")) {
-        // Decode the cassette.
-        const wavFile = readWavFile(buffer.buffer);
-        const tape = new Tape(infile, wavFile);
-        const decoder = new Decoder(tape);
-        decoder.decode();
-        convertTape(tape, outfile, baud);
-    } else {
-        const file = decodeTrs80File(buffer, infile);
-        switch (file.className) {
-            case "BasicProgram":
-                break;
-
-            case "Cassette":
-                convertTape(Tape.fromCas(infile, file), outfile, baud);
-                break;
-
-            case "SystemProgram":
-                break;
-
-            case "CmdProgram":
-                if (outfile.toLowerCase().endsWith(".3bn")) {
-                    let filename = outfile;
-                    // Strip directory.
-                    let i = filename.lastIndexOf("/");
-                    if (i >= 0) {
-                        filename = filename.substring(i + 1);
-                    }
-                    // Strip extension.
-                    i = filename.lastIndexOf(".");
-                    if (i >= 0) {
-                        filename = filename.substring(0, i);
-                    }
-                    // Upper case, for kicks.
-                    filename = filename.toUpperCase();
-
-                    fs.writeFileSync(outfile, file.toSystemProgram(filename).binary);
-                    console.log("Converted " + infile + " to " + outfile);
-                }
-                break;
-
-            default:
-                console.log("Can't convert files of type " + file.className);
-                process.exit(1);
-                break;
-        }
-    }*/
 }
 
 /**
