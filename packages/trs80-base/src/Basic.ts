@@ -568,7 +568,22 @@ class BasicParser {
  *
  * @return the binary or an error.
  */
-export function parseBasicText(text: string): Uint8Array | string {
+export function parseBasicText(text: string | Uint8Array): Uint8Array | string {
+    // Decode from binary if possible.
+    if (text instanceof Uint8Array) {
+        const decoder = new TextDecoder("utf-8", {
+            // Throw an exception if there's a decoding error. This will help us catch
+            // binaries that aren't actually text. Might cause problems for programs
+            // that contain graphics characters in strings.
+            fatal: true,
+        });
+        try {
+            text = decoder.decode(text);
+        } catch (e) {
+            return "Binary cannot be decoded into text";
+        }
+    }
+
     // Split into lines. Only trim the start, spaces at the end should be kept.
     const lines = text.split(/[\n\r]+/)
         .map((line) => line.trimStart())

@@ -124,6 +124,12 @@ The `help` command shows more specific information about other commands:
     % trs80-tool help dir
     % trs80-tool help convert
 
+# Limitations
+
+* The tool cannot write floppy disk files.
+* The tool can only read TRSDOS floppy disks.
+* The tool can only write a single file to a `.CAS` file.
+
 # Change log
 
 ## 2.0.3

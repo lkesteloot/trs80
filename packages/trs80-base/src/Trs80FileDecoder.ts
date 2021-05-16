@@ -1,4 +1,4 @@
-import {BasicProgram, decodeBasicProgram} from "./Basic.js";
+import {BasicProgram, decodeBasicProgram, parseBasicText} from "./Basic.js";
 import {Cassette, decodeCassette} from "./Cassette.js";
 import {CmdProgram, decodeCmdProgram} from "./CmdProgram.js";
 import {RawBinaryFile} from "./RawBinaryFile.js";
@@ -135,6 +135,14 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
     trs80File = decodeBasicProgram(binary);
     if (trs80File !== undefined) {
         return trs80File;
+    }
+
+    const basicBinary = parseBasicText(binary);
+    if (basicBinary instanceof Uint8Array) {
+        trs80File = decodeBasicProgram(basicBinary);
+        if (trs80File !== undefined) {
+            return trs80File;
+        }
     }
 
     return new RawBinaryFile(binary);
