@@ -52,7 +52,7 @@ abstract class ArchiveFile {
     public readonly filename: string;
     public readonly date: Date | undefined;
 
-    constructor(filename: string, date: Date | undefined) {
+    protected constructor(filename: string, date: Date | undefined) {
         this.filename = filename;
         this.date = date;
     }
@@ -658,6 +658,7 @@ export function main() {
         .action(infile => {
             dir(infile);
         });
+    /*
     program
         .command("extract <infile> <outfile>")
         .description("extract files in the infile", {
@@ -666,7 +667,7 @@ export function main() {
         })
         .action((infile, outfile) => {
             extract(infile, outfile);
-        });
+        });*/
     program
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
