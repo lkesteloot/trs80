@@ -6,3 +6,4 @@ tsconfig.tsbuildinfo
 /dist/*.d.ts
 update_version.py
 tsconfig.json
+/binaries

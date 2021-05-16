@@ -457,7 +457,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
             // Convert individual file.
             const infile = inFiles[0];
             const inName = path.parse(infile.filename).name;
-            let outBinary: Uint8Array = new Uint8Array(0); // TODO delete init.
+            let outBinary: Uint8Array;
 
             switch (infile.trs80File.className) {
                 case "RawBinaryFile":
@@ -501,16 +501,11 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                     break;
 
                 case "Jv1FloppyDisk":
-                    break;
-
                 case "Jv3FloppyDisk":
-                    break;
-
                 case "DmkFloppyDisk":
-                    break;
-
                 case "Cassette":
-                    // Shouldn't happen, we expand them above.
+                    console.log("Files of type \"" + infile.trs80File.getDescription + "\" are not yet supported");
+                    process.exit(1);
                     break;
 
                 case "SystemProgram":
@@ -651,7 +646,7 @@ function hexdump(infile: string): void {
 
 }
 
-export function main() {
+function main() {
     program
         .storeOptionsAsProperties(false)
         .name("trs80-tool")
@@ -705,3 +700,4 @@ export function main() {
         .parse(process.argv);
 }
 
+main();
