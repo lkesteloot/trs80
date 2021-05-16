@@ -31,6 +31,12 @@ import {
 } from "trs80-cassette";
 import {version} from "./version.js";
 
+const HELP_TEXT = `
+See this page for full documentation:
+
+https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/README.md
+`
+
 /**
  * Return the singular or plural version of a string depending on the count.
  */
@@ -649,6 +655,7 @@ export function main() {
     program
         .storeOptionsAsProperties(false)
         .name("trs80-tool")
+        .addHelpText("after", HELP_TEXT)
         .version(version);
     program
         .command("dir <infile>")

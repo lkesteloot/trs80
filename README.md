@@ -14,6 +14,7 @@ in TypeScript. The subprojects are:
 * [trs80-cassette](packages/trs80-cassette): Library for reading and writing cassette WAV files. Does a good job with cassettes that have been partially damaged and can't be read by other converter tools.
 * [trs80-cassette-webapp](packages/trs80-cassette-webapp): Web utility for reading cassette WAV files and converting them to CAS files.
 * [my-trs-80](packages/my-trs-80): Web app for hosting a virtual TRS-80 and its library of cassettes and floppy disks.
+* [trs80-tool](packages/trs80-tool): Command-line tool for manipulating TRS-80 files.
 
 # License
 
