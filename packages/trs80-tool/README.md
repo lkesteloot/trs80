@@ -22,31 +22,31 @@ You can also download binaries of the latest version:
 
 The `trs80-tool` program supports these file formats:
 
-** **`.BAS`**: This is a Basic program. It's typically tokenized (token words like
+* **`.BAS`**: This is a Basic program. It's typically tokenized (token words like
   `PRINT` are stored as a single byte), but the tool supports reading Basic programs
   that are in text (non-tokenized) format. When writing a file with a `.BAS` extension,
   the file is always tokenized.
-** **`.ASC`**: This is also a Basic program, but always in text (non-tokenized) format. The
+* **`.ASC`**: This is also a Basic program, but always in text (non-tokenized) format. The
   extension is mostly useful when writing a Basic file, because it tells the converter
   to use the non-tokenized format.
-** **`.WAV`**: This is a cassette's audio stream. It can be at any sampling rate, either
+* **`.WAV`**: This is a cassette's audio stream. It can be at any sampling rate, either
   8 or 16 bits per sample, and either mono or stereo.
-** **`.CAS`**: This is a cassette stored in a compact form where each bit on the cassette
+* **`.CAS`**: This is a cassette stored in a compact form where each bit on the cassette
   is stored as a bit in the file. It includes synchronization headers and bytes, as well
   as start bits (for high-speed cassettes). This is a decent archival format for
   cassettes.
-** **`.CMD`**: This is a machine language program as stored on a floppy disk.
-** **`.3BN`**: This is a machine language program as stored on a cassette. The name comes
+* **`.CMD`**: This is a machine language program as stored on a floppy disk.
+* **`.3BN`**: This is a machine language program as stored on a cassette. The name comes
   from "Model 3 BiNary". This is typically not used, and instead these files are
   stored within `.CAS` files.
-** **`.JV1`**: This is a floppy disk format for the Model I. It's very simple, capturing
+* **`.JV1`**: This is a floppy disk format for the Model I. It's very simple, capturing
   the basic sector data. It does not capture enough information for copy-protected
   floppies. It's named after Jeff Vavasour.
-** **`.JV3`**: This is a floppy disk format for the Model III. It's very simple, capturing
+* **`.JV3`**: This is a floppy disk format for the Model III. It's very simple, capturing
   the basic sector data and IDAM structure. It does not capture enough
   information for copy-protected floppies. It's slightly more capable than
   `.JV1` because it can encode a mix of FM and MFM signals on the same track.
-** **`.DMK`**: Another floppy disk format, capturing more information from the floppy,
+* **`.DMK`**: Another floppy disk format, capturing more information from the floppy,
   such as some bits between sectors. Named after David M. Keil.
 
 # Usage
