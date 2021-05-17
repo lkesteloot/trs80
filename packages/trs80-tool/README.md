@@ -140,9 +140,16 @@ The `help` command shows more specific information about other commands:
 
 # Change log
 
+## 2.0.4
+
+* Can read and write text (non-tokenized) Basic files.
+* Can convert Basic programs from disk format to cassette format.
+* When extracting files from a TRSDOS floppy, retain original dates.
+* Can generate disassembly listing files from CMD and 3BN files.
+
 ## 2.0.3
 
-Initial release.
+* Initial release.
 
 # License
 
