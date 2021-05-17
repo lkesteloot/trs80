@@ -11,6 +11,12 @@
 import * as path from "path";
 import * as fs from "fs";
 
+import { URL } from 'url';
+
+// Replace __dirname from non-module node. May not work well if there are
+// spaces in the path (will show up as %20).
+const __dirname = new URL('.', import.meta.url).pathname;
+
 function parseOpcodes(dirname: string, prefix: string): any {
     const pathname = path.join(dirname, "opcodes_" + prefix.toLowerCase() + ".dat");
     const opcodeMap: any = {};
@@ -73,7 +79,8 @@ function parseOpcodes(dirname: string, prefix: string): any {
 function generateOpcodes(): void {
     const opcodesDir = path.join(__dirname, "..");
     const base = parseOpcodes(opcodesDir, "base");
-    fs.writeFileSync("src/Opcodes.json", JSON.stringify(base, null, 2));
+    const text = "export default " + JSON.stringify(base, null, 2) + ";";
+    fs.writeFileSync("src/Opcodes.ts", text);
 }
 
 generateOpcodes();

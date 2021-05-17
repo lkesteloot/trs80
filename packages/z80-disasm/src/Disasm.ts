@@ -1,7 +1,7 @@
-import opcodeMap from "./Opcodes.json";
-import {Instruction} from "./Instruction";
+import opcodeMap from "./Opcodes.js";
+import {Instruction} from "./Instruction.js";
 import {inc16, signedByte, toHex, toHexByte, toHexWord, word} from "z80-base";
-import {Preamble} from "./Preamble";
+import {Preamble} from "./Preamble.js";
 
 // Temporary string used for address substitution.
 const TARGET = "TARGET";

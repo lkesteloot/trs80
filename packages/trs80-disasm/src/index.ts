@@ -1,3 +1,3 @@
 
-export * from "./Main";
-export * from "./KnownLabels";
+export * from "./Main.js";
+export * from "./KnownLabels.js";

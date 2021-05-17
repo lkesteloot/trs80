@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import "mocha";
-import { Disasm } from "./Disasm";
-import {Instruction} from "./Instruction";
+import { Disasm } from "./Disasm.js";
+import {Instruction} from "./Instruction.js";
 
 function disasm(bin: ArrayLike<number>, org: number = 0): Instruction[] {
     const d = new Disasm();

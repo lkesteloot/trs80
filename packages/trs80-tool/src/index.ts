@@ -15,7 +15,7 @@ import {
     TrsdosDirEntry,
     trsdosProtectionLevelToString
 } from "trs80-base";
-import {concatByteArrays, withCommas} from "teamten-ts-utils";
+import {withCommas} from "teamten-ts-utils";
 import {
     binaryAsCasFile,
     BitType,
@@ -23,13 +23,14 @@ import {
     concatAudio,
     Decoder,
     DEFAULT_SAMPLE_RATE,
-    makeSilence,
     Program,
     readWavFile,
     Tape,
     writeWavFile
 } from "trs80-cassette";
 import {version} from "./version.js";
+import {disasmForTrs80Program} from "trs80-disasm";
+import {instructionsToText} from "z80-disasm";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -535,6 +536,14 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                             break;
                         }
 
+                        case ".lst": {
+                            const disasm = disasmForTrs80Program(infile.trs80File);
+                            const instructions = disasm.disassemble()
+                            const text = instructionsToText(instructions).join("\n") + "\n";
+                            outBinary = new TextEncoder().encode(text);
+                            break;
+                        }
+
                         default:
                             console.log("Can't convert a CMD program to " + outExt.toUpperCase());
                             process.exit(1);
@@ -569,6 +578,14 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                             const cas = binaryAsCasFile(sysBinary, outBaud);
                             const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
                             outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
+                            break;
+                        }
+
+                        case ".lst": {
+                            const disasm = disasmForTrs80Program(infile.trs80File);
+                            const instructions = disasm.disassemble()
+                            const text = instructionsToText(instructions).join("\n") + "\n";
+                            outBinary = new TextEncoder().encode(text);
                             break;
                         }
 

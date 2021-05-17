@@ -8,7 +8,7 @@ import {
     TRS80_SCREEN_END,
 } from "trs80-base";
 import {Disasm, Z80_KNOWN_LABELS} from "z80-disasm";
-import {TRS80_MODEL_III_KNOWN_LABELS} from "./KnownLabels";
+import {TRS80_MODEL_III_KNOWN_LABELS} from "./KnownLabels.js";
 
 // Whether to try to disassemble this chunk.
 function shouldDisassembleSystemProgramChunk(chunk: SystemChunk): boolean {

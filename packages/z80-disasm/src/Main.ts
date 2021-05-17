@@ -1,9 +1,9 @@
 
 import program from "commander";
 import * as fs from "fs";
-import {Disasm} from "./Disasm";
-import {Z80_KNOWN_LABELS} from "./KnownLabels";
-import {instructionsToText} from "./TextFormatter";
+import {Disasm} from "./Disasm.js";
+import {Z80_KNOWN_LABELS} from "./KnownLabels.js";
+import {instructionsToText} from "./TextFormatter.js";
 
 program
     .option('--org <address>', 'where to assume the binary is loaded (0)')

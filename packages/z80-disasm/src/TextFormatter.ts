@@ -1,4 +1,4 @@
-import {Instruction} from "./Instruction";
+import {Instruction} from "./Instruction.js";
 import {toHexByte, toHexWord} from "z80-base";
 
 /**
