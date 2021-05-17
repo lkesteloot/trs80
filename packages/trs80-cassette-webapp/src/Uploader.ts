@@ -1,6 +1,5 @@
 
 // Handles uploading WAV files and decoding them.
-import {wrapBasic} from "trs80-base";
 import {
     AudioFile,
     DEFAULT_SAMPLE_RATE,
@@ -99,10 +98,6 @@ export class Uploader {
             const highSpeed = bytes.length > 0 && bytes[0] === 0x55;
             const audio = highSpeed ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE) : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE);
             audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, audio);
-        } else if (pathname.toLowerCase().endsWith(".bas")) {
-            audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, encodeLowSpeed(wrapLowSpeed(wrapBasic(new Uint8Array(arrayBuffer))), DEFAULT_SAMPLE_RATE));
-        } else if (pathname.toLowerCase().endsWith(".cmd")) {
-            audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, encodeLowSpeed(wrapLowSpeed(new Uint8Array(arrayBuffer)), DEFAULT_SAMPLE_RATE));
         } else {
             audioFile = readWavFile(arrayBuffer);
         }

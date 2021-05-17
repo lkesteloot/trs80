@@ -6,6 +6,9 @@ import {hi, lo, toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
 
+// There are two types of headers. Basic programs on cassette start with
+// three D3 bytes followed by one name byte. Basic programs on floppy disk
+// start with a single FF byte.
 export const BASIC_TAPE_HEADER_BYTE = 0xD3;
 export const BASIC_HEADER_BYTE = 0xFF;
 
@@ -190,18 +193,37 @@ export class BasicProgram extends AbstractTrs80File {
 
         return parts.join("");
     }
-}
 
-/**
- * Adds the header bytes necessary for writing Basic cassettes.
- */
-export function wrapBasic(bytes: Uint8Array): Uint8Array {
-    // Add Basic header.
-    const buffers = [
-        new Uint8Array([BASIC_TAPE_HEADER_BYTE, BASIC_TAPE_HEADER_BYTE, BASIC_TAPE_HEADER_BYTE]),
-        bytes,
-    ];
-    return concatByteArrays(buffers);
+    /**
+     * Get a version of the binary that's appropriate for cassette. This will
+     * have the D3 header instead of the FF header.
+     */
+    public asCassetteBinary(): Uint8Array {
+        if (this.binary.length >= 4 &&
+            this.binary[0] === BASIC_TAPE_HEADER_BYTE &&
+            this.binary[1] === BASIC_TAPE_HEADER_BYTE &&
+            this.binary[2] === BASIC_TAPE_HEADER_BYTE) {
+
+            // Already in cassette format.
+            return this.binary;
+        }
+
+        if (this.binary.length >= 1 &&
+            this.binary[0] === BASIC_HEADER_BYTE) {
+
+            // In floppy format. Convert to cassette format.
+            return concatByteArrays([
+                new Uint8Array([
+                    BASIC_TAPE_HEADER_BYTE,
+                    BASIC_TAPE_HEADER_BYTE,
+                    BASIC_TAPE_HEADER_BYTE,
+                    0x65]),
+                this.binary.slice(1)]);
+        }
+
+        // Unknown format. Return as-is.
+        return this.binary;
+    }
 }
 
 /**
@@ -227,7 +249,7 @@ export function setBasicName(bytes: Uint8Array, name: string): Uint8Array {
     } else if (newName[0] === BASIC_HEADER_BYTE &&
         newName.length > 1) {
 
-        newName[1] = name.charCodeAt(0);
+        // This type of header does not have a name byte.
     }
 
     return newName;

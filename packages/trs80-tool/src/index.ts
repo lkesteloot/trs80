@@ -480,14 +480,14 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                         case ".cas": {
                             // Encode in CAS file.
                             const outBaud = (baud ?? infile.baud) ?? 500;
-                            outBinary = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            outBinary = binaryAsCasFile(infile.trs80File.asCassetteBinary(), outBaud);
                             break;
                         }
 
                         case ".wav": {
                             // Encode in WAV file.
                             const outBaud = (baud ?? infile.baud) ?? 500;
-                            const cas = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            const cas = binaryAsCasFile(infile.trs80File.asCassetteBinary(), outBaud);
                             const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
                             outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
                             break;
@@ -599,12 +599,13 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                     let outBinary: Uint8Array;
                     switch (inFile.trs80File.className) {
                         case "RawBinaryFile":
-                        case "BasicProgram":
-                        case "SystemProgram": {
+                        case "SystemProgram":
                             // Keep as-is.
                             outBinary = inFile.trs80File.binary;
                             break;
-                        }
+                        case "BasicProgram":
+                            outBinary = inFile.trs80File.asCassetteBinary();
+                            break;
                         case "Jv1FloppyDisk":
                         case "Jv3FloppyDisk":
                         case "DmkFloppyDisk":
