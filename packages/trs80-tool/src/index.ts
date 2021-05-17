@@ -209,11 +209,13 @@ class InputFile {
     public readonly filename: string;
     public readonly trs80File: Trs80File;
     public readonly baud: number | undefined;
+    public readonly date: Date | undefined;
 
-    constructor(filename: string, trs80File: Trs80File, baud?: number) {
+    constructor(filename: string, trs80File: Trs80File, baud?: number, date?: Date) {
         this.filename = filename;
         this.trs80File = trs80File;
         this.baud = baud;
+        this.date = date;
     }
 }
 
@@ -413,7 +415,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                         const trsdosFilename = dirEntry.getFilename(".");
                         const trsdosBinary = trsdos.readFile(dirEntry);
                         const trsdosTrs80File = decodeTrs80File(trsdosBinary, trsdosFilename);
-                        inFiles.push(new InputFile(trsdosFilename, trsdosTrs80File));
+                        inFiles.push(new InputFile(trsdosFilename, trsdosTrs80File, undefined, dirEntry.getDate()));
                     }
                 }
             } else if (trs80File.className === "Cassette") {
@@ -431,18 +433,15 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
         }
     }
 
-    if (false) {
-        for (const infile of inFiles) {
-            console.log(infile.filename, infile.trs80File.className);
-        }
-    }
-
     // If output is existing directory, put all input files there.
     if (fs.existsSync(outFilename) && fs.statSync(outFilename).isDirectory()) {
         for (const infile of inFiles) {
             const outpath = path.join(outFilename, infile.filename);
             console.log("Writing " + outpath);
             fs.writeFileSync(outpath, infile.trs80File.binary);
+            if (infile.date !== undefined) {
+                fs.utimesSync(outpath, infile.date, infile.date);
+            }
         }
     } else {
         // Output is a file. Its extension will help us determine how to convert the input files.
