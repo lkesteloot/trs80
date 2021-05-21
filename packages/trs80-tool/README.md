@@ -12,11 +12,11 @@ and update it later to new versions:
 
     % npm update -g trs80-tool
 
-You can also download binaries of the latest version:
+You can also download stand-alone binaries of the latest version:
 
 * [trs80-tool for Linux](https://www.my-trs-80.com/trs80-tool/linux/trs80-tool)
 * [trs80-tool for macOS](https://www.my-trs-80.com/trs80-tool/macos/trs80-tool)
-* [trs80-tool for Windows](https://www.my-trs-80.com/trs80-tool/windows/trs80-tool.exe)
+* [trs80-tool for Windows 8.1+](https://www.my-trs-80.com/trs80-tool/windows/trs80-tool.exe)
 
 # File formats
 
