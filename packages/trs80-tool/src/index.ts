@@ -15,7 +15,7 @@ import {
     TrsdosDirEntry,
     trsdosProtectionLevelToString
 } from "trs80-base";
-import {withCommas} from "teamten-ts-utils";
+import {concatByteArrays, withCommas} from "teamten-ts-utils";
 import {
     binaryAsCasFile,
     BitType,
@@ -600,17 +600,10 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
             fs.writeFileSync(outFilename, outBinary);
         } else {
             // Make archive.
-            if (outExt === ".cas") {
-                console.log("Can't currently put more than one file into a .CAS file");
-                process.exit(1);
-            }
-            if (outExt === ".wav") {
-                const audioParts: Int16Array[] = [];
-
+            if (outExt === ".cas" || outExt === ".wav") {
+                // Make the individual cas files and their baud rate.
+                const outCasFiles: {cas: Uint8Array, baud: number}[] = [];
                 for (const inFile of inFiles) {
-                    // One second of silence before each program.
-                    audioParts.push(new Int16Array(DEFAULT_SAMPLE_RATE));
-
                     // Convert to cassette format if necessary.
                     let outBinary: Uint8Array;
                     switch (inFile.trs80File.className) {
@@ -627,7 +620,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                         case "DmkFloppyDisk":
                         case "Cassette":
                             // Shouldn't happen, we split up archives.
-                            console.log("Can't put " + inFile.trs80File.getDescription() + " into a WAV file");
+                            console.log(`Can't put ${inFile.trs80File.getDescription()} into a ${outExt.toUpperCase()} file`);
                             process.exit(1);
                             break;
                         case "CmdProgram": {
@@ -638,16 +631,30 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                         }
                     }
 
-                    // Convert program to audio.
                     const outBaud = (baud ?? inFile.baud) ?? 500;
-                    audioParts.push(casAsAudio(binaryAsCasFile(outBinary, outBaud), outBaud, DEFAULT_SAMPLE_RATE));
-
-                    // One second of silence after each program.
-                    audioParts.push(new Int16Array(DEFAULT_SAMPLE_RATE));
+                    outCasFiles.push({cas: binaryAsCasFile(outBinary, outBaud), baud: outBaud});
                 }
 
-                const wavBinary = writeWavFile(concatAudio(audioParts), DEFAULT_SAMPLE_RATE);
-                fs.writeFileSync(outFilename, wavBinary);
+                if (outExt === ".cas") {
+                    fs.writeFileSync(outFilename, concatByteArrays(outCasFiles.map(outCas => outCas.cas)));
+                } else {
+                    // outExt == ".wav"
+                    const audioParts: Int16Array[] = [];
+
+                    for (const outCas of outCasFiles) {
+                        // One second of silence before each program.
+                        audioParts.push(new Int16Array(DEFAULT_SAMPLE_RATE));
+
+                        // Convert program to audio.
+                        audioParts.push(casAsAudio(outCas.cas, outCas.baud, DEFAULT_SAMPLE_RATE));
+
+                        // One second of silence after each program.
+                        audioParts.push(new Int16Array(DEFAULT_SAMPLE_RATE));
+                    }
+
+                    const wavBinary = writeWavFile(concatAudio(audioParts), DEFAULT_SAMPLE_RATE);
+                    fs.writeFileSync(outFilename, wavBinary);
+                }
             } else {
                 // TODO handle floppy.
                 console.log("Can't put multiple files into " + outExt.toUpperCase());

@@ -100,9 +100,7 @@ Archive files can be extracted if the destination is a directory:
 Archive files can be converted to other archive formats:
 
     % trs80-tool convert in.dmk out.wav
-
-This converts a floppy to a cassette, converting `.CMD` to `.3BN` files
-in the process.
+    % trs80-tool convert in.wav out.cas
 
 When writing a cassette format, the baud rate of the input file will
 be used, if it's known:
@@ -136,9 +134,12 @@ The `help` command shows more specific information about other commands:
 
 * The tool cannot write floppy disk files.
 * The tool can only read TRSDOS floppy disks.
-* The tool can only write a single file to a `.CAS` file.
 
 # Change log
+
+## 2.0.5
+
+* Can write multi-file CAS files.
 
 ## 2.0.4
 
