@@ -73,6 +73,14 @@ files are files that can contain other files. These are cassette files
 The output format depends on the type of archive. Cassette files show
 baud rates, whereas floppy disks show creation date and type of file.
 
+## `info`
+
+The `info` command takes a list of filenames and displays a one-line
+description of the contents of the file, such as its type (system
+program, Basic program) and, if known, the embedded filename.
+
+    % trs80-tool info in1.cmd in2.bas in3.cas in4.wav
+
 ## `convert`
 
 The `convert` command converts a list of input files to an output file or
@@ -136,6 +144,11 @@ The `help` command shows more specific information about other commands:
 * The tool can only read TRSDOS floppy disks.
 
 # Change log
+
+## 2.0.6
+
+* Add `info` command.
+* Show more detailed information of output files in `convert` command.
 
 ## 2.0.5
 

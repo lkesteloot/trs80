@@ -172,7 +172,7 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
                 // with them.
                 for (let i = 16; i < chunkSize; i++) {
                     const byte = reader.readUint8();
-                    console.log("Got extra byte in wav fmt chunk: 0x" + toHexByte(byte));
+                    // console.log("Got extra byte in wav fmt chunk: 0x" + toHexByte(byte));
                 }
                 break;
             }

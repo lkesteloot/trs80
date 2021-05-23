@@ -78,7 +78,7 @@ export class SystemProgram extends AbstractTrs80File {
                 entryPointAddress: number, annotations: ProgramAnnotation[]) {
 
         super(binary, error, annotations);
-        this.filename = filename;
+        this.filename = clipSystemProgramFilename(filename);
         this.chunks = chunks;
         this.entryPointAddress = entryPointAddress;
         this.annotations = annotations;
@@ -234,6 +234,13 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
 }
 
 /**
+ * Return a filename that can fit into a system program. The returned string is not padded.
+ */
+function clipSystemProgramFilename(filename: string): string {
+    return filename.slice(0, FILENAME_LENGTH);
+}
+
+/**
  * Generate a binary for the specified parts of a system program.
  * @param filename a six-character max filename, preferably in upper case.
  * @param chunks a list of chunks to load into memory.
@@ -244,9 +251,7 @@ export function encodeSystemProgram(filename: string, chunks: SystemChunk[], ent
 
     binaryParts.push(new Uint8Array([FILE_HEADER]));
 
-    if (filename.length > FILENAME_LENGTH) {
-        filename = filename.substring(0, FILENAME_LENGTH);
-    }
+    filename = clipSystemProgramFilename(filename);
     filename = filename.padEnd(FILENAME_LENGTH, " ");
     binaryParts.push(new TextEncoder().encode(filename));
 

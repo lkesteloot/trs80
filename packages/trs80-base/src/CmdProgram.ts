@@ -8,7 +8,12 @@ import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
 import {hi, lo, toHexWord} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
-import {encodeSystemProgram, MAX_SYSTEM_CHUNK_DATA_SIZE, SystemChunk, SystemProgram} from "./SystemProgram.js";
+import {
+    encodeSystemProgram,
+    MAX_SYSTEM_CHUNK_DATA_SIZE,
+    SystemChunk,
+    SystemProgram
+} from "./SystemProgram.js";
 
 // Chunk types.
 export const CMD_LOAD_BLOCK = 0x01;
