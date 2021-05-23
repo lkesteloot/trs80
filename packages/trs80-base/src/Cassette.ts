@@ -4,14 +4,16 @@ import {decodeTrs80CassetteFile, decodeTrs80File} from "./Trs80FileDecoder.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {Trs80File} from "./Trs80FileDecoder.js";
 
+const ACCEPTABLE_HEADER_MASK = 0xFFFFFF00;
+
 // Low-speed header and sync constants.
 const LOW_SPEED_HEADER_BYTE = 0x00;
 const LOW_SPEED_SYNC_BYTE = 0xA5;
 const LOW_SPEED_ACCEPTABLE_HEADER =
-    (LOW_SPEED_HEADER_BYTE << 24) |
+    ((LOW_SPEED_HEADER_BYTE << 24) |
     (LOW_SPEED_HEADER_BYTE << 16) |
     (LOW_SPEED_HEADER_BYTE << 8) |
-    (LOW_SPEED_HEADER_BYTE << 0);
+    (LOW_SPEED_HEADER_BYTE << 0)) & ACCEPTABLE_HEADER_MASK;
 const LOW_SPEED_DETECT =
     (LOW_SPEED_HEADER_BYTE << 24) |
     (LOW_SPEED_HEADER_BYTE << 16) |
@@ -22,11 +24,11 @@ const LOW_SPEED_DETECT =
 const HIGH_SPEED_HEADER_BYTE = 0x55;
 const HIGH_SPEED_SYNC_BYTE = 0x7F;
 const HIGH_SPEED_ACCEPTABLE_HEADER1 =
-    (HIGH_SPEED_HEADER_BYTE << 24) |
+    ((HIGH_SPEED_HEADER_BYTE << 24) |
     (HIGH_SPEED_HEADER_BYTE << 16) |
     (HIGH_SPEED_HEADER_BYTE << 8) |
-    (HIGH_SPEED_HEADER_BYTE << 0);
-const HIGH_SPEED_ACCEPTABLE_HEADER2 = ~HIGH_SPEED_ACCEPTABLE_HEADER1;
+    (HIGH_SPEED_HEADER_BYTE << 0)) & ACCEPTABLE_HEADER_MASK;
+const HIGH_SPEED_ACCEPTABLE_HEADER2 = ~HIGH_SPEED_ACCEPTABLE_HEADER1 & ACCEPTABLE_HEADER_MASK;
 const HIGH_SPEED_DETECT =
     (HIGH_SPEED_HEADER_BYTE << 24) |
     (HIGH_SPEED_HEADER_BYTE << 16) |
@@ -133,6 +135,26 @@ function stripStartBits(inBytes: Uint8Array): Uint8Array {
 }
 
 /**
+ * Returns an array with the bits shifted left the given amount. Does not
+ * modify the input array.
+ */
+function shiftLeft(inBytes: Uint8Array, shift: number): Uint8Array {
+    if (shift === 0) {
+        return inBytes;
+    }
+
+    const length = inBytes.length;
+    const outBytes = new Uint8Array(length);
+
+    const nextShift = 8 - shift;
+    for (let i = 0; i < length; i++) {
+        outBytes[i] = (inBytes[i] << shift) | (i === length - 1 ? 0x00 : inBytes[i + 1] >>> nextShift);
+    }
+
+    return outBytes;
+}
+
+/**
  * Decodes a CAS from the binary. If the binary is not at all a cassette,
  * returns undefined. If it's a cassette with decoding errors, returns
  * partially-decoded object and sets the "error" field.
@@ -170,25 +192,21 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
 
             const highSpeedBitOffset = checkMatch(recentBits, HIGH_SPEED_DETECT);
             if (highSpeedBitOffset !== undefined) {
-                if (highSpeedBitOffset !== 0) {
-                    // TODO
-                    throw new Error("We don't yet handle high-speed cassettes with bit offsets of " +
-                        highSpeedBitOffset);
-                }
-
                 annotations.push(new ProgramAnnotation("High speed header", 0, i));
                 annotations.push(new ProgramAnnotation("High speed sync byte", i, i + 1));
 
                 speed = CassetteSpeed.HIGH_SPEED;
-                programStartIndex = i + 1;
-                programBinary = stripStartBits(binary.subarray(programStartIndex));
+                const shift = highSpeedBitOffset === 0 ? 0 : 8 - highSpeedBitOffset;
+                programStartIndex = i + (highSpeedBitOffset === 0 ? 1 : 0);
+                programBinary = stripStartBits(
+                    shiftLeft(binary.subarray(programStartIndex), shift));
                 break;
             }
 
             if (i >= start + 4 &&
-                recentBits !== LOW_SPEED_ACCEPTABLE_HEADER &&
-                recentBits !== HIGH_SPEED_ACCEPTABLE_HEADER1 &&
-                recentBits !== HIGH_SPEED_ACCEPTABLE_HEADER2) {
+                (recentBits & ACCEPTABLE_HEADER_MASK) !== LOW_SPEED_ACCEPTABLE_HEADER &&
+                (recentBits & ACCEPTABLE_HEADER_MASK) !== HIGH_SPEED_ACCEPTABLE_HEADER1 &&
+                (recentBits & ACCEPTABLE_HEADER_MASK) !== HIGH_SPEED_ACCEPTABLE_HEADER2) {
 
                 // We should be seeing the header bits.
                 break;
