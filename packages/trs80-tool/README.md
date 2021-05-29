@@ -145,6 +145,10 @@ The `help` command shows more specific information about other commands:
 
 # Change log
 
+## 2.0.7
+
+* Can read high-speed CAS files with non-aligned bytes.
+
 ## 2.0.6
 
 * Add `info` command.
