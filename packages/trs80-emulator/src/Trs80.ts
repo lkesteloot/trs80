@@ -115,7 +115,7 @@ export class Trs80 implements Hal, Machine {
     public tStateCount = 0;
     private readonly screen: Trs80Screen;
     private readonly fdc = new FloppyDiskController(this);
-    private cassette: CassettePlayer;
+    private readonly cassettePlayer: CassettePlayer;
     private memory = new Uint8Array(0);
     private readonly keyboard = new Keyboard();
     private modeImage = 0x80;
@@ -157,7 +157,7 @@ export class Trs80 implements Hal, Machine {
 
     constructor(screen: Trs80Screen, cassette: CassettePlayer) {
         this.screen = screen;
-        this.cassette = cassette;
+        this.cassettePlayer = cassette;
         this.config = Config.makeDefault();
         this.updateFromConfig();
         this.loadRom();
@@ -882,9 +882,9 @@ export class Trs80 implements Hal, Machine {
             this.cassetteMotorOn = cassetteMotorOn;
 
             if (cassetteMotorOn) {
-                this.cassette.onMotorStart();
+                this.cassettePlayer.onMotorStart();
             } else {
-                this.cassette.onMotorStop();
+                this.cassettePlayer.onMotorStop();
             }
         }
     }
@@ -894,11 +894,11 @@ export class Trs80 implements Hal, Machine {
         if (this.cassetteMotorOn && this.setCassetteState(CassetteState.READ) >= 0) {
             // See how many samples we should have read by now.
             const samplesToRead = Math.round((this.tStateCount - this.cassetteMotorOnClock) *
-                this.cassette.samplesPerSecond / this.clockHz);
+                this.cassettePlayer.samplesPerSecond / this.clockHz);
 
             // Catch up.
             while (this.cassetteSamplesRead < samplesToRead) {
-                const sample = this.cassette.readSample();
+                const sample = this.cassettePlayer.readSample();
                 this.cassetteSamplesRead++;
 
                 // Convert to state, where neutral is some noisy in-between state.

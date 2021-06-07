@@ -160,6 +160,14 @@ export class FileInfoTab extends PageTab {
             a.click();
         });
         actionBar.append(exportButton);
+        if (this.trs80File.className === "Cassette") {
+            const cassette = this.trs80File;
+            const mountButton = makeTextButton("Mount", "input", "mount-button", () => {
+                this.filePanel.context.mountCassette(this.filePanel.file, cassette);
+                this.filePanel.context.panelManager.close();
+            });
+            actionBar.append(mountButton);
+        }
         const runButton = makeTextButton("Run", "play_arrow", "play-button", () => {
             this.filePanel.context.runProgram(this.filePanel.file, this.trs80File);
             this.filePanel.context.panelManager.close();

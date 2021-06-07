@@ -3,7 +3,7 @@ import {
     CassettePlayer,
     ControlPanel,
     DriveIndicators,
-    PanelType,
+    PanelType, ProgressBar,
     SettingsPanel,
     Trs80
 } from "trs80-emulator";
@@ -23,12 +23,92 @@ import {DialogBox} from "./DialogBox";
 import {AuthUser} from "./User";
 import {Database} from "./Database";
 import {File} from "./File";
-import {Editor} from "trs80-emulator/dist/Editor";
-import {isRegisterSetField, isWordReg, Register, toHexWord} from "z80-base";
-import {disasmForTrs80, disasmForTrs80Program} from "trs80-disasm";
+import {Editor} from "trs80-emulator";
+import {isRegisterSetField, toHexWord} from "z80-base";
+import {disasmForTrs80} from "trs80-disasm";
+import {Cassette} from "trs80-base";
+import {encodeLowSpeed, frameToTimestamp} from "trs80-cassette";
 
-class EmptyCassette extends CassettePlayer {
-    // Nothing to do.
+/**
+ * A cassette player based on a CAS file.
+ */
+export class CasFileCassettePlayer extends CassettePlayer {
+    private samples: Int16Array = new Int16Array(0);
+    private frame: number = 0;
+    private progressBar: ProgressBar | undefined;
+    private motorOn = false;
+    private rewinding = false;
+
+    public setCasFile(casFile: Cassette): void {
+        this.samples = encodeLowSpeed(casFile.binary, this.samplesPerSecond, 500);
+        this.progressBar?.setMaxValue(this.samples.length);
+        this.frame = 0;
+    }
+
+    public rewind(): void {
+        if (this.progressBar === undefined) {
+            this.frame = 0;
+        } else {
+            this.rewinding = true;
+            this.updateProgressBarVisibility();
+            const updateRewind = () => {
+                if (this.frame > 0) {
+                    this.frame = Math.max(0, Math.round(this.frame - this.samples.length/30));
+                    this.progressBar?.setValue(this.frame);
+                    window.requestAnimationFrame(updateRewind);
+                } else {
+                    this.rewinding = false;
+                    this.updateProgressBarVisibility();
+                }
+            };
+            // Wait for progress bar to become visible.
+            setTimeout(updateRewind, 150);
+        }
+    }
+
+    public setProgressBar(progressBar: ProgressBar): void {
+        this.progressBar = progressBar;
+        this.progressBar.setMaxValue(this.samples.length);
+    }
+
+    public onMotorStart(): void {
+        this.motorOn = true;
+        this.updateProgressBarVisibility();
+    }
+
+    public readSample(): number {
+        if (this.rewinding) {
+            // Can't read while rewinding.
+            return 0;
+        } else {
+            if (this.frame % this.samplesPerSecond === 0) {
+                console.log("Reading tape at " + frameToTimestamp(this.frame, this.samplesPerSecond));
+            }
+            if (this.progressBar !== undefined &&
+                (this.frame % Math.floor(this.samplesPerSecond / 10) === 0 ||
+                    this.frame == this.samples.length - 1)) {
+
+                this.progressBar.setValue(this.frame);
+            }
+
+            return this.frame < this.samples.length ? this.samples[this.frame++] / 32768 : 0;
+        }
+    }
+
+    public onMotorStop(): void {
+        this.motorOn = false;
+        this.updateProgressBarVisibility();
+    }
+
+    private updateProgressBarVisibility() {
+        if (this.progressBar !== undefined) {
+            if (this.motorOn || this.rewinding) {
+                this.progressBar.show();
+            } else {
+                this.progressBar.hide();
+            }
+        }
+    }
 }
 
 function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () => void): HTMLElement {
@@ -178,8 +258,10 @@ export function main() {
     screenDiv.classList.add("main-computer-screen");
 
     const screen = new CanvasScreen(1.5);
-    let cassette = new EmptyCassette();
-    const trs80 = new Trs80(screen, cassette);
+    const cassettePlayer = new CasFileCassettePlayer();
+    const progressBar = new ProgressBar(screen.getNode());
+    cassettePlayer.setProgressBar(progressBar);
+    const trs80 = new Trs80(screen, cassettePlayer);
     const editor = new Editor(trs80, screen);
     screenDiv.append(editor.node);
 
@@ -192,11 +274,9 @@ export function main() {
     const viewPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.VIEW);
     const controlPanel = new ControlPanel(screen.getNode());
     controlPanel.addResetButton(reboot);
-    /* We don't currently mount a cassette.
     controlPanel.addTapeRewindButton(() => {
-        // cassette.rewind();
+        cassettePlayer.rewind();
     });
-     */
     controlPanel.addSettingsButton(hardwareSettingsPanel);
     controlPanel.addSettingsButton(viewPanel);
     // const progressBar = new ProgressBar(screen.getNode());
@@ -228,7 +308,7 @@ export function main() {
 
     reboot();
 
-    const context = new Context(library, trs80, db, panelManager);
+    const context = new Context(library, trs80, cassettePlayer, db, panelManager);
 
     const screenshotButton = controlPanel.addScreenshotButton(() => {
         if (context.runningFile !== undefined) {
@@ -285,6 +365,8 @@ export function main() {
             }
         }
     });
+
+    /*
     controlPanel.addResetButton(() => {
         if (logging) {
             const dump = logs.join("\n");
@@ -300,6 +382,7 @@ export function main() {
             logging = true;
         }
     });
+    */
 
     /**
      * Update whether the user can take a screenshot of the running program.

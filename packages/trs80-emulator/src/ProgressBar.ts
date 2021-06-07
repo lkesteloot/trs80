@@ -63,7 +63,7 @@ export class ProgressBar {
     }
 
     public setValue(value: number) {
-        this.subbarNode.style.width = "" + Math.round(value*100/this.maxValue) + "%";
+        this.subbarNode.style.width = "" + (value*100/this.maxValue) + "%";
     }
 
     public show() {

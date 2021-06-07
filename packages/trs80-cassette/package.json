@@ -25,7 +25,6 @@
     "strongly-typed-events": "^1.6.7",
     "teamten-ts-utils": "^1.0.3",
     "trs80-base": "^2.0.7",
-    "trs80-emulator": "^2.0.7",
     "z80-base": "^2.0.1",
     "z80-disasm": "^2.0.4"
   }

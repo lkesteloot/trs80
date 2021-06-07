@@ -2,12 +2,14 @@ import {Trs80} from "trs80-emulator";
 import {PanelManager} from "./PanelManager";
 import {Library, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {File} from "./File";
-import {decodeTrs80File, Trs80File} from "trs80-base";
+import {Cassette, decodeTrs80File, Trs80File} from "trs80-base";
 import {User} from "./User";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Database} from "./Database";
 import {FilePanel} from "./FilePanel";
+import {CasFileCassettePlayer} from "./Main";
 
+// Exclamation marks are not allowed in DOM IDs, so this guarantees that it won't jump anywhere.
 const FRAGMENT_PREFIX = "#!";
 
 /**
@@ -16,6 +18,7 @@ const FRAGMENT_PREFIX = "#!";
 export class Context {
     public readonly library: Library;
     public readonly trs80: Trs80;
+    public readonly cassettePlayer: CasFileCassettePlayer;
     public readonly db: Database;
     public readonly panelManager: PanelManager;
     private _runningFile: File | undefined = undefined;
@@ -26,9 +29,12 @@ export class Context {
     // Dispatched when we initially figure out if we're signed in or not.
     public readonly onUserResolved = new SimpleEventDispatcher<void>();
 
-    constructor(library: Library, trs80: Trs80, db: Database, panelManager: PanelManager) {
+    constructor(library: Library, trs80: Trs80, cassettePlayer: CasFileCassettePlayer,
+                db: Database, panelManager: PanelManager) {
+
         this.library = library;
         this.trs80 = trs80;
+        this.cassettePlayer = cassettePlayer;
         this.db = db;
         this.panelManager = panelManager;
 
@@ -58,8 +64,21 @@ export class Context {
             console.error("Error in TRS-80 file: " + trs80File.error);
         } else {
             this.runningFile = file;
+            if (trs80File.className === "Cassette") {
+                // Always mount cassettes.
+                this.cassettePlayer.setCasFile(trs80File);
+            }
+
             this.trs80.runTrs80File(trs80File);
         }
+    }
+
+    /**
+     * Mount a cassette in the player.
+     */
+    public mountCassette(file: File, cassette: Cassette): void {
+        this.runningFile = file;
+        this.cassettePlayer.setCasFile(cassette);
     }
 
     /**

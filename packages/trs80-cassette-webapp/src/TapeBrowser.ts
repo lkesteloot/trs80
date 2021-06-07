@@ -759,7 +759,7 @@ export class TapeBrowser {
         }
         reboot();
 
-        let pane = new Pane(div);
+        const pane = new Pane(div);
         pane.didShow = () => trs80.start();
         pane.didHide = () => trs80.stop();
         return pane;
