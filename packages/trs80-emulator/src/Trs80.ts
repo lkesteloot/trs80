@@ -150,6 +150,7 @@ export class Trs80 implements Hal, Machine {
     private cassetteSamplesRead = 0;
     private cassetteRiseInterruptCount = 0;
     private cassetteFallInterruptCount = 0;
+    private orchestraLeftValue = 0;
     public readonly soundPlayer = new SoundPlayer();
     public readonly eventScheduler = new EventScheduler();
     public readonly onPreStep = new SignalDispatcher();
@@ -487,6 +488,20 @@ export class Trs80 implements Hal, Machine {
     public writePort(address: number, value: number): void {
         const port = address & 0xFF;
         switch (port) {
+            case 0xB5: {
+                // ORCHESTRA-85 hardware.
+                const leftValue = (this.orchestraLeftValue - 128) / 128;
+                const rightValue = (value - 128) / 128;
+                this.soundPlayer.setAudioValue(leftValue, rightValue, this.tStateCount, this.clockHz);
+                break;
+            }
+
+            case 0xB9:
+                // ORCHESTRA-85 hardware.
+                // Keep this for later 0xB5 byte.
+                this.orchestraLeftValue = value;
+                break;
+
             case 0xE0:
                 if (this.config.modelType !== ModelType.MODEL1) {
                     // Set interrupt mask.
@@ -848,7 +863,8 @@ export class Trs80 implements Hal, Machine {
                 this.cassetteFlipFlop = false;
             }
         } else {
-            this.soundPlayer.setAudioValue(CASSETTE_BITS_TO_AUDIO_VALUE[b], this.tStateCount, this.clockHz);
+            const audioValue = CASSETTE_BITS_TO_AUDIO_VALUE[b];
+            this.soundPlayer.setAudioValue(audioValue, audioValue, this.tStateCount, this.clockHz);
         }
     }
 

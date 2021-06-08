@@ -10,18 +10,41 @@ const SPIN_VOLUME = 0.6;
 const TRACK_VOLUME = 0.3;
 
 const PROCESSOR_JS = `
+const VOLUME = 0.10;
+
 // Generates the TRS-80 sound.
 class Trs80SoundProcessor extends AudioWorkletProcessor {
     // This parameter is the audio itself. We just pass it on.
     static get parameterDescriptors() {
-        return [{
-            name: "audioValue",
-            defaultValue: 0,
-        }];
+        return [
+            {
+                name: "leftValue",
+                defaultValue: 0,
+            },
+            {
+                name: "rightValue",
+                defaultValue: 0,
+            }
+        ];
     }
 
     constructor() {
         super();
+    }
+
+    // Send the value to the channel.
+    processChannel(channel, audioValue) {
+        if (audioValue.length === 1) {
+            const value = audioValue[0]*VOLUME;
+
+            for (let i = 0; i < channel.length; i++) {
+                channel[i] = value;
+            }
+        } else {
+            for (let i = 0; i < channel.length; i++) {
+                channel[i] = audioValue[i]*VOLUME;
+            }
+        }
     }
 
     // Process 128 audio samples at a time.
@@ -29,19 +52,11 @@ class Trs80SoundProcessor extends AudioWorkletProcessor {
         // We only have one output.
         const output = outputs[0];
 
-        // The parameter that holds the actual audio.
-        const audioValue = parameters.audioValue;
-
-        // We should be mono, but send to all channels anyway.
-        for (let channelNumber = 0; channelNumber < output.length; channelNumber++) {
-            const channel = output[channelNumber];
-
-            for (let i = 0; i < channel.length; i++) {
-                const value = audioValue.length === 1 ? audioValue[0] : audioValue[i];
-                
-                // 10% volume.
-                channel[i] = value/10;
-            }
+        if (output.length >= 1) {
+            this.processChannel(output[0], parameters.leftValue);
+        }
+        if (output.length >= 2) {
+            this.processChannel(output[1], parameters.rightValue);
         }
 
         // Keep going.
@@ -65,7 +80,8 @@ const MIN_SILENT_TIME_S = 30;
 export class SoundPlayer implements Mutable {
     private muted = true;
     private audioContext: AudioContext | undefined = undefined;
-    private audioValue: AudioParam | undefined = undefined;
+    private leftValue: AudioParam | undefined = undefined;
+    private rightValue: AudioParam | undefined = undefined;
     private floppyMotorOn = false;
     private floppySpinAudioBuffer: AudioBuffer | undefined = undefined;
     private floppySpinSourceNode: AudioBufferSourceNode | undefined = undefined;
@@ -89,8 +105,10 @@ export class SoundPlayer implements Mutable {
     /**
      * Sets the value sent to the cassette, from the set -1, 0, or 1.
      */
-    public setAudioValue(value: number, tStateCount: number, clockHz: number): void {
-        if (!this.muted && this.audioContext !== undefined && this.audioValue !== undefined) {
+    public setAudioValue(leftValue: number, rightValue: number, tStateCount: number, clockHz: number): void {
+        if (!this.muted && this.audioContext !== undefined &&
+            this.leftValue !== undefined && this.rightValue !== undefined) {
+
             this.resumeAudio();
 
             const computerTime = tStateCount / clockHz;
@@ -103,7 +121,8 @@ export class SoundPlayer implements Mutable {
                 this.adjustment = delta - 0.025;
             }
 
-            this.audioValue.setValueAtTime(value, computerTime - this.adjustment);
+            this.leftValue.setValueAtTime(leftValue, computerTime - this.adjustment);
+            this.rightValue.setValueAtTime(rightValue, computerTime - this.adjustment);
 
             // Remember when we last played audio.
             this.lastAudioTime = audioTime;
@@ -266,11 +285,17 @@ export class SoundPlayer implements Mutable {
 
                 // Our own node, which ignores its input and generates the audio.
                 const node = new Trs80SoundNode(audioContext);
+                node.channelCountMode = "explicit";
+                node.channelCount = 2;
 
                 // Into this parameter we'll write the actual audio values.
-                this.audioValue = node.parameters.get("audioValue");
-                if (this.audioValue === undefined) {
-                    throw new Error("Unknown param audioValue");
+                this.leftValue = node.parameters.get("leftValue");
+                if (this.leftValue === undefined) {
+                    throw new Error("Unknown param leftValue");
+                }
+                this.rightValue = node.parameters.get("rightValue");
+                if (this.rightValue === undefined) {
+                    throw new Error("Unknown param rightValue");
                 }
 
                 // Automatically suspend the audio if we've not played sound in a while.
