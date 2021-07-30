@@ -151,6 +151,15 @@ export class SystemProgram extends AbstractTrs80File {
         const binary = encodeCmdProgram(cmdChunks);
         return new CmdProgram(binary, undefined, [], cmdChunks, this.filename, this.entryPointAddress);
     }
+
+    /**
+     * Create a new system program just like this one, but with the specified entry point address.
+     * @param entryPointAddress
+     */
+    public withEntryPointAddress(entryPointAddress: number): SystemProgram {
+        return new SystemProgram(encodeSystemProgram(this.filename, this.chunks, entryPointAddress),
+            this.error, this.filename, this.chunks, entryPointAddress, this.annotations);
+    }
 }
 
 /**

@@ -245,6 +245,13 @@ class InputFile {
         this.baud = baud;
         this.date = date;
     }
+
+    /**
+     * Return a new InputFile but with the file replaced by the parameter.
+     */
+    public withFile(trs80File: Trs80File): InputFile {
+        return new InputFile(this.filename, trs80File, this.baud, this.date);
+    }
 }
 
 /**
@@ -436,8 +443,15 @@ function extract(infile: string, outfile: string): void {
 
 /**
  * Handle the "convert" command.
+ *
+ * @param inFilenames list of input filenames.
+ * @param outFilename single output filename or directory.
+ * @param baud optional new baud rate.
+ * @param start optional start address of system file.
  */
-function convert(inFilenames: string[], outFilename: string, baud: number | undefined): void {
+function convert(inFilenames: string[], outFilename: string, baud: number | undefined,
+                 start: number | "auto" | undefined): void {
+
     const inFiles: InputFile[] = [];
 
     // Read all input files into an internal data structure, expanding archives like cassettes and floppies.
@@ -496,6 +510,31 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                 }
             } else {
                 inFiles.push(new InputFile(base, trs80File));
+            }
+        }
+    }
+
+    // Update start address if requested.
+    if (start !== undefined) {
+        for (let i = 0; i < inFiles.length; i++) {
+            const trs80File = inFiles[i].trs80File;
+            let newTrs80File: Trs80File | undefined;
+
+            if (trs80File.className === "SystemProgram") {
+                if (start === "auto") {
+                    if (trs80File.entryPointAddress === 0) {
+                        const guessAddress = trs80File.guessEntryAddress();
+                        if (guessAddress !== undefined) {
+                            newTrs80File = trs80File.withEntryPointAddress(guessAddress);
+                        }
+                    }
+                } else {
+                    newTrs80File = trs80File.withEntryPointAddress(start);
+                }
+            }
+
+            if (newTrs80File !== undefined) {
+                inFiles[i] = inFiles[i].withFile(newTrs80File);
             }
         }
     }
@@ -809,15 +848,17 @@ function main() {
             outfile: "WAV, CAS, CMD, 3BN, BAS, or LST file",
         })
         .option("--baud <baud>", "output baud rate (250, 500, 1000, or 1500)")
+        .option("--start <address>", "new start address of system program, or \"auto\" to guess")
         .action((files, options) => {
             const baud = options.baud !== undefined ? parseInt(options.baud) : undefined;
+            const start = options.start !== undefined ? options.start === "auto" ? "auto" : parseInt(options.start) : undefined;
             if (files.length < 2) {
                 console.log("Must specify at least one infile and exactly one outfile");
                 process.exit(1);
             }
             const infiles = files.slice(0, files.length - 1);
             const outfile = files[files.length - 1];
-            convert(infiles, outfile, baud);
+            convert(infiles, outfile, baud, start);
         });
     /*
     program
