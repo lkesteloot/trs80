@@ -83,10 +83,17 @@ export function frameDurationToString(frame: number, hz: number) {
 }
 
 /**
+ * Return the total number of audio samples in the list of audio samples.
+ */
+export function totalAudioSamples(samplesList: Int16Array[]): number {
+    return samplesList.reduce((sum, samples) => sum + samples.length, 0);
+}
+
+/**
  * Concatenate a list of audio samples into one.
  */
 export function concatAudio(samplesList: Int16Array[]): Int16Array {
-    const length = samplesList.reduce((sum, samples) => sum + samples.length, 0);
+    const length = totalAudioSamples(samplesList);
     const allSamples = new Int16Array(length);
 
     let offset = 0;

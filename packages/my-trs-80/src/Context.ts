@@ -65,11 +65,15 @@ export class Context {
         } else {
             this.runningFile = file;
             if (trs80File.className === "Cassette") {
-                // Always mount cassettes.
-                this.cassettePlayer.setCasFile(trs80File);
-            }
+                // Mount the cassette, skip to the second file, if any, in case it's a data
+                // file that the first file (program) will need.
+                this.cassettePlayer.setCasFile(trs80File, 1);
 
-            this.trs80.runTrs80File(trs80File);
+                // Run the first file.
+                this.trs80.runTrs80File(trs80File.files[0].file);
+            } else {
+                this.trs80.runTrs80File(trs80File);
+            }
         }
     }
 
@@ -78,7 +82,7 @@ export class Context {
      */
     public mountCassette(file: File, cassette: Cassette): void {
         this.runningFile = file;
-        this.cassettePlayer.setCasFile(cassette);
+        this.cassettePlayer.setCasFile(cassette, 0);
     }
 
     /**

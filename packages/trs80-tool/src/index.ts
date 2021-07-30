@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import {program} from "commander";
 import {
+    CassetteFile,
     CassetteSpeed,
     decodeBasicProgram,
     decodeSystemProgram,
@@ -103,6 +104,28 @@ class WavFile extends ArchiveFile {
 }
 
 /**
+ * Nested file that came from a CAS file.
+ */
+class CasFile extends ArchiveFile {
+    public readonly cassetteFile: CassetteFile;
+
+    constructor(filename: string, cassetteFile: CassetteFile) {
+        super(filename, undefined);
+        this.cassetteFile = cassetteFile;
+    }
+
+    getBinary(): Uint8Array {
+        return this.cassetteFile.file.binary;
+    }
+
+    getDirString(): string {
+        return this.filename.padEnd(14) + " " +
+            withCommas(this.cassetteFile.file.binary.length).padStart(8) + "  " +
+            (this.cassetteFile.speed === CassetteSpeed.HIGH_SPEED ? "1500" : "500") + " baud";
+    }
+}
+
+/**
  * Nested file that came from a TRSDOS floppy.
  */
 class TrsdosFile extends ArchiveFile {
@@ -129,6 +152,7 @@ class TrsdosFile extends ArchiveFile {
 
 /**
  * List of nested files in an archive (floppy or cassette).
+ * TODO: I think we can get rid of this and use an array of InputFile objects instead.
  */
 class Archive {
     public readonly error: string | undefined;
@@ -156,7 +180,7 @@ class Archive {
                 this.files.push(new WavFile(program));
             }
         } else {
-            // Decode the floppy.
+            // Decode the floppy or cassette.
             const file = decodeTrs80File(buffer, filename);
 
             switch (file.className) {
@@ -174,9 +198,12 @@ class Archive {
                     break;
 
                 case "Cassette":
-                    const tape = Tape.fromCas(filename, file);
-                    for (const program of tape.programs) {
-                        this.files.push(new WavFile(program));
+                    let counter = 1;
+                    const name = path.parse(filename).name;
+                    for (const cassetteFile of file.files) {
+                        const cassetteFilename = name + "-T" + counter + getTrs80FileExtension(cassetteFile.file);
+                        this.files.push(new CasFile(cassetteFilename, cassetteFile));
+                        counter += 1;
                     }
                     break;
 

@@ -1,19 +1,10 @@
-
-import {AbstractTrs80File} from "./Trs80File.js";
-import {decodeTrs80CassetteFile} from "./Trs80FileDecoder.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
-import {Trs80File} from "./Trs80FileDecoder.js";
-
-const ACCEPTABLE_HEADER_MASK = 0xFFFFFF00;
+import {AbstractTrs80File} from "./Trs80File.js";
+import {decodeTrs80CassetteFile, Trs80File} from "./Trs80FileDecoder.js";
 
 // Low-speed header and sync constants.
 const LOW_SPEED_HEADER_BYTE = 0x00;
 const LOW_SPEED_SYNC_BYTE = 0xA5;
-const LOW_SPEED_ACCEPTABLE_HEADER =
-    ((LOW_SPEED_HEADER_BYTE << 24) |
-    (LOW_SPEED_HEADER_BYTE << 16) |
-    (LOW_SPEED_HEADER_BYTE << 8) |
-    (LOW_SPEED_HEADER_BYTE << 0)) & ACCEPTABLE_HEADER_MASK;
 const LOW_SPEED_DETECT =
     (LOW_SPEED_HEADER_BYTE << 24) |
     (LOW_SPEED_HEADER_BYTE << 16) |
@@ -23,12 +14,6 @@ const LOW_SPEED_DETECT =
 // High-speed header and sync constants.
 const HIGH_SPEED_HEADER_BYTE = 0x55;
 const HIGH_SPEED_SYNC_BYTE = 0x7F;
-const HIGH_SPEED_ACCEPTABLE_HEADER1 =
-    ((HIGH_SPEED_HEADER_BYTE << 24) |
-    (HIGH_SPEED_HEADER_BYTE << 16) |
-    (HIGH_SPEED_HEADER_BYTE << 8) |
-    (HIGH_SPEED_HEADER_BYTE << 0)) & ACCEPTABLE_HEADER_MASK;
-const HIGH_SPEED_ACCEPTABLE_HEADER2 = ~HIGH_SPEED_ACCEPTABLE_HEADER1 & ACCEPTABLE_HEADER_MASK;
 const HIGH_SPEED_DETECT =
     (HIGH_SPEED_HEADER_BYTE << 24) |
     (HIGH_SPEED_HEADER_BYTE << 16) |
@@ -155,80 +140,117 @@ function shiftLeft(inBytes: Uint8Array, shift: number): Uint8Array {
 }
 
 /**
+ * A cassette file header as detected by the findHeader() function.
+ */
+class Header {
+    /**
+     * The index into the binary where the program starts (after the sync byte).
+     */
+    public readonly position: number;
+    /**
+     * How many bits to shift the bytes left.
+     */
+    public readonly shift: number;
+    /**
+     * Detected speed of the file.
+     */
+    public readonly speed: CassetteSpeed;
+    /**
+     * Any annotations for this header.
+     */
+    public readonly annotations: ProgramAnnotation[];
+    // TODO include where header started so that previous file can be stopped there.
+
+    constructor(position: number, shift: number, speed: CassetteSpeed, annotations: ProgramAnnotation[]) {
+        this.position = position;
+        this.shift = shift;
+        this.speed = speed;
+        this.annotations = annotations;
+    }
+}
+
+/**
+ * Find a header starting at "start".
+ */
+function findHeader(binary: Uint8Array, start: number): Header | undefined {
+    // Start with a pattern that doesn't match any header.
+    let recentBits = 0xFFFFFFFF;
+
+    for (let i = start; i < binary.length; i++) {
+        recentBits = (recentBits << 8) | binary[i];
+
+        const lowSpeedBitOffset = checkMatch(recentBits, LOW_SPEED_DETECT);
+        if (lowSpeedBitOffset !== undefined) {
+            if (lowSpeedBitOffset !== 0) {
+                // TODO
+                throw new Error("We don't yet handle low-speed cassettes with bit offsets of " + lowSpeedBitOffset);
+            }
+
+            return new Header(i + 1, 0, CassetteSpeed.LOW_SPEED, [
+                new ProgramAnnotation("Low speed header", 0, i), // TODO wrong start.
+                new ProgramAnnotation("Low speed sync byte", i, i + 1),
+            ]);
+        }
+
+        const highSpeedBitOffset = checkMatch(recentBits, HIGH_SPEED_DETECT);
+        if (highSpeedBitOffset !== undefined) {
+            const shift = highSpeedBitOffset === 0 ? 0 : 8 - highSpeedBitOffset;
+            const programStartIndex = i + (highSpeedBitOffset === 0 ? 1 : 0);
+            return new Header(programStartIndex, shift, CassetteSpeed.HIGH_SPEED, [
+                new ProgramAnnotation("High speed header", 0, i), // TODO wrong start.
+                new ProgramAnnotation("High speed sync byte", i, i + 1),
+            ]);
+        }
+    }
+
+    return undefined;
+}
+
+/**
  * Decodes a CAS from the binary. If the binary is not at all a cassette,
  * returns undefined. If it's a cassette with decoding errors, returns
  * partially-decoded object and sets the "error" field.
  */
 export function decodeCassette(binary: Uint8Array): Cassette | undefined {
-    const start = 0;
-    const annotations: ProgramAnnotation[] = [];
-    const cassetteFiles: CassetteFile[] = [];
-
+    // Detect all the headers in the file.
+    const headers: Header[] = [];
+    let start = 0;
     while (true) {
-        let recentBits = 0xFFFFFFFF;
-        let programBinary: Uint8Array | undefined;
-        let speed: CassetteSpeed | undefined;
-        let programStartIndex = 0;
-
-        for (let i = start; i < binary.length; i++) {
-            const byte = binary[i];
-            recentBits = (recentBits << 8) | byte;
-
-            const lowSpeedBitOffset = checkMatch(recentBits, LOW_SPEED_DETECT);
-            if (lowSpeedBitOffset !== undefined) {
-                if (lowSpeedBitOffset !== 0) {
-                    // TODO
-                    throw new Error("We don't yet handle low-speed cassettes with bit offsets of " + lowSpeedBitOffset);
-                }
-
-                annotations.push(new ProgramAnnotation("Low speed header", 0, i));
-                annotations.push(new ProgramAnnotation("Low speed sync byte", i, i + 1));
-
-                speed = CassetteSpeed.LOW_SPEED;
-                programStartIndex = i + 1;
-                programBinary = binary.subarray(programStartIndex);
-                break;
-            }
-
-            const highSpeedBitOffset = checkMatch(recentBits, HIGH_SPEED_DETECT);
-            if (highSpeedBitOffset !== undefined) {
-                annotations.push(new ProgramAnnotation("High speed header", 0, i));
-                annotations.push(new ProgramAnnotation("High speed sync byte", i, i + 1));
-
-                speed = CassetteSpeed.HIGH_SPEED;
-                const shift = highSpeedBitOffset === 0 ? 0 : 8 - highSpeedBitOffset;
-                programStartIndex = i + (highSpeedBitOffset === 0 ? 1 : 0);
-                programBinary = stripStartBits(
-                    shiftLeft(binary.subarray(programStartIndex), shift));
-                break;
-            }
-
-            if (i >= start + 4 &&
-                (recentBits & ACCEPTABLE_HEADER_MASK) !== LOW_SPEED_ACCEPTABLE_HEADER &&
-                (recentBits & ACCEPTABLE_HEADER_MASK) !== HIGH_SPEED_ACCEPTABLE_HEADER1 &&
-                (recentBits & ACCEPTABLE_HEADER_MASK) !== HIGH_SPEED_ACCEPTABLE_HEADER2) {
-
-                // We should be seeing the header bits.
-                break;
-            }
+        const header = findHeader(binary, start);
+        if (header === undefined) {
+            break;
         }
 
-        if (programBinary === undefined || speed === undefined) {
-            // Not a CAS file.
-            return undefined;
+        headers.push(header);
+        start = header.position;
+    }
+
+    if (headers.length === 0) {
+        // No cassette files in binary.
+        return undefined;
+    }
+
+    // Turn each header into a cassette file.
+    const cassetteFiles: CassetteFile[] = [];
+    const annotations: ProgramAnnotation[] = [];
+    for (let i = 0; i < headers.length; i++) {
+        const header = headers[i];
+
+        // Pull out binary.
+        const end = i === headers.length - 1 ? binary.length : headers[i + 1].position;
+        let fileBinary = shiftLeft(binary.subarray(header.position, end), header.shift);
+        if (header.speed === CassetteSpeed.HIGH_SPEED) {
+            fileBinary = stripStartBits(fileBinary);
         }
 
         // See what kind of file it is.
-        const file = decodeTrs80CassetteFile(programBinary);
-        cassetteFiles.push(new CassetteFile(programStartIndex, speed, file));
+        const file = decodeTrs80CassetteFile(fileBinary);
+        const cassetteFile = new CassetteFile(header.position, header.speed, file);
+        cassetteFiles.push(cassetteFile);
 
-        // TODO handle multiple files. See HAUNT.CAS.
-        break;
-    }
-
-    // Merge the annotations of the files into ours.
-    for (const file of cassetteFiles) {
-        annotations.push(... file.adjustedAnnotations());
+        // Merge annotations.
+        annotations.push(... header.annotations);
+        annotations.push(... cassetteFile.adjustedAnnotations());
     }
 
     return new Cassette(binary, undefined, annotations, cassetteFiles);

@@ -26,8 +26,15 @@ import {File} from "./File";
 import {Editor} from "trs80-emulator";
 import {isRegisterSetField, toHexWord} from "z80-base";
 import {disasmForTrs80} from "trs80-disasm";
-import {Cassette} from "trs80-base";
-import {encodeLowSpeed, frameToTimestamp} from "trs80-cassette";
+import {Cassette, CassetteSpeed} from "trs80-base";
+import {
+    concatAudio,
+    encodeHighSpeed,
+    encodeLowSpeed,
+    frameToTimestamp, totalAudioSamples,
+    wrapHighSpeed,
+    wrapLowSpeed
+} from "trs80-cassette";
 
 /**
  * A cassette player based on a CAS file.
@@ -39,10 +46,43 @@ export class CasFileCassettePlayer extends CassettePlayer {
     private motorOn = false;
     private rewinding = false;
 
-    public setCasFile(casFile: Cassette): void {
-        this.samples = encodeLowSpeed(casFile.binary, this.samplesPerSecond, 500);
-        this.progressBar?.setMaxValue(this.samples.length);
+    /**
+     * Create the audio for the cassette file.
+     *
+     * @param casFile cassette file to convert to audio.
+     * @param skip position the tape after the first "skip" files.
+     */
+    public setCasFile(casFile: Cassette, skip: number): void {
+        // Make audio for each file at the appropriate speed.
+        const samplesList: Int16Array[] = [];
         this.frame = 0;
+        for (const cassetteFile of casFile.files) {
+            let samples: Int16Array;
+
+            switch (cassetteFile.speed) {
+                case CassetteSpeed.LOW_SPEED:
+                    samples = encodeLowSpeed(wrapLowSpeed(cassetteFile.file.binary), this.samplesPerSecond, 500);
+                    break;
+
+                case CassetteSpeed.HIGH_SPEED:
+                    samples = encodeHighSpeed(wrapHighSpeed(cassetteFile.file.binary), this.samplesPerSecond);
+                    break;
+            }
+
+            // Skip to this file.
+            if (skip === 0) {
+                this.frame = totalAudioSamples(samplesList);
+            }
+            skip -= 1;
+
+            samplesList.push(samples);
+
+            // Silence between files.
+            samplesList.push(new Int16Array(this.samplesPerSecond));
+        }
+
+        this.samples = concatAudio(samplesList);
+        this.progressBar?.setMaxValue(this.samples.length);
     }
 
     public rewind(): void {

@@ -1032,12 +1032,8 @@ export class Trs80 implements Hal, Machine {
                 this.runCmdProgram(trs80File);
                 break;
             case "Cassette":
-                if (trs80File.files.length === 1) {
-                    this.runTrs80File(trs80File.files[0].file);
-                } else {
-                    // TODO.
-                    console.error("Can't currently run multiple cassette files");
-                }
+                // Run the first file. Assume there's always at least one.
+                this.runTrs80File(trs80File.files[0].file);
                 break;
             case "SystemProgram":
                 this.runSystemProgram(trs80File);
