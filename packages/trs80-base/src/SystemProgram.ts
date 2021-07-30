@@ -102,7 +102,7 @@ export class SystemProgram extends AbstractTrs80File {
     /**
      * Guess an entry address in case one wasn't specified in the program.
      */
-    private guessEntryAddress(): number | undefined {
+    public guessEntryAddress(): number | undefined {
         // For now just take the address of the first chunk. We may want to do something more clever,
         // like find the minimum load address that's not in video memory. I suspect that programs
         // without load addresses probably aren't doing clever things like that.

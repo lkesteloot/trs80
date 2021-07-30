@@ -1088,7 +1088,16 @@ export class Trs80 implements Hal, Machine {
 
             // Do what the SYSTEM command does.
             this.setStackPointer(0x4288);
-            this.startExecutable(systemProgram.entryPointAddress);
+
+            // Handle programs that don't define an entry point address.
+            let entryPointAddress = systemProgram.entryPointAddress;
+            if (entryPointAddress === 0) {
+                const guessAddress = systemProgram.guessEntryAddress();
+                if (guessAddress !== undefined) {
+                    entryPointAddress = guessAddress;
+                }
+            }
+            this.startExecutable(entryPointAddress);
         });
     }
 
