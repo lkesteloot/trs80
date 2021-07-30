@@ -85,7 +85,28 @@ export class SystemProgram extends AbstractTrs80File {
     }
 
     public getDescription(): string {
-        return "System program (" + this.filename + ")";
+        let description = "System program (" + this.filename;
+
+        if (this.entryPointAddress === 0) {
+            const address = this.guessEntryAddress();
+            if (address !== undefined) {
+                description += ", /" + address;
+            }
+        }
+
+        description += ")";
+
+        return description;
+    }
+
+    /**
+     * Guess an entry address in case one wasn't specified in the program.
+     */
+    private guessEntryAddress(): number | undefined {
+        // For now just take the address of the first chunk. We may want to do something more clever,
+        // like find the minimum load address that's not in video memory. I suspect that programs
+        // without load addresses probably aren't doing clever things like that.
+        return this.chunks.length === 0 ? undefined : this.chunks[0].loadAddress;
     }
 
     /**
