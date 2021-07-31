@@ -1,0 +1,12 @@
+
+To publish new version:
+
+- Update README.md, especially in trs80-tool.
+- Run "lerna publish patch" in top-level directory.
+- Check in new "version.ts" file.
+- In "trs80-tool" directory:
+    % npm run buildBinaries
+    % make rsync
+- In "my-trs-80" directory:
+    % npm run publish
+
