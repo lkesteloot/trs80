@@ -125,6 +125,24 @@ This can be overwritten using the `--baud` command-line flag:
     % trs80-tool convert --baud 1500 in1.cas in2.cas in3.cas out.wav
     % trs80-tool convert --baud 1500 in1.bas in2.3bn out.wav
 
+If a system program doesn't have a built-in start address, one
+will be guessed by the `info` command:
+
+    % trs80-tool info in.cas
+    in.cas: System program (VCEPRN, /17408) on a low speed cassette
+
+The start address can be set with the `--start` flag:
+
+    % trs80-tool convert --start 17408 in.cas out.cas
+    Wrote out.cas: System program (VCEPRN) in low speed CAS file
+    % trs80-tool info out.cas
+    out.cas: System program (VCEPRN) on a low speed cassette
+
+The address `auto` can be used to guess an appropriate start address:
+
+    % trs80-tool convert --start auto in.cas out.cas
+    Wrote out.cas: System program (VCEPRN) in low speed CAS file
+
 An assembly language listing disassembly file can be generated from `.CMD`
 and `.3BN` files:
 
@@ -144,6 +162,13 @@ The `help` command shows more specific information about other commands:
 * The tool can only read TRSDOS floppy disks.
 
 # Change log
+
+## 2.0.8
+
+* Can read, dir, and extract CAS files with multiple files.
+* The `info` command will display a guessed start address for system programs
+  with no specified start address.
+* Added `--start` flag to set the start address of system files.
 
 ## 2.0.7
 
