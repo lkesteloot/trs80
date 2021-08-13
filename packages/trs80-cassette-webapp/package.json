@@ -1,6 +1,6 @@
 {
   "name": "trs80-cassette-webapp",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "private": true,
   "description": "Web app to process TRS-80 cassettes and clean them up.",
   "main": "index.js",
@@ -30,7 +30,7 @@
     "trs80-base": "^2.0.8",
     "trs80-cassette": "^2.0.8",
     "trs80-disasm": "^2.0.8",
-    "trs80-emulator": "^2.0.8",
+    "trs80-emulator": "^2.0.9",
     "z80-base": "^2.0.1",
     "z80-disasm": "^2.0.4"
   }
