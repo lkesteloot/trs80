@@ -488,18 +488,20 @@ export class Trs80 implements Hal, Machine {
     public writePort(address: number, value: number): void {
         const port = address & 0xFF;
         switch (port) {
-            // Note for later: Apparently Orchestra-90 uses 0x75 and 0x79.
-            case 0xB5: {
-                // ORCHESTRA-85 hardware. The values are -128 to 127, so flip the MSB to convert to 0 to 255.
+            case 0xB5: // ORCHESTRA-85
+            case 0x75: // ORCHESTRA-90
+            {
+                // ORCHESTRA hardware. The values are -128 to 127, so flip the MSB to convert to 0 to 255.
                 const leftValue = ((this.orchestraLeftValue ^ 0x80) - 128) / 128;
                 const rightValue = ((value ^ 0x80) - 128) / 128;
                 this.soundPlayer.setAudioValue(leftValue, rightValue, this.tStateCount, this.clockHz);
                 break;
             }
 
-            case 0xB9:
-                // ORCHESTRA-85 hardware.
-                // Keep this for later 0xB5 byte.
+            case 0xB9: // ORCHESTRA-85
+            case 0x79: // ORCHESTRA-90
+                // ORCHESTRA hardware.
+                // Keep this for later right value.
                 this.orchestraLeftValue = value;
                 break;
 
