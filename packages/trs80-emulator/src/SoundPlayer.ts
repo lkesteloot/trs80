@@ -103,7 +103,7 @@ export class SoundPlayer implements Mutable {
     }
 
     /**
-     * Sets the value sent to the cassette, from the set -1, 0, or 1.
+     * Sets the value sent to the cassette, in the range -1 to 1.
      */
     public setAudioValue(leftValue: number, rightValue: number, tStateCount: number, clockHz: number): void {
         if (!this.muted && this.audioContext !== undefined &&
