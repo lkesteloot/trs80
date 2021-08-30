@@ -3,14 +3,14 @@ import * as path from "path";
 import {program} from "commander";
 import {
     CassetteFile,
-    CassetteSpeed,
+    CassetteSpeed, CmdProgram,
     decodeBasicProgram,
     decodeSystemProgram,
     decodeTrs80CassetteFile,
     decodeTrs80File,
     decodeTrsdos,
     getTrs80FileExtension,
-    isFloppy,
+    isFloppy, SystemProgram,
     Trs80File,
     Trsdos,
     TrsdosDirEntry,
@@ -442,15 +442,37 @@ function extract(infile: string, outfile: string): void {
 }
 
 /**
+ * Disassemble a program.
+ *
+ * @param trs80File program to disassemble.
+ * @param entryPoints additional entry points in binary.
+ */
+function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: number[]):
+    [binary: Uint8Array, description: string] {
+
+    const disasm = disasmForTrs80Program(trs80File);
+    for (const entryPoint of entryPoints) {
+        disasm.addEntryPoint(entryPoint);
+    }
+    const instructions = disasm.disassemble()
+    const text = instructionsToText(instructions).join("\n") + "\n";
+    const outBinary = new TextEncoder().encode(text);
+    const description = "Disassembled " + (trs80File.className === "CmdProgram" ? "CMD program" : "system program");
+
+    return [outBinary, description];
+}
+
+/**
  * Handle the "convert" command.
  *
  * @param inFilenames list of input filenames.
  * @param outFilename single output filename or directory.
  * @param baud optional new baud rate.
  * @param start optional start address of system file.
+ * @param entryPoints additional entry points in binary.
  */
 function convert(inFilenames: string[], outFilename: string, baud: number | undefined,
-                 start: number | "auto" | undefined): void {
+                 start: number | "auto" | undefined, entryPoints: number[]): void {
 
     const inFiles: InputFile[] = [];
 
@@ -653,14 +675,9 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                             break;
                         }
 
-                        case ".lst": {
-                            const disasm = disasmForTrs80Program(infile.trs80File);
-                            const instructions = disasm.disassemble()
-                            const text = instructionsToText(instructions).join("\n") + "\n";
-                            outBinary = new TextEncoder().encode(text);
-                            description = "Disassembled system program";
+                        case ".lst":
+                            [outBinary, description] = disassemble(infile.trs80File, entryPoints);
                             break;
-                        }
 
                         default:
                             console.log("Can't convert a system program program to " + outExt.toUpperCase());
@@ -708,14 +725,9 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                             break;
                         }
 
-                        case ".lst": {
-                            const disasm = disasmForTrs80Program(infile.trs80File);
-                            const instructions = disasm.disassemble()
-                            const text = instructionsToText(instructions).join("\n") + "\n";
-                            outBinary = new TextEncoder().encode(text);
-                            description = "Disassembled CMD program";
+                        case ".lst":
+                            [outBinary, description] = disassemble(infile.trs80File, entryPoints);
                             break;
-                        }
 
                         default:
                             console.log("Can't convert a CMD program to " + outExt.toUpperCase());
@@ -849,16 +861,18 @@ function main() {
         })
         .option("--baud <baud>", "output baud rate (250, 500, 1000, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
+        .option("--entry <addresses>", "add entry points of binary (comma-separated), for LST output")
         .action((files, options) => {
             const baud = options.baud !== undefined ? parseInt(options.baud) : undefined;
             const start = options.start !== undefined ? options.start === "auto" ? "auto" : parseInt(options.start) : undefined;
+            const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
             if (files.length < 2) {
                 console.log("Must specify at least one infile and exactly one outfile");
                 process.exit(1);
             }
             const infiles = files.slice(0, files.length - 1);
             const outfile = files[files.length - 1];
-            convert(infiles, outfile, baud, start);
+            convert(infiles, outfile, baud, start, entryPoints);
         });
     /*
     program

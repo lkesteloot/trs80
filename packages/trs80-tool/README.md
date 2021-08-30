@@ -149,6 +149,12 @@ and `.3BN` files:
     % trs80-tool convert in.cmd out.lst
     % trs80-tool convert in.3bn out.lst
 
+The disassembler attempts to guess what is code and what is data. If the
+input program relocates itself, some entry points will be missing and code
+will instead be disassembled as data. You can explicitly list entry points:
+
+    % trs80-tool convert --entry 0x7059,0x7064,0x71B9,0x7263 in.cas out.lst
+
 ## `help`
 
 The `help` command shows more specific information about other commands:
@@ -162,6 +168,10 @@ The `help` command shows more specific information about other commands:
 * The tool can only read TRSDOS floppy disks.
 
 # Change log
+
+## 2.0.10
+
+* Add --entry flag to help with disassembling programs that relocate themselves.
 
 ## 2.0.8
 
