@@ -189,6 +189,10 @@ The `help` command shows more specific information about other commands:
 
 # Change log
 
+## 2.1.0
+
+* Add `hexdump` command.
+
 ## 2.0.10
 
 * Add `--entry` flag to help with disassembling programs that relocate themselves.
