@@ -1,18 +1,20 @@
 import {toHex, toHexByte} from "z80-base";
-import {ProgramAnnotation} from "trs80-base/dist/ProgramAnnotation";
-import {isSameStringArray} from "./Utils";
+import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
+// Number of bytes per row.
 const STRIDE = 16;
 
+// Unicode for a vertical ellipsis.
+const VERTICAL_ELLIPSIS = 0x22EE;
+
 /**
- * Add a span with the given text and CSS classes to the specified line.
+ * Returns whether two string arrays are the same.
+ *
+ * Lodash has isEqual(), but it adds about 15 kB after minimization! (It's a deep comparison
+ * that has to deal with all sorts of data types.)
  */
-function newSpan(line: HTMLElement, text: string, ...cssClass: string[]): HTMLElement {
-    const e = document.createElement("span");
-    e.classList.add(...cssClass);
-    e.innerText = text;
-    line.append(e);
-    return e;
+export function isSameStringArray(a: string[], b: string[]): boolean {
+    return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
 /**
@@ -61,22 +63,54 @@ function allSameByte(binary: Uint8Array, addr: number, length: number): boolean 
 
 /**
  * Generates a hexdump for the given binary.
+ *
+ * The LINE_TYPE type keeps track of an entire line being output. It's made of several SPAN_TYPE objects.
  */
-export class HexdumpGenerator {
+export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
     private readonly binary: Uint8Array;
     private readonly collapse: boolean;
     private readonly annotations: ProgramAnnotation[];
 
-    constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
+    protected constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
         this.binary = binary;
         this.collapse = collapse;
         this.annotations = annotations;
     }
 
     /**
+     * Create a new line object.
+     */
+    protected abstract newLine(): LINE_TYPE;
+
+    /**
+     * Get the accumulated text for a line.
+     */
+    protected abstract getLineText(line: LINE_TYPE): string;
+
+    /**
+     * Add a span with the given text and classes to the specified line.
+     *
+     * The classes are:
+     *
+     * - address: hex address of a row.
+     * - hex: hex data.
+     * - ascii: plain ASCII data.
+     * - ascii-unprintable: ASCII data but not printable (e.g., control character).
+     * - annotation: text annotations on the right side.
+     * - outside-annotation: mixin class for data that's outside the current line's annotation. Should
+     *   be displayed dimly or not at all.
+     */
+    protected abstract newSpan(line: LINE_TYPE, text: string, ...cssClass: string[]): SPAN_TYPE;
+
+    /**
+     * Add the text to the span.
+     */
+    protected abstract addTextToSpan(span: SPAN_TYPE, text: string): void;
+
+    /**
      * Generate all HTML elements for this binary.
      */
-    public *generate(): Generator<HTMLElement, void, void> {
+    public *generate(): Generator<LINE_TYPE, void, void> {
         const binary = this.binary;
 
         const [addrDigits, addrSpaces] = this.computeAddressSize();
@@ -101,8 +135,8 @@ export class HexdumpGenerator {
         }
 
         // Final address to show where file ends.
-        const finalLine = document.createElement("div");
-        newSpan(finalLine, toHex(binary.length, addrDigits), "address");
+        const finalLine = this.newLine();
+        this.newSpan(finalLine, toHex(binary.length, addrDigits), "address");
         yield finalLine;
     }
 
@@ -110,7 +144,7 @@ export class HexdumpGenerator {
      * Generate all the lines for an annotation.
      * @param annotation the annotation to generate.
      */
-    private *generateAnnotation(annotation: ProgramAnnotation): Generator<HTMLElement, void, void> {
+    private *generateAnnotation(annotation: ProgramAnnotation): Generator<LINE_TYPE, void, void> {
         const binary = this.binary;
 
         const [addrDigits, addrSpaces] = this.computeAddressSize();
@@ -124,18 +158,18 @@ export class HexdumpGenerator {
 
                 // Collapsed section. See if we want to print the text for it this time.
                 if (addr === lastAddr + STRIDE) {
-                    const line = document.createElement("div");
+                    const line = this.newLine();
 
                     if (allSameByte(binary, addr, STRIDE)) {
                         // Lots of the same byte repeated. Say many there are.
                         const count = countConsecutive(binary, addr);
-                        newSpan(line, addrSpaces + "   ... ", "address");
-                        newSpan(line, count.toString(), "ascii");
-                        newSpan(line, " (", "address");
-                        newSpan(line, "0x" + count.toString(16).toUpperCase(), "ascii");
-                        newSpan(line, ") consecutive bytes of ", "address");
-                        newSpan(line, "0x" + toHexByte(binary[addr]), "hex");
-                        newSpan(line, " ...", "address");
+                        this.newSpan(line, addrSpaces + "   ... ", "address");
+                        this.newSpan(line, count.toString(), "ascii");
+                        this.newSpan(line, " (", "address");
+                        this.newSpan(line, "0x" + count.toString(16).toUpperCase(), "ascii");
+                        this.newSpan(line, ") consecutive bytes of ", "address");
+                        this.newSpan(line, "0x" + toHexByte(binary[addr]), "hex");
+                        this.newSpan(line, " ...", "address");
                     } else {
                         // A repeating pattern, but not all the same byte. Say how many times repeated.
                         let count = 1;
@@ -146,19 +180,19 @@ export class HexdumpGenerator {
                                 break;
                             }
                         }
-                        newSpan(line, addrSpaces + "  ... ", "address");
-                        newSpan(line, count.toString(), "ascii");
+                        this.newSpan(line, addrSpaces + "  ... ", "address");
+                        this.newSpan(line, count.toString(), "ascii");
                         const plural = count === 1 ? "" : "s";
-                        newSpan(line, ` repetition${plural} of previous row ...`, "address");
+                        this.newSpan(line, ` repetition${plural} of previous row ...`, "address");
                     }
 
                     // Draw vertical ellipsis.
                     if (annotation.text !== "" && addr !== beginAddr) {
                         // textContent doesn't trigger a reflow. Don't use innerText, which does.
-                        const lineText = line.textContent ?? "";
+                        const lineText = this.getLineText(line);
                         const width = addrDigits + STRIDE*4 + 9;
-                        const label = String.fromCodePoint(0x22EE).padStart(width - lineText.length, " ");
-                        newSpan(line, label, "annotation");
+                        const label = String.fromCodePoint(VERTICAL_ELLIPSIS).padStart(width - lineText.length, " ");
+                        this.newSpan(line, label, "annotation");
                     }
 
                     yield line;
@@ -173,7 +207,7 @@ export class HexdumpGenerator {
                         label = annotation.text;
                     } else {
                         // Vertical ellipsis.
-                        label = "  " + String.fromCodePoint(0x22EE);
+                        label = "  " + String.fromCodePoint(VERTICAL_ELLIPSIS);
                     }
                 }
 
@@ -192,26 +226,26 @@ export class HexdumpGenerator {
      * @return the created row.
      */
     private generateRow(addr: number, addrDigits: number,
-                        beginAddr: number, endAddr: number, label: string): HTMLElement {
+                        beginAddr: number, endAddr: number, label: string): LINE_TYPE {
 
         const binary = this.binary;
 
-        const line = document.createElement("div");
+        const line = this.newLine();
         const cssClass = ["address"];
         if (addr < beginAddr) {
             cssClass.push("outside-annotation");
         }
-        newSpan(line, toHex(addr, addrDigits) + "  ", ...cssClass);
+        this.newSpan(line, toHex(addr, addrDigits) + "  ", ...cssClass);
 
         // Utility function for adding text to a line, minimizing the number of needless spans.
         let currentCssClass: string[] | undefined = undefined;
-        let e: HTMLElement | undefined = undefined;
+        let e: SPAN_TYPE | undefined = undefined;
         const addText = (text: string, ...cssClass: string[]) => {
             if (e === undefined || currentCssClass === undefined || !isSameStringArray(cssClass, currentCssClass)) {
-                e = newSpan(line, text, ...cssClass);
+                e = this.newSpan(line, text, ...cssClass);
                 currentCssClass = cssClass.slice();
             } else {
-                e.innerText += text;
+                this.addTextToSpan(e, text);
             }
         };
 
@@ -251,7 +285,7 @@ export class HexdumpGenerator {
     }
 
     /**
-     * Computes the number of hex digits in the displayed address, and the number of spaces this represents.
+     * Computes the number of hex digits in the displayed address, and the spaces this represents.
      */
     private computeAddressSize(): [number, string] {
         // Figure out the number of digits in the address: 4 or 6.

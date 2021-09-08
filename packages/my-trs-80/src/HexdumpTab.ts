@@ -1,8 +1,37 @@
-import {Trs80File} from "trs80-base";
+import {ProgramAnnotation, Trs80File} from "trs80-base";
 import {PageTab} from "./PageTab";
-import {HexdumpGenerator} from "./HexdumpGenerator";
 import {clearElement} from "teamten-ts-utils";
 import {Context} from "./Context";
+import {HexdumpGenerator} from "trs80-base";
+
+/**
+ * Hexdump generator for HTML output.
+ */
+class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLElement, HTMLElement> {
+    constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
+        super(binary, collapse, annotations);
+    }
+
+    protected newLine(): HTMLElement {
+        return document.createElement("div");
+    }
+
+    protected getLineText(line: HTMLElement): string {
+        return line.textContent ?? "";
+    }
+
+    protected newSpan(line: HTMLElement, text: string, ...cssClass: string[]): HTMLElement {
+        const e = document.createElement("span");
+        e.classList.add(...cssClass);
+        e.innerText = text;
+        line.append(e);
+        return e;
+    }
+
+    protected addTextToSpan(span: HTMLElement, text: string): void {
+        span.innerText += text;
+    }
+}
 
 /**
  * Tab for displaying the hex and ASCII of the binary.
@@ -111,7 +140,7 @@ export class HexdumpTab extends PageTab {
         clearElement(this.hexdumpElement);
         this.lastLine = undefined;
 
-        const hexdumpGenerator = new HexdumpGenerator(this.binary, this.collapse,
+        const hexdumpGenerator = new HtmlHexdumpGenerator(this.binary, this.collapse,
             this.annotate ? this.trs80File.annotations : []);
         this.lineGenerator = hexdumpGenerator.generate();
 

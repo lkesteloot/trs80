@@ -82,7 +82,7 @@ class DmkSector {
     /**
      * Compute the CRC for the IDAM.
      */
-    public computeIdemCrc(): number {
+    public computeIdamCrc(): number {
         let crc = 0xFFFF;
 
         for (let i = -3; i < 5; i++) {
@@ -277,7 +277,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // operating system disk errors. (Like reading an 80 track disk in a 40 track drive)
     const trackCount = binary[1];
     if (trackCount > 160) {
-        // Not sure what a reasonable maximum is. I've only see 80.
+        // Not sure what a reasonable maximum is. I've only seen 80.
         return undefined;
     }
     annotations.push(new ProgramAnnotation(trackCount + " tracks", 1, 2));
@@ -288,7 +288,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // Values for other disk and format types are 0CC0H for single density 5.25" floppies,
     // 14E0H for single density 8" floppies and 2940H for double density 8" floppies. The max value is 2940H.
     // For normal formatting of disks the values of 1900H and 2940H for 5.25" and 8" are used.
-    // The emulator will write two bytes and read every second byte when  in single density to maintain
+    // The emulator will write two bytes and read every second byte when in single density to maintain
     // proper sector spacing, allowing mixed density disks. Setting the track length must be done before
     // a virtual disk is formatted or the disk will have to be re-formatted and since the space for the
     // disk has already been allocated no space will be saved.
@@ -410,7 +410,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
             // an offset to an IDAM at byte 90h would be 0090h if single density and 8090h if double density.
 
             for (let i = 0; i < TRACK_HEADER_SIZE; i += 2) {
-                const sectorOffset = binary[binaryOffset + i] + (binary[binaryOffset + i + 1] << 8);
+                const sectorOffset = binary[trackOffset + i] + (binary[trackOffset + i + 1] << 8);
                 if (sectorOffset !== 0) {
                     track.sectors.push(new DmkSector(track,
                         (sectorOffset & 0x8000) !== 0,
@@ -443,7 +443,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                 annotations.push(new ProgramAnnotation("Length " + sectorLength, i, i + 1));
                 i++;
 
-                const actualIdamCrc = sector.computeIdemCrc();
+                const actualIdamCrc = sector.computeIdamCrc();
                 const expectedIdamCrc = sector.getIdamCrc();
                 let idamCrcLabel = "IDAM CRC";
                 if (actualIdamCrc === expectedIdamCrc) {

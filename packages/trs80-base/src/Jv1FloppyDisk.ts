@@ -33,6 +33,10 @@ export class Jv1FloppyDisk extends FloppyDisk {
 
         // Offset straight into data.
         const offset = (SECTORS_PER_TRACK*trackNumber + sectorNumber)*BYTES_PER_SECTOR;
+        if (offset >= this.binary.length) {
+            return undefined;
+        }
+
         const data = this.padSector(this.binary.subarray(offset, offset + BYTES_PER_SECTOR), BYTES_PER_SECTOR);
 
         const sectorData = new SectorData(data);

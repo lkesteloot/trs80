@@ -171,7 +171,7 @@ The `help` command shows more specific information about other commands:
 
 ## 2.0.10
 
-* Add --entry flag to help with disassembling programs that relocate themselves.
+* Add `--entry` flag to help with disassembling programs that relocate themselves.
 
 ## 2.0.8
 

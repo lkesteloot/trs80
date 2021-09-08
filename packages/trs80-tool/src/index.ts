@@ -9,8 +9,8 @@ import {
     decodeTrs80CassetteFile,
     decodeTrs80File,
     decodeTrsdos,
-    getTrs80FileExtension,
-    isFloppy, SystemProgram,
+    getTrs80FileExtension, HexdumpGenerator,
+    isFloppy, ProgramAnnotation, SystemProgram,
     Trs80File,
     Trsdos,
     TrsdosDirEntry,
@@ -32,6 +32,7 @@ import {
 import {version} from "./version.js";
 import {disasmForTrs80Program} from "trs80-disasm";
 import {instructionsToText} from "z80-disasm";
+import {SectorData, Side} from "trs80-base";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -815,10 +816,159 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
 }
 
 /**
+ * Handle the "sectors" command.
+ */
+function sectors(filename: string): void {
+    // Read the file.
+    let buffer;
+    try {
+        buffer = fs.readFileSync(filename);
+    } catch (e) {
+        console.log("Can't open \"" + filename + "\": " + e.message);
+        return;
+    }
+
+    // Decode the floppy or cassette.
+    const file = decodeTrs80File(buffer, filename);
+    if (!isFloppy(file)) {
+        console.log("Not a recognized floppy file: " + filename);
+        return;
+    }
+
+    if (file.error !== undefined) {
+        console.log(filename + ": " + file.error);
+        return;
+    }
+
+    console.log(filename + ": " + file.getDescription());
+
+    let maxTrackNumber = -1;
+    let minSectorNumber = 1000;
+    let maxSectorNumber = -1;
+    const sides: Side[] = [];
+    for (const side of [Side.FRONT, Side.BACK]) {
+        for (let trackNumber = 0; trackNumber < 200; trackNumber++) {
+            let foundAnySectors = false;
+            for (let sectorNumber = 0; sectorNumber < 100; sectorNumber++) {
+                const sectorData = file.readSector(trackNumber, side, sectorNumber);
+                if (sectorData !== undefined) {
+                    if (sides.indexOf(side) === -1) {
+                        sides.push(side);
+                    }
+                    maxTrackNumber = Math.max(trackNumber, maxTrackNumber);
+                    minSectorNumber = Math.min(sectorNumber, minSectorNumber);
+                    maxSectorNumber = Math.max(sectorNumber, maxSectorNumber);
+                    foundAnySectors = true;
+                }
+            }
+            if (!foundAnySectors) {
+                break;
+            }
+        }
+    }
+
+    if (maxSectorNumber === -1) {
+        console.log("No sectors found");
+        return;
+    }
+
+    for (const side of sides) {
+        const sideName = side === Side.FRONT ? "Front" : "Back";
+        const lineParts: string[] = [sideName.padStart(6, " ") + "  "];
+        for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
+            lineParts.push(sectorNumber.toString().padEnd(4, " "));
+        }
+        console.log(lineParts.join(""));
+
+        for (let trackNumber = 0; trackNumber <= maxTrackNumber; trackNumber++) {
+            const lineParts: string[] = [trackNumber.toString().padStart(6, " ") + "  "];
+            for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
+                const sectorData = file.readSector(trackNumber, Side.FRONT, sectorNumber);
+                if (sectorData === undefined) {
+                    lineParts.push("-   ");
+                } else if (sectorData.deleted) {
+                    lineParts.push("X   ");
+                } else {
+                    lineParts.push("*   ");
+                }
+            }
+            console.log(lineParts.join(""));
+        }
+
+        console.log("");
+    }
+}
+
+/**
+ * Represents a span of characters in the hexdump with a single set of classes.
+ */
+class HexdumpSpan {
+    public text: string;
+    public readonly classes: string[];
+
+    constructor(text: string, classes: string[]) {
+        this.text = text;
+        this.classes = classes;
+    }
+}
+
+/**
+ * Hexdump generator for console output.
+ */
+class ConsoleHexdumpGenerator extends HexdumpGenerator<HexdumpSpan[], HexdumpSpan> {
+    constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
+        super(binary, collapse, annotations);
+    }
+
+    protected newLine(): HexdumpSpan[] {
+        return [];
+    }
+
+    protected getLineText(line: HexdumpSpan[]): string {
+        return line.map(span => span.text).join("");
+    }
+
+    protected newSpan(line: HexdumpSpan[], text: string, ...cssClass: string[]): HexdumpSpan {
+        const span = new HexdumpSpan(text, cssClass);
+        line.push(span);
+        return span;
+    }
+
+    protected addTextToSpan(span: HexdumpSpan, text: string): void {
+        span.text += text;
+    }
+}
+
+/**
  * Handle the "hexdump" command.
  */
-function hexdump(infile: string): void {
+function hexdump(filename: string): void {
+    // Read the file.
+    let buffer;
+    try {
+        buffer = fs.readFileSync(filename);
+    } catch (e) {
+        console.log("Can't open \"" + filename + "\": " + e.message);
+        return;
+    }
 
+    // Decode the floppy or cassette.
+    const file = decodeTrs80File(buffer, filename);
+    if (file.error !== undefined) {
+        console.log(filename + ": " + file.error);
+        return;
+    }
+
+    const hexdump = new ConsoleHexdumpGenerator(file.binary, true, file.annotations);
+    for (const line of hexdump.generate()) {
+        console.log(line.map(span => {
+            if (span.classes.indexOf("outside-annotation") >= 0) {
+                return "".padEnd(span.text.length, " ");
+            } else {
+                return span.text;
+            }
+        }).join(""));
+    }
 }
 
 function main() {
@@ -843,16 +993,6 @@ function main() {
         .action(infiles => {
             info(infiles);
         });
-    /*
-    program
-        .command("extract <infile> <outfile>")
-        .description("extract files in the infile", {
-            infile: "WAV, CAS, JV1, JV3, or DMK file (TRSDOS floppies only)",
-            outfile: "path to file or directory, or to JSON file for metadata",
-        })
-        .action((infile, outfile) => {
-            extract(infile, outfile);
-        });*/
     program
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
@@ -874,7 +1014,16 @@ function main() {
             const outfile = files[files.length - 1];
             convert(infiles, outfile, baud, start, entryPoints);
         });
-    /*
+    program
+        .command("sectors <infiles...>")
+        .description("show a sector map for each floppy file", {
+            infile: "any TRS-80 floppy file",
+        })
+        .action(infiles => {
+            for (const infile of infiles) {
+                sectors(infile);
+            }
+        });
     program
         .command("hexdump <infile>")
         .description("display an annotated hexdump of infile", {
@@ -882,7 +1031,7 @@ function main() {
         })
         .action(infile => {
             hexdump(infile);
-        });*/
+        });
     program
         .parse(process.argv);
 }
