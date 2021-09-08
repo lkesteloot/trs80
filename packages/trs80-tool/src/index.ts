@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import {program} from "commander";
+import {Option, program} from "commander";
 import {
     CassetteFile,
     CassetteSpeed, CmdProgram,
@@ -33,12 +33,44 @@ import {version} from "./version.js";
 import {disasmForTrs80Program} from "trs80-disasm";
 import {instructionsToText} from "z80-disasm";
 import {SectorData, Side} from "trs80-base";
+import chalk from "chalk";
 
 const HELP_TEXT = `
 See this page for full documentation:
 
 https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/README.md
 `
+
+/**
+ * Set the chalk color level based on its name. See the --color option.
+ * @param levelName
+ */
+function setColorLevel(levelName: string): void {
+    levelName = levelName.toLowerCase();
+
+    switch (levelName) {
+        case "auto":
+        default:
+            // Don't touch the level, let chalk set it.
+            break;
+
+        case "off":
+            chalk.level = 0;
+            break;
+
+        case "16":
+            chalk.level = 1;
+            break;
+
+        case "256":
+            chalk.level = 2;
+            break;
+
+        case "16m":
+            chalk.level = 3;
+            break;
+    }
+}
 
 /**
  * Return the singular or plural version of a string depending on the count.
@@ -942,7 +974,7 @@ class ConsoleHexdumpGenerator extends HexdumpGenerator<HexdumpSpan[], HexdumpSpa
 /**
  * Handle the "hexdump" command.
  */
-function hexdump(filename: string): void {
+function hexdump(filename: string, collapse: boolean): void {
     // Read the file.
     let buffer;
     try {
@@ -959,12 +991,20 @@ function hexdump(filename: string): void {
         return;
     }
 
-    const hexdump = new ConsoleHexdumpGenerator(file.binary, true, file.annotations);
+    const hexdump = new ConsoleHexdumpGenerator(file.binary, collapse, file.annotations);
     for (const line of hexdump.generate()) {
         console.log(line.map(span => {
             if (span.classes.indexOf("outside-annotation") >= 0) {
-                return "".padEnd(span.text.length, " ");
+                if (chalk.level === 0) {
+                    // Hide altogether.
+                    return "".padEnd(span.text.length, " ");
+                } else {
+                    return chalk.dim(span.text);
+                }
             } else {
+                if (span.classes.indexOf("ascii-unprintable") >= 0) {
+                    return chalk.dim(span.text);
+                }
                 return span.text;
             }
         }).join(""));
@@ -976,7 +1016,10 @@ function main() {
         .storeOptionsAsProperties(false)
         .name("trs80-tool")
         .addHelpText("after", HELP_TEXT)
-        .version(version);
+        .version(version)
+        .addOption(new Option("--color <color>", "color output")
+            .choices(["off", "16", "256", "16m", "auto"])
+            .default("auto"));
     program
         .command("dir <infile>")
         .description("list files in the infile", {
@@ -1029,11 +1072,13 @@ function main() {
         .description("display an annotated hexdump of infile", {
             infile: "WAV, CAS, CMD, 3BN, BAS, JV1, JV3, or DMK",
         })
-        .action(infile => {
-            hexdump(infile);
+        .option("--no-collapse", "collapse consecutive identical lines")
+        .action((infile, options) => {
+            setColorLevel(program.opts().color);
+            hexdump(infile, options.collapse);
         });
     program
-        .parse(process.argv);
+        .parse();
 }
 
 main();

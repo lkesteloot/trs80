@@ -61,6 +61,14 @@ Global flags are:
 
     --version         Show the tool's version number.
     --help            Show the usage message.
+    --color=COLOR     Force color mode (off, 16, 256, 16m, or auto).
+
+By default `trs80-tool` detects the color capabilities of the terminal
+and sets the `--color` flag automatically. You can override this, either
+to turn off color (if it bothers you) or to force it on (when piping into
+a pager). For example:
+
+    % trs80-tool --color=16 hexdump in.cmd | less
 
 ## `dir`
 
@@ -154,6 +162,18 @@ input program relocates itself, some entry points will be missing and code
 will instead be disassembled as data. You can explicitly list entry points:
 
     % trs80-tool convert --entry 0x7059,0x7064,0x71B9,0x7263 in.cas out.lst
+
+## `hexdump`
+
+The `hexdump` command displays a hex dump of the input file, with annotations.
+See the `--color` flag for how to force coloring on or off.
+By default the command will collapse consecutive identical lines:
+
+    % trs80-tool hexdump in.cmd
+
+Use the `--no-collapse` flag to turn off this collapsing:
+
+    % trs80-tool hexdump --no-collapse in.cmd
 
 ## `help`
 
