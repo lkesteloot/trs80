@@ -7,6 +7,12 @@ export enum Side {
     BACK,
 }
 
+// Whether single density (FM) or double density (MFM).
+export enum Density {
+    SINGLE,
+    DOUBLE,
+}
+
 /**
  * Convert a number to a side, where 0 maps to FRONT and 1 maps to BACK.
  * Other numbers throw an exception.
@@ -49,8 +55,14 @@ export class SectorData {
      */
     public crcError = false;
 
-    constructor(data: Uint8Array) {
+    /**
+     * Single or double density.
+     */
+    public density: Density;
+
+    constructor(data: Uint8Array, density: Density) {
         this.data = data;
+        this.density = density;
     }
 }
 

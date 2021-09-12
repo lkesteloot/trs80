@@ -8,7 +8,7 @@
 
 import {toHexByte, toHexWord} from "z80-base";
 import {CRC_16_CCITT} from "./Crc16.js";
-import {FloppyDisk, numberToSide, SectorData, Side} from "./FloppyDisk.js";
+import {Density, FloppyDisk, numberToSide, SectorData, Side} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 const FILE_HEADER_SIZE = 16;
@@ -84,8 +84,10 @@ class DmkSector {
     public computeIdamCrc(): number {
         let crc = 0xFFFF;
 
-        // Include the three 0xA1 bytes preceding the IDAM.
-        for (let i = -3; i < 5; i++) {
+        // For double density, include the three 0xA1 bytes preceding the IDAM.
+        const begin = this.doubleDensity ? -3 : 0;
+
+        for (let i = begin; i < 5; i++) {
             crc = CRC_16_CCITT.update(crc, this.getByte(i));
         }
 
@@ -108,8 +110,8 @@ class DmkSector {
         let crc = 0xFFFF;
 
         const index = this.dataIndex;
-        // Include the preceding three 0xA1 bytes and the DAM.
-        const begin = index - 4;
+        // For double density, include the preceding three 0xA1 bytes.
+        const begin = this.doubleDensity ? index - 4 : index - 1;
         const end = index + this.getLength();
         for (let i = begin; i < end; i++) {
             crc = CRC_16_CCITT.update(crc, this.getByte(i));
@@ -229,7 +231,8 @@ export class DmkFloppyDisk extends FloppyDisk {
 
                         const begin = track.offset + sector.offset + sector.dataIndex;
                         const end = begin + sector.getLength();
-                        const sectorData = new SectorData(this.binary.subarray(begin, end));
+                        const sectorData = new SectorData(this.binary.subarray(begin, end),
+                            sector.doubleDensity ? Density.DOUBLE : Density.SINGLE);
                         sectorData.crcError = sector.getDataCrc() !== sector.computeDataCrc();
                         sectorData.deleted = sector.isDeleted();
                         // console.log(sectorData);

@@ -1,5 +1,5 @@
 import {toHexByte} from "z80-base";
-import {FloppyDisk, SectorData, Side} from "./FloppyDisk.js";
+import {Density, FloppyDisk, SectorData, Side} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 // The JV3 file consists of sectors of different sizes all bunched together. Before that
@@ -161,7 +161,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
         const data = this.padSector(this.binary.subarray(sectorInfo.offset, sectorInfo.offset + sectorInfo.size),
             sectorInfo.size);
 
-        const sectorData = new SectorData(data);
+        const sectorData = new SectorData(data, sectorInfo.isDoubleDensity() ? Density.DOUBLE : Density.SINGLE);
         sectorData.deleted = sectorInfo.isDeleted();
         sectorData.crcError = sectorInfo.hasCrcError();
         return sectorData;

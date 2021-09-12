@@ -3,14 +3,20 @@ import * as path from "path";
 import {Option, program} from "commander";
 import {
     CassetteFile,
-    CassetteSpeed, CmdProgram,
+    CassetteSpeed,
+    CmdProgram,
     decodeBasicProgram,
     decodeSystemProgram,
     decodeTrs80CassetteFile,
     decodeTrs80File,
     decodeTrsdos,
-    getTrs80FileExtension, HexdumpGenerator,
-    isFloppy, ProgramAnnotation, SystemProgram,
+    Density,
+    getTrs80FileExtension,
+    HexdumpGenerator,
+    isFloppy,
+    ProgramAnnotation,
+    Side,
+    SystemProgram,
     Trs80File,
     Trsdos,
     TrsdosDirEntry,
@@ -32,7 +38,6 @@ import {
 import {version} from "./version.js";
 import {disasmForTrs80Program} from "trs80-disasm";
 import {instructionsToText} from "z80-disasm";
-import {SectorData, Side} from "trs80-base";
 import chalk from "chalk";
 
 const HELP_TEXT = `
@@ -926,10 +931,10 @@ function sectors(filename: string): void {
                     text = "C";
                 } else if (sectorData.deleted) {
                     color = chalk.yellow;
-                    text = "D";
+                    text = "X";
                 } else {
                     color = chalk.reset;
-                    text = "*";
+                    text = sectorData.density === Density.SINGLE ? "S" : "D";
                 }
                 lineParts.push("".padEnd(3 - text.length, " ") + color(text));
             }

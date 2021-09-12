@@ -1,4 +1,4 @@
-import {FloppyDisk, SectorData, Side} from "./FloppyDisk.js";
+import {Density, FloppyDisk, SectorData, Side} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 const BYTES_PER_SECTOR = 256;
@@ -39,7 +39,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
 
         const data = this.padSector(this.binary.subarray(offset, offset + BYTES_PER_SECTOR), BYTES_PER_SECTOR);
 
-        const sectorData = new SectorData(data);
+        const sectorData = new SectorData(data, Density.SINGLE);
         if (trackNumber === DIRECTORY_TRACK) {
             // I don't know why "deleted" is used for the directory track.
             sectorData.deleted = true;
