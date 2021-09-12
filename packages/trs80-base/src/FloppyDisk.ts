@@ -12,13 +12,16 @@ export enum Side {
  * Other numbers throw an exception.
  */
 export function numberToSide(n: number): Side {
-    if (n === 0) {
-        return Side.FRONT;
+    switch (n) {
+        case 0:
+            return Side.FRONT;
+
+        case 1:
+            return Side.BACK;
+
+        default:
+            throw new Error("Invalid side number " + n);
     }
-    if (n === 1) {
-        return Side.BACK;
-    }
-    throw new Error("Invalid side number " + n);
 }
 
 /**

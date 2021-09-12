@@ -908,7 +908,7 @@ function sectors(filename: string): void {
         const sideName = side === Side.FRONT ? "Front" : "Back";
         const lineParts: string[] = [sideName.padStart(6, " ") + "  "];
         for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
-            lineParts.push(sectorNumber.toString().padEnd(4, " "));
+            lineParts.push(sectorNumber.toString().padStart(3, " "));
         }
         console.log(lineParts.join(""));
 
@@ -916,13 +916,22 @@ function sectors(filename: string): void {
             const lineParts: string[] = [trackNumber.toString().padStart(6, " ") + "  "];
             for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
                 const sectorData = file.readSector(trackNumber, Side.FRONT, sectorNumber);
+                let color;
+                let text: string;
                 if (sectorData === undefined) {
-                    lineParts.push("-   ");
+                    color = chalk.gray;
+                    text = "-";
+                } else if (sectorData.crcError) {
+                    color = chalk.red;
+                    text = "C";
                 } else if (sectorData.deleted) {
-                    lineParts.push("X   ");
+                    color = chalk.yellow;
+                    text = "D";
                 } else {
-                    lineParts.push("*   ");
+                    color = chalk.reset;
+                    text = "*";
                 }
+                lineParts.push("".padEnd(3 - text.length, " ") + color(text));
             }
             console.log(lineParts.join(""));
         }
@@ -1063,6 +1072,7 @@ function main() {
             infile: "any TRS-80 floppy file",
         })
         .action(infiles => {
+            setColorLevel(program.opts().color);
             for (const infile of infiles) {
                 sectors(infile);
             }

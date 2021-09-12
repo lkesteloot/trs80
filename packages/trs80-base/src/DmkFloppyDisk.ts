@@ -6,8 +6,7 @@
  * http://www.classiccmp.org/cpmarchives/trs80/mirrors/www.discover-net.net/~dmkeil/trs80/trstech.htm
  */
 
-import {toHexWord} from "z80-base";
-import {toHexByte} from "z80-base";
+import {toHexByte, toHexWord} from "z80-base";
 import {CRC_16_CCITT} from "./Crc16.js";
 import {FloppyDisk, numberToSide, SectorData, Side} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
@@ -85,6 +84,7 @@ class DmkSector {
     public computeIdamCrc(): number {
         let crc = 0xFFFF;
 
+        // Include the three 0xA1 bytes preceding the IDAM.
         for (let i = -3; i < 5; i++) {
             crc = CRC_16_CCITT.update(crc, this.getByte(i));
         }
@@ -108,6 +108,7 @@ class DmkSector {
         let crc = 0xFFFF;
 
         const index = this.dataIndex;
+        // Include the preceding three 0xA1 bytes and the DAM.
         const begin = index - 4;
         const end = index + this.getLength();
         for (let i = begin; i < end; i++) {
@@ -133,10 +134,11 @@ class DmkSector {
     /**
      * Get a byte from the sector data.
      *
-     * @param index index into the sector, relative to the 0xFE byte. Can be negative.
+     * @param index index into the sector, relative to the IDAM 0xFE byte. Can be negative.
      */
     private getByte(index: number): number {
-        return this.track.floppyDisk.binary[this.track.offset + this.offset + index];
+        const byteStride = this.doubleDensity ? 1 : 2;
+        return this.track.floppyDisk.binary[this.track.offset + this.offset + index*byteStride];
     }
 
     /**
@@ -146,9 +148,10 @@ class DmkSector {
      */
     private findDataIndex(): number {
         for (let i = 7; i < 55; i++) {
-            const byte = this.track.floppyDisk.binary[this.track.offset + this.offset + i];
+            const byte = this.getByte(i);
             if (byte === 0xFB || byte === 0xF8) {
-                // Maybe also check that the previous three bytes are 0xA1.
+                // Maybe also check that the previous three bytes are 0xA1, except they're not on
+                // some single-density sectors I've seen.
                 return i + 1;
             }
         }
@@ -412,9 +415,9 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
             for (let i = 0; i < TRACK_HEADER_SIZE; i += 2) {
                 const sectorOffset = binary[trackOffset + i] + (binary[trackOffset + i + 1] << 8);
                 if (sectorOffset !== 0) {
-                    track.sectors.push(new DmkSector(track,
-                        (sectorOffset & 0x8000) !== 0,
-                        sectorOffset & 0x3FFF));
+                    const offset = sectorOffset & 0x3FFF;
+                    const doubleDensity = (sectorOffset & 0x8000) !== 0;
+                    track.sectors.push(new DmkSector(track, doubleDensity, offset));
                 }
             }
             annotations.push(new ProgramAnnotation(`Track ${trackNumber} header`,
@@ -422,26 +425,28 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
 
             for (const sector of track.sectors) {
                 let i = trackOffset + sector.offset;
+                const byteStride = sector.doubleDensity ? 1 : 2;
 
-                annotations.push(new ProgramAnnotation("Sector ID access mark",
-                    i, i + 1));
-                i++;
+                annotations.push(new ProgramAnnotation("Sector ID access mark (" +
+                    (sector.doubleDensity ? "double" : "single") + " density)",
+                    i, i + byteStride));
+                i += byteStride;
 
                 annotations.push(new ProgramAnnotation("Cylinder " + sector.getCylinder(),
-                    i, i + 1));
-                i++;
+                    i, i + byteStride));
+                i += byteStride;
 
                 annotations.push(new ProgramAnnotation("Side " + sector.getSide(),
-                    i, i + 1));
-                i++;
+                    i, i + byteStride));
+                i += byteStride;
 
                 annotations.push(new ProgramAnnotation("Sector " + sector.getSectorNumber(),
-                    i, i + 1));
-                i++;
+                    i, i + byteStride));
+                i += byteStride;
 
                 const sectorLength = sector.getLength();
-                annotations.push(new ProgramAnnotation("Length " + sectorLength, i, i + 1));
-                i++;
+                annotations.push(new ProgramAnnotation("Length " + sectorLength, i, i + byteStride));
+                i += byteStride;
 
                 const actualIdamCrc = sector.computeIdamCrc();
                 const expectedIdamCrc = sector.getIdamCrc();
@@ -451,12 +456,18 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                 } else {
                     idamCrcLabel += ` (got 0x${toHexWord(actualIdamCrc)}, expected 0x${toHexWord(expectedIdamCrc)})`;
                 }
-                annotations.push(new ProgramAnnotation(idamCrcLabel, i, i + 2));
-                i += 2;
+                annotations.push(new ProgramAnnotation(idamCrcLabel, i, i + 2*byteStride));
+                i += 2*byteStride;
 
-                i = trackOffset + sector.offset + sector.dataIndex;
-                annotations.push(new ProgramAnnotation("Sector data", i, i + sectorLength));
-                i += sectorLength;
+                // Skip the padding between the ID and the data.
+                i = trackOffset + sector.offset + (sector.dataIndex - 1)*byteStride;
+
+                annotations.push(new ProgramAnnotation("Data access mark" + (sector.isDeleted() ? " (deleted)" : ""),
+                    i, i + byteStride));
+                i += byteStride;
+
+                annotations.push(new ProgramAnnotation("Sector data", i, i + sectorLength*byteStride));
+                i += sectorLength*byteStride;
 
                 const actualDataCrc = sector.computeDataCrc();
                 const expectedDataCrc = sector.getDataCrc();
@@ -466,8 +477,8 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                 } else {
                     dataCrcLabel += ` (got 0x${toHexWord(actualDataCrc)}, expected 0x${toHexWord(expectedDataCrc)})`;
                 }
-                annotations.push(new ProgramAnnotation(dataCrcLabel, i, i + 2));
-                i += 2;
+                annotations.push(new ProgramAnnotation(dataCrcLabel, i, i + 2*byteStride));
+                i += 2*byteStride;
             }
 
             floppyDisk.tracks.push(track);
