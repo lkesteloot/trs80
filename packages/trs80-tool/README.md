@@ -175,6 +175,17 @@ Use the `--no-collapse` flag to turn off this collapsing:
 
     % trs80-tool hexdump --no-collapse in.cmd
 
+## `sectors`
+
+The `sectors` command displays a table of the sectors in a floppy disk. The columns
+are the sectors and the rows are the tracks. For each sector a character is displayed:
+
+    - No sector.
+    S Single-density sector.
+    D Double-density sector.
+    X Deleted sector.
+    C CRC error (ID or data).
+
 ## `help`
 
 The `help` command shows more specific information about other commands:
@@ -188,6 +199,10 @@ The `help` command shows more specific information about other commands:
 * The tool can only read TRSDOS floppy disks.
 
 # Change log
+
+## ?
+
+* Add `sectors` command.
 
 ## 2.1.0
 

@@ -233,7 +233,9 @@ export class DmkFloppyDisk extends FloppyDisk {
                         const end = begin + sector.getLength();
                         const sectorData = new SectorData(this.binary.subarray(begin, end),
                             sector.doubleDensity ? Density.DOUBLE : Density.SINGLE);
-                        sectorData.crcError = sector.getDataCrc() !== sector.computeDataCrc();
+                        sectorData.crcError =
+                            sector.getIdamCrc() !== sector.computeIdamCrc() ||
+                            sector.getDataCrc() !== sector.computeDataCrc();
                         sectorData.deleted = sector.isDeleted();
                         // console.log(sectorData);
                         return sectorData;
