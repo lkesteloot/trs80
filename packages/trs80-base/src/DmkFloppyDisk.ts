@@ -8,7 +8,16 @@
 
 import {toHexByte, toHexWord} from "z80-base";
 import {CRC_16_CCITT} from "./Crc16.js";
-import {Density, FloppyDisk, numberToSide, SectorData, Side} from "./FloppyDisk.js";
+import {
+    Density,
+    FloppyDisk,
+    FloppyDiskGeometry,
+    numberToSide,
+    SectorData,
+    Side,
+    TrackGeometry,
+    TrackGeometryBuilder
+} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 const FILE_HEADER_SIZE = 16;
@@ -57,7 +66,7 @@ class DmkSector {
     }
 
     /**
-     * Get the sector number for this sector. This is 1-based.
+     * Get the sector number for this sector.
      */
     public getSectorNumber(): number {
         return this.getByte(3);
@@ -68,6 +77,13 @@ class DmkSector {
      */
     public getLength(): number {
         return 128*(1 << this.getByte(4));
+    }
+
+    /**
+     * Get the density of the sector.
+     */
+    public getDensity(): Density {
+        return this.doubleDensity ? Density.DOUBLE : Density.SINGLE;
     }
 
     /**
@@ -203,6 +219,7 @@ export class DmkFloppyDisk extends FloppyDisk {
     public readonly trackLength: number;
     public readonly flags: number;
     public readonly tracks: DmkTrack[] = [];
+    private geometry: FloppyDiskGeometry | undefined = undefined;
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
                 supportsDoubleDensity: boolean, writeProtected: boolean, trackCount: number,
@@ -219,6 +236,42 @@ export class DmkFloppyDisk extends FloppyDisk {
         return "Floppy disk (DMK)";
     }
 
+    public getGeometry(): FloppyDiskGeometry {
+        if (this.geometry === undefined) {
+            if (this.tracks.length === 0) {
+                throw new Error("Can't compute geometry without any tracks");
+            }
+
+            const firstTrackBuilder = new TrackGeometryBuilder();
+            const lastTrackBuilder = new TrackGeometryBuilder();
+
+            // First compute track span.
+            let firstTrack = 999;
+            let lastTrack = 0;
+            for (const track of this.tracks) {
+                firstTrack = Math.min(firstTrack, track.trackNumber);
+                lastTrack = Math.max(lastTrack, track.trackNumber);
+            }
+
+            // Then other geometry.
+            for (const track of this.tracks) {
+                const builder = track.trackNumber === firstTrack ? firstTrackBuilder : lastTrackBuilder;
+                builder.updateSide(track.side);
+                for (const sector of track.sectors) {
+                    builder.updateSector(sector.getSectorNumber());
+                    builder.updateSectorSize(sector.getLength());
+                    builder.updateDensity(sector.getDensity());
+                }
+            }
+
+            this.geometry = new FloppyDiskGeometry(
+                firstTrackBuilder.build(firstTrack),
+                lastTrackBuilder.build(lastTrack));
+        }
+
+        return this.geometry;
+    }
+
     public readSector(trackNumber: number, side: Side,
                       sectorNumber: number | undefined): SectorData | undefined {
 
@@ -231,8 +284,7 @@ export class DmkFloppyDisk extends FloppyDisk {
 
                         const begin = track.offset + sector.offset + sector.dataIndex;
                         const end = begin + sector.getLength();
-                        const sectorData = new SectorData(this.binary.subarray(begin, end),
-                            sector.doubleDensity ? Density.DOUBLE : Density.SINGLE);
+                        const sectorData = new SectorData(this.binary.subarray(begin, end), sector.getDensity());
                         sectorData.crcError =
                             sector.getIdamCrc() !== sector.computeIdamCrc() ||
                             sector.getDataCrc() !== sector.computeDataCrc();

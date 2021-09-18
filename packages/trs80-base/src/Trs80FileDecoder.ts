@@ -108,6 +108,10 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
         return decodeJv1FloppyDisk(binary) ?? new RawBinaryFile(binary);
     }
 
+    if (extension === ".JV3") {
+        return decodeJv3FloppyDisk(binary);
+    }
+
     if (extension === ".DSK") {
         return decodeDsk(binary) ?? new RawBinaryFile(binary);
     }

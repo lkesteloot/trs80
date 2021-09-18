@@ -89,6 +89,11 @@ program, Basic program) and, if known, the embedded filename.
 
     % trs80-tool info in1.cmd in2.bas in3.cas in4.wav
 
+The `--verbose` flag displays some information (like floppy geometry) for
+some file types:
+
+    % trs80-tool info --verbose in1.dmk in2.dsk
+
 ## `convert`
 
 The `convert` command converts a list of input files to an output file or
@@ -203,6 +208,7 @@ The `help` command shows more specific information about other commands:
 ## ?
 
 * Add `sectors` command.
+* Add `--verbose` flag to `info` command to display floppy geometry.
 
 ## 2.1.0
 

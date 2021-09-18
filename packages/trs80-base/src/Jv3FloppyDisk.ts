@@ -1,5 +1,13 @@
 import {toHexByte} from "z80-base";
-import {Density, FloppyDisk, SectorData, Side} from "./FloppyDisk.js";
+import {
+    Density,
+    FloppyDisk,
+    FloppyDiskGeometry,
+    SectorData,
+    Side,
+    TrackGeometry,
+    TrackGeometryBuilder
+} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 // The JV3 file consists of sectors of different sizes all bunched together. Before that
@@ -99,7 +107,7 @@ class SectorInfo {
      * Whether the sector entry is free (doesn't represent real space in the file).
      */
     public isFree(): boolean {
-        return this.track === FREE;
+        return this.track === FREE || this.sector === FREE;
     }
 
     /**
@@ -110,6 +118,13 @@ class SectorInfo {
     }
 
     /**
+     * Return the density of this sector.
+     */
+    public getDensity(): Density {
+        return this.isDoubleDensity() ? Density.DOUBLE : Density.SINGLE;
+    }
+
+    /**
      * Whether the sector's data is invalid.
      *
      * Normally FB is normal and F8 is deleted, but the single-density version has
@@ -117,11 +132,7 @@ class SectorInfo {
      */
     public isDeleted(): boolean {
         const dam = this.flags & Flags.DAM_MASK;
-        if (this.isDoubleDensity()) {
-            return dam === Flags.DAM_DD_F8;
-        } else {
-            return dam !== Flags.DAM_SD_FB;
-        }
+        return this.isDoubleDensity() ? dam === Flags.DAM_DD_F8 : dam !== Flags.DAM_SD_FB;
     }
 
     /**
@@ -139,6 +150,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
     public readonly className = "Jv3FloppyDisk";
     public readonly writeProtected: boolean;
     private readonly sectorInfos: SectorInfo[];
+    private readonly geometry: FloppyDiskGeometry;
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
                 sectorInfos: SectorInfo[], writeProtected: boolean) {
@@ -146,10 +158,34 @@ export class Jv3FloppyDisk extends FloppyDisk {
         super(binary, error, annotations, true);
         this.sectorInfos = sectorInfos;
         this.writeProtected = writeProtected;
+
+        // Compute geometry.
+        const firstTrackBuilder = new TrackGeometryBuilder();
+        const lastTrackBuilder = new TrackGeometryBuilder();
+
+        const firstTrack = 0;
+        let lastTrack = 0;
+        for (const sectorInfo of sectorInfos) {
+            lastTrack = Math.max(lastTrack, sectorInfo.track);
+
+            const builder = sectorInfo.track === firstTrack ? firstTrackBuilder : lastTrackBuilder;
+            builder.updateSide(sectorInfo.getSide() === Side.FRONT ? 0 : 1);
+            builder.updateSector(sectorInfo.sector);
+            builder.updateSectorSize(sectorInfo.size);
+            builder.updateDensity(sectorInfo.getDensity());
+        }
+
+        this.geometry = new FloppyDiskGeometry(
+            firstTrackBuilder.build(firstTrack),
+            lastTrackBuilder.build(lastTrack));
     }
 
     public getDescription(): string {
         return "Floppy disk (JV3)";
+    }
+
+    public getGeometry(): FloppyDiskGeometry {
+        return this.geometry;
     }
 
     public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
@@ -161,7 +197,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
         const data = this.padSector(this.binary.subarray(sectorInfo.offset, sectorInfo.offset + sectorInfo.size),
             sectorInfo.size);
 
-        const sectorData = new SectorData(data, sectorInfo.isDoubleDensity() ? Density.DOUBLE : Density.SINGLE);
+        const sectorData = new SectorData(data, sectorInfo.getDensity());
         sectorData.deleted = sectorInfo.isDeleted();
         sectorData.crcError = sectorInfo.hasCrcError();
         return sectorData;
@@ -195,6 +231,7 @@ export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk {
 
     // Read the directory.
     let sectorOffset = HEADER_SIZE;
+    // TODO handle double-sided disks. They have a whole other disk at the end of this one.
     for (let i = 0; i < RECORD_COUNT; i++) {
         const offset = i*3;
         if (offset + 2 >= binary.length) {
@@ -203,23 +240,26 @@ export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk {
         }
 
         const track = binary[offset];
-        const sector = binary[offset + 1];
+        const sector = binary[offset + 1] & 0x7F; // Clear high bit, TRSDOS protection scheme?
         const flags = binary[offset + 2] as Flags;
 
         const sectorInfo = new SectorInfo(track, sector, flags, sectorOffset);
         sectorOffset += sectorInfo.size;
 
-        if (!sectorInfo.isFree()) {
-            if (sectorOffset > binary.length) {
-                error = `Sector truncated at entry ${i} (${sectorOffset} > ${binary.length})`;
-                break;
-            }
-
-            annotations.push(new ProgramAnnotation("Track " + sectorInfo.track + ", sector " +
-                sectorInfo.sector + ", " + sectorInfo.flagsToString(), offset, offset + 3));
-
-            sectorInfos.push(sectorInfo);
+        // End at the first free sector.
+        if (sectorInfo.isFree()) {
+            break;
         }
+
+        if (sectorOffset > binary.length) {
+            error = `Sector truncated at entry ${i} (${sectorOffset} > ${binary.length})`;
+            break;
+        }
+
+        annotations.push(new ProgramAnnotation("Track " + sectorInfo.track + ", sector " +
+            sectorInfo.sector + ", " + sectorInfo.flagsToString(), offset, offset + 3));
+
+        sectorInfos.push(sectorInfo);
     }
 
     // Annotate the sectors themselves.

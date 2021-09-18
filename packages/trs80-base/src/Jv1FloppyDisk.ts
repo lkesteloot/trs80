@@ -1,4 +1,4 @@
-import {Density, FloppyDisk, SectorData, Side} from "./FloppyDisk.js";
+import {Density, FloppyDisk, FloppyDiskGeometry, SectorData, Side, TrackGeometry} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 const BYTES_PER_SECTOR = 256;
@@ -11,13 +11,54 @@ const DIRECTORY_TRACK = 17;
  */
 export class Jv1FloppyDisk extends FloppyDisk {
     public readonly className = "Jv1FloppyDisk";
+    private readonly geometry: FloppyDiskGeometry;
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
         super(binary, error, annotations, false);
+
+        // Figure out geometry.
+        const sectorCount = binary.length / BYTES_PER_SECTOR;
+        let sideCount: number;
+        let density: Density;
+        if (sectorCount <= 40*10*1) {
+            // Single sided, 40 tracks, 10 sectors per track.
+            density = Density.SINGLE;
+            sideCount = 1;
+        } else if (sectorCount <= 40*18*1) {
+            // Single sided, 40 tracks, 18 sectors per track.
+            density = Density.DOUBLE;
+            sideCount = 1;
+        } else if (sectorCount <= 40*10*2) {
+            // Double sided, 40 tracks, 10 sectors per track.
+            density = Density.SINGLE;
+            sideCount = 2;
+        } else {
+            // Double sided, 40 tracks, 18 sectors per track.
+            density = Density.DOUBLE;
+            sideCount = 2;
+        }
+        const sectorsPerTrack = density === Density.SINGLE ? 10 : 18;
+        const trackCount = Math.floor(sectorCount / sideCount / sectorsPerTrack);
+
+        this.geometry = new FloppyDiskGeometry(
+            new TrackGeometry(
+                0,
+                0, sideCount - 1,
+                0, sectorsPerTrack - 1,
+                BYTES_PER_SECTOR, density),
+            new TrackGeometry(
+                trackCount - 1,
+                0, sideCount - 1,
+                0, sectorsPerTrack - 1,
+                BYTES_PER_SECTOR, density));
     }
 
     public getDescription(): string {
         return "Floppy disk (JV1)";
+    }
+
+    public getGeometry(): FloppyDiskGeometry {
+        return this.geometry;
     }
 
     public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
@@ -53,18 +94,12 @@ export class Jv1FloppyDisk extends FloppyDisk {
  * Decode a JV1 floppy disk file.
  */
 export function decodeJv1FloppyDisk(binary: Uint8Array): Jv1FloppyDisk | undefined {
-    let error: string | undefined;
     const annotations: ProgramAnnotation[] = [];
     const length = binary.length;
 
-    // Magic number check.
-    if (length < 2 || binary[0] !== 0x00 || binary[1] !== 0xFE) {
+    // Magic number check. Length check.
+    if (length < 2 || binary[0] !== 0x00 || binary[1] !== 0xFE || length % BYTES_PER_TRACK !== 0) {
         return undefined;
-    }
-
-    // Basic sanity check.
-    if (length % BYTES_PER_TRACK !== 0) {
-        error = "Length is not a multiple of track size (" + BYTES_PER_TRACK + " bytes)";
     }
 
     // Create annotations.
@@ -75,5 +110,5 @@ export function decodeJv1FloppyDisk(binary: Uint8Array): Jv1FloppyDisk | undefin
             byteOffset, Math.min(byteOffset + BYTES_PER_SECTOR, length)));
     }
 
-    return new Jv1FloppyDisk(binary, error, annotations);
+    return new Jv1FloppyDisk(binary, undefined, annotations);
 }

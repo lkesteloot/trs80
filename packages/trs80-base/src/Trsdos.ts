@@ -469,8 +469,15 @@ export class Trsdos {
  * Decode a TRSDOS diskette, or return undefined if this does not look like such a diskette.
  */
 export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
+    const firstSector = disk.readSector(0, Side.FRONT, 1); // TODO get first sector, not sector 1.
+    if (firstSector === undefined) {
+        return undefined;
+    }
+    const dirTrackNumber = firstSector.data[1] & 0x7F;
+    // console.log("Track number: " + dirTrackNumber);
+
     // Decode Granule Allocation Table sector.
-    const gatSector = disk.readSector(17, Side.FRONT, 1);
+    const gatSector = disk.readSector(dirTrackNumber, Side.FRONT, 1);
     if (gatSector === undefined || gatSector.deleted) {
         return undefined;
     }
@@ -480,7 +487,7 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
     }
 
     // Decode Hash Index Table sector.
-    const hitSector = disk.readSector(17, Side.FRONT, 2);
+    const hitSector = disk.readSector(dirTrackNumber, Side.FRONT, 2);
     if (hitSector === undefined || hitSector.deleted) {
         return undefined;
     }
@@ -491,15 +498,15 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
 
     // Decode directory entries.
     const dirEntries: TrsdosDirEntry[] = [];
-    for (let k = 0; k < 16; k++) {
-        const dirSector = disk.readSector(17, Side.FRONT, k + 3);
+    for (let k = 0; k < 16; k++) { // TODO constant
+        const dirSector = disk.readSector(dirTrackNumber, Side.FRONT, k + 3);
         if (dirSector !== undefined) {
             const tandy = decodeAscii(dirSector.data.subarray(5*DIR_ENTRY_LENGTH));
             if (tandy !== EXPECTED_TANDY) {
                 console.error(`Expected "${EXPECTED_TANDY}", got "${tandy}"`);
                 return undefined;
             }
-            for (let j = 0; j < 5; j++) {
+            for (let j = 0; j < 5; j++) { // TODO constant
                 const dirEntry = decodeDirEntry(dirSector.data.subarray(j*DIR_ENTRY_LENGTH, (j + 1)*DIR_ENTRY_LENGTH));
                 if (dirEntry !== undefined) {
                     dirEntries.push(dirEntry);

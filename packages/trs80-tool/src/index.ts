@@ -16,7 +16,7 @@ import {
     isFloppy,
     ProgramAnnotation,
     Side,
-    SystemProgram,
+    SystemProgram, TrackGeometry,
     Trs80File,
     Trsdos,
     TrsdosDirEntry,
@@ -293,16 +293,19 @@ class InputFile {
 }
 
 /**
- * Get a one-line string description of the input file.
+ * Print one-line string description of the input file, and more if verbose.
  */
-function getInfoForFile(filename: string): string {
+function printInfoForFile(filename: string, verbose: boolean): void {
     const {base, name, ext} = path.parse(filename);
 
+    let description: string;
+    const verboseLines: string[] = [];
     let buffer;
     try {
         buffer = fs.readFileSync(filename);
     } catch (e) {
-        return "Can't open file: " + e.message;
+        console.log(filename + ": Can't open file: " + e.message);
+        return;
     }
 
     if (ext.toLowerCase() == ".wav") {
@@ -311,14 +314,48 @@ function getInfoForFile(filename: string): string {
         const tape = new Tape(base, wavFile);
         const decoder = new Decoder(tape);
         decoder.decode();
-        return "Audio file with " + pluralizeWithCount(tape.programs.length, "file");
+        description = "Audio file with " + pluralizeWithCount(tape.programs.length, "file");
     } else {
         const trs80File = decodeTrs80File(buffer, filename);
         if (trs80File.error !== undefined) {
-            return trs80File.error;
-        }
+            description = trs80File.error;
+        } else {
+            description = trs80File.getDescription();
 
-        return trs80File.getDescription();
+            if (isFloppy(trs80File)) {
+                const trsdos = decodeTrsdos(trs80File);
+                if (trsdos !== undefined) {
+                    description += ", TRSDOS with " + pluralizeWithCount(trsdos.dirEntries.length, "file");
+                }
+
+                if (verbose) {
+                    function getTrackGeometryInfo(trackGeometry: TrackGeometry): string {
+                        return [`sectors ${trackGeometry.firstSector} to ${trackGeometry.lastSector}`,
+                            `sides ${trackGeometry.firstSide} to ${trackGeometry.lastSide}`,
+                            `${trackGeometry.density === Density.SINGLE ? "single" : "double"} density`,
+                            `${trackGeometry.sectorSize} bytes per sector`].join(", ");
+                    }
+
+                    const geometry = trs80File.getGeometry();
+                    const firstTrack = geometry.firstTrack;
+                    const lastTrack = geometry.lastTrack;
+                    if (geometry.hasHomogenousGeometry()) {
+                        verboseLines.push(`Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}, ` +
+                            getTrackGeometryInfo(firstTrack));
+                    } else {
+                        verboseLines.push(
+                            `Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}`,
+                            `On track ${firstTrack.trackNumber}, ` + getTrackGeometryInfo(firstTrack),
+                            `On remaining tracks, ` + getTrackGeometryInfo(lastTrack));
+                    }
+                }
+            }
+        }
+    }
+
+    console.log(filename + ": " + description);
+    for (const line of verboseLines) {
+        console.log("    " + line);
     }
 }
 
@@ -339,9 +376,9 @@ function dir(infile: string): void {
 /**
  * Handle the "info" command.
  */
-function info(infiles: string[]): void {
+function info(infiles: string[], verbose: boolean): void {
     for (const infile of infiles) {
-        console.log(infile + ": " + getInfoForFile(infile));
+        printInfoForFile(infile, verbose);
     }
 }
 
@@ -1047,8 +1084,9 @@ function main() {
         .description("show information about each file", {
             infile: "any TRS-80 file",
         })
-        .action(infiles => {
-            info(infiles);
+        .option("--verbose", "output more information about each file")
+        .action((infiles, options) => {
+            info(infiles, options.verbose);
         });
     program
         .command("convert <files...>")

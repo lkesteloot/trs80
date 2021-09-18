@@ -23,7 +23,7 @@ export abstract class AbstractTrs80File {
      */
     public readonly annotations: ProgramAnnotation[];
 
-    constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
+    protected constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
         this.binary = binary;
         this.error = error;
         this.annotations = annotations;
