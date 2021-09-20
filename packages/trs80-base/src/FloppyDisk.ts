@@ -92,6 +92,20 @@ export class TrackGeometry {
     }
 
     /**
+     * Compute the number of sides in this track.
+     */
+    public numSides(): number {
+        return this.lastSide - this.firstSide + 1;
+    }
+
+    /**
+     * Compute the number of sectors in this track.
+     */
+    public numSectors(): number {
+        return this.lastSector - this.firstSector + 1;
+    }
+
+    /**
      * Whether this track geometry equals the other, ignoring the "trackNumber" field.
      */
     public equalsIgnoringTrack(other: TrackGeometry): boolean {
@@ -176,6 +190,20 @@ export class FloppyDiskGeometry {
     constructor(firstTrack: TrackGeometry, lastTrack: TrackGeometry) {
         this.firstTrack = firstTrack;
         this.lastTrack = lastTrack;
+    }
+
+    /**
+     * The number of tracks on this floppy.
+     */
+    public numTracks(): number {
+        return this.lastTrack.trackNumber - this.firstTrack.trackNumber + 1;
+    }
+
+    /**
+     * Whether this track number is in a valid range for this floppy.
+     */
+    public isValidTrackNumber(trackNumber: number): boolean {
+        return trackNumber >= this.firstTrack.trackNumber && trackNumber <= this.lastTrack.trackNumber;
     }
 
     /**

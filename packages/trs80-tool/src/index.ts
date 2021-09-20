@@ -179,8 +179,8 @@ class TrsdosFile extends ArchiveFile {
     public getDirString(): string {
         return this.file.getFilename(".").padEnd(12) + " " +
             withCommas(this.file.getSize()).padStart(8) + " " +
-            this.file.getDateString() + " " +
-            trsdosProtectionLevelToString(this.file.getProtectionLevel());
+            this.file.getFullDateString() + " " +
+            trsdosProtectionLevelToString(this.file.getProtectionLevel(), this.trsdos.version);
     }
 
     public getBinary(): Uint8Array {
@@ -231,7 +231,7 @@ class Archive {
                             this.files.push(new TrsdosFile(trsdos, dirEntry));
                         }
                     } else {
-                        this.error = "Can only handle TRSDOS floppies.";
+                        this.error = "Operating system of floppy is unrecognized.";
                     }
                     break;
 
@@ -325,7 +325,8 @@ function printInfoForFile(filename: string, verbose: boolean): void {
             if (isFloppy(trs80File)) {
                 const trsdos = decodeTrsdos(trs80File);
                 if (trsdos !== undefined) {
-                    description += ", TRSDOS with " + pluralizeWithCount(trsdos.dirEntries.length, "file");
+                    description += ", " + trsdos.getOperatingSystemName() + " " + trsdos.getVersion() +
+                        " with " + pluralizeWithCount(trsdos.dirEntries.length, "file");
                 }
 
                 if (verbose) {
@@ -347,6 +348,18 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                             `Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}`,
                             `On track ${firstTrack.trackNumber}, ` + getTrackGeometryInfo(firstTrack),
                             `On remaining tracks, ` + getTrackGeometryInfo(lastTrack));
+                    }
+
+                    if (trsdos !== undefined) {
+                        if (trsdos.gatInfo.name !== "") {
+                            verboseLines.push("Floppy name: " + trsdos.gatInfo.name);
+                        }
+                        if (trsdos.gatInfo.date !== "") {
+                            verboseLines.push("Floppy date: " + trsdos.gatInfo.date);
+                        }
+                        if (trsdos.gatInfo.autoCommand !== "") {
+                            verboseLines.push("Auto command: " + trsdos.gatInfo.autoCommand);
+                        }
                     }
                 }
             }
@@ -484,9 +497,10 @@ function extract(infile: string, outfile: string): void {
                     }
 
                     if (file instanceof TrsdosFile) {
-                        programData.date = file.file.getDateString();
+                        programData.date = file.file.getFullDateString();
                         programData.timestamp = file.file.getDate().getTime();
-                        programData.protectionLevel = trsdosProtectionLevelToString(file.file.getProtectionLevel());
+                        programData.protectionLevel = trsdosProtectionLevelToString(file.file.getProtectionLevel(),
+                            file.trsdos.version);
                         programData.size = file.file.getSize();
                         programData.isSystemFile = file.file.isSystemFile();
                         programData.isExtendedEntry = file.file.isExtendedEntry();
