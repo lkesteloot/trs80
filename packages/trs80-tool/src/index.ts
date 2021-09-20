@@ -906,7 +906,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
 /**
  * Handle the "sectors" command.
  */
-function sectors(filename: string): void {
+function sectors(filename: string, showContents: boolean): void {
     // Read the file.
     let buffer;
     try {
@@ -929,6 +929,8 @@ function sectors(filename: string): void {
     }
 
     console.log(filename + ": " + file.getDescription());
+
+    const geometry = file.getGeometry();
 
     let maxTrackNumber = -1;
     let minSectorNumber = 1000;
@@ -994,6 +996,33 @@ function sectors(filename: string): void {
 
         console.log("");
     }
+
+    if (showContents) {
+        // Dump each sector.
+        for (let trackNumber = geometry.firstTrack.trackNumber; trackNumber <= geometry.lastTrack.trackNumber; trackNumber++) {
+            const trackGeometry = geometry.getTrackGeometry(trackNumber);
+            for (const side of trackGeometry.sides()) {
+                for (let sectorNumber = trackGeometry.firstSector; sectorNumber <= trackGeometry.lastSector; sectorNumber++) {
+                    let header = `Track ${trackNumber}, side ${side}, sector ${sectorNumber}: `;
+
+                    const sector = file.readSector(trackNumber, side, sectorNumber);
+                    if (sector === undefined) {
+                        header += "missing";
+                    } else {
+                        header += (sector.density === Density.SINGLE ? "single" : "double") + " density" +
+                            (sector.deleted ? ", marked as deleted" : "");
+                    }
+                    console.log(header);
+
+                    if (sector !== undefined) {
+                        hexdumpBinary(sector.data, false, []);
+                    }
+
+                    console.log("");
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -1037,6 +1066,30 @@ class ConsoleHexdumpGenerator extends HexdumpGenerator<HexdumpSpan[], HexdumpSpa
 }
 
 /**
+ * Hex dump a binary array.
+ */
+function hexdumpBinary(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]): void {
+    const hexdump = new ConsoleHexdumpGenerator(binary, collapse, annotations);
+    for (const line of hexdump.generate()) {
+        console.log(line.map(span => {
+            if (span.classes.indexOf("outside-annotation") >= 0) {
+                if (chalk.level === 0) {
+                    // Hide altogether.
+                    return "".padEnd(span.text.length, " ");
+                } else {
+                    return chalk.dim(span.text);
+                }
+            } else {
+                if (span.classes.indexOf("ascii-unprintable") >= 0) {
+                    return chalk.dim(span.text);
+                }
+                return span.text;
+            }
+        }).join(""));
+    }
+}
+
+/**
  * Handle the "hexdump" command.
  */
 function hexdump(filename: string, collapse: boolean): void {
@@ -1056,24 +1109,7 @@ function hexdump(filename: string, collapse: boolean): void {
         return;
     }
 
-    const hexdump = new ConsoleHexdumpGenerator(file.binary, collapse, file.annotations);
-    for (const line of hexdump.generate()) {
-        console.log(line.map(span => {
-            if (span.classes.indexOf("outside-annotation") >= 0) {
-                if (chalk.level === 0) {
-                    // Hide altogether.
-                    return "".padEnd(span.text.length, " ");
-                } else {
-                    return chalk.dim(span.text);
-                }
-            } else {
-                if (span.classes.indexOf("ascii-unprintable") >= 0) {
-                    return chalk.dim(span.text);
-                }
-                return span.text;
-            }
-        }).join(""));
-    }
+    hexdumpBinary(file.binary, collapse, file.annotations);
 }
 
 function main() {
@@ -1128,10 +1164,11 @@ function main() {
         .description("show a sector map for each floppy file", {
             infile: "any TRS-80 floppy file",
         })
-        .action(infiles => {
+        .option("--contents", "show the contents of the sectors")
+        .action((infiles, options) => {
             setColorLevel(program.opts().color);
             for (const infile of infiles) {
-                sectors(infile);
+                sectors(infile, options.contents);
             }
         });
     program

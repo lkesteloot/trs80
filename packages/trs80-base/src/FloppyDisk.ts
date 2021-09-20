@@ -99,6 +99,13 @@ export class TrackGeometry {
     }
 
     /**
+     * Return an array of available sides, in order.
+     */
+    public sides(): Side[] {
+        return this.numSides() === 1 ? [Side.FRONT] : [Side.FRONT, Side.BACK];
+    }
+
+    /**
      * Compute the number of sectors in this track.
      */
     public numSectors(): number {
@@ -197,6 +204,20 @@ export class FloppyDiskGeometry {
      */
     public numTracks(): number {
         return this.lastTrack.trackNumber - this.firstTrack.trackNumber + 1;
+    }
+
+    /**
+     * The number of sides on this floppy.
+     */
+    public numSides(): number {
+        return Math.max(this.firstTrack.numSides(), this.lastTrack.numSides());
+    }
+
+    /**
+     * Get the track geometry for the specified track.
+     */
+    public getTrackGeometry(trackNumber: number): TrackGeometry {
+        return trackNumber === this.firstTrack.trackNumber ? this.firstTrack : this.lastTrack;
     }
 
     /**

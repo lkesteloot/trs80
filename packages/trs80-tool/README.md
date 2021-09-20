@@ -191,6 +191,8 @@ are the sectors and the rows are the tracks. For each sector a character is disp
     X Deleted sector.
     C CRC error (ID or data).
 
+Use the `--contents` flag to also show the contents of the sectors.
+
 ## `help`
 
 The `help` command shows more specific information about other commands:
