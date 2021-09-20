@@ -126,6 +126,10 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
         return decodeSystemProgram(binary) ?? new RawBinaryFile(binary);
     }
 
+    if (extension === ".CMD") {
+        return decodeCmdProgram(binary) ?? new RawBinaryFile(binary);
+    }
+
     trs80File = decodeCassette(binary);
     if (trs80File !== undefined) {
         return trs80File;

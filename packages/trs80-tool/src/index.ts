@@ -14,7 +14,7 @@ import {
     getTrs80FileExtension,
     HexdumpGenerator,
     isFloppy,
-    ProgramAnnotation,
+    ProgramAnnotation, RawBinaryFile,
     Side,
     SystemProgram, TrackGeometry,
     Trs80File,
@@ -564,6 +564,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                  start: number | "auto" | undefined, entryPoints: number[]): void {
 
     const inFiles: InputFile[] = [];
+    const outputIsDirectory = fs.existsSync(outFilename) && fs.statSync(outFilename).isDirectory();
 
     // Read all input files into an internal data structure, expanding archives like cassettes and floppies.
     for (const inFilename of inFilenames) {
@@ -606,7 +607,10 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                     for (const dirEntry of trsdos.dirEntries) {
                         const trsdosFilename = dirEntry.getFilename(".");
                         const trsdosBinary = trsdos.readFile(dirEntry);
-                        const trsdosTrs80File = decodeTrs80File(trsdosBinary, trsdosFilename);
+                        // Don't decode if we're going to just write files to disk anyway.
+                        const trsdosTrs80File = outputIsDirectory
+                            ? new RawBinaryFile(trsdosBinary)
+                            : decodeTrs80File(trsdosBinary, trsdosFilename);
                         inFiles.push(new InputFile(trsdosFilename, trsdosTrs80File, undefined, dirEntry.getDate()));
                     }
                 }
@@ -651,14 +655,15 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
     }
 
     // If output is existing directory, put all input files there.
-    if (fs.existsSync(outFilename) && fs.statSync(outFilename).isDirectory()) {
+    if (outputIsDirectory) {
         for (const infile of inFiles) {
             const outpath = path.join(outFilename, infile.filename);
             fs.writeFileSync(outpath, infile.trs80File.binary);
             if (infile.date !== undefined) {
                 fs.utimesSync(outpath, infile.date, infile.date);
             }
-            console.log("Wrote " + outpath + ": " + infile.trs80File.getDescription());
+            console.log("Wrote " + outpath + " (" +
+                pluralizeWithCount(infile.trs80File.binary.length, "byte") + ")");
         }
     } else {
         // Output is a file. Its extension will help us determine how to convert the input files.

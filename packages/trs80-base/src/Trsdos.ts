@@ -153,7 +153,7 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
         const trackNumber = binary[trackFirst ? i : i + 1];
         const granuleByte = binary[trackFirst ? i + 1 : i];
         const granuleOffset = granuleByte >> 5;
-        const granuleCount = granuleByte & 0x1F + (isModel3(version) ? 0 : 1);
+        const granuleCount = (granuleByte & 0x1F) + (isModel3(version) ? 0 : 1);
 
         if (!geometry.isValidTrackNumber(trackNumber)) {
             // Not a TRSDOS disk.
@@ -312,7 +312,7 @@ function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
  */
 export class TrsdosDirEntry {
     public readonly flags: number;
-    public readonly day: number | undefined;
+    public readonly day: number;
     public readonly month: number;
     public readonly year: number;
     public readonly lastSectorSize: number;
@@ -326,7 +326,7 @@ export class TrsdosDirEntry {
     public readonly sectorCount: number;
     public readonly extents: TrsdosExtent[];
 
-    constructor(flags: number, day: number | undefined, month: number, year: number, lastSectorSize: number, lrl: number,
+    constructor(flags: number, day: number, month: number, year: number, lastSectorSize: number, lrl: number,
                 filename: string, updatePassword: number, accessPassword: number,
                 sectorCount: number, extents: TrsdosExtent[]) {
 
@@ -457,8 +457,9 @@ export class TrsdosDirEntry {
      * Return the date in DD/MM/YYYY format, where the day might be blank if missing.
      */
     public getFullDateString(): string {
-        return (this.day === undefined ? "   " : this.day.toString().padStart(2, "0") + "/") +
-            this.month.toString().padStart(2, "0") + "/" +  this.year.toString();
+        return (this.day === 0 ? "   " : this.day.toString().padStart(2, "0") + "/") +
+            (this.month === 0 ? "   " : this.month.toString().padStart(2, "0") + "/") +
+            this.year.toString();
     }
 
     /**
@@ -483,11 +484,12 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
         return undefined;
     }
 
-    const day = isModel3(version) ? undefined : binary[2] >> 3;
     const month = binary[1] & 0x0F;
+    const day = isModel3(version) ? 0 : binary[2] >> 3;
     // binary[1] has a few extra bits we don't care about on Model 1/4.
     const year = isModel3(version) ? binary[2] + 1900 : (binary[2] & 0x07) + 1980;
     const lastSectorSize = binary[3];
+    // Logical record length.
     const lrl = ((binary[4] - 1) & 0xFF) + 1; // 0 -> 256.
     const filename = decodeAscii(binary.subarray(5, 16));
     // Not sure how to convert these two into a number. Just use big endian.
@@ -560,22 +562,29 @@ export class Trsdos {
      * Read the binary for a file on the diskette.
      */
     public readFile(dirEntry: TrsdosDirEntry): Uint8Array {
-        const parts: Uint8Array[] = [];
-        const sectorsPerTrack = this.disk.getGeometry().lastTrack.numSectors();
+        const sectors: Uint8Array[] = [];
+        const geometry = this.disk.getGeometry();
+        const sectorsPerTrack = geometry.lastTrack.numSectors();
 
+        // Number of sectors left to read.
         let sectorCount = dirEntry.sectorCount + (dirEntry.lastSectorSize > 0 ? 1 : 0);
         for (const extent of dirEntry.extents) {
+            console.log(sectorCount, extent);
             let trackNumber = extent.trackNumber;
-            let sectorNumber = extent.granuleOffset*this.sectorsPerGranule + 1;
-            for (let i = 0;
-                 i < extent.granuleCount*this.sectorsPerGranule && sectorCount > 0;
-                 i++, sectorNumber++, sectorCount--) {
-
-                if (sectorNumber > sectorsPerTrack) {
+            let trackGeometry = geometry.getTrackGeometry(trackNumber);
+            const extentSectorCount = extent.granuleCount*this.sectorsPerGranule;
+            let sectorNumber = trackGeometry.firstSector + extent.granuleOffset*this.sectorsPerGranule;
+            for (let i = 0; i < extentSectorCount && sectorCount > 0; i++, sectorNumber++, sectorCount--) {
+                console.log("    ", i, trackNumber, sectorNumber);
+                if (sectorNumber > trackGeometry.lastSector) {
                     // Move to the next track.
-                    sectorNumber -= sectorsPerTrack;
                     trackNumber += 1;
+                    trackGeometry = geometry.getTrackGeometry(trackNumber);
+                    sectorNumber = trackGeometry.firstSector;
                 }
+                // TODO not sure how to handle side here. I think sectors just continue off the end, so
+                // we should really be doing everything with cylinders in this routine, and have twice
+                // as many max sectors if double-sided.
                 const sector = this.disk.readSector(trackNumber, Side.FRONT, sectorNumber);
                 if (sector === undefined) {
                     console.log(`Sector couldn't be read ${trackNumber}, ${sectorNumber}`);
@@ -588,17 +597,18 @@ export class Trsdos {
                     if (sector.deleted) {
                         // console.log("Sector " + sectorNumber + " is deleted");
                     }
-                    parts.push(sector.data);
+                    sectors.push(sector.data);
                 }
             }
         }
 
         // Clip last sector.
-        if (parts.length > 0 && dirEntry.lastSectorSize > 0) {
-            parts[parts.length - 1] = parts[parts.length - 1].subarray(0, dirEntry.lastSectorSize);
+        if (sectors.length > 0 && dirEntry.lastSectorSize > 0) {
+            console.log("Clipping to", dirEntry.lastSectorSize);
+            sectors[sectors.length - 1] = sectors[sectors.length - 1].subarray(0, dirEntry.lastSectorSize);
         }
 
-        return concatByteArrays(parts);
+        return concatByteArrays(sectors);
     }
 }
 
