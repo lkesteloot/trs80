@@ -39,6 +39,8 @@ import {version} from "./version.js";
 import {disasmForTrs80Program} from "trs80-disasm";
 import {instructionsToText} from "z80-disasm";
 import chalk from "chalk";
+import {Disasm, Z80_KNOWN_LABELS} from "z80-disasm";
+import {TRS80_MODEL_III_KNOWN_LABELS} from "trs80-disasm";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -1117,6 +1119,52 @@ function hexdump(filename: string, collapse: boolean): void {
     hexdumpBinary(file.binary, collapse, file.annotations);
 }
 
+/**
+ * Handle the "disasm" command.
+ */
+function disasm(filename: string, org: number | undefined, entryPoints: number[]) {
+    // Read the file.
+    let buffer;
+    try {
+        buffer = fs.readFileSync(filename);
+    } catch (e) {
+        console.log("Can't open \"" + filename + "\": " + e.message);
+        return;
+    }
+
+    // Create and configure the disassembler.
+    let disasm: Disasm;
+    const ext = path.extname(filename).toUpperCase();
+    if (ext === ".CMD" || ext === ".3BN") {
+        const trs80File = decodeTrs80File(buffer, filename);
+        if (trs80File.className !== "CmdProgram" && trs80File.className !== "SystemProgram") {
+            console.log("Can't parse program in " + filename);
+            return;
+        }
+        disasm = disasmForTrs80Program(trs80File);
+    } else if (ext === ".ROM" || ext === ".BIN") {
+        disasm = new Disasm();
+        disasm.addLabels(Z80_KNOWN_LABELS);
+        disasm.addLabels(TRS80_MODEL_III_KNOWN_LABELS);
+        disasm.addChunk(buffer, org ?? 0);
+        if (org !== undefined || entryPoints.length === 0) {
+            disasm.addEntryPoint(org ?? 0);
+        }
+    } else {
+        console.log("Can't disassemble files of type " + ext);
+        return;
+    }
+
+    // Add extra entry points, if any.
+    for (const entryPoint of entryPoints) {
+        disasm.addEntryPoint(entryPoint);
+    }
+
+    const instructions = disasm.disassemble()
+    const text = instructionsToText(instructions).join("\n");
+    console.log(text);
+}
+
 function main() {
     program
         .storeOptionsAsProperties(false)
@@ -1185,6 +1233,19 @@ function main() {
         .action((infile, options) => {
             setColorLevel(program.opts().color);
             hexdump(infile, options.collapse);
+        });
+    program
+        .command("disasm <infile>")
+        .description("disassemble a program", {
+            infile: "CMD, 3BN, ROM, or BIN",
+        })
+        .option('--org <address>', "where to assume the binary is loaded")
+        .option("--entry <addresses>", "add entry points of binary (comma-separated)")
+        .action((infile, options) => {
+            setColorLevel(program.opts().color);
+            const org = options.org === undefined ? undefined : parseInt(options.org);
+            const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
+            disasm(infile, org, entryPoints);
         });
     program
         .parse();

@@ -168,6 +168,8 @@ will instead be disassembled as data. You can explicitly list entry points:
 
     % trs80-tool convert --entry 0x7059,0x7064,0x71B9,0x7263 in.cas out.lst
 
+See also the `disasm` command.
+
 ## `hexdump`
 
 The `hexdump` command displays a hex dump of the input file, with annotations.
@@ -193,6 +195,27 @@ are the sectors and the rows are the tracks. For each sector a character is disp
 
 Use the `--contents` flag to also show the contents of the sectors.
 
+## `disasm`
+
+The `disasm` command disassembles the specified program:
+
+    % trs80-tool disasm saucer.cmd
+
+If the program is a `.CMD` or `.3BN` file, it is loaded into the correct place
+in memory. If it's a `.ROM` or `.BIN` file, it is loaded at 0x0000, but this
+can be change with the `--org` flag:
+
+    % trs80-tool disasm --org 0x8000 file.bin
+
+The disassembler tries to guess which bytes are code and which are data by
+following the path of the program, starting with its main entry point. Additional
+entry points can be specified with the `--entry` flag:
+
+    % bin/trs80-tool.js disasm --entry 0x0000,0x3799,0x377B ~/Downloads/model3.rom
+
+Note that if any entry point is listed, then 0x0000 must be specified again if
+applicable.
+
 ## `help`
 
 The `help` command shows more specific information about other commands:
@@ -211,6 +234,7 @@ The `help` command shows more specific information about other commands:
 
 * Add `sectors` command.
 * Add `--verbose` flag to `info` command to display floppy geometry.
+* Add `disasm` command.
 
 ## 2.1.0
 
