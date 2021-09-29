@@ -14,9 +14,11 @@ import {
     getTrs80FileExtension,
     HexdumpGenerator,
     isFloppy,
-    ProgramAnnotation, RawBinaryFile,
+    ProgramAnnotation,
+    RawBinaryFile,
     Side,
-    SystemProgram, TrackGeometry,
+    SystemProgram,
+    TrackGeometry,
     Trs80File,
     Trsdos,
     TrsdosDirEntry,
@@ -36,11 +38,9 @@ import {
     writeWavFile
 } from "trs80-cassette";
 import {version} from "./version.js";
-import {disasmForTrs80Program} from "trs80-disasm";
-import {instructionsToText} from "z80-disasm";
+import {addModel3RomEntryPoints, disasmForTrs80, disasmForTrs80Program} from "trs80-disasm";
+import {Disasm, instructionsToText} from "z80-disasm";
 import chalk from "chalk";
-import {Disasm, Z80_KNOWN_LABELS} from "z80-disasm";
-import {TRS80_MODEL_III_KNOWN_LABELS} from "trs80-disasm";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -1143,13 +1143,12 @@ function disasm(filename: string, org: number | undefined, entryPoints: number[]
         }
         disasm = disasmForTrs80Program(trs80File);
     } else if (ext === ".ROM" || ext === ".BIN") {
-        disasm = new Disasm();
-        disasm.addLabels(Z80_KNOWN_LABELS);
-        disasm.addLabels(TRS80_MODEL_III_KNOWN_LABELS);
+        disasm = disasmForTrs80();
         disasm.addChunk(buffer, org ?? 0);
         if (org !== undefined || entryPoints.length === 0) {
             disasm.addEntryPoint(org ?? 0);
         }
+        addModel3RomEntryPoints(disasm);
     } else {
         console.log("Can't disassemble files of type " + ext);
         return;

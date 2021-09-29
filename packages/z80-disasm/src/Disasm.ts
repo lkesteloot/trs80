@@ -3,6 +3,9 @@ import {Instruction} from "./Instruction.js";
 import {inc16, signedByte, toHex, toHexByte, toHexWord, word} from "z80-base";
 import {Preamble} from "./Preamble.js";
 
+// Whether to dump statistics to the console, for debugging.
+const PRINT_STATISTICS = false;
+
 // Temporary string used for address substitution.
 const TARGET = "TARGET";
 
@@ -230,11 +233,21 @@ export class Disasm {
     }
 
     /**
+     * Add a known label.
+     *
+     * @param address address of label.
+     * @param label name to use for label.
+     */
+    public addLabel(address: number, label: string): void {
+        this.knownLabels.set(address, label);
+    }
+
+    /**
      * Add an array of known label ([address, label] pairs).
      */
     public addLabels(labels: [number, string][]): void {
         for (const [address, label] of labels) {
-            this.knownLabels.set(address, label);
+            this.addLabel(address, label);
         }
     }
 
@@ -285,6 +298,7 @@ export class Disasm {
      */
     public disassemble(): Instruction[] {
         // First, see if there's a preamble that copies the program else where in memory and jumps to it.
+
         // Use numerical for-loop instead of for-of because we modify the array in the loop and I
         // don't know what guarantees JavaScript makes about that.
         for (let i = 0; i < this.entryPoints.length; i++) {
@@ -305,12 +319,12 @@ export class Disasm {
 
         // Create set of addresses we want to decode, starting with our entry points.
         const addressesToDecode = new Set<number>();
-        const addAddressToDecode = (number: number | undefined): void => {
-            if (number !== undefined &&
-                this.hasContent[number] &&
-                this.instructions[number] === undefined) {
+        const addAddressToDecode = (address: number | undefined): void => {
+            if (address !== undefined &&
+                this.hasContent[address] &&
+                this.instructions[address] === undefined) {
 
-                addressesToDecode.add(number);
+                addressesToDecode.add(address);
             }
         };
 
@@ -398,6 +412,23 @@ export class Disasm {
         // jumps that go outside our disassembled code.
         for (const instruction of instructions) {
             this.replaceTargetAddress(instruction);
+        }
+
+        // Print some statistics.
+        if (PRINT_STATISTICS) {
+            let contentCount = 0;
+            let decodedCount = 0;
+            for (let i = 0; i < MEM_SIZE; i++) {
+                if (this.hasContent[i]) {
+                    contentCount += 1;
+                }
+                if (this.isDecoded[i]) {
+                    decodedCount += 1;
+                }
+            }
+
+            console.log(Math.round(contentCount / MEM_SIZE * 100) + "% of memory has contents");
+            console.log(Math.round(decodedCount / contentCount * 100) + "% of content is decoded");
         }
 
         return instructions;
