@@ -230,7 +230,7 @@ The `help` command shows more specific information about other commands:
 
 # Change log
 
-## ?
+## 2.2.0
 
 * Add `sectors` command.
 * Add `--verbose` flag to `info` command to display floppy geometry.
