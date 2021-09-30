@@ -30,13 +30,19 @@ export class Instruction {
      * Target of a jump from this instruction.
      */
     public jumpTarget: number | undefined;
+    /**
+     * Whether this is an executable instruction (op-code). If false, then this is a .byte or .text
+     * data instruction.
+     */
+    public readonly isExecutable: boolean;
 
-    constructor(address: number, bin: number[], mnemonic: string, params: string[], args: string[]) {
+    constructor(address: number, bin: number[], mnemonic: string, params: string[], args: string[], isExecutable: boolean) {
         this.address = address;
         this.bin = bin;
         this.mnemonic = mnemonic;
         this.params = params ?? [];
         this.args = args ?? [];
+        this.isExecutable = isExecutable;
     }
 
     /**

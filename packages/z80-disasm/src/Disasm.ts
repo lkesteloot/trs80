@@ -91,7 +91,7 @@ export class Disasm {
                 // TODO
                 // asm.push(".byte 0x" + byte.toString(16));
                 const stringParams = bytes.map((n) => "0x" + toHex(n, 2));
-                instruction = new Instruction(startAddress, bytes, ".byte", stringParams, stringParams);
+                instruction = new Instruction(startAddress, bytes, ".byte", stringParams, stringParams, false);
             } else if (value.shift !== undefined) {
                 // Descend to sub-map.
                 map = value.shift;
@@ -152,7 +152,7 @@ export class Disasm {
                     args[i] = arg;
                 }
 
-                instruction = new Instruction(startAddress, bytes, value.mnemonic, value.params, args);
+                instruction = new Instruction(startAddress, bytes, value.mnemonic, value.params, args, true);
                 if (jumpTarget !== undefined) {
                     instruction.jumpTarget = jumpTarget;
                 }
@@ -218,9 +218,9 @@ export class Disasm {
             }
         }
 
-        if (mnemonic === undefined) {
+        if (mnemonic === undefined || address === startAddress) {
             mnemonic = ".byte";
-            while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] &&
+            while (address < MEM_SIZE && this.hasContent[address] && (!this.isDecoded[address] || address === startAddress) &&
                 address - startAddress < 8 && !(address > startAddress && this.referencedAddresses.has(address))) {
 
                 parts.push("0x" + toHexByte(this.memory[address]));
@@ -229,7 +229,7 @@ export class Disasm {
         }
 
         const bytes = Array.from(this.memory.slice(startAddress, address));
-        return new Instruction(startAddress, bytes, mnemonic, parts, parts);
+        return new Instruction(startAddress, bytes, mnemonic, parts, parts, false);
     }
 
     /**
@@ -276,7 +276,7 @@ export class Disasm {
             if (this.haveLabel(uniqueLabel)) {
                 suffix += 1;
             } else {
-                this.addLabels([[address, uniqueLabel]]);
+                this.addLabel(address, uniqueLabel);
                 break;
             }
         }
@@ -297,10 +297,9 @@ export class Disasm {
      * Disassemble all instructions and assign labels.
      */
     public disassemble(): Instruction[] {
-        // First, see if there's a preamble that copies the program else where in memory and jumps to it.
+        // First, see if there's a preamble that copies the program elsewhere in memory and jumps to it.
 
-        // Use numerical for-loop instead of for-of because we modify the array in the loop and I
-        // don't know what guarantees JavaScript makes about that.
+        // Use numerical for-loop instead of for-of because we modify the array in the loop.
         for (let i = 0; i < this.entryPoints.length; i++) {
             const entryPoint = this.entryPoints[i];
             const preamble = Preamble.detect(this.memory, entryPoint);
@@ -322,6 +321,9 @@ export class Disasm {
         const addAddressToDecode = (address: number | undefined): void => {
             if (address !== undefined &&
                 this.hasContent[address] &&
+                // Don't use isDecoded here, it might cause some bytes to not get decoded. For example,
+                // addresses 5, 6, 7 might get decoded as an instruction, then later 4, 5, but we want
+                // the next instruction at 6 to get decoded.
                 this.instructions[address] === undefined) {
 
                 addressesToDecode.add(address);
@@ -346,10 +348,11 @@ export class Disasm {
         }
 
         // Keep decoding as long as we have addresses to decode.
-        while (addressesToDecode.size !== 0) {
+        while (addressesToDecode.size > 0) {
             // Pick any to do next.
             const address = addressesToDecode.values().next().value;
             addressesToDecode.delete(address);
+
             const instruction = this.disassembleOne(address, this.readMemory);
             this.instructions[address] = instruction;
             this.isDecoded.fill(1, address, address + instruction.bin.length);
@@ -381,6 +384,11 @@ export class Disasm {
                         jumpTargetMap.set(instruction.jumpTarget, sources);
                     }
                     sources.push(instruction);
+                }
+
+                // Make sure we have content, or we'll make no progress in this loop.
+                if (instruction.bin.length === 0) {
+                    throw new Error("Instruction at 0x" + toHexWord(address) + " has no content");
                 }
 
                 address += instruction.bin.length - 1;
