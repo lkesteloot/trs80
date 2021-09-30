@@ -41,6 +41,10 @@ export class Disasm {
      * addresses, but guess that they were if it helps make a nicer disassembly.
      */
     private referencedAddresses = new Set<number>();
+    /**
+     * Map from an opcode (like 0xCF for RST 8) to the number of additional data bytes to gobble up.
+     */
+    private opcodeToAdditionDataLength = new Map<number,number>();
 
     /**
      * Add a chunk of binary somewhere in memory.
@@ -56,6 +60,14 @@ export class Disasm {
      */
     public addEntryPoint(entryPoint: number): void {
         this.entryPoints.push(entryPoint);
+    }
+
+    /**
+     * Specify that this opcode (e.g., 0xCF) has this many bytes of additional data after it
+     * that should not be interpreted as code.
+     */
+    public addAdditionalDataLength(opcode: number, length: number): void {
+        this.opcodeToAdditionDataLength.set(opcode, length);
     }
 
     /**
@@ -156,6 +168,7 @@ export class Disasm {
                 if (jumpTarget !== undefined) {
                     instruction.jumpTarget = jumpTarget;
                 }
+                instruction.additionalDataLength = this.getAdditionalDataLength(instruction);
             }
         }
 
@@ -357,10 +370,7 @@ export class Disasm {
             this.instructions[address] = instruction;
             this.isDecoded.fill(1, address, address + instruction.bin.length);
             addAddressToDecode(instruction.jumpTarget);
-
-            if (instruction.continues()) {
-                addAddressToDecode(address + instruction.bin.length);
-            }
+            addAddressToDecode(instruction.continuesAt());
         }
 
         // Map from jump target to list of instructions that jump there.
@@ -451,5 +461,12 @@ export class Disasm {
 
             instruction.replaceArgVariable(TARGET, label);
         }
+    }
+
+    /**
+     * Compute the number of additional data bytes there are after this instruction.
+     */
+    private getAdditionalDataLength(instruction: Instruction): number {
+        return this.opcodeToAdditionDataLength.get(instruction.bin[0]) ?? 0;
     }
 }

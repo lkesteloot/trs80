@@ -35,6 +35,11 @@ export class Instruction {
      * data instruction.
      */
     public readonly isExecutable: boolean;
+    /**
+     * Some instructions (like RST 8 on the TRS-80) gobble up data after the instruction. This field
+     * records how many such bytes there are, so we don't try to decoded them.
+     */
+    public additionalDataLength: number = 0;
 
     constructor(address: number, bin: number[], mnemonic: string, params: string[], args: string[], isExecutable: boolean) {
         this.address = address;
@@ -103,5 +108,15 @@ export class Instruction {
 
         // All else might continue.
         return true;
+    }
+
+    /**
+     * Get address of next instruction directly after this one, or undefined if this instruction
+     * does not continue (see {@link continues}). This is normally the instructions's address plus
+     * the number of bytes in the instruction, but may be longer if the instruction is known to
+     * eat up additional bytes.
+     */
+    public continuesAt(): number | undefined {
+        return this.continues() ? this.address + this.bin.length + this.additionalDataLength : undefined;
     }
 }

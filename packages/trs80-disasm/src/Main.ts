@@ -96,6 +96,7 @@ export function addModel3RomEntryPoints(disasm: Disasm): void {
         0x13F2, // pow
         0x1494, // math
         0x14C9, // rnd
+        0x1C96, // compare symbol; jumped to from 0x4000, see RST 8.
     ];
 
     // Jump table.
@@ -155,6 +156,9 @@ export function disasmForTrs80(): Disasm {
             disasm.addLabel(basicToken.address, makeLabelForBasicKeyword(basicToken.name));
         }
     }
+
+    // The RST 8 instruction (0xCF) eats up one extra byte.
+    disasm.addAdditionalDataLength(0xCF, 1);
 
     return disasm;
 }
