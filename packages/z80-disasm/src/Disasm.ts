@@ -204,8 +204,13 @@ export class Disasm {
     private makeDataInstruction(startAddress: number): Instruction {
         // Find out the max number of bytes we can eat up.
         let address = startAddress;
-        while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] &&
-            address - startAddress < 50 && !(address > startAddress && this.referencedAddresses.has(address))) {
+        while (address < MEM_SIZE &&
+            address - startAddress < 50 &&
+            this.hasContent[address] &&
+            // Be sure to advance at least one byte.
+            !(address > startAddress && this.isDecoded[address]) &&
+            // Stop at an address that might be meaningful to the code.
+            !(address > startAddress && this.referencedAddresses.has(address))) {
 
             address += 1;
         }
