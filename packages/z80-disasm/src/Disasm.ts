@@ -1,6 +1,6 @@
-import opcodeMap from "./Opcodes.js";
-import {Instruction} from "./Instruction.js";
 import {inc16, signedByte, toHex, toHexByte, toHexWord, word} from "z80-base";
+import {Instruction} from "./Instruction.js";
+import opcodeMap from "./Opcodes.js";
 import {Preamble} from "./Preamble.js";
 
 // Whether to dump statistics to the console, for debugging.
@@ -13,13 +13,19 @@ const TARGET = "TARGET";
 const MEM_SIZE = 64*1024;
 
 // Whether the byte can be converted to readable ASCII.
-function isPrintable(b: number) {
+function isPrintable(b: number): boolean {
     return b >= 32 && b < 127;
 }
 
 // Whether the byte is appropriate for a .text instruction.
-function isText(b: number){
+function isText(b: number): boolean {
     return isPrintable(b) || b === 0x0A || b === 0x0D;
+}
+
+// Whether this byte can terminate text.
+function isTextTerminator(b: number): boolean {
+    // Allow terminating NUL. Also allow terminating 0x03, it was used by the TRS-80 $VDLINE routine.
+    return b === 0x00 || b === 0x03;
 }
 
 /**
@@ -181,17 +187,55 @@ export class Disasm {
     private makeDataInstruction(address: number): Instruction {
         const startAddress = address;
 
+        // Find out the max number of bytes we can eat up.
+        while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] &&
+            address - startAddress < 50 && !(address > startAddress && this.referencedAddresses.has(address))) {
+
+            address += 1;
+        }
+        let endAddress = address; // Exclusive.
+
+        // Find the first large chunk of text.
+        let startOfText: number | undefined = undefined;
+        let startOfTextChunk: number | undefined = undefined;
+        for (address = startAddress; address < endAddress; address++) {
+            const byte = this.memory[address];
+
+            // Detect first text chunk.
+            if (isText(byte)) {
+                if (startOfText === undefined) {
+                    startOfText = address;
+                }
+
+                if (address - startOfText >= 5) {
+                    // Found something long enough, lock it in.
+                    startOfTextChunk = startOfText;
+                }
+            } else if (isTextTerminator(byte) && startOfTextChunk !== undefined) {
+                // Allow one terminator after the text, but we're done now.
+                address++;
+                break;
+            } else {
+                if (startOfText !== undefined) {
+                    if (startOfTextChunk !== undefined) {
+                        // Found large text.
+                        break;
+                    }
+
+                    // Too short, keep going.
+                    startOfText = undefined;
+                }
+            }
+        }
+
+        const endOfText = address; // Exclusive.
+
         const parts: string[] = [];
-        let mnemonic: string | undefined = undefined;
+        let mnemonic: string;
 
-        // Look for contiguous sequence of either text or not text.
-        if (isText(this.memory[address])) {
-            // Gobble as much text as we can.
+        if (startOfTextChunk === startAddress) {
             mnemonic = ".text";
-            while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] &&
-                isText(this.memory[address]) && address - startAddress < 50 &&
-                !(address > startAddress && this.referencedAddresses.has(address))) {
-
+            for (address = startOfTextChunk; address < endOfText; address++) {
                 const byte = this.memory[address];
                 if (isPrintable(byte)) {
                     let char = String.fromCharCode(byte);
@@ -210,34 +254,18 @@ export class Disasm {
                 } else {
                     parts.push("0x" + toHexByte(byte));
                 }
-                address += 1;
+            }
+        } else {
+            // Raw binary.
+
+            if (startOfTextChunk !== undefined) {
+                // Stop at start of text chunk.
+                endAddress = startOfTextChunk;
             }
 
-            // See if it's too short.
-            if (address - startAddress < 2) {
-                // Probably not actual text.
-                mnemonic = undefined;
-                parts.splice(0, parts.length);
-                address = startAddress;
-            } else {
-                // Allow terminating NUL. Also allow terminating 0x03, it was used by the TRS-80 $VDLINE routine.
-                if (address < MEM_SIZE && this.hasContent[address] &&
-                    !(address > startAddress && this.referencedAddresses.has(address)) &&
-                    !this.isDecoded[address] && (this.memory[address] === 0x00 || this.memory[address] === 0x03)) {
-
-                    parts.push("0x" + toHexByte(this.memory[address]));
-                    address += 1;
-                }
-            }
-        }
-
-        if (mnemonic === undefined || address === startAddress) {
             mnemonic = ".byte";
-            while (address < MEM_SIZE && this.hasContent[address] && (!this.isDecoded[address] || address === startAddress) &&
-                address - startAddress < 8 && !(address > startAddress && this.referencedAddresses.has(address))) {
-
+            for (address = startAddress; address < endAddress; address++) {
                 parts.push("0x" + toHexByte(this.memory[address]));
-                address += 1;
             }
         }
 
