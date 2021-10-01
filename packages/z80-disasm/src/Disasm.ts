@@ -28,6 +28,19 @@ function isTextTerminator(b: number): boolean {
     return b === 0x00 || b === 0x03;
 }
 
+// Types for the opcode map.
+interface OpcodeInstruction {
+    mnemonic: string,
+    params?: string[],
+    extra?: string[],
+}
+interface OpcodeShift {
+    shift: OpcodeMap,
+}
+type OpcodeMap = {
+    [opcode: string]: OpcodeInstruction | OpcodeShift,
+}
+
 /**
  * Main class for disassembling a binary.
  */
@@ -99,18 +112,18 @@ export class Disasm {
 
         // Fetch base instruction.
         let byte = next();
-        let map: any = opcodeMap;
+        let map: OpcodeMap = opcodeMap;
 
         let instruction: Instruction | undefined;
 
         while (instruction === undefined) {
-            let value: any = map[byte.toString(16)];
+            let value = map[byte.toString(16)];
             if (value === undefined) {
                 // TODO
                 // asm.push(".byte 0x" + byte.toString(16));
                 const stringParams = bytes.map((n) => "0x" + toHex(n, 2));
                 instruction = new Instruction(startAddress, bytes, ".byte", stringParams, stringParams, false);
-            } else if (value.shift !== undefined) {
+            } else if ("shift" in value) {
                 // Descend to sub-map.
                 map = value.shift;
                 byte = next();
@@ -138,9 +151,13 @@ export class Disasm {
                             } else {
                                 target = "0x" + toHex(nnnn, 4);
 
-                                // Perhaps we should only do this if the destination register is HL, since that's
+                                // Only do this if the destination register is HL, since that's
                                 // often an address and other registers are more often lengths.
-                                this.referencedAddresses.add(nnnn);
+                                if (value.params !== undefined && value.params.length === 2 &&
+                                    value.params[0] === "hl" && value.params[1] === "nnnn") {
+
+                                    this.referencedAddresses.add(nnnn);
+                                }
                             }
                             arg = arg.substr(0, pos) + target + arg.substr(pos + 4);
                             changed = true;
@@ -184,10 +201,9 @@ export class Disasm {
     /**
      * Makes a data (.byte, .text) instruction starting at the specified address.
      */
-    private makeDataInstruction(address: number): Instruction {
-        const startAddress = address;
-
+    private makeDataInstruction(startAddress: number): Instruction {
         // Find out the max number of bytes we can eat up.
+        let address = startAddress;
         while (address < MEM_SIZE && this.hasContent[address] && !this.isDecoded[address] &&
             address - startAddress < 50 && !(address > startAddress && this.referencedAddresses.has(address))) {
 
@@ -207,7 +223,7 @@ export class Disasm {
                     startOfText = address;
                 }
 
-                if (address - startOfText >= 5) {
+                if (address - startOfText >= 4) {
                     // Found something long enough, lock it in.
                     startOfTextChunk = startOfText;
                 }
@@ -227,15 +243,17 @@ export class Disasm {
                 }
             }
         }
-
         const endOfText = address; // Exclusive.
 
         const parts: string[] = [];
         let mnemonic: string;
 
         if (startOfTextChunk === startAddress) {
+            // Printable text.
             mnemonic = ".text";
-            for (address = startOfTextChunk; address < endOfText; address++) {
+
+            endAddress = endOfText;
+            for (address = startAddress; address < endAddress; address++) {
                 const byte = this.memory[address];
                 if (isPrintable(byte)) {
                     let char = String.fromCharCode(byte);
@@ -256,20 +274,20 @@ export class Disasm {
                 }
             }
         } else {
-            // Raw binary.
+            // Raw bytes.
+            mnemonic = ".byte";
 
             if (startOfTextChunk !== undefined) {
                 // Stop at start of text chunk.
                 endAddress = startOfTextChunk;
             }
 
-            mnemonic = ".byte";
             for (address = startAddress; address < endAddress; address++) {
                 parts.push("0x" + toHexByte(this.memory[address]));
             }
         }
 
-        const bytes = Array.from(this.memory.slice(startAddress, address));
+        const bytes = Array.from(this.memory.slice(startAddress, endAddress));
         return new Instruction(startAddress, bytes, mnemonic, parts, parts, false);
     }
 

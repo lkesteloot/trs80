@@ -41,7 +41,7 @@ export class Instruction {
      */
     public additionalDataLength: number = 0;
 
-    constructor(address: number, bin: number[], mnemonic: string, params: string[], args: string[], isExecutable: boolean) {
+    constructor(address: number, bin: number[], mnemonic: string, params: string[] | undefined, args: string[], isExecutable: boolean) {
         this.address = address;
         this.bin = bin;
         this.mnemonic = mnemonic;
