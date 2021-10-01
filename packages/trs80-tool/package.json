@@ -1,6 +1,6 @@
 {
     "name": "trs80-tool",
-    "version": "2.2.2",
+    "version": "2.2.3",
     "description": "Command-line tool for manipulating TRS-80 files",
     "main": "dist/index.js",
     "repository": "https://github.com/lkesteloot/trs80.git",
@@ -22,10 +22,10 @@
         "commander": "^7.2.0",
         "teamten-ts-utils": "^1.0.3",
         "trs80-base": "^2.2.0",
-        "trs80-cassette": "^2.2.2",
-        "trs80-disasm": "^2.2.2",
+        "trs80-cassette": "^2.2.3",
+        "trs80-disasm": "^2.2.3",
         "typescript": "^4.2.3",
-        "z80-disasm": "^2.2.2"
+        "z80-disasm": "^2.2.3"
     },
     "devDependencies": {
         "pkg": "^5.1.0",
