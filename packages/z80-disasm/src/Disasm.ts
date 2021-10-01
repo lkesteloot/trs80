@@ -129,7 +129,7 @@ export class Disasm {
                 byte = next();
             } else {
                 // Found instruction. Parse arguments.
-                const args: string[] = (value.params ?? []).slice();
+                const args = (value.params ?? []).slice();
 
                 for (let i = 0; i < args.length; i++) {
                     let arg = args[i];
