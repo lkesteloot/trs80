@@ -1,6 +1,6 @@
 {
   "name": "trs80-cassette",
-  "version": "2.2.0",
+  "version": "2.2.2",
   "description": "Library to read and write TRS-80 cassettes.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -26,6 +26,6 @@
     "teamten-ts-utils": "^1.0.3",
     "trs80-base": "^2.2.0",
     "z80-base": "^2.0.1",
-    "z80-disasm": "^2.2.0"
+    "z80-disasm": "^2.2.2"
   }
 }

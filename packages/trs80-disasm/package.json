@@ -1,6 +1,6 @@
 {
   "name": "trs80-disasm",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Configures z80-disasm for TRS-80 programs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,6 +28,6 @@
   },
   "dependencies": {
     "trs80-base": "^2.2.0",
-    "z80-disasm": "^2.2.0"
+    "z80-disasm": "^2.2.2"
   }
 }
