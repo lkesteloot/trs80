@@ -75,7 +75,7 @@ export class Disasm {
 
     /**
      * Add a memory location that might be jumped to when running this program. If no entry
-     * points are specified, then the lower address for which we have binary will be used.
+     * points are specified, then the lowest address for which we have binary will be used.
      */
     public addEntryPoint(entryPoint: number): void {
         this.entryPoints.push(entryPoint);
@@ -503,6 +503,9 @@ export class Disasm {
         return instructions;
     }
 
+    /**
+     * Fix up the instructions's jump target with a known label if we have one.
+     */
     private replaceTargetAddress(instruction: Instruction): void {
         if (instruction.jumpTarget !== undefined) {
             let label = this.knownLabels.get(instruction.jumpTarget);

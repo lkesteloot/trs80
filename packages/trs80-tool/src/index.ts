@@ -382,8 +382,12 @@ function dir(infile: string): void {
     if (archive.error !== undefined) {
         console.log(archive.error);
     } else {
-        for (const file of archive.files) {
-            console.log(file.getDirString());
+        if (archive.files.length === 0) {
+            console.log("No files");
+        } else {
+            for (const file of archive.files) {
+                console.log(file.getDirString());
+            }
         }
     }
 }
@@ -980,7 +984,7 @@ function sectors(filename: string, showContents: boolean): void {
         for (let trackNumber = 0; trackNumber <= maxTrackNumber; trackNumber++) {
             const lineParts: string[] = [trackNumber.toString().padStart(6, " ") + "  "];
             for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
-                const sectorData = file.readSector(trackNumber, Side.FRONT, sectorNumber);
+                const sectorData = file.readSector(trackNumber, side, sectorNumber);
                 let color;
                 let text: string;
                 if (sectorData === undefined) {

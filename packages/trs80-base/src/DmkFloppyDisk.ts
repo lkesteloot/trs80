@@ -15,7 +15,6 @@ import {
     numberToSide,
     SectorData,
     Side,
-    TrackGeometry,
     TrackGeometryBuilder
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
@@ -36,17 +35,22 @@ class DmkSector {
      */
     public readonly doubleDensity: boolean;
     /**
+     * Use a byte stride of 1 even in single density mode.
+     */
+    public readonly alwaysUseStride1: boolean;
+    /**
      * Offset of IDAM (0xFE byte) into the track, including the track header.
      */
     public readonly offset: number;
     /**
-     * Index into the sector of the start of the user data.
+     * Index into the sector of the start of the user data, or undefined if there's no DAM.
      */
-    public readonly dataIndex: number;
+    public readonly dataIndex: number | undefined;
 
-    constructor(track: DmkTrack, doubleDensity: boolean, offset: number) {
+    constructor(track: DmkTrack, doubleDensity: boolean, alwaysUseStride1: boolean, offset: number) {
         this.track = track;
         this.doubleDensity = doubleDensity;
+        this.alwaysUseStride1 = alwaysUseStride1;
         this.offset = offset;
         this.dataIndex = this.findDataIndex();
     }
@@ -76,7 +80,21 @@ class DmkSector {
      * Get the sector length in bytes.
      */
     public getLength(): number {
-        return 128*(1 << this.getByte(4));
+        if (this.hasValidLength()) {
+            return 128*(1 << this.getByte(4));
+        } else {
+            // Fallback on something reasonable.
+            return 256;
+        }
+    }
+
+    /**
+     * Whether the length byte seems valid.
+     */
+    public hasValidLength(): boolean {
+        const value = this.getByte(4);
+        // Not sure what was valid, but accept 128, 256, and 512.
+        return value <= 2;
     }
 
     /**
@@ -84,6 +102,21 @@ class DmkSector {
      */
     public getDensity(): Density {
         return this.doubleDensity ? Density.DOUBLE : Density.SINGLE;
+    }
+
+    /**
+     * The number of repeated bytes. If 1, then every byte on the original disk appears once in this
+     * sector. If 2, then every byte in the original disk appears twice in a row.
+     */
+    public getByteStride(): number {
+        return this.doubleDensity || this.alwaysUseStride1 ? 1 : 2;
+    }
+
+    /**
+     * Whether the sector has data. Some sectors are missing a DAM.
+     */
+    public hasData(): boolean {
+        return this.dataIndex !== undefined;
     }
 
     /**
@@ -111,18 +144,26 @@ class DmkSector {
     }
 
     /**
-     * Get the CRC for the data bytes.
+     * Get the CRC for the data bytes, or undefined if the sector has no data.
      */
-    public getDataCrc(): number {
+    public getDataCrc(): number | undefined {
+        if (this.dataIndex === undefined) {
+            return undefined;
+        }
+
         // Bit endian.
         const index = this.dataIndex + this.getLength();
         return (this.getByte(index) << 8) + this.getByte(index + 1);
     }
 
     /**
-     * Compute the CRC for the data bytes.
+     * Compute the CRC for the data bytes, or undefined if the sector has no data.
      */
-    public computeDataCrc(): number {
+    public computeDataCrc(): number | undefined {
+        if (this.dataIndex === undefined) {
+            return undefined;
+        }
+
         let crc = 0xFFFF;
 
         const index = this.dataIndex;
@@ -140,8 +181,12 @@ class DmkSector {
      * Whether the sector data should be considered invalid.
      */
     public isDeleted(): boolean {
+        if (this.dataIndex === undefined) {
+            return false;
+        }
+
         const dam = this.getByte(this.dataIndex - 1);
-        if (dam !== 0xF8 && dam !== 0xFB) {
+        if (dam < 0xF8 || dam > 0xFB) {
             console.error("Unknown DAM: " + toHexByte(dam));
         }
 
@@ -155,27 +200,27 @@ class DmkSector {
      * @param index index into the sector, relative to the IDAM 0xFE byte. Can be negative.
      */
     private getByte(index: number): number {
-        const byteStride = this.doubleDensity ? 1 : 2;
-        return this.track.floppyDisk.binary[this.track.offset + this.offset + index*byteStride];
+        return this.track.floppyDisk.binary[this.track.offset + this.offset + index*this.getByteStride()];
     }
 
     /**
-     * Look for the byte that indicates the start of data (0xFB or 0xF8). Various
+     * Look for the byte that indicates the start of data (0xF8 to 0xFB). Various
      * floppy disk documentation specify an exact number here, but I've seen a variety
-     * of values, so just search.
+     * of values, so just search. Returns undefined if it can't be found.
      */
-    private findDataIndex(): number {
+    private findDataIndex(): number | undefined {
         for (let i = 7; i < 55; i++) {
             const byte = this.getByte(i);
-            if (byte === 0xFB || byte === 0xF8) {
+            if (byte >= 0xF8 && byte <= 0xFB) {
                 // Maybe also check that the previous three bytes are 0xA1, except they're not on
                 // some single-density sectors I've seen.
                 return i + 1;
             }
         }
 
-        // Not sure what to do here. trs80gp says that this is valid.
-        throw new Error(`Can't find byte at start of DAM (track ${this.track.trackNumber}, offset 0x${toHexWord(this.offset)})`);
+        // console.log(`Can't find byte at start of DAM (track ${this.track.trackNumber}, sector ${this.getSectorNumber()}, offset 0x${toHexWord(this.offset)})`);
+
+        return undefined;
     }
 }
 
@@ -281,6 +326,12 @@ export class DmkFloppyDisk extends FloppyDisk {
                 for (const sector of track.sectors) {
                     if (sectorNumber === undefined || (sector.getSectorNumber() === sectorNumber &&
                         sector.getSide() === side)) {
+
+                        if (sector.dataIndex === undefined) {
+                            // Sector is missing data.
+                            // console.log(`Track ${track.trackNumber} sector ${sector.getSectorNumber()} has no data`);
+                            return undefined;
+                        }
 
                         const begin = track.offset + sector.offset + sector.dataIndex;
                         const end = begin + sector.getLength();
@@ -400,7 +451,8 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     if ((flags & 0x40) !== 0) {
         flagParts.push("SD");
     }
-    if ((flags & 0x80) !== 0) {
+    const alwaysUseStride1 = (flags & 0x80) !== 0 || false; // TODO
+    if (alwaysUseStride1) {
         flagParts.push("ignore density");
     }
     annotations.push(new ProgramAnnotation("Flags: [" + flagParts.join(",") + "]", 4, 5));
@@ -469,12 +521,14 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
             // currently undefined. These bits must be masked to get the actual sector offset. For example,
             // an offset to an IDAM at byte 90h would be 0090h if single density and 8090h if double density.
 
+            // TODO probably here poke through the rest of the track to look for non-doubled bytes.
+
             for (let i = 0; i < TRACK_HEADER_SIZE; i += 2) {
                 const sectorOffset = binary[trackOffset + i] + (binary[trackOffset + i + 1] << 8);
                 if (sectorOffset !== 0) {
                     const offset = sectorOffset & 0x3FFF;
                     const doubleDensity = (sectorOffset & 0x8000) !== 0;
-                    track.sectors.push(new DmkSector(track, doubleDensity, offset));
+                    track.sectors.push(new DmkSector(track, doubleDensity, alwaysUseStride1, offset));
                 }
             }
             annotations.push(new ProgramAnnotation(`Track ${trackNumber} header`,
@@ -482,7 +536,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
 
             for (const sector of track.sectors) {
                 let i = trackOffset + sector.offset;
-                const byteStride = sector.doubleDensity ? 1 : 2;
+                const byteStride = sector.getByteStride();
 
                 annotations.push(new ProgramAnnotation("Sector ID access mark (" +
                     (sector.doubleDensity ? "double" : "single") + " density)",
@@ -516,26 +570,30 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                 annotations.push(new ProgramAnnotation(idamCrcLabel, i, i + 2*byteStride));
                 i += 2*byteStride;
 
-                // Skip the padding between the ID and the data.
-                i = trackOffset + sector.offset + (sector.dataIndex - 1)*byteStride;
+                if (sector.dataIndex !== undefined) {
+                    // Skip the padding between the ID and the data.
+                    i = trackOffset + sector.offset + (sector.dataIndex - 1) * byteStride;
 
-                annotations.push(new ProgramAnnotation("Data access mark" + (sector.isDeleted() ? " (deleted)" : ""),
-                    i, i + byteStride));
-                i += byteStride;
+                    annotations.push(new ProgramAnnotation("Data access mark" + (sector.isDeleted() ? " (deleted)" : ""),
+                        i, i + byteStride));
+                    i += byteStride;
 
-                annotations.push(new ProgramAnnotation("Sector data", i, i + sectorLength*byteStride));
-                i += sectorLength*byteStride;
+                    annotations.push(new ProgramAnnotation("Sector data", i, i + sectorLength * byteStride));
+                    i += sectorLength * byteStride;
 
-                const actualDataCrc = sector.computeDataCrc();
-                const expectedDataCrc = sector.getDataCrc();
-                let dataCrcLabel = "Data CRC";
-                if (actualDataCrc === expectedDataCrc) {
-                    dataCrcLabel += " (valid)";
-                } else {
-                    dataCrcLabel += ` (got 0x${toHexWord(actualDataCrc)}, expected 0x${toHexWord(expectedDataCrc)})`;
+                    const actualDataCrc = sector.computeDataCrc();
+                    const expectedDataCrc = sector.getDataCrc();
+                    if (actualDataCrc !== undefined && expectedDataCrc !== undefined) {
+                        let dataCrcLabel = "Data CRC";
+                        if (actualDataCrc === expectedDataCrc) {
+                            dataCrcLabel += " (valid)";
+                        } else {
+                            dataCrcLabel += ` (got 0x${toHexWord(actualDataCrc)}, expected 0x${toHexWord(expectedDataCrc)})`;
+                        }
+                        annotations.push(new ProgramAnnotation(dataCrcLabel, i, i + 2 * byteStride));
+                        i += 2 * byteStride;
+                    }
                 }
-                annotations.push(new ProgramAnnotation(dataCrcLabel, i, i + 2*byteStride));
-                i += 2*byteStride;
             }
 
             floppyDisk.tracks.push(track);

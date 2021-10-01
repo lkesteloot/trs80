@@ -13,6 +13,8 @@ import {ProgramAnnotation} from "./ProgramAnnotation.js";
 // The JV3 file consists of sectors of different sizes all bunched together. Before that
 // comes a directory of these sectors, with three bytes per directory entry (track,
 // sector, and flags), mapping in order to the subsequent sectors.
+//
+// https://www.tim-mann.org/trs80/dskspec.html
 
 // The directory is in this header:
 const HEADER_SIZE = 34*256;
