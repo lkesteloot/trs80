@@ -352,6 +352,41 @@ export class DmkFloppyDisk extends FloppyDisk {
 }
 
 /**
+ * Return true if every sector in the track is single density.
+ * @param binary array to inspect.
+ * @param trackHeader index of track header.
+ */
+function trackIsSingleDensity(binary: Uint8Array, trackHeader: number): boolean {
+    for (let i = 0; i < TRACK_HEADER_SIZE; i += 2) {
+        const sectorOffset = binary[trackHeader + i] + (binary[trackHeader + i + 1] << 8);
+        if (sectorOffset !== 0) {
+            const doubleDensity = (sectorOffset & 0x8000) !== 0;
+            if (doubleDensity) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Returns true iff the interval is only made of doubled bytes.
+ * @param binary array to inspect.
+ * @param begin begin index, inclusive.
+ * @param end end index, exclusive.
+ */
+function allBytesDoubled(binary: Uint8Array, begin: number, end: number): boolean {
+    for (let i = begin; i < end; i += 2) {
+        if (binary[i] !== binary[i + 1]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
  * Decode a DMK floppy disk file.
  */
 export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefined {
@@ -451,7 +486,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     if ((flags & 0x40) !== 0) {
         flagParts.push("SD");
     }
-    const alwaysUseStride1 = (flags & 0x80) !== 0 || false; // TODO
+    let alwaysUseStride1 = (flags & 0x80) !== 0;
     if (alwaysUseStride1) {
         flagParts.push("ignore density");
     }
@@ -486,8 +521,25 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const floppyDisk = new DmkFloppyDisk(binary, error, annotations, true,
         writeProtected, trackCount, trackLength, flags);
 
-    // Read the tracks.
+    // Some floppies are single density but don't duplicate each byte. They're supposed to set
+    // the alwaysUseStride1 bit, but some don't. Go through the whole disk to look for any
+    // non-duplicated byte.
     let binaryOffset = FILE_HEADER_SIZE;
+    for (let trackNumber = 0; !alwaysUseStride1 && trackNumber < trackCount; trackNumber++) {
+        for (let side = 0; !alwaysUseStride1 && side < sideCount; side++) {
+            const trackOffset = binaryOffset;
+            if (trackIsSingleDensity(binary, trackOffset) &&
+                !allBytesDoubled(binary, trackOffset + TRACK_HEADER_SIZE, trackOffset + trackLength)) {
+
+                // console.log("Overriding allBytesDoubled", trackNumber, side);
+                alwaysUseStride1 = true;
+            }
+            binaryOffset += trackLength;
+        }
+    }
+
+    // Read the tracks.
+    binaryOffset = FILE_HEADER_SIZE;
     for (let trackNumber = 0; trackNumber < trackCount; trackNumber++) {
         for (let side = 0; side < sideCount; side++) {
             const trackOffset = binaryOffset;
@@ -520,8 +572,6 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
             // [DMK] Each IDAM pointer has two flags. Bit 15 is set if the sector is double density. Bit 14 is
             // currently undefined. These bits must be masked to get the actual sector offset. For example,
             // an offset to an IDAM at byte 90h would be 0090h if single density and 8090h if double density.
-
-            // TODO probably here poke through the rest of the track to look for non-doubled bytes.
 
             for (let i = 0; i < TRACK_HEADER_SIZE; i += 2) {
                 const sectorOffset = binary[trackOffset + i] + (binary[trackOffset + i + 1] << 8);

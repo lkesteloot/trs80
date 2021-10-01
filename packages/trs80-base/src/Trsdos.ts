@@ -11,7 +11,7 @@ import {Density, FloppyDisk, FloppyDiskGeometry, numberToSide, Side} from "./Flo
 import {toHexByte} from "z80-base";
 
 // Print extra debugging information.
-const DEBUG = true;
+const DEBUG = false;
 
 // Whether to check the high bits of the GAT table entries. I keep seeing floppies with wrong values
 // here, so disabling this. Those bits were probably not accessed anyway, so it's probably not out of
