@@ -318,52 +318,60 @@ function printInfoForFile(filename: string, verbose: boolean): void {
         decoder.decode();
         description = "Audio file with " + pluralizeWithCount(tape.programs.length, "file");
     } else {
-        const trs80File = decodeTrs80File(buffer, filename);
-        if (trs80File.error !== undefined) {
-            description = trs80File.error;
-        } else {
-            description = trs80File.getDescription();
+        try {
+            const trs80File = decodeTrs80File(buffer, filename);
+            if (trs80File.error !== undefined) {
+                description = trs80File.error;
+            } else {
+                description = trs80File.getDescription();
 
-            if (isFloppy(trs80File)) {
-                const trsdos = decodeTrsdos(trs80File);
-                if (trsdos !== undefined) {
-                    description += ", " + trsdos.getOperatingSystemName() + " " + trsdos.getVersion() +
-                        " with " + pluralizeWithCount(trsdos.dirEntries.length, "file");
-                }
-
-                if (verbose) {
-                    function getTrackGeometryInfo(trackGeometry: TrackGeometry): string {
-                        return [`sectors ${trackGeometry.firstSector} to ${trackGeometry.lastSector}`,
-                            `sides ${trackGeometry.firstSide} to ${trackGeometry.lastSide}`,
-                            `${trackGeometry.density === Density.SINGLE ? "single" : "double"} density`,
-                            `${trackGeometry.sectorSize} bytes per sector`].join(", ");
-                    }
-
-                    const geometry = trs80File.getGeometry();
-                    const firstTrack = geometry.firstTrack;
-                    const lastTrack = geometry.lastTrack;
-                    if (geometry.hasHomogenousGeometry()) {
-                        verboseLines.push(`Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}, ` +
-                            getTrackGeometryInfo(firstTrack));
-                    } else {
-                        verboseLines.push(
-                            `Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}`,
-                            `On track ${firstTrack.trackNumber}, ` + getTrackGeometryInfo(firstTrack),
-                            `On remaining tracks, ` + getTrackGeometryInfo(lastTrack));
-                    }
-
+                if (isFloppy(trs80File)) {
+                    const trsdos = decodeTrsdos(trs80File);
                     if (trsdos !== undefined) {
-                        if (trsdos.gatInfo.name !== "") {
-                            verboseLines.push("Floppy name: " + trsdos.gatInfo.name);
+                        description += ", " + trsdos.getOperatingSystemName() + " " + trsdos.getVersion() +
+                            " with " + pluralizeWithCount(trsdos.dirEntries.length, "file");
+                    }
+
+                    if (verbose) {
+                        function getTrackGeometryInfo(trackGeometry: TrackGeometry): string {
+                            return [`sectors ${trackGeometry.firstSector} to ${trackGeometry.lastSector}`,
+                                `sides ${trackGeometry.firstSide} to ${trackGeometry.lastSide}`,
+                                `${trackGeometry.density === Density.SINGLE ? "single" : "double"} density`,
+                                `${trackGeometry.sectorSize} bytes per sector`].join(", ");
                         }
-                        if (trsdos.gatInfo.date !== "") {
-                            verboseLines.push("Floppy date: " + trsdos.gatInfo.date);
+
+                        const geometry = trs80File.getGeometry();
+                        const firstTrack = geometry.firstTrack;
+                        const lastTrack = geometry.lastTrack;
+                        if (geometry.hasHomogenousGeometry()) {
+                            verboseLines.push(`Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}, ` +
+                                getTrackGeometryInfo(firstTrack));
+                        } else {
+                            verboseLines.push(
+                                `Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}`,
+                                `On track ${firstTrack.trackNumber}, ` + getTrackGeometryInfo(firstTrack),
+                                `On remaining tracks, ` + getTrackGeometryInfo(lastTrack));
                         }
-                        if (trsdos.gatInfo.autoCommand !== "") {
-                            verboseLines.push("Auto command: " + trsdos.gatInfo.autoCommand);
+
+                        if (trsdos !== undefined) {
+                            if (trsdos.gatInfo.name !== "") {
+                                verboseLines.push("Floppy name: " + trsdos.gatInfo.name);
+                            }
+                            if (trsdos.gatInfo.date !== "") {
+                                verboseLines.push("Floppy date: " + trsdos.gatInfo.date);
+                            }
+                            if (trsdos.gatInfo.autoCommand !== "") {
+                                verboseLines.push("Auto command: " + trsdos.gatInfo.autoCommand);
+                            }
                         }
                     }
                 }
+            }
+        } catch (e: any) {
+            if ("message" in e) {
+                description = "Error (" + e.message + ")";
+            } else {
+                description = "Unknown error during decoding";
             }
         }
     }
