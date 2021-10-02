@@ -1,3 +1,3 @@
 
-export * from "./Z80";
-export * from "./Hal";
+export * from "./Z80.js";
+export * from "./Hal.js";

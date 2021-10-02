@@ -1,10 +1,10 @@
-import {CanvasScreen} from "./CanvasScreen";
-import {Trs80} from "./Trs80";
-import {PanelType, SettingsPanel} from "./SettingsPanel";
-import {ControlPanel} from "./ControlPanel";
-import {ProgressBar} from "./ProgressBar";
-import {CassettePlayer} from "./CassettePlayer";
-import {Editor} from "./Editor";
+import {CanvasScreen} from "./CanvasScreen.js";
+import {Trs80} from "./Trs80.js";
+import {PanelType, SettingsPanel} from "./SettingsPanel.js";
+import {ControlPanel} from "./ControlPanel.js";
+import {ProgressBar} from "./ProgressBar.js";
+import {CassettePlayer} from "./CassettePlayer.js";
+import {Editor} from "./Editor.js";
 import {clearElement} from "teamten-ts-utils";
 import {ElementType} from "trs80-base";
 

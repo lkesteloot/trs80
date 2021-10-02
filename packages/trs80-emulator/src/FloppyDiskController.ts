@@ -8,9 +8,9 @@
 
 import {FloppyDisk, SectorData, Side} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
-import {Machine} from "./Machine";
+import {Machine} from "./Machine.js";
 import {toHexByte} from "z80-base";
-import {EventType} from "./EventScheduler";
+import {EventType} from "./EventScheduler.js";
 
 // Enable debug logging.
 const DEBUG_LOG = false;

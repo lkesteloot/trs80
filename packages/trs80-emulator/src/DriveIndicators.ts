@@ -1,6 +1,6 @@
 
-import {CSS_PREFIX} from "./Utils";
-import {FLOPPY_DRIVE_COUNT} from "./FloppyDiskController";
+import {CSS_PREFIX} from "./Utils.js";
+import {FLOPPY_DRIVE_COUNT} from "./FloppyDiskController.js";
 
 const gCssPrefix = CSS_PREFIX + "-drive-indicators";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";

@@ -1,4 +1,4 @@
-import {Mutable} from "./Mutable";
+import {Mutable} from "./Mutable.js";
 
 const PROCESSOR_NAME = "trs80-audio-processor";
 

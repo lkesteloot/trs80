@@ -1,4 +1,4 @@
-import {Config} from "./Config";
+import {Config} from "./Config.js";
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 
 /**
@@ -22,13 +22,6 @@ export class Trs80Screen {
      * @param value the 0-255 value to write.
      */
     public writeChar(address: number, value: number): void {
-        throw new Error("Must be implemented");
-    }
-
-    /**
-     * Get the HTML node for this screen.
-     */
-    public getNode(): HTMLElement {
         throw new Error("Must be implemented");
     }
 

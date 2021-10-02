@@ -1,12 +1,12 @@
 import {hi, lo, toHex, toHexWord} from "z80-base";
 import {Hal, Z80} from "z80-emulator";
-import {CassettePlayer} from "./CassettePlayer";
-import {Keyboard} from "./Keyboard";
-import {model1Level1Rom} from "./Model1Level1Rom";
-import {model1Level2Rom} from "./Model1Level2Rom";
-import {model3Rom} from "./Model3Rom";
-import {Trs80Screen} from "./Trs80Screen";
-import {BasicLevel, CGChip, Config, ModelType} from "./Config";
+import {CassettePlayer} from "./CassettePlayer.js";
+import {Keyboard} from "./Keyboard.js";
+import {model1Level1Rom} from "./Model1Level1Rom.js";
+import {model1Level2Rom} from "./Model1Level2Rom.js";
+import {model3Rom} from "./Model3Rom.js";
+import {Trs80Screen} from "./Trs80Screen.js";
+import {BasicLevel, CGChip, Config, ModelType} from "./Config.js";
 import {
     BASIC_HEADER_BYTE,
     BasicProgram,
@@ -19,10 +19,10 @@ import {
     Trs80File
 } from "trs80-base";
 import {FloppyDisk} from "trs80-base/dist/FloppyDisk";
-import {FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController";
-import {Machine} from "./Machine";
-import {EventScheduler} from "./EventScheduler";
-import {SoundPlayer} from "./SoundPlayer";
+import {FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
+import {Machine} from "./Machine.js";
+import {EventScheduler} from "./EventScheduler.js";
+import {SoundPlayer} from "./SoundPlayer.js";
 import {SignalDispatcher,SimpleEventDispatcher} from "strongly-typed-events";
 
 // IRQs

@@ -1,7 +1,7 @@
-import {CSS_PREFIX} from "./Utils";
-import {Background, BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize, ScanLines} from "./Config";
-import {Trs80} from "./Trs80";
-import {AUTHENTIC_BACKGROUND, BLACK_BACKGROUND, phosphorToRgb} from "./CanvasScreen";
+import {CSS_PREFIX} from "./Utils.js";
+import {Background, BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize, ScanLines} from "./Config.js";
+import {Trs80} from "./Trs80.js";
+import {AUTHENTIC_BACKGROUND, BLACK_BACKGROUND, phosphorToRgb} from "./CanvasScreen.js";
 
 const gCssPrefix = CSS_PREFIX + "-settings-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";

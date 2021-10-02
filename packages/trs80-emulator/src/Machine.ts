@@ -1,4 +1,4 @@
-import {EventScheduler} from "./EventScheduler";
+import {EventScheduler} from "./EventScheduler.js";
 
 /**
  * Interface for peripherals to access the machine's internals.

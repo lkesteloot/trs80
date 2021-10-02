@@ -4,6 +4,7 @@
   "description": "TRS-80 Model III emulator",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",

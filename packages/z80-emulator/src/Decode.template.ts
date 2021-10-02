@@ -1,4 +1,4 @@
-import {Z80} from "./Z80";
+import {Z80} from "./Z80.js";
 import {toHex, inc8, inc16, dec8, dec16, add8, add16, sub8, sub16, word, hi, lo, Flag, signedByte} from "z80-base";
 
 type OpcodeFunc = (z80: Z80) => void;

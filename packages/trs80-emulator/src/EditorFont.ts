@@ -1,7 +1,7 @@
 
 // Another Man's Treasure font, for the editor.
 
-import {CSS_PREFIX} from "./Utils";
+import {CSS_PREFIX} from "./Utils.js";
 
 const FONT_CSS_ID_NAME = CSS_PREFIX + "-css-font";
 

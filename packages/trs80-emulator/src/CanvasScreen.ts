@@ -1,6 +1,6 @@
-import {Trs80Screen} from "./Trs80Screen";
-import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts";
-import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "./Config";
+import {Trs80WebScreen} from "./Trs80WebScreen.js";
+import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
+import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "./Config.js";
 import {toHexByte} from "z80-base";
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 
@@ -32,7 +32,7 @@ export function phosphorToRgb(phosphor: Phosphor): number[] {
 /**
  * TRS-80 screen based on an HTML canvas element.
  */
-export class CanvasScreen extends Trs80Screen {
+export class CanvasScreen extends Trs80WebScreen {
     public readonly scale: number = 1;
     public readonly padding: number;
     private readonly node: HTMLElement;

@@ -1,5 +1,5 @@
 
-import {CSS_PREFIX} from "./Utils";
+import {CSS_PREFIX} from "./Utils.js";
 
 const gCssPrefix = CSS_PREFIX + "-progress-bar";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";

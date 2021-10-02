@@ -1,6 +1,8 @@
 export {CassettePlayer} from "./CassettePlayer.js";
 export {Trs80} from "./Trs80.js";
 export {CanvasScreen} from "./CanvasScreen.js";
+export {Trs80Screen} from "./Trs80Screen.js";
+export {Trs80WebScreen} from "./Trs80WebScreen.js";
 export {ControlPanel} from "./ControlPanel.js";
 export {SettingsPanel, PanelType} from "./SettingsPanel.js";
 export {ProgressBar} from "./ProgressBar.js";

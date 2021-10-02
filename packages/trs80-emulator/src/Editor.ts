@@ -1,8 +1,8 @@
 import {BasicProgram, decodeBasicProgram, ElementType, parseBasicText} from "trs80-base";
-import {Trs80} from "./Trs80";
-import {CanvasScreen} from "./CanvasScreen";
-import {addCssFontToPage} from "./EditorFont";
-import {ControlPanel} from "./ControlPanel";
+import {Trs80} from "./Trs80.js";
+import {CanvasScreen} from "./CanvasScreen.js";
+import {addCssFontToPage} from "./EditorFont.js";
+import {ControlPanel} from "./ControlPanel.js";
 
 /**
  * Allows the user to edit the in-memory Basic program directly in an HTML text widget,
