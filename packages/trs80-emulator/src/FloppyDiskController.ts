@@ -394,7 +394,6 @@ export class FloppyDiskController {
                 // Not sure how to use this. Ignored for now:
                 const goalSide = (cmd & MASK_C) === 0 ? undefined : booleanToSide((cmd & MASK_B) !== 0);
 
-                console.log(`Sector read: ${drive.physicalTrack}, ${this.sector}, ${this.side}`);
                 const sectorData = drive.floppyDisk === undefined
                     ? undefined
                     : drive.floppyDisk.readSector(drive.physicalTrack, this.side, this.sector);

@@ -44,7 +44,7 @@ import chalk from "chalk";
 import {Keyboard, SilentSoundPlayer, Trs80} from "trs80-emulator";
 import {CassettePlayer} from "trs80-emulator";
 import {Trs80Screen} from "trs80-emulator";
-import {Config} from "../../trs80-emulator/dist/Config";
+import {Config} from "trs80-emulator";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -1183,7 +1183,7 @@ function disasm(filename: string, org: number | undefined, entryPoints: number[]
 /**
  * Handle the "run" command.
  */
-function run() {
+function run(programFile: string | undefined) {
     const WIDTH = 64;
     const HEIGHT = 16;
 
@@ -1210,11 +1210,12 @@ function run() {
 
             // Draw frame.
             moveTo(1, 1);
-            process.stdout.write("+" + "".padEnd(WIDTH, "-") + "+\n");
+            const color = chalk.green;
+            process.stdout.write(color("+" + "".padEnd(WIDTH, "-") + "+\n"));
             for (let row = 0; row < HEIGHT; row++) {
-                process.stdout.write("|" + "".padEnd(WIDTH, " ") + "|\n");
+                process.stdout.write(color("|" + "".padEnd(WIDTH, " ") + "|\n"));
             }
-            process.stdout.write("+" + "".padEnd(WIDTH, "-") + "+\n");
+            process.stdout.write(color("+" + "".padEnd(WIDTH, "-") + "+\n"));
         }
 
         setConfig(config: Config) {
@@ -1227,18 +1228,26 @@ function run() {
                 const row = Math.floor(address / WIDTH) + 1;
                 const col = address % WIDTH + 1;
 
+                // Detect cursor. Could do this more robustly by peeking at RAM.
+                let ch: string;
                 if (value === 176) {
                     this.lastCursorRow = row;
                     this.lastCursorCol = col;
+
+                    // Replace with space since we use the terminal cursor.
+                    ch = " ";
+                } else {
+                    // Replace non-ASCII.
+                    if (value < 32 || value >= 127) {
+                        ch = chalk.gray("?");
+                    } else {
+                        ch = String.fromCodePoint(value);
+                    }
                 }
 
-                // Replace non-ASCII with space.
-                if (value < 32 || value >= 127) {
-                    value = 32;
-                }
-
+                // Draw at location.
                 moveTo(row + 1, col + 1);
-                process.stdout.write(String.fromCharCode(value));
+                process.stdout.write(ch);
 
                 // Adjust for frame.
                 moveTo(this.lastCursorRow + 1, this.lastCursorCol + 1);
@@ -1262,6 +1271,7 @@ function run() {
 
                         switch (key) {
                             case 8:
+                            case 127:
                                 keyName = "Backspace";
                                 break;
 
@@ -1287,6 +1297,23 @@ function run() {
         }
     }
 
+    let trs80File: Trs80File | undefined = undefined;
+    if (programFile !== undefined) {
+        let buffer;
+        try {
+            buffer = fs.readFileSync(programFile);
+        } catch (e) {
+            console.log(programFile + ": Can't open file: " + e.message);
+            return;
+        }
+
+        trs80File = decodeTrs80File(buffer, programFile);
+        if (trs80File.error !== undefined) {
+            console.log(programFile + ": " + trs80File.error);
+            return;
+        }
+    }
+
     const screen = new TtyScreen();
     const keyboard = new TtyKeyboard();
     const cassette = new CassettePlayer();
@@ -1294,6 +1321,10 @@ function run() {
     const trs80 = new Trs80(screen, keyboard, cassette, soundPlayer);
     trs80.reset();
     trs80.start();
+
+    if (trs80File !== undefined) {
+        trs80.runTrs80File(trs80File);
+    }
 }
 
 function main() {
@@ -1379,10 +1410,12 @@ function main() {
             disasm(infile, org, entryPoints);
         });
     program
-        .command("run")
-        .description("run a TRS-80 emulator")
-        .action(() => {
-            run();
+        .command("run [program]")
+        .description("run a TRS-80 emulator", {
+            program: "optional program file to run"
+        })
+        .action((program) => {
+            run(program);
         });
     program
         .parse();
