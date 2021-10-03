@@ -24,6 +24,7 @@
         "trs80-base": "^2.2.0",
         "trs80-cassette": "^2.2.3",
         "trs80-disasm": "^2.2.3",
+        "trs80-emulator": "^2.2.0",
         "typescript": "^4.2.3",
         "z80-disasm": "^2.2.3"
     },

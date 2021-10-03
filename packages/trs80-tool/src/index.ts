@@ -41,6 +41,10 @@ import {version} from "./version.js";
 import {addModel3RomEntryPoints, disasmForTrs80, disasmForTrs80Program} from "trs80-disasm";
 import {Disasm, instructionsToText} from "z80-disasm";
 import chalk from "chalk";
+import {Keyboard, SilentSoundPlayer, Trs80} from "trs80-emulator";
+import {CassettePlayer} from "trs80-emulator";
+import {Trs80Screen} from "trs80-emulator";
+import {Config} from "../../trs80-emulator/dist/Config";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -1176,6 +1180,104 @@ function disasm(filename: string, org: number | undefined, entryPoints: number[]
     console.log(text);
 }
 
+/**
+ * Handle the "run" command.
+ */
+function run() {
+    class TtyScreen extends Trs80Screen {
+        // 1-based.
+        private lastCursorRow = 1;
+        private lastCursorCol = 1;
+
+        constructor() {
+            super();
+
+            // Clear the screen.
+            process.stdout.write("\x1b[2J");
+        }
+
+        setConfig(config: Config) {
+            // Nothing.
+        }
+
+        writeChar(address: number, value: number) {
+            address -= 15360;
+            if (address >= 0 && address < 1024) {
+                const row = Math.floor(address / 64) + 1;
+                const col = address % 64 + 1;
+
+                this.moveTo(row, col);
+                process.stdout.write(String.fromCharCode(value));
+
+                if (value === 176) {
+                    this.lastCursorRow = row;
+                    this.lastCursorCol = col;
+                }
+
+                this.moveTo(this.lastCursorRow, this.lastCursorCol);
+            }
+        }
+
+        /**
+         * Move cursor.
+         *
+         * @param row 1-based line number.
+         * @param col 1-base column number.
+         */
+        private moveTo(row: number, col: number): void {
+            process.stdout.write("\x1b[" + row + ";" + col + "H");
+        }
+    }
+
+    class TtyKeyboard extends Keyboard {
+        constructor() {
+            super();
+
+            process.stdin.setRawMode(true);
+            process.stdin.on("data", (buffer) => {
+                if (buffer.length > 0) {
+                    const key = buffer[0];
+                    if (key === 0x03) {
+                        process.exit();
+                    } else {
+                        let keyName: string;
+
+                        switch (key) {
+                            case 8:
+                                keyName = "Backspace";
+                                break;
+
+                            case 10:
+                            case 13:
+                                keyName = "Enter";
+                                break;
+
+                            case 27:
+                                keyName = "Escape";
+                                break;
+
+                            default:
+                                keyName = String.fromCodePoint(key);
+                                break;
+                        }
+
+                        this.keyEvent(keyName, true);
+                        this.keyEvent(keyName, false);
+                    }
+                }
+            });
+        }
+    }
+
+    const screen = new TtyScreen();
+    const keyboard = new TtyKeyboard();
+    const cassette = new CassettePlayer();
+    const soundPlayer = new SilentSoundPlayer();
+    const trs80 = new Trs80(screen, keyboard, cassette, soundPlayer);
+    trs80.reset();
+    trs80.start();
+}
+
 function main() {
     program
         .storeOptionsAsProperties(false)
@@ -1257,6 +1359,12 @@ function main() {
             const org = options.org === undefined ? undefined : parseInt(options.org);
             const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
             disasm(infile, org, entryPoints);
+        });
+    program
+        .command("run")
+        .description("run a TRS-80 emulator")
+        .action(() => {
+            run();
         });
     program
         .parse();
