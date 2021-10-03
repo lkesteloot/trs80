@@ -3,7 +3,15 @@ import * as SystemProgramRender from "./SystemProgramRender";
 import * as CmdProgramRender from "./CmdProgramRender";
 import * as Hexdump from "./Hexdump";
 import {CassettePlayer, Trs80} from "trs80-emulator";
-import {ControlPanel, CanvasScreen, ProgressBar, SettingsPanel, PanelType, WebKeyboard} from "trs80-emulator-web";
+import {
+    ControlPanel,
+    CanvasScreen,
+    ProgressBar,
+    SettingsPanel,
+    PanelType,
+    WebKeyboard,
+    flashNode
+} from "trs80-emulator-web";
 import {WaveformDisplay} from "./WaveformDisplay";
 import * as Edtasm from "./Edtasm";
 import {Highlight} from "./Highlight";
@@ -752,6 +760,7 @@ export class TapeBrowser {
         if (program !== undefined) {
             controlPanel.addScreenshotButton(() => {
                 const screenshot = trs80.getScreenshot();
+                flashNode(screen.getNode());
                 program.setScreenshot(screenshot);
                 this.tape.saveUserData();
             });

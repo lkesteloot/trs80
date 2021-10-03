@@ -5,7 +5,7 @@ import {
 import {
     CanvasScreen,
     ControlPanel,
-    DriveIndicators,
+    DriveIndicators, flashNode,
     PanelType, ProgressBar,
     SettingsPanel, WebKeyboard
 } from "trs80-emulator-web";
@@ -361,6 +361,7 @@ export function main() {
         if (context.runningFile !== undefined) {
             let file = context.runningFile;
             const screenshot = trs80.getScreenshot();
+            flashNode(screen.getNode());
             const screenshots = [...file.screenshots, screenshot]; // Don't modify original array.
             file = file.builder()
                 .withScreenshots(screenshots)
