@@ -1,7 +1,7 @@
 import jss from './Jss'
 import {toHexByte, toHexWord} from "z80-base";
 import {Highlightable} from "./Highlighter";
-import {CanvasScreen} from "trs80-emulator";
+import {CanvasScreen} from "trs80-emulator-web";
 import {disasmForTrs80Program} from "trs80-disasm";
 import {SystemProgram, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 import {ProgramAnnotation} from "trs80-base/dist/ProgramAnnotation";

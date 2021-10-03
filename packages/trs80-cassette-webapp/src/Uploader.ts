@@ -96,7 +96,9 @@ export class Uploader {
         if (pathname.toLowerCase().endsWith(".cas")) {
             let bytes = new Uint8Array(arrayBuffer);
             const highSpeed = bytes.length > 0 && bytes[0] === 0x55;
-            const audio = highSpeed ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE) : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE);
+            const audio = highSpeed
+                ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE)
+                : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE, 500);
             audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, audio);
         } else {
             audioFile = readWavFile(arrayBuffer);

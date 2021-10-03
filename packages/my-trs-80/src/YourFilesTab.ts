@@ -1,6 +1,6 @@
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {File, FileBuilder} from "./File";
-import {CanvasScreen} from "trs80-emulator";
+import {CanvasScreen} from "trs80-emulator-web";
 import {
     defer,
     getLabelNodeForTextButton,

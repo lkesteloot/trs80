@@ -4,7 +4,7 @@ import {
     SystemProgram, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END
 } from "trs80-base";
 import {clearElement} from "teamten-ts-utils";
-import {CanvasScreen} from "trs80-emulator";
+import {CanvasScreen} from "trs80-emulator-web";
 
 /**
  * Add text to the line with the specified class.

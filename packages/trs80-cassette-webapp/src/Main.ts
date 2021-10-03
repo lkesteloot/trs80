@@ -2,7 +2,7 @@ import {TapeBrowser} from "./TapeBrowser";
 import {Uploader} from "./Uploader";
 import Split from "split.js";
 import {clearElement, flashNode} from "./Utils";
-import {CanvasScreen} from "trs80-emulator";
+import {CanvasScreen} from "trs80-emulator-web";
 import {TestFile, TestType} from "./Test";
 import {SelectionMode, WaveformDisplay} from "./WaveformDisplay";
 import {

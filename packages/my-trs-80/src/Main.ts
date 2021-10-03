@@ -1,12 +1,14 @@
 import {
-    CanvasScreen,
     CassettePlayer,
+    Trs80
+} from "trs80-emulator";
+import {
+    CanvasScreen,
     ControlPanel,
     DriveIndicators,
     PanelType, ProgressBar,
-    SettingsPanel,
-    Trs80
-} from "trs80-emulator";
+    SettingsPanel, WebKeyboard
+} from "trs80-emulator-web";
 import firebase from 'firebase/app';
 // These imports load individual services into the firebase namespace.
 import 'firebase/auth';
@@ -23,7 +25,7 @@ import {DialogBox} from "./DialogBox";
 import {AuthUser} from "./User";
 import {Database} from "./Database";
 import {File} from "./File";
-import {Editor} from "trs80-emulator";
+import {Editor} from "trs80-emulator-web";
 import {isRegisterSetField, toHexWord} from "z80-base";
 import {disasmForTrs80} from "trs80-disasm";
 import {Cassette, CassetteSpeed} from "trs80-base";
@@ -35,6 +37,7 @@ import {
     wrapHighSpeed,
     wrapLowSpeed
 } from "trs80-cassette";
+import {WebSoundPlayer} from "../../trs80-emulator-web/dist/WebSoundPlayer";
 
 /**
  * A cassette player based on a CAS file.
@@ -298,10 +301,14 @@ export function main() {
     screenDiv.classList.add("main-computer-screen");
 
     const screen = new CanvasScreen(1.5);
+    const keyboard = new WebKeyboard();
     const cassettePlayer = new CasFileCassettePlayer();
+    const soundPlayer = new WebSoundPlayer();
     const progressBar = new ProgressBar(screen.getNode());
     cassettePlayer.setProgressBar(progressBar);
-    const trs80 = new Trs80(screen, cassettePlayer);
+    const trs80 = new Trs80(screen, keyboard, cassettePlayer, soundPlayer);
+    keyboard.configureKeyboard();
+
     const editor = new Editor(trs80, screen);
     screenDiv.append(editor.node);
 
@@ -321,9 +328,9 @@ export function main() {
     controlPanel.addSettingsButton(viewPanel);
     // const progressBar = new ProgressBar(screen.getNode());
     // cassette.setProgressBar(progressBar);
-    controlPanel.addMuteButton(trs80.soundPlayer);
+    controlPanel.addMuteButton(soundPlayer);
 
-    const driveIndicators = new DriveIndicators(screen.getNode());
+    const driveIndicators = new DriveIndicators(screen.getNode(), trs80.getMaxDrives());
     trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
 
     body.append(navbar);

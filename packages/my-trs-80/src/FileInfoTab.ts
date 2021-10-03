@@ -12,7 +12,7 @@ import {
 } from "./Utils";
 import {LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {clearElement, withCommas} from "teamten-ts-utils";
-import {CanvasScreen} from "trs80-emulator";
+import {CanvasScreen} from "trs80-emulator-web";
 import isEmpty from "lodash/isEmpty";
 import {File} from "./File";
 import {IFilePanel} from "./IFilePanel";

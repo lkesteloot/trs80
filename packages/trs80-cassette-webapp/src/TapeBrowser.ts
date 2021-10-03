@@ -2,7 +2,8 @@ import * as BasicRender from "./BasicRender";
 import * as SystemProgramRender from "./SystemProgramRender";
 import * as CmdProgramRender from "./CmdProgramRender";
 import * as Hexdump from "./Hexdump";
-import {CassettePlayer, ControlPanel, CanvasScreen, ProgressBar, Trs80, SettingsPanel, PanelType} from "trs80-emulator";
+import {CassettePlayer, Trs80} from "trs80-emulator";
+import {ControlPanel, CanvasScreen, ProgressBar, SettingsPanel, PanelType, WebKeyboard} from "trs80-emulator-web";
 import {WaveformDisplay} from "./WaveformDisplay";
 import * as Edtasm from "./Edtasm";
 import {Highlight} from "./Highlight";
@@ -17,6 +18,7 @@ import {
     decodeSystemProgram, SystemProgram, Trs80File
 } from "trs80-base";
 import {BitType, DEFAULT_SAMPLE_RATE, DisplaySamples, frameToTimestamp, Program, Tape} from "trs80-cassette";
+import {WebSoundPlayer} from "../../trs80-emulator-web/dist/WebSoundPlayer";
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -725,7 +727,10 @@ export class TapeBrowser {
 
         const screen = new CanvasScreen();
         screenDiv.append(screen.getNode());
-        const trs80 = new Trs80(screen, cassette ?? new EmptyCassette());
+        const keyboard = new WebKeyboard();
+        const soundPlayer = new WebSoundPlayer();
+        const trs80 = new Trs80(screen, keyboard, cassette ?? new EmptyCassette(), soundPlayer);
+        keyboard.configureKeyboard();
 
         const reboot = () => {
             trs80.reset();

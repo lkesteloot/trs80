@@ -73,7 +73,7 @@ export class TrsdosTab extends PageTab {
             addDirEntryField(dirEntry.getFilename("/"), ... ["filename", ...extraCssClasses]);
             addDirEntryField(withCommas(dirEntry.getSize()), ... ["size", ...extraCssClasses]);
             addDirEntryField(dirEntry.getDateString(), ... ["date", ...extraCssClasses]);
-            addDirEntryField(trsdosProtectionLevelToString(dirEntry.getProtectionLevel()),
+            addDirEntryField(trsdosProtectionLevelToString(dirEntry.getProtectionLevel(), trsdos.version),
                 ... ["protection-level", ...extraCssClasses]);
 
             const playButton = makeIcon("play_arrow");

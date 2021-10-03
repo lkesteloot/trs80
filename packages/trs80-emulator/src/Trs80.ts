@@ -248,6 +248,14 @@ export class Trs80 implements Hal, Machine {
     }
 
     /**
+     * Get the max number of drives in this machine. This isn't the number of drives actually
+     * hooked up, it's the max that this machine could handle.
+     */
+    public getMaxDrives(): number {
+        return FLOPPY_DRIVE_COUNT;
+    }
+
+    /**
      * Event dispatcher for floppy drive activity, indicating which drive (0-based) has its motor on, if any.
      */
     get onMotorOn(): SimpleEventDispatcher<number | undefined> {

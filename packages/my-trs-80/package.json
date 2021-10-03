@@ -33,6 +33,7 @@
     "trs80-cassette": "^2.2.3",
     "trs80-disasm": "^2.2.3",
     "trs80-emulator": "^2.2.0",
+    "trs80-emulator-web": "^2.2.3",
     "z80-base": "^2.0.1",
     "z80-disasm": "^2.2.3",
     "z80-emulator": "^2.0.1"

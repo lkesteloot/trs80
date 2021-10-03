@@ -3,7 +3,7 @@
   "version": "2.2.3",
   "description": "Web components for the TRS-80 Model III emulator",
   "type": "module",
-  "main": "lib/trs80-emulator-web.js",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "homepage": "https://github.com/lkesteloot/trs80#readme",
