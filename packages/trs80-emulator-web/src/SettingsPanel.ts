@@ -1,6 +1,6 @@
 import {CSS_PREFIX} from "./Utils.js";
-import {Background, BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize, ScanLines} from "./Config.js";
-import {Trs80} from "./Trs80.js";
+import {Background, BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize, ScanLines} from "trs80-emulator";
+import {Trs80} from "trs80-emulator";
 import {AUTHENTIC_BACKGROUND, BLACK_BACKGROUND, phosphorToRgb} from "./CanvasScreen.js";
 
 const gCssPrefix = CSS_PREFIX + "-settings-panel";

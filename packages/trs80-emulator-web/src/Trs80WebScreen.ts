@@ -1,4 +1,4 @@
-import {Trs80Screen} from "./Trs80Screen.js";
+import {Trs80Screen} from "trs80-emulator";
 
 /**
  * A Trs80Screen to be displayed on a web page.

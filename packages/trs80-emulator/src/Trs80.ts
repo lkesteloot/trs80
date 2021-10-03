@@ -18,7 +18,7 @@ import {
     TRS80_SCREEN_END,
     Trs80File
 } from "trs80-base";
-import {FloppyDisk} from "trs80-base/dist/FloppyDisk";
+import {FloppyDisk} from "trs80-base";
 import {FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
 import {Machine} from "./Machine.js";
 import {EventScheduler} from "./EventScheduler.js";
@@ -106,6 +106,11 @@ function warnOnce(message: string): void {
 }
 
 /**
+ * setTimeout() returns a different type on the browser and in node, so auto-detect the type.
+ */
+type TimeoutHandle = ReturnType<typeof setTimeout>;
+
+/**
  * HAL for the TRS-80 Model III.
  */
 export class Trs80 implements Hal, Machine {
@@ -117,7 +122,7 @@ export class Trs80 implements Hal, Machine {
     private readonly fdc = new FloppyDiskController(this);
     private readonly cassettePlayer: CassettePlayer;
     private memory = new Uint8Array(0);
-    private readonly keyboard = new Keyboard();
+    private readonly keyboard: Keyboard;
     private modeImage = 0x80;
     // Which IRQs should be handled.
     private irqMask = 0;
@@ -133,7 +138,7 @@ export class Trs80 implements Hal, Machine {
     public readonly z80 = new Z80(this);
     private clocksPerTick = INITIAL_CLICKS_PER_TICK;
     private startTime = Date.now();
-    private tickHandle: number | undefined;
+    private tickHandle: TimeoutHandle | undefined;
     public started = false;
     // Internal state of the cassette controller.
     // Whether the motor is running.
@@ -151,19 +156,20 @@ export class Trs80 implements Hal, Machine {
     private cassetteRiseInterruptCount = 0;
     private cassetteFallInterruptCount = 0;
     private orchestraLeftValue = 0;
-    public readonly soundPlayer = new SoundPlayer();
+    public readonly soundPlayer: SoundPlayer;
     public readonly eventScheduler = new EventScheduler();
     public readonly onPreStep = new SignalDispatcher();
     public readonly onPostStep = new SignalDispatcher();
 
-    constructor(screen: Trs80Screen, cassette: CassettePlayer) {
+    constructor(screen: Trs80Screen, keyboard: Keyboard, cassette: CassettePlayer, soundPlayer: SoundPlayer) {
         this.screen = screen;
+        this.keyboard = keyboard;
         this.cassettePlayer = cassette;
+        this.soundPlayer = soundPlayer;
         this.config = Config.makeDefault();
         this.updateFromConfig();
         this.loadRom();
         this.tStateCount = 0;
-        this.keyboard.configureKeyboard();
         this.fdc.onActiveDrive.subscribe(activeDrive => this.soundPlayer.setFloppyMotorOn(activeDrive !== undefined));
         this.fdc.onTrackMove.subscribe(moveCount => this.soundPlayer.trackMoved(moveCount));
     }
@@ -236,9 +242,8 @@ export class Trs80 implements Hal, Machine {
                 break;
         }
 
-        const raw = window.atob(rom);
-        for (let i = 0; i < raw.length; i++) {
-            this.memory[i] = raw.charCodeAt(i);
+        for (let i = 0; i < rom.length; i++) {
+            this.memory[i] = rom.charCodeAt(i);
         }
     }
 
@@ -638,7 +643,9 @@ export class Trs80 implements Hal, Machine {
     }
 
     /**
-     * Get an opaque string that represents the state of the screen. Flashes the screen.
+     * Get an opaque string that represents the state of the screen.
+     *
+     * Might want to also call flashNode() in the trs80-emulator-web project.
      */
     public getScreenshot(): string {
         const buf: number[] = [];
@@ -666,43 +673,8 @@ export class Trs80 implements Hal, Machine {
         // Convert to a binary string.
         let s = buf.map(n => String.fromCharCode(n)).join("");
 
-        // Start visual flash effect.
-        Trs80.flashNode(this.screen.getNode());
-
         // Base-64 encode and prefix with version number.
         return "0:" + btoa(s);
-    }
-
-    /**
-     * Flash the node as if a photo were taken.
-     */
-    private static flashNode(node: HTMLElement): void {
-        // Position a semi-transparent white div over the screen, and reduce its transparency over time.
-        const oldNodePosition = node.style.position;
-        node.style.position = "relative";
-
-        const overlay = document.createElement("div");
-        overlay.style.position = "absolute";
-        overlay.style.left = "0";
-        overlay.style.top = "0";
-        overlay.style.right = "0";
-        overlay.style.bottom = "0";
-        overlay.style.backgroundColor = "#ffffff";
-
-        // Fade out.
-        let opacity = 1;
-        const updateOpacity = () => {
-            overlay.style.opacity = opacity.toString();
-            opacity -= 0.1;
-            if (opacity >= 0) {
-                window.requestAnimationFrame(updateOpacity);
-            } else {
-                node.removeChild(overlay);
-                node.style.position = oldNodePosition;
-            }
-        };
-        updateOpacity();
-        node.appendChild(overlay);
     }
 
     // Reset whether we've seen this NMI interrupt if the mask and latch no longer overlap.
@@ -758,7 +730,7 @@ export class Trs80 implements Hal, Machine {
         // console.log(this.clocksPerTick, delay);
 
         this.cancelTickTimeout();
-        this.tickHandle = window.setTimeout(() => {
+        this.tickHandle = setTimeout(() => {
             this.tickHandle = undefined;
             this.tick();
         }, delay);
@@ -769,7 +741,7 @@ export class Trs80 implements Hal, Machine {
      */
     private cancelTickTimeout(): void {
         if (this.tickHandle !== undefined) {
-            window.clearTimeout(this.tickHandle);
+            clearTimeout(this.tickHandle);
             this.tickHandle = undefined;
         }
     }

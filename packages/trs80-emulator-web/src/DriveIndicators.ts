@@ -1,6 +1,5 @@
 
 import {CSS_PREFIX} from "./Utils.js";
-import {FLOPPY_DRIVE_COUNT} from "./FloppyDiskController.js";
 
 const gCssPrefix = CSS_PREFIX + "-drive-indicators";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
@@ -34,18 +33,22 @@ const GLOBAL_CSS = `
  * Red lights on top of the screen that indicate which drives are spinning.
  */
 export class DriveIndicators {
+    private readonly driveCount: number;
     private readonly lights: HTMLElement[] = [];
 
     /**
      * @param screenNode the node from the Trs80Screen object's getNode() method.
+     * @param driveCount the number of drives in the system.
      */
-    constructor(screenNode: HTMLElement) {
+    constructor(screenNode: HTMLElement, driveCount: number) {
+        this.driveCount = driveCount;
+
         // Make global CSS if necessary.
         DriveIndicators.configureStyle();
 
         screenNode.classList.add(gScreenNodeCssClass);
 
-        for (let i = 0; i < FLOPPY_DRIVE_COUNT; i++) {
+        for (let i = 0; i < driveCount; i++) {
             const light = document.createElement("div");
             light.classList.add(gIndicatorCssClass);
             light.style.bottom = (12 + 20*i) + "px";
@@ -60,7 +63,7 @@ export class DriveIndicators {
      * @param drive
      */
     public setActiveDrive(drive: number | undefined): void {
-        for (let i = 0; i < FLOPPY_DRIVE_COUNT; i++) {
+        for (let i = 0; i < this.driveCount; i++) {
             this.lights[i].classList.toggle(gIndicatorDriveOnCssClass, i === drive);
         }
     }

@@ -1,0 +1,28 @@
+{
+  "name": "trs80-emulator-web",
+  "version": "2.2.3",
+  "description": "Web components for the TRS-80 Model III emulator",
+  "type": "module",
+  "main": "lib/trs80-emulator-web.js",
+  "types": "dist/index.d.ts",
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "homepage": "https://github.com/lkesteloot/trs80#readme",
+  "license": "MIT",
+  "keywords": [
+    "trs-80",
+    "trs80",
+    "emulator"
+  ],
+  "repository": "https://github.com/lkesteloot/trs80.git",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "trs80-base": "^2.2.0",
+    "trs80-emulator": "^2.2.0",
+    "typescript": "^4.4.3",
+    "z80-base": "^2.0.1"
+  }
+}

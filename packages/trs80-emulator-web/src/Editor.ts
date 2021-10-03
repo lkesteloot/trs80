@@ -1,5 +1,5 @@
 import {BasicProgram, decodeBasicProgram, ElementType, parseBasicText} from "trs80-base";
-import {Trs80} from "./Trs80.js";
+import {Trs80} from "trs80-emulator";
 import {CanvasScreen} from "./CanvasScreen.js";
 import {addCssFontToPage} from "./EditorFont.js";
 import {ControlPanel} from "./ControlPanel.js";

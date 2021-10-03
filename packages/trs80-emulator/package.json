@@ -7,10 +7,6 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "lint": "tslint --project . --format codeFrame --exclude 'src/Decode*'",
-    "lint:fix": "npm run lint -- --fix",
-    "start": "webpack && http-server docs",
-    "watch": "webpack --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
   },
@@ -30,14 +26,10 @@
     "z80-emulator": "^2.0.1"
   },
   "devDependencies": {
-    "http-server": "^0.12.0",
     "source-map-loader": "^0.2.4",
     "ts-loader": "^6.2.1",
     "tslib": "^1.10.0",
     "tslint": "^5.20.1",
-    "typescript": "^3.7.4",
-    "webpack": "^4.41.5",
-    "webpack-build-notifier": "^2.0.0",
-    "webpack-cli": "^3.3.10"
+    "typescript": "^3.7.4"
   }
 }

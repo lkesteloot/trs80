@@ -1,6 +1,6 @@
 import {Trs80WebScreen} from "./Trs80WebScreen.js";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
-import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "./Config.js";
+import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "trs80-emulator";
 import {toHexByte} from "z80-base";
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 
