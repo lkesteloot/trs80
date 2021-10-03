@@ -1184,6 +1184,19 @@ function disasm(filename: string, org: number | undefined, entryPoints: number[]
  * Handle the "run" command.
  */
 function run() {
+    const WIDTH = 64;
+    const HEIGHT = 16;
+
+    /**
+     * Move cursor.
+     *
+     * @param row 1-based line number.
+     * @param col 1-base column number.
+     */
+    function moveTo(row: number, col: number): void {
+        process.stdout.write("\x1b[" + row + ";" + col + "H");
+    }
+
     class TtyScreen extends Trs80Screen {
         // 1-based.
         private lastCursorRow = 1;
@@ -1194,6 +1207,14 @@ function run() {
 
             // Clear the screen.
             process.stdout.write("\x1b[2J");
+
+            // Draw frame.
+            moveTo(1, 1);
+            process.stdout.write("+" + "".padEnd(WIDTH, "-") + "+\n");
+            for (let row = 0; row < HEIGHT; row++) {
+                process.stdout.write("|" + "".padEnd(WIDTH, " ") + "|\n");
+            }
+            process.stdout.write("+" + "".padEnd(WIDTH, "-") + "+\n");
         }
 
         setConfig(config: Config) {
@@ -1202,30 +1223,26 @@ function run() {
 
         writeChar(address: number, value: number) {
             address -= 15360;
-            if (address >= 0 && address < 1024) {
-                const row = Math.floor(address / 64) + 1;
-                const col = address % 64 + 1;
-
-                this.moveTo(row, col);
-                process.stdout.write(String.fromCharCode(value));
+            if (address >= 0 && address < WIDTH*HEIGHT) {
+                const row = Math.floor(address / WIDTH) + 1;
+                const col = address % WIDTH + 1;
 
                 if (value === 176) {
                     this.lastCursorRow = row;
                     this.lastCursorCol = col;
                 }
 
-                this.moveTo(this.lastCursorRow, this.lastCursorCol);
-            }
-        }
+                // Replace non-ASCII with space.
+                if (value < 32 || value >= 127) {
+                    value = 32;
+                }
 
-        /**
-         * Move cursor.
-         *
-         * @param row 1-based line number.
-         * @param col 1-base column number.
-         */
-        private moveTo(row: number, col: number): void {
-            process.stdout.write("\x1b[" + row + ";" + col + "H");
+                moveTo(row + 1, col + 1);
+                process.stdout.write(String.fromCharCode(value));
+
+                // Adjust for frame.
+                moveTo(this.lastCursorRow + 1, this.lastCursorCol + 1);
+            }
         }
     }
 
@@ -1238,6 +1255,7 @@ function run() {
                 if (buffer.length > 0) {
                     const key = buffer[0];
                     if (key === 0x03) {
+                        moveTo(HEIGHT + 3, 1);
                         process.exit();
                     } else {
                         let keyName: string;
