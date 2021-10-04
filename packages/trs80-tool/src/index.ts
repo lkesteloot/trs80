@@ -45,6 +45,9 @@ import {Keyboard, SilentSoundPlayer, Trs80} from "trs80-emulator";
 import {CassettePlayer} from "trs80-emulator";
 import {Trs80Screen} from "trs80-emulator";
 import {Config} from "trs80-emulator";
+import http from "http";
+import * as url from "url";
+import {WebSocketServer} from "ws";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -302,7 +305,7 @@ class InputFile {
  * Print one-line string description of the input file, and more if verbose.
  */
 function printInfoForFile(filename: string, verbose: boolean): void {
-    const {base, name, ext} = path.parse(filename);
+    const {base, ext} = path.parse(filename);
 
     let description: string;
     const verboseLines: string[] = [];
@@ -1180,10 +1183,158 @@ function disasm(filename: string, org: number | undefined, entryPoints: number[]
     console.log(text);
 }
 
+function connectXray(trs80: Trs80): void {
+    const host = "0.0.0.0";
+    const port = 8080;
+
+    function serveFile(res: http.ServerResponse, filename: string, mimetype: string): void {
+        let contents;
+        console.log("Serving " + filename);
+
+        try {
+            contents = fs.readFileSync("xray/" + filename);
+        } catch (e) {
+            console.log("Exception reading: " + e.message);
+            res.writeHead(404);
+            res.end("File not found");
+            return;
+        }
+
+        res.setHeader("Content-Type", mimetype);
+        res.writeHead(200);
+        res.end(contents);
+    }
+
+    function requestListener(req: http.IncomingMessage, res: http.ServerResponse) {
+        console.log(req.url);
+        if (req.url === undefined) {
+            console.log("Got undefined URL");
+            return;
+        }
+
+        const { pathname } = url.parse(req.url); // TODO deprecated
+
+        switch (pathname) {
+            case "/":
+            case "/index.html":
+                serveFile(res, "index.html", "text/html");
+                break;
+
+            case "/trs_xray.js":
+                serveFile(res, "trs_xray.js", "text/javascript");
+                break;
+
+            case "/trs_xray.css":
+                serveFile(res, "trs_xray.css", "text/css");
+                break;
+
+            case "/channel":
+                console.log("/channel was fetched");
+                break;
+
+            default:
+                console.log("URL unknown: " + req.url);
+                res.writeHead(404);
+                res.end("File not found");
+                break;
+        }
+    }
+
+    const wss = new WebSocketServer({ noServer: true });
+    wss.on("connection", ws => {
+        console.log("wss connection");
+
+        ws.on("message", message => {
+            const command = message.toString();
+            const regs = trs80.z80.regs;
+            switch (command) {
+                case "action/refresh": {
+                    const info = {
+                        context: {
+                            system_name: "trs80-tool",
+                            model: 3, // TODO get from config.
+                            running: true,
+                            alt_single_step_mode: true,
+                        },
+                        breakpoints: [],
+                        registers: {
+                            pc: regs.pc,
+                            sp: regs.sp,
+                            af: regs.af,
+                            bc: regs.bc,
+                            de: regs.de,
+                            hl: regs.hl,
+                            af_prime: regs.afPrime,
+                            bc_prime: regs.bcPrime,
+                            de_prime: regs.dePrime,
+                            hl_prime: regs.hlPrime,
+                            ix: regs.ix,
+                            iy: regs.iy,
+                            i: regs.i,
+                            r_1: regs.r,
+                            r_2: regs.r7 & 0x7F,
+                            z80_t_state_counter: trs80.tStateCount,
+                            z80_clockspeed: trs80.clockHz,
+                            z80_iff1: regs.iff1,
+                            z80_iff2: regs.iff2,
+                            z80_interrupt_mode: regs.im,
+                        },
+                    };
+
+                    ws.send(JSON.stringify(info));
+                    break;
+                }
+
+                case "action/get_memory/force_update": {
+                    const MEM_SIZE = 0x10000; // TODO auto-detect.
+                    const memory = new Buffer(MEM_SIZE + 2);
+                    for (let i = 0; i < MEM_SIZE; i++) {
+                        memory[i + 2] = trs80.readMemory(i);
+                    }
+                    // TODO first two bytes are start address in big-endian.
+                    ws.send(memory, {
+                        binary: true,
+                    });
+                    break;
+                }
+
+                default:
+                    console.log("Unknown command " + command);
+                    break;
+            }
+        });
+    });
+
+    const server = http.createServer(requestListener);
+    server.on("upgrade", (request, socket, head) => {
+        if (request.url === undefined) {
+            console.log("upgrade URL is undefined");
+            return;
+        }
+        const { pathname } = url.parse(request.url); // TODO deprecated
+        console.log("upgrade", request.url, pathname, head.toString());
+
+        if (pathname === '/channel') {
+            console.log("upgrade channel");
+            wss.handleUpgrade(request, socket, head, ws => {
+                console.log("upgrade handled", head);
+                wss.emit("connection", ws, request);
+            });
+        } else {
+            socket.destroy();
+        }
+    });
+
+    server.listen(port, host, () => {
+        console.log(`Server is running on http://${host}:${port}`);
+    });
+}
+
+
 /**
  * Handle the "run" command.
  */
-function run(programFile: string | undefined) {
+function run(programFile: string | undefined, xray: boolean) {
     const WIDTH = 64;
     const HEIGHT = 16;
 
@@ -1255,6 +1406,16 @@ function run(programFile: string | undefined) {
         }
     }
 
+    class NopScreen extends Trs80Screen {
+        setConfig(config: Config) {
+            // Nothing.
+        }
+
+        writeChar(address: number, value: number) {
+            // Nothing.
+        }
+    }
+
     class TtyKeyboard extends Keyboard {
         constructor() {
             super();
@@ -1314,8 +1475,8 @@ function run(programFile: string | undefined) {
         }
     }
 
-    const screen = new TtyScreen();
-    const keyboard = new TtyKeyboard();
+    const screen = new NopScreen(); // new TtyScreen();
+    const keyboard = new Keyboard();
     const cassette = new CassettePlayer();
     const soundPlayer = new SilentSoundPlayer();
     const trs80 = new Trs80(screen, keyboard, cassette, soundPlayer);
@@ -1324,6 +1485,10 @@ function run(programFile: string | undefined) {
 
     if (trs80File !== undefined) {
         trs80.runTrs80File(trs80File);
+    }
+
+    if (xray) {
+        connectXray(trs80);
     }
 }
 
@@ -1414,8 +1579,9 @@ function main() {
         .description("run a TRS-80 emulator", {
             program: "optional program file to run"
         })
-        .action((program) => {
-            run(program);
+        .option("--xray", "run an xray debug server")
+        .action((program, options) => {
+            run(program, options.xray);
         });
     program
         .parse();

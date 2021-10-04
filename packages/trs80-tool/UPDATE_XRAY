@@ -1,0 +1,5 @@
+SRC=$HOME/others/trs-xray/web
+cp $SRC/src/index.html xray/index.html
+cat $SRC/dist/webpack/trs_xray.js $SRC/src/jquery.js > xray/trs_xray.js
+cp $SRC/src/trs_xray.css xray/trs_xray.css
+
