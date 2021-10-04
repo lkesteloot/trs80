@@ -1319,6 +1319,11 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
                         sendUpdate(ws);
                         break;
 
+                    case "soft_reset":
+                    case "hard_reset":
+                        trs80.reset(); // TODO handle soft/hard distinction.
+                        break;
+
                     case "key_event": {
                         const press = parts[2] === "1";
                         const what = parts[3] === "1";
