@@ -47,7 +47,7 @@ import {Trs80Screen} from "trs80-emulator";
 import {Config} from "trs80-emulator";
 import http from "http";
 import * as url from "url";
-import {WebSocketServer} from "ws";
+import * as ws from "ws";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -1183,7 +1183,7 @@ function disasm(filename: string, org: number | undefined, entryPoints: number[]
     console.log(text);
 }
 
-function connectXray(trs80: Trs80): void {
+function connectXray(trs80: Trs80, keyboard: Keyboard): void {
     const host = "0.0.0.0";
     const port = 8080;
 
@@ -1240,69 +1240,112 @@ function connectXray(trs80: Trs80): void {
         }
     }
 
-    const wss = new WebSocketServer({ noServer: true });
+    function sendUpdate(ws: ws.WebSocket) {
+        const regs = trs80.z80.regs;
+        const info = {
+            context: {
+                system_name: "trs80-tool",
+                model: 3, // TODO get from config.
+                running: trs80.started,
+                alt_single_step_mode: false,
+            },
+            breakpoints: [],
+            registers: {
+                pc: regs.pc,
+                sp: regs.sp,
+                af: regs.af,
+                bc: regs.bc,
+                de: regs.de,
+                hl: regs.hl,
+                af_prime: regs.afPrime,
+                bc_prime: regs.bcPrime,
+                de_prime: regs.dePrime,
+                hl_prime: regs.hlPrime,
+                ix: regs.ix,
+                iy: regs.iy,
+                i: regs.i,
+                r_1: regs.r,
+                r_2: regs.r7 & 0x7F,
+                z80_t_state_counter: trs80.tStateCount,
+                z80_clockspeed: trs80.clockHz,
+                z80_iff1: regs.iff1,
+                z80_iff2: regs.iff2,
+                z80_interrupt_mode: regs.im,
+            },
+        };
+
+        ws.send(JSON.stringify(info));
+    }
+
+    function sendMemory(ws: ws.WebSocket): void {
+        // TODO parse non-force version.
+        const MEM_SIZE = 0x10000; // TODO auto-detect.
+        const memory = Buffer.alloc(MEM_SIZE + 2);
+        for (let i = 0; i < MEM_SIZE; i++) {
+            memory[i + 2] = trs80.readMemory(i);
+        }
+        // TODO first two bytes are start address in big-endian.
+        ws.send(memory, {
+            binary: true,
+        });
+    }
+
+    const wss = new ws.WebSocketServer({ noServer: true });
     wss.on("connection", ws => {
         console.log("wss connection");
 
         ws.on("message", message => {
             const command = message.toString();
-            const regs = trs80.z80.regs;
-            switch (command) {
-                case "action/refresh": {
-                    const info = {
-                        context: {
-                            system_name: "trs80-tool",
-                            model: 3, // TODO get from config.
-                            running: true,
-                            alt_single_step_mode: true,
-                        },
-                        breakpoints: [],
-                        registers: {
-                            pc: regs.pc,
-                            sp: regs.sp,
-                            af: regs.af,
-                            bc: regs.bc,
-                            de: regs.de,
-                            hl: regs.hl,
-                            af_prime: regs.afPrime,
-                            bc_prime: regs.bcPrime,
-                            de_prime: regs.dePrime,
-                            hl_prime: regs.hlPrime,
-                            ix: regs.ix,
-                            iy: regs.iy,
-                            i: regs.i,
-                            r_1: regs.r,
-                            r_2: regs.r7 & 0x7F,
-                            z80_t_state_counter: trs80.tStateCount,
-                            z80_clockspeed: trs80.clockHz,
-                            z80_iff1: regs.iff1,
-                            z80_iff2: regs.iff2,
-                            z80_interrupt_mode: regs.im,
-                        },
-                    };
+            const parts = command.split("/");
 
-                    ws.send(JSON.stringify(info));
-                    break;
-                }
+            if (parts[0] === "action") {
+                switch (parts[1]) {
+                    case "refresh":
+                        sendUpdate(ws);
+                        break;
 
-                case "action/get_memory/force_update": {
-                    const MEM_SIZE = 0x10000; // TODO auto-detect.
-                    const memory = new Buffer(MEM_SIZE + 2);
-                    for (let i = 0; i < MEM_SIZE; i++) {
-                        memory[i + 2] = trs80.readMemory(i);
+                    case "step":
+                        trs80.step();
+                        sendUpdate(ws);
+                        break;
+
+                    case "continue":
+                        trs80.start();
+                        sendUpdate(ws);
+                        break;
+
+                    case "stop":
+                        trs80.stop();
+                        sendUpdate(ws);
+                        break;
+
+                    case "key_event": {
+                        const press = parts[2] === "1";
+                        const what = parts[3] === "1";
+                        const key = parts[4];
+                        keyboard.keyEvent(key, press);
+                        break;
                     }
-                    // TODO first two bytes are start address in big-endian.
-                    ws.send(memory, {
-                        binary: true,
-                    });
-                    break;
-                }
 
-                default:
-                    console.log("Unknown command " + command);
-                    break;
+                    case "get_memory":
+                        sendMemory(ws);
+                        break;
+
+                    default:
+                        console.log("Unknown command " + command);
+                        break;
+                }
+            } else {
+                console.log("Unknown command: " + command);
             }
         });
+
+        setInterval(() => {
+            if (trs80.started) {
+                sendUpdate(ws);
+                sendMemory(ws);
+            }
+        }, 100);
     });
 
     const server = http.createServer(requestListener);
@@ -1488,7 +1531,7 @@ function run(programFile: string | undefined, xray: boolean) {
     }
 
     if (xray) {
-        connectXray(trs80);
+        connectXray(trs80, keyboard);
     }
 }
 
