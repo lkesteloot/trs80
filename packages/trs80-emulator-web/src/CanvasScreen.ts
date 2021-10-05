@@ -100,6 +100,7 @@ export class CanvasScreen extends Trs80WebScreen {
                         font = MODEL1B_FONT;
                         break;
                     case ModelType.MODEL3:
+                    case ModelType.MODEL4:
                     default:
                         font = this.isAlternateCharacters() ? MODEL3_ALT_FONT : MODEL3_FONT;
                         break;

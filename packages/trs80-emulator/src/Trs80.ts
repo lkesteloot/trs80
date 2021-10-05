@@ -5,6 +5,7 @@ import {Keyboard} from "./Keyboard.js";
 import {model1Level1Rom} from "./Model1Level1Rom.js";
 import {model1Level2Rom} from "./Model1Level2Rom.js";
 import {model3Rom} from "./Model3Rom.js";
+import {model4Rom} from "./Model4Rom.js";
 import {Trs80Screen} from "./Trs80Screen.js";
 import {BasicLevel, CGChip, Config, ModelType} from "./Config.js";
 import {
@@ -214,6 +215,10 @@ export class Trs80 implements Hal, Machine {
                 this.timerHz = M3_TIMER_HZ;
                 this.clockHz = M3_CLOCK_HZ;
                 break;
+            case ModelType.MODEL4:
+                this.timerHz = M4_TIMER_HZ; // TODO depends on mode.
+                this.clockHz = M4_CLOCK_HZ;
+                break;
         }
     }
 
@@ -239,6 +244,10 @@ export class Trs80 implements Hal, Machine {
             case ModelType.MODEL3:
             default:
                 rom = model3Rom;
+                break;
+
+            case ModelType.MODEL4:
+                rom = model4Rom;
                 break;
         }
 

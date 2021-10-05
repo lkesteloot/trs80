@@ -241,6 +241,10 @@ const HARDWARE_OPTION_BLOCKS: OptionBlock[] = [
                 label: "Model III",
                 value: ModelType.MODEL3,
             },
+            {
+                label: "Model 4",
+                value: ModelType.MODEL4,
+            },
         ]
     },
     {

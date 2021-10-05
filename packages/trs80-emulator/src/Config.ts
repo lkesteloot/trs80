@@ -5,6 +5,7 @@
 export enum ModelType {
     MODEL1,
     MODEL3,
+    MODEL4,
 }
 
 /**
@@ -122,14 +123,13 @@ export class Config {
      * Whether this particular config is valid.
      */
     public isValid(): boolean {
-        // Model III only had Level 2. (I've read that it actually shipped with Level 1, but
-        // we don't have that ROM.)
-        if (this.modelType === ModelType.MODEL3 && this.basicLevel === BasicLevel.LEVEL1) {
+        // Only Model I had Level 1. (Well, there was a Model III with Level 1 but we don't support it.)
+        if (this.modelType !== ModelType.MODEL1 && this.basicLevel === BasicLevel.LEVEL1) {
             return false;
         }
 
-        // Model III only had lower case.
-        if (this.modelType === ModelType.MODEL3 && this.cgChip === CGChip.ORIGINAL) {
+        // Model III/4 only had lower case.
+        if (this.modelType !== ModelType.MODEL1 && this.cgChip === CGChip.ORIGINAL) {
             return false;
         }
 
