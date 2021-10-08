@@ -97,7 +97,7 @@ function pluralize(count: number, singular: string, plural?: string): string {
  * Return the count and the singular or plural version of a string depending on the count.
  */
 function pluralizeWithCount(count: number, singular: string, plural?: string): string {
-    return `${count} ${pluralize(count, singular, plural)}`;
+    return `${withCommas(count)} ${pluralize(count, singular, plural)}`;
 }
 
 /**
