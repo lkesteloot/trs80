@@ -322,7 +322,7 @@ export class DmkFloppyDisk extends FloppyDisk {
 
         // console.log(`readSector(${trackNumber}, ${sectorNumber}, ${side})`);
         for (const track of this.tracks) {
-            if (track.trackNumber === trackNumber) { // TODO not checking side.
+            if (track.trackNumber === trackNumber && track.side === side) {
                 for (const sector of track.sectors) {
                     if (sectorNumber === undefined || (sector.getSectorNumber() === sectorNumber &&
                         sector.getSide() === side)) {

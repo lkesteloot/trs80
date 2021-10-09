@@ -333,6 +333,7 @@ function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
  * Single (valid) directory entry for a file.
  */
 export class TrsdosDirEntry {
+    public readonly version: TrsdosVersion;
     public readonly flags: number;
     public readonly day: number;
     public readonly month: number;
@@ -352,10 +353,12 @@ export class TrsdosDirEntry {
     public nextDirEntry: TrsdosDirEntry | undefined = undefined;
     public readonly extents: TrsdosExtent[];
 
-    constructor(flags: number, day: number, month: number, year: number, lastSectorSize: number, lrl: number,
+    constructor(version: TrsdosVersion, flags: number, day: number, month: number, year: number,
+                lastSectorSize: number, lrl: number,
                 filename: string, updatePassword: number, accessPassword: number,
                 sectorCount: number, nextHit: number | undefined, extents: TrsdosExtent[]) {
 
+        this.version = version;
         this.flags = flags;
         this.day = day;
         this.month = month;
@@ -417,12 +420,11 @@ export class TrsdosDirEntry {
 
     /**
      * Get a user-visible string version of the flags.
-     * @param version the version of TRSDOS, to help interpreting the flags.
      */
-    public getFlagsString(version: TrsdosVersion): string {
+    public getFlagsString(): string {
         const parts: string[] = [];
 
-        parts.push(trsdosProtectionLevelToString(this.getProtectionLevel(), version));
+        parts.push(trsdosProtectionLevelToString(this.getProtectionLevel(), this.version));
         if (this.isHidden()) {
             parts.push("hidden");
         }
@@ -467,10 +469,18 @@ export class TrsdosDirEntry {
     }
 
     /**
-     * Return the size in bytes.
+     * Return the size of the file in bytes.
      */
     public getSize(): number {
-        return this.sectorCount*BYTES_PER_SECTOR + this.lastSectorSize;
+        let size = this.sectorCount*BYTES_PER_SECTOR + this.lastSectorSize;
+
+        // On model 1/4, the last sector size byte represents the size of the last sector. On model 3 it's
+        // in addition to the sector count.
+        if (!isModel3(this.version) && this.lastSectorSize > 0) {
+            size -= BYTES_PER_SECTOR;
+        }
+
+        return size;
     }
 
     /**
@@ -544,7 +554,7 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
         return undefined;
     }
 
-    return new TrsdosDirEntry(flags, day, month, year, lastSectorSize, lrl, filename, updatePassword,
+    return new TrsdosDirEntry(version, flags, day, month, year, lastSectorSize, lrl, filename, updatePassword,
         accessPassword, sectorCount, nextHit, extents);
 }
 
@@ -604,7 +614,8 @@ export class Trsdos {
         const sectorsPerTrack = geometry.lastTrack.numSectors();
 
         // Number of sectors left to read.
-        let sectorCount = firstDirEntry.sectorCount + (firstDirEntry.lastSectorSize > 0 ? 1 : 0);
+        const fileSize = firstDirEntry.getSize();
+        let sectorCount = Math.ceil(fileSize / BYTES_PER_SECTOR);
 
         // Loop through all the directory entries for this file.
         let dirEntry: TrsdosDirEntry | undefined = firstDirEntry;
@@ -645,12 +656,11 @@ export class Trsdos {
             dirEntry = dirEntry.nextDirEntry;
         }
 
-        // Clip last sector.
-        if (sectors.length > 0 && firstDirEntry.lastSectorSize > 0) {
-            sectors[sectors.length - 1] = sectors[sectors.length - 1].subarray(0, firstDirEntry.lastSectorSize);
-        }
+        // All sectors.
+        const binary = concatByteArrays(sectors);
 
-        return concatByteArrays(sectors);
+        // Clip to size. In principle this is cheap because it's a view.
+        return binary.subarray(0, fileSize);
     }
 }
 

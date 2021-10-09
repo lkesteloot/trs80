@@ -1523,8 +1523,8 @@ function run(programFile: string | undefined, xray: boolean) {
         }
     }
 
-    const screen = new NopScreen(); // new TtyScreen();
-    const keyboard = new Keyboard();
+    const screen = xray ? new NopScreen() : new TtyScreen();
+    const keyboard = xray ? new Keyboard() : new TtyKeyboard();
     const cassette = new CassettePlayer();
     const soundPlayer = new SilentSoundPlayer();
     const trs80 = new Trs80(screen, keyboard, cassette, soundPlayer);
