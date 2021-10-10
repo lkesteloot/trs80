@@ -272,6 +272,8 @@ function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
     const password = (binary[0xCE] << 8) | binary[0xCF];
     const name = decodeAscii(binary.subarray(0xD0, 0xD8));
     const date = decodeAscii(binary.subarray(0xD8, 0xE0));
+
+    // This is only before version 6. At 6 they moved this elsewhere and put other things here that we ignore.
     const autoCommand = decodeAscii(binary.subarray(0xE0));
 
     // Implies that this is not a TRSDOS disk.
@@ -291,6 +293,8 @@ function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
         const granulesPerTrack = (flags & 0x07) + 1;
         const sideCount = (flags & 0x20) !== 0 ? 2 : 1;
         const density = (flags & 0x40) !== 0 ? Density.DOUBLE : Density.SINGLE;
+        // TODO data disks only reserve 2 entries for system files, not 16. But I don't know which two!
+        const isDataDisk = osVersion === 0x60 && (flags & 0x80) !== 0;
 
         return new Trsdos14GatInfo(gat, password, name, date, autoCommand,
             osVersion, cylinderCount, granulesPerTrack, sideCount, density);

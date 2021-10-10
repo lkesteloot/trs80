@@ -41,10 +41,19 @@ import {version} from "./version.js";
 import {addModel3RomEntryPoints, disasmForTrs80, disasmForTrs80Program} from "trs80-disasm";
 import {Disasm, instructionsToText} from "z80-disasm";
 import chalk from "chalk";
-import {Keyboard, SilentSoundPlayer, Trs80} from "trs80-emulator";
-import {CassettePlayer} from "trs80-emulator";
-import {Trs80Screen} from "trs80-emulator";
-import {Config} from "trs80-emulator";
+import {
+    BasicLevel,
+    basicLevelFromString,
+    CassettePlayer,
+    CGChip,
+    Config,
+    Keyboard,
+    ModelType,
+    modelTypeFromString,
+    SilentSoundPlayer,
+    Trs80,
+    Trs80Screen
+} from "trs80-emulator";
 import http from "http";
 import * as url from "url";
 import * as ws from "ws";
@@ -1382,7 +1391,7 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
 /**
  * Handle the "run" command.
  */
-function run(programFile: string | undefined, xray: boolean) {
+function run(programFile: string | undefined, xray: boolean, config: Config) {
     const WIDTH = 64;
     const HEIGHT = 16;
 
@@ -1426,6 +1435,15 @@ function run(programFile: string | undefined, xray: boolean) {
             if (address >= 0 && address < WIDTH*HEIGHT) {
                 const row = Math.floor(address / WIDTH) + 1;
                 const col = address % WIDTH + 1;
+
+                if (config.modelType === ModelType.MODEL1) {
+                    // Level 2 used the letters from values 0 to 31.
+                    if (value < 32) {
+                        value += 64;
+                    } else if (config.cgChip === CGChip.ORIGINAL && value >= 96 && value < 128) {
+                        value -= 64;
+                    }
+                }
 
                 // Detect cursor. Could do this more robustly by peeking at RAM.
                 let ch: string;
@@ -1527,7 +1545,7 @@ function run(programFile: string | undefined, xray: boolean) {
     const keyboard = xray ? new Keyboard() : new TtyKeyboard();
     const cassette = new CassettePlayer();
     const soundPlayer = new SilentSoundPlayer();
-    const trs80 = new Trs80(screen, keyboard, cassette, soundPlayer);
+    const trs80 = new Trs80(config, screen, keyboard, cassette, soundPlayer);
     trs80.reset();
     trs80.start();
 
@@ -1628,8 +1646,38 @@ function main() {
             program: "optional program file to run"
         })
         .option("--xray", "run an xray debug server")
+        .option("--model <model>", "which model (1, 3, 4), defaults to 3")
+        .option("--level <level>", "which level (1 or 2), defaults to 2")
         .action((program, options) => {
-            run(program, options.xray);
+            const modelName = options.model ?? "3";
+            const levelName = options.level ?? "2";
+
+            const modelType = modelTypeFromString(modelName);
+            if (modelType === undefined) {
+                console.log("Invalid model: " + modelName);
+                process.exit(1);
+            }
+            const basicLevel = basicLevelFromString(levelName);
+            if (basicLevel === undefined) {
+                console.log("Invalid Basic level: " + levelName);
+                process.exit(1);
+            }
+
+            if (basicLevel === BasicLevel.LEVEL1 && modelType !== ModelType.MODEL1) {
+                console.log("Can only run Level 1 Basic with Model I");
+                process.exit(1);
+            }
+
+            const config = Config.makeDefault()
+                .withModelType(modelType)
+                .withBasicLevel(basicLevel);
+            if (!config.isValid()) {
+                // Kinda generic!
+                console.log("Invalid model and Basic level configuration");
+                process.exit(1);
+            }
+
+            run(program, options.xray, config);
         });
     program
         .parse();

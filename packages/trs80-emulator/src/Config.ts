@@ -9,11 +9,48 @@ export enum ModelType {
 }
 
 /**
+ * Convert a model name to an enum, or undefined if invalid.
+ */
+export function modelTypeFromString(modelName: string): ModelType | undefined {
+    switch (modelName.toUpperCase()) {
+        case "1":
+        case "I":
+            return ModelType.MODEL1;
+
+        case "3":
+        case "III":
+            return ModelType.MODEL3;
+
+        case "4":
+            return ModelType.MODEL4;
+
+        default:
+            return undefined;
+    }
+}
+
+/**
  * The levels of Basic.
  */
 export enum BasicLevel {
     LEVEL1,
     LEVEL2,
+}
+
+/**
+ * Convert a Basic level string to an enum.
+ */
+export function basicLevelFromString(basicLevelName: string): BasicLevel | undefined {
+    switch (basicLevelName) {
+        case "1":
+            return BasicLevel.LEVEL1;
+
+        case "2":
+            return BasicLevel.LEVEL2;
+
+        default:
+            return undefined;
+    }
 }
 
 /**

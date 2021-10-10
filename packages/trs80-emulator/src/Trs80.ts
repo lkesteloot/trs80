@@ -162,12 +162,13 @@ export class Trs80 implements Hal, Machine {
     public readonly onPreStep = new SignalDispatcher();
     public readonly onPostStep = new SignalDispatcher();
 
-    constructor(screen: Trs80Screen, keyboard: Keyboard, cassette: CassettePlayer, soundPlayer: SoundPlayer) {
+    constructor(config: Config, screen: Trs80Screen, keyboard: Keyboard, cassette: CassettePlayer, soundPlayer: SoundPlayer) {
         this.screen = screen;
         this.keyboard = keyboard;
         this.cassettePlayer = cassette;
         this.soundPlayer = soundPlayer;
-        this.config = Config.makeDefault();
+        this.config = config;
+        this.screen.setConfig(this.config);
         this.updateFromConfig();
         this.loadRom();
         this.tStateCount = 0;

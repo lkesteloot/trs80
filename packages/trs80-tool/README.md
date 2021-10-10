@@ -211,10 +211,31 @@ The disassembler tries to guess which bytes are code and which are data by
 following the path of the program, starting with its main entry point. Additional
 entry points can be specified with the `--entry` flag:
 
-    % bin/trs80-tool.js disasm --entry 0x0000,0x3799,0x377B ~/Downloads/model3.rom
+    % trs80-tool disasm --entry 0x0000,0x3799,0x377B ~/Downloads/model3.rom
 
 Note that if any entry point is listed, then 0x0000 must be specified again if
 applicable.
+
+## `run`
+
+Run a TRS-80 emulator in the shell:
+
+    % trs80-tool run
+
+This is experimental and does not currently work well with games, and may not
+work at all in a Microsoft Windows shell.
+
+Use the `--model` flag to specify the model (1, 3, or 4, defaults to 3) and
+the `--level` flag to specify the Basic level (1 or 2, defaults to 2).
+
+    % trs80-tool run --model 1 --level 1
+
+Specify a program or floppy to load and run directly:
+
+    % trs80-tool run tdos13a.dsk
+
+The `--xray` flag shows nothing in the shell but starts a web server for the
+X-ray debugger. This is experimental and not yet documented.
 
 ## `help`
 
@@ -226,9 +247,14 @@ The `help` command shows more specific information about other commands:
 # Limitations
 
 * The tool cannot write floppy disk files.
-* The tool can only read TRSDOS floppy disks.
+* The tool can only read TRSDOS and LDOS floppy disks.
 
 # Change log
+
+## ?
+
+* Add support for TRSDOS for Model I and 4, and for LDOS.
+* Add `run` command (experimental).
 
 ## 2.2.0
 
