@@ -1,0 +1,14 @@
+{
+    "files": [],
+    "references": [
+        {
+            "path": "./src/assembler"
+        },
+        {
+            "path": "./src/zasm"
+        },
+        {
+            "path": "./src/ide"
+        }
+    ]
+}

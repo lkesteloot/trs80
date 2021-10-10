@@ -1,6 +1,18 @@
 {
   "packages": [
-    "packages/*"
+      "packages/my-trs-80",
+      "packages/trs80-base",
+      "packages/trs80-cassette",
+      "packages/trs80-cassette-webapp",
+      "packages/trs80-disasm",
+      "packages/trs80-emulator",
+      "packages/trs80-emulator-web",
+      "packages/trs80-tool",
+      "packages/z80-asm",
+      "packages/z80-base",
+      "packages/z80-disasm",
+      "packages/z80-emulator",
+      "packages/z80-test"
   ],
   "version": "2.2.3"
 }
