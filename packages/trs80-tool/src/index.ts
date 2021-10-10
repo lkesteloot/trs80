@@ -19,6 +19,7 @@ import {
     Side,
     SystemProgram,
     TrackGeometry,
+    TRS80_SCREEN_BEGIN,
     Trs80File,
     Trsdos,
     TrsdosDirEntry,
@@ -1392,38 +1393,113 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
  * Handle the "run" command.
  */
 function run(programFile: string | undefined, xray: boolean, config: Config) {
+    // Size of screen.
     const WIDTH = 64;
     const HEIGHT = 16;
 
     /**
-     * Move cursor.
-     *
-     * @param row 1-based line number.
-     * @param col 1-base column number.
+     * Class to update a VT-100 screen.
      */
-    function moveTo(row: number, col: number): void {
-        process.stdout.write("\x1b[" + row + ";" + col + "H");
+    class Vt100Control {
+        // Cursor position, 1-based, relative to where it was when we started the program.
+        private row: number = 1;
+        private col: number = 1;
+        private savedRow: number = 1;
+        private savedCol: number = 1;
+
+        /**
+         * Save the current position, and think of it as being at the specified location.
+         */
+        public saveCursorPositionAs(row: number, col: number): void {
+            process.stdout.write("\x1b7");
+            this.savedRow = row;
+            this.savedCol = col;
+        }
+
+        /**
+         * Restore the position to where it was when {@link saveCursorPositionAs} was called.
+         */
+        public restoreCursorPosition(): void {
+            process.stdout.write("\x1b8");
+            this.row = this.savedRow;
+            this.col = this.savedCol;
+        }
+
+        /**
+         * Move cursor to specified location.
+         *
+         * @param row 1-based line number.
+         * @param col 1-base column number.
+         */
+        public moveTo(row: number, col: number): void {
+            if (row < this.row) {
+                process.stdout.write("\x1b[" + (this.row - row) + "A");
+            } else if (row > this.row) {
+                process.stdout.write("\x1b[" + (row - this.row) + "B");
+            }
+
+            if (col < this.col) {
+                process.stdout.write("\x1b[" + (this.col - col) + "D");
+            } else if (col > this.col) {
+                process.stdout.write("\x1b[" + (col - this.col) + "C");
+            }
+
+            this.row = row;
+            this.col = col;
+        }
+
+        /**
+         * Inform us that the cursor has moved forward count character.
+         */
+        public advancedCol(count: number = 1): void {
+            this.col += count;
+        }
+
+        /**
+         * Inform us that the cursor has moved down count rows and reset back to the left column.
+         */
+        public advancedRow(count: number = 1): void {
+            this.row += count;
+            this.col = 1;
+        }
     }
 
+    /**
+     * Screen implementation for an ANSI TTY.
+     */
     class TtyScreen extends Trs80Screen {
-        // 1-based.
-        private lastCursorRow = 1;
-        private lastCursorCol = 1;
+        // Cache of what we've drawn already.
+        private readonly drawnScreen = new Uint8Array(WIDTH*HEIGHT);
+        private readonly vt100Control = new Vt100Control();
+        private lastCursorIndex: number | undefined = undefined;
+        private lastUnderscoreIndex = 0;
 
         constructor() {
             super();
+            this.drawFrame();
+            this.vt100Control.saveCursorPositionAs(HEIGHT + 3, 1);
 
-            // Clear the screen.
-            process.stdout.write("\x1b[2J");
+            // Update cursor periodically. Have to do this on a timer since the memory location
+            // can be updated anytime.
+            setInterval(() => this.checkCursorPosition(false), 10);
+        }
 
+        public exit(): void {
+            this.vt100Control.moveTo(HEIGHT + 3, 1);
+        }
+
+        /**
+         * Draw the frame around the screen.
+         */
+        private drawFrame(): void {
             // Draw frame.
-            moveTo(1, 1);
             const color = chalk.green;
-            process.stdout.write(color("+" + "".padEnd(WIDTH, "-") + "+\n"));
+            process.stdout.write(color("+" + "-".repeat(WIDTH) + "+\n"));
             for (let row = 0; row < HEIGHT; row++) {
-                process.stdout.write(color("|" + "".padEnd(WIDTH, " ") + "|\n"));
+                process.stdout.write(color("|" + " ".repeat(WIDTH) + "|\n"));
             }
-            process.stdout.write(color("+" + "".padEnd(WIDTH, "-") + "+\n"));
+            process.stdout.write(color("+" + "-".repeat(WIDTH) + "+\n"));
+            this.vt100Control.advancedRow(HEIGHT + 2);
         }
 
         setConfig(config: Config) {
@@ -1431,11 +1507,22 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
         }
 
         writeChar(address: number, value: number) {
-            address -= 15360;
-            if (address >= 0 && address < WIDTH*HEIGHT) {
-                const row = Math.floor(address / WIDTH) + 1;
-                const col = address % WIDTH + 1;
+            const index = address - TRS80_SCREEN_BEGIN;
+            if (index >= 0 && index < WIDTH * HEIGHT) {
+                this.updateScreen(false);
+            }
+        }
 
+        /**
+         * Redraw any characters that have changed since the old screen.
+         */
+        private updateScreen(force: boolean): void {
+            let row = 1;
+            let col = 1;
+
+            for (let i = 0; i < WIDTH*HEIGHT; i++) {
+                // Draw a space at the current cursor.
+                let value = i === this.lastCursorIndex ? 32 : trs80.readMemory(i + TRS80_SCREEN_BEGIN);
                 if (config.modelType === ModelType.MODEL1) {
                     // Level 2 used the letters from values 0 to 31.
                     if (value < 32) {
@@ -1445,33 +1532,79 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
                     }
                 }
 
-                // Detect cursor. Could do this more robustly by peeking at RAM.
-                let ch: string;
-                if (value === 176) {
-                    this.lastCursorRow = row;
-                    this.lastCursorCol = col;
-
-                    // Replace with space since we use the terminal cursor.
-                    ch = " ";
-                } else {
-                    // Replace non-ASCII.
-                    if (value < 32 || value >= 127) {
-                        ch = chalk.gray("?");
-                    } else {
-                        ch = String.fromCodePoint(value);
+                if (force || value !== this.drawnScreen[i]) {
+                    // Keep track of where we saw our last underscore, for Level 1 support.
+                    if (value === 95) {
+                        this.lastUnderscoreIndex = i;
                     }
+
+                    // Replace non-ASCII.
+                    const ch = value < 32 || value >= 127 ? chalk.gray("?") : String.fromCodePoint(value);
+
+                    // Draw at location.
+                    this.vt100Control.moveTo(row + 1, col + 1);
+                    process.stdout.write(ch);
+                    this.vt100Control.advancedCol();
+
+                    this.drawnScreen[i] = value;
                 }
 
-                // Draw at location.
-                moveTo(row + 1, col + 1);
-                process.stdout.write(ch);
-
-                // Adjust for frame.
-                moveTo(this.lastCursorRow + 1, this.lastCursorCol + 1);
+                col += 1;
+                if (col === WIDTH + 1) {
+                    col = 1;
+                    row += 1;
+                }
             }
+        }
+
+        /**
+         * Redraw from memory.
+         */
+        public redraw(): void {
+            this.vt100Control.restoreCursorPosition();
+            this.vt100Control.moveTo(1, 1);
+            this.drawFrame();
+            this.updateScreen(true);
+        }
+
+        /**
+         * Check RAM for the cursor position and update it.
+         *
+         * @param forceUpdate force the position update even if it hasn't changed in simulation.
+         */
+        private checkCursorPosition(forceUpdate: boolean): void {
+            // Figure out where the cursor is.
+            let cursorIndex;
+            if (config.basicLevel === BasicLevel.LEVEL1) {
+                // We don't know where the cursor position is stored in Level 1. Guess based on the last
+                // underscore we saw.
+                cursorIndex = this.lastUnderscoreIndex;
+            } else {
+                // Get cursor position from RAM.
+                const cursorAddress = trs80.readMemory(0x4020) | (trs80.readMemory(0x4021) << 8);
+                cursorIndex = cursorAddress - TRS80_SCREEN_BEGIN;
+            }
+
+            // Ignore bad values.
+            if (cursorIndex < 0 || cursorIndex >= WIDTH*HEIGHT) {
+                return;
+            }
+
+            this.lastCursorIndex = cursorIndex;
+            this.updateScreen(false);
+
+            // 1-based.
+            const row = Math.floor(cursorIndex / WIDTH) + 1;
+            const col = cursorIndex % WIDTH + 1;
+
+            // Adjust for frame.
+            this.vt100Control.moveTo(row + 1, col + 1);
         }
     }
 
+    /**
+     * Screen that does nothing.
+     */
     class NopScreen extends Trs80Screen {
         setConfig(config: Config) {
             // Nothing.
@@ -1482,8 +1615,11 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
         }
     }
 
+    /**
+     * Keyboard implementation for a TTY. Puts the TTY into raw mode.
+     */
     class TtyKeyboard extends Keyboard {
-        constructor() {
+        constructor(screen: TtyScreen) {
             super();
 
             process.stdin.setRawMode(true);
@@ -1491,8 +1627,12 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
                 if (buffer.length > 0) {
                     const key = buffer[0];
                     if (key === 0x03) {
-                        moveTo(HEIGHT + 3, 1);
+                        // Ctrl-C.
+                        screen.exit();
                         process.exit();
+                    } else if (key === 0x0C) {
+                        // Ctrl-L.
+                        screen.redraw();
                     } else {
                         let keyName: string;
 
@@ -1524,6 +1664,7 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
         }
     }
 
+    // Load file if specified.
     let trs80File: Trs80File | undefined = undefined;
     if (programFile !== undefined) {
         let buffer;
@@ -1541,8 +1682,16 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
         }
     }
 
-    const screen = xray ? new NopScreen() : new TtyScreen();
-    const keyboard = xray ? new Keyboard() : new TtyKeyboard();
+    let screen;
+    let keyboard;
+    if (xray) {
+        screen = new NopScreen();
+        keyboard = new Keyboard();
+    } else {
+        screen = new TtyScreen();
+        keyboard = new TtyKeyboard(screen);
+    }
+
     const cassette = new CassettePlayer();
     const soundPlayer = new SilentSoundPlayer();
     const trs80 = new Trs80(config, screen, keyboard, cassette, soundPlayer);
