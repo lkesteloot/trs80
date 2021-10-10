@@ -13,7 +13,7 @@ import {
     Density,
     getTrs80FileExtension,
     HexdumpGenerator,
-    isFloppy,
+    isFloppy, numberToSide,
     ProgramAnnotation,
     RawBinaryFile,
     Side,
@@ -967,38 +967,29 @@ function sectors(filename: string, showContents: boolean): void {
     console.log(filename + ": " + file.getDescription());
 
     const geometry = file.getGeometry();
+    const minSectorNumber = Math.min(geometry.firstTrack.firstSector, geometry.lastTrack.firstSector);
+    const maxSectorNumber = Math.max(geometry.firstTrack.lastSector, geometry.lastTrack.lastSector);
 
-    let maxTrackNumber = -1;
-    let minSectorNumber = 1000;
-    let maxSectorNumber = -1;
-    const sides: Side[] = [];
-    for (const side of [Side.FRONT, Side.BACK]) {
-        for (let trackNumber = 0; trackNumber < 200; trackNumber++) {
-            let foundAnySectors = false;
-            for (let sectorNumber = 0; sectorNumber < 100; sectorNumber++) {
-                const sectorData = file.readSector(trackNumber, side, sectorNumber);
-                if (sectorData !== undefined) {
-                    if (sides.indexOf(side) === -1) {
-                        sides.push(side);
-                    }
-                    maxTrackNumber = Math.max(trackNumber, maxTrackNumber);
-                    minSectorNumber = Math.min(sectorNumber, minSectorNumber);
-                    maxSectorNumber = Math.max(sectorNumber, maxSectorNumber);
-                    foundAnySectors = true;
-                }
-            }
-            if (!foundAnySectors) {
-                break;
-            }
-        }
+    const usedLetters = new Set<string>();
+
+    const CHALK_FOR_LETTER: { [letter: string]: chalk.Chalk } = {
+        "-": chalk.gray,
+        "C": chalk.red,
+        "X": chalk.yellow,
+        "S": chalk.reset,
+        "D": chalk.reset,
+    };
+
+    const LEGEND_FOR_LETTER: { [letter: string]: string } = {
+        "-": "Missing sector",
+        "C": "CRC error",
+        "X": "Deleted sector",
+        "S": "Single density",
+        "D": "Double density",
     }
 
-    if (maxSectorNumber === -1) {
-        console.log("No sectors found");
-        return;
-    }
-
-    for (const side of sides) {
+    for (let sideNumber = 0; sideNumber < geometry.numSides(); sideNumber++) {
+        const side = numberToSide(sideNumber);
         const sideName = side === Side.FRONT ? "Front" : "Back";
         const lineParts: string[] = [sideName.padStart(6, " ") + "  "];
         for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
@@ -1006,31 +997,43 @@ function sectors(filename: string, showContents: boolean): void {
         }
         console.log(lineParts.join(""));
 
-        for (let trackNumber = 0; trackNumber <= maxTrackNumber; trackNumber++) {
+        for (let trackNumber = geometry.firstTrack.trackNumber; trackNumber <= geometry.lastTrack.trackNumber; trackNumber++) {
             const lineParts: string[] = [trackNumber.toString().padStart(6, " ") + "  "];
             for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
                 const sectorData = file.readSector(trackNumber, side, sectorNumber);
-                let color;
                 let text: string;
                 if (sectorData === undefined) {
-                    color = chalk.gray;
                     text = "-";
                 } else if (sectorData.crcError) {
-                    color = chalk.red;
                     text = "C";
                 } else if (sectorData.deleted) {
-                    color = chalk.yellow;
                     text = "X";
+                } else if (sectorData.density === Density.SINGLE) {
+                    text = "S";
                 } else {
-                    color = chalk.reset;
-                    text = sectorData.density === Density.SINGLE ? "S" : "D";
+                    text = "D";
                 }
+
+                usedLetters.add(text);
+                const color = CHALK_FOR_LETTER[text] ?? chalk.reset;
                 lineParts.push("".padEnd(3 - text.length, " ") + color(text));
             }
             console.log(lineParts.join(""));
         }
 
         console.log("");
+    }
+
+    if (usedLetters.size > 0) {
+        const legendLetters = Array.from(usedLetters.values());
+        legendLetters.sort();
+
+        console.log("Legend:");
+        for (const legendLetter of legendLetters) {
+            const explanation = LEGEND_FOR_LETTER[legendLetter] ?? "Unknown";
+            const color = CHALK_FOR_LETTER[legendLetter] ?? chalk.reset;
+            console.log("    " + color(legendLetter) + ": " + explanation);
+        }
     }
 
     if (showContents) {
