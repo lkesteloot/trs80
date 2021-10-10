@@ -4,20 +4,27 @@ import {Option, program} from "commander";
 import {
     CassetteFile,
     CassetteSpeed,
+    CmdLoadModuleHeaderChunk,
     CmdProgram,
+    CmdProgramBuilder,
+    CmdTransferAddressChunk,
     decodeBasicProgram,
     decodeSystemProgram,
     decodeTrs80CassetteFile,
     decodeTrs80File,
     decodeTrsdos,
     Density,
+    encodeCmdProgram,
+    encodeSystemProgram,
     getTrs80FileExtension,
     HexdumpGenerator,
-    isFloppy, numberToSide,
+    isFloppy,
+    numberToSide,
     ProgramAnnotation,
     RawBinaryFile,
     Side,
     SystemProgram,
+    SystemProgramBuilder,
     TrackGeometry,
     TRS80_SCREEN_BEGIN,
     Trs80File,
@@ -58,6 +65,8 @@ import {
 import http from "http";
 import * as url from "url";
 import * as ws from "ws";
+import {Asm} from "z80-asm";
+import {toHex} from "z80-base";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -108,6 +117,16 @@ function pluralize(count: number, singular: string, plural?: string): string {
  */
 function pluralizeWithCount(count: number, singular: string, plural?: string): string {
     return `${withCommas(count)} ${pluralize(count, singular, plural)}`;
+}
+
+/**
+ * Return the input pathname with the extension replaced.
+ * @param pathname input pathname
+ * @param extension extension with period.
+ */
+function replaceExtension(pathname: string, extension: string): string {
+    const { dir, name } = path.parse(pathname);
+    return path.join(dir, name + extension);
 }
 
 /**
@@ -449,7 +468,7 @@ function extract(infile: string, outfile: string): void {
             }
         } else {
             // Break apart outfile.
-            const { dir, base, name, ext } = path.parse(outfile);
+            const { base, ext } = path.parse(outfile);
 
             // See if it's a JSON file.
             if (ext.toLowerCase() === ".json") {
@@ -1710,6 +1729,144 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
     }
 }
 
+/**
+ * Handle the "asm" command.
+ */
+function asm(srcPathname: string, outPathname: string, baud: number, lstPathname: string | undefined): void {
+    // Get the lines for a file.
+    function loadFile(filename: string): string[] | undefined {
+        try {
+            return fs.readFileSync(filename, "utf-8").split(/\r?\n/);
+        } catch (e) {
+            // File not found.
+            return undefined;
+        }
+    }
+
+    const { name } = path.parse(srcPathname);
+
+    // Assemble program.
+    const asm = new Asm(loadFile);
+    const sourceFile = asm.assembleFile(srcPathname);
+    if (sourceFile === undefined) {
+        console.log("Cannot read file " + srcPathname);
+        return;
+    }
+
+    // Generate listing.
+    if (lstPathname !== undefined) {
+        const lstFd = fs.openSync(lstPathname, "w");
+
+        for (const line of sourceFile.assembledLines) {
+            if (line.binary.length !== 0) {
+                // Show four bytes at a time.
+                let displayAddress = line.address;
+                for (let i = 0; i < line.binary.length; i += 4) {
+                    let result = toHex(displayAddress, 4) + ":";
+                    for (let j = 0; j < 4 && i + j < line.binary.length; j++) {
+                        result += " " + toHex(line.binary[i + j], 2);
+                        displayAddress++;
+                    }
+                    if (i === 0) {
+                        result = result.padEnd(24, " ") + line.line;
+                    }
+                    fs.writeSync(lstFd, result + "\n");
+                }
+            } else {
+                fs.writeSync(lstFd, " ".repeat(24) + line.line + "\n");
+            }
+            if (line.error !== undefined) {
+                fs.writeSync(lstFd, "error: " + line.error + "\n");
+            }
+        }
+
+        fs.closeSync(lstFd);
+    }
+
+    // Show errors.
+    let errorCount = 0;
+    for (const line of sourceFile.assembledLines) {
+        if (line.error !== undefined) {
+            console.log(chalk.gray(line.line));
+            console.log(chalk.red("error: " + line.error));
+            console.log();
+            errorCount += 1;
+        }
+    }
+
+    // Don't generate output if we have errors.
+    if (errorCount !== 0) {
+        console.log(errorCount + " errors");
+        process.exit(1);
+    }
+
+    // Generate output.
+    const binaryParts: Uint8Array[] = [];
+    const extension = path.parse(outPathname).ext.toUpperCase();
+    switch (extension) {
+        case ".CMD": {
+            // Convert to CMD file.
+            let entryPointAddress: number | undefined = undefined;
+            const builder = new CmdProgramBuilder();
+            for (const line of sourceFile.assembledLines) {
+                if (line.binary.length > 0 && entryPointAddress === undefined) {
+                    entryPointAddress = line.address;
+                }
+                builder.addBytes(line.address, line.binary);
+            }
+            const chunks = [
+                CmdLoadModuleHeaderChunk.fromFilename(name),
+                ... builder.getChunks(),
+                CmdTransferAddressChunk.fromEntryPointAddress(entryPointAddress ?? 0),
+            ]
+            let binary = encodeCmdProgram(chunks);
+            binaryParts.push(binary);
+            break;
+        }
+
+        case ".3BN":
+        case ".CAS":
+        case ".WAV": {
+            // Convert to 3BN file.
+            let entryPointAddress: number | undefined = undefined;
+            const builder = new SystemProgramBuilder();
+            for (const line of sourceFile.assembledLines) {
+                if (line.binary.length > 0 && entryPointAddress === undefined) {
+                    entryPointAddress = line.address;
+                }
+                builder.addBytes(line.address, line.binary);
+            }
+            const chunks = builder.getChunks();
+            let binary = encodeSystemProgram(name, chunks, entryPointAddress ?? 0);
+
+            if (extension === ".CAS" || extension === ".WAV") {
+                // Convert to CAS.
+                binary = binaryAsCasFile(binary, baud);
+
+                if (extension === ".WAV") {
+                    // Convert to WAV.
+                    const audio = casAsAudio(binary, baud, DEFAULT_SAMPLE_RATE);
+                    binary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
+                }
+            }
+
+            binaryParts.push(binary);
+            break;
+        }
+
+        default:
+            console.log("Unknown output type: " + outPathname);
+            return;
+    }
+
+    // Write output.
+    const binFd = fs.openSync(outPathname, "w");
+    for (const part of binaryParts) {
+        fs.writeSync(binFd, part);
+    }
+    fs.closeSync(binFd);
+}
+
 function main() {
     program
         .storeOptionsAsProperties(false)
@@ -1778,6 +1935,23 @@ function main() {
         .action((infile, options) => {
             setColorLevel(program.opts().color);
             hexdump(infile, options.collapse);
+        });
+    program
+        .command("asm <infile> <outfile>")
+        .description("assemble a program", {
+            infile: "ASM file",
+            outfile: "CMD, 3BN, CAS, or WAV file",
+        })
+        .option("--baud <baud>", "baud rate for CAS and WAV file (250, 500, 1000, 1500), defaults to 500")
+        .option("--listing <filename>", "generate listing file")
+        .action((infile, outfile, options) => {
+            setColorLevel(program.opts().color);
+            const baud = options.baud === undefined ? 500 : parseInt(options.baud);
+            if (baud !== 250 && baud !== 500 && baud !== 1000 && baud !== 1500) {
+                console.log("Invalid baud rate: " + options.baud);
+                process.exit(1);
+            }
+            asm(infile, outfile, baud, options.listing);
         });
     program
         .command("disasm <infile>")

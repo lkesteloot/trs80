@@ -15,6 +15,7 @@ import {
     CmdTransferAddressChunk,
     encodeCmdProgram
 } from "./CmdProgram.js";
+import {ProgramBuilder} from "./ProgramBuilder.js";
 
 const FILE_HEADER = 0x55;
 const DATA_HEADER = 0x3C;
@@ -281,7 +282,7 @@ export function encodeSystemProgram(filename: string, chunks: SystemChunk[], ent
 
     binaryParts.push(new Uint8Array([FILE_HEADER]));
 
-    filename = clipSystemProgramFilename(filename);
+    filename = clipSystemProgramFilename(filename).toUpperCase();
     filename = filename.padEnd(FILENAME_LENGTH, " ");
     binaryParts.push(new TextEncoder().encode(filename));
 
@@ -300,4 +301,21 @@ export function encodeSystemProgram(filename: string, chunks: SystemChunk[], ent
         lo(entryPointAddress), hi(entryPointAddress)]));
 
     return concatByteArrays(binaryParts);
+}
+
+/**
+ * Builds a system program from chunks of memory.
+ */
+export class SystemProgramBuilder extends ProgramBuilder {
+    /**
+     * Get system chunks for the bytes given so far.
+     */
+    public getChunks(): SystemChunk[] {
+        // Sort blocks by address.
+        this.blocks.sort((a, b) => a.address - b.address);
+
+        return this.blocks
+            .flatMap(block => block.breakInto(MAX_SYSTEM_CHUNK_DATA_SIZE))
+            .map(block => new SystemChunk(block.address, new Uint8Array(block.bytes)));
+    }
 }

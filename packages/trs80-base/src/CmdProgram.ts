@@ -14,12 +14,15 @@ import {
     SystemChunk,
     SystemProgram
 } from "./SystemProgram.js";
+import {ProgramBuilder} from "./ProgramBuilder.js";
 
 // Chunk types.
 export const CMD_LOAD_BLOCK = 0x01;
 export const CMD_TRANSFER_ADDRESS = 0x02;
 export const CMD_LOAD_MODULE_HEADER = 0x05;
 export const CMD_MAX_TYPE = 0x1F;
+
+export const MAX_CMD_CHUNK_DATA_SIZE = 258;
 
 /**
  * Represents a chunk of bytes from the file.
@@ -60,6 +63,9 @@ export class CmdLoadBlockChunk extends CmdAbstractChunk {
      * Make a chunk from the data to load into memory.
      */
     public static fromData(address: number, chunkData: Uint8Array): CmdLoadBlockChunk {
+        if (chunkData.length > MAX_CMD_CHUNK_DATA_SIZE) {
+            throw new Error("cmd chunks can at most hold " + MAX_CMD_CHUNK_DATA_SIZE + " bytes");
+        }
         const data = new Uint8Array([lo(address), hi(address), ... chunkData]);
         return new CmdLoadBlockChunk(CMD_LOAD_BLOCK, data);
     }
@@ -112,7 +118,7 @@ export class CmdLoadModuleHeaderChunk extends CmdAbstractChunk {
      * Make a chunk from the filename.
      */
     public static fromFilename(filename: string): CmdLoadModuleHeaderChunk {
-        const data = new TextEncoder().encode(filename);
+        const data = new TextEncoder().encode(filename.toUpperCase());
         return new CmdLoadModuleHeaderChunk(CMD_LOAD_MODULE_HEADER, data);
     }
 
@@ -367,3 +373,21 @@ export function encodeCmdProgram(chunks: CmdChunk[]): Uint8Array {
 
     return concatByteArrays(binaryParts);
 }
+
+/**
+ * Builds a command program from chunks of memory.
+ */
+export class CmdProgramBuilder extends ProgramBuilder {
+    /**
+     * Get command load block chunks for the bytes given so far.
+     */
+    public getChunks(): CmdLoadBlockChunk[] {
+        // Sort blocks by address.
+        this.blocks.sort((a, b) => a.address - b.address);
+
+        return this.blocks
+            .flatMap(block => block.breakInto(MAX_CMD_CHUNK_DATA_SIZE))
+            .map(block => CmdLoadBlockChunk.fromData(block.address, new Uint8Array(block.bytes)));
+    }
+}
+

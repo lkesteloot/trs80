@@ -1,6 +1,6 @@
 # z80-asm
 
-This is a Z80 assembler IDE written in TypeScript.
+This is a Z80 assembler library written in TypeScript.
 
 # License
 

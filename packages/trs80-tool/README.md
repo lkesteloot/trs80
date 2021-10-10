@@ -195,6 +195,22 @@ are the sectors and the rows are the tracks. For each sector a character is disp
 
 Use the `--contents` flag to also show the contents of the sectors.
 
+## `asm`
+
+The `asm` command assembles the specified assembly language source code:
+
+    % trs80-tool asm program.asm program.cmd
+
+It can generate `.CMD`, `.3BN`, `.CAS`, or `.WAV` files. For `.CAS` or
+`.WAV` files the default baud rate is 500, but can be set with the `--baud`
+flag:
+
+    % trs80-tool asm --baud 1500 program.asm program.cas
+
+A listing file can be generated with the `--listing` flag:
+
+    % trs80-tool asm --listing program.lst program.asm program.cmd
+
 ## `disasm`
 
 The `disasm` command disassembles the specified program:
@@ -255,6 +271,7 @@ The `help` command shows more specific information about other commands:
 
 * Add support for TRSDOS for Model I and 4, and for LDOS.
 * Add `run` command (experimental).
+* Add `asm` command.
 
 ## 2.2.0
 

@@ -1,6 +1,6 @@
-import mnemonicData from "./Opcodes";
+import mnemonicData from "./Opcodes.js";
 import {hi, isByteReg, isWordReg, lo} from "z80-base";
-import {Variant} from "./OpcodesTypes";
+import {Variant} from "./OpcodesTypes.js";
 import * as path from "path";
 import * as fs from "fs";
 
