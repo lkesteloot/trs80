@@ -1,5 +1,5 @@
 import mnemonicData from "./Opcodes.js";
-import {hi, isByteReg, isWordReg, lo} from "z80-base";
+import {hi, isByteReg, isWordReg, lo, toHexWord} from "z80-base";
 import {Variant} from "./OpcodesTypes.js";
 import * as path from "path";
 import * as fs from "fs";
@@ -45,6 +45,9 @@ const PSEUDO_FILL = new Set(["defs", "ds", ".ds", ".block", ".blkb", "data"]);
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z64.htm#A
 const PSEUDO_MACRO = new Set(["macro", ".macro"]);
 const PSEUDO_ENDM = new Set(["endm", ".endm"]);
+
+// End file instruction. Followed by optional entry address or label.
+const PSEUDO_END = new Set(["end"]);
 
 // Valid extensions for files in library directories. Use the same list as zasm.
 const LIBRARY_EXTS = new Set([".s", ".ass", ".asm"]);
@@ -277,6 +280,8 @@ export class Asm {
     private dirCache = new Map<string,string[]>();
     // Map from macro name (lower case) to its definition.
     public macros = new Map<string,Macro>();
+    // Entry point into program.
+    public entryPoint: number | undefined = undefined;
 
     constructor(fileReader: FileReader) {
         this.fileReader = fileReader;
@@ -393,6 +398,8 @@ class Pass {
     private listingLineNumber = 0;
     // Number of library files we included.
     public libraryIncludeCount = 0;
+    // Whether we've seen an "end" directive.
+    public sawEnd = false;
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
@@ -544,6 +551,11 @@ class LineParser {
 
         // Clear out anything we put in previous passes.
         this.assembledLine.binary.length = 0;
+
+        if (this.pass.sawEnd) {
+            // Ignore all lines after "end".
+            return;
+        }
 
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
@@ -863,6 +875,32 @@ class LineParser {
             } else if (PSEUDO_ENDM.has(mnemonic)) {
                 this.assembledLine.error = "endm outside of macro definition";
                 return;
+            } else if (PSEUDO_END.has(mnemonic)) {
+                // End of source file. See if there's an optional entry address or label.
+                this.skipWhitespace();
+                if (!this.isEndOfLine()) {
+                    const value = this.readExpression(true);
+                    if (value === undefined) {
+                        if (this.assembledLine.error === undefined) {
+                            this.assembledLine.error = "invalid expression for entry point";
+                        }
+                        return;
+                    }
+
+                    // See if it's changed.
+                    if (this.pass.asm.entryPoint !== undefined && this.pass.asm.entryPoint !== value) {
+                        if (this.assembledLine.error === undefined) {
+                            this.assembledLine.error = "changing entry point from 0x" +
+                                toHexWord(this.pass.asm.entryPoint) + " to 0x" +
+                                toHexWord(value);
+                        }
+                        return;
+                    }
+
+                    this.pass.asm.entryPoint = value;
+                }
+
+                this.pass.sawEnd = true;
             } else {
                 this.processOpCode(mnemonic);
             }
