@@ -1141,6 +1141,32 @@ class LineParser {
                 }
                 break;
 
+            case "insert": {
+                // Must specify pathname as string.
+                const pathname = this.readString();
+                if (pathname === undefined) {
+                    if (this.assembledLine.error === undefined) {
+                        this.assembledLine.error = "must specify pathname of file to insert";
+                    }
+                    return;
+                }
+
+                // Pathname is relative to including file.
+                const resolvedPathname = path.resolve(path.dirname(this.assembledLine.fileInfo.pathname), pathname);
+
+                // Load the file.
+                let binary: Uint8Array;
+                try {
+                    binary = fs.readFileSync(resolvedPathname);
+                } catch (e) {
+                    this.assembledLine.error = "file \"" + resolvedPathname + "\" not found";
+                    return;
+                }
+
+                this.assembledLine.binary.push(...binary);
+                break;
+            }
+
             default:
                 this.assembledLine.error = "unknown directive #" + directive;
                 break;
@@ -1351,7 +1377,7 @@ class LineParser {
 
     /**
      * Reads a string like "abc", or undefined if didn't find a string.
-     * If found the beginning of a string but not the end, sets this.results.error
+     * If found the beginning of a string but not the end, sets this.assembledLine.error
      * and returns undefined.
      */
     private readString(): string | undefined {
