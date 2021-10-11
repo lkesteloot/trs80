@@ -35,6 +35,9 @@ export class SystemChunk {
         if (data.length > MAX_SYSTEM_CHUNK_DATA_SIZE) {
             throw new Error("system chunks can at most hold " + MAX_SYSTEM_CHUNK_DATA_SIZE + " bytes");
         }
+        if (data.length === 0) {
+            throw new Error("system chunk cannot have no data");
+        }
         this.loadAddress = loadAddress;
         this.data = data;
         this.checksum = checksum ?? SystemChunk.computeChecksum(loadAddress, data);

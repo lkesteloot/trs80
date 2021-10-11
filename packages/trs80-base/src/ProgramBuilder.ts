@@ -12,7 +12,9 @@ export abstract class ProgramBuilder {
      * Add bytes at the specified address.
      */
     public addBytes(address: number, bytes: number[]): void {
-        this.findBlockForAddress(address).addBytes(bytes);
+        if (bytes.length > 0) {
+            this.findBlockForAddress(address).addBytes(bytes);
+        }
     }
 
     /**

@@ -35,7 +35,7 @@ export class MemoryBlock {
             const thisSize = Math.min(this.bytes.length - index, maxSize);
 
             const subBlock = new MemoryBlock(this.address + index);
-            subBlock.addBytes(this.bytes.slice(index, thisSize));
+            subBlock.addBytes(this.bytes.slice(index, index + thisSize));
             subBlocks.push(subBlock);
 
             index += thisSize;
