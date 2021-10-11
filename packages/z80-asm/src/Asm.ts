@@ -47,6 +47,11 @@ const PSEUDO_FILL = new Set(["defs", "ds", ".ds", ".block", ".blkb", "data"]);
 const PSEUDO_MACRO = new Set(["macro", ".macro"]);
 const PSEUDO_ENDM = new Set(["endm", ".endm"]);
 
+// Pseudo instructions for if/else/endif.
+const PSEUDO_IF = new Set(["if", "cond", "#if"]);
+const PSEUDO_ELSE = new Set(["else", "#else"]);
+const PSEUDO_ENDIF = new Set(["endif", "endc", "#endif"]);
+
 // End file instruction. Followed by optional entry address or label.
 const PSEUDO_END = new Set(["end"]);
 

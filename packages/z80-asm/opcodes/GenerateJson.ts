@@ -16,6 +16,8 @@ import * as path from "path";
 import * as fs from "fs";
 import {toHexByte} from "z80-base";
 import {Variant, OpcodeTemplate, ClrInstruction, Mnemonics, Instructions} from "../src/OpcodesTypes.js";
+import {fileURLToPath} from "url";
+import {dirname} from "path";
 
 // Break args into sequences of letters, digits, or single punctuation.
 const TOKENIZING_REGEXP = /([a-z]+)'?|([,+()])|([0-9]+)|(;.*)/g;
@@ -179,6 +181,11 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
     });
 }
 
+/**
+ * Add fake convenience instructions.
+ *
+ * https://k1.spdns.de/Develop/Projects/zasm/Documentation/z79.htm#G
+ */
 function addPseudoInstructions(mnemonics: Mnemonics) {
     mnemonics["ld"].variants.push({
         tokens: ["hl", ",", "bc"],
@@ -200,10 +207,31 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcode: [0x62, 0x6B],
         clr: null,
     });
+    mnemonics["ld"].variants.push({
+        tokens: ["bc", ",", "(", "hl", ")"],
+        opcode: [0x4E, 0x23, 0x46, 0x2B],
+        clr: null,
+    })
+    mnemonics["ld"].variants.push({
+        tokens: ["(", "hl", ")", ",", "bc"],
+        opcode: [0x71, 0x23, 0x70, 0x2B],
+        clr: null,
+    })
+    mnemonics["ld"].variants.push({
+        tokens: ["(", "hl", ")", ",", "de"],
+        opcode: [0x73, 0x23, 0x72, 0x2B],
+        clr: null,
+    })
+    mnemonics["ld"].variants.push({
+        tokens: ["de", ",", "bc"],
+        opcode: [0x50, 0x59],
+        clr: null,
+    })
 }
 
 function generateOpcodes(): void {
-    const opcodesDir = path.join(__dirname, "..", "..");
+    const scriptDir = dirname(fileURLToPath(import.meta.url));
+    const opcodesDir = path.join(scriptDir, "..", "..");
     const clr = JSON.parse(fs.readFileSync(path.join(opcodesDir, "clr.json"), "utf-8")) as ClrFile;
 
     const mnemonics: Mnemonics = {

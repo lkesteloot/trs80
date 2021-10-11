@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:test": "tsc -p tsconfig.test.json",
-    "generate": "tsc --project opcodes && node opcodes/dist/GenerateJson.js",
+    "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateJson.js",
     "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
     "test": "npm run build:test && mocha -r ts-node/register src/**/*.spec.ts",
     "clean": "rm -rf dist dist-tests",
