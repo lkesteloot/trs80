@@ -12,7 +12,8 @@ const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 // Byte-defining pseudo instructions.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z54.htm
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z51.htm
-const PSEUDO_DEF_BYTES = new Set(["defb", "db", ".db", ".byte", "defm", "dm", ".dm", ".text", ".ascii"]);
+// https://k1.spdns.de/Develop/Projects/zasm/Documentation/z59.htm
+const PSEUDO_DEF_BYTES = new Set(["defb", "db", ".db", ".byte", "defm", "dm", ".dm", ".text", ".ascii", ".asciz"]);
 
 // Word-defining pseudo instructions.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z52.htm
@@ -666,6 +667,11 @@ class LineParser {
                     if (!this.foundChar(',')) {
                         break;
                     }
+                }
+
+                if (mnemonic === ".asciz") {
+                    // Terminating nul.
+                    this.assembledLine.binary.push(0);
                 }
             } else if (PSEUDO_DEF_WORDS.has(mnemonic)) {
                 while (true) {
