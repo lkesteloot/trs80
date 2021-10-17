@@ -13,7 +13,7 @@ import {
     BasicProgram,
     CmdProgram,
     decodeBasicProgram,
-    ElementType,
+    ElementType, isFloppy,
     SystemProgram,
     TRS80_SCREEN_BEGIN,
     TRS80_SCREEN_END,
@@ -1020,28 +1020,27 @@ export class Trs80 implements Hal, Machine {
     public runTrs80File(trs80File: Trs80File): void {
         this.ejectAllFloppyDisks();
 
-        switch (trs80File.className) {
-            case "CmdProgram":
-                this.runCmdProgram(trs80File);
-                break;
-            case "Cassette":
-                // Run the first file. Assume there's always at least one.
-                this.runTrs80File(trs80File.files[0].file);
-                break;
-            case "SystemProgram":
-                this.runSystemProgram(trs80File);
-                break;
-            case "BasicProgram":
-                this.runBasicProgram(trs80File);
-                break;
-            case "Jv1FloppyDisk":
-            case "Jv3FloppyDisk":
-            case "DmkFloppyDisk":
-                this.runFloppyDisk(trs80File);
-                break;
-            default:
-                console.error("Don't know how to run", trs80File);
-                break;
+        if (isFloppy(trs80File)) {
+            this.runFloppyDisk(trs80File);
+        } else {
+            switch (trs80File.className) {
+                case "CmdProgram":
+                    this.runCmdProgram(trs80File);
+                    break;
+                case "Cassette":
+                    // Run the first file. Assume there's always at least one.
+                    this.runTrs80File(trs80File.files[0].file);
+                    break;
+                case "SystemProgram":
+                    this.runSystemProgram(trs80File);
+                    break;
+                case "BasicProgram":
+                    this.runBasicProgram(trs80File);
+                    break;
+                default:
+                    console.error("Don't know how to run", trs80File);
+                    break;
+            }
         }
     }
 

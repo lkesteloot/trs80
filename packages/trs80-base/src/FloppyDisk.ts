@@ -175,7 +175,9 @@ export class TrackGeometryBuilder {
             this.firstSector === undefined || this.lastSector === undefined ||
             this.sectorSize === undefined || this.density === undefined) {
 
-            throw new Error("Track geometry is not fully initialized");
+            throw new Error("Track geometry is not fully initialized (" +
+                this.firstSide + ", " + this.lastSide + ", " + this.firstSector + ", " + this.lastSector + ", " +
+                this.sectorSize + ", " + this.density + ")");
         }
 
         return new TrackGeometry(trackNumber,

@@ -6,6 +6,7 @@ import {decodeJv1FloppyDisk, Jv1FloppyDisk} from "./Jv1FloppyDisk.js";
 import {decodeJv3FloppyDisk, Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
 import {decodeDmkFloppyDisk, DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {decodeSystemProgram, SystemProgram} from "./SystemProgram.js";
+import {decodeScpFloppyDisk, ScpFloppyDisk} from "./ScpFloppyDisk.js";
 
 /**
  * All the possible programs we can decode.
@@ -14,6 +15,7 @@ export type Trs80File = BasicProgram |
     Jv1FloppyDisk |
     Jv3FloppyDisk |
     DmkFloppyDisk |
+    ScpFloppyDisk |
     Cassette |
     SystemProgram |
     CmdProgram |
@@ -24,6 +26,7 @@ const CLASS_NAME_TO_EXTENSION = {
     Cassette: ".CAS",
     CmdProgram: ".CMD",
     DmkFloppyDisk: ".DMK",
+    ScpFloppyDisk: ".SCP",
     Jv1FloppyDisk: ".JV1",
     Jv3FloppyDisk: ".JV3",
     RawBinaryFile: ".BIN",
@@ -86,12 +89,13 @@ function decodeDsk(binary: Uint8Array): Trs80File | undefined {
 /**
  * Whether the Trs80File object is one of the floppy disk types.
  */
-export function isFloppy(trs80File: Trs80File): trs80File is Jv1FloppyDisk | Jv3FloppyDisk | DmkFloppyDisk {
+export function isFloppy(trs80File: Trs80File): trs80File is Jv1FloppyDisk | Jv3FloppyDisk | DmkFloppyDisk | ScpFloppyDisk {
     const className = trs80File.className;
 
     return className === "Jv1FloppyDisk" ||
         className === "Jv3FloppyDisk" ||
-        className === "DmkFloppyDisk";
+        className === "DmkFloppyDisk" ||
+        className === "ScpFloppyDisk";
 }
 
 /**
@@ -118,6 +122,10 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
 
     if (extension === ".DMK") {
         return decodeDmkFloppyDisk(binary) ?? new RawBinaryFile(binary);
+    }
+
+    if (extension === ".SCP") {
+        return decodeScpFloppyDisk(binary) ?? new RawBinaryFile(binary);
     }
 
     // "Model III BiNary" format, invented by George Phillips for trs80gp.

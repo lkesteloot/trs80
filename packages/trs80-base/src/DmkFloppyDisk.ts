@@ -123,7 +123,7 @@ class DmkSector {
      * Get the CRC for the IDAM.
      */
     public getIdamCrc(): number {
-        // Bit endian.
+        // Big endian.
         return (this.getByte(5) << 8) + this.getByte(6);
     }
 
@@ -151,7 +151,7 @@ class DmkSector {
             return undefined;
         }
 
-        // Bit endian.
+        // Big endian.
         const index = this.dataIndex + this.getLength();
         return (this.getByte(index) << 8) + this.getByte(index + 1);
     }

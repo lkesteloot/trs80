@@ -259,33 +259,25 @@ class Archive {
             // Decode the floppy or cassette.
             const file = decodeTrs80File(buffer, filename);
 
-            switch (file.className) {
-                case "Jv1FloppyDisk":
-                case "Jv3FloppyDisk":
-                case "DmkFloppyDisk":
-                    const trsdos = decodeTrsdos(file);
-                    if (trsdos !== undefined) {
-                        for (const dirEntry of trsdos.dirEntries) {
-                            this.files.push(new TrsdosFile(trsdos, dirEntry));
-                        }
-                    } else {
-                        this.error = "Operating system of floppy is unrecognized.";
+            if (isFloppy(file)) {
+                const trsdos = decodeTrsdos(file);
+                if (trsdos !== undefined) {
+                    for (const dirEntry of trsdos.dirEntries) {
+                        this.files.push(new TrsdosFile(trsdos, dirEntry));
                     }
-                    break;
-
-                case "Cassette":
-                    let counter = 1;
-                    const name = path.parse(filename).name;
-                    for (const cassetteFile of file.files) {
-                        const cassetteFilename = name + "-T" + counter + getTrs80FileExtension(cassetteFile.file);
-                        this.files.push(new CasFile(cassetteFilename, cassetteFile));
-                        counter += 1;
-                    }
-                    break;
-
-                default:
-                    this.error = "This file type (" + file.className + ") does not have nested files.";
-                    break;
+                } else {
+                    this.error = "Operating system of floppy is unrecognized.";
+                }
+            } else if (file.className === "Cassette") {
+                let counter = 1;
+                const name = path.parse(filename).name;
+                for (const cassetteFile of file.files) {
+                    const cassetteFilename = name + "-T" + counter + getTrs80FileExtension(cassetteFile.file);
+                    this.files.push(new CasFile(cassetteFilename, cassetteFile));
+                    counter += 1;
+                }
+            } else {
+                this.error = "This file type (" + file.className + ") does not have nested files.";
             }
         }
     }
@@ -360,6 +352,18 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                 description = trs80File.error;
             } else {
                 description = trs80File.getDescription();
+
+                const GENERATE_BITCELLS_JS = false;
+                if (GENERATE_BITCELLS_JS && trs80File.className === "ScpFloppyDisk") {
+                    const bitcells = trs80File.tracks[1].revs[0].bitcells;
+                    const parts: string[] = [];
+                    parts.push("const bitcells = [\n");
+                    for (const bitcell of bitcells) {
+                        parts.push("    " + bitcell + ",\n");
+                    }
+                    parts.push("];\n");
+                    fs.writeFileSync("bitcells/bitcells.js", parts.join(""));
+                }
 
                 if (isFloppy(trs80File)) {
                     const trsdos = decodeTrsdos(trs80File);
@@ -779,6 +783,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                 case "Jv1FloppyDisk":
                 case "Jv3FloppyDisk":
                 case "DmkFloppyDisk":
+                case "ScpFloppyDisk":
                 case "Cassette":
                     console.log("Files of type \"" + infile.trs80File.getDescription + "\" are not yet supported");
                     process.exit(1);
@@ -906,6 +911,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                         case "Jv1FloppyDisk":
                         case "Jv3FloppyDisk":
                         case "DmkFloppyDisk":
+                        case "ScpFloppyDisk":
                         case "Cassette":
                             // Shouldn't happen, we split up archives.
                             console.log(`Can't put ${inFile.trs80File.getDescription()} into a ${outExt.toUpperCase()} file`);
@@ -1053,6 +1059,7 @@ function sectors(filename: string, showContents: boolean): void {
             const color = CHALK_FOR_LETTER[legendLetter] ?? chalk.reset;
             console.log("    " + color(legendLetter) + ": " + explanation);
         }
+        console.log("");
     }
 
     if (showContents) {
@@ -1414,7 +1421,7 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
 /**
  * Handle the "run" command.
  */
-function run(programFile: string | undefined, xray: boolean, config: Config) {
+function run(programFiles: string[], xray: boolean, config: Config) {
     // Size of screen.
     const WIDTH = 64;
     const HEIGHT = 16;
@@ -1561,7 +1568,7 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
                     }
 
                     // Replace non-ASCII.
-                    const ch = value < 32 || value >= 127 ? chalk.gray("?") : String.fromCodePoint(value);
+                    const ch = value === 128 ? " " : value < 32 || value >= 127 ? chalk.gray("?") : String.fromCodePoint(value);
 
                     // Draw at location.
                     this.vt100Control.moveTo(row + 1, col + 1);
@@ -1687,8 +1694,8 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
     }
 
     // Load file if specified.
-    let trs80File: Trs80File | undefined = undefined;
-    if (programFile !== undefined) {
+    const trs80Files: Trs80File[] = [];
+    for (const programFile of programFiles) {
         let buffer;
         try {
             buffer = fs.readFileSync(programFile);
@@ -1697,11 +1704,13 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
             return;
         }
 
-        trs80File = decodeTrs80File(buffer, programFile);
+        const trs80File = decodeTrs80File(buffer, programFile);
         if (trs80File.error !== undefined) {
             console.log(programFile + ": " + trs80File.error);
             return;
         }
+
+        trs80Files.push(trs80File);
     }
 
     let screen;
@@ -1720,8 +1729,18 @@ function run(programFile: string | undefined, xray: boolean, config: Config) {
     trs80.reset();
     trs80.start();
 
-    if (trs80File !== undefined) {
-        trs80.runTrs80File(trs80File);
+    if (trs80Files.length > 0) {
+        trs80.runTrs80File(trs80Files[0]);
+    }
+
+    // Mount floppies.
+    for (let i = 1; i < trs80Files.length; i++) {
+        const trs80File = trs80Files[i];
+        if (!isFloppy(trs80File)) {
+            console.log("Additional files must be floppies");
+            return;
+        }
+        trs80.loadFloppyDisk(trs80File, i);
     }
 
     if (xray) {
@@ -1977,14 +1996,14 @@ function main() {
             disasm(infile, org, entryPoints);
         });
     program
-        .command("run [program]")
+        .command("run [program...]")
         .description("run a TRS-80 emulator", {
             program: "optional program file to run"
         })
         .option("--xray", "run an xray debug server")
         .option("--model <model>", "which model (1, 3, 4), defaults to 3")
         .option("--level <level>", "which level (1 or 2), defaults to 2")
-        .action((program, options) => {
+        .action((programs, options) => {
             const modelName = options.model ?? "3";
             const levelName = options.level ?? "2";
 
@@ -2013,7 +2032,7 @@ function main() {
                 process.exit(1);
             }
 
-            run(program, options.xray, config);
+            run(programs, options.xray, config);
         });
     program
         .parse();
