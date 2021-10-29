@@ -36,6 +36,54 @@ export function numberToSide(n: number): Side {
 const FILL_BYTE = 0xE5;
 
 /**
+ * Info about the CRC of a particular chunk of bytes.
+ */
+export class CrcInfo {
+    /**
+     * CRC as written on the floppy.
+     */
+    public readonly written: number;
+
+    /**
+     * CRC as computed from the data.
+     */
+    public readonly computed: number;
+
+    constructor(written: number, computed: number) {
+        this.written = written;
+        this.computed = computed;
+    }
+
+    public valid(): boolean {
+        return this.written === this.computed;
+    }
+}
+
+/**
+ * Info about both sector CRCs (ID and data).
+ */
+export class SectorCrc {
+    /**
+     * CRC for the ID data (sector number, etc.).
+     */
+    public readonly idCrc: CrcInfo;
+
+    /**
+     * CRC for the sector data.
+     */
+    public readonly dataCrc: CrcInfo;
+
+    constructor(idCrc: CrcInfo, dataCrc: CrcInfo) {
+        this.idCrc = idCrc;
+        this.dataCrc = dataCrc;
+    }
+
+    public valid(): boolean {
+        return this.idCrc.valid() && this.dataCrc.valid();
+    }
+}
+
+/**
  * Data from a sector that was read from a disk.
  */
 export class SectorData {
@@ -51,9 +99,15 @@ export class SectorData {
     public deleted = false;
 
     /**
-     * Whether there was a CRC error when reading the physical disk.
+     * Whether there was a CRC error when reading the physical disk. Sometimes we only have this information
+     * without having the actual CRCs.
      */
     public crcError = false;
+
+    /**
+     * If available, the written and computed CRCs for the ID and the data.
+     */
+    public crc: SectorCrc | undefined;
 
     /**
      * Single or double density.

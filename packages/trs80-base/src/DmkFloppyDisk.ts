@@ -9,10 +9,11 @@
 import {toHexByte, toHexWord} from "z80-base";
 import {CRC_16_CCITT} from "./Crc16.js";
 import {
+    CrcInfo,
     Density,
     FloppyDisk,
     FloppyDiskGeometry,
-    numberToSide,
+    numberToSide, SectorCrc,
     SectorData,
     Side,
     TrackGeometryBuilder
@@ -336,9 +337,10 @@ export class DmkFloppyDisk extends FloppyDisk {
                         const begin = track.offset + sector.offset + sector.dataIndex;
                         const end = begin + sector.getLength();
                         const sectorData = new SectorData(this.binary.subarray(begin, end), sector.getDensity());
-                        sectorData.crcError =
-                            sector.getIdamCrc() !== sector.computeIdamCrc() ||
-                            sector.getDataCrc() !== sector.computeDataCrc();
+                        sectorData.crc = new SectorCrc(
+                            new CrcInfo(sector.getIdamCrc(), sector.computeIdamCrc()),
+                            new CrcInfo(sector.getDataCrc() ?? 0, sector.computeDataCrc() ?? 0));
+                        sectorData.crcError = !sectorData.crc.valid();
                         sectorData.deleted = sector.isDeleted();
                         // console.log(sectorData);
                         return sectorData;

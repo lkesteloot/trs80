@@ -4,12 +4,25 @@
  * https://www.cbmstuff.com/downloads/scp/scp_image_specs.txt
  */
 
-import {Density, FloppyDisk, FloppyDiskGeometry, SectorData, Side, TrackGeometryBuilder} from "./FloppyDisk.js";
+import {
+    CrcInfo,
+    Density,
+    FloppyDisk,
+    FloppyDiskGeometry,
+    SectorCrc,
+    SectorData,
+    Side,
+    TrackGeometryBuilder
+} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {CRC_16_CCITT} from "./Crc16.js";
 
 // Print extra debug stuff.
 const DEBUG = false;
+const DEBUG_VERBOSE = false;
+
+// Which REV to read.
+const DEFAULT_REV_NUMBER = 0;
 
 // Bit rate on floppy. I think this is a constant on all TRS-80 floppies.
 const BITRATE = 250000;
@@ -79,18 +92,18 @@ class ScpSector {
     }
 
     /**
-     * Get the CRC for the data bytes, or undefined if the sector has no data.
+     * Get the CRC for the data bytes.
      */
-    public getDataCrc(): number | undefined {
+    public getDataCrc(): number {
         // Big endian.
         const index = this.damIndex + 1 + this.getLength();
         return (this.binary[index] << 8) + this.binary[index + 1];
     }
 
     /**
-     * Compute the CRC for the data bytes, or undefined if the sector has no data.
+     * Compute the CRC for the data bytes.
      */
-    public computeDataCrc(): number | undefined {
+    public computeDataCrc(): number {
         let crc = 0xFFFF;
 
         const index = this.damIndex + 1;
@@ -197,7 +210,7 @@ export class ScpFloppyDisk extends FloppyDisk {
             for (const track of this.tracks) {
                 const builder = track.trackNumber === firstTrack ? firstTrackBuilder : lastTrackBuilder;
                 builder.updateSide(track.side);
-                for (const sector of track.revs[0].sectors) {
+                for (const sector of track.revs[DEFAULT_REV_NUMBER].sectors) {
                     builder.updateSector(sector.getSectorNumber());
                     builder.updateSectorSize(sector.getLength());
                     builder.updateDensity(sector.getDensity());
@@ -215,14 +228,15 @@ export class ScpFloppyDisk extends FloppyDisk {
     readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
         for (const track of this.tracks) {
             if (track.trackNumber === trackNumber && track.side === side) {
-                const rev = track.revs[0];
+                const rev = track.revs[DEFAULT_REV_NUMBER];
 
                 for (const sector of rev.sectors) {
                     if (sectorNumber === undefined || sector.getSectorNumber() === sectorNumber) {
                         const sectorData = new SectorData(sector.getData(), sector.getDensity());
-                        sectorData.crcError =
-                            sector.getIdamCrc() !== sector.computeIdamCrc() ||
-                            sector.getDataCrc() !== sector.computeDataCrc();
+                        sectorData.crc = new SectorCrc(
+                            new CrcInfo(sector.getIdamCrc(), sector.computeIdamCrc()),
+                            new CrcInfo(sector.getDataCrc(), sector.computeDataCrc()));
+                        sectorData.crcError = !sectorData.crc.valid();
                         sectorData.deleted = sector.isDeleted();
                         return sectorData;
                     }
@@ -295,10 +309,12 @@ function guessDensity(bitcells: Uint16Array, resolutionTimeNs: number): Density 
         counts[count] += 1;
     }
 
-    const min = bitcells.length/100;
+    // TODO this is really hard to guess. Arno's had values above 1000 for unwanted bins.
+    const min = 100; // bitcells.length/100;
     const high = counts.map(count => count > min);
 
     if (high[0] || high[1] || !high[2] || !high[4] || high.slice(5).indexOf(true) >= 0) {
+        if (DEBUG) console.log("SCP: Can't guess rev density", counts, high);
         return undefined;
     }
 
@@ -311,6 +327,7 @@ function guessDensity(bitcells: Uint16Array, resolutionTimeNs: number): Density 
 type ClockedData = {
     clock: number,
     data: number,
+    bitcellIndex: number,
 }
 
 /**
@@ -341,28 +358,28 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
         if (clockBit === 0 && dataBit === 0) {
             clock = (clock & 0xFE) | previousDataBit;
             if (previousDataBit === 0) {
-                if (DEBUG) console.log("MISSING CLOCK BIT");
+                if (DEBUG_VERBOSE) console.log("MISSING CLOCK BIT");
             }
         } else if (clockBit === 0 && dataBit === 1) {
             // Legit 1.
             clock |= 1;
         } else if (clockBit === 1 && dataBit === 0) {
             if (previousDataBit === 1) {
-                if (DEBUG) console.log("ERROR: 1/0 can't happen");
+                if (DEBUG_VERBOSE) console.log("ERROR: 1/0 can't happen");
             }
         } else if (clockBit === 1 && dataBit === 1) {
-            if (DEBUG) console.log("ERROR: 1/1 can't happen");
+            if (DEBUG_VERBOSE) console.log("ERROR: 1/1 can't happen");
         }
     }
 
     /**
      * Inject a clock or data bit into the stream.
      */
-    function injectBit(value: number) {
+    function injectBit(value: number, bitcellIndex: number): void {
         recent = (recent << 1) | value;
         if (density === Density.DOUBLE && (recent & 0x7FFF) === 0x4489) {
             // This is the 0xA1 data with the 0xFB clock.
-            if (DEBUG) console.log("MATCH SYNC", nextBitIsClock);
+            if (DEBUG_VERBOSE) console.log("MATCH SYNC", nextBitIsClock);
             clock = 0xFB;
             data = 0xA1;
             nextBitIsClock = true;
@@ -388,13 +405,13 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
             if (clock === 0xFB && data === 0xA1) {
                 // bytes.push({clock, data});
                 bitCount = 15;
-                if (DEBUG) console.log("Got address mark: " + data.toString(16).padStart(2, "0"));
+                if (DEBUG_VERBOSE) console.log("Got address mark: " + data.toString(16).padStart(2, "0"));
             }
         } else {
             if (clock === 0xC7 && (data === 0xFE || (data >= 0xF8 && data <= 0xFB))) {
                 // bytes.push({clock, data});
                 bitCount = 15;
-                if (DEBUG) console.log("Got address mark: " + data.toString(16).padStart(2, "0"));
+                if (DEBUG_VERBOSE) console.log("Got address mark: " + data.toString(16).padStart(2, "0"));
             }
         }
 
@@ -403,7 +420,7 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
             bitCount += 1;
             if (bitCount === 16) {
                 // console.log("Got byte: " + data.toString(16).padStart(2, "0"));
-                bytes.push({clock, data});
+                bytes.push({clock, data, bitcellIndex});
                 bitCount = 0;
             }
         }
@@ -420,17 +437,26 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
         }
     }
 
+    // Keep track of how much we're over from where we'd expect. This simulates a PLL so that if one bitcell
+    // is too long, we'll expect the next one a bit sooner.
+    let over = 0;
+
     // Handle pulses.
-    for (const bitcell of bitcells) {
+    for (let bitcellIndex = 0; bitcellIndex < bitcells.length; bitcellIndex++) {
+        const oldOver = over;
+        const bitcell = over + bitcells[bitcellIndex];
         const len = Math.round(bitcell / interval);
+        over = bitcell - len*interval;
+        over = Math.round(over * 0.60);
+        // console.log(oldOver + " + " + bitcells[bitcellIndex] + " = " + bitcell + ", len = " + len + ", over = " + over);
 
         // Skip too-short pulses.
         if (len > 0) {
             // Missing pulses are zeros.
             for (let i = 0; i < len - 1; i++) {
-                injectBit(0);
+                injectBit(0, bitcellIndex);
             }
-            injectBit(1);
+            injectBit(1, bitcellIndex);
         }
     }
 
@@ -440,9 +466,9 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
 /**
  * Parse one revolution of a track.
  */
-function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, resolutionTimeNs: number): ScpRev | undefined {
+function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, resolutionTimeNs: number, rev: number, trackNumber: number): ScpRev | undefined {
     if (revOffset + numBitcells*2 > binary.length) {
-        if (DEBUG) console.log("Rev runs off the end of the binary");
+        if (DEBUG) console.log("SCP: Rev runs off the end of the binary");
         return undefined;
     }
 
@@ -456,7 +482,6 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
     // See if we can guess the density from the distribution of pulse widths.
     const density = guessDensity(bitcells, resolutionTimeNs);
     if (density === undefined) {
-        if (DEBUG) console.log("Can't guess rev density");
         return undefined;
     }
 
@@ -493,6 +518,28 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
                     if (nextData >= 0xF8 && nextData <= 0xFB) {
                         if (idamIndex !== undefined) {
                             sectors.push(new ScpSector(trackBinary, idamIndex, i + 1, density));
+
+                            // TODO temporary code to detect bad clocks. Remove.
+                            for (let j = 0; j < 256; j++) {
+                                const clockedDatum = bytes[i + 1 + j];
+                                if (clockedDatum.clock !== 0xFF) {
+                                    console.log("Bad clock at index " + j + " of sector", rev, trackNumber);
+                                    let interval = 1e9/BITRATE/resolutionTimeNs;
+                                    if (density === Density.DOUBLE) {
+                                        // Double density is ... twice as dense.
+                                        interval /= 2;
+                                    }
+                                    for (let k = Math.max(0, clockedDatum.bitcellIndex - 20);
+                                             k < clockedDatum.bitcellIndex + 20; k++) {
+
+                                        const bitcell = bitcells[k];
+                                        const len = Math.round(bitcell / interval);
+                                        const delta = bitcell - len * interval;
+                                        console.log("    " + bitcell + " " + len + " " + delta + (k === clockedDatum.bitcellIndex ? " *" : ""));
+                                    }
+                                    break;
+                                }
+                            }
                         }
 
                         idamIndex = undefined;
@@ -531,9 +578,9 @@ function parseScpTrack(binary: Uint8Array, trackOffset: number, numRevolutions: 
 
         // console.log(scpTrackNumber, revDurationNs, 60e9/revDurationNs, numBitcells, revOffset);
 
-        const scpRev = parseRev(binary, revOffset, numBitcells, resolutionTimeNs);
+        const scpRev = parseRev(binary, revOffset, numBitcells, resolutionTimeNs, rev, trackNumber);
         if (scpRev === undefined) {
-            if (DEBUG) console.log("Can't parse rev " + rev + " for track");
+            if (DEBUG) console.log("SCP: Can't parse rev " + rev + " for track " + scpTrackNumber);
             return undefined;
         }
         revs.push(scpRev);
