@@ -38,6 +38,22 @@ enum TrsdosVersion {
 }
 
 /**
+ * Convert the enum to a string.
+ */
+function trsdosVersionToString(trsdosVersion: TrsdosVersion): string {
+    switch (trsdosVersion) {
+        case TrsdosVersion.MODEL_1:
+            return "Model I";
+
+        case TrsdosVersion.MODEL_3:
+            return "Model III";
+
+        case TrsdosVersion.MODEL_4:
+            return "Model 4";
+    }
+}
+
+/**
  * Represents the position of a directory entry.
  */
 class DirEntryPosition {
@@ -262,9 +278,9 @@ export class Trsdos14GatInfo extends TrsdosGatInfo {
 }
 
 /**
- * Converts a sector to a GAT object, or undefined if we don't think this is a GAT sector.
+ * Converts a sector to a GAT object, or a string with an error if we don't think this is a GAT sector.
  */
-function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosGatInfo | undefined {
+function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosGatInfo | string {
     // One byte for each track. Each bit is a granule, 0 means free and 1 means used.
     const gat = binary.subarray(0, geometry.numTracks());
 
@@ -277,9 +293,14 @@ function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
     const autoCommand = decodeAscii(binary.subarray(0xE0));
 
     // Implies that this is not a TRSDOS disk.
-    if (name === undefined || date === undefined || autoCommand === undefined) {
-        if (DEBUG) console.log("GAT: critical data is missing");
-        return undefined;
+    if (name === undefined) {
+        return "name is missing";
+    }
+    if (date === undefined) {
+        return "date is missing";
+    }
+    if (autoCommand === undefined) {
+        return "auto command is missing";
     }
 
     if (isModel3(version)) {
@@ -689,32 +710,29 @@ function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion, dirEntrie
 }
 
 /**
- * Decode a TRSDOS diskette for a particular version, or return undefined if this does not look like such a diskette.
+ * Decode a TRSDOS diskette for a particular version, or return an error string if this does
+ * not look like such a diskette.
  */
-export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos | undefined {
+export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos | string {
     const geometry = disk.getGeometry();
     const bootSector = disk.readSector(geometry.firstTrack.trackNumber,
         geometry.firstTrack.firstSide, geometry.firstTrack.firstSector);
     if (bootSector === undefined) {
-        if (DEBUG) console.log("Can't read boot sector");
-        return undefined;
+        return "Can't read boot sector";
     }
     let dirTrackNumber = bootSector.data[isModel3(version) ? 1 : 2] & 0x7F;
     if (!geometry.isValidTrackNumber(dirTrackNumber)) {
-        if (DEBUG) console.log("Bad dir track: " + dirTrackNumber);
-        return undefined;
+        return "Invalid directory track number (" + dirTrackNumber + ")";
     }
 
     // Decode Granule Allocation Table sector.
     const gatSector = disk.readSector(dirTrackNumber, geometry.lastTrack.firstSide, geometry.lastTrack.firstSector);
     if (gatSector === undefined) {
-        if (DEBUG) console.log("Can't read GAT sector");
-        return undefined;
+        return "Can't read GAT sector";
     }
     const gatInfo = decodeGatInfo(gatSector.data, geometry, version);
-    if (gatInfo === undefined) {
-        if (DEBUG) console.log("Can't decode GAT");
-        return undefined;
+    if (typeof gatInfo === "string") {
+        return "Can't decode GAT (" + gatInfo + ")";
     }
 
     const sideCount = geometry.lastTrack.numSides();
@@ -747,30 +765,25 @@ export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): T
     const dirEntriesPerSector = Math.floor(geometry.lastTrack.sectorSize / dirEntryLength);
 
     if (!gatInfo.isValid(granulesPerTrack, version)) {
-        if (DEBUG) console.log("GAT is invalid");
-        return undefined;
+        return "GAT is invalid";
     }
 
     const granulesPerCylinder = granulesPerTrack * sideCount;
     if (granulesPerCylinder < 2 || granulesPerCylinder > 8) {
-        if (DEBUG) console.log("Invalid number of granules per cylinder: " + granulesPerCylinder);
-        return undefined;
+        return "Invalid number of granules per cylinder: " + granulesPerCylinder;
     }
 
     if (sectorsPerTrack % granulesPerTrack !== 0) {
-        if (DEBUG) console.log(`Sectors per track ${sectorsPerTrack} is not a multiple of granules per track ${granulesPerTrack}`);
-        return undefined;
+        return `Sectors per track ${sectorsPerTrack} is not a multiple of granules per track ${granulesPerTrack}`;
     }
 
     if (!isModel3(version)) {
         if (geometry.lastTrack.density === Density.SINGLE && sectorsPerGranule !== 5 && sectorsPerGranule !== 8) {
-            if (DEBUG) console.log("Invalid sectors per granule for single density: " + sectorsPerGranule);
-            return undefined;
+            return "Invalid sectors per granule for single density: " + sectorsPerGranule;
         }
 
         if (geometry.lastTrack.density === Density.DOUBLE && sectorsPerGranule !== 6 && sectorsPerGranule !== 10) {
-            if (DEBUG) console.log("Invalid sectors per granule for double density: " + sectorsPerGranule);
-            return undefined;
+            return "Invalid sectors per granule for double density: " + sectorsPerGranule;
         }
     }
 
@@ -778,13 +791,11 @@ export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): T
     const hitSector = disk.readSector(dirTrackNumber, geometry.lastTrack.firstSide,
         geometry.lastTrack.firstSector + 1);
     if (hitSector === undefined) {
-        if (DEBUG) console.log("Can't read HIT sector");
-        return undefined;
+        return "Can't read HIT sector";
     }
     const hitInfo = decodeHitInfo(hitSector.data, geometry, version);
     if (hitInfo === undefined) {
-        if (DEBUG) console.log("Can't decode HIT");
-        return undefined;
+        return "Can't decode HIT";
     }
 
     // Map from position of directory entry to its actual entry. The key is the asKey() result
@@ -806,8 +817,7 @@ export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): T
                 if (isModel3(version)) {
                     const tandy = decodeAscii(dirSector.data.subarray(dirEntriesPerSector * dirEntryLength));
                     if (tandy !== EXPECTED_TANDY) {
-                        console.error(`Expected "${EXPECTED_TANDY}", got "${tandy}"`);
-                        return undefined;
+                        return `Expected "${EXPECTED_TANDY}", got "${tandy}"`;
                     }
                 }
                 for (let i = 0; i < dirEntriesPerSector; i++) {
@@ -847,15 +857,16 @@ export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): T
  */
 export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
     // Try each one in turn.
-    let trsdos = decodeTrsdosVersion(disk, TrsdosVersion.MODEL_4);
-    if (trsdos !== undefined) {
-        return trsdos;
+    const trsdosVersions = [TrsdosVersion.MODEL_4, TrsdosVersion.MODEL_3, TrsdosVersion.MODEL_1];
+    for (const trsdosVersion of trsdosVersions) {
+        let trsdos = decodeTrsdosVersion(disk, trsdosVersion);
+        if (typeof trsdos !== "string") {
+            return trsdos;
+        }
+        if (DEBUG) {
+            console.log("Can't decode as " + trsdosVersionToString(trsdosVersion) + " operating system: " + trsdos);
+        }
     }
 
-    trsdos = decodeTrsdosVersion(disk, TrsdosVersion.MODEL_3);
-    if (trsdos !== undefined) {
-        return trsdos;
-    }
-
-    return decodeTrsdosVersion(disk, TrsdosVersion.MODEL_1);
+    return undefined;
 }
