@@ -1076,6 +1076,23 @@ function sectors(filename: string, showContents: boolean): void {
                     } else {
                         header += (sector.density === Density.SINGLE ? "single" : "double") + " density" +
                             (sector.deleted ? ", marked as deleted" : "");
+
+                        if (sector.crcError) {
+                            header += ", CRC error";
+
+                            if (sector.crc !== undefined) {
+                                const parts: string[] = [];
+                                if (!sector.crc.idCrc.valid()) {
+                                    parts.push("ID " + toHexWord(sector.crc.idCrc.written) + " != " +
+                                        toHexWord(sector.crc.idCrc.computed));
+                                }
+                                if (!sector.crc.dataCrc.valid()) {
+                                    parts.push("data " + toHexWord(sector.crc.dataCrc.written) + " != " +
+                                        toHexWord(sector.crc.dataCrc.computed));
+                                }
+                                header += " (" + parts.join(", ") + ")";
+                            }
+                        }
                     }
                     console.log(header);
 
