@@ -1,5 +1,5 @@
 import {
-    CassettePlayer,
+    CassettePlayer, Config,
     Trs80
 } from "trs80-emulator";
 import {
@@ -306,7 +306,7 @@ export function main() {
     const soundPlayer = new WebSoundPlayer();
     const progressBar = new ProgressBar(screen.getNode());
     cassettePlayer.setProgressBar(progressBar);
-    const trs80 = new Trs80(screen, keyboard, cassettePlayer, soundPlayer);
+    const trs80 = new Trs80(Config.makeDefault(), screen, keyboard, cassettePlayer, soundPlayer);
     keyboard.configureKeyboard();
 
     const editor = new Editor(trs80, screen);
