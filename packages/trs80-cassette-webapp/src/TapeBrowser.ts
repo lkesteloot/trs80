@@ -2,7 +2,7 @@ import * as BasicRender from "./BasicRender";
 import * as SystemProgramRender from "./SystemProgramRender";
 import * as CmdProgramRender from "./CmdProgramRender";
 import * as Hexdump from "./Hexdump";
-import {CassettePlayer, Trs80} from "trs80-emulator";
+import {CassettePlayer, Config, Trs80} from "trs80-emulator";
 import {
     ControlPanel,
     CanvasScreen,
@@ -733,11 +733,12 @@ export class TapeBrowser {
         const screenDiv = document.createElement("div");
         div.appendChild(screenDiv);
 
+        const config = Config.makeDefault();
         const screen = new CanvasScreen();
         screenDiv.append(screen.getNode());
         const keyboard = new WebKeyboard();
         const soundPlayer = new WebSoundPlayer();
-        const trs80 = new Trs80(screen, keyboard, cassette ?? new EmptyCassette(), soundPlayer);
+        const trs80 = new Trs80(config, screen, keyboard, cassette ?? new EmptyCassette(), soundPlayer);
         keyboard.configureKeyboard();
 
         const reboot = () => {
