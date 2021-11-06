@@ -1430,7 +1430,7 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
     });
 
     server.listen(port, host, () => {
-        console.log(`Server is running on http://${host}:${port}`);
+        console.log(`Server is running on http://${host}:${port}?connect=${host}:${port}`);
     });
 }
 
