@@ -256,33 +256,53 @@ export class YourFilesTab extends PageTab {
                 return;
             }
             const files = uploadElement.files ?? [];
-            const openFilePanel = files.length === 1;
-            for (const f of files) {
-                f.arrayBuffer()
-                    .then(arrayBuffer => {
-                        const bytes = new Uint8Array(arrayBuffer);
-                        this.importFile(user.uid, f.name, bytes, openFilePanel);
-                    })
-                    .catch(error => {
-                        // TODO
-                        console.error(error);
-                    });
+
+            // SCP files have a special import panel.
+            const scpFileCount = Array.from(files).filter(f => f.name.toLowerCase().endsWith(".scp")).length;
+            if (scpFileCount > 0) {
+                if (scpFileCount > 1) {
+                    // TODO nice error message.
+                    console.log("Can't import more than one SCP file.");
+                    return;
+                }
+                if (files.length > 1) {
+                    // TODO nice error message.
+                    console.log("Can't import other files when importing SCP");
+                    return;
+                }
+                const f = files[0];
+                const { name, filename } = YourFilesTab.getNameAndFilename(f.name);
+                f.arrayBuffer().then(arrayBuffer => {
+                    const bytes = new Uint8Array(arrayBuffer);
+                    this.context.openScpPanel(name, filename, bytes);
+                 }).catch(error => {
+                    // TODO
+                    console.error(error);
+                });
+            } else {
+                const openFilePanel = files.length === 1;
+                for (const f of files) {
+                    f.arrayBuffer()
+                        .then(arrayBuffer => {
+                            const bytes = new Uint8Array(arrayBuffer);
+                            this.importFile(user.uid, f.name, bytes, openFilePanel);
+                        })
+                        .catch(error => {
+                            // TODO
+                            console.error(error);
+                        });
+                }
             }
         });
         uploadElement.click();
     }
 
     /**
-     * Add an uploaded file to our library.
-     * @param uid user ID.
-     * @param filename original filename from the user.
-     * @param binary raw binary of the file.
-     * @param openFilePanel whether to open the file panel for this file after importing it.
+     * Given the filename of an uploaded file, computes a nice default name and filename for the database.
      */
-    private importFile(uid: string, filename: string, binary: Uint8Array, openFilePanel: boolean): void {
-        let name = filename;
-
+    private static getNameAndFilename(filename: string): { name: string, filename: string } {
         // Remove extension.
+        let name = filename;
         const i = name.lastIndexOf(".");
         if (i > 0) {
             name = name.substr(0, i);
@@ -293,6 +313,19 @@ export class YourFilesTab extends PageTab {
 
         // All-caps for filename.
         filename = filename.toUpperCase();
+
+        return { name, filename };
+    }
+
+    /**
+     * Add an uploaded file to our library.
+     * @param uid user ID.
+     * @param origFilename original filename from the user.
+     * @param binary raw binary of the file.
+     * @param openFilePanel whether to open the file panel for this file after importing it.
+     */
+    private importFile(uid: string, origFilename: string, binary: Uint8Array, openFilePanel: boolean): void {
+        const { name, filename } = YourFilesTab.getNameAndFilename(origFilename);
 
         let file = new FileBuilder()
             .withUid(uid)

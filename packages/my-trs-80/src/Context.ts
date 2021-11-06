@@ -8,6 +8,7 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Database} from "./Database";
 import {FilePanel} from "./FilePanel";
 import {CasFileCassettePlayer} from "./Main";
+import {ScpPanel} from "./ScpPanel";
 
 // Exclamation marks are not allowed in DOM IDs, so this guarantees that it won't jump anywhere.
 const FRAGMENT_PREFIX = "#!";
@@ -91,6 +92,11 @@ export class Context {
     public openFilePanel(file: File): void {
         const filePanel = new FilePanel(this, file);
         this.panelManager.pushPanel(filePanel);
+    }
+
+    public openScpPanel(name: string, filename: string, bytes: Uint8Array): void {
+        const scpPanel = new ScpPanel(this, name, filename, bytes);
+        this.panelManager.pushPanel(scpPanel);
     }
 
     /**

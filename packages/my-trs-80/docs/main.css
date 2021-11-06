@@ -1314,3 +1314,67 @@ body.signed-out .trsdos .dir {
 .duplicates .edit.header {
     border-bottom: 1px solid var(--icon-color);
 }
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.scp-panel h1 {
+    grid-template-columns: auto 1fr auto;
+}
+
+.scp-tab {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto; /* contents and action-bar */
+}
+
+.scp-tab-outer {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.scp-tab-tile-container {
+    background-color: var(--background);
+    padding: var(--side-padding);
+    overflow-y: auto;
+}
+
+.scp-disk-tile .sector-table {
+    cursor: default;
+}
+
+.scp-disk-tile .sector-table th,
+.scp-disk-tile .sector-table td {
+    text-align: center;
+    width: 2em;
+}
+
+.scp-disk-tile .sector-table .selected {
+    background-color: var(--background-highlights);
+}
+
+.scp-disk-tile .sector-table .track-number,
+.scp-disk-tile .sector-table .sector-number {
+    font-weight: bold;
+}
+
+.scp-disk-tile .sector-table .sector-missing {
+    color: var(--foreground-secondary);
+}
+
+.scp-disk-tile .sector-table .sector-deleted {
+    color: var(--blue);
+}
+
+.scp-disk-tile .sector-table .sector-crc-error {
+    color: var(--red);
+}
+
+.scp-disk-tile .sector-table .sector-single,
+.scp-disk-tile .sector-table .sector-double {
+    /* Nothing */
+}
+
+.scp-disk-tile .sector-info-legend {
+    display: flex;
+    justify-content: space-evenly;
+    padding-top: 0.5em;
+}

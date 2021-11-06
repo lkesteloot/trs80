@@ -30,7 +30,7 @@ const BITRATE = 250000;
 /**
  * Data for a sector on a SCP floppy.
  */
-class ScpSector {
+export class ScpSector {
     public readonly binary: Uint8Array;
     public readonly idamIndex: number;
     public readonly damIndex: number;
@@ -125,14 +125,16 @@ class ScpSector {
 /**
  * Data for one revolution sample.
  */
-class ScpRev {
+export class ScpRev {
     public readonly bitcells: Uint16Array;
     public readonly binary: Uint8Array;
+    public readonly bytes: ClockedData[];
     public readonly sectors: ScpSector[];
 
-    constructor(bitcells: Uint16Array, binary: Uint8Array, sectors: ScpSector[]) {
+    constructor(bitcells: Uint16Array, binary: Uint8Array, bytes: ClockedData[], sectors: ScpSector[]) {
         this.bitcells = bitcells;
         this.binary = binary;
+        this.bytes = bytes;
         this.sectors = sectors;
     }
 
@@ -159,7 +161,7 @@ class ScpRev {
 /**
  * Everything we know about a track on an SCP disk.
  */
-class ScpTrack {
+export class ScpTrack {
     // Offset of start of track into binary.
     public readonly offset: number;
     public readonly trackNumber: number;
@@ -181,12 +183,14 @@ export class ScpFloppyDisk extends FloppyDisk {
     readonly className = "ScpFloppyDisk";
     private geometry: FloppyDiskGeometry | undefined = undefined;
     public readonly tracks: ScpTrack[];
+    public readonly resolutionTimeNs: number;
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
-                supportsDoubleDensity: boolean, tracks: ScpTrack[]) {
+                supportsDoubleDensity: boolean, tracks: ScpTrack[], resolutionTimeNs: number) {
 
         super(binary, error, annotations, supportsDoubleDensity);
         this.tracks = tracks;
+        this.resolutionTimeNs = resolutionTimeNs;
     }
 
     getDescription(): string {
@@ -327,6 +331,8 @@ function guessDensity(bitcells: Uint16Array, resolutionTimeNs: number): Density 
 type ClockedData = {
     clock: number,
     data: number,
+
+    // Index of the last bit of the byte.
     bitcellIndex: number,
 }
 
@@ -549,7 +555,7 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
         }
     }
 
-    return new ScpRev(bitcells, trackBinary, sectors);
+    return new ScpRev(bitcells, trackBinary, bytes, sectors);
 }
 
 /**
@@ -659,5 +665,5 @@ export function decodeScpFloppyDisk(binary: Uint8Array): ScpFloppyDisk | undefin
         }
     }
 
-    return new ScpFloppyDisk(binary, undefined, [], true, tracks);
+    return new ScpFloppyDisk(binary, undefined, [], true, tracks, resolutionTimeNs);
 }
