@@ -516,6 +516,51 @@ class ScpTrackTile {
                 ctx.fillRect(beginX, 0, endX - beginX, height);
             }
         }
+
+        // Find first and last bitcell displayed.
+        const leftNs = this.screenXToNs(0);
+        const rightNs = this.screenXToNs(this.canvas.width);
+        const leftIndex = this.findBitcellIndex(leftNs);
+        const rightIndex = this.findBitcellIndex(rightNs);
+
+        // Getting/putting ImageData is about 10x faster than using one-pixel fillRect().
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const imageWords = new Uint32Array(imageData.data.buffer);
+        const ns = this.cummulativeNs[leftIndex];
+        let x = this.nsToScreenX(ns);
+        const dx = this.zoom*this.scp.resolutionTimeNs;
+        for (let i = leftIndex; i <= rightIndex; i++) {
+            const bitcell = rev.bitcells[i];
+            const y = Math.round(this.canvas.height - bitcell*0.5); // TODO don't hard-code scale.
+
+            imageWords[y * width + Math.round(x)] = 0xFFFFFFFF;
+            x += bitcell*dx;
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Binary search to find the index of the bitcell corresponding to the time specified.
+     */
+    private findBitcellIndex(ns: number): number {
+        const find = (first: number, last: number): number => {
+            if (first >= last) {
+                return first;
+            }
+
+            const mid = Math.round((first + last)/2);
+            const midNs = this.cummulativeNs[mid];
+
+            if (ns === midNs) {
+                return mid;
+            } else if (ns < midNs) {
+                return find(first, mid - 1);
+            } else {
+                return find(mid + 1, last);
+            }
+        };
+
+        return find(0, this.cummulativeNs.length - 1);
     }
 
     /**
