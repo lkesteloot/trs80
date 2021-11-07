@@ -153,6 +153,36 @@ class DmkSector {
     }
 
     /**
+     * Get the data bytes of this sector, if available.
+     */
+    public getData(): Uint8Array | undefined {
+        if (this.dataIndex === undefined) {
+            return undefined;
+        }
+
+        const byteStride = this.getByteStride();
+        const length = this.getLength();
+
+        // Begin and end in actual bytes.
+        const begin = this.track.offset + this.offset + this.dataIndex*byteStride;
+        const end = begin + length*byteStride;
+
+        let bytes: Uint8Array;
+        if (byteStride === 1) {
+            // This is a view into the original array.
+            bytes = this.track.floppyDisk.binary.subarray(begin, end);
+        } else {
+            // Pick out the bytes.
+            bytes = new Uint8Array(length);
+            for (let i = 0; i < length; i++) {
+                bytes[i] = this.track.floppyDisk.binary[begin + i * byteStride];
+            }
+        }
+
+        return bytes;
+    }
+
+    /**
      * Get the CRC for the IDAM.
      */
     public getIdamCrc(): number {
@@ -360,15 +390,15 @@ export class DmkFloppyDisk extends FloppyDisk {
                     if (sectorNumber === undefined || (sector.getSectorNumber() === sectorNumber &&
                         sector.getSide() === side)) {
 
-                        if (sector.dataIndex === undefined) {
+                        // Pull out the actual data.
+                        const data = sector.getData();
+                        if (data === undefined) {
                             // Sector is missing data.
                             // console.log(`Track ${track.trackNumber} sector ${sector.getSectorNumber()} has no data`);
                             return undefined;
                         }
 
-                        const begin = track.offset + sector.offset + sector.dataIndex;
-                        const end = begin + sector.getLength();
-                        const sectorData = new SectorData(this.binary.subarray(begin, end), sector.getDensity());
+                        const sectorData = new SectorData(data, sector.getDensity());
                         sectorData.crc = new SectorCrc(
                             new CrcInfo(sector.getIdamCrc(), sector.computeIdamCrc()),
                             new CrcInfo(sector.getDataCrc() ?? 0, sector.computeDataCrc() ?? 0));
