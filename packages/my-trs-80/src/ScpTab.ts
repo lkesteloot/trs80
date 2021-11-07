@@ -93,6 +93,7 @@ class ScpDiskTile {
         selection.addListener(() => {
             this.update();
         });
+        this.update();
     }
 
     public update(): void {
@@ -218,7 +219,8 @@ class ScpTrackTile {
         this.configureCanvas();
 
         selection.addListener(() => this.syncWithSelection());
-        this.syncWithSelection();
+        // Let the canvas lay out before drawing.
+        setTimeout(() => this.syncWithSelection(), 0);
     }
 
     private syncWithSelection(): void {
@@ -617,8 +619,6 @@ export class ScpTab extends PageTab {
             this.diskTile.top,
             this.trackTile.top,
             this.sectorTile.top);
-
-        this.diskTile.update();
 
         const actionBar = document.createElement("div");
         actionBar.classList.add("action-bar");
