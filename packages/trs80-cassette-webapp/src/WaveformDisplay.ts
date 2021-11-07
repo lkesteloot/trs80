@@ -591,7 +591,7 @@ export class WaveformDisplay {
     private computeFitLevel(sampleCount: number): number {
         let zoom = Math.ceil(Math.log2(sampleCount / this.displayWidth));
         zoom = Math.max(zoom, 0);
-        zoom = Math.min(zoom, sampleCount - 1);
+        zoom = Math.min(zoom, sampleCount - 1); // TODO What?
         return zoom;
     }
 

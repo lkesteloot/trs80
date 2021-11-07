@@ -1,5 +1,5 @@
 import {PageTab} from "./PageTab";
-import {Density, numberToSide, ScpFloppyDisk, ScpSector, Side} from "trs80-base";
+import {Density, numberToSide, ScpFloppyDisk, ScpRev, ScpSector, Side} from "trs80-base";
 import {makeTextButton} from "./Utils";
 import {HtmlHexdumpGenerator} from "./HtmlHexdumpGenerator";
 import {clearElement} from "teamten-ts-utils";
@@ -40,13 +40,13 @@ type SelectionListener = (selection: Selection) => void;
  */
 class Selection {
     public trackNumber = 0;
-    public sectorNumber = 0;
+    public sectorNumber: number | undefined = undefined;
     private listeners: SelectionListener[] = [];
 
     /**
      * Update the selection.
      */
-    public set(trackNumber: number, sectorNumber: number): void {
+    public set(trackNumber: number, sectorNumber: number | undefined): void {
         this.trackNumber = trackNumber;
         this.sectorNumber = sectorNumber;
 
@@ -123,6 +123,7 @@ class ScpDiskTile {
             const th = document.createElement("th");
             th.classList.add("track-number");
             th.innerText = trackNumber.toString();
+            th.addEventListener("click", () => this.selection.set(trackNumber, undefined));
             row.append(th);
             for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
                 const sectorData = this.scp.readSector(trackNumber, side, sectorNumber);
@@ -146,7 +147,9 @@ class ScpDiskTile {
                 if (className !== undefined) {
                     td.classList.add(className);
                 }
-                if (trackNumber === this.selection.trackNumber && sectorNumber === this.selection.sectorNumber) {
+                if (trackNumber === this.selection.trackNumber &&
+                    (sectorNumber === this.selection.sectorNumber || this.selection.sectorNumber === undefined)) {
+
                     td.classList.add("selected");
                 }
                 td.innerText = text;
@@ -197,8 +200,9 @@ class ScpTrackTile {
     public readonly selection: Selection;
     public readonly top: HTMLElement;
     private readonly canvas: HTMLCanvasElement;
-    private zoom: number = 1000/1e9/0.200; // pixel = timeNs*zoom
+    private zoom = 1; // pixel = timeNs*zoom
     private centerTimeNs: number = 0;
+    private cummulativeNs = new Uint32Array(0);
 
     public constructor(scp: ScpFloppyDisk, selection: Selection) {
         this.scp = scp;
@@ -211,43 +215,82 @@ class ScpTrackTile {
         this.canvas.height = 200;
         this.top.append(this.canvas);
 
-        this.configureCanvas(this.canvas);
+        this.configureCanvas();
 
-        selection.addListener(() => this.update());
+        selection.addListener(() => this.syncWithSelection());
+        this.syncWithSelection();
     }
 
-    private configureCanvas(canvas: HTMLCanvasElement): void {
+    private syncWithSelection(): void {
+        const rev = this.getRev();
+
+        this.cummulativeNs = new Uint32Array(rev.bitcells.length + 1);
+        for (let i = 0; i < rev.bitcells.length; i++) {
+            this.cummulativeNs[i + 1] = this.cummulativeNs[i] + rev.bitcells[i]*this.scp.resolutionTimeNs;
+        }
+
+        if (this.selection.sectorNumber === undefined) {
+            this.zoomToFitAll();
+        } else {
+            const sector = rev.getSector(this.selection.sectorNumber);
+            const [beginIdNs, endIdNs] = this.getSectorIdSpan(rev, sector);
+            const [beginDataNs, endDataNs] = this.getSectorDataSpan(rev, sector);
+            this.zoomToFit(beginIdNs - 100000, endDataNs + 100000);
+        }
+
+        this.draw();
+    }
+
+    private configureCanvas(): void {
         let dragging = false;
+        let dragInitialX = 0;
+        let dragInitialCenterTimeNs = 0;
         let holdingShift = false;
         let holdingAlt = false;
         let inCanvas = false;
         let selectionAdjustMode = SelectionAdjustMode.CREATE;
+        let lastSeenMouseX = 0;
+        let lastSeenMouseY = 0;
 
         const updateCursor = () => {
-            canvas.style.cursor = holdingShift ? (holdingAlt ? "zoom-out" : "zoom-in")
+            this.canvas.style.cursor = holdingShift ? (holdingAlt ? "zoom-out" : "zoom-in")
                 : holdingAlt ? (selectionAdjustMode === SelectionAdjustMode.CREATE ? "auto" : "col-resize")
                     : dragging ? "grabbing"
                         : "grab";
         };
         updateCursor();
 
+        /*
         // See if we're on the edge of a sample selection area.
         const updateSelectionAdjustMode = () => {
             selectionAdjustMode = SelectionAdjustMode.CREATE;
             if (holdingAlt && this.selectionMode === SelectionMode.SAMPLES &&
                 this.startSampleSelectionFrame !== undefined && this.endSampleSelectionFrame !== undefined) {
 
-                const startX = this.originalFrameToScreenX(this.startSampleSelectionFrame);
+                const startX = this.nsToScreenX(this.startSampleSelectionFrame);
                 if (Math.abs(lastSeenMouseX - startX) < 4) {
                     selectionAdjustMode = SelectionAdjustMode.LEFT;
                 }
-                const endX = this.originalFrameToScreenX(this.endSampleSelectionFrame);
+                const endX = this.nsToScreenX(this.endSampleSelectionFrame);
                 if (Math.abs(lastSeenMouseX - endX) < 4) {
                     selectionAdjustMode = SelectionAdjustMode.RIGHT;
                 }
             }
             updateCursor();
         };
+         */
+
+        // Mouse enter/leave events.
+        this.canvas.addEventListener("mouseenter", event => {
+            inCanvas = true;
+            holdingAlt = event.altKey;
+            holdingShift = event.shiftKey;
+            // updateSelectionAdjustMode();
+            updateCursor();
+        });
+        this.canvas.addEventListener("mouseleave", () => {
+            inCanvas = false;
+        });
 
         // Mouse click events.
         this.canvas.addEventListener("mousedown", event => {
@@ -255,12 +298,71 @@ class ScpTrackTile {
                 // Zoom.
                 if (holdingAlt) {
                     // Zoom out.
-                    this.setZoom(this.zoom + 1, event.offsetX);
+                    this.setZoom(this.zoom/2, event.offsetX);
                 } else {
                     // Zoom in.
-                    this.setZoom(this.zoom - 1, event.offsetX);
+                    this.setZoom(this.zoom*2, event.offsetX);
                 }
+            } else {
+                // Start pan.
+                dragging = true;
+                dragInitialX = event.offsetX;
+                dragInitialCenterTimeNs = this.centerTimeNs;
+                updateCursor();
             }
+        });
+        this.canvas.addEventListener("mousemove", event => {
+            lastSeenMouseX = event.offsetX;
+            lastSeenMouseY = event.offsetY;
+
+            if (dragging) {
+                const dx = event.offsetX - dragInitialX;
+                this.centerTimeNs = dragInitialCenterTimeNs - dx/this.zoom;
+                this.draw();
+            }/* else if (selectionStart !== undefined) {
+                const frame = this.screenXToOriginalFrame(event.offsetX);
+                const highlight = this.highlightAt(frame);
+                if (highlight !== undefined && highlight.program === selectionStart.program) {
+                    this.onSelection.dispatch(new Highlight(highlight.program,
+                        selectionStart.firstIndex, highlight.lastIndex));
+                }
+            } else if (selectingSamples) {
+                this.endSampleSelectionFrame = this.screenXToOriginalFrame(event.offsetX);
+                this.draw();
+                this.updateInfoPanels();
+            } else if (holdingAlt) {
+                const frame = this.screenXToOriginalFrame(event.offsetX);
+                const highlight = this.highlightAt(frame);
+                this.onHighlight.dispatch(highlight);
+                updateSelectionAdjustMode();
+            }*/
+        });
+        window.addEventListener("mouseup", () => {
+            if (dragging) {
+                dragging = false;
+                updateCursor();
+            }/* else if (selectionStart !== undefined) {
+                this.onDoneSelecting.dispatch(this);
+                this.updateInfoPanels();
+                selectionStart = undefined;
+            } else if (selectingSamples) {
+                // Done selecting samples.
+                if (this.startSampleSelectionFrame !== undefined && this.endSampleSelectionFrame !== undefined) {
+                    if (this.startSampleSelectionFrame === this.endSampleSelectionFrame) {
+                        // Deselect.
+                        this.startSampleSelectionFrame = undefined;
+                        this.endSampleSelectionFrame = undefined;
+                    } else if (this.startSampleSelectionFrame > this.endSampleSelectionFrame) {
+                        // Put in the right order.
+                        const tmp = this.startSampleSelectionFrame;
+                        this.startSampleSelectionFrame = this.endSampleSelectionFrame;
+                        this.endSampleSelectionFrame = tmp;
+                    }
+                }
+                selectingSamples = false;
+                this.draw();
+                this.updateInfoPanels();
+            }*/
         });
 
         // Keyboard events.
@@ -268,7 +370,7 @@ class ScpTrackTile {
             if (inCanvas) {
                 if (event.key === "Alt") {
                     holdingAlt = true;
-                    updateSelectionAdjustMode();
+                    // updateSelectionAdjustMode();
                     updateCursor();
                 }
                 if (event.key === "Shift") {
@@ -281,7 +383,7 @@ class ScpTrackTile {
             if (inCanvas) {
                 if (event.key === "Alt") {
                     holdingAlt = false;
-                    updateSelectionAdjustMode();
+                    // updateSelectionAdjustMode();
                     updateCursor();
                 }
                 if (event.key === "Shift") {
@@ -292,7 +394,80 @@ class ScpTrackTile {
         });
     }
 
-    public update() {
+    /**
+     * Set the zoom level to a particular value.
+     *
+     * @param zoom new zoom level.
+     * @param screenX pixel to keep at the same place, or undefined to mean the horizontal center.
+     */
+    public setZoom(zoom: number, screenX: number | undefined): void {
+        if (zoom !== this.zoom) {
+            if (screenX === undefined) {
+                screenX = this.canvas.width / 2;
+            }
+
+            const ns = this.screenXToNs(screenX);
+            this.zoom = zoom;
+            this.centerTimeNs = ns - (screenX - this.canvas.width/2)/zoom;
+            this.draw();
+        }
+    }
+
+    /**
+     * Zoom to fit a time range.
+     */
+    public zoomToFit(startNs: number, endNs: number) {
+        const ns = endNs - startNs;
+
+        // Visually centered time.
+        this.centerTimeNs =(startNs + endNs)/2;
+
+        // Find appropriate zoom.
+        this.setZoom(this.computeFitLevel(ns), undefined);
+
+        this.draw();
+    }
+
+    /**
+     * Zoom to fit all time.
+     */
+    public zoomToFitAll() {
+        if (this.cummulativeNs.length !== 0) {
+            this.zoomToFit(0, this.cummulativeNs[this.cummulativeNs.length - 1]);
+        }
+    }
+
+    /**
+     * Compute fit level to fit the specified time.
+     *
+     * @param ns time we want to display.
+     */
+    private computeFitLevel(ns: number): number {
+        return this.canvas.width / ns;
+    }
+
+    /**
+     * Convert a screen (pixel) X location to the time into the revolution.
+     */
+    private screenXToNs(screenX: number): number {
+        // Offset in pixels from center of canvas.
+        const pixelOffset = screenX - this.canvas.width/2;
+
+        // Convert to time.
+        return this.centerTimeNs + pixelOffset/this.zoom;
+    }
+
+    /**
+     * Convert a time into the revolution to its X coordinate. Does not clamp to display range.
+     */
+    private nsToScreenX(ns: number): number {
+        return this.canvas.width/2 + (ns - this.centerTimeNs)*this.zoom;
+    }
+
+    /**
+     * Redraw the canvas.
+     */
+    public draw() {
         const canvas = this.canvas;
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
         const width = canvas.width;
@@ -314,25 +489,60 @@ class ScpTrackTile {
         ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, width, height);
 
-        const track = this.scp.tracks[this.selection.trackNumber];
-
-        const rev = track.revs[0];
-        const cummulativeNs = new Uint32Array(rev.bitcells.length + 1);
-        for (let i = 0; i < rev.bitcells.length; i++) {
-            cummulativeNs[i + 1] = cummulativeNs[i] + rev.bitcells[i]*this.scp.resolutionTimeNs;
-        }
+        const rev = this.getRev();
 
         for (const sector of rev.sectors) {
-            const beginBitcellIndex = rev.bytes[sector.idamIndex].bitcellIndex;
-            const endBitcellIndex = rev.bytes[sector.damIndex + 256].bitcellIndex;
+            // Draw the ID.
+            {
+                const [beginNs, endNs] = this.getSectorIdSpan(rev, sector);
+                const beginX = this.nsToScreenX(beginNs);
+                const endX = this.nsToScreenX(endNs);
+                ctx.fillStyle = sector.hasIdCrcError() ? badColor : waveformColor;
+                ctx.fillRect(beginX, 0, endX - beginX, height);
+            }
 
-            const beginNs = cummulativeNs[beginBitcellIndex];
-            const endNs = cummulativeNs[endBitcellIndex];
-            console.log(sector.getSectorNumber(), beginNs, endNs);
-
-            ctx.fillStyle = waveformColor;
-            ctx.fillRect(beginNs*this.zoom, 0, (endNs - beginNs)*this.zoom, height);
+            // Draw the data.
+            {
+                const [beginNs, endNs] = this.getSectorDataSpan(rev, sector);
+                const beginX = this.nsToScreenX(beginNs);
+                const endX = this.nsToScreenX(endNs);
+                ctx.fillStyle = sector.hasDataCrcError() ? badColor : waveformColor;
+                ctx.fillRect(beginX, 0, endX - beginX, height);
+            }
         }
+    }
+
+    /**
+     * Gets the time span of a sector's ID info.
+     */
+    private getSectorIdSpan(rev: ScpRev, sector: ScpSector): [beginNs: number, endNs: number] {
+        const beginBitcellIndex = rev.bytes[sector.idamIndex].bitcellIndex;
+        const endBitcellIndex = rev.bytes[sector.idamIndex + 7].bitcellIndex; // CRC is +5 and +6.
+
+        const beginNs = this.cummulativeNs[beginBitcellIndex];
+        const endNs = this.cummulativeNs[endBitcellIndex];
+
+        return [beginNs, endNs];
+    }
+
+    /**
+     * Gets the time span of a sector's data info.
+     */
+    private getSectorDataSpan(rev: ScpRev, sector: ScpSector): [beginNs: number, endNs: number] {
+        const beginBitcellIndex = rev.bytes[sector.damIndex].bitcellIndex;
+        const endBitcellIndex = rev.bytes[sector.damIndex + 256].bitcellIndex;
+
+        const beginNs = this.cummulativeNs[beginBitcellIndex];
+        const endNs = this.cummulativeNs[endBitcellIndex];
+
+        return [beginNs, endNs];
+    }
+
+    /**
+     * Get the rev to display.
+     */
+    private getRev(): ScpRev {
+        return this.scp.tracks[this.selection.trackNumber].revs[0];
     }
 }
 
@@ -351,15 +561,21 @@ class ScpSectorTile {
         this.top.classList.add("scp-sector-tile", "hexdump");
 
         selection.addListener(() => {
-            this.update(scp.tracks[selection.trackNumber].revs[0].sectors[selection.sectorNumber]);
+            if (selection.sectorNumber === undefined) {
+                this.update(undefined);
+            } else {
+                this.update(scp.tracks[selection.trackNumber].revs[0].getSector(selection.sectorNumber));
+            }
         });
     }
 
-    public update(sector: ScpSector) {
+    public update(sector: ScpSector | undefined) {
         clearElement(this.top);
 
-        const hexdumpGenerator = new HtmlHexdumpGenerator(sector.getData(), false, []);
-        this.top.append(... hexdumpGenerator.generate());
+        if (sector !== undefined) {
+            const hexdumpGenerator = new HtmlHexdumpGenerator(sector.getData(), false, []);
+            this.top.append(...hexdumpGenerator.generate());
+        }
     }
 }
 

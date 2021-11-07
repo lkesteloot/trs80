@@ -35,6 +35,8 @@ export class ScpSector {
     public readonly idamIndex: number;
     public readonly damIndex: number;
     public readonly density: Density;
+    private idCrcError: boolean | undefined = undefined;
+    private dataCrcError: boolean | undefined = undefined;
 
     constructor(binary: Uint8Array, idamIndex: number, damIndex: number, density: Density) {
         this.binary = binary;
@@ -117,6 +119,35 @@ export class ScpSector {
         return crc;
     }
 
+    /**
+     * Whether this sector has a CRC error in the ID.
+     */
+    public hasIdCrcError(): boolean {
+        if (this.idCrcError === undefined) {
+            this.idCrcError = this.getIdamCrc() !== this.computeIdamCrc();
+        }
+
+        return this.idCrcError;
+    }
+
+    /**
+     * Whether this sector has a CRC error in the data.
+     */
+    public hasDataCrcError(): boolean {
+        if (this.dataCrcError === undefined) {
+            this.dataCrcError = this.getDataCrc() !== this.computeDataCrc();
+        }
+
+        return this.dataCrcError;
+    }
+
+    /**
+     * Whether this sector has a CRC error in either the ID or data.
+     */
+    public hasCrcError(): boolean {
+        return this.hasIdCrcError() || this.hasDataCrcError();
+    }
+
     public getData(): Uint8Array {
         return this.binary.subarray(this.damIndex + 1, this.damIndex + 1 + this.getLength());
     }
@@ -155,6 +186,19 @@ export class ScpRev {
         }
 
         return trackNumber;
+    }
+
+    /**
+     * Get a sector by sector number, or undefined if not found.
+     */
+    public getSector(sectorNumber: number): ScpSector | undefined {
+        for (const sector of this.sectors) {
+            if (sector.getSectorNumber() === sectorNumber) {
+                return sector;
+            }
+        }
+
+        return undefined;
     }
 }
 
