@@ -268,10 +268,10 @@ The `help` command shows more specific information about other commands:
 
 # Change log
 
-## ?
+## 2.3.0
 
 * Add support for TRSDOS for Model I and 4, and for LDOS.
-* Add `run` command (experimental).
+* Add `run` command.
 * Add `asm` command.
 * Add support for SCP SuperCard Pro raw flux floppy format.
 

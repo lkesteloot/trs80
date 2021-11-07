@@ -1,6 +1,6 @@
 {
   "name": "trs80-cassette-webapp",
-  "version": "2.2.3",
+  "version": "2.3.0",
   "private": true,
   "description": "Web app to process TRS-80 cassettes and clean them up.",
   "main": "index.js",
@@ -27,13 +27,13 @@
     "split.js": "^1.5.11",
     "strongly-typed-events": "^1.6.7",
     "teamten-ts-utils": "^1.0.3",
-    "trs80-base": "^2.2.0",
-    "trs80-cassette": "^2.2.3",
-    "trs80-disasm": "^2.2.3",
-    "trs80-emulator": "^2.2.0",
-    "trs80-emulator-web": "^2.2.3",
+    "trs80-base": "^2.3.0",
+    "trs80-cassette": "^2.3.0",
+    "trs80-disasm": "^2.3.0",
+    "trs80-emulator": "^2.3.0",
+    "trs80-emulator-web": "^2.3.0",
     "z80-base": "^2.0.1",
     "z80-disasm": "^2.2.3",
-    "z80-emulator": "^2.0.1"
+    "z80-emulator": "^2.3.0"
   }
 }

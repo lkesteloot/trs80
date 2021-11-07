@@ -13,15 +13,51 @@ import {
     Density,
     FloppyDisk,
     FloppyDiskGeometry,
-    numberToSide, SectorCrc,
+    numberToSide,
+    SectorCrc,
     SectorData,
     Side,
     TrackGeometryBuilder
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
+const DEBUG = false;
+
 const FILE_HEADER_SIZE = 16;
 const TRACK_HEADER_SIZE = 128;
+const MAX_TRACKS = 160;
+const MAX_TRACK_LENGTH = 0x2940;
+
+/**
+ * Info about a sector offset from a track header.
+ */
+interface SectorOffset {
+    // Offset from track header.
+    offset: number;
+
+    // Sector density.
+    density: Density;
+}
+
+/**
+ * Get the sector offset and density info from a track header.
+ *
+ * @param binary the whole floppy.
+ * @param trackHeader index into binary of track header.
+ * @param sectorIndex index of sector (0-based).
+ */
+function getSectorInfo(binary: Uint8Array, trackHeader: number, sectorIndex: number): undefined | SectorOffset {
+    const sectorOffset = binary[trackHeader + sectorIndex*2] + (binary[trackHeader + sectorIndex*2 + 1] << 8);
+    if (sectorOffset === 0) {
+        return undefined;
+    }
+
+    const doubleDensity = (sectorOffset & 0x8000) !== 0;
+    return {
+        offset: sectorOffset & 0x7FFF,
+        density: doubleDensity ? Density.DOUBLE : Density.SINGLE,
+    };
+}
 
 /**
  * Represents a single sector on a DMK floppy.
@@ -34,7 +70,7 @@ class DmkSector {
     /**
      * Whether this sector is stored in double-density format.
      */
-    public readonly doubleDensity: boolean;
+    public readonly density: Density;
     /**
      * Use a byte stride of 1 even in single density mode.
      */
@@ -48,9 +84,9 @@ class DmkSector {
      */
     public readonly dataIndex: number | undefined;
 
-    constructor(track: DmkTrack, doubleDensity: boolean, alwaysUseStride1: boolean, offset: number) {
+    constructor(track: DmkTrack, density: Density, alwaysUseStride1: boolean, offset: number) {
         this.track = track;
-        this.doubleDensity = doubleDensity;
+        this.density = density;
         this.alwaysUseStride1 = alwaysUseStride1;
         this.offset = offset;
         this.dataIndex = this.findDataIndex();
@@ -102,7 +138,7 @@ class DmkSector {
      * Get the density of the sector.
      */
     public getDensity(): Density {
-        return this.doubleDensity ? Density.DOUBLE : Density.SINGLE;
+        return this.density;
     }
 
     /**
@@ -110,7 +146,7 @@ class DmkSector {
      * sector. If 2, then every byte in the original disk appears twice in a row.
      */
     public getByteStride(): number {
-        return this.doubleDensity || this.alwaysUseStride1 ? 1 : 2;
+        return this.density === Density.DOUBLE || this.alwaysUseStride1 ? 1 : 2;
     }
 
     /**
@@ -118,6 +154,36 @@ class DmkSector {
      */
     public hasData(): boolean {
         return this.dataIndex !== undefined;
+    }
+
+    /**
+     * Get the data bytes of this sector, if available.
+     */
+    public getData(): Uint8Array | undefined {
+        if (this.dataIndex === undefined) {
+            return undefined;
+        }
+
+        const byteStride = this.getByteStride();
+        const length = this.getLength();
+
+        // Begin and end in actual bytes.
+        const begin = this.track.offset + this.offset + this.dataIndex*byteStride;
+        const end = begin + length*byteStride;
+
+        let bytes: Uint8Array;
+        if (byteStride === 1) {
+            // This is a view into the original array.
+            bytes = this.track.floppyDisk.binary.subarray(begin, end);
+        } else {
+            // Pick out the bytes.
+            bytes = new Uint8Array(length);
+            for (let i = 0; i < length; i++) {
+                bytes[i] = this.track.floppyDisk.binary[begin + i * byteStride];
+            }
+        }
+
+        return bytes;
     }
 
     /**
@@ -135,7 +201,7 @@ class DmkSector {
         let crc = 0xFFFF;
 
         // For double density, include the three 0xA1 bytes preceding the IDAM.
-        const begin = this.doubleDensity ? -3 : 0;
+        const begin = this.density === Density.DOUBLE ? -3 : 0;
 
         for (let i = begin; i < 5; i++) {
             crc = CRC_16_CCITT.update(crc, this.getByte(i));
@@ -169,7 +235,7 @@ class DmkSector {
 
         const index = this.dataIndex;
         // For double density, include the preceding three 0xA1 bytes.
-        const begin = this.doubleDensity ? index - 4 : index - 1;
+        const begin = this.density === Density.DOUBLE ? index - 4 : index - 1;
         const end = index + this.getLength();
         for (let i = begin; i < end; i++) {
             crc = CRC_16_CCITT.update(crc, this.getByte(i));
@@ -321,22 +387,22 @@ export class DmkFloppyDisk extends FloppyDisk {
     public readSector(trackNumber: number, side: Side,
                       sectorNumber: number | undefined): SectorData | undefined {
 
-        // console.log(`readSector(${trackNumber}, ${sectorNumber}, ${side})`);
+        // console.log(`DMK: Reading sector ${trackNumber}:${side}:${sectorNumber}`);
         for (const track of this.tracks) {
             if (track.trackNumber === trackNumber && track.side === side) {
                 for (const sector of track.sectors) {
                     if (sectorNumber === undefined || (sector.getSectorNumber() === sectorNumber &&
                         sector.getSide() === side)) {
 
-                        if (sector.dataIndex === undefined) {
+                        // Pull out the actual data.
+                        const data = sector.getData();
+                        if (data === undefined) {
                             // Sector is missing data.
-                            // console.log(`Track ${track.trackNumber} sector ${sector.getSectorNumber()} has no data`);
+                            if (DEBUG) console.log(`Track ${trackNumber} side ${side} sector ${sectorNumber} has no data`);
                             return undefined;
                         }
 
-                        const begin = track.offset + sector.offset + sector.dataIndex;
-                        const end = begin + sector.getLength();
-                        const sectorData = new SectorData(this.binary.subarray(begin, end), sector.getDensity());
+                        const sectorData = new SectorData(data, sector.getDensity());
                         sectorData.crc = new SectorCrc(
                             new CrcInfo(sector.getIdamCrc(), sector.computeIdamCrc()),
                             new CrcInfo(sector.getDataCrc() ?? 0, sector.computeDataCrc() ?? 0));
@@ -349,6 +415,7 @@ export class DmkFloppyDisk extends FloppyDisk {
             }
         }
 
+        if (DEBUG) console.log(`Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
         return undefined;
     }
 }
@@ -359,13 +426,10 @@ export class DmkFloppyDisk extends FloppyDisk {
  * @param trackHeader index of track header.
  */
 function trackIsSingleDensity(binary: Uint8Array, trackHeader: number): boolean {
-    for (let i = 0; i < TRACK_HEADER_SIZE; i += 2) {
-        const sectorOffset = binary[trackHeader + i] + (binary[trackHeader + i + 1] << 8);
-        if (sectorOffset !== 0) {
-            const doubleDensity = (sectorOffset & 0x8000) !== 0;
-            if (doubleDensity) {
-                return false;
-            }
+    for (let sectorIndex = 0; sectorIndex < TRACK_HEADER_SIZE/2; sectorIndex++) {
+        const sectorInfo = getSectorInfo(binary, trackHeader, sectorIndex);
+        if (sectorInfo !== undefined && sectorInfo.density === Density.DOUBLE) {
+            return false;
         }
     }
 
@@ -396,6 +460,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const annotations: ProgramAnnotation[] = [];
 
     if (binary.length < FILE_HEADER_SIZE) {
+        if (DEBUG) console.log("DMK: File too short (" + binary.length + " < " + FILE_HEADER_SIZE + ")");
         return undefined;
     }
 
@@ -404,6 +469,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // [DMK] If this byte is set to FFH the disk is `write protected', 00H allows writing.
     const writeProtected = binary[0] === 0xFF;
     if (binary[0] !== 0x00 && binary[0] !== 0xFF) {
+        if (DEBUG) console.log("DMK: First byte not 0x00 or 0xFF (0x" + toHexByte(binary[0]) + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(writeProtected ? "Write protected" : "Writable",
@@ -424,8 +490,9 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // [DMK] Note: This field should NEVER be modified. Changing this number will cause TRS-80
     // operating system disk errors. (Like reading an 80 track disk in a 40 track drive)
     const trackCount = binary[1];
-    if (trackCount > 160) {
+    if (trackCount > MAX_TRACKS) {
         // Not sure what a reasonable maximum is. I've only seen 80.
+        if (DEBUG) console.log("DMK: Too many tracks (" + trackCount + " > " + MAX_TRACKS + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(trackCount + " tracks", 1, 2));
@@ -449,7 +516,8 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // Nothing in the PC world can be messed up by improper modification but any other virtual disk mounted
     // in the emulator with an improperly modified disk could have their data scrambled.
     const trackLength = binary[2] + (binary[3] << 8);
-    if (trackLength > 0x2940) {
+    if (trackLength > MAX_TRACK_LENGTH) {
+        if (DEBUG) console.log("DMK: Track length too long (" + trackLength + " > " + MAX_TRACK_LENGTH + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(trackLength + " bytes per track", 2, 4));
@@ -497,15 +565,15 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // Sanity check.
     const sideCount = singleSided ? 1 : 2;
     const expectedLength = FILE_HEADER_SIZE + sideCount*trackCount*trackLength;
-    if (binary.length !== expectedLength) {
-        // console.error(`DMK file wrong size (${binary.length} != ${expectedLength})`);
+    if (binary.length < expectedLength) {
+        if (DEBUG) console.log(`DMK: File too short (${binary.length} < ${expectedLength} == ${FILE_HEADER_SIZE} + ${sideCount}*${trackCount}*${trackLength})`);
         return undefined;
     }
 
     // Check that these are zero.
     for (let i = 5; i < 12; i++) {
         if (binary[i] !== 0x00) {
-            console.error("DMK: Reserved byte " + i + " is not zero: 0x" + toHexByte(binary[i]));
+            if (DEBUG) console.log("DMK: Reserved byte " + i + " is not zero: 0x" + toHexByte(binary[i]));
             return undefined;
         }
     }
@@ -516,6 +584,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // [DMK] Must be 12345678h if virtual disk is a REAL disk specification file used to access
     // REAL TRS-80 floppies in compatible PC drives.
     if (binary[12] + binary[13] + binary[14] + binary[15] !== 0x00) {
+        if (DEBUG) console.log("DMK: Bytes 12 through 15 are not zero");
         return undefined;
     }
     annotations.push(new ProgramAnnotation("Virtual disk", 12, 16));
@@ -530,11 +599,23 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     for (let trackNumber = 0; !alwaysUseStride1 && trackNumber < trackCount; trackNumber++) {
         for (let side = 0; !alwaysUseStride1 && side < sideCount; side++) {
             const trackOffset = binaryOffset;
-            if (trackIsSingleDensity(binary, trackOffset) &&
-                !allBytesDoubled(binary, trackOffset + TRACK_HEADER_SIZE, trackOffset + trackLength)) {
+            if (trackIsSingleDensity(binary, trackOffset)) {
+                for (let sectorIndex = 0; !alwaysUseStride1 && sectorIndex < TRACK_HEADER_SIZE/2; sectorIndex++) {
+                    const sectorInfo = getSectorInfo(binary, trackOffset, sectorIndex);
+                    if (sectorInfo !== undefined) {
+                        if (sectorInfo.density === Density.DOUBLE) {
+                            throw new Error("Found double-density sector in all-single track");
+                        }
 
-                // console.log("Overriding allBytesDoubled", trackNumber, side);
-                alwaysUseStride1 = true;
+                        const sectorOffset = trackOffset + sectorInfo.offset;
+
+                        // Test a handful of bytes, including ID and probably some data.
+                        if (!allBytesDoubled(binary, sectorOffset, sectorOffset + 128)) {
+                            // console.log("Overriding allBytesDoubled", trackNumber, side);
+                            alwaysUseStride1 = true;
+                        }
+                    }
+                }
             }
             binaryOffset += trackLength;
         }
@@ -575,12 +656,10 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
             // currently undefined. These bits must be masked to get the actual sector offset. For example,
             // an offset to an IDAM at byte 90h would be 0090h if single density and 8090h if double density.
 
-            for (let i = 0; i < TRACK_HEADER_SIZE; i += 2) {
-                const sectorOffset = binary[trackOffset + i] + (binary[trackOffset + i + 1] << 8);
-                if (sectorOffset !== 0) {
-                    const offset = sectorOffset & 0x3FFF;
-                    const doubleDensity = (sectorOffset & 0x8000) !== 0;
-                    track.sectors.push(new DmkSector(track, doubleDensity, alwaysUseStride1, offset));
+            for (let sectorIndex = 0; sectorIndex < TRACK_HEADER_SIZE/2; sectorIndex++) {
+                const sectorInfo = getSectorInfo(binary, trackOffset, sectorIndex);
+                if (sectorInfo !== undefined) {
+                    track.sectors.push(new DmkSector(track, sectorInfo.density, alwaysUseStride1, sectorInfo.offset));
                 }
             }
             annotations.push(new ProgramAnnotation(`Track ${trackNumber} header`,
@@ -591,7 +670,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                 const byteStride = sector.getByteStride();
 
                 annotations.push(new ProgramAnnotation("Sector ID access mark (" +
-                    (sector.doubleDensity ? "double" : "single") + " density)",
+                    (sector.density === Density.DOUBLE ? "double" : "single") + " density)",
                     i, i + byteStride));
                 i += byteStride;
 

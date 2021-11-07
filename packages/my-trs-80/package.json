@@ -1,6 +1,6 @@
 {
   "name": "my-trs-80",
-  "version": "2.2.3",
+  "version": "2.3.0",
   "private": true,
   "description": "TRS-80 emulator website",
   "main": "index.js",
@@ -29,13 +29,13 @@
     "lodash": "^4.17.20",
     "strongly-typed-events": "^1.7.3",
     "teamten-ts-utils": "^1.0.0",
-    "trs80-base": "^2.2.0",
-    "trs80-cassette": "^2.2.3",
-    "trs80-disasm": "^2.2.3",
-    "trs80-emulator": "^2.2.0",
-    "trs80-emulator-web": "^2.2.3",
+    "trs80-base": "^2.3.0",
+    "trs80-cassette": "^2.3.0",
+    "trs80-disasm": "^2.3.0",
+    "trs80-emulator": "^2.3.0",
+    "trs80-emulator-web": "^2.3.0",
     "z80-base": "^2.0.1",
     "z80-disasm": "^2.2.3",
-    "z80-emulator": "^2.0.1"
+    "z80-emulator": "^2.3.0"
   }
 }

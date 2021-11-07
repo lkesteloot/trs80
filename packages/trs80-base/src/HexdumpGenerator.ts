@@ -188,9 +188,8 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
 
                     // Draw vertical ellipsis.
                     if (annotation.text !== "" && addr !== beginAddr) {
-                        // textContent doesn't trigger a reflow. Don't use innerText, which does.
                         const lineText = this.getLineText(line);
-                        const width = addrDigits + STRIDE*4 + 9;
+                        const width = addrDigits + STRIDE*4 + 10;
                         const label = String.fromCodePoint(VERTICAL_ELLIPSIS).padStart(width - lineText.length, " ");
                         this.newSpan(line, label, "annotation");
                     }
@@ -256,7 +255,8 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
             if (subAddr < beginAddr || subAddr >= endAddr) {
                 cssClass.push("outside-annotation");
             }
-            addText(toHexByte(binary[subAddr]) + " ", ...cssClass);
+            const halfWay = subAddr == addr + STRIDE/2 - 1;
+            addText(toHexByte(binary[subAddr]) + (halfWay ? "  " : " "), ...cssClass);
         }
         addText("".padStart((addr + STRIDE - subAddr) * 3 + 2, " "), "hex");
 

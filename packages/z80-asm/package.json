@@ -1,6 +1,6 @@
 {
   "name": "z80-asm",
-  "version": "2.2.3",
+  "version": "2.3.0",
   "description": "Z80 assembler in TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

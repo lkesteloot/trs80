@@ -1430,7 +1430,7 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
     });
 
     server.listen(port, host, () => {
-        console.log(`Server is running on http://${host}:${port}`);
+        console.log(`Server is running on http://${host}:${port}?connect=${host}:${port}`);
     });
 }
 
@@ -1585,7 +1585,11 @@ function run(programFiles: string[], xray: boolean, config: Config) {
                     }
 
                     // Replace non-ASCII.
-                    const ch = value === 128 ? " " : value < 32 || value >= 127 ? chalk.gray("?") : String.fromCodePoint(value);
+                    const ch = value >= 128 && value <= 191
+                        ? TtyScreen.trs80ToBraille(value)
+                        : value < 32 || value >= 127
+                            ? chalk.gray("?")
+                            : String.fromCodePoint(value);
 
                     // Draw at location.
                     this.vt100Control.moveTo(row + 1, col + 1);
@@ -1645,6 +1649,27 @@ function run(programFiles: string[], xray: boolean, config: Config) {
 
             // Adjust for frame.
             this.vt100Control.moveTo(row + 1, col + 1);
+        }
+
+        /**
+         * Convert a TRS-80 graphics character to a braille character with
+         * the same pattern.
+         */
+        private static trs80ToBraille(ch: number): string {
+            // Remap to 0-63.
+            ch -= 128;
+
+            // Remap bits.
+            const ul = (ch >> 0) & 0x01;
+            const ur = (ch >> 1) & 0x01;
+            const cl = (ch >> 2) & 0x01;
+            const cr = (ch >> 3) & 0x01;
+            const ll = (ch >> 4) & 0x01;
+            const lr = (ch >> 5) & 0x01;
+            ch = (ul << 0) | (cl << 1) | (ll << 2) | (ur << 3) | (cr << 4) | (lr << 5);
+
+            // Convert to braille.
+            return String.fromCodePoint(0x2800 + ch);
         }
     }
 
