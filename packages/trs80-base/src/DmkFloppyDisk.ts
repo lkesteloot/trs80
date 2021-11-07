@@ -21,8 +21,12 @@ import {
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
+const DEBUG = false;
+
 const FILE_HEADER_SIZE = 16;
 const TRACK_HEADER_SIZE = 128;
+const MAX_TRACKS = 160;
+const MAX_TRACK_LENGTH = 0x2940;
 
 /**
  * Info about a sector offset from a track header.
@@ -383,7 +387,7 @@ export class DmkFloppyDisk extends FloppyDisk {
     public readSector(trackNumber: number, side: Side,
                       sectorNumber: number | undefined): SectorData | undefined {
 
-        // console.log(`readSector(${trackNumber}, ${sectorNumber}, ${side})`);
+        // console.log(`DMK: Reading sector ${trackNumber}:${side}:${sectorNumber}`);
         for (const track of this.tracks) {
             if (track.trackNumber === trackNumber && track.side === side) {
                 for (const sector of track.sectors) {
@@ -394,7 +398,7 @@ export class DmkFloppyDisk extends FloppyDisk {
                         const data = sector.getData();
                         if (data === undefined) {
                             // Sector is missing data.
-                            // console.log(`Track ${track.trackNumber} sector ${sector.getSectorNumber()} has no data`);
+                            if (DEBUG) console.log(`Track ${trackNumber} side ${side} sector ${sectorNumber} has no data`);
                             return undefined;
                         }
 
@@ -411,6 +415,7 @@ export class DmkFloppyDisk extends FloppyDisk {
             }
         }
 
+        if (DEBUG) console.log(`Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
         return undefined;
     }
 }
@@ -455,6 +460,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const annotations: ProgramAnnotation[] = [];
 
     if (binary.length < FILE_HEADER_SIZE) {
+        if (DEBUG) console.log("DMK: File too short (" + binary.length + " < " + FILE_HEADER_SIZE + ")");
         return undefined;
     }
 
@@ -463,6 +469,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // [DMK] If this byte is set to FFH the disk is `write protected', 00H allows writing.
     const writeProtected = binary[0] === 0xFF;
     if (binary[0] !== 0x00 && binary[0] !== 0xFF) {
+        if (DEBUG) console.log("DMK: First byte not 0x00 or 0xFF (0x" + toHexByte(binary[0]) + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(writeProtected ? "Write protected" : "Writable",
@@ -483,8 +490,9 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // [DMK] Note: This field should NEVER be modified. Changing this number will cause TRS-80
     // operating system disk errors. (Like reading an 80 track disk in a 40 track drive)
     const trackCount = binary[1];
-    if (trackCount > 160) {
+    if (trackCount > MAX_TRACKS) {
         // Not sure what a reasonable maximum is. I've only seen 80.
+        if (DEBUG) console.log("DMK: Too many tracks (" + trackCount + " > " + MAX_TRACKS + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(trackCount + " tracks", 1, 2));
@@ -508,7 +516,8 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // Nothing in the PC world can be messed up by improper modification but any other virtual disk mounted
     // in the emulator with an improperly modified disk could have their data scrambled.
     const trackLength = binary[2] + (binary[3] << 8);
-    if (trackLength > 0x2940) {
+    if (trackLength > MAX_TRACK_LENGTH) {
+        if (DEBUG) console.log("DMK: Track length too long (" + trackLength + " > " + MAX_TRACK_LENGTH + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(trackLength + " bytes per track", 2, 4));
@@ -556,15 +565,15 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // Sanity check.
     const sideCount = singleSided ? 1 : 2;
     const expectedLength = FILE_HEADER_SIZE + sideCount*trackCount*trackLength;
-    if (binary.length !== expectedLength) {
-        // console.error(`DMK file wrong size (${binary.length} != ${expectedLength})`);
+    if (binary.length < expectedLength) {
+        if (DEBUG) console.log(`DMK: File too short (${binary.length} < ${expectedLength} == ${FILE_HEADER_SIZE} + ${sideCount}*${trackCount}*${trackLength})`);
         return undefined;
     }
 
     // Check that these are zero.
     for (let i = 5; i < 12; i++) {
         if (binary[i] !== 0x00) {
-            console.error("DMK: Reserved byte " + i + " is not zero: 0x" + toHexByte(binary[i]));
+            if (DEBUG) console.log("DMK: Reserved byte " + i + " is not zero: 0x" + toHexByte(binary[i]));
             return undefined;
         }
     }
@@ -575,6 +584,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // [DMK] Must be 12345678h if virtual disk is a REAL disk specification file used to access
     // REAL TRS-80 floppies in compatible PC drives.
     if (binary[12] + binary[13] + binary[14] + binary[15] !== 0x00) {
+        if (DEBUG) console.log("DMK: Bytes 12 through 15 are not zero");
         return undefined;
     }
     annotations.push(new ProgramAnnotation("Virtual disk", 12, 16));
