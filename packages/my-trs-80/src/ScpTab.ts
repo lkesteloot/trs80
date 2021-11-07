@@ -233,9 +233,13 @@ class ScpTrackTile {
             this.zoomToFitAll();
         } else {
             const sector = rev.getSector(this.selection.sectorNumber);
-            const [beginIdNs, endIdNs] = this.getSectorIdSpan(rev, sector);
-            const [beginDataNs, endDataNs] = this.getSectorDataSpan(rev, sector);
-            this.zoomToFit(beginIdNs - 100000, endDataNs + 100000);
+            if (sector === undefined) {
+                this.zoomToFitAll();
+            } else {
+                const [beginIdNs, endIdNs] = this.getSectorIdSpan(rev, sector);
+                const [beginDataNs, endDataNs] = this.getSectorDataSpan(rev, sector);
+                this.zoomToFit(beginIdNs - 100000, endDataNs + 100000);
+            }
         }
 
         this.draw();
@@ -573,7 +577,10 @@ class ScpSectorTile {
         clearElement(this.top);
 
         if (sector !== undefined) {
-            const hexdumpGenerator = new HtmlHexdumpGenerator(sector.getData(), false, []);
+            const hexdumpGenerator = new HtmlHexdumpGenerator(sector.getData(), [], {
+                collapse: false,
+                showLastAddress: false,
+            });
             this.top.append(...hexdumpGenerator.generate());
         }
     }

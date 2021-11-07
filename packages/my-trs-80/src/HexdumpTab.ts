@@ -111,8 +111,10 @@ export class HexdumpTab extends PageTab {
         clearElement(this.hexdumpElement);
         this.lastLine = undefined;
 
-        const hexdumpGenerator = new HtmlHexdumpGenerator(this.binary, this.collapse,
-            this.annotate ? this.trs80File.annotations : []);
+        const hexdumpGenerator = new HtmlHexdumpGenerator(this.binary,
+            this.annotate ? this.trs80File.annotations : [], {
+            collapse: this.collapse,
+            });
         this.lineGenerator = hexdumpGenerator.generate();
 
         this.checkLoadMore();

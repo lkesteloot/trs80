@@ -1,11 +1,11 @@
-import {HexdumpGenerator, ProgramAnnotation} from "trs80-base";
+import {HexdumpGenerator, HexdumpOptions, ProgramAnnotation} from "trs80-base";
 
 /**
  * Hexdump generator for HTML output.
  */
 export class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLElement, HTMLElement> {
-    constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
-        super(binary, collapse, annotations);
+    constructor(binary: Uint8Array, annotations: ProgramAnnotation[], options: HexdumpOptions) {
+        super(binary, annotations, options);
     }
 
     protected newLine(): HTMLElement {

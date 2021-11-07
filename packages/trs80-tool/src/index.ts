@@ -17,7 +17,7 @@ import {
     encodeCmdProgram,
     encodeSystemProgram,
     getTrs80FileExtension,
-    HexdumpGenerator,
+    HexdumpGenerator, HexdumpOptions,
     isFloppy,
     numberToSide,
     ProgramAnnotation,
@@ -1097,7 +1097,9 @@ function sectors(filename: string, showContents: boolean): void {
                     console.log(header);
 
                     if (sector !== undefined) {
-                        hexdumpBinary(sector.data, false, []);
+                        hexdumpBinary(sector.data,  [], {
+                            collapse: false,
+                        });
                     }
 
                     console.log("");
@@ -1124,8 +1126,8 @@ class HexdumpSpan {
  * Hexdump generator for console output.
  */
 class ConsoleHexdumpGenerator extends HexdumpGenerator<HexdumpSpan[], HexdumpSpan> {
-    constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
-        super(binary, collapse, annotations);
+    constructor(binary: Uint8Array, annotations: ProgramAnnotation[], options: HexdumpOptions) {
+        super(binary, annotations, options);
     }
 
     protected newLine(): HexdumpSpan[] {
@@ -1150,8 +1152,8 @@ class ConsoleHexdumpGenerator extends HexdumpGenerator<HexdumpSpan[], HexdumpSpa
 /**
  * Hex dump a binary array.
  */
-function hexdumpBinary(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]): void {
-    const hexdump = new ConsoleHexdumpGenerator(binary, collapse, annotations);
+function hexdumpBinary(binary: Uint8Array, annotations: ProgramAnnotation[], options: HexdumpOptions): void {
+    const hexdump = new ConsoleHexdumpGenerator(binary, annotations, options);
     for (const line of hexdump.generate()) {
         console.log(line.map(span => {
             if (span.classes.indexOf("outside-annotation") >= 0) {
@@ -1191,7 +1193,9 @@ function hexdump(filename: string, collapse: boolean): void {
         return;
     }
 
-    hexdumpBinary(file.binary, collapse, file.annotations);
+    hexdumpBinary(file.binary, file.annotations, {
+        collapse: collapse,
+    });
 }
 
 /**

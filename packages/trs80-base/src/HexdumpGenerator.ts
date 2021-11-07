@@ -61,6 +61,14 @@ function allSameByte(binary: Uint8Array, addr: number, length: number): boolean 
     return true;
 }
 
+export interface HexdumpOptions {
+    // Whether to collapse duplicate lines. Defaults to true.
+    collapse?: boolean;
+
+    // Whether to show the end address on a separately line. Defaults to true.
+    showLastAddress?: boolean;
+}
+
 /**
  * Generates a hexdump for the given binary.
  *
@@ -68,13 +76,13 @@ function allSameByte(binary: Uint8Array, addr: number, length: number): boolean 
  */
 export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
     private readonly binary: Uint8Array;
-    private readonly collapse: boolean;
     private readonly annotations: ProgramAnnotation[];
+    private readonly options: HexdumpOptions;
 
-    protected constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
+    protected constructor(binary: Uint8Array, annotations: ProgramAnnotation[], options?: HexdumpOptions) {
         this.binary = binary;
-        this.collapse = collapse;
         this.annotations = annotations;
+        this.options = options ?? {};
     }
 
     /**
@@ -134,10 +142,12 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
             yield* this.generateAnnotation(new ProgramAnnotation("", lastAnnotationEnd, binary.length));
         }
 
-        // Final address to show where file ends.
-        const finalLine = this.newLine();
-        this.newSpan(finalLine, toHex(binary.length, addrDigits), "address");
-        yield finalLine;
+        if (this.options.showLastAddress ?? true) {
+            // Final address to show where file ends.
+            const finalLine = this.newLine();
+            this.newSpan(finalLine, toHex(binary.length, addrDigits), "address");
+            yield finalLine;
+        }
     }
 
     /**
@@ -153,7 +163,7 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
         const endAddr = Math.min(Math.ceil(annotation.end/STRIDE)*STRIDE, binary.length);
         let lastAddr: number | undefined = undefined;
         for (let addr = beginAddr; addr < endAddr; addr += STRIDE) {
-            if (this.collapse && lastAddr !== undefined &&
+            if ((this.options.collapse ?? true) && lastAddr !== undefined &&
                 binary.length - addr >= STRIDE && segmentsEqual(binary, lastAddr, addr, STRIDE)) {
 
                 // Collapsed section. See if we want to print the text for it this time.
