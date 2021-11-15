@@ -105,6 +105,10 @@ textarea, input[type=text] {
     margin: 0;
     padding: 0;
 }
+.navbar a {
+    text-decoration: inherit;
+    color: inherit;
+}
 .screens {
     flex-grow: 1;
 
