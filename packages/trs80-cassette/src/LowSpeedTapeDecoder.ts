@@ -95,6 +95,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     private readonly quarterPeriod: number;
     private readonly clockPulseSearchRadius: number;
     private readonly dataPulseSearchRadius: number;
+    private readonly pulseSearchPeriod: number;
     private state: TapeDecoderState = TapeDecoderState.UNDECIDED;
     private peakThreshold = LowSpeedTapeDecoder.DEFAULT_THRESHOLD;
 
@@ -113,10 +114,11 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         this.period = Math.round(tape.sampleRate/baud);
         this.halfPeriod = Math.round(this.period / 2);
         this.quarterPeriod = Math.round(this.period / 4);
-        this.clockPulseSearchRadius = Math.round(this.period * 0.3);
+        this.clockPulseSearchRadius = Math.round(this.period * 0.2);
         // Be more strict about data pulse, there should be less variance there and we don't want to risk
         // accidentally reading the next clock pulse.
         this.dataPulseSearchRadius = Math.round(this.period * 0.15);
+        this.pulseSearchPeriod = Math.round(this.period * 0.1);
     }
 
     public findNextProgram(frame: number, waveformAnnotations: WaveformAnnotation[]): Program | undefined {
@@ -331,7 +333,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
             let maxAbsValue = 0;
             let maxPulse: Pulse | undefined = undefined;
 
-            for (let i = 0; i < this.period * 2; i += this.clockPulseSearchRadius) {
+            for (let i = 0; i < this.period * 2; i += this.pulseSearchPeriod) {
                 const pulse = this.isPulseAt(frame + i, LowSpeedTapeDecoder.DEFAULT_THRESHOLD, false, false);
                 if (pulse.resultType === PulseResultType.PULSE) {
                     const absValue = Math.abs(pulse.value);
@@ -354,9 +356,12 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
      * Find the very next pulse of the specified polarity. The pulse must be in the next six periods.
      */
     public findNextClosePulse(frame: number, threshold: number, positive: boolean, includeExplanation: boolean): Pulse | undefined {
-        for (let i = 0; i < this.period * 6; i += this.clockPulseSearchRadius) {
+        for (let i = 0; i < this.period * 6; i += this.pulseSearchPeriod) {
             const pulse = this.isPulseAt(frame + i, threshold, false, includeExplanation);
             if (pulse.resultType === PulseResultType.PULSE && (positive ? (pulse.value > 0) : (pulse.value < 0))) {
+                if (includeExplanation) {
+                    pulse.waveformAnnotations.push(new LabelAnnotation("Search", frame, frame + i, false));
+                }
                 return pulse;
             }
         }

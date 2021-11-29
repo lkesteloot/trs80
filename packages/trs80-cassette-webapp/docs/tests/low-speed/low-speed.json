@@ -106,6 +106,24 @@
             "wavUrl": "bits10.wav",
             "type": "low-speed-bits",
             "bin": "011000010"
+        },
+        {
+            "name": "Skipped bit after sync",
+            "wavUrl": "bits11.wav",
+            "type": "low-speed-bits",
+            "bin": "10100101 11010011 11010011"
+        },
+        {
+            "name": "F decoded as f",
+            "wavUrl": "bits12.wav",
+            "type": "low-speed-bits",
+            "bin": "001000110"
+        },
+        {
+            "name": "Overlapping first bit",
+            "wavUrl": "bits13.wav",
+            "type": "low-speed-bits",
+            "bin": "0 10100101 110"
         }
     ]
 }
