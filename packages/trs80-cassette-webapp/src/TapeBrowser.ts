@@ -302,8 +302,13 @@ export class TapeBrowser {
     /**
      * Make pane of metadata for a program.
      */
-    private makeMetadataPane(program: Program | Tape, basicPane?: Pane, systemPane?: Pane, edtasmPane?: Pane,
-                             cmdPane?: Pane, onProgramClick?: (program: Program) => void): Pane {
+    private makeMetadataPane(program: Program | Tape,
+                             basicPane: Pane | undefined,
+                             systemPane: Pane | undefined,
+                             edtasmPane: Pane | undefined,
+                             cmdPane: Pane | undefined,
+                             basicProgram: BasicProgram | undefined,
+                             onProgramClick: ((program: Program) => void) | undefined): Pane {
 
         const div = document.createElement("div");
         div.classList.add("metadata");
@@ -377,11 +382,18 @@ export class TapeBrowser {
         addKeyValue("Duration", frameToTimestamp(endFrame - startFrame, this.tape.sampleRate, true), () =>
             this.originalWaveformDisplay.zoomToFit(startFrame, endFrame));
         if (program instanceof Program) {
-            const binExtention = basicPane !== undefined ? ".BAS"
-                : systemPane !== undefined ? ".3BN"
-                    : cmdPane !== undefined ? ".CMD"
-                        : ".BIN";
-            addKeyValues("Download", [binExtention, ".CAS", ".WAV"], (extension: string) => {
+            const extensions = [];
+            if (basicPane !== undefined) {
+                extensions.push(".BAS", ".ASC");
+            } else if (systemPane !== undefined) {
+                extensions.push(".3BN");
+            } else if (cmdPane !== undefined) {
+                extensions.push(".CMD");
+            } else {
+                extensions.push(".BIN");
+            }
+            extensions.push(".CAS", ".WAV");
+            addKeyValues("Download", extensions, (extension: string) => {
                 // Download binary.
                 const a = document.createElement("a");
                 let contents;
@@ -393,6 +405,9 @@ export class TapeBrowser {
                 } else if (extension === ".WAV") {
                     contents = program.asWavFile();
                     type = "audio/wav";
+                } else if (extension === ".ASC" && basicProgram !== undefined) {
+                    contents = basicProgram.asAscii();
+                    type = "text/plain";
                 } else {
                     contents = program.binary;
                     type = "application/octet-stream";
@@ -854,7 +869,7 @@ export class TapeBrowser {
         row.classList.add("program_title");
         let metadataLabel = frameToTimestamp(0, this.tape.sampleRate, true) + " to " +
             frameToTimestamp(this.tape.originalSamples.samplesList[0].length, this.tape.sampleRate, true);
-        addPane(metadataLabel, this.makeMetadataPane(this.tape, undefined, undefined, undefined, undefined,
+        addPane(metadataLabel, this.makeMetadataPane(this.tape, undefined, undefined, undefined, undefined, undefined,
             (program) => {
                 screenshotClickAction.get(program)?.();
             }));
@@ -907,7 +922,7 @@ export class TapeBrowser {
             if (bitErrorCount > 0) {
                 metadataLabel += ", " + bitErrorCount + " error" + (bitErrorCount === 1 ? "" : "s");
             }
-            let metadataPane = this.makeMetadataPane(program, basicPane, systemPane, edtasmPane, cmdPane, undefined);
+            const metadataPane = this.makeMetadataPane(program, basicPane, systemPane, edtasmPane, cmdPane, basicProgram, undefined);
             addPane(metadataLabel, metadataPane);
             screenshotClickAction.set(program, () => {
                 this.showPane(metadataPane);
