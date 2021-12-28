@@ -1,0 +1,232 @@
+
+- UI:
+    - Truly fix problems with saving. We can't continue without safe saving.
+    - Does listing system mess up undo/redo?
+    - Find a way to show errors in folded include files.
+        - Currently only shows error on last line of include file.
+    - Disallow deleting newline between files.
+        - At top of included file.
+        - At bottom of included file.
+    - Disallow change if it would result in file boundary not being at start of line.
+        - Maybe check all markers to see if ch != 0 for any. But they may not be updated yet.
+    - Allow folding of macros?
+        - Probably, you don't want to see them all the time when coding.
+    - Remember window position and size.
+    - Actually save files.
+    - Add concept of dirty buffer.
+    - When quitting, ask to save if dirty.
+    - When loading new file, ask to save if dirty.
+    - Keep track of last directory (in settings) for open/save.
+    - Add status bar at the bottom:
+        - Assemble time.
+        - Current filename, line number, and column.
+        - Number of errors.
+        - Value of symbol we're highlighting.
+        - Total clocks for highlighted section.
+        - Error on current line?
+    - Add jump stack, with Cmd-[ and Cmd-] moving through it.
+    - Highlight registers just like identifiers.
+    - If instruction has many opcodes, which causes line to grow, and is
+        replaced with one that has no opcodes, the line does not shrink.
+        Test with "defs 20,1", then remove the ",1".
+    - Keep better data structures on compiled code:
+        - For each line, the parse results:
+            - Tokens, their types (register, etc), and positions.
+    - Save bin file.
+        - Auto-save on focus loss.
+    - When searching, Enter should keep looking.
+        - Alt-F in this demo: https://codemirror.net/demo/search.html
+    - Unindent automatically when starting line with # or ending first identifier with :
+
+- Assembler:
+    - #if/#endif
+        - Evaluate expression. Must be evaluatable in pass 1.
+        - Set flag if false. If false, ignore further lines unless:
+            - #if: Increase count.
+            - #endif: Decrease count, or turn off flag.
+        - Also handle if/endif.
+    - If a macro calls itself, it crashes.
+    - Add #assert and defined(), and completely stop assembly if it fails.
+        - http://k1.spdns.de/Develop/Projects/Attic/zasm-4.0.ALT/Documentation/z41.htm
+    - Call #assert after including library file.
+        - Otherwise will loop forever.
+    - See if it's a problem that we're modifying the symbols table in
+        speculative identifier parsing.
+    - Handle macros.
+        * Thoroughly read macro docs before starting.
+            * https://k1.spdns.de/Develop/Projects/zasm/Documentation/z64.htm#A
+        * Research how we use macros in ZED-80.
+            - Forth, "LABEL macro ARG" with "&ARG" reference, lo(), hi().
+                - &ARG is inline like "foo&ARG" in label.
+                - Also "&ARG" in string.
+            - In other ZED-80 code as "LABEL macro" with no args.
+        * How does zasm listing show macro?
+            - Shows macro call with no opcodes, followed by body of macro.
+        * Read zasm code to see how they do &ARG substitutions.
+        - Preconditions:
+            - if/endif (not #if/#endif)
+                - https://k1.spdns.de/Develop/Projects/zasm/Documentation/z59.htm#A
+            - Expressions in {} evaluated to their text, like "foo{bar}"
+        - To do:
+            - Detect "macro" and ".macro" as pseudo-instruction.
+                - Maybe initially don't support the ".macro foo arg" syntax. We don't
+                    use it ourselves. But maybe it's easy?
+            - In pass one:
+                - If definition:
+                    - Can't redefine macro.
+                    - Tag can be one of: "!#$%&.:?@\\^_|~"
+                    - Don't allow compiler directive ("#include"), except when "#foo" is
+                        an argument to the macro.
+                    - End if first word in line is "endm". Ignore rest of line.
+                    - Store name, start line, end line, and tag (#, &, etc.) in a
+                        map with name as key.
+                    - Error if end of file without finding "endm".
+                    - Error if we see "endm" while not parsing a macro.
+                - If mnemonic is macro name, and macro's endm line is less than
+                    current line, process it. Else treat it like a normal error.
+                    - Read arguments (pretty tricky, see how fancy we get in ZED-80).
+                    - Make sure end of line.
+                    - Make sure number of arguments match.
+                    - Substitute arguments:
+                        - Find tag.
+                        - Read next identifier. If not identifier, or not name of
+                            arg, ignore.
+                        - Replace textually.
+                    - Substitute expressions:
+                        - Find "{", evaluate expression.
+                        - Must not reference an unset value.
+                            - Modify read expression function to return this info.
+                        - Replace textually.
+                    - Insert lines.
+            - In pass two:
+                - If definition:
+                    - Skip straight to the endm line, which is stored in the macro definition.
+                - If usage:
+                    - Skip usage line.
+            - Show expanded macro lines as disabled/gray in IDE.
+        - Test:
+            - Macro use before definition.
+            - Macro use in definition.
+            - Macro without endm.
+            - Macro redefinition.
+            - Endm without macro.
+            - Both kinds of labels (before and after)
+            - Redefinition of counter inside macro.
+    - In pass two, don't reassemble instructions that can't change.
+        - Keep track in AssembledLine whether the line included a reference
+            to a symbol.
+        - In pass 2, skip those, just reuse existing opcodes.
+    - Do control flow analysis:
+        - Kinds of control flow instructions:
+            - Unconditional jumps (absolute and relative).
+            - Conditional jumps (absolute and relative).
+            - Calls.
+            - Returns.
+            - RST (basically unconditional jump).
+        - What kind of control flow:
+            - None (next instruction only).
+            - Jump (conditional or not, including rst).
+            - Indirect jump (jp (hl)). Treat as dead-end?
+            - Call.
+            - Return.
+        - For each instruction, determine where it can go to:
+            - Unconditional jump or rst:
+                - Target of jump.
+            - Conditional jump:
+                - Target of jump.
+                - Next instruction.
+            - Call:
+                - Target of jump.
+                - Next instruction (later).
+            - Ret:
+                - Nowhere (handle it specially as part of call).
+            - Else:
+                - Next instruction.
+        - Keep track for each destination what kind it was:
+            - Fall through.
+            - Jump target.
+            - Call target.
+            - Return target (after call instruction).
+        - Once that's done, compute reverse map (possible previous instructions).
+    - Detect subroutine:
+        - Smallest set of lines that:
+            - First instruction has:
+                - Only calls to it.
+            - Has a RET for the last instruction.
+            - None of the instructions in between:
+                - Are jumps outside the range.
+                - Are targets of jumps from outside the range.
+            - Calls inside the range are allowed.
+        - Then:
+            - Determine which registers are read/modified.
+            - Determine which registers are clobbered.
+            - Determine which registers are untouched (either literally or pushed/popped).
+        - Problems:
+            - Lots of tail calls in CP/M.
+    - Do data flow analysis:
+        - Goal: To click on a register and have it highlight all the other instances
+            of that register that share its data.
+        - Reference:
+            - https://hal.inria.fr/inria-00072898/document
+        - Two kinds of access of registers: clobbers (full writes) and reads (including updates).
+        - Not sure how to handle sub-register accesses.
+        - "Register assignment" is:
+            - Map from register to ID.
+        - For each line, keep track of assignment going in and assignment going out.
+        - For each clobber, generate a new ID.
+        - For each read, register which ID was used.
+        - For first instruction, pass it empty assignment.
+        - Then, for each 
+        - For each label, merge all sources, plus previous line.
+        - For each conditional jump continue at both.
+        - Initially treat CALL like JP/JP, but should really treat specially.
+            - Should re-parse routine since its variables are distinct based on call.
+    - Add more pseudo-instructions:
+        - https://k1.spdns.de/Develop/Projects/zasm/Documentation/z72.htm#G
+    - The __line__ can be a string in a string context or integer in that context.
+    - If a label is redefined (implicitly to its address), there are no errors
+        and jumps just use the most recent one. And references before the first one
+        don't work. Maybe don't allow changing redefinitions of some kinds of symbols,
+        like addresses or those defined with "equ".
+
+- Ideas:
+    - How can we help with editing assembly?
+        - Show blocks of continuous code (entry at top, exit at bottom).
+        - Visually show line from jump to target.
+        - Auto-complete lines (e.g., show all "LD" variants).
+        - Jump to declaration and usage of symbols.
+        - Highlight register to show usages (set/get in different colors).
+        - Highlight flags to show usages (set/get in different colors).
+    - Can we embed a sim?
+        - Need:
+            - Z80 emulator.
+            - ROM, if we're not developing it.
+            - RAM, pre-loaded with code.
+            - I/O:
+                - Serial (Z80 SIO).
+                - PS/2 keyboard.
+                - Screen.
+        - Could just do ZED-80, that's all I care about right now.
+            - Would have to port emulator from Objective-C.
+            - Left window is source code.
+            - Right-top is serial.
+            - Right-bottom is LCD.
+    - More generally, what's the environment that this code lives in?
+        - ROM, nothing to do but run it.
+        - RAM, needs a ROM probably.
+        - CP/M program, needs to be run from CP/M or faithful simulator.
+        - What hardware is available?
+    - Dan says:
+        - Looking up instructions.
+            - Clock cycles, bytes, side-effects.
+            - Search by instruction, but maybe also affected register or flag.
+            - Like CLRHome?
+                - http://clrhome.org/table/
+                - But not in grid.
+        - Which subroutines preserve registers and flags?
+            - Inputs, outputs, trashed (including inputs).
+            - Warn both in function and at caller.
+        - Code folding for include file.
+        - Auto-unit test as you type.
+            - Maybe unit test spec in comment.
+
