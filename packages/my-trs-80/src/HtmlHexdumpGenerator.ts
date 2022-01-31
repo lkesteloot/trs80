@@ -1,30 +1,27 @@
-import {HexdumpGenerator, HexdumpOptions, ProgramAnnotation} from "trs80-base";
+import {HexdumpLine, HexdumpSpan} from "trs80-base";
 
 /**
- * Hexdump generator for HTML output.
+ * Convert a hexdump line to an HTML line.
+ *
+ * @param line hexdump line to convert to HTML.
+ * @param selectedByte which byte to highlight with "selecvted" class, if any.
+ * @param clickHandler optional handler to call on a span that has a defined address when clicked.
  */
-export class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLElement, HTMLElement> {
-    constructor(binary: Uint8Array, annotations: ProgramAnnotation[], options: HexdumpOptions) {
-        super(binary, annotations, options);
-    }
+export function hexdumpLineToHtml(line: HexdumpLine, selectedByte?: number, clickHandler?: (span: HexdumpSpan) => void): HTMLElement {
+    const div = document.createElement("div");
 
-    protected newLine(): HTMLElement {
-        return document.createElement("div");
-    }
-
-    protected getLineText(line: HTMLElement): string {
-        return line.textContent ?? "";
-    }
-
-    protected newSpan(line: HTMLElement, text: string, ...cssClass: string[]): HTMLElement {
+    for (const hexdumpSpan of line.spans) {
         const e = document.createElement("span");
-        e.classList.add(...cssClass);
-        e.innerText = text;
-        line.append(e);
-        return e;
+        e.classList.add(...hexdumpSpan.classes);
+        if (selectedByte !== undefined && hexdumpSpan.address === selectedByte) {
+            e.classList.add("selected");
+        }
+        e.innerText = hexdumpSpan.text;
+        if (clickHandler !== undefined && hexdumpSpan.address !== undefined) {
+            e.addEventListener("click", () => clickHandler(hexdumpSpan))
+        }
+        div.append(e);
     }
 
-    protected addTextToSpan(span: HTMLElement, text: string): void {
-        span.innerText += text;
-    }
+    return div;
 }

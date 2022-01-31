@@ -16,6 +16,7 @@ import {
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {CRC_16_CCITT} from "./Crc16.js";
+import {toHexByte, toHexWord} from "z80-base";
 
 // Print extra debug stuff.
 const DEBUG = false;
@@ -26,6 +27,29 @@ const DEFAULT_REV_NUMBER = 0;
 
 // Bit rate on floppy. I think this is a constant on all TRS-80 floppies.
 const BITRATE = 250000;
+
+/**
+ * Debug data about each pulse.
+ */
+export class ScpPulse {
+    // All times in units of resolutionTimeNs.
+
+    // Since start of rev.
+    public readonly time: number;
+    // How much over (or -under) from expected timing.
+    public readonly over: number;
+    // Number of implicit 0s (non-pulses) since last pulse.
+    public readonly zeroCount: number;
+    // Expected period of pulses.
+    public readonly interval: number;
+
+    constructor(time: number, over: number, zeroCount: number, interval: number) {
+        this.time = time;
+        this.over = over;
+        this.zeroCount = zeroCount;
+        this.interval = interval;
+    }
+}
 
 /**
  * Data for a sector on a SCP floppy.
@@ -161,12 +185,15 @@ export class ScpRev {
     public readonly binary: Uint8Array;
     public readonly bytes: ClockedData[];
     public readonly sectors: ScpSector[];
+    public readonly pulses: ScpPulse[] | undefined;
 
-    constructor(bitcells: Uint16Array, binary: Uint8Array, bytes: ClockedData[], sectors: ScpSector[]) {
+    constructor(bitcells: Uint16Array, binary: Uint8Array, bytes: ClockedData[], sectors: ScpSector[],
+                pulses: ScpPulse[] | undefined) {
         this.bitcells = bitcells;
         this.binary = binary;
         this.bytes = bytes;
         this.sectors = sectors;
+        this.pulses = pulses;
     }
 
     /**
@@ -370,28 +397,58 @@ function guessDensity(bitcells: Uint16Array, resolutionTimeNs: number): Density 
 }
 
 /**
- * A byte with its eight clock bits.
+ * A byte with its eight clock bits and error bits.
  */
 type ClockedData = {
     clock: number,
     data: number,
+    error: number,
 
     // Index of the last bit of the byte.
     bitcellIndex: number,
 }
 
 /**
- * Decode a sequence of flux transitions into byts with their clock bits.
+ * A simple PLL. Only adjusts phase, not frequency.
  */
-function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: number): ClockedData[] {
+class PhaseLockedLoop {
+    public readonly period: number;
+    public adjust = 0;
+
+    constructor(period: number) {
+        this.period = period;
+    }
+
+    /**
+     * Given the time since the last pulse, returns the number of periods
+     * that represents, and how much over (or -under) the expected location
+     * it was.
+     */
+    public pulse(time: number): { counts: number, over: number } {
+        const bitcell = this.adjust + time;
+        const counts = Math.round(bitcell / this.period);
+        const over = bitcell - counts*this.period;
+        this.adjust = Math.round(over * 0.60);
+
+        return { counts, over };
+    }
+}
+
+/**
+ * Decode a sequence of flux transitions into bytes with their clock bits.
+ */
+function decodeFlux(bitcells: Uint16Array, pulses: ScpPulse[] | undefined,
+                    density: Density, resolutionTimeNs: number, trackNumber: number): ClockedData[] {
+
     let interval = 1e9/BITRATE/resolutionTimeNs;
     if (density === Density.DOUBLE) {
         // Double density is ... twice as dense.
         interval /= 2;
     }
 
-    let data = 0;
-    let clock = 0;
+    let data = 0; // Most recent 8 bits of data.
+    let clock = 0; // Most recent 8 bits of clock (fixed to look like FM).
+    let error = 0; // Most recent 8 bits of error (bit is 1 if bad MFM clock/data combo for that bit).
     let recent = 0;
     let nextBitIsClock = true;
     let bitCount: number | undefined = undefined;
@@ -406,19 +463,24 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
         const previousDataBit = (data >> 1) & 0x01;
 
         if (clockBit === 0 && dataBit === 0) {
-            clock = (clock & 0xFE) | previousDataBit;
             if (previousDataBit === 0) {
                 if (DEBUG_VERBOSE) console.log("MISSING CLOCK BIT");
+                error |= 1;
+            } else {
+                // Legit 0.
+                clock |= 1;
             }
         } else if (clockBit === 0 && dataBit === 1) {
             // Legit 1.
             clock |= 1;
         } else if (clockBit === 1 && dataBit === 0) {
             if (previousDataBit === 1) {
-                if (DEBUG_VERBOSE) console.log("ERROR: 1/0 can't happen");
+                if (DEBUG_VERBOSE) console.log("ERROR: 1/0 can't happen in track " + trackNumber);
+                error |= 1;
             }
         } else if (clockBit === 1 && dataBit === 1) {
-            if (DEBUG_VERBOSE) console.log("ERROR: 1/1 can't happen");
+            if (DEBUG_VERBOSE) console.log("ERROR: 1/1 can't happen in track " + trackNumber);
+            error |= 1;
         }
     }
 
@@ -438,6 +500,7 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
                 clock = ((clock << 1) & 0xFF) | value;
             } else {
                 data = ((data << 1) & 0xFF) | value;
+                error = (error << 1) & 0xFF;
                 if (density === Density.DOUBLE) {
                     updateClock();
                 }
@@ -453,13 +516,11 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
         // Look for sync bytes.
         if (density === Density.DOUBLE) {
             if (clock === 0xFB && data === 0xA1) {
-                // bytes.push({clock, data});
                 bitCount = 15;
                 if (DEBUG_VERBOSE) console.log("Got address mark: " + data.toString(16).padStart(2, "0"));
             }
         } else {
             if (clock === 0xC7 && (data === 0xFE || (data >= 0xF8 && data <= 0xFB))) {
-                // bytes.push({clock, data});
                 bitCount = 15;
                 if (DEBUG_VERBOSE) console.log("Got address mark: " + data.toString(16).padStart(2, "0"));
             }
@@ -470,7 +531,7 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
             bitCount += 1;
             if (bitCount === 16) {
                 // console.log("Got byte: " + data.toString(16).padStart(2, "0"));
-                bytes.push({clock, data, bitcellIndex});
+                bytes.push({clock, data, error, bitcellIndex});
                 bitCount = 0;
             }
         }
@@ -481,32 +542,45 @@ function decodeFlux(bitcells: Uint16Array, density: Density, resolutionTimeNs: n
             console.log(
                 binClock.substring(0, 4) + "." + binClock.substring(4),
                 binData.substring(0, 4) + "." + binData.substring(4),
-                clock.toString(16).padStart(2, "0").toUpperCase(),
-                data.toString(16).padStart(2, "0").toUpperCase(),
+                toHexWord(clock),
+                toHexWord(data),
+                toHexWord(error),
                 bitCount, nextBitIsClock ? "is data" : "is clock", value);
         }
     }
 
-    // Keep track of how much we're over from where we'd expect. This simulates a PLL so that if one bitcell
-    // is too long, we'll expect the next one a bit sooner.
-    let over = 0;
+    const pll = new PhaseLockedLoop(interval);
+
+    // Cumulative time of pulse.
+    let time = 0;
 
     // Handle pulses.
     for (let bitcellIndex = 0; bitcellIndex < bitcells.length; bitcellIndex++) {
-        const oldOver = over;
-        const bitcell = over + bitcells[bitcellIndex];
-        const len = Math.round(bitcell / interval);
-        over = bitcell - len*interval;
-        over = Math.round(over * 0.60);
-        // console.log(oldOver + " + " + bitcells[bitcellIndex] + " = " + bitcell + ", len = " + len + ", over = " + over);
+        const bc = bitcells[bitcellIndex];
+        time += bc;
+        const { counts, over } = pll.pulse(bc);
+        const zeroCount = counts - 1;
+        // // relativeOver is from -0.5 to 0.5 and indicates how far off we were from the expected timing.
+        // const relativeOver = over/interval; // TODO remove
+        // // A boolean to indicate that we're far enough that we might actually be on the wrong side of the
+        // // threshold.
+        // const potentialError = Math.abs(relativeOver) > 0.25;
+
+        if (pulses !== undefined) {
+            pulses.push(new ScpPulse(time, over, zeroCount, interval));
+        }
 
         // Skip too-short pulses.
-        if (len > 0) {
+        if (zeroCount >= 0) {
             // Missing pulses are zeros.
-            for (let i = 0; i < len - 1; i++) {
+            for (let i = 0; i < zeroCount; i++) {
                 injectBit(0, bitcellIndex);
             }
             injectBit(1, bitcellIndex);
+        } else {
+            if (bitcellIndex !== 0) {
+                console.log("Too-short pulse at bitcell index " + bitcellIndex + " (" + bc + " << " + interval + ")");
+            }
         }
     }
 
@@ -529,6 +603,9 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
         bitcells[i] = (binary[revOffset + i * 2] << 8) | binary[revOffset + i * 2 + 1];
     }
 
+    // TODO want this true for interactive use and false for command-line use.
+    let pulses: ScpPulse[] | undefined = true ? [] : undefined;
+
     // See if we can guess the density from the distribution of pulse widths.
     const density = guessDensity(bitcells, resolutionTimeNs);
     if (density === undefined) {
@@ -536,7 +613,7 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
     }
 
     // Decode the whole track into bytes.
-    const bytes = decodeFlux(bitcells, density, resolutionTimeNs);
+    const bytes = decodeFlux(bitcells, pulses, density, resolutionTimeNs, trackNumber);
     const trackBinary = new Uint8Array(bytes.map(e => e.data));
 
     // Decode the sectors.
@@ -548,14 +625,17 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
         switch (density) {
             case Density.SINGLE:
                 if (clock === 0xC7 && data === 0xFE) {
+                    // Start of sector ID.
                     idamIndex = i;
                 }
                 if (clock === 0xC7 && (data >= 0xF8 && data <= 0xFB)) {
+                    // Start of sector data.
                     if (idamIndex !== undefined) {
                         sectors.push(new ScpSector(trackBinary, idamIndex, i, density));
+                        idamIndex = undefined;
+                    } else {
+                        console.log("Warning: DAM without IDAM on track " + trackNumber);
                     }
-
-                    idamIndex = undefined;
                 }
                 break;
 
@@ -569,11 +649,13 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
                         if (idamIndex !== undefined) {
                             sectors.push(new ScpSector(trackBinary, idamIndex, i + 1, density));
 
-                            // TODO temporary code to detect bad clocks. Remove.
+                            // TODO temporary code to detect bad clocks or errors. Remove.
                             for (let j = 0; j < 256; j++) {
                                 const clockedDatum = bytes[i + 1 + j];
-                                if (clockedDatum.clock !== 0xFF) {
-                                    console.log("Bad clock at index " + j + " of sector", rev, trackNumber);
+                                if (clockedDatum.clock !== 0xFF || clockedDatum.error !== 0x00) {
+                                    console.log("Bad clock or error at index " + j + " of sector", rev, trackNumber,
+                                        toHexByte(clockedDatum.clock),
+                                        toHexByte(clockedDatum.error));
                                     let interval = 1e9/BITRATE/resolutionTimeNs;
                                     if (density === Density.DOUBLE) {
                                         // Double density is ... twice as dense.
@@ -590,16 +672,17 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
                                     break;
                                 }
                             }
+                            idamIndex = undefined;
+                        } else {
+                            console.log("Warning: DAM without IDAM on track " + trackNumber);
                         }
-
-                        idamIndex = undefined;
                     }
                 }
                 break;
         }
     }
 
-    return new ScpRev(bitcells, trackBinary, bytes, sectors);
+    return new ScpRev(bitcells, trackBinary, bytes, sectors, pulses);
 }
 
 /**

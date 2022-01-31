@@ -945,6 +945,10 @@ button i {
     color: var(--violet);
 }
 
+.hexdump .selected {
+    background-color: var(--background-highlights);
+}
+
 /* ----------------------------------------------------------------------------------------------------- */
 
 .basic-tab {

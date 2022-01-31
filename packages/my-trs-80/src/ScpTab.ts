@@ -1,7 +1,7 @@
 import {PageTab} from "./PageTab";
-import {Density, numberToSide, ScpFloppyDisk, ScpRev, ScpSector, Side} from "trs80-base";
+import {Density, HexdumpGenerator, HexdumpSpan, numberToSide, ScpFloppyDisk, ScpRev, ScpSector, Side} from "trs80-base";
 import {makeTextButton} from "./Utils";
-import {HtmlHexdumpGenerator} from "./HtmlHexdumpGenerator";
+import {hexdumpLineToHtml} from "./HtmlHexdumpGenerator";
 import {clearElement} from "teamten-ts-utils";
 
 const LEGEND_FOR_LETTER: { [letter: string]: string } = {
@@ -36,21 +36,24 @@ enum SelectionAdjustMode { LEFT, CREATE, RIGHT }
 type SelectionListener = (selection: Selection) => void;
 
 /**
- * Keep track of the selected track and sector.
+ * Keep track of the selected track, sector, and byte.
  */
 class Selection {
     public trackNumber = 0;
     public sectorNumber: number | undefined = undefined;
+    public byteNumber: number | undefined = undefined;
     private listeners: SelectionListener[] = [];
 
     /**
      * Update the selection.
      */
-    public set(trackNumber: number, sectorNumber: number | undefined): void {
+    public set(trackNumber: number, sectorNumber?: number, byteNumber?: number): void {
         this.trackNumber = trackNumber;
         this.sectorNumber = sectorNumber;
+        this.byteNumber = byteNumber;
 
-        for (const listener of [... this.listeners]) {
+        // Make a copy in case they remove themselves.
+        for (const listener of this.listeners.slice()) {
             listener(this);
         }
     }
@@ -124,7 +127,7 @@ class ScpDiskTile {
             const th = document.createElement("th");
             th.classList.add("track-number");
             th.innerText = trackNumber.toString();
-            th.addEventListener("click", () => this.selection.set(trackNumber, undefined));
+            th.addEventListener("click", () => this.selection.set(trackNumber));
             row.append(th);
             for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
                 const sectorData = this.scp.readSector(trackNumber, side, sectorNumber);
@@ -203,7 +206,9 @@ class ScpTrackTile {
     private readonly canvas: HTMLCanvasElement;
     private zoom = 1; // pixel = timeNs*zoom
     private centerTimeNs: number = 0;
-    private cummulativeNs = new Uint32Array(0);
+    private cumulativeNs = new Uint32Array(0);
+    // Which rev cumulativeNs refers to.
+    private cumulativeNsRev: ScpRev | undefined = undefined;
 
     public constructor(scp: ScpFloppyDisk, selection: Selection) {
         this.scp = scp;
@@ -223,13 +228,12 @@ class ScpTrackTile {
         setTimeout(() => this.syncWithSelection(), 0);
     }
 
+    /**
+     * Update the display to fit the selected item.
+     */
     private syncWithSelection(): void {
         const rev = this.getRev();
-
-        this.cummulativeNs = new Uint32Array(rev.bitcells.length + 1);
-        for (let i = 0; i < rev.bitcells.length; i++) {
-            this.cummulativeNs[i + 1] = this.cummulativeNs[i] + rev.bitcells[i]*this.scp.resolutionTimeNs;
-        }
+        this.recomputeCumulativeNs(rev);
 
         if (this.selection.sectorNumber === undefined) {
             this.zoomToFitAll();
@@ -238,13 +242,33 @@ class ScpTrackTile {
             if (sector === undefined) {
                 this.zoomToFitAll();
             } else {
-                const [beginIdNs, endIdNs] = this.getSectorIdSpan(rev, sector);
-                const [beginDataNs, endDataNs] = this.getSectorDataSpan(rev, sector);
-                this.zoomToFit(beginIdNs - 100000, endDataNs + 100000);
+                if (this.selection.byteNumber === undefined) {
+                    const [beginIdNs, endIdNs] = this.getSectorIdSpan(rev, sector);
+                    const [beginDataNs, endDataNs] = this.getSectorDataSpan(rev, sector);
+                    this.zoomToFit(beginIdNs - 100000, endDataNs + 100000);
+                } else {
+                    const [beginNs, endNs] = this.getSectorDataByteSpan(rev, sector, this.selection.byteNumber);
+                    this.zoomToFit(beginNs, endNs);
+                }
             }
         }
 
         this.draw();
+    }
+
+    /**
+     * If necessary, recompute the cumulativeNs array.
+     * @param rev
+     * @private
+     */
+    private recomputeCumulativeNs(rev: ScpRev): void {
+        if (rev !== this.cumulativeNsRev) {
+            this.cumulativeNs = new Uint32Array(rev.bitcells.length + 1);
+            for (let i = 0; i < rev.bitcells.length; i++) {
+                this.cumulativeNs[i + 1] = this.cumulativeNs[i] + rev.bitcells[i] * this.scp.resolutionTimeNs;
+            }
+            this.cumulativeNsRev = rev;
+        }
     }
 
     private configureCanvas(): void {
@@ -426,7 +450,7 @@ class ScpTrackTile {
         const ns = endNs - startNs;
 
         // Visually centered time.
-        this.centerTimeNs =(startNs + endNs)/2;
+        this.centerTimeNs = (startNs + endNs)/2;
 
         // Find appropriate zoom.
         this.setZoom(this.computeFitLevel(ns), undefined);
@@ -438,8 +462,8 @@ class ScpTrackTile {
      * Zoom to fit all time.
      */
     public zoomToFitAll() {
-        if (this.cummulativeNs.length !== 0) {
-            this.zoomToFit(0, this.cummulativeNs[this.cummulativeNs.length - 1]);
+        if (this.cumulativeNs.length !== 0) {
+            this.zoomToFit(0, this.cumulativeNs[this.cumulativeNs.length - 1]);
         }
     }
 
@@ -473,11 +497,12 @@ class ScpTrackTile {
     /**
      * Redraw the canvas.
      */
-    public draw() {
+    public draw(): void {
         const canvas = this.canvas;
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
         const width = canvas.width;
         const height = canvas.height;
+        const resolutionTimeNs = this.scp.resolutionTimeNs;
 
         // Get the theme variables.
         canvas.classList.add("dark-mode");
@@ -491,52 +516,104 @@ class ScpTrackTile {
         const startColor = style.getPropertyValue("--cyan");
         const badColor = style.getPropertyValue("--red");
 
+        // Find first and last bitcell displayed.
+        const leftNs = this.screenXToNs(0);
+        const rightNs = this.screenXToNs(this.canvas.width);
+        const leftIndex = this.findBitcellIndex(leftNs) - 2;
+        const rightIndex = this.findBitcellIndex(rightNs) + 2;
+        const drawPulses = rightIndex - leftIndex < this.canvas.width/4;
+
         // Background.
         ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, width, height);
 
         const rev = this.getRev();
 
-        for (const sector of rev.sectors) {
-            // Draw the ID.
-            {
-                const [beginNs, endNs] = this.getSectorIdSpan(rev, sector);
-                const beginX = this.nsToScreenX(beginNs);
-                const endX = this.nsToScreenX(endNs);
-                ctx.fillStyle = sector.hasIdCrcError() ? badColor : waveformColor;
-                ctx.fillRect(beginX, 0, endX - beginX, height);
-            }
+        if (!drawPulses) {
+            for (const sector of rev.sectors) {
+                // Draw the ID background.
+                {
+                    const [beginNs, endNs] = this.getSectorIdSpan(rev, sector);
+                    const beginX = this.nsToScreenX(beginNs);
+                    const endX = this.nsToScreenX(endNs);
+                    ctx.fillStyle = sector.hasIdCrcError() ? badColor : waveformColor;
+                    ctx.fillRect(beginX, 0, endX - beginX, height);
+                }
 
-            // Draw the data.
-            {
-                const [beginNs, endNs] = this.getSectorDataSpan(rev, sector);
-                const beginX = this.nsToScreenX(beginNs);
-                const endX = this.nsToScreenX(endNs);
-                ctx.fillStyle = sector.hasDataCrcError() ? badColor : waveformColor;
-                ctx.fillRect(beginX, 0, endX - beginX, height);
+                // Draw the data background.
+                {
+                    const [beginNs, endNs] = this.getSectorDataSpan(rev, sector);
+                    const beginX = this.nsToScreenX(beginNs);
+                    const endX = this.nsToScreenX(endNs);
+                    ctx.fillStyle = sector.hasDataCrcError() ? badColor : waveformColor;
+                    ctx.fillRect(beginX, 0, endX - beginX, height);
+                }
             }
         }
 
-        // Find first and last bitcell displayed.
-        const leftNs = this.screenXToNs(0);
-        const rightNs = this.screenXToNs(this.canvas.width);
-        const leftIndex = this.findBitcellIndex(leftNs);
-        const rightIndex = this.findBitcellIndex(rightNs);
+        if (drawPulses) {
+            // Draw a line for each bitcell.
 
-        // Getting/putting ImageData is about 10x faster than using one-pixel fillRect().
-        const imageData = ctx.getImageData(0, 0, width, height);
-        const imageWords = new Uint32Array(imageData.data.buffer);
-        const ns = this.cummulativeNs[leftIndex];
-        let x = this.nsToScreenX(ns);
-        const dx = this.zoom*this.scp.resolutionTimeNs;
-        for (let i = leftIndex; i <= rightIndex; i++) {
-            const bitcell = rev.bitcells[i];
-            const y = Math.round(this.canvas.height - bitcell*0.5); // TODO don't hard-code scale.
+            const drawLine = (x: number, height: number): void => {
+                const ix = Math.round(x) + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(ix, this.canvas.height);
+                ctx.lineTo(ix, this.canvas.height - height);
+                ctx.stroke();
+            };
 
-            imageWords[y * width + Math.round(x)] = 0xFFFFFFFF;
-            x += bitcell*dx;
+            // bitcell:      5    8    4    9
+            // cum:       0     5    13   17  26
+            const ns = this.cumulativeNs[leftIndex];
+            let x = this.nsToScreenX(ns);
+            const dx = this.zoom * resolutionTimeNs;
+            ctx.strokeStyle = "#FFFFFF";
+            for (let i = leftIndex; i <= rightIndex; i++) {
+                const bitcell = rev.bitcells[i];
+                x += bitcell * dx;
+
+                drawLine(x, bitcell*0.5);  // TODO don't hard-code scale.
+            }
+
+            if (rev.pulses !== undefined) {
+                for (let i = leftIndex; i <= rightIndex; i++) {
+                    const pulse = rev.pulses[i];
+                    let x = this.nsToScreenX(pulse.time*resolutionTimeNs);
+                    // drawLine(x, this.canvas.height);
+                    console.log("pulse", pulse);
+
+                    const snapTo = pulse.time - pulse.over;
+                    const otherSnapTo = pulse.over > 0 ? snapTo + pulse.interval : snapTo - pulse.interval;
+                    ctx.strokeStyle = "#AAAAAA";
+                    ctx.beginPath();
+                    ctx.moveTo(this.nsToScreenX(snapTo*resolutionTimeNs), this.canvas.height);
+                    ctx.lineTo(this.nsToScreenX((snapTo + otherSnapTo)/2*resolutionTimeNs), this.canvas.height/2);
+                    ctx.lineTo(this.nsToScreenX(otherSnapTo*resolutionTimeNs), this.canvas.height);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = "#00AA00";
+                    for (let j = 0; j < pulse.zeroCount; j++) {
+                        x = this.nsToScreenX((pulse.time - (j + 1)*pulse.interval)*resolutionTimeNs);
+                        drawLine(x, this.canvas.height/2);
+                    }
+                }
+            }
+        } else {
+            // Getting/putting ImageData is about 10x faster than using one-pixel fillRect().
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const imageWords = new Uint32Array(imageData.data.buffer);
+            const ns = this.cumulativeNs[leftIndex];
+            let x = this.nsToScreenX(ns);
+            const dx = this.zoom * resolutionTimeNs;
+            for (let i = leftIndex; i <= rightIndex; i++) {
+                const bitcell = rev.bitcells[i];
+                const y = Math.round(this.canvas.height - bitcell * 0.5); // TODO don't hard-code scale.
+
+                imageWords[y * width + Math.round(x)] = 0xFFFFFFFF;
+                x += bitcell * dx;
+            }
+            ctx.putImageData(imageData, 0, 0);
         }
-        ctx.putImageData(imageData, 0, 0);
     }
 
     /**
@@ -548,8 +625,8 @@ class ScpTrackTile {
                 return first;
             }
 
-            const mid = Math.round((first + last)/2);
-            const midNs = this.cummulativeNs[mid];
+            const mid = Math.floor((first + last)/2);
+            const midNs = this.cumulativeNs[mid];
 
             if (ns === midNs) {
                 return mid;
@@ -560,7 +637,9 @@ class ScpTrackTile {
             }
         };
 
-        return find(0, this.cummulativeNs.length - 1);
+        // Start at 1 so that we can always subtract 1 from the index to get
+        // the corresponding bitcell index.
+        return find(1, this.cumulativeNs.length - 1);
     }
 
     /**
@@ -570,8 +649,8 @@ class ScpTrackTile {
         const beginBitcellIndex = rev.bytes[sector.idamIndex].bitcellIndex;
         const endBitcellIndex = rev.bytes[sector.idamIndex + 7].bitcellIndex; // CRC is +5 and +6.
 
-        const beginNs = this.cummulativeNs[beginBitcellIndex];
-        const endNs = this.cummulativeNs[endBitcellIndex];
+        const beginNs = this.cumulativeNs[beginBitcellIndex];
+        const endNs = this.cumulativeNs[endBitcellIndex];
 
         return [beginNs, endNs];
     }
@@ -583,8 +662,21 @@ class ScpTrackTile {
         const beginBitcellIndex = rev.bytes[sector.damIndex].bitcellIndex;
         const endBitcellIndex = rev.bytes[sector.damIndex + 256].bitcellIndex;
 
-        const beginNs = this.cummulativeNs[beginBitcellIndex];
-        const endNs = this.cummulativeNs[endBitcellIndex];
+        const beginNs = this.cumulativeNs[beginBitcellIndex];
+        const endNs = this.cumulativeNs[endBitcellIndex];
+
+        return [beginNs, endNs];
+    }
+
+    /**
+     * Get the time span of a specific byte in a sector.
+     */
+    private getSectorDataByteSpan(rev: ScpRev, sector: ScpSector, byteNumber: number): [beginNs: number, endNs: number] {
+        const beginBitcellIndex = rev.bytes[sector.damIndex + byteNumber].bitcellIndex;
+        const endBitcellIndex = rev.bytes[sector.damIndex + byteNumber + 1].bitcellIndex;
+
+        const beginNs = this.cumulativeNs[beginBitcellIndex];
+        const endNs = this.cumulativeNs[endBitcellIndex + 1];
 
         return [beginNs, endNs];
     }
@@ -624,11 +716,17 @@ class ScpSectorTile {
         clearElement(this.top);
 
         if (sector !== undefined) {
-            const hexdumpGenerator = new HtmlHexdumpGenerator(sector.getData(), [], {
+            const hexdumpGenerator = new HexdumpGenerator(sector.getData(), [], {
                 collapse: false,
                 showLastAddress: false,
             });
-            this.top.append(...hexdumpGenerator.generate());
+            const clickHandler = (span: HexdumpSpan) => {
+                if (span.address !== undefined) {
+                    this.selection.set(this.selection.trackNumber, this.selection.sectorNumber, span.address);
+                }
+            };
+            this.top.append(...[...hexdumpGenerator.generate()].map(line =>
+                hexdumpLineToHtml(line, this.selection.byteNumber, clickHandler)));
         }
     }
 }

@@ -1,8 +1,8 @@
-import {Trs80File} from "trs80-base";
+import {HexdumpLine, HexdumpGenerator, Trs80File} from "trs80-base";
 import {PageTab} from "./PageTab";
 import {clearElement} from "teamten-ts-utils";
 import {Context} from "./Context";
-import {HtmlHexdumpGenerator} from "./HtmlHexdumpGenerator";
+import {hexdumpLineToHtml} from "./HtmlHexdumpGenerator";
 
 /**
  * Tab for displaying the hex and ASCII of the binary.
@@ -14,7 +14,7 @@ export class HexdumpTab extends PageTab {
     private readonly windowResizeListener: () => void;
     private collapse = true;
     private annotate = true;
-    private lineGenerator: Generator<HTMLElement, void, void> | undefined = undefined;
+    private lineGenerator: Generator<HexdumpLine, void, void> | undefined = undefined;
     private lastLine: HTMLElement | undefined = undefined;
 
     constructor(context: Context, trs80File: Trs80File) {
@@ -111,7 +111,7 @@ export class HexdumpTab extends PageTab {
         clearElement(this.hexdumpElement);
         this.lastLine = undefined;
 
-        const hexdumpGenerator = new HtmlHexdumpGenerator(this.binary,
+        const hexdumpGenerator = new HexdumpGenerator(this.binary,
             this.annotate ? this.trs80File.annotations : [], {
             collapse: this.collapse,
             });
@@ -131,7 +131,7 @@ export class HexdumpTab extends PageTab {
                 this.lineGenerator = undefined;
             } else {
                 // Generate one more line.
-                this.lastLine = lineInfo.value;
+                this.lastLine = hexdumpLineToHtml(lineInfo.value.collapse(true, true));
                 this.hexdumpElement.append(this.lastLine);
             }
         }
