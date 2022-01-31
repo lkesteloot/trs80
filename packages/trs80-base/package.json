@@ -1,6 +1,6 @@
 {
   "name": "trs80-base",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Utility functions and classes for TRS-80 software and emulation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
