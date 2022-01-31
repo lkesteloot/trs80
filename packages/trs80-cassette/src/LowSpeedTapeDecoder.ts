@@ -193,6 +193,24 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         const byteData: ByteData[] = [];
         const binary: number[] = [];
 
+        // Sometimes there's a gap so short between programs that we "recover" and continue reading.
+        // This ends up looking like the end of the previous program, followed by 255 zeros, followed
+        // by the sync byte. So keep track of when we see the beginning of such a sequence. If we find it,
+        // rewind and end the program there. It's unlikely that someone would have embedded that sequence
+        // on purpose (waiting all that space). This assumes that the previous program's data
+        // doesn't have trailing zeros we care about. If this is ever a problem, we can clip off at most
+        // 255 zero bytes. Or we can include all zeros in the previous program, it shouldn't hurt.
+
+        // The number of zero bytes we've seen in a row.
+        let headerZeroCount = 0;
+        // The number of entries in the "binary" (or, equivalently, "byteData") array before the start
+        // of the sequence of zeros.
+        let headerByteCount = 0;
+        // The number of entries in the "bitData" array before the start of the sequence of zeros.
+        let headerBitCount = 0;
+        // The value of "frame" before seeing the sequence of zeros.
+        let headerFrame = 0;
+
         while (true) {
             const [bit, clockPulse, dataPulse] = this.readBit(frame);
             if (clockPulse.resultType === PulseResultType.SILENCE) {
@@ -216,6 +234,27 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                 bitCount += 1;
                 if (bitCount === 8) {
                     const byteValue = recentBits & 0xFF;
+
+                    // See if this might be the header of the next program.
+                    if (byteValue === 0x00) {
+                        if (headerZeroCount === 0) {
+                            // Start of header. Keep track of where we are so we can later rewind.
+                            headerByteCount = binary.length;
+                            headerBitCount = bitData.length;
+                            headerFrame = frame;
+                        }
+                        headerZeroCount += 1;
+                    } else if (byteValue === SYNC_BYTE && headerZeroCount >= 250) { // Expect 255, but be sloppy.
+                        // Rewind and stop reading.
+                        binary.splice(headerByteCount);
+                        byteData.splice(headerByteCount);
+                        bitData.splice(headerBitCount);
+                        frame = headerFrame;
+                        break;
+                    } else {
+                        // Not seeing a zero, reset this.
+                        headerZeroCount = 0;
+                    }
                     binary.push(byteValue);
                     byteData.push(new ByteData(byteValue, bitData[bitData.length - 8].startFrame, bitData[bitData.length - 1].endFrame));
                     bitCount = 0;

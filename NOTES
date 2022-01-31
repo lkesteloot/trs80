@@ -1,4 +1,8 @@
 
+To rebuild all packages in order:
+
+- Run "lerna run build" in top-level directory.
+
 To publish new version:
 
 - Update README.md, especially in trs80-tool. Commit.
