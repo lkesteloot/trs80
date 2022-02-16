@@ -13,4 +13,6 @@ To publish new version:
     % make rsync
 - In "my-trs-80" directory:
     % npm run publish
+- In "trs80-cassette-web" directory:
+    % npm run publish
 
