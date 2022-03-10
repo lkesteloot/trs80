@@ -7,7 +7,9 @@
     "lint": "prettier --check \"src/**/*.{ts,js}\""
   },
   "dependencies": {
-    "@codemirror/basic-setup": "^0.19.1"
+    "@codemirror/basic-setup": "^0.19.1",
+    "z80-asm": "^2.3.0",
+    "z80-base": "^2.0.1"
   },
   "devDependencies": {
     "@snowpack/plugin-typescript": "^1.2.1",

@@ -1,5 +1,6 @@
 /** @type {import("snowpack").SnowpackUserConfig } */
 export default {
+  workspaceRoot: "..",
   mount: {
     public: { url: '/', static: true },
     src: { url: '/dist' },
