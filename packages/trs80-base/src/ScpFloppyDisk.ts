@@ -604,7 +604,7 @@ function parseRev(binary: Uint8Array, revOffset: number, numBitcells: number, re
     }
 
     // TODO want this true for interactive use and false for command-line use.
-    let pulses: ScpPulse[] | undefined = true ? [] : undefined;
+    const pulses: ScpPulse[] | undefined = true ? [] : undefined;
 
     // See if we can guess the density from the distribution of pulse widths.
     const density = guessDensity(bitcells, resolutionTimeNs);

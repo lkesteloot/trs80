@@ -1110,52 +1110,12 @@ function sectors(filename: string, showContents: boolean): void {
 }
 
 /**
- * Represents a span of characters in the hexdump with a single set of classes.
- */
-class HexdumpSpan {
-    public text: string;
-    public readonly classes: string[];
-
-    constructor(text: string, classes: string[]) {
-        this.text = text;
-        this.classes = classes;
-    }
-}
-
-/**
- * Hexdump generator for console output.
- */
-class ConsoleHexdumpGenerator extends HexdumpGenerator<HexdumpSpan[], HexdumpSpan> {
-    constructor(binary: Uint8Array, annotations: ProgramAnnotation[], options: HexdumpOptions) {
-        super(binary, annotations, options);
-    }
-
-    protected newLine(): HexdumpSpan[] {
-        return [];
-    }
-
-    protected getLineText(line: HexdumpSpan[]): string {
-        return line.map(span => span.text).join("");
-    }
-
-    protected newSpan(line: HexdumpSpan[], text: string, ...cssClass: string[]): HexdumpSpan {
-        const span = new HexdumpSpan(text, cssClass);
-        line.push(span);
-        return span;
-    }
-
-    protected addTextToSpan(span: HexdumpSpan, text: string): void {
-        span.text += text;
-    }
-}
-
-/**
  * Hex dump a binary array.
  */
 function hexdumpBinary(binary: Uint8Array, annotations: ProgramAnnotation[], options: HexdumpOptions): void {
-    const hexdump = new ConsoleHexdumpGenerator(binary, annotations, options);
+    const hexdump = new HexdumpGenerator(binary, annotations, options);
     for (const line of hexdump.generate()) {
-        console.log(line.map(span => {
+        console.log(line.spans.map(span => {
             if (span.classes.indexOf("outside-annotation") >= 0) {
                 if (chalk.level === 0) {
                     // Hide altogether.
