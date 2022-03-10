@@ -1,7 +1,7 @@
 
 import { expect } from "chai";
 import "mocha";
-import {Asm, SourceFile} from "./Asm";
+import {Asm, FileSystem, SourceFile} from "./Asm";
 
 interface TestLine {
     line: string;
@@ -9,8 +9,20 @@ interface TestLine {
     error?: boolean;
 }
 
+function linesToFileSystem(lines: string[]): FileSystem {
+    return {
+        readBinaryFile(pathname: string): Uint8Array | undefined {
+            return undefined;
+        }, readDirectory(pathname: string): string[] | undefined {
+            return undefined;
+        }, readTextFile(pathname: string): string[] | undefined {
+            return lines;
+        }
+    };
+}
+
 function runTest(testLines: TestLine[]): Asm {
-    const asm = new Asm((pathname) => testLines.map(testLine => testLine.line));
+    const asm = new Asm(linesToFileSystem(testLines.map(testLine => testLine.line)));
     const sourceFile = asm.assembleFile("unused.asm");
     if (sourceFile === undefined) {
         throw new Error("File not found");
@@ -177,7 +189,7 @@ describe("number parsing", () => {
 });
 
 function runMacroTest(testLines: string[], expectedOpcodes: number[]): void {
-    const asm = new Asm((pathname) => testLines);
+    const asm = new Asm(linesToFileSystem(testLines));
     const sourceFile = asm.assembleFile("unused.asm");
     if (sourceFile === undefined) {
         throw new Error("File not found");

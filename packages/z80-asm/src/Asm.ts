@@ -1,8 +1,7 @@
 import mnemonicData from "./Opcodes.js";
 import {hi, isByteReg, isWordReg, lo, toHexWord} from "z80-base";
 import {Variant} from "./OpcodesTypes.js";
-import * as path from "path";
-import * as fs from "fs";
+import {dirname, parse, resolve} from "./path.js";
 
 /**
  * List of all flags that can be specified in an instruction.
@@ -204,8 +203,20 @@ export class AssembledLine {
     }
 }
 
-// Read the lines of a file, or undefined if the file cannot be read.
-export type FileReader = (pathname: string) => string[] | undefined;
+/**
+ * Virtual file system, used by the assembler to read files and directories. All
+ * pathname parameters are relative to the top-level file being assembled.
+ */
+export interface FileSystem {
+    // Read the lines of a file, or undefined if the file cannot be read.
+    readTextFile(pathname: string): string[] | undefined;
+
+    // Read the file as a blob, or undefined if the file cannot be read.
+    readBinaryFile(pathname: string): Uint8Array | undefined;
+
+    // Read all filenames in a directory, or undefined if the directory cannot be read.
+    readDirectory(pathname: string): string[] | undefined;
+}
 
 export class SourceFile {
     public readonly fileInfo: FileInfo;
@@ -277,7 +288,7 @@ class Scope {
  */
 export class Asm {
     // Interface for fetching a file's lines.
-    public readonly fileReader: FileReader;
+    public readonly fileSystem: FileSystem;
     // Index 0 is global scope, then one scope for each #local.
     public readonly scopes: Scope[] = [new Scope(undefined)];
     // All assembled lines.
@@ -289,8 +300,8 @@ export class Asm {
     // Entry point into program.
     public entryPoint: number | undefined = undefined;
 
-    constructor(fileReader: FileReader) {
-        this.fileReader = fileReader;
+    constructor(fileSystem: FileSystem) {
+        this.fileSystem = fileSystem;
     }
 
     public assembleFile(pathname: string): SourceFile | undefined {
@@ -351,7 +362,7 @@ export class Asm {
      * file can't be loaded.
      */
     public loadSourceFile(pathname: string, parentFileInfo: FileInfo | undefined): SourceFile | undefined {
-        const lines = this.fileReader(pathname);
+        const lines = this.fileSystem.readTextFile(pathname);
         if (lines === undefined) {
             return undefined;
         }
@@ -374,10 +385,9 @@ export class Asm {
      */
     public readDir(dir: string): string[] | undefined {
         let filenames = this.dirCache.get(dir);
-        if (filenames == undefined) {
-            try {
-                filenames = fs.readdirSync(dir);
-            } catch (e) {
+        if (filenames === undefined) {
+            filenames = this.fileSystem.readDirectory(dir);
+            if (filenames === undefined) {
                 // Can't read dir.
                 return undefined;
             }
@@ -1067,19 +1077,19 @@ class LineParser {
                     if (dir === undefined) {
                         this.assembledLine.error = "missing library directory";
                     } else if (this.pass.passNumber === 1) {
-                        const libraryDir = path.resolve(path.dirname(this.assembledLine.fileInfo.pathname), dir);
+                        const libraryDir = resolve(dirname(this.assembledLine.fileInfo.pathname), dir);
                         const filenames = this.pass.asm.readDir(libraryDir);
                         if (filenames === undefined) {
                             this.assembledLine.error = "can't read directory \"" + libraryDir + "\"";
                             return;
                         }
                         for (const filename of filenames) {
-                            let parsedPath = path.parse(filename);
+                            let parsedPath = parse(filename);
                             if (LIBRARY_EXTS.has(parsedPath.ext)) {
                                 const symbol = this.pass.globals().get(parsedPath.name);
                                 if (symbol !== undefined && symbol.definitions.length === 0) {
                                     // Found used but undefined symbol that matches a file in the library.
-                                    const includePathname = path.resolve(libraryDir, filename);
+                                    const includePathname = resolve(libraryDir, filename);
                                     this.pass.insertLines([
                                         new AssembledLine(this.assembledLine.fileInfo, undefined,
                                             "#include \"" + includePathname + "\""),
@@ -1100,7 +1110,7 @@ class LineParser {
                     if (filename === undefined) {
                         this.assembledLine.error = "missing included filename";
                     } else if (this.pass.passNumber === 1) {
-                        const includePathname = path.resolve(path.dirname(this.assembledLine.fileInfo.pathname), filename);
+                        const includePathname = resolve(dirname(this.assembledLine.fileInfo.pathname), filename);
                         const sourceFile = this.pass.asm.loadSourceFile(includePathname, this.assembledLine.fileInfo);
                         if (sourceFile === undefined) {
                             this.assembledLine.error = "cannot read file " + includePathname;
@@ -1152,13 +1162,11 @@ class LineParser {
                 }
 
                 // Pathname is relative to including file.
-                const resolvedPathname = path.resolve(path.dirname(this.assembledLine.fileInfo.pathname), pathname);
+                const resolvedPathname = resolve(dirname(this.assembledLine.fileInfo.pathname), pathname);
 
                 // Load the file.
-                let binary: Uint8Array;
-                try {
-                    binary = fs.readFileSync(resolvedPathname);
-                } catch (e) {
+                const binary = this.pass.asm.fileSystem.readBinaryFile(resolvedPathname);
+                if (binary === undefined) {
                     this.assembledLine.error = "file \"" + resolvedPathname + "\" not found";
                     return;
                 }
