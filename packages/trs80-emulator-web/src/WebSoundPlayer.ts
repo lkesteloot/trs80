@@ -1,5 +1,4 @@
-import {Mutable} from "./Mutable.js";
-import type {SoundPlayer} from "trs80-emulator";
+import type {Mutable, SoundPlayer} from "trs80-emulator";
 
 const PROCESSOR_NAME = "trs80-audio-processor";
 

@@ -7,3 +7,4 @@ export {DriveIndicators} from "./DriveIndicators.js";
 export {Editor} from "./Editor.js";
 export {WebKeyboard} from "./WebKeyboard.js";
 export {flashNode} from "./FlashNode.js";
+export {WebSoundPlayer} from "./WebSoundPlayer.js";

@@ -1,4 +1,11 @@
 
+Lerna seems dead, but there's no good replacement.
+
+To update installed packages:
+
+- rm -r packages/*/node_modules packages/*/package-lock.json
+- lerna bootstrap --hoist
+
 To rebuild all packages in order:
 
 - Run "lerna run build" in top-level directory.

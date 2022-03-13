@@ -1,7 +1,7 @@
 
 import {CSS_PREFIX} from "./Utils.js";
 import {PanelType, SettingsPanel} from "./SettingsPanel.js";
-import {Mutable} from "./Mutable.js";
+import {Mutable} from "trs80-emulator";
 
 const gCssPrefix = CSS_PREFIX + "-control-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";

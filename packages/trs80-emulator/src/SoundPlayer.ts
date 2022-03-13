@@ -21,9 +21,18 @@ export interface SoundPlayer {
 }
 
 /**
+ * Interface for an object that can be muted.
+ */
+export interface Mutable {
+    mute(): void;
+    unmute(): void;
+    isMuted(): boolean;
+}
+
+/**
  * A sound player that does nothing.
  */
-export class SilentSoundPlayer implements SoundPlayer {
+export class SilentSoundPlayer implements SoundPlayer, Mutable {
     setAudioValue(leftValue: number, rightValue: number, tStateCount: number, clockHz: number): void {
         // Nothing.
     }
@@ -33,6 +42,18 @@ export class SilentSoundPlayer implements SoundPlayer {
     }
 
     trackMoved(moveCount: number): void {
+        // Nothing.
+    }
+
+    isMuted(): boolean {
+        return false;
+    }
+
+    mute(): void {
+        // Nothing.
+    }
+
+    unmute(): void {
         // Nothing.
     }
 }

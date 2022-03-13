@@ -37,7 +37,7 @@ import {
     wrapHighSpeed,
     wrapLowSpeed
 } from "trs80-cassette";
-import {WebSoundPlayer} from "../../trs80-emulator-web/dist/WebSoundPlayer";
+import {WebSoundPlayer} from "trs80-emulator-web";
 
 /**
  * A cassette player based on a CAS file.
@@ -326,8 +326,6 @@ export function main() {
     });
     controlPanel.addSettingsButton(hardwareSettingsPanel);
     controlPanel.addSettingsButton(viewPanel);
-    // const progressBar = new ProgressBar(screen.getNode());
-    // cassette.setProgressBar(progressBar);
     controlPanel.addMuteButton(soundPlayer);
 
     const driveIndicators = new DriveIndicators(screen.getNode(), trs80.getMaxDrives());
