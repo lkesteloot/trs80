@@ -6,6 +6,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    // Otherwise have build errors with eslint imported by other packages:
+    "skipLibCheck": true,
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

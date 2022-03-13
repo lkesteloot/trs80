@@ -22,7 +22,7 @@
   "dependencies": {
     "trs80-base": "^2.3.1",
     "trs80-emulator": "^2.3.1",
-    "typescript": "^4.4.3",
+    "typescript": "^4.0.0",
     "z80-base": "^2.0.1"
   }
 }

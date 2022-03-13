@@ -11,8 +11,6 @@
   "scripts": {
     "build": "tsc",
     "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
-    "lint": "tslint --project . --format codeFrame",
-    "lint:fix": "npm run lint -- --fix",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
   },
@@ -20,9 +18,8 @@
     "z80"
   ],
   "devDependencies": {
-    "@types/node": "^12.12.21",
-    "tslint": "^5.20.1",
-    "typedoc": "^0.15.5",
-    "typescript": "^3.7.4"
+    "@types/node": "^16.0.0",
+    "typedoc": "^0.22.13",
+    "typescript": "^4.0.0"
   }
 }

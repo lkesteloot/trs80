@@ -65,7 +65,7 @@ import {
 import http from "http";
 import * as url from "url";
 import * as ws from "ws";
-import {Asm} from "z80-asm";
+import {Asm, FileSystem} from "z80-asm";
 import {toHex, toHexWord} from "z80-base";
 
 const HELP_TEXT = `
@@ -1791,23 +1791,43 @@ function run(programFiles: string[], xray: boolean, config: Config) {
 }
 
 /**
- * Handle the "asm" command.
+ * Node fs implementation of FileSystem.
+ * TODO move this into a common library.
  */
-function asm(srcPathname: string, outPathname: string, baud: number, lstPathname: string | undefined): void {
-    // Get the lines for a file.
-    function loadFile(filename: string): string[] | undefined {
+class FileSystemImpl implements FileSystem {
+    readBinaryFile(pathname: string): Uint8Array | undefined {
         try {
-            return fs.readFileSync(filename, "utf-8").split(/\r?\n/);
+            return fs.readFileSync(pathname);
         } catch (e) {
-            // File not found.
             return undefined;
         }
     }
 
+    readDirectory(pathname: string): string[] | undefined {
+        try {
+            return fs.readdirSync(pathname);
+        } catch (e) {
+            return undefined;
+        }
+    }
+
+    readTextFile(pathname: string): string[] | undefined {
+        try {
+            return fs.readFileSync(pathname, "utf-8").split(/\r?\n/);
+        } catch (e) {
+            return undefined;
+        }
+    }
+}
+
+/**
+ * Handle the "asm" command.
+ */
+function asm(srcPathname: string, outPathname: string, baud: number, lstPathname: string | undefined): void {
     const { name } = path.parse(srcPathname);
 
     // Assemble program.
-    const asm = new Asm(loadFile);
+    const asm = new Asm(new FileSystemImpl());
     const sourceFile = asm.assembleFile(srcPathname);
     if (sourceFile === undefined) {
         console.log("Cannot read file " + srcPathname);

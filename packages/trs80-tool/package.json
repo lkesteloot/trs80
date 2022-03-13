@@ -7,6 +7,7 @@
     "type": "module",
     "scripts": {
         "build": "tsc",
+        "clean": "rm -rf dist",
         "updateVersion": "python3 update_version.py > src/version.ts",
         "prepublishOnly": "npm run updateVersion && npm run build",
         "buildBinaries": "npm run updateVersion && npm run build && webpack && pkg --out-path binaries binaries/main.js && make dist"
@@ -17,7 +18,7 @@
     "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
     "license": "MIT",
     "dependencies": {
-        "@types/node": "^14.14.37",
+        "@types/node": "^16.0.0",
         "@types/ws": "^8.2.0",
         "chalk": "^4.1.2",
         "commander": "^7.2.0",
@@ -26,7 +27,7 @@
         "trs80-cassette": "^2.3.1",
         "trs80-disasm": "^2.3.1",
         "trs80-emulator": "^2.3.1",
-        "typescript": "^4.2.3",
+        "typescript": "^4.0.0",
         "ws": "^8.2.3",
         "z80-asm": "^2.3.0",
         "z80-base": "^2.0.1",
