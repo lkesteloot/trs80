@@ -12,10 +12,31 @@ const initial_code = `  .org 0x5000
   di
   ld a,191
   ld hl,15360
-  ld (hl),a
+  ld b, 10
+  
 loop:
-  jp loop
+  ld (hl),a
+  inc hl
+  dec b
+  jr nz,loop
+
+stop:
+  jp stop
 `;
+
+
+const body = document.body;
+let e = document.createElement("div");
+e.id = "editor";
+body.append(e);
+e = document.createElement("button");
+e.id = "assemble_button";
+e.innerText = "Assemble";
+body.append(e);
+e = document.createElement("div");
+e.id = "emulator";
+body.append(e);
+
 
 let startState = EditorState.create({
   doc: initial_code,
@@ -34,7 +55,6 @@ let view = new EditorView({
   state: startState,
   parent: document.getElementById("editor") as HTMLDivElement
 });
-view.hasFocus
 
 const button = document.getElementById("assemble_button");
 button?.addEventListener("click", () => {

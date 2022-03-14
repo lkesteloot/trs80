@@ -6,13 +6,11 @@
   "repository": "https://github.com/lkesteloot/trs80.git",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
+  "type": "module",
   "scripts": {
-    "start": "snowpack dev",
-    "build": "snowpack build",
-    "clean": "rm -rf build",
-    "test": "echo \"This template does not include a test runner by default.\" && exit 1",
-    "format": "prettier --write \"src/**/*.{ts,js}\"",
-    "lint": "prettier --check \"src/**/*.{ts,js}\""
+    "start": "webpack serve --open",
+    "build": "webpack",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@codemirror/basic-setup": "^0.19.1",

@@ -3,7 +3,11 @@
   "private": true,
   "repository": "https://github.com/lkesteloot/trs80.git",
   "devDependencies": {
-    "lerna": "^4.0.0"
+    "html-webpack-plugin": "^5.5.0",
+    "lerna": "^4.0.0",
+    "ts-loader": "^9.2.8",
+    "typescript": "^4.6.2",
+    "webpack-dev-server": "^4.7.4"
   },
   "workspaces": [
     "packages/my-trs-80",
