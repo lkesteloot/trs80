@@ -1,5 +1,5 @@
 import {hi, lo, toHex, toHexWord} from "z80-base";
-import {Hal, Z80} from "z80-emulator";
+import {Hal, Z80, Z80State} from "z80-emulator";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Keyboard} from "./Keyboard.js";
 import {model1Level1Rom} from "./Model1Level1Rom.js";
@@ -112,6 +112,22 @@ function warnOnce(message: string): void {
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
 /**
+ * Complete state of the machine.
+ */
+export class Trs80State {
+    public readonly config: Config;
+    public readonly z80State: Z80State;
+    public readonly memory: Uint8Array;
+    // TODO so much more here.
+
+    constructor(config: Config, z80State: Z80State, memory: Uint8Array) {
+        this.config = config;
+        this.z80State = z80State;
+        this.memory = memory;
+    }
+}
+
+/**
  * HAL for the TRS-80 Model III.
  */
 export class Trs80 implements Hal, Machine {
@@ -221,6 +237,33 @@ export class Trs80 implements Hal, Machine {
                 this.clockHz = M4_CLOCK_HZ;
                 break;
         }
+    }
+
+    /**
+     * Save the complete state of the machine, for use in {@link #restore()}.
+     */
+    public save(): Trs80State {
+        return new Trs80State(
+            this.config,  // Immutable, safe to pass in.
+            this.z80.save(),
+            new Uint8Array(this.memory));
+    }
+
+    /**
+     * Restore the complete state of the machine, saved by {@link #save()}.
+     */
+    public restore(state: Trs80State): void {
+        this.config = state.config;
+        this.z80.restore(state.z80State);
+
+        // Restore ROM.
+        this.memory.set(state.memory.subarray(0, ROM_SIZE));
+        // Restore screen.
+        for (let addr = TRS80_SCREEN_BEGIN; addr < TRS80_SCREEN_END; addr++) {
+            this.writeMemory(addr, state.memory[addr]);
+        }
+        // Restore RAM.
+        this.memory.set(state.memory.subarray(RAM_START), RAM_START);
     }
 
     /**

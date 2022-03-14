@@ -3,7 +3,7 @@ import {EditorState, basicSetup} from "@codemirror/basic-setup"
 import {EditorView, keymap} from "@codemirror/view"
 import {indentWithTab} from "@codemirror/commands"
 import {Asm} from "z80-asm";
-import {CassettePlayer, Config, Trs80} from "trs80-emulator";
+import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
 import {CanvasScreen} from "trs80-emulator-web";
 import {ControlPanel, DriveIndicators, PanelType, SettingsPanel, WebKeyboard} from "trs80-emulator-web";
 import {WebSoundPlayer} from "trs80-emulator-web";
@@ -26,16 +26,25 @@ stop:
 
 
 const body = document.body;
-let e = document.createElement("div");
-e.id = "editor";
-body.append(e);
-e = document.createElement("button");
-e.id = "assemble_button";
-e.innerText = "Assemble";
-body.append(e);
-e = document.createElement("div");
-e.id = "emulator";
-body.append(e);
+{
+  let e = document.createElement("div");
+  e.id = "editor";
+  body.append(e);
+}
+const assembleButton = document.createElement("button");
+assembleButton.innerText = "Assemble";
+body.append(assembleButton);
+const saveButton = document.createElement("button");
+saveButton.innerText = "Save";
+body.append(saveButton);
+const restoreButton = document.createElement("button");
+restoreButton.innerText = "Restore";
+body.append(restoreButton);
+{
+  const e = document.createElement("div");
+  e.id = "emulator";
+  body.append(e);
+}
 
 
 let startState = EditorState.create({
@@ -56,8 +65,7 @@ let view = new EditorView({
   parent: document.getElementById("editor") as HTMLDivElement
 });
 
-const button = document.getElementById("assemble_button");
-button?.addEventListener("click", () => {
+assembleButton.addEventListener("click", () => {
   const code = view.state.doc.toJSON();
   console.log(code);
   const asm = new Asm({
@@ -72,6 +80,12 @@ button?.addEventListener("click", () => {
   const sourceFile = asm.assembleFile("current.asm");
   console.log(sourceFile);
   if (sourceFile !== undefined) {
+    if (trs80State === undefined) {
+      trs80State = trs80.save();
+    } else {
+      trs80.restore(trs80State);
+    }
+
     for (const line of sourceFile.assembledLines) {
       for (let i = 0; i < line.binary.length; i++) {
         trs80.writeMemory(line.address + i, line.binary[i]);
@@ -89,6 +103,17 @@ button?.addEventListener("click", () => {
     if (entryPoint !== undefined) {
       trs80.jumpTo(entryPoint);
     }
+  }
+});
+
+let trs80State: Trs80State | undefined;
+
+saveButton.addEventListener("click", () => {
+  trs80State = trs80.save();
+});
+restoreButton.addEventListener("click", () => {
+  if (trs80State !== undefined) {
+    trs80.restore(trs80State);
   }
 });
 
@@ -123,7 +148,3 @@ trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
 emulatorDiv.append(screen.getNode());
 
 reboot();
-
-
-
-keyboard.interceptKeys

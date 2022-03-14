@@ -1,6 +1,7 @@
 import {Flag, hi, inc16, lo, RegisterSet, word} from "z80-base";
 import {decode} from "./Decode.js";
 import {Hal} from "./Hal.js";
+import {Z80State} from "./Z80State.js";
 
 /**
  * Emulated Z80 processor.
@@ -18,13 +19,28 @@ export class Z80 {
      * Tables for computing flags. Public so that the decoding function
      * can access them.
      */
-    public sz53Table: number[] = []; /* The S, Z, 5 and 3 bits of the index */
-    public parityTable: number[] = []; /* The parity of the lookup value */
-    public sz53pTable: number[] = []; /* OR the above two tables together */
+    public readonly sz53Table: number[] = []; /* The S, Z, 5 and 3 bits of the index */
+    public readonly parityTable: number[] = []; /* The parity of the lookup value */
+    public readonly sz53pTable: number[] = []; /* OR the above two tables together */
 
     constructor(hal: Hal) {
         this.hal = hal;
         this.initTables();
+    }
+
+    /**
+     * Complete state of the CPU, for use in {@link #restore()}.
+     */
+    public save(): Z80State {
+        return new Z80State(this.regs.clone());
+    }
+
+    /**
+     * Restore complete state of CPU, from result of {@link #save()}.
+     * @param state
+     */
+    public restore(state: Z80State): void {
+        this.regs = state.regs.clone();
     }
 
     /**

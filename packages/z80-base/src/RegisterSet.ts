@@ -138,6 +138,37 @@ export class RegisterSet {
     public getValue(registerName: Register): number {
         return this[registerName];
     }
+
+    /**
+     * Create a clone of this object, with copies of the contents.
+     */
+    public clone(): RegisterSet {
+        const regs = new RegisterSet();
+
+        regs.bc = this.bc;
+        regs.de = this.de;
+        regs.hl = this.hl;
+        regs.af = this.af;
+        regs.afPrime = this.afPrime;
+        regs.bcPrime = this.bcPrime;
+        regs.dePrime = this.dePrime;
+        regs.hlPrime = this.hlPrime;
+        regs.ix = this.ix;
+        regs.iy = this.iy;
+        regs.sp = this.sp;
+        regs.pc = this.pc;
+
+        regs.memptr = this.memptr;
+        regs.i = this.i;
+        regs.r = this.r;
+        regs.r7 = this.r7;
+        regs.iff1 = this.iff1;
+        regs.iff2 = this.iff2;
+        regs.im = this.im;
+        regs.halted = this.halted;
+
+        return regs;
+    }
 }
 
 /**
