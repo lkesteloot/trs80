@@ -2,7 +2,7 @@
 import {EditorState, basicSetup} from "@codemirror/basic-setup"
 import {EditorView, keymap} from "@codemirror/view"
 import {indentWithTab} from "@codemirror/commands"
-import {Asm} from "z80-asm";
+import {Asm, SourceFile} from "z80-asm";
 import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
 import {CanvasScreen} from "trs80-emulator-web";
 import {ControlPanel, DriveIndicators, PanelType, SettingsPanel, WebKeyboard} from "trs80-emulator-web";
@@ -57,6 +57,11 @@ let startState = EditorState.create({
         keyboard.interceptKeys = !update.view.hasFocus;
       }
     }),
+    EditorView.updateListener.of(update => {
+      if (update.docChanged) {
+        reassemble();
+      }
+    }),
   ]
 });
 
@@ -65,7 +70,17 @@ let view = new EditorView({
   parent: document.getElementById("editor") as HTMLDivElement
 });
 
-assembleButton.addEventListener("click", () => {
+function hasErrors(sourceFile: SourceFile): boolean {
+  for (const line of sourceFile.assembledLines) {
+    if (line.error !== undefined) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function reassemble() {
   const code = view.state.doc.toJSON();
   console.log(code);
   const asm = new Asm({
@@ -79,7 +94,7 @@ assembleButton.addEventListener("click", () => {
   });
   const sourceFile = asm.assembleFile("current.asm");
   console.log(sourceFile);
-  if (sourceFile !== undefined) {
+  if (sourceFile !== undefined && !hasErrors(sourceFile)) {
     if (trs80State === undefined) {
       trs80State = trs80.save();
     } else {
@@ -104,7 +119,9 @@ assembleButton.addEventListener("click", () => {
       trs80.jumpTo(entryPoint);
     }
   }
-});
+}
+
+assembleButton.addEventListener("click", () => reassemble());
 
 let trs80State: Trs80State | undefined;
 
