@@ -33,6 +33,7 @@ const exports = {
     devServer: {
         static: './dist',
     },
+    devtool: 'inline-source-map',
 };
 
 export default exports;
