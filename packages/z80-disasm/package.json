@@ -1,0 +1,30 @@
+{
+  "name": "z80-disasm",
+  "version": "2.3.0",
+  "description": "Z80 disassembler in TypeScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateJson.js",
+    "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "z80",
+    "disassembler"
+  ],
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "repository": "https://github.com/lkesteloot/trs80.git",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^16.0.0",
+    "typedoc": "^0.22.13",
+    "typescript": "^4.0.0"
+  },
+  "dependencies": {
+    "z80-base": "^2.0.1"
+  }
+}
