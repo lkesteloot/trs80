@@ -1,0 +1,67 @@
+/* Global settings. */
+:root {
+    /* Solarized colors */
+    --base03:    #002b36;
+    --base02:    #073642;
+    --base01:    #586e75;
+    --base00:    #657b83;
+    --base0:     #839496;
+    --base1:     #93a1a1;
+    --base2:     #eee8d5;
+    --base3:     #fdf6e3;
+    --yellow:    #b58900;
+    --orange:    #cb4b16;
+    --red:       #dc322f;
+    --magenta:   #d33682;
+    --violet:    #6c71c4;
+    --blue:      #268bd2;
+    --cyan:      #2aa198;
+    --green:     #859900;
+}
+
+.light-mode {
+    --background: var(--base3);
+    --background-highlights: var(--base2);
+    --foreground: var(--base00);
+    --foreground-emphasized: var(--base01);
+    --foreground-secondary: var(--base1);
+    --accent-color: var(--red);
+    --accent-foreground-color: var(--base3);
+}
+
+.dark-mode {
+    --background: var(--base03);
+    --background-highlights: var(--base02);
+    --foreground: var(--base0);
+    --foreground-emphasized: var(--base1);
+    --foreground-secondary: var(--base01);
+    --accent-color: var(--cyan);
+    --accent-foreground-color: var(--base3);
+}
+
+body {
+    padding: 0;
+    margin: 0;
+    background: var(--background);
+}
+
+.content {
+    box-sizing: border-box;
+    padding: 50px;
+    height: 100vh;
+    display: flex;
+    gap: 30px;
+}
+
+#editor {
+    align-self: stretch;
+    flex-grow: 1;
+}
+
+.cm-editor {
+    height: 100%;
+}
+
+#emulator {
+    align-self: center;
+}

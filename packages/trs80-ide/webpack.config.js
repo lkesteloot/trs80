@@ -2,6 +2,7 @@
 import path from "path";
 import { URL } from 'url';
 import HtmlWebpackPlugin from "html-webpack-plugin";
+import MiniCssExtractPlugin from "mini-css-extract-plugin";
 
 // Replace __dirname from non-module node. May not work well if there are
 // spaces in the path (will show up as %20).
@@ -23,12 +24,17 @@ const exports = {
                 },
                 exclude: /node_modules/,
             },
+            {
+                test: /\.css$/i,
+                use: [MiniCssExtractPlugin.loader, "css-loader"],
+            },
         ],
     },
     plugins: [
         new HtmlWebpackPlugin({
-            title: 'Output Management',
+            title: "TRS-80 IDE",
         }),
+        new MiniCssExtractPlugin(),
     ],
     devServer: {
         static: './dist',

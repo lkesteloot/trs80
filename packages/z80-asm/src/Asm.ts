@@ -1433,6 +1433,9 @@ class LineParser {
         return this.readSum();
     }
 
+    /**
+     * Read a sum, or undefined if there was an error reading it.
+     */
     private readSum(): number | undefined {
         let value = 0;
         let sign = 1;
@@ -1456,6 +1459,9 @@ class LineParser {
         return value;
     }
 
+    /**
+     * Read a product, or undefined if there was an error reading it.
+     */
     private readProduct(): number | undefined {
         let value = 1;
         let isMultiply = true;
@@ -1483,6 +1489,9 @@ class LineParser {
         return value;
     }
 
+    /**
+     * Read a logic (&, |, and ^) expression, or undefined if there was an error reading it.
+     */
     private readLogic(): number | undefined {
         let value = 0;
         let op = "";
@@ -1514,6 +1523,9 @@ class LineParser {
         return value;
     }
 
+    /**
+     * Read a shift (<< and >>) expression, or undefined if there was an error reading it.
+     */
     private readShift(): number | undefined {
         let value = 0;
         let op = "";
@@ -1544,6 +1556,9 @@ class LineParser {
         return value;
     }
 
+    /**
+     * Read a monadic (unary prefix operator) expression, or undefined if there was an error reading it.
+     */
     private readMonadic(): number | undefined {
         const ch = this.foundOneOfChar(["+", "-", "~", "!"]);
         if (ch !== undefined) {
@@ -1570,6 +1585,9 @@ class LineParser {
         }
     }
 
+    /**
+     * Read an atom (number constant, identifier) expression, or undefined if there was an error reading it.
+     */
     private readAtom(): number | undefined {
         const startIndex = this.column;
 
@@ -1749,13 +1767,19 @@ class LineParser {
             if (baseChar === "H") {
                 // Check for programmer errors.
                 if (base !== 16) {
-                    throw new Error("found H at end of non-hex number: " + this.line.substring(startIndex, this.column + 1));
+                    if (this.assembledLine.error === undefined) {
+                        this.assembledLine.error = "found H at end of non-hex number: " + this.line.substring(startIndex, this.column + 1);
+                    }
+                    return undefined;
                 }
                 this.column++;
             } else if (baseChar === "B") {
                 // Check for programmer errors.
                 if (base !== 2) {
-                    throw new Error("found B at end of non-binary number: " + this.line.substring(startIndex, this.column + 1));
+                    if (this.assembledLine.error === undefined) {
+                        this.assembledLine.error = "found B at end of non-binary number: " + this.line.substring(startIndex, this.column + 1);
+                    }
+                    return undefined;
                 }
                 this.column++;
             }

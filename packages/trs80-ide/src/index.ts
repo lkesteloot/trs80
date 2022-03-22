@@ -6,7 +6,7 @@ import {keymap, highlightSpecialChars, drawSelection, highlightActiveLine, dropC
 import {Extension, EditorState} from "@codemirror/state"
 import {history, historyKeymap} from "@codemirror/history"
 import {foldGutter, foldKeymap} from "@codemirror/fold"
-import {indentOnInput} from "@codemirror/language"
+import {indentOnInput, Language, defineLanguageFacet, LanguageSupport} from "@codemirror/language"
 import {lineNumbers, highlightActiveLineGutter} from "@codemirror/gutter"
 import {defaultKeymap} from "@codemirror/commands"
 import {bracketMatching} from "@codemirror/matchbrackets"
@@ -23,6 +23,10 @@ import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
 import {CanvasScreen} from "trs80-emulator-web";
 import {ControlPanel, DriveIndicators, PanelType, SettingsPanel, WebKeyboard} from "trs80-emulator-web";
 import {WebSoundPlayer} from "trs80-emulator-web";
+
+import {Input, NodeType, Parser, PartialParse, Tree, TreeFragment} from "@lezer/common";
+
+import "./style.css";
 
 const initial_code = `  .org 0x5000
   di
@@ -82,24 +86,90 @@ stop:
 `;
 
 const body = document.body;
-{
-  let e = document.createElement("div");
-  e.id = "editor";
-  body.append(e);
-}
+body.classList.add("light-mode");
+
+const content = document.createElement("div");
+content.classList.add("content");
+body.append(content);
+
+const editorDiv = document.createElement("div");
+editorDiv.id = "editor";
 const assembleButton = document.createElement("button");
 assembleButton.innerText = "Assemble";
-body.append(assembleButton);
 const saveButton = document.createElement("button");
 saveButton.innerText = "Save";
-body.append(saveButton);
 const restoreButton = document.createElement("button");
 restoreButton.innerText = "Restore";
-body.append(restoreButton);
-{
-  const e = document.createElement("div");
-  e.id = "emulator";
-  body.append(e);
+const emulatorDiv = document.createElement("div");
+emulatorDiv.id = "emulator";
+content.append(editorDiv, emulatorDiv);
+
+const nodeTypes = [
+  NodeType.define({
+    id: 0,
+    name: "file",
+  }),
+  NodeType.define({
+    id: 1,
+    name: "line",
+  }),
+];
+
+class Xyz implements PartialParse {
+  input: Input;
+
+  constructor(input: Input) {
+    this.input = input;
+  }
+
+  advance(): Tree | null {
+    const code = this.input.read(0, this.input.length).split("\n");
+    const {sourceFile} = assemble(code);
+    if (sourceFile === undefined) {
+      return Tree.empty;
+    }
+
+    const lines: Tree[] = [];
+    const positions: number[] = [];
+    let pos = 0;
+
+    for (let i = 0; i < sourceFile.assembledLines.length; i++) {
+      lines.push(new Tree(nodeTypes[1], [], [], length));
+      positions.push(pos);
+      pos += code[i].length + 1;
+    }
+
+    return new Tree(nodeTypes[0], lines, positions, length);
+  }
+
+  parsedPos: number = 0;
+
+  stopAt(pos: number): void {
+    throw new Error("Method not implemented.")
+  }
+
+  stoppedAt: number | null = null;
+}
+
+class Z80AssemblyParser extends Parser {
+  createParse(input: Input,
+              fragments: readonly TreeFragment[],
+              ranges: readonly { from: number; to: number }[]): PartialParse {
+
+    return new Xyz(input);
+  }
+}
+
+const parser = new Z80AssemblyParser();
+
+const language = new Language(
+    defineLanguageFacet(),
+    parser,
+    nodeTypes[1]
+);
+
+function z80AssemblyLanguage() {
+  return new LanguageSupport(language, []);
 }
 
 const extensions: Extension = [
@@ -149,6 +219,7 @@ const extensions: Extension = [
   // ], {
   //   delay: 750,
   // }),
+    z80AssemblyLanguage(),
 ];
 
 let startState = EditorState.create({
@@ -161,11 +232,7 @@ let view = new EditorView({
   parent: document.getElementById("editor") as HTMLDivElement
 });
 
-function reassemble() {
-  const editorState = view.state;
-  const doc = editorState.doc;
-  const code = doc.toJSON();
-  console.log(code);
+function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile | undefined} {
   const asm = new Asm({
     readBinaryFile(pathname: string): Uint8Array | undefined {
       return undefined;
@@ -176,6 +243,15 @@ function reassemble() {
     }
   });
   const sourceFile = asm.assembleFile("current.asm");
+  return {asm, sourceFile};
+}
+
+function reassemble() {
+  const editorState = view.state;
+  const doc = editorState.doc;
+  const code = doc.toJSON();
+  assemble(code);
+  const {asm, sourceFile} = assemble(code);
   console.log(sourceFile);
   if (sourceFile === undefined) {
     // TODO, file not found.
@@ -236,9 +312,8 @@ restoreButton.addEventListener("click", () => {
   }
 });
 
-const emulatorDiv = document.getElementById("emulator") as HTMLDivElement;
 const config = Config.makeDefault();
-const screen = new CanvasScreen(1);
+const screen = new CanvasScreen(1.5);
 const keyboard = new WebKeyboard();
 const cassettePlayer = new CassettePlayer();
 const soundPlayer = new WebSoundPlayer();
