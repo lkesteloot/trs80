@@ -92,8 +92,23 @@ const content = document.createElement("div");
 content.classList.add("content");
 body.append(content);
 
+const editorPane = document.createElement("div");
+editorPane.classList.add("editor-pane");
+const sampleChooser = document.createElement("select");
+sampleChooser.classList.add("sample-chooser");
+const samples = [
+    {value: "initial_code", name: "Simple", code: initial_code},
+    {value: "space_invaders", name: "Space Invaders", code: space_invaders},
+];
+for (const sample of samples) {
+    const option = document.createElement("option");
+    option.value = sample.value;
+    option.textContent = sample.name;
+    sampleChooser.append(option);
+}
 const editorDiv = document.createElement("div");
 editorDiv.id = "editor";
+editorPane.append(sampleChooser, editorDiv);
 const assembleButton = document.createElement("button");
 assembleButton.innerText = "Assemble";
 const saveButton = document.createElement("button");
@@ -102,7 +117,7 @@ const restoreButton = document.createElement("button");
 restoreButton.innerText = "Restore";
 const emulatorDiv = document.createElement("div");
 emulatorDiv.id = "emulator";
-content.append(editorDiv, emulatorDiv);
+content.append(editorPane, emulatorDiv);
 
 const nodeTypes = [
   NodeType.define({
@@ -309,6 +324,20 @@ saveButton.addEventListener("click", () => {
 restoreButton.addEventListener("click", () => {
   if (trs80State !== undefined) {
     trs80.restore(trs80State);
+  }
+});
+sampleChooser.addEventListener("change", () => {
+  const sampleValue = sampleChooser.value;
+  const sample = samples.filter(s => s.value === sampleValue)[0];
+  if (sample !== undefined) {
+    const code = sample.code;
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: view.state.doc.length,
+        insert: code,
+      }
+    });
   }
 });
 

@@ -1,4 +1,18 @@
 
+NPM workspaces:
+
+To do a clean install:
+
+    % rm -rf node_modules packages/*/node_modules
+    % rm **/package-lock.json
+    % npm install
+
+To install a new package:
+
+    % npm -w PACKAGE_NAME --save MODULE_NAME
+
+---------------------
+
 Lerna seems dead, but there's no good replacement.
 
 To update installed packages:

@@ -53,8 +53,15 @@ body {
     gap: 30px;
 }
 
-#editor {
+.editor-pane {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    flex-grow: 1;
     align-self: stretch;
+}
+
+#editor {
     flex-grow: 1;
 }
 
