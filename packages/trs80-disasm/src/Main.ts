@@ -4,12 +4,14 @@ import {
     CmdProgram,
     CmdTransferAddressChunk, SystemChunk,
     SystemProgram,
+    TRS80_MODEL_III_BASIC_TOKENS,
+    TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS,
+    TRS80_MODEL_III_KNOWN_LABELS,
     TRS80_SCREEN_BEGIN,
     TRS80_SCREEN_END,
 } from "trs80-base";
-import {Disasm, Z80_KNOWN_LABELS} from "z80-disasm";
-import {TRS80_MODEL_III_BASIC_TOKENS} from "./BasicTokens.js";
-import {TRS80_MODEL_III_KNOWN_LABELS} from "./KnownLabels.js";
+import { Z80_KNOWN_LABELS } from "z80-base";
+import {Disasm} from "z80-disasm";
 
 // Whether to try to disassemble this chunk.
 function shouldDisassembleSystemProgramChunk(chunk: SystemChunk): boolean {
@@ -110,38 +112,6 @@ export function addModel3RomEntryPoints(disasm: Disasm): void {
     }
 }
 
-// Non-alphanumeric keywords and their replacements.
-const BASIC_KEYWORD_REPLACEMENT: { [keyword: string]: string } = {
-    "+": "ADD",
-    "-": "SUBTRACT",
-    "*": "MULTIPLY",
-    "/": "DIVIDE",
-    "?": "PRINT",
-    ">": "GREATER_THAN",
-    "=": "EQUAL",
-    "<": "LESS_THAN",
-    "&": "AMPERSAND",
-    "'": "COMMENT",
-}
-
-/**
- * Make an assembly language label for the given Basic keyword or symbol.
- */
-function makeLabelForBasicKeyword(name: string): string {
-    const replacement = BASIC_KEYWORD_REPLACEMENT[name];
-    if (replacement !== undefined) {
-        name = replacement;
-    }
-
-    // Strip out $ and (.
-    name = name.replace(/[$(]/g, "");
-
-    // Prefix with something that indicates where it came from.
-    name = "basic_keyword_" + name;
-
-    return name;
-}
-
 /**
  * Create and configure a disassembler for the TRS-80.
  */
@@ -150,12 +120,7 @@ export function disasmForTrs80(): Disasm {
 
     disasm.addLabels(Z80_KNOWN_LABELS);
     disasm.addLabels(TRS80_MODEL_III_KNOWN_LABELS);
-
-    for (const basicToken of TRS80_MODEL_III_BASIC_TOKENS) {
-        if (basicToken.address !== undefined) {
-            disasm.addLabel(basicToken.address, makeLabelForBasicKeyword(basicToken.name));
-        }
-    }
+    disasm.addLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
 
     // The RST 8 instruction (0xCF) eats up one extra byte.
     disasm.addAdditionalDataLength(0xCF, 1);
@@ -170,7 +135,7 @@ export function disasmForTrs80Program(program: SystemProgram | CmdProgram): Disa
     const disasm = disasmForTrs80();
 
     if (program.entryPointAddress !== undefined) {
-        disasm.addLabels([[program.entryPointAddress, "main"]]);
+        disasm.addLabel(program.entryPointAddress, "main");
     }
     if (program.className === "CmdProgram") {
         for (const chunk of program.chunks) {

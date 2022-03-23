@@ -1,5 +1,5 @@
 import mnemonicData from "./Opcodes.js";
-import {hi, isByteReg, isWordReg, lo, toHexWord} from "z80-base";
+import {hi, isByteReg, isWordReg, KnownLabel, lo, toHexWord} from "z80-base";
 import {Variant} from "./OpcodesTypes.js";
 import {dirname, parse, resolve} from "./path.js";
 
@@ -274,8 +274,8 @@ class Scope {
         return symbolInfo;
     }
 
-    public set(identifier: string, symbolInfo: SymbolInfo): void {
-        this.symbols.set(identifier, symbolInfo);
+    public set(symbolInfo: SymbolInfo): void {
+        this.symbols.set(symbolInfo.name, symbolInfo);
     }
 
     public remove(identifier: string): void {
@@ -302,6 +302,25 @@ export class Asm {
 
     constructor(fileSystem: FileSystem) {
         this.fileSystem = fileSystem;
+    }
+
+    /**
+     * Add a global symbol outside the code, perhaps in the ROM or OS.
+     */
+    public addKnownLabel({ name, address }: KnownLabel): void {
+        const symbolInfo = new SymbolInfo(name, address);
+        // TODO find a better way to represent "not in our source file":
+        symbolInfo.definitions.push(new SymbolReference(0, 0));
+        this.scopes[0].set(symbolInfo);
+    }
+
+    /**
+     * Add a global symbols outside the code, perhaps in the ROM or OS.
+     */
+    public addKnownLabels(knownLabels: KnownLabel[]): void {
+        for (const knownLabel of knownLabels) {
+            this.addKnownLabel(knownLabel);
+        }
     }
 
     public assembleFile(pathname: string): SourceFile | undefined {
@@ -942,7 +961,7 @@ class LineParser {
                 symbolInfo.value = labelValue;
             } else {
                 symbolInfo = new SymbolInfo(label, labelValue);
-                scope.set(label, symbolInfo);
+                scope.set(symbolInfo);
             }
             if (this.pass.passNumber === 1) {
                 symbolInfo.definitions.push(new SymbolReference(this.assembledLine.listingLineNumber, symbolColumn));
@@ -1141,7 +1160,7 @@ class LineParser {
                             // Merge with this symbol in the parent, if any.
                             const parentSymbol = scope.parent.get(identifier);
                             if (parentSymbol === undefined) {
-                                scope.parent.set(identifier, symbol);
+                                scope.parent.set(symbol);
                             } else {
                                 parentSymbol.references.splice(parentSymbol.references.length, 0, ...symbol.references);
                             }
@@ -1642,7 +1661,7 @@ class LineParser {
                     // library includes. We don't know whether it's a local or global symbol.
                     // Assume local and push it out in #endlocal.
                     symbolInfo = new SymbolInfo(identifier, 0);
-                    this.pass.locals().set(identifier, symbolInfo);
+                    this.pass.locals().set(symbolInfo);
                 } else {
                     throw new Error("Identifier " + identifier + " was not defined in pass 1");
                 }

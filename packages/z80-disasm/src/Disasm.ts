@@ -1,4 +1,4 @@
-import {inc16, signedByte, toHex, toHexByte, toHexWord, word} from "z80-base";
+import {inc16, KnownLabel, signedByte, toHex, toHexByte, toHexWord, word} from "z80-base";
 import {Instruction} from "./Instruction.js";
 import opcodeMap from "./Opcodes.js";
 import {Preamble} from "./Preamble.js";
@@ -184,6 +184,11 @@ export class Disasm {
                         }
                     } while (changed);
 
+                    // Our data has the hex without the prefix, which breaks the assembler.
+                    if (value.mnemonic === "rst") {
+                        arg = "0x" + toHexByte(parseInt(arg, 16));
+                    }
+
                     args[i] = arg;
                 }
 
@@ -307,11 +312,11 @@ export class Disasm {
     }
 
     /**
-     * Add an array of known label ([address, label] pairs).
+     * Add an array of known label.
      */
-    public addLabels(labels: [number, string][]): void {
-        for (const [address, label] of labels) {
-            this.addLabel(address, label);
+    public addLabels(labels: KnownLabel[]): void {
+        for (const { name, address } of labels) {
+            this.addLabel(address, name);
         }
     }
 

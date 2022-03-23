@@ -27,7 +27,10 @@ import {WebSoundPlayer} from "trs80-emulator-web";
 import {Input, NodeType, Parser, PartialParse, Tree, TreeFragment} from "@lezer/common";
 
 import { breakdwn } from "./breakdwn.ts";
+import { scarfman } from "./scarfman.ts";
 import "./style.css";
+import { Z80_KNOWN_LABELS } from "z80-base"
+import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base"
 
 const initial_code = `  .org 0x5000
   di
@@ -101,6 +104,7 @@ const samples = [
     {value: "initial_code", name: "Simple", code: initial_code},
     {value: "space_invaders", name: "Space Invaders", code: space_invaders},
     {value: "breakdwn", name: "Breakdown", code: breakdwn},
+    {value: "scarfman", name: "Scarfman", code: scarfman},
 ];
 for (const sample of samples) {
     const option = document.createElement("option");
@@ -262,8 +266,11 @@ function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile | undefined
       return code;
     }
   });
+  asm.addKnownLabels(Z80_KNOWN_LABELS);
+  asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
+  asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
   const sourceFile = asm.assembleFile("current.asm");
-  return {asm, sourceFile};
+  return { asm, sourceFile };
 }
 
 function reassemble() {

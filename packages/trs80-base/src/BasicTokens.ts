@@ -1,5 +1,7 @@
 // Automatically generated from process_tokens.py. Do not modify.
 
+import { KnownLabel } from "z80-base";
+
 export interface BasicToken {
     // Name or symbol of the Basic token.
     name: string;
@@ -108,3 +110,45 @@ export const TRS80_MODEL_III_BASIC_TOKENS: BasicToken[] = [
     { name: "<", token: 0xd6, address: undefined },
     { name: "&", token: 0x26, address: undefined },
 ];
+
+// Non-alphanumeric keywords and their replacements.
+const BASIC_KEYWORD_REPLACEMENT: { [keyword: string]: string } = {
+    "+": "ADD",
+    "-": "SUBTRACT",
+    "*": "MULTIPLY",
+    "/": "DIVIDE",
+    "?": "PRINT",
+    ">": "GREATER_THAN",
+    "=": "EQUAL",
+    "<": "LESS_THAN",
+    "&": "AMPERSAND",
+    "'": "COMMENT",
+}
+
+/**
+ * Make an assembly language label for the given Basic keyword or symbol.
+ */
+function makeLabelForBasicKeyword(name: string): string {
+    const replacement = BASIC_KEYWORD_REPLACEMENT[name];
+    if (replacement !== undefined) {
+        name = replacement;
+    }
+
+    // Strip out $ and (.
+    name = name.replace(/[$(]/g, "");
+
+    // Prefix with something that indicates where it came from.
+    name = "basic_keyword_" + name;
+
+    return name;
+}
+
+export const TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS: KnownLabel[] = [];
+for (const basicToken of TRS80_MODEL_III_BASIC_TOKENS) {
+    if (basicToken.address !== undefined) {
+        TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS.push({
+            name: makeLabelForBasicKeyword(basicToken.name),
+            address: basicToken.address,
+        });
+    }
+}

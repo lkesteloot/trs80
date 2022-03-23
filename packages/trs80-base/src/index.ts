@@ -11,3 +11,5 @@ export * from "./Trsdos.js";
 export * from "./Addresses.js";
 export * from "./ProgramAnnotation.js";
 export * from "./HexdumpGenerator.js";
+export * from "./KnownLabels.js";
+export * from "./BasicTokens.js";
