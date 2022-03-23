@@ -16,7 +16,7 @@ import {autocompletion, completionKeymap} from "@codemirror/autocomplete"
 import {commentKeymap} from "@codemirror/comment"
 import {rectangularSelection} from "@codemirror/rectangular-selection"
 import {defaultHighlightStyle} from "@codemirror/highlight"
-import {lintKeymap, linter, Diagnostic, setDiagnostics} from "@codemirror/lint"
+import {lintKeymap, Diagnostic, setDiagnostics} from "@codemirror/lint"
 
 import {Asm, SourceFile} from "z80-asm";
 import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
@@ -26,6 +26,7 @@ import {WebSoundPlayer} from "trs80-emulator-web";
 
 import {Input, NodeType, Parser, PartialParse, Tree, TreeFragment} from "@lezer/common";
 
+import { breakdwn } from "./breakdwn.ts";
 import "./style.css";
 
 const initial_code = `  .org 0x5000
@@ -99,6 +100,7 @@ sampleChooser.classList.add("sample-chooser");
 const samples = [
     {value: "initial_code", name: "Simple", code: initial_code},
     {value: "space_invaders", name: "Space Invaders", code: space_invaders},
+    {value: "breakdwn", name: "Breakdown", code: breakdwn},
 ];
 for (const sample of samples) {
     const option = document.createElement("option");
@@ -106,9 +108,12 @@ for (const sample of samples) {
     option.textContent = sample.name;
     sampleChooser.append(option);
 }
+const editorContainer = document.createElement("div");
+editorContainer.classList.add("editor-container");
 const editorDiv = document.createElement("div");
 editorDiv.id = "editor";
-editorPane.append(sampleChooser, editorDiv);
+editorContainer.append(editorDiv);
+editorPane.append(sampleChooser, editorContainer);
 const assembleButton = document.createElement("button");
 assembleButton.innerText = "Assemble";
 const saveButton = document.createElement("button");
@@ -277,6 +282,7 @@ function reassemble() {
   for (const line of sourceFile.assembledLines) {
     if (line.error !== undefined && line.lineNumber !== undefined /* TODO */) {
       const lineInfo = doc.line(line.lineNumber + 1);
+      console.log("error on line", line.lineNumber + 1); // TODO remove
       diagnostics.push({
         from: lineInfo.from,  // TODO first non-blank.
         to: lineInfo.to,

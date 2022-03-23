@@ -61,8 +61,18 @@ body {
     align-self: stretch;
 }
 
-#editor {
+.editor-container {
     flex-grow: 1;
+    position: relative;
+}
+
+#editor {
+    /* make sure the editor is exactly the size of its parent regardless of content */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .cm-editor {
