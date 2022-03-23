@@ -240,7 +240,7 @@ class Archive {
         let buffer;
         try {
             buffer = fs.readFileSync(filename);
-        } catch (e) {
+        } catch (e: any) {
             this.error = "Can't open \"" + filename + "\": " + e.message;
             return;
         }
@@ -333,7 +333,7 @@ function printInfoForFile(filename: string, verbose: boolean): void {
     let buffer;
     try {
         buffer = fs.readFileSync(filename);
-    } catch (e) {
+    } catch (e: any) {
         console.log(filename + ": Can't open file: " + e.message);
         return;
     }
@@ -589,8 +589,9 @@ function extract(infile: string, outfile: string): void {
  *
  * @param trs80File program to disassemble.
  * @param entryPoints additional entry points in binary.
+ * @param makeListing whether to make a listing (as opposed to just disassembling).
  */
-function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: number[]):
+function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: number[], makeListing: boolean):
     [binary: Uint8Array, description: string] {
 
     const disasm = disasmForTrs80Program(trs80File);
@@ -598,7 +599,7 @@ function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: number[
         disasm.addEntryPoint(entryPoint);
     }
     const instructions = disasm.disassemble()
-    const text = instructionsToText(instructions).join("\n") + "\n";
+    const text = instructionsToText(instructions, makeListing).join("\n") + "\n";
     const outBinary = new TextEncoder().encode(text);
     const description = "Disassembled " + (trs80File.className === "CmdProgram" ? "CMD program" : "system program");
 
@@ -627,7 +628,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
         let buffer;
         try {
             buffer = fs.readFileSync(inFilename);
-        } catch (e) {
+        } catch (e: any) {
             console.log("Can't open \"" + inFilename + "\": " + e.message);
             process.exit(1);
         }
@@ -825,7 +826,11 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                         }
 
                         case ".lst":
-                            [outBinary, description] = disassemble(infile.trs80File, entryPoints);
+                            [outBinary, description] = disassemble(infile.trs80File, entryPoints, true);
+                            break;
+
+                        case ".asm":
+                            [outBinary, description] = disassemble(infile.trs80File, entryPoints, false);
                             break;
 
                         default:
@@ -875,7 +880,11 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                         }
 
                         case ".lst":
-                            [outBinary, description] = disassemble(infile.trs80File, entryPoints);
+                            [outBinary, description] = disassemble(infile.trs80File, entryPoints, true);
+                            break;
+
+                        case ".asm":
+                            [outBinary, description] = disassemble(infile.trs80File, entryPoints, false);
                             break;
 
                         default:
@@ -972,7 +981,7 @@ function sectors(filename: string, showContents: boolean): void {
     let buffer;
     try {
         buffer = fs.readFileSync(filename);
-    } catch (e) {
+    } catch (e: any) {
         console.log("Can't open \"" + filename + "\": " + e.message);
         return;
     }
@@ -1179,7 +1188,7 @@ function hexdump(filename: string, collapse: boolean): void {
     let buffer;
     try {
         buffer = fs.readFileSync(filename);
-    } catch (e) {
+    } catch (e: any) {
         console.log("Can't open \"" + filename + "\": " + e.message);
         return;
     }
@@ -1197,12 +1206,12 @@ function hexdump(filename: string, collapse: boolean): void {
 /**
  * Handle the "disasm" command.
  */
-function disasm(filename: string, org: number | undefined, entryPoints: number[]) {
+function disasm(filename: string, makeListing: boolean, org: number | undefined, entryPoints: number[]) {
     // Read the file.
     let buffer;
     try {
         buffer = fs.readFileSync(filename);
-    } catch (e) {
+    } catch (e: any) {
         console.log("Can't open \"" + filename + "\": " + e.message);
         return;
     }
@@ -1235,7 +1244,7 @@ function disasm(filename: string, org: number | undefined, entryPoints: number[]
     }
 
     const instructions = disasm.disassemble()
-    const text = instructionsToText(instructions).join("\n");
+    const text = instructionsToText(instructions, makeListing).join("\n");
     console.log(text);
 }
 
@@ -1249,7 +1258,7 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
 
         try {
             contents = fs.readFileSync("xray/" + filename);
-        } catch (e) {
+        } catch (e: any) {
             console.log("Exception reading: " + e.message);
             res.writeHead(404);
             res.end("File not found");
@@ -1741,7 +1750,7 @@ function run(programFiles: string[], xray: boolean, config: Config) {
         let buffer;
         try {
             buffer = fs.readFileSync(programFile);
-        } catch (e) {
+        } catch (e: any) {
             console.log(programFile + ": Can't open file: " + e.message);
             return;
         }
@@ -1988,11 +1997,11 @@ function main() {
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
             infile: "WAV, CAS, CMD, 3BN, or BAS file",
-            outfile: "WAV, CAS, CMD, 3BN, BAS, or LST file",
+            outfile: "WAV, CAS, CMD, 3BN, BAS, ASM, or LST file",
         })
         .option("--baud <baud>", "output baud rate (250, 500, 1000, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
-        .option("--entry <addresses>", "add entry points of binary (comma-separated), for LST output")
+        .option("--entry <addresses>", "add entry points of binary (comma-separated), for ASM or LST output")
         .action((files, options) => {
             const baud = options.baud !== undefined ? parseInt(options.baud) : undefined;
             const start = options.start !== undefined ? options.start === "auto" ? "auto" : parseInt(options.start) : undefined;
@@ -2049,13 +2058,14 @@ function main() {
         .description("disassemble a program", {
             infile: "CMD, 3BN, ROM, or BIN",
         })
+        .option("--listing", "generate listing file instead of assembly")
         .option('--org <address>', "where to assume the binary is loaded")
         .option("--entry <addresses>", "add entry points of binary (comma-separated)")
         .action((infile, options) => {
             setColorLevel(program.opts().color);
             const org = options.org === undefined ? undefined : parseInt(options.org);
             const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
-            disasm(infile, org, entryPoints);
+            disasm(infile, options.listing, org, entryPoints);
         });
     program
         .command("run [program...]")
