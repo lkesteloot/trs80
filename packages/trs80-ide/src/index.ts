@@ -126,6 +126,7 @@ const restoreButton = document.createElement("button");
 restoreButton.innerText = "Restore";
 const emulatorDiv = document.createElement("div");
 emulatorDiv.id = "emulator";
+emulatorDiv.tabIndex = 0;
 content.append(editorPane, emulatorDiv);
 
 const nodeTypes = [
@@ -225,10 +226,6 @@ const extensions: Extension = [
       indentWithTab,
   ]),
   EditorView.updateListener.of(update => {
-    if (update.focusChanged) {
-      // TODO also take into account find UI.
-      keyboard.interceptKeys = !update.view.hasFocus;
-    }
     if (update.docChanged) {
       reassemble();
     }
@@ -382,6 +379,14 @@ const driveIndicators = new DriveIndicators(screen.getNode(), trs80.getMaxDrives
 trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
 
 emulatorDiv.append(screen.getNode());
+
+function updateFocus() {
+  keyboard.interceptKeys = document.activeElement === emulatorDiv;
+}
+emulatorDiv.addEventListener("focus", () => updateFocus());
+emulatorDiv.addEventListener("blur", () => updateFocus());
+updateFocus();
+emulatorDiv.focus();
 
 reboot();
 

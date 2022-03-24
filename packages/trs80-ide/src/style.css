@@ -82,3 +82,7 @@ body {
 #emulator {
     align-self: center;
 }
+
+#emulator:focus {
+    outline: none;
+}
