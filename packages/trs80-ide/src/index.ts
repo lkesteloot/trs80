@@ -126,7 +126,6 @@ const restoreButton = document.createElement("button");
 restoreButton.innerText = "Restore";
 const emulatorDiv = document.createElement("div");
 emulatorDiv.id = "emulator";
-emulatorDiv.tabIndex = 0;
 content.append(editorPane, emulatorDiv);
 
 const nodeTypes = [
@@ -380,13 +379,15 @@ trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
 
 emulatorDiv.append(screen.getNode());
 
+// Give focus to the emulator if the editor does not have it.
 function updateFocus() {
-  keyboard.interceptKeys = document.activeElement === emulatorDiv;
+  console.log("updateFocus");
+  keyboard.interceptKeys = document.activeElement === document.body;
 }
-emulatorDiv.addEventListener("focus", () => updateFocus());
-emulatorDiv.addEventListener("blur", () => updateFocus());
+document.body.addEventListener("focus", () => updateFocus(), true);
+document.body.addEventListener("blur", () => updateFocus(), true);
+document.body.focus();
 updateFocus();
-emulatorDiv.focus();
 
 reboot();
 
