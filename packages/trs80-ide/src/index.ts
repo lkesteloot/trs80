@@ -32,61 +32,61 @@ import "./style.css";
 import { Z80_KNOWN_LABELS } from "z80-base"
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base"
 
-const initial_code = `  .org 0x5000
-  di
-  ld a,191
-  ld hl,15360
-  ld b, 10
-  
+const initial_code = `        .org 0x5000
+        di
+        ld a,191
+        ld hl,15360
+        ld b,10
+        
 loop:
-  ld (hl),a
-  inc hl
-  dec b
-  jr nz,loop
-
+        ld (hl),a
+        inc hl
+        dec b
+        jr nz,loop
+      
 stop:
-  jp stop
+        jp stop
 `;
 
-const space_invaders = `  .org 0x5000
-  di
-  ld hl,15360
-  inc hl
-  inc hl
-  
-  ld a,191
-  ld b, 100
-  
+const space_invaders = `        .org 0x5000
+        di
+        ld hl,15360
+        inc hl
+        inc hl
+        
+        ld a,191
+        ld b, 100
+        
 loop:
-  push hl
-  ld (hl),0x80
-  inc hl
-  ld (hl),0x89
-  inc hl
-  ld (hl),0xB7
-  inc hl
-  ld (hl),0x9D
-  inc hl
-  ld (hl),0x81
-  inc hl
-
-  pop hl
-  inc hl
-
-  push bc
-  ld bc,5500
+        push hl
+        ld (hl),0x80
+        inc hl
+        ld (hl),0x89
+        inc hl
+        ld (hl),0xB7
+        inc hl
+        ld (hl),0x9D
+        inc hl
+        ld (hl),0x81
+        inc hl
+      
+        pop hl
+        inc hl
+      
+        push bc
+        ld bc,5500
 wait:
-  dec bc
-  ld a,b
-  or a,c
-  jr nz,wait
-  pop bc
-
-  dec b
-  jr nz,loop
-
+        dec bc
+        ld a,b
+        or a,c
+        jr nz,wait
+        pop bc
+      
+        dec b
+        jr nz,loop
+      
 stop:
-  jp stop
+        jp stop
 `;
 
 const body = document.body;
