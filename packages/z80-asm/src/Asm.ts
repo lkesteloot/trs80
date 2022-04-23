@@ -39,7 +39,7 @@ const PSEUDO_ALIGN = new Set(["align", ".align"]);
 
 // Fill pseudo instructions.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z56.htm
-const PSEUDO_FILL = new Set(["defs", "ds", ".ds", ".block", ".blkb", "data"]);
+const PSEUDO_FILL = new Set(["defs", "ds", ".ds", ".block", ".blkb", "data", "dc"]);
 
 // Pseudo instructions to start and end macro definitions.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z64.htm#A
