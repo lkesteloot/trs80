@@ -94,3 +94,12 @@ body {
     font-family: sans-serif;
     font-size: 12px;
 }
+
+.error-container {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.5em;
+
+    font-family: sans-serif;
+}

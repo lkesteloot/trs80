@@ -1,39 +1,50 @@
-
-import {indentWithTab} from "@codemirror/commands"
-import {WidgetType} from "@codemirror/view"
-import {EditorView, Decoration} from "@codemirror/view"
-import {syntaxTree} from "@codemirror/language"
-import {ViewUpdate, ViewPlugin, DecorationSet} from "@codemirror/view"
-
-import {keymap, highlightSpecialChars, drawSelection, highlightActiveLine, dropCursor} from "@codemirror/view"
-import {Extension, EditorState} from "@codemirror/state"
+import {defaultKeymap, indentWithTab} from "@codemirror/commands"
+import {
+  Decoration,
+  DecorationSet,
+  drawSelection,
+  dropCursor,
+  EditorView,
+  highlightActiveLine,
+  highlightSpecialChars,
+  keymap,
+  ViewPlugin,
+  ViewUpdate,
+  WidgetType
+} from "@codemirror/view"
+import {EditorSelection, EditorState, Extension} from "@codemirror/state"
+import {defineLanguageFacet, indentOnInput, Language, LanguageSupport} from "@codemirror/language"
 import {history, historyKeymap} from "@codemirror/history"
 import {foldGutter, foldKeymap} from "@codemirror/fold"
-import {indentOnInput, Language, defineLanguageFacet, LanguageSupport} from "@codemirror/language"
-import {lineNumbers, highlightActiveLineGutter} from "@codemirror/gutter"
-import {defaultKeymap} from "@codemirror/commands"
+import {highlightActiveLineGutter, lineNumbers} from "@codemirror/gutter"
 import {bracketMatching} from "@codemirror/matchbrackets"
 import {closeBrackets, closeBracketsKeymap} from "@codemirror/closebrackets"
-import {searchKeymap, highlightSelectionMatches} from "@codemirror/search"
+import {highlightSelectionMatches, searchKeymap} from "@codemirror/search"
 import {autocompletion, completionKeymap} from "@codemirror/autocomplete"
 import {commentKeymap} from "@codemirror/comment"
 import {rectangularSelection} from "@codemirror/rectangular-selection"
 import {defaultHighlightStyle} from "@codemirror/highlight"
-import {lintKeymap, Diagnostic, setDiagnostics} from "@codemirror/lint"
+import {Diagnostic, lintKeymap, setDiagnostics} from "@codemirror/lint"
 
 import {Asm, SourceFile} from "z80-asm";
 import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
-import {CanvasScreen} from "trs80-emulator-web";
-import {ControlPanel, DriveIndicators, PanelType, SettingsPanel, WebKeyboard} from "trs80-emulator-web";
-import {WebSoundPlayer} from "trs80-emulator-web";
+import {
+  CanvasScreen,
+  ControlPanel,
+  DriveIndicators,
+  PanelType,
+  SettingsPanel,
+  WebKeyboard,
+  WebSoundPlayer
+} from "trs80-emulator-web";
 
 import {Input, NodeType, Parser, PartialParse, Tree, TreeFragment} from "@lezer/common";
 
-import { breakdwn } from "./breakdwn.ts";
-import { scarfman } from "./scarfman.ts";
+import {breakdwn} from "./breakdwn.ts";
+import {scarfman} from "./scarfman.ts";
 import "./style.css";
-import { Z80_KNOWN_LABELS } from "z80-base"
-import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base"
+import {Z80_KNOWN_LABELS} from "z80-base"
+import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS} from "trs80-base"
 import {ScreenEditor} from "./ScreenEditor.ts";
 
 const initial_code = `        .org 0x5000
@@ -124,7 +135,18 @@ editorContainer.classList.add("editor-container");
 const editorDiv = document.createElement("div");
 editorDiv.id = "editor";
 editorContainer.append(editorDiv);
-editorPane.append(sampleChooser, editorContainer);
+const errorContainer = document.createElement("div");
+errorContainer.classList.add("error-container");
+const errorMessageDiv = document.createElement("div");
+errorMessageDiv.id = "error-message";
+const prevErrorButton = document.createElement("button");
+prevErrorButton.textContent = "Previous";
+prevErrorButton.addEventListener("click", () => prevError());
+const nextErrorButton = document.createElement("button");
+nextErrorButton.textContent = "Next";
+nextErrorButton.addEventListener("click", () => nextError());
+errorContainer.append(errorMessageDiv, prevErrorButton, nextErrorButton);
+editorPane.append(sampleChooser, editorContainer, errorContainer);
 const assembleButton = document.createElement("button");
 assembleButton.innerText = "Assemble";
 const saveButton = document.createElement("button");
@@ -337,7 +359,7 @@ let startState = EditorState.create({
   extensions: extensions,
 });
 
-let view = new EditorView({
+const view = new EditorView({
   state: startState,
   parent: document.getElementById("editor") as HTMLDivElement
 });
@@ -371,6 +393,7 @@ function reassemble() {
   }
 
   const diagnostics: Diagnostic[] = [];
+  const errorLineNumbers: number[] = []; // 1-based.
   for (const line of sourceFile.assembledLines) {
     if (line.error !== undefined && line.lineNumber !== undefined /* TODO */) {
       const lineInfo = doc.line(line.lineNumber + 1);
@@ -381,6 +404,7 @@ function reassemble() {
         severity: "error",
         message: line.error,
       });
+      errorLineNumbers.push(line.lineNumber + 1);
     }
   }
   const transactions = setDiagnostics(editorState, diagnostics);
@@ -408,6 +432,61 @@ function reassemble() {
     }
     if (entryPoint !== undefined) {
       trs80.jumpTo(entryPoint);
+    }
+  }
+
+  updateAssemblyErrors(errorLineNumbers);
+}
+
+let mErrorLineNumbers: number[] = [];
+function updateAssemblyErrors(errorLineNumbers: number[]) {
+  mErrorLineNumbers = errorLineNumbers;
+
+  if (errorLineNumbers.length === 0) {
+    errorContainer.style.display = "none";
+  } else {
+    errorContainer.style.display = "flex";
+    errorMessageDiv.innerText = errorLineNumbers.length + " error" + (errorLineNumbers.length === 1 ? "" : "s");
+  }
+}
+
+function moveCursorToLineNumber(lineNumber: number) {
+  const lineInfo = view.state.doc.line(lineNumber);
+  view.dispatch({
+    selection: EditorSelection.single(lineInfo.from),
+    scrollIntoView: true,
+  });
+  view.focus();
+}
+
+function nextError() {
+  if (mErrorLineNumbers.length === 0) {
+    return;
+  }
+  const {from} = view.state.selection.main;
+  const line = view.state.doc.lineAt(from);
+  const cursorLineNumber = line.number;
+  for (const errorLineNumber of mErrorLineNumbers) {
+    if (errorLineNumber > cursorLineNumber ||
+        cursorLineNumber >= mErrorLineNumbers[mErrorLineNumbers.length - 1]) {
+
+      moveCursorToLineNumber(errorLineNumber);
+      break;
+    }
+  }
+}
+
+function prevError() {
+  if (mErrorLineNumbers.length === 0) {
+    return;
+  }
+  const {from} = view.state.selection.main;
+  const line = view.state.doc.lineAt(from);
+  const cursorLineNumber = line.number;
+  for (const errorLineNumber of mErrorLineNumbers.slice().reverse()) {
+    if (errorLineNumber < cursorLineNumber || cursorLineNumber <= mErrorLineNumbers[0]) {
+      moveCursorToLineNumber(errorLineNumber);
+      break;
     }
   }
 }
