@@ -103,3 +103,11 @@ body {
 
     font-family: sans-serif;
 }
+
+.gutter-bytecode {
+    margin-left: .8em;
+}
+
+.gutter-bytecode-address {
+    margin-right: 1em;
+}

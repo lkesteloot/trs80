@@ -10,13 +10,14 @@ import {
     keymap,
     ViewPlugin,
     ViewUpdate,
+    BlockInfo,
     WidgetType
 } from "@codemirror/view"
 import {EditorSelection, EditorState, Extension} from "@codemirror/state"
 import {defineLanguageFacet, indentOnInput, Language, LanguageSupport} from "@codemirror/language"
 import {history, historyKeymap} from "@codemirror/history"
 import {foldGutter, foldKeymap} from "@codemirror/fold"
-import {highlightActiveLineGutter, lineNumbers} from "@codemirror/gutter"
+import {highlightActiveLineGutter, lineNumbers, gutter, GutterMarker} from "@codemirror/gutter"
 import {bracketMatching} from "@codemirror/matchbrackets"
 import {closeBrackets, closeBracketsKeymap} from "@codemirror/closebrackets"
 import {highlightSelectionMatches, searchKeymap} from "@codemirror/search"
@@ -43,7 +44,7 @@ import {Input, NodeType, Parser, PartialParse, Tree, TreeFragment} from "@lezer/
 import {breakdwn} from "./breakdwn.ts";
 import {scarfman} from "./scarfman.ts";
 import "./style.css";
-import {Z80_KNOWN_LABELS} from "z80-base"
+import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base"
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS} from "trs80-base"
 import {ScreenEditor} from "./ScreenEditor.ts";
 
@@ -106,6 +107,45 @@ wait:
 stop:
         jp stop
 `;
+
+// Error is required.
+type ErrorAssembledLine = AssembledLine & { error: string };
+
+interface AssemblyResults {
+    asm: Asm;
+    sourceFile: SourceFile;
+    errorLines: ErrorAssembledLine[];
+    errorLineNumbers: number[]; // 1-based.
+}
+let gResults: AssemblyResults | undefined = undefined;
+
+/**
+ * Gutter to show the line's address and bytecode.
+ */
+class BytecodeGutter extends GutterMarker {
+    constructor(private address: number, private bytes: number[]) {
+        super();
+    }
+
+    toDOM() {
+        const dom = document.createElement("div");
+
+        const addressDom = document.createElement("span");
+        addressDom.textContent = toHexWord(this.address);
+        addressDom.classList.add("gutter-bytecode-address");
+
+        const bytesDom = document.createElement("span");
+        const tooBig = this.bytes.length > 4;
+        const bytes = tooBig ? this.bytes.slice(0, 3) : this.bytes;
+        bytesDom.textContent = bytes.map(b => toHexByte(b)).join(" ") +
+            (tooBig ? " ..." : "");
+        bytesDom.classList.add("gutter-bytecode-address");
+
+        dom.append(addressDom, bytesDom);
+        return dom;
+    }
+}
+const BYTECODE_SPACER = new BytecodeGutter(0, [1, 2, 3, 4, 5]);
 
 const body = document.body;
 body.classList.add("light-mode");
@@ -309,6 +349,7 @@ function z80AssemblyLanguage() {
 
 const extensions: Extension = [
     lineNumbers(),
+    bytecodeGutter(),
     highlightActiveLineGutter(),
     highlightSpecialChars(),
     history(),
@@ -380,17 +421,6 @@ function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile | undefined
     const sourceFile = asm.assembleFile("current.asm");
     return { asm, sourceFile };
 }
-
-// Error is required.
-type ErrorAssembledLine = AssembledLine & { error: string };
-
-interface AssemblyResults {
-    asm: Asm;
-    sourceFile: SourceFile;
-    errorLines: ErrorAssembledLine[];
-    errorLineNumbers: number[]; // 1-based.
-}
-let gResults: AssemblyResults | undefined = undefined;
 
 function reassemble() {
     const {asm, sourceFile} = assemble(view.state.doc.toJSON());
@@ -522,6 +552,33 @@ function prevError() {
             break;
         }
     }
+}
+
+/**
+ * Gutter to show address and bytecode.
+ */
+function bytecodeGutter() {
+    return gutter({
+        class: "gutter-bytecode",
+        lineMarker: (view: EditorView, line: BlockInfo) => {
+            if (gResults === undefined) {
+                return null;
+            }
+            const lineNumber = view.state.doc.lineAt(line.from).number;
+            // TODO replace with a map.
+            for (const line of gResults.sourceFile.assembledLines) {
+                if (line.lineNumber !== undefined &&
+                    line.lineNumber + 1 === lineNumber &&
+                    line.binary.length > 0) {
+
+                    return new BytecodeGutter(line.address, line.binary);
+                }
+            }
+            return null;
+        },
+        lineMarkerChange: (update: ViewUpdate) => true, // TODO remove?
+        initialSpacer: () => BYTECODE_SPACER,
+    });
 }
 
 assembleButton.addEventListener("click", () => reassemble());
