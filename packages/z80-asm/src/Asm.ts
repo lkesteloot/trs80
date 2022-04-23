@@ -1,6 +1,6 @@
 import mnemonicData from "./Opcodes.js";
 import {hi, isByteReg, isWordReg, KnownLabel, lo, toHexWord} from "z80-base";
-import {Variant} from "./OpcodesTypes.js";
+import {isOpcodeTemplateOperand, OpcodeTemplateOperand, Variant} from "./OpcodesTypes.js";
 import {dirname, parse, resolve} from "./path.js";
 
 /**
@@ -1265,6 +1265,7 @@ class LineParser {
             }
         }
 
+        // See if it's a Z80 mnemonic.
         const mnemonicInfo = mnemonicData.mnemonics[mnemonic];
         if (mnemonicInfo !== undefined) {
             const argStart = this.column;
@@ -1272,26 +1273,43 @@ class LineParser {
 
             for (const variant of mnemonicInfo.variants) {
                 // Map from something like "nn" to its value.
-                const args: any = {};
+                const args = new Map<OpcodeTemplateOperand, number>();
 
                 match = true;
 
-                for (const token of variant.tokens) {
+                for (let i = 0; i < variant.tokens.length; i++) {
+                    const token = variant.tokens[i];
+
+                    // Some instructions like "LD A,(IX+dd)" should also allow "LD A,(IX)". Perhaps
+                    // we should have this in the official list of variants, but instead let's just
+                    // hack it here.
+                    const nextToken = variant.tokens[i + 1];
+                    if (token === "+" &&
+                        isOpcodeTemplateOperand(nextToken) &&
+                        variant.tokens[i + 2] === ")" &&
+                        this.foundChar(")")) {
+
+                        // Pretend missing arg is zero
+                        args.set(nextToken, 0);
+                        i += 2;
+                        continue;
+                    }
+
                     if (token === "," || token === "(" || token === ")" || token === "+") {
                         if (!this.foundChar(token)) {
                             match = false;
                         }
-                    } else if (token === "nn" || token === "nnnn" || token === "dd" || token === "offset") {
+                    } else if (isOpcodeTemplateOperand(token)) {
                         // Parse.
                         const value = this.readExpression(false);
                         if (value === undefined) {
                             match = false;
                         } else {
                             // Add value to binary.
-                            if (args[token] !== undefined) {
+                            if (args.has(token)) {
                                 throw new Error("duplicate arg: " + this.line);
                             }
-                            args[token] = value;
+                            args.set(token, value);
                         }
                     } else if (parseDigit(token[0], 10) !== undefined) {
                         // If the token is a number, then we must parse an expression and
@@ -1326,7 +1344,7 @@ class LineParser {
                     this.assembledLine.binary = [];
                     for (const op of variant.opcode) {
                         if (typeof(op) === "string") {
-                            const value = args[op];
+                            const value = args.get(op);
                             if (value === undefined) {
                                 throw new Error("arg " + op + " not found for " + this.line);
                             }

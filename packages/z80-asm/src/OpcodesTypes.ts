@@ -1,6 +1,7 @@
 
 // Each opcode template can be a literal byte value or a variable like "nn".
-export type OpcodeTemplate = number | "nnnn" | "nn" | "offset" | "dd";
+export type OpcodeTemplateOperand = "nn" | "nnnn" | "dd" | "offset";
+export type OpcodeTemplate = number | OpcodeTemplateOperand;
 
 // Information from clr.
 export interface ClrInstruction {
@@ -41,4 +42,11 @@ export interface Mnemonics {
 // All instructions.
 export interface Instructions {
     mnemonics: Mnemonics;
+}
+
+/**
+ * Type guard for the operand.
+ */
+export function isOpcodeTemplateOperand(operand: string): operand is OpcodeTemplateOperand {
+    return operand === "nn" || operand === "nnnn" || operand === "dd" || operand === "offset";
 }
