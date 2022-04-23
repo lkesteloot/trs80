@@ -1,16 +1,16 @@
 import {defaultKeymap, indentWithTab} from "@codemirror/commands"
 import {
-  Decoration,
-  DecorationSet,
-  drawSelection,
-  dropCursor,
-  EditorView,
-  highlightActiveLine,
-  highlightSpecialChars,
-  keymap,
-  ViewPlugin,
-  ViewUpdate,
-  WidgetType
+    Decoration,
+    DecorationSet,
+    drawSelection,
+    dropCursor,
+    EditorView,
+    highlightActiveLine,
+    highlightSpecialChars,
+    keymap,
+    ViewPlugin,
+    ViewUpdate,
+    WidgetType
 } from "@codemirror/view"
 import {EditorSelection, EditorState, Extension} from "@codemirror/state"
 import {defineLanguageFacet, indentOnInput, Language, LanguageSupport} from "@codemirror/language"
@@ -26,16 +26,16 @@ import {rectangularSelection} from "@codemirror/rectangular-selection"
 import {defaultHighlightStyle} from "@codemirror/highlight"
 import {Diagnostic, lintKeymap, setDiagnostics} from "@codemirror/lint"
 
-import {Asm, SourceFile} from "z80-asm";
+import {Asm, AssembledLine, SourceFile} from "z80-asm";
 import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
 import {
-  CanvasScreen,
-  ControlPanel,
-  DriveIndicators,
-  PanelType,
-  SettingsPanel,
-  WebKeyboard,
-  WebSoundPlayer
+    CanvasScreen,
+    ControlPanel,
+    DriveIndicators,
+    PanelType,
+    SettingsPanel,
+    WebKeyboard,
+    WebSoundPlayer
 } from "trs80-emulator-web";
 
 import {Input, NodeType, Parser, PartialParse, Tree, TreeFragment} from "@lezer/common";
@@ -381,114 +381,147 @@ function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile | undefined
   return { asm, sourceFile };
 }
 
+// Error is required.
+type ErrorAssembledLine = AssembledLine & { error: string };
+
+interface AssemblyResults {
+    asm: Asm;
+    sourceFile: SourceFile;
+    errorLines: ErrorAssembledLine[];
+    errorLineNumbers: number[]; // 1-based.
+}
+let gResults: AssemblyResults | undefined = undefined;
+
 function reassemble() {
-  const editorState = view.state;
-  const doc = editorState.doc;
-  const code = doc.toJSON();
-  const {asm, sourceFile} = assemble(code);
-  // console.log(sourceFile);
-  if (sourceFile === undefined) {
-    // TODO, file not found.
-    return;
-  }
-
-  const diagnostics: Diagnostic[] = [];
-  const errorLineNumbers: number[] = []; // 1-based.
-  for (const line of sourceFile.assembledLines) {
-    if (line.error !== undefined && line.lineNumber !== undefined /* TODO */) {
-      const lineInfo = doc.line(line.lineNumber + 1);
-      console.log("error on line", line.lineNumber + 1); // TODO remove
-      diagnostics.push({
-        from: lineInfo.from,  // TODO first non-blank.
-        to: lineInfo.to,
-        severity: "error",
-        message: line.error,
-      });
-      errorLineNumbers.push(line.lineNumber + 1);
+    const {asm, sourceFile} = assemble(view.state.doc.toJSON());
+    if (sourceFile === undefined) {
+        // TODO, file not found.
+        return;
     }
-  }
-  const transactions = setDiagnostics(editorState, diagnostics);
-  view.dispatch(transactions);
 
-  if (diagnostics.length === 0 && autoDeployProgram) {
-    if (trs80State === undefined) {
-      trs80State = trs80.save();
-    } else {
-      trs80.restore(trs80State);
-    }
+    const errorLines: ErrorAssembledLine[] = [];
+    const errorLineNumbers: number[] = []; // 1-based.
     for (const line of sourceFile.assembledLines) {
-      for (let i = 0; i < line.binary.length; i++) {
-        trs80.writeMemory(line.address + i, line.binary[i]);
-      }
-    }
-    let entryPoint = asm.entryPoint;
-    if (entryPoint === undefined) {
-      for (const line of sourceFile.assembledLines) {
-        if (line.binary.length > 0) {
-          entryPoint = line.address;
-          break;
+        if (line.error !== undefined) {
+            // Too bad TS can't detect this.
+            errorLines.push(line as ErrorAssembledLine);
+
+            if (line.lineNumber !== undefined) {
+                errorLineNumbers.push(line.lineNumber + 1);
+            }
         }
-      }
     }
-    if (entryPoint !== undefined) {
-      trs80.jumpTo(entryPoint);
-    }
-  }
 
-  updateAssemblyErrors(errorLineNumbers);
+    gResults = {
+        asm,
+        sourceFile,
+        errorLines,
+        errorLineNumbers,
+    };
+
+    updateDiagnostics();
+    updateAssemblyErrors();
+    runProgram();
 }
 
-let mErrorLineNumbers: number[] = [];
-function updateAssemblyErrors(errorLineNumbers: number[]) {
-  mErrorLineNumbers = errorLineNumbers;
+// Update the squiggly lines in the editor.
+function updateDiagnostics() {
+    if (gResults === undefined) {
+        return;
+    }
+    const diagnostics: Diagnostic[] = [];
+    for (const line of gResults.errorLines) {
+        if (line.lineNumber !== undefined /* TODO */) {
+            const lineInfo = view.state.doc.line(line.lineNumber + 1);
+            diagnostics.push({
+                from: lineInfo.from,  // TODO first non-blank.
+                to: lineInfo.to,
+                severity: "error",
+                message: line.error,
+            });
+        }
+    }
 
-  if (errorLineNumbers.length === 0) {
-    errorContainer.style.display = "none";
-  } else {
-    errorContainer.style.display = "flex";
-    errorMessageDiv.innerText = errorLineNumbers.length + " error" + (errorLineNumbers.length === 1 ? "" : "s");
-  }
+    view.dispatch(setDiagnostics(view.state, diagnostics));
 }
 
+function runProgram() {
+    if (gResults !== undefined && gResults.errorLines.length === 0 && autoDeployProgram) {
+        if (trs80State === undefined) {
+            trs80State = trs80.save();
+        } else {
+            trs80.restore(trs80State);
+        }
+        for (const line of gResults.sourceFile.assembledLines) {
+            for (let i = 0; i < line.binary.length; i++) {
+                trs80.writeMemory(line.address + i, line.binary[i]);
+            }
+        }
+        let entryPoint = gResults.asm.entryPoint;
+        if (entryPoint === undefined) {
+            for (const line of gResults.sourceFile.assembledLines) {
+                if (line.binary.length > 0) {
+                    entryPoint = line.address;
+                    break;
+                }
+            }
+        }
+        if (entryPoint !== undefined) {
+            trs80.jumpTo(entryPoint);
+        }
+    }
+}
+
+function updateAssemblyErrors() {
+    if (gResults === undefined || gResults.errorLines.length === 0) {
+        errorContainer.style.display = "none";
+    } else {
+        errorContainer.style.display = "flex";
+        errorMessageDiv.innerText = gResults.errorLines.length +
+            " error" + (gResults.errorLines.length === 1 ? "" : "s");
+    }
+}
+
+// 1-based.
 function moveCursorToLineNumber(lineNumber: number) {
-  const lineInfo = view.state.doc.line(lineNumber);
-  view.dispatch({
-    selection: EditorSelection.single(lineInfo.from),
-    scrollIntoView: true,
-  });
-  view.focus();
+    const lineInfo = view.state.doc.line(lineNumber);
+    view.dispatch({
+        selection: EditorSelection.single(lineInfo.from),
+        scrollIntoView: true,
+    });
+    view.focus();
 }
 
 function nextError() {
-  if (mErrorLineNumbers.length === 0) {
-    return;
-  }
-  const {from} = view.state.selection.main;
-  const line = view.state.doc.lineAt(from);
-  const cursorLineNumber = line.number;
-  for (const errorLineNumber of mErrorLineNumbers) {
-    if (errorLineNumber > cursorLineNumber ||
-        cursorLineNumber >= mErrorLineNumbers[mErrorLineNumbers.length - 1]) {
-
-      moveCursorToLineNumber(errorLineNumber);
-      break;
+    if (gResults === undefined || gResults.errorLineNumbers.length === 0) {
+        return;
     }
-  }
+    const {from} = view.state.selection.main;
+    const line = view.state.doc.lineAt(from);
+    const cursorLineNumber = line.number;
+    for (const errorLineNumber of gResults.errorLineNumbers) {
+        if (errorLineNumber > cursorLineNumber ||
+            cursorLineNumber >= gResults.errorLineNumbers[gResults.errorLineNumbers.length - 1]) {
+
+            moveCursorToLineNumber(errorLineNumber);
+            break;
+        }
+    }
 }
 
 function prevError() {
-  if (mErrorLineNumbers.length === 0) {
-    return;
-  }
-  const {from} = view.state.selection.main;
-  const line = view.state.doc.lineAt(from);
-  const cursorLineNumber = line.number;
-  for (const errorLineNumber of mErrorLineNumbers.slice().reverse()) {
-    if (errorLineNumber < cursorLineNumber || cursorLineNumber <= mErrorLineNumbers[0]) {
-      moveCursorToLineNumber(errorLineNumber);
-      break;
+    if (gResults === undefined || gResults.errorLineNumbers.length === 0) {
+        return;
     }
-  }
+    const {from} = view.state.selection.main;
+    const line = view.state.doc.lineAt(from);
+    const cursorLineNumber = line.number;
+    for (const errorLineNumber of gResults.errorLineNumbers.slice().reverse()) {
+        if (errorLineNumber < cursorLineNumber || cursorLineNumber <= gResults.errorLineNumbers[0]) {
+            moveCursorToLineNumber(errorLineNumber);
+            break;
+        }
+    }
 }
 
 assembleButton.addEventListener("click", () => reassemble());
@@ -558,4 +591,4 @@ document.body.focus();
 updateFocus();
 
 reboot();
-
+reassemble();
