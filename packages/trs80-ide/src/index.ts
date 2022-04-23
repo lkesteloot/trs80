@@ -111,11 +111,41 @@ stop:
 // Error is required.
 type ErrorAssembledLine = AssembledLine & { error: string };
 
-interface AssemblyResults {
-    asm: Asm;
-    sourceFile: SourceFile;
-    errorLines: ErrorAssembledLine[];
-    errorLineNumbers: number[]; // 1-based.
+/**
+ * Everything we know about the assembled code.
+ */
+class AssemblyResults {
+    public readonly asm: Asm;
+    public readonly sourceFile: SourceFile;
+    // Map from 1-based line number to assembled line.
+    public readonly lineMap = new Map<number, AssembledLine>();
+    public readonly errorLines: ErrorAssembledLine[];
+    public readonly errorLineNumbers: number[]; // 1-based.
+
+    constructor(asm: Asm, sourceFile: SourceFile) {
+        this.asm = asm;
+        this.sourceFile = sourceFile;
+
+        // Gather all errors.
+        const errorLines: ErrorAssembledLine[] = [];
+        const errorLineNumbers: number[] = []; // 1-based.
+        for (const line of sourceFile.assembledLines) {
+            if (line.lineNumber !== undefined) {
+                this.lineMap.set(line.lineNumber, line);
+            }
+
+            if (line.error !== undefined) {
+                // Too bad TS can't detect this narrowing.
+                errorLines.push(line as ErrorAssembledLine);
+
+                if (line.lineNumber !== undefined) {
+                    errorLineNumbers.push(line.lineNumber + 1);
+                }
+            }
+        }
+        this.errorLines = errorLines;
+        this.errorLineNumbers = errorLineNumbers;
+    }
 }
 let gResults: AssemblyResults | undefined = undefined;
 
@@ -429,25 +459,7 @@ function reassemble() {
         return;
     }
 
-    const errorLines: ErrorAssembledLine[] = [];
-    const errorLineNumbers: number[] = []; // 1-based.
-    for (const line of sourceFile.assembledLines) {
-        if (line.error !== undefined) {
-            // Too bad TS can't detect this.
-            errorLines.push(line as ErrorAssembledLine);
-
-            if (line.lineNumber !== undefined) {
-                errorLineNumbers.push(line.lineNumber + 1);
-            }
-        }
-    }
-
-    gResults = {
-        asm,
-        sourceFile,
-        errorLines,
-        errorLineNumbers,
-    };
+    gResults = new AssemblyResults(asm, sourceFile);
 
     updateDiagnostics();
     updateAssemblyErrors();
@@ -565,14 +577,9 @@ function bytecodeGutter() {
                 return null;
             }
             const lineNumber = view.state.doc.lineAt(line.from).number;
-            // TODO replace with a map.
-            for (const line of gResults.sourceFile.assembledLines) {
-                if (line.lineNumber !== undefined &&
-                    line.lineNumber + 1 === lineNumber &&
-                    line.binary.length > 0) {
-
-                    return new BytecodeGutter(line.address, line.binary);
-                }
+            const assembledLine = gResults.lineMap.get(lineNumber);
+            if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+                return new BytecodeGutter(assembledLine.address, assembledLine.binary);
             }
             return null;
         },
