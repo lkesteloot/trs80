@@ -1,6 +1,9 @@
 
-import {EditorView} from "@codemirror/view"
 import {indentWithTab} from "@codemirror/commands"
+import {WidgetType} from "@codemirror/view"
+import {EditorView, Decoration} from "@codemirror/view"
+import {syntaxTree} from "@codemirror/language"
+import {ViewUpdate, ViewPlugin, DecorationSet} from "@codemirror/view"
 
 import {keymap, highlightSpecialChars, drawSelection, highlightActiveLine, dropCursor} from "@codemirror/view"
 import {Extension, EditorState} from "@codemirror/state"
@@ -31,6 +34,7 @@ import { scarfman } from "./scarfman.ts";
 import "./style.css";
 import { Z80_KNOWN_LABELS } from "z80-base"
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base"
+import {ScreenEditor} from "./ScreenEditor.ts";
 
 const initial_code = `        .org 0x5000
         di
@@ -44,6 +48,9 @@ loop:
         dec b
         jr nz,loop
       
+        ; Screenshot
+        .byte 65, 66
+        
 stop:
         jp stop
 `;
@@ -101,16 +108,16 @@ editorPane.classList.add("editor-pane");
 const sampleChooser = document.createElement("select");
 sampleChooser.classList.add("sample-chooser");
 const samples = [
-    {value: "initial_code", name: "Simple", code: initial_code},
-    {value: "space_invaders", name: "Space Invaders", code: space_invaders},
-    {value: "breakdwn", name: "Breakdown", code: breakdwn},
-    {value: "scarfman", name: "Scarfman", code: scarfman},
+  {value: "initial_code", name: "Simple", code: initial_code},
+  {value: "space_invaders", name: "Space Invaders", code: space_invaders},
+  {value: "breakdwn", name: "Breakdown", code: breakdwn},
+  {value: "scarfman", name: "Scarfman", code: scarfman},
 ];
 for (const sample of samples) {
-    const option = document.createElement("option");
-    option.value = sample.value;
-    option.textContent = sample.name;
-    sampleChooser.append(option);
+  const option = document.createElement("option");
+  option.value = sample.value;
+  option.textContent = sample.name;
+  sampleChooser.append(option);
 }
 const editorContainer = document.createElement("div");
 editorContainer.classList.add("editor-container");
@@ -127,6 +134,88 @@ restoreButton.innerText = "Restore";
 const emulatorDiv = document.createElement("div");
 emulatorDiv.id = "emulator";
 content.append(editorPane, emulatorDiv);
+
+class EditScreenshotWidget extends WidgetType {
+  eq(): boolean{
+    // No content, so they're all equal.
+    return true;
+  }
+
+  toDOM(): HTMLElement {
+    const button = document.createElement("span");
+    button.setAttribute("aria-hidden", "true");
+    button.className = "cm-screenshot-edit";
+    button.innerText = "Edit";
+    return button;
+  }
+
+  ignoreEvent(): boolean {
+    // We want the click.
+    return false;
+  }
+}
+
+function checkboxes(view: EditorView) {
+  const widgets: Range<Decoration>[] = []
+  for (let {from, to} of view.visibleRanges) {
+    const s = view.state.doc.sliceString(from, to);
+    let start = 0;
+    while (true) {
+      const i = s.indexOf("; Screenshot", start);
+      if (i >= 0) {
+        let j = s.indexOf("\n", i);
+        if (j < 0) {
+          j = s.length;
+        }
+        const deco = Decoration.widget({
+          widget: new EditScreenshotWidget(),
+          side: 1,
+        });
+        widgets.push(deco.range(from + j));
+        start = j;
+      } else {
+        break;
+      }
+    }
+  }
+  return Decoration.set(widgets);
+}
+
+const screenshotPlugin = ViewPlugin.fromClass(class {
+  decorations: DecorationSet
+
+  constructor(view: EditorView) {
+    this.decorations = checkboxes(view)
+  }
+
+  update(update: ViewUpdate) {
+    if (update.docChanged || update.viewportChanged) {
+      this.decorations = checkboxes(update.view)
+    }
+  }
+}, {
+  decorations: v => v.decorations,
+
+  eventHandlers: {
+    click: (e, view) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains("cm-screenshot-edit")) {
+        startScreenshotEditMode(view, view.posAtDOM(target));
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+});
+
+let autoDeployProgram = true;
+
+function startScreenshotEditMode(view: EditorView, pos: number) {
+  autoDeployProgram = false;
+  const screenEditor = new ScreenEditor(view, pos, trs80, screen);
+  return true;
+}
 
 const nodeTypes = [
   NodeType.define({
@@ -239,7 +328,8 @@ const extensions: Extension = [
   // ], {
   //   delay: 750,
   // }),
-    z80AssemblyLanguage(),
+  //   z80AssemblyLanguage(),
+  screenshotPlugin,
 ];
 
 let startState = EditorState.create({
@@ -273,9 +363,8 @@ function reassemble() {
   const editorState = view.state;
   const doc = editorState.doc;
   const code = doc.toJSON();
-  assemble(code);
   const {asm, sourceFile} = assemble(code);
-  console.log(sourceFile);
+  // console.log(sourceFile);
   if (sourceFile === undefined) {
     // TODO, file not found.
     return;
@@ -297,7 +386,7 @@ function reassemble() {
   const transactions = setDiagnostics(editorState, diagnostics);
   view.dispatch(transactions);
 
-  if (diagnostics.length === 0) {
+  if (diagnostics.length === 0 && autoDeployProgram) {
     if (trs80State === undefined) {
       trs80State = trs80.save();
     } else {

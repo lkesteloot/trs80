@@ -3,6 +3,7 @@ import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} 
 import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "trs80-emulator";
 import {toHexByte} from "z80-base";
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
+import {SimpleEventDispatcher} from "strongly-typed-events";
 
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
@@ -30,6 +31,61 @@ export function phosphorToRgb(phosphor: Phosphor): number[] {
 }
 
 /**
+ * Type of mouse event.
+ */
+export type ScreenMouseEventType = "mousedown" | "mouseup" | "mousemove";
+
+/**
+ * Position of the mouse on the screen.
+ */
+export class ScreenMousePosition {
+    // TRS-80 pixels (128x48).
+    public readonly pixelX: number;
+    public readonly pixelY: number;
+    // Character position (64x16).
+    public readonly charX: number;
+    public readonly charY: number;
+    // Sub-pixel within the character (2x3).
+    public readonly subPixelX: number;
+    public readonly subPixelY: number;
+    // Bit that's on within the pixel (0-5), row-major.
+    public readonly bit: number;
+    // Mask of the above bit (0x01, 0x02, 0x04, 0x08, 0x10, 0x20).
+    public readonly mask: number;
+    // Offset of the character position within the screen (0-1023).
+    public readonly offset: number;
+    // Address in memory (15360-16383).
+    public readonly address: number;
+
+    public constructor(pixelX: number, pixelY: number) {
+        this.pixelX = pixelX;
+        this.pixelY = pixelY;
+        this.charX = Math.floor(pixelX / 2);
+        this.charY = Math.floor(pixelY / 3);
+        this.subPixelX = pixelX % 2;
+        this.subPixelY = pixelY % 3;
+        this.bit = this.subPixelY * 2 + this.subPixelX;
+        this.mask = 1 << this.bit;
+        this.offset = this.charY * 64 + this.charX;
+        this.address = this.offset + TRS80_SCREEN_BEGIN;
+    }
+}
+
+/**
+ * An event representing a mouse action on the screen.
+ */
+export class ScreenMouseEvent {
+    public readonly type: ScreenMouseEventType;
+    // Undefined if outside the screen.
+    public readonly position: ScreenMousePosition | undefined;
+
+    public constructor(type: ScreenMouseEventType, position?: ScreenMousePosition) {
+        this.type = type;
+        this.position = position;
+    }
+}
+
+/**
  * TRS-80 screen based on an HTML canvas element.
  */
 export class CanvasScreen extends Trs80WebScreen {
@@ -40,6 +96,7 @@ export class CanvasScreen extends Trs80WebScreen {
     private readonly context: CanvasRenderingContext2D;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_END - TRS80_SCREEN_BEGIN);
     private readonly glyphs: HTMLCanvasElement[] = [];
+    public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private config: Config = Config.makeDefault();
     private glyphWidth = 0;
 
@@ -64,6 +121,9 @@ export class CanvasScreen extends Trs80WebScreen {
         this.canvas.style.display = "block";
         this.canvas.width = 64*8*this.scale + 2*this.padding;
         this.canvas.height = 16*24*this.scale + 2*this.padding;
+        this.canvas.addEventListener("mousemove", (event) => this.emitMouseActivity("mousemove", event));
+        this.canvas.addEventListener("mousedown", (event) => this.emitMouseActivity("mousedown", event));
+        this.canvas.addEventListener("mouseup", (event) => this.emitMouseActivity("mouseup", event));
         this.node.append(this.canvas);
 
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
@@ -82,6 +142,17 @@ export class CanvasScreen extends Trs80WebScreen {
     setConfig(config: Config): void {
         this.config = config;
         this.updateFromConfig();
+    }
+
+    private emitMouseActivity(type: ScreenMouseEventType, event: MouseEvent): void {
+        const x = event.offsetX - this.padding;
+        const y = event.offsetY - this.padding;
+        const pixelX = Math.floor(x / this.scale / 4);
+        const pixelY = Math.floor(y / this.scale / 8);
+        const position = pixelX < 0 || pixelY < 0 || pixelX >= 128 || pixelY >= 48
+            ? undefined
+            : new ScreenMousePosition(pixelX, pixelY);
+        this.mouseActivity.dispatch(new ScreenMouseEvent(type, position));
     }
 
     /**

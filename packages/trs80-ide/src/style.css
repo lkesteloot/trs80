@@ -82,3 +82,15 @@ body {
 #emulator {
     align-self: center;
 }
+
+.cm-screenshot-edit {
+    color: var(--foreground-emphasized);
+    background-color: var(--background-highlights);
+    border-radius: 999px;
+    padding: 2px 10px;
+    cursor: pointer;
+    margin-left: 10px;
+    margin-right: 10px;
+    font-family: sans-serif;
+    font-size: 12px;
+}
