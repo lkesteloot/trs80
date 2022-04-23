@@ -119,16 +119,16 @@ editorPane.classList.add("editor-pane");
 const sampleChooser = document.createElement("select");
 sampleChooser.classList.add("sample-chooser");
 const samples = [
-  {value: "initial_code", name: "Simple", code: initial_code},
-  {value: "space_invaders", name: "Space Invaders", code: space_invaders},
-  {value: "breakdwn", name: "Breakdown", code: breakdwn},
-  {value: "scarfman", name: "Scarfman", code: scarfman},
+    {value: "initial_code", name: "Simple", code: initial_code},
+    {value: "space_invaders", name: "Space Invaders", code: space_invaders},
+    {value: "breakdwn", name: "Breakdown", code: breakdwn},
+    {value: "scarfman", name: "Scarfman", code: scarfman},
 ];
 for (const sample of samples) {
-  const option = document.createElement("option");
-  option.value = sample.value;
-  option.textContent = sample.name;
-  sampleChooser.append(option);
+    const option = document.createElement("option");
+    option.value = sample.value;
+    option.textContent = sample.name;
+    sampleChooser.append(option);
 }
 const editorContainer = document.createElement("div");
 editorContainer.classList.add("editor-container");
@@ -158,141 +158,141 @@ emulatorDiv.id = "emulator";
 content.append(editorPane, emulatorDiv);
 
 class EditScreenshotWidget extends WidgetType {
-  eq(): boolean{
-    // No content, so they're all equal.
-    return true;
-  }
+    eq(): boolean{
+        // No content, so they're all equal.
+        return true;
+    }
 
-  toDOM(): HTMLElement {
-    const button = document.createElement("span");
-    button.setAttribute("aria-hidden", "true");
-    button.className = "cm-screenshot-edit";
-    button.innerText = "Edit";
-    return button;
-  }
+    toDOM(): HTMLElement {
+        const button = document.createElement("span");
+        button.setAttribute("aria-hidden", "true");
+        button.className = "cm-screenshot-edit";
+        button.innerText = "Edit";
+        return button;
+    }
 
-  ignoreEvent(): boolean {
-    // We want the click.
-    return false;
-  }
+    ignoreEvent(): boolean {
+        // We want the click.
+        return false;
+    }
 }
 
 function checkboxes(view: EditorView) {
-  const widgets: Range<Decoration>[] = []
-  for (let {from, to} of view.visibleRanges) {
-    const s = view.state.doc.sliceString(from, to);
-    let start = 0;
-    while (true) {
-      const i = s.indexOf("; Screenshot", start);
-      if (i >= 0) {
-        let j = s.indexOf("\n", i);
-        if (j < 0) {
-          j = s.length;
+    const widgets: Range<Decoration>[] = []
+    for (let {from, to} of view.visibleRanges) {
+        const s = view.state.doc.sliceString(from, to);
+        let start = 0;
+        while (true) {
+            const i = s.indexOf("; Screenshot", start);
+            if (i >= 0) {
+                let j = s.indexOf("\n", i);
+                if (j < 0) {
+                    j = s.length;
+                }
+                const deco = Decoration.widget({
+                    widget: new EditScreenshotWidget(),
+                    side: 1,
+                });
+                widgets.push(deco.range(from + j));
+                start = j;
+            } else {
+                break;
+            }
         }
-        const deco = Decoration.widget({
-          widget: new EditScreenshotWidget(),
-          side: 1,
-        });
-        widgets.push(deco.range(from + j));
-        start = j;
-      } else {
-        break;
-      }
     }
-  }
-  return Decoration.set(widgets);
+    return Decoration.set(widgets);
 }
 
 const screenshotPlugin = ViewPlugin.fromClass(class {
-  decorations: DecorationSet
+    decorations: DecorationSet
 
-  constructor(view: EditorView) {
-    this.decorations = checkboxes(view)
-  }
-
-  update(update: ViewUpdate) {
-    if (update.docChanged || update.viewportChanged) {
-      this.decorations = checkboxes(update.view)
+    constructor(view: EditorView) {
+        this.decorations = checkboxes(view)
     }
-  }
+
+    update(update: ViewUpdate) {
+        if (update.docChanged || update.viewportChanged) {
+            this.decorations = checkboxes(update.view)
+        }
+    }
 }, {
-  decorations: v => v.decorations,
+    decorations: v => v.decorations,
 
-  eventHandlers: {
-    click: (e, view) => {
-      const target = e.target as HTMLElement;
-      if (target.classList.contains("cm-screenshot-edit")) {
-        startScreenshotEditMode(view, view.posAtDOM(target));
-        return true;
-      } else {
-        return false;
-      }
+    eventHandlers: {
+        click: (e, view) => {
+            const target = e.target as HTMLElement;
+            if (target.classList.contains("cm-screenshot-edit")) {
+                startScreenshotEditMode(view, view.posAtDOM(target));
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
-  }
 });
 
 let autoDeployProgram = true;
 
 function startScreenshotEditMode(view: EditorView, pos: number) {
-  autoDeployProgram = false;
-  const screenEditor = new ScreenEditor(view, pos, trs80, screen);
-  return true;
+    autoDeployProgram = false;
+    const screenEditor = new ScreenEditor(view, pos, trs80, screen);
+    return true;
 }
 
 const nodeTypes = [
-  NodeType.define({
-    id: 0,
-    name: "file",
-  }),
-  NodeType.define({
-    id: 1,
-    name: "line",
-  }),
+    NodeType.define({
+        id: 0,
+        name: "file",
+    }),
+    NodeType.define({
+        id: 1,
+        name: "line",
+    }),
 ];
 
 class Xyz implements PartialParse {
-  input: Input;
+    input: Input;
 
-  constructor(input: Input) {
-    this.input = input;
-  }
-
-  advance(): Tree | null {
-    const code = this.input.read(0, this.input.length).split("\n");
-    const {sourceFile} = assemble(code);
-    if (sourceFile === undefined) {
-      return Tree.empty;
+    constructor(input: Input) {
+        this.input = input;
     }
 
-    const lines: Tree[] = [];
-    const positions: number[] = [];
-    let pos = 0;
+    advance(): Tree | null {
+        const code = this.input.read(0, this.input.length).split("\n");
+        const {sourceFile} = assemble(code);
+        if (sourceFile === undefined) {
+            return Tree.empty;
+        }
 
-    for (let i = 0; i < sourceFile.assembledLines.length; i++) {
-      lines.push(new Tree(nodeTypes[1], [], [], length));
-      positions.push(pos);
-      pos += code[i].length + 1;
+        const lines: Tree[] = [];
+        const positions: number[] = [];
+        let pos = 0;
+
+        for (let i = 0; i < sourceFile.assembledLines.length; i++) {
+            lines.push(new Tree(nodeTypes[1], [], [], length));
+            positions.push(pos);
+            pos += code[i].length + 1;
+        }
+
+        return new Tree(nodeTypes[0], lines, positions, length);
     }
 
-    return new Tree(nodeTypes[0], lines, positions, length);
-  }
+    parsedPos: number = 0;
 
-  parsedPos: number = 0;
+    stopAt(pos: number): void {
+        throw new Error("Method not implemented.")
+    }
 
-  stopAt(pos: number): void {
-    throw new Error("Method not implemented.")
-  }
-
-  stoppedAt: number | null = null;
+    stoppedAt: number | null = null;
 }
 
 class Z80AssemblyParser extends Parser {
-  createParse(input: Input,
-              fragments: readonly TreeFragment[],
-              ranges: readonly { from: number; to: number }[]): PartialParse {
+    createParse(input: Input,
+                fragments: readonly TreeFragment[],
+                ranges: readonly { from: number; to: number }[]): PartialParse {
 
-    return new Xyz(input);
-  }
+        return new Xyz(input);
+    }
 }
 
 const parser = new Z80AssemblyParser();
@@ -304,81 +304,81 @@ const language = new Language(
 );
 
 function z80AssemblyLanguage() {
-  return new LanguageSupport(language, []);
+    return new LanguageSupport(language, []);
 }
 
 const extensions: Extension = [
-  lineNumbers(),
-  highlightActiveLineGutter(),
-  highlightSpecialChars(),
-  history(),
-  foldGutter(),
-  drawSelection(),
-  dropCursor(),
-  EditorState.allowMultipleSelections.of(true),
-  indentOnInput(),
-  defaultHighlightStyle.fallback,
-  bracketMatching(),
-  closeBrackets(),
-  autocompletion(),
-  rectangularSelection(),
-  highlightActiveLine(),
-  highlightSelectionMatches(),
-  keymap.of([
-    ...closeBracketsKeymap,
-    ...defaultKeymap,
-    ...searchKeymap,
-    ...historyKeymap,
-    ...foldKeymap,
-    ...commentKeymap,
-    ...completionKeymap,
-    ...lintKeymap,
-      indentWithTab,
-  ]),
-  EditorView.updateListener.of(update => {
-    if (update.docChanged) {
-      reassemble();
-    }
-  }),
-  // linter(view => [
-  //   {
-  //     from: 3,
-  //     to: 5,
-  //     severity: "error",
-  //     message: "bad",
-  //   },
-  // ], {
-  //   delay: 750,
-  // }),
-  //   z80AssemblyLanguage(),
-  screenshotPlugin,
+    lineNumbers(),
+    highlightActiveLineGutter(),
+    highlightSpecialChars(),
+    history(),
+    foldGutter(),
+    drawSelection(),
+    dropCursor(),
+    EditorState.allowMultipleSelections.of(true),
+    indentOnInput(),
+    defaultHighlightStyle.fallback,
+    bracketMatching(),
+    closeBrackets(),
+    autocompletion(),
+    rectangularSelection(),
+    highlightActiveLine(),
+    highlightSelectionMatches(),
+    keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        ...commentKeymap,
+        ...completionKeymap,
+        ...lintKeymap,
+        indentWithTab,
+    ]),
+    EditorView.updateListener.of(update => {
+        if (update.docChanged) {
+            reassemble();
+        }
+    }),
+    // linter(view => [
+    //   {
+    //     from: 3,
+    //     to: 5,
+    //     severity: "error",
+    //     message: "bad",
+    //   },
+    // ], {
+    //   delay: 750,
+    // }),
+    //   z80AssemblyLanguage(),
+    screenshotPlugin,
 ];
 
 let startState = EditorState.create({
-  doc: initial_code,
-  extensions: extensions,
+    doc: initial_code,
+    extensions: extensions,
 });
 
 const view = new EditorView({
-  state: startState,
-  parent: document.getElementById("editor") as HTMLDivElement
+    state: startState,
+    parent: document.getElementById("editor") as HTMLDivElement
 });
 
 function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile | undefined} {
-  const asm = new Asm({
-    readBinaryFile(pathname: string): Uint8Array | undefined {
-      return undefined;
-    }, readDirectory(pathname: string): string[] | undefined {
-      return undefined;
-    }, readTextFile(pathname: string): string[] | undefined {
-      return code;
-    }
-  });
-  asm.addKnownLabels(Z80_KNOWN_LABELS);
-  asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
-  asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
-  const sourceFile = asm.assembleFile("current.asm");
-  return { asm, sourceFile };
+    const asm = new Asm({
+        readBinaryFile(pathname: string): Uint8Array | undefined {
+            return undefined;
+        }, readDirectory(pathname: string): string[] | undefined {
+            return undefined;
+        }, readTextFile(pathname: string): string[] | undefined {
+            return code;
+        }
+    });
+    asm.addKnownLabels(Z80_KNOWN_LABELS);
+    asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
+    asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
+    const sourceFile = asm.assembleFile("current.asm");
+    return { asm, sourceFile };
 }
 
 // Error is required.
@@ -529,26 +529,26 @@ assembleButton.addEventListener("click", () => reassemble());
 let trs80State: Trs80State | undefined;
 
 saveButton.addEventListener("click", () => {
-  trs80State = trs80.save();
+    trs80State = trs80.save();
 });
 restoreButton.addEventListener("click", () => {
-  if (trs80State !== undefined) {
-    trs80.restore(trs80State);
-  }
+    if (trs80State !== undefined) {
+        trs80.restore(trs80State);
+    }
 });
 sampleChooser.addEventListener("change", () => {
-  const sampleValue = sampleChooser.value;
-  const sample = samples.filter(s => s.value === sampleValue)[0];
-  if (sample !== undefined) {
-    const code = sample.code;
-    view.dispatch({
-      changes: {
-        from: 0,
-        to: view.state.doc.length,
-        insert: code,
-      }
-    });
-  }
+    const sampleValue = sampleChooser.value;
+    const sample = samples.filter(s => s.value === sampleValue)[0];
+    if (sample !== undefined) {
+        const code = sample.code;
+        view.dispatch({
+            changes: {
+                from: 0,
+                to: view.state.doc.length,
+                insert: code,
+            }
+        });
+    }
 });
 
 const config = Config.makeDefault();
@@ -560,8 +560,8 @@ const trs80 = new Trs80(config, screen, keyboard, cassettePlayer, soundPlayer);
 keyboard.configureKeyboard();
 
 const reboot = () => {
-  trs80.reset();
-  trs80.start();
+    trs80.reset();
+    trs80.start();
 };
 
 const hardwareSettingsPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.HARDWARE);
@@ -582,8 +582,8 @@ emulatorDiv.append(screen.getNode());
 
 // Give focus to the emulator if the editor does not have it.
 function updateFocus() {
-  console.log("updateFocus");
-  keyboard.interceptKeys = document.activeElement === document.body;
+    console.log("updateFocus");
+    keyboard.interceptKeys = document.activeElement === document.body;
 }
 document.body.addEventListener("focus", () => updateFocus(), true);
 document.body.addEventListener("blur", () => updateFocus(), true);
