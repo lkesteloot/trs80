@@ -96,7 +96,7 @@ body {
 }
 
 .error-container {
-    display: flex;
+    display: none; /* set to flex procedurally to display */
     flex-direction: row;
     align-items: baseline;
     gap: 0.5em;

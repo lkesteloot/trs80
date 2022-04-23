@@ -648,4 +648,5 @@ document.body.focus();
 updateFocus();
 
 reboot();
-reassemble();
+// Don't assemble right away, give the ROM a chance to start.
+setTimeout(() => reassemble(), 500);
