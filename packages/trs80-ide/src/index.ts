@@ -13,7 +13,7 @@ import {
     BlockInfo,
     WidgetType
 } from "@codemirror/view"
-import {EditorSelection, EditorState, Extension} from "@codemirror/state"
+import {EditorSelection, EditorState, Extension, StateField, Transaction} from "@codemirror/state"
 import {defineLanguageFacet, indentOnInput, Language, LanguageSupport} from "@codemirror/language"
 import {history, historyKeymap} from "@codemirror/history"
 import {foldGutter, foldKeymap} from "@codemirror/fold"
@@ -131,7 +131,7 @@ class AssemblyResults {
         const errorLineNumbers: number[] = []; // 1-based.
         for (const line of sourceFile.assembledLines) {
             if (line.lineNumber !== undefined) {
-                this.lineMap.set(line.lineNumber, line);
+                this.lineMap.set(line.lineNumber + 1, line);
             }
 
             if (line.error !== undefined) {
@@ -146,8 +146,15 @@ class AssemblyResults {
         this.errorLines = errorLines;
         this.errorLineNumbers = errorLineNumbers;
     }
+
+    /**
+     * Make an object for an empty input file.
+     */
+    public static makeEmpty(): AssemblyResults {
+        const {asm, sourceFile} = assemble([""]);
+        return new AssemblyResults(asm, sourceFile);
+    }
 }
-let gResults: AssemblyResults | undefined = undefined;
 
 /**
  * Gutter to show the line's address and bytecode.
@@ -211,10 +218,10 @@ const errorMessageDiv = document.createElement("div");
 errorMessageDiv.id = "error-message";
 const prevErrorButton = document.createElement("button");
 prevErrorButton.textContent = "Previous";
-prevErrorButton.addEventListener("click", () => prevError());
+prevErrorButton.addEventListener("click", () => prevError(view.state.field(assemblyResultsStateField)));
 const nextErrorButton = document.createElement("button");
 nextErrorButton.textContent = "Next";
-nextErrorButton.addEventListener("click", () => nextError());
+nextErrorButton.addEventListener("click", () => nextError(view.state.field(assemblyResultsStateField)));
 errorContainer.append(errorMessageDiv, prevErrorButton, nextErrorButton);
 editorPane.append(sampleChooser, editorContainer, errorContainer);
 const assembleButton = document.createElement("button");
@@ -330,9 +337,6 @@ class Xyz implements PartialParse {
     advance(): Tree | null {
         const code = this.input.read(0, this.input.length).split("\n");
         const {sourceFile} = assemble(code);
-        if (sourceFile === undefined) {
-            return Tree.empty;
-        }
 
         const lines: Tree[] = [];
         const positions: number[] = [];
@@ -377,6 +381,23 @@ function z80AssemblyLanguage() {
     return new LanguageSupport(language, []);
 }
 
+/**
+ * State field for keeping the assembly results.
+ */
+const assemblyResultsStateField = StateField.define<AssemblyResults>({
+    create: () => {
+        return AssemblyResults.makeEmpty();
+    },
+    update: (value: AssemblyResults, tr: Transaction) => {
+        if (tr.docChanged) {
+            const {asm, sourceFile} = assemble(tr.state.doc.toJSON());
+            return new AssemblyResults(asm, sourceFile);
+        } else {
+            return value;
+        }
+    },
+});
+
 const extensions: Extension = [
     lineNumbers(),
     bytecodeGutter(),
@@ -408,7 +429,7 @@ const extensions: Extension = [
     ]),
     EditorView.updateListener.of(update => {
         if (update.docChanged) {
-            reassemble();
+            updateEverything(update.state.field(assemblyResultsStateField));
         }
     }),
     // linter(view => [
@@ -423,6 +444,7 @@ const extensions: Extension = [
     // }),
     //   z80AssemblyLanguage(),
     screenshotPlugin,
+    assemblyResultsStateField,
 ];
 
 let startState = EditorState.create({
@@ -435,7 +457,7 @@ const view = new EditorView({
     parent: document.getElementById("editor") as HTMLDivElement
 });
 
-function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile | undefined} {
+function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile} {
     const asm = new Asm({
         readBinaryFile(pathname: string): Uint8Array | undefined {
             return undefined;
@@ -449,30 +471,29 @@ function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile | undefined
     asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
     asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
     const sourceFile = asm.assembleFile("current.asm");
+    if (sourceFile === undefined) {
+        // Can't happen?
+        throw new Error("got undefined sourceFile");
+    }
     return { asm, sourceFile };
 }
 
 function reassemble() {
     const {asm, sourceFile} = assemble(view.state.doc.toJSON());
-    if (sourceFile === undefined) {
-        // TODO, file not found.
-        return;
-    }
+    const results = new AssemblyResults(asm, sourceFile);
+    updateEverything(results);
+}
 
-    gResults = new AssemblyResults(asm, sourceFile);
-
-    updateDiagnostics();
-    updateAssemblyErrors();
-    runProgram();
+function updateEverything(results: AssemblyResults) {
+    updateDiagnostics(results);
+    updateAssemblyErrors(results);
+    runProgram(results);
 }
 
 // Update the squiggly lines in the editor.
-function updateDiagnostics() {
-    if (gResults === undefined) {
-        return;
-    }
+function updateDiagnostics(results: AssemblyResults) {
     const diagnostics: Diagnostic[] = [];
-    for (const line of gResults.errorLines) {
+    for (const line of results.errorLines) {
         if (line.lineNumber !== undefined /* TODO */) {
             const lineInfo = view.state.doc.line(line.lineNumber + 1);
             diagnostics.push({
@@ -487,21 +508,21 @@ function updateDiagnostics() {
     view.dispatch(setDiagnostics(view.state, diagnostics));
 }
 
-function runProgram() {
-    if (gResults !== undefined && gResults.errorLines.length === 0 && autoDeployProgram) {
+function runProgram(results: AssemblyResults) {
+    if (results.errorLines.length === 0 && autoDeployProgram) {
         if (trs80State === undefined) {
             trs80State = trs80.save();
         } else {
             trs80.restore(trs80State);
         }
-        for (const line of gResults.sourceFile.assembledLines) {
+        for (const line of results.sourceFile.assembledLines) {
             for (let i = 0; i < line.binary.length; i++) {
                 trs80.writeMemory(line.address + i, line.binary[i]);
             }
         }
-        let entryPoint = gResults.asm.entryPoint;
+        let entryPoint = results.asm.entryPoint;
         if (entryPoint === undefined) {
-            for (const line of gResults.sourceFile.assembledLines) {
+            for (const line of results.sourceFile.assembledLines) {
                 if (line.binary.length > 0) {
                     entryPoint = line.address;
                     break;
@@ -514,13 +535,13 @@ function runProgram() {
     }
 }
 
-function updateAssemblyErrors() {
-    if (gResults === undefined || gResults.errorLines.length === 0) {
+function updateAssemblyErrors(results: AssemblyResults) {
+    if (results.errorLines.length === 0) {
         errorContainer.style.display = "none";
     } else {
         errorContainer.style.display = "flex";
-        errorMessageDiv.innerText = gResults.errorLines.length +
-            " error" + (gResults.errorLines.length === 1 ? "" : "s");
+        errorMessageDiv.innerText = results.errorLines.length +
+            " error" + (results.errorLines.length === 1 ? "" : "s");
     }
 }
 
@@ -534,16 +555,16 @@ function moveCursorToLineNumber(lineNumber: number) {
     view.focus();
 }
 
-function nextError() {
-    if (gResults === undefined || gResults.errorLineNumbers.length === 0) {
+function nextError(results: AssemblyResults) {
+    if (results.errorLineNumbers.length === 0) {
         return;
     }
     const {from} = view.state.selection.main;
     const line = view.state.doc.lineAt(from);
     const cursorLineNumber = line.number;
-    for (const errorLineNumber of gResults.errorLineNumbers) {
+    for (const errorLineNumber of results.errorLineNumbers) {
         if (errorLineNumber > cursorLineNumber ||
-            cursorLineNumber >= gResults.errorLineNumbers[gResults.errorLineNumbers.length - 1]) {
+            cursorLineNumber >= results.errorLineNumbers[results.errorLineNumbers.length - 1]) {
 
             moveCursorToLineNumber(errorLineNumber);
             break;
@@ -551,15 +572,15 @@ function nextError() {
     }
 }
 
-function prevError() {
-    if (gResults === undefined || gResults.errorLineNumbers.length === 0) {
+function prevError(results: AssemblyResults) {
+    if (results.errorLineNumbers.length === 0) {
         return;
     }
     const {from} = view.state.selection.main;
     const line = view.state.doc.lineAt(from);
     const cursorLineNumber = line.number;
-    for (const errorLineNumber of gResults.errorLineNumbers.slice().reverse()) {
-        if (errorLineNumber < cursorLineNumber || cursorLineNumber <= gResults.errorLineNumbers[0]) {
+    for (const errorLineNumber of results.errorLineNumbers.slice().reverse()) {
+        if (errorLineNumber < cursorLineNumber || cursorLineNumber <= results.errorLineNumbers[0]) {
             moveCursorToLineNumber(errorLineNumber);
             break;
         }
@@ -573,11 +594,9 @@ function bytecodeGutter() {
     return gutter({
         class: "gutter-bytecode",
         lineMarker: (view: EditorView, line: BlockInfo) => {
-            if (gResults === undefined) {
-                return null;
-            }
+            const results = view.state.field(assemblyResultsStateField);
             const lineNumber = view.state.doc.lineAt(line.from).number;
-            const assembledLine = gResults.lineMap.get(lineNumber);
+            const assembledLine = results.lineMap.get(lineNumber);
             if (assembledLine !== undefined && assembledLine.binary.length > 0) {
                 return new BytecodeGutter(assembledLine.address, assembledLine.binary);
             }
