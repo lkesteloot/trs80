@@ -201,6 +201,13 @@ export class AssembledLine {
         // Return explicit if provided, otherwise compute.
         return this.specifiedNextAddress ?? (this.address + this.binary.length);
     }
+
+    /**
+     * Whether this line holds data, e.g. from a ".byte" directive.
+     */
+    public isData(): boolean {
+        return this.binary.length > 0 && this.variant === undefined;
+    }
 }
 
 /**
@@ -324,12 +331,14 @@ export class Asm {
     }
 
     public assembleFile(pathname: string): SourceFile | undefined {
-        // Load the top-level file. This array will grow as we include files and expand macros.
+        // Load the top-level file.
         const sourceFile = this.loadSourceFile(pathname, undefined);
         if (sourceFile === undefined) {
             return undefined;
         }
-        this.assembledLines = sourceFile.assembledLines;
+
+        // This array will grow as we include files and expand macros.
+        this.assembledLines = sourceFile.assembledLines.slice();
 
         // FIRST PASS. Expand include files and macros, assemble instructions so that each
         // label knows where it'll be.

@@ -13,8 +13,8 @@ import {
     BlockInfo,
     WidgetType
 } from "@codemirror/view"
-import {EditorSelection, EditorState, Extension, StateField, Transaction} from "@codemirror/state"
-import {defineLanguageFacet, indentOnInput, Language, LanguageSupport} from "@codemirror/language"
+import {EditorSelection, EditorState, Extension, StateField, StateEffect, Transaction} from "@codemirror/state"
+import {defineLanguageFacet, indentOnInput, Language, LanguageSupport, indentUnit} from "@codemirror/language"
 import {history, historyKeymap} from "@codemirror/history"
 import {foldGutter, foldKeymap} from "@codemirror/fold"
 import {highlightActiveLineGutter, lineNumbers, gutter, GutterMarker} from "@codemirror/gutter"
@@ -224,8 +224,6 @@ nextErrorButton.textContent = "Next";
 nextErrorButton.addEventListener("click", () => nextError(view.state.field(assemblyResultsStateField)));
 errorContainer.append(errorMessageDiv, prevErrorButton, nextErrorButton);
 editorPane.append(sampleChooser, editorContainer, errorContainer);
-const assembleButton = document.createElement("button");
-assembleButton.innerText = "Assemble";
 const saveButton = document.createElement("button");
 saveButton.innerText = "Save";
 const restoreButton = document.createElement("button");
@@ -261,20 +259,20 @@ function checkboxes(view: EditorView) {
         let start = 0;
         while (true) {
             const i = s.indexOf("; Screenshot", start);
-            if (i >= 0) {
-                let j = s.indexOf("\n", i);
-                if (j < 0) {
-                    j = s.length;
-                }
-                const deco = Decoration.widget({
-                    widget: new EditScreenshotWidget(),
-                    side: 1,
-                });
-                widgets.push(deco.range(from + j));
-                start = j;
-            } else {
+            if (i < 0) {
                 break;
             }
+
+            let j = s.indexOf("\n", i);
+            if (j < 0) {
+                j = s.length;
+            }
+            const deco = Decoration.widget({
+                widget: new EditScreenshotWidget(),
+                side: 1,
+            });
+            widgets.push(deco.range(from + j));
+            start = j;
         }
     }
     return Decoration.set(widgets);
@@ -384,11 +382,19 @@ function z80AssemblyLanguage() {
 /**
  * State field for keeping the assembly results.
  */
+const assemblyResultsStateEffect = StateEffect.define<AssemblyResults>();
 const assemblyResultsStateField = StateField.define<AssemblyResults>({
     create: () => {
         return AssemblyResults.makeEmpty();
     },
     update: (value: AssemblyResults, tr: Transaction) => {
+        // See if we're explicitly setting it from the outside.
+        for (const effect of tr.effects) {
+            if (effect.is(assemblyResultsStateEffect)) {
+                return effect.value;
+            }
+        }
+        // See if we should reassembly based on changes to the doc.
         if (tr.docChanged) {
             const {asm, sourceFile} = assemble(tr.state.doc.toJSON());
             return new AssemblyResults(asm, sourceFile);
@@ -445,6 +451,7 @@ const extensions: Extension = [
     //   z80AssemblyLanguage(),
     screenshotPlugin,
     assemblyResultsStateField,
+    indentUnit.of("        "),
 ];
 
 let startState = EditorState.create({
@@ -475,12 +482,19 @@ function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile} {
         // Can't happen?
         throw new Error("got undefined sourceFile");
     }
+    console.log(asm.assembledLines.length, sourceFile.assembledLines.length);
+    for (const line of sourceFile.assembledLines) {
+        console.log(line.address, line.binary, line.line, line.isData());
+    }
     return { asm, sourceFile };
 }
 
 function reassemble() {
     const {asm, sourceFile} = assemble(view.state.doc.toJSON());
     const results = new AssemblyResults(asm, sourceFile);
+    view.dispatch({
+       effects: assemblyResultsStateEffect.of(results),
+    });
     updateEverything(results);
 }
 
@@ -509,6 +523,7 @@ function updateDiagnostics(results: AssemblyResults) {
 }
 
 function runProgram(results: AssemblyResults) {
+    console.log("runProgram");
     if (results.errorLines.length === 0 && autoDeployProgram) {
         if (trs80State === undefined) {
             trs80State = trs80.save();
@@ -606,8 +621,6 @@ function bytecodeGutter() {
         initialSpacer: () => BYTECODE_SPACER,
     });
 }
-
-assembleButton.addEventListener("click", () => reassemble());
 
 let trs80State: Trs80State | undefined;
 
