@@ -28,7 +28,7 @@ import {rectangularSelection} from "@codemirror/rectangular-selection"
 import {defaultHighlightStyle} from "@codemirror/highlight"
 import {Diagnostic, lintKeymap, setDiagnostics} from "@codemirror/lint"
 
-import {Asm, AssembledLine, SourceFile} from "z80-asm";
+import {Asm, SourceFile} from "z80-asm";
 import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
 import {
     CanvasScreen,
@@ -48,6 +48,8 @@ import "./style.css";
 import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base"
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS} from "trs80-base"
 import {ScreenEditor} from "./ScreenEditor.ts";
+import {ScreenshotSection} from "./ScreenshotSection.ts";
+import {AssemblyResults} from "./AssemblyResults.ts";
 
 const initial_code = `        .org 0x5000
         di
@@ -108,55 +110,6 @@ wait:
 stop:
         jp stop
 `;
-
-// Error is required.
-type ErrorAssembledLine = AssembledLine & { error: string };
-
-/**
- * Everything we know about the assembled code.
- */
-class AssemblyResults {
-    public readonly asm: Asm;
-    public readonly sourceFile: SourceFile;
-    public readonly screenshotSections: ScreenshotSection[];
-    // Map from 1-based line number to assembled line.
-    public readonly lineMap = new Map<number, AssembledLine>();
-    public readonly errorLines: ErrorAssembledLine[];
-    public readonly errorLineNumbers: number[]; // 1-based.
-
-    constructor(asm: Asm, sourceFile: SourceFile, screenshotSections: ScreenshotSection[]) {
-        this.asm = asm;
-        this.sourceFile = sourceFile;
-        this.screenshotSections = screenshotSections;
-
-        // Gather all errors.
-        const errorLines: ErrorAssembledLine[] = [];
-        const errorLineNumbers: number[] = []; // 1-based.
-        for (const line of sourceFile.assembledLines) {
-            if (line.lineNumber !== undefined) {
-                this.lineMap.set(line.lineNumber + 1, line);
-            }
-
-            if (line.error !== undefined) {
-                // Too bad TS can't detect this narrowing.
-                errorLines.push(line as ErrorAssembledLine);
-
-                if (line.lineNumber !== undefined) {
-                    errorLineNumbers.push(line.lineNumber + 1);
-                }
-            }
-        }
-        this.errorLines = errorLines;
-        this.errorLineNumbers = errorLineNumbers;
-    }
-
-    /**
-     * Make an object for an empty input file.
-     */
-    public static makeEmpty(): AssemblyResults {
-        return assemble([""]);
-    }
-}
 
 /**
  * Gutter to show the line's address and bytecode.
@@ -235,6 +188,13 @@ emulatorDiv.id = "emulator";
 content.append(editorPane, emulatorDiv);
 
 class EditScreenshotWidget extends WidgetType {
+    private readonly screenshotIndex: number;
+
+    constructor(screenshotIndex: number) {
+        super();
+        this.screenshotIndex = screenshotIndex;
+    }
+
     eq(): boolean{
         // No content, so they're all equal.
         return true;
@@ -243,8 +203,9 @@ class EditScreenshotWidget extends WidgetType {
     toDOM(): HTMLElement {
         const button = document.createElement("span");
         button.setAttribute("aria-hidden", "true");
-        button.className = "cm-screenshot-edit";
+        button.className = "cm-screenshotEdit";
         button.innerText = "Edit";
+        button.dataset.screenshotIndex = this.screenshotIndex.toString();
         return button;
     }
 
@@ -259,20 +220,19 @@ const screenshotTheme = EditorView.baseTheme({
 });
 
 /**
- * Generate a set of decorations for
- * @param view
+ * Generate a set of decorations for all screenshots in the code.
  */
 function decorationsForScreenshots(view: EditorView): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>();
 
     const assemblyResults = view.state.field(assemblyResultsStateField);
-    for (const s of assemblyResults.screenshotSections) {
+    for (let i = 0; i < assemblyResults.screenshotSections.length; i++) {
+        const s = assemblyResults.screenshotSections[i];
         const line = view.state.doc.line(s.beginCommentLineNumber);
-        const widgetDeco = Decoration.widget({ // TODO I think I only need to create one of these?
-            widget: new EditScreenshotWidget(),
+        const widgetDeco = Decoration.widget({
+            widget: new EditScreenshotWidget(i),
             side: 1,
         });
-        console.log("widget", line.to);
         builder.add(line.to, line.to, widgetDeco);
 
         if (s.firstDataLineNumber !== undefined && s.lastDataLineNumber !== undefined) {
@@ -283,7 +243,6 @@ function decorationsForScreenshots(view: EditorView): DecorationSet {
                         class: "cm-screenshotHighlight",
                     },
                 });
-                console.log("line", line.from);
                 builder.add(line.from, line.from, lineDeco);
             }
         }
@@ -311,8 +270,9 @@ const screenshotViewPlugin = ViewPlugin.fromClass(class {
     eventHandlers: {
         click: (e, view) => {
             const target = e.target as HTMLElement;
-            if (target.classList.contains("cm-screenshot-edit")) {
-                startScreenshotEditMode(view, view.posAtDOM(target));
+            if (target.classList.contains("cm-screenshotEdit")) {
+                const screenshotIndex = parseInt(target.dataset.screenshotIndex as string);
+                startScreenshotEditMode(view, view.posAtDOM(target), screenshotIndex);
                 return true;
             } else {
                 return false;
@@ -330,9 +290,10 @@ function screenshotPlugin(): Extension {
 
 let autoDeployProgram = true;
 
-function startScreenshotEditMode(view: EditorView, pos: number) {
+function startScreenshotEditMode(view: EditorView, pos: number, screenshotIndex: number) {
     autoDeployProgram = false;
-    const screenEditor = new ScreenEditor(view, pos, trs80, screen);
+    const assemblyResults = view.state.field(assemblyResultsStateField);
+    const screenEditor = new ScreenEditor(view, pos, assemblyResults, screenshotIndex, trs80, screen);
     return true;
 }
 
@@ -407,7 +368,7 @@ function z80AssemblyLanguage() {
 const assemblyResultsStateEffect = StateEffect.define<AssemblyResults>();
 const assemblyResultsStateField = StateField.define<AssemblyResults>({
     create: () => {
-        return AssemblyResults.makeEmpty();
+        return assemble([""]);
     },
     update: (value: AssemblyResults, tr: Transaction) => {
         // See if we're explicitly setting it from the outside.
@@ -510,28 +471,6 @@ function assemble(code: string[]): AssemblyResults {
     return new AssemblyResults(asm, sourceFile, screenshotSections);
 }
 
-class ScreenshotSection {
-    // All line numbers are 1-based.
-    public readonly beginCommentLineNumber: number;
-    public readonly endCommentLineNumber: number | undefined;
-    public readonly firstDataLineNumber: number | undefined;
-    public readonly lastDataLineNumber: number | undefined;
-    public readonly byteCount: number;
-
-    constructor(beginCommentLineNumber: number,
-                endCommentLineNumber: number | undefined,
-                firstDataLineNumber: number | undefined,
-                lastDataLineNumber: number | undefined,
-                byteCount: number) {
-
-        this.beginCommentLineNumber = beginCommentLineNumber;
-        this.endCommentLineNumber = endCommentLineNumber;
-        this.firstDataLineNumber = firstDataLineNumber;
-        this.lastDataLineNumber = lastDataLineNumber;
-        this.byteCount = byteCount;
-    }
-}
-
 /**
  * Look through the assembled file and find the screenshot sections.
  */
@@ -574,6 +513,9 @@ function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] 
                 }
 
                 byteCount += assembledLine.binary.length;
+                if (byteCount >= 1024) {
+                    break;
+                }
             }
 
             console.log(beginLineNumber, endLineNumber, firstDataLineNumber, lastDataLineNumber, byteCount);

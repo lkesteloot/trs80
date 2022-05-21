@@ -83,7 +83,7 @@ body {
     align-self: center;
 }
 
-.cm-screenshot-edit {
+.cm-screenshotEdit {
     color: var(--foreground-emphasized);
     background-color: var(--background-highlights);
     border-radius: 999px;
