@@ -14,6 +14,7 @@ import {
     WidgetType
 } from "@codemirror/view"
 import {EditorSelection, EditorState, Extension, StateField, StateEffect, Transaction} from "@codemirror/state"
+import {RangeSetBuilder} from "@codemirror/rangeset";
 import {defineLanguageFacet, indentOnInput, Language, LanguageSupport, indentUnit} from "@codemirror/language"
 import {history, historyKeymap} from "@codemirror/history"
 import {foldGutter, foldKeymap} from "@codemirror/fold"
@@ -253,42 +254,55 @@ class EditScreenshotWidget extends WidgetType {
     }
 }
 
-function checkboxes(view: EditorView) {
-    const widgets: Range<Decoration>[] = []
-    for (let {from, to} of view.visibleRanges) {
-        const s = view.state.doc.sliceString(from, to);
-        let start = 0;
-        while (true) {
-            const i = s.indexOf("; Screenshot", start);
-            if (i < 0) {
-                break;
-            }
+const screenshotTheme = EditorView.baseTheme({
+    ".cm-screenshotHighlight": { backgroundColor: "rgba(0, 0, 0, 0.05)" },
+});
 
-            let j = s.indexOf("\n", i);
-            if (j < 0) {
-                j = s.length;
+/**
+ * Generate a set of decorations for
+ * @param view
+ */
+function decorationsForScreenshots(view: EditorView): DecorationSet {
+    const builder = new RangeSetBuilder<Decoration>();
+
+    const assemblyResults = view.state.field(assemblyResultsStateField);
+    for (const s of assemblyResults.screenshotSections) {
+        const line = view.state.doc.line(s.beginCommentLineNumber);
+        const widgetDeco = Decoration.widget({ // TODO I think I only need to create one of these?
+            widget: new EditScreenshotWidget(),
+            side: 1,
+        });
+        console.log("widget", line.to);
+        builder.add(line.to, line.to, widgetDeco);
+
+        if (s.firstDataLineNumber !== undefined && s.lastDataLineNumber !== undefined) {
+            for (let lineNumber = s.firstDataLineNumber; lineNumber <= s.lastDataLineNumber; lineNumber++) {
+                const line = view.state.doc.line(lineNumber);
+                const lineDeco = Decoration.line({ // TODO I think I only need to create one of these?
+                    attributes: {
+                        class: "cm-screenshotHighlight",
+                    },
+                });
+                console.log("line", line.from);
+                builder.add(line.from, line.from, lineDeco);
             }
-            const deco = Decoration.widget({
-                widget: new EditScreenshotWidget(),
-                side: 1,
-            });
-            widgets.push(deco.range(from + j));
-            start = j;
         }
     }
-    return Decoration.set(widgets);
+
+    return builder.finish();
 }
 
-const screenshotPlugin = ViewPlugin.fromClass(class {
+const screenshotViewPlugin = ViewPlugin.fromClass(class {
     decorations: DecorationSet
 
     constructor(view: EditorView) {
-        this.decorations = checkboxes(view)
+        this.decorations = decorationsForScreenshots(view);
     }
 
     update(update: ViewUpdate) {
-        if (update.docChanged || update.viewportChanged) {
-            this.decorations = checkboxes(update.view)
+        console.log("screenshotViewPlugin.update()", update);
+        if (update.docChanged || true) { // TODO maybe compare assembly result screenshot info?
+            this.decorations = decorationsForScreenshots(update.view)
         }
     }
 }, {
@@ -306,6 +320,13 @@ const screenshotPlugin = ViewPlugin.fromClass(class {
         }
     }
 });
+
+function screenshotPlugin(): Extension {
+    return [
+        screenshotViewPlugin,
+        screenshotTheme,
+    ];
+}
 
 let autoDeployProgram = true;
 
@@ -397,6 +418,7 @@ const assemblyResultsStateField = StateField.define<AssemblyResults>({
         }
         // See if we should reassembly based on changes to the doc.
         if (tr.docChanged) {
+            console.log("Reassembling and updating state field");
             return assemble(tr.state.doc.toJSON());
         } else {
             return value;
@@ -449,7 +471,7 @@ const extensions: Extension = [
     //   delay: 750,
     // }),
     //   z80AssemblyLanguage(),
-    screenshotPlugin,
+    screenshotPlugin(),
     assemblyResultsStateField,
     indentUnit.of("        "),
 ];
@@ -489,6 +511,7 @@ function assemble(code: string[]): AssemblyResults {
 }
 
 class ScreenshotSection {
+    // All line numbers are 1-based.
     public readonly beginCommentLineNumber: number;
     public readonly endCommentLineNumber: number | undefined;
     public readonly firstDataLineNumber: number | undefined;
@@ -516,35 +539,35 @@ function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] 
     const screenshotSections: ScreenshotSection[] = [];
 
     const lines = sourceFile.assembledLines;
-    for (let i = 0; i < lines.length; i++) {
-        let assembledLine = lines[i];
+    for (let lineNumber = 1; lineNumber <= lines.length; lineNumber++) {
+        let assembledLine = lines[lineNumber - 1];
 
         if (assembledLine.line.indexOf("; Screenshot") >= 0) {
-            const beginLineNumber = i;
+            const beginLineNumber = lineNumber;
             let endLineNumber: number | undefined = undefined;
             let firstDataLineNumber: number | undefined = undefined;
             let lastDataLineNumber: number | undefined = undefined;
             let byteCount = 0;
 
-            for (i++; i < lines.length; i++) {
-                assembledLine = lines[i];
+            for (lineNumber++; lineNumber <= lines.length; lineNumber++) {
+                assembledLine = lines[lineNumber - 1];
 
                 if (assembledLine.line.indexOf("; End screenshot") >= 0) {
-                    endLineNumber = i;
+                    endLineNumber = lineNumber;
                     break;
                 }
 
                 if (assembledLine.line.indexOf("; Screenshot") >= 0) {
-                    i -= 1;
-                    endLineNumber = i;
+                    lineNumber -= 1;
+                    endLineNumber = lineNumber;
                     break;
                 }
 
                 if (assembledLine.isData()) {
                     if (firstDataLineNumber === undefined) {
-                        firstDataLineNumber = i;
+                        firstDataLineNumber = lineNumber;
                     }
-                    lastDataLineNumber = i;
+                    lastDataLineNumber = lineNumber;
                 } else if (assembledLine.binary.length > 0) {
                     // Reached instruction.
                     break;
