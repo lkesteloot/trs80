@@ -117,14 +117,16 @@ type ErrorAssembledLine = AssembledLine & { error: string };
 class AssemblyResults {
     public readonly asm: Asm;
     public readonly sourceFile: SourceFile;
+    public readonly screenshotSections: ScreenshotSection[];
     // Map from 1-based line number to assembled line.
     public readonly lineMap = new Map<number, AssembledLine>();
     public readonly errorLines: ErrorAssembledLine[];
     public readonly errorLineNumbers: number[]; // 1-based.
 
-    constructor(asm: Asm, sourceFile: SourceFile) {
+    constructor(asm: Asm, sourceFile: SourceFile, screenshotSections: ScreenshotSection[]) {
         this.asm = asm;
         this.sourceFile = sourceFile;
+        this.screenshotSections = screenshotSections;
 
         // Gather all errors.
         const errorLines: ErrorAssembledLine[] = [];
@@ -151,8 +153,7 @@ class AssemblyResults {
      * Make an object for an empty input file.
      */
     public static makeEmpty(): AssemblyResults {
-        const {asm, sourceFile} = assemble([""]);
-        return new AssemblyResults(asm, sourceFile);
+        return assemble([""]);
     }
 }
 
@@ -396,8 +397,7 @@ const assemblyResultsStateField = StateField.define<AssemblyResults>({
         }
         // See if we should reassembly based on changes to the doc.
         if (tr.docChanged) {
-            const {asm, sourceFile} = assemble(tr.state.doc.toJSON());
-            return new AssemblyResults(asm, sourceFile);
+            return assemble(tr.state.doc.toJSON());
         } else {
             return value;
         }
@@ -464,7 +464,7 @@ const view = new EditorView({
     parent: document.getElementById("editor") as HTMLDivElement
 });
 
-function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile} {
+function assemble(code: string[]): AssemblyResults {
     const asm = new Asm({
         readBinaryFile(pathname: string): Uint8Array | undefined {
             return undefined;
@@ -482,16 +482,89 @@ function assemble(code: string[]): {asm: Asm, sourceFile: SourceFile} {
         // Can't happen?
         throw new Error("got undefined sourceFile");
     }
-    console.log(asm.assembledLines.length, sourceFile.assembledLines.length);
-    for (const line of sourceFile.assembledLines) {
-        console.log(line.address, line.binary, line.line, line.isData());
+
+    const screenshotSections = pickOutScreenshotSections(sourceFile);
+
+    return new AssemblyResults(asm, sourceFile, screenshotSections);
+}
+
+class ScreenshotSection {
+    public readonly beginCommentLineNumber: number;
+    public readonly endCommentLineNumber: number | undefined;
+    public readonly firstDataLineNumber: number | undefined;
+    public readonly lastDataLineNumber: number | undefined;
+    public readonly byteCount: number;
+
+    constructor(beginCommentLineNumber: number,
+                endCommentLineNumber: number | undefined,
+                firstDataLineNumber: number | undefined,
+                lastDataLineNumber: number | undefined,
+                byteCount: number) {
+
+        this.beginCommentLineNumber = beginCommentLineNumber;
+        this.endCommentLineNumber = endCommentLineNumber;
+        this.firstDataLineNumber = firstDataLineNumber;
+        this.lastDataLineNumber = lastDataLineNumber;
+        this.byteCount = byteCount;
     }
-    return { asm, sourceFile };
+}
+
+/**
+ * Look through the assembled file and find the screenshot sections.
+ */
+function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] {
+    const screenshotSections: ScreenshotSection[] = [];
+
+    const lines = sourceFile.assembledLines;
+    for (let i = 0; i < lines.length; i++) {
+        let assembledLine = lines[i];
+
+        if (assembledLine.line.indexOf("; Screenshot") >= 0) {
+            const beginLineNumber = i;
+            let endLineNumber: number | undefined = undefined;
+            let firstDataLineNumber: number | undefined = undefined;
+            let lastDataLineNumber: number | undefined = undefined;
+            let byteCount = 0;
+
+            for (i++; i < lines.length; i++) {
+                assembledLine = lines[i];
+
+                if (assembledLine.line.indexOf("; End screenshot") >= 0) {
+                    endLineNumber = i;
+                    break;
+                }
+
+                if (assembledLine.line.indexOf("; Screenshot") >= 0) {
+                    i -= 1;
+                    endLineNumber = i;
+                    break;
+                }
+
+                if (assembledLine.isData()) {
+                    if (firstDataLineNumber === undefined) {
+                        firstDataLineNumber = i;
+                    }
+                    lastDataLineNumber = i;
+                } else if (assembledLine.binary.length > 0) {
+                    // Reached instruction.
+                    break;
+                }
+
+                byteCount += assembledLine.binary.length;
+            }
+
+            console.log(beginLineNumber, endLineNumber, firstDataLineNumber, lastDataLineNumber, byteCount);
+            const screenshotSection = new ScreenshotSection(beginLineNumber, endLineNumber,
+                firstDataLineNumber, lastDataLineNumber, byteCount);
+            screenshotSections.push(screenshotSection);
+        }
+    }
+
+    return screenshotSections;
 }
 
 function reassemble() {
-    const {asm, sourceFile} = assemble(view.state.doc.toJSON());
-    const results = new AssemblyResults(asm, sourceFile);
+    const results = assemble(view.state.doc.toJSON());
     view.dispatch({
        effects: assemblyResultsStateEffect.of(results),
     });
