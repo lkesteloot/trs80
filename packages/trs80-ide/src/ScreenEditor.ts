@@ -11,7 +11,7 @@ enum Mode {
 }
 
 enum Tool {
-    PENCIL, LINE, BUCKET,
+    PENCIL, LINE, RECTANGLE, BUCKET,
 }
 
 /**
@@ -109,6 +109,13 @@ export class ScreenEditor {
         button.innerText = "Line";
         button.addEventListener("click", () => {
             this.tool = Tool.LINE;
+        });
+        this.controlPanelDiv.append(button);
+
+        button = document.createElement("button");
+        button.innerText = "Rectangle";
+        button.addEventListener("click", () => {
+            this.tool = Tool.RECTANGLE;
         });
         this.controlPanelDiv.append(button);
 
@@ -230,6 +237,7 @@ export class ScreenEditor {
                     this.previousPosition = e.position;
                     break;
                 case Tool.LINE:
+                case Tool.RECTANGLE:
                     this.mouseDownPosition = e.position;
                     this.previousPosition = undefined;
                     this.rasterBackup.set(this.raster);
@@ -286,6 +294,30 @@ export class ScreenEditor {
                     this.drawLine(this.mouseDownPosition, position, this.mode == Mode.DRAW);
                 }
                 break;
+            case Tool.RECTANGLE:
+                if (this.mouseDownPosition != undefined && position !== undefined) {
+                    this.raster.set(this.rasterBackup);
+                    this.rasterToScreen();
+                    if (e.shiftKey) {
+                        let x = position.pixelX;
+                        let y = position.pixelY;
+                        const dx = x - this.mouseDownPosition.pixelX;
+                        const dy = y - this.mouseDownPosition.pixelY;
+
+                        // Snap to square.
+                        if (Math.abs(dx) < Math.abs(dy)) {
+                            // X is shorter, clamp Y.
+                            y = this.mouseDownPosition.pixelY + Math.sign(dy)*Math.abs(dx);
+                        } else {
+                            // Y is shorter, clamp X.
+                            x = this.mouseDownPosition.pixelX + Math.sign(dx)*Math.abs(dy);
+                        }
+
+                        position = new ScreenMousePosition(x, y);
+                    }
+                    this.drawRectangle(this.mouseDownPosition, position, this.mode == Mode.DRAW);
+                }
+                break;
             case Tool.BUCKET:
                 break;
         }
@@ -329,6 +361,25 @@ export class ScreenEditor {
                 this.setPixel(Math.round(x), y, value);
                 x += slope;
             }
+        }
+    }
+
+    /**
+     * Draw a (hollow) rectangle from p1 to p2.
+     */
+    private drawRectangle(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean): void {
+        const x1 = Math.min(p1.pixelX, p2.pixelX);
+        const y1 = Math.min(p1.pixelY, p2.pixelY);
+        const x2 = Math.max(p1.pixelX, p2.pixelX);
+        const y2 = Math.max(p1.pixelY, p2.pixelY);
+
+        for (let x = x1; x <= x2; x++) {
+            this.setPixel(x, y1, value);
+            this.setPixel(x, y2, value);
+        }
+        for (let y = y1; y <= y2; y++) {
+            this.setPixel(x1, y, value);
+            this.setPixel(x2, y, value);
         }
     }
 
