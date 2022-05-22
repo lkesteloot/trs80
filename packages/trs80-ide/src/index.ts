@@ -53,6 +53,19 @@ import {AssemblyResults} from "./AssemblyResults.ts";
 
 const initial_code = `        .org 0x5000
         di
+        
+        ld hl,screenshot
+        ld de,15360
+draw:
+        ld a,(hl)
+        or a
+        jr z,enddraw
+        ld (de),a
+        inc de
+        inc hl
+        jr draw
+
+enddraw:
         ld a,191
         ld hl,15360
         ld b,10
@@ -64,7 +77,10 @@ loop:
         jr nz,loop
       
         ; Screenshot
+screenshot:
         .byte 65, 66
+        ; End screenshot
+        .byte 0
         
 stop:
         jp stop
