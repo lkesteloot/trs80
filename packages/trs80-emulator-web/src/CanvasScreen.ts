@@ -78,10 +78,12 @@ export class ScreenMouseEvent {
     public readonly type: ScreenMouseEventType;
     // Undefined if outside the screen.
     public readonly position: ScreenMousePosition | undefined;
+    public readonly shiftKey: boolean;
 
-    public constructor(type: ScreenMouseEventType, position?: ScreenMousePosition) {
+    public constructor(type: ScreenMouseEventType, position: ScreenMousePosition | undefined, shiftKey: boolean) {
         this.type = type;
         this.position = position;
+        this.shiftKey = shiftKey;
     }
 }
 
@@ -204,7 +206,7 @@ export class CanvasScreen extends Trs80WebScreen {
         const position = pixelX < 0 || pixelY < 0 || pixelX >= 128 || pixelY >= 48
             ? undefined
             : new ScreenMousePosition(pixelX, pixelY);
-        this.mouseActivity.dispatch(new ScreenMouseEvent(type, position));
+        this.mouseActivity.dispatch(new ScreenMouseEvent(type, position, event.shiftKey));
     }
 
     /**

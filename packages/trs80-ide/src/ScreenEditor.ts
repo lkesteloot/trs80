@@ -221,7 +221,7 @@ export class ScreenEditor {
      * Handle a mouse event and update both our raster array and the TRS-80 screen.
      */
     private handleMouse(e: ScreenMouseEvent) {
-        const position = e.position;
+        let position = e.position;
 
         if (e.type === "mousedown") {
             switch (this.tool) {
@@ -256,6 +256,33 @@ export class ScreenEditor {
                 if (this.mouseDownPosition != undefined && position !== undefined) {
                     this.raster.set(this.rasterBackup);
                     this.rasterToScreen();
+                    if (e.shiftKey) {
+                        let x = position.pixelX;
+                        let y = position.pixelY;
+                        const dx = x - this.mouseDownPosition.pixelX;
+                        const dy = y - this.mouseDownPosition.pixelY;
+                        const a = Math.atan2(dy, dx)*180/Math.PI;
+
+                        // Match Photoshop angle thresholds. Perhaps these should be adjusted
+                        // sine we have rectangular pixels.
+                        if (Math.abs(a) < 27 || Math.abs(a) > 153) {
+                            // Snap to horizontal.
+                            y = this.mouseDownPosition.pixelY;
+                        } else if (Math.abs(a) > 63 && Math.abs(a) < 117) {
+                            // Snap to vertical.
+                            x = this.mouseDownPosition.pixelX;
+                        } else {
+                            // Snap to 45 degrees.
+                            if (Math.abs(dx) < Math.abs(dy)) {
+                                // X is shorter, clamp Y.
+                                y = this.mouseDownPosition.pixelY + Math.sign(dy)*Math.abs(dx);
+                            } else {
+                                // Y is shorter, clamp X.
+                                x = this.mouseDownPosition.pixelX + Math.sign(dx)*Math.abs(dy);
+                            }
+                        }
+                        position = new ScreenMousePosition(x, y);
+                    }
                     this.drawLine(this.mouseDownPosition, position, this.mode == Mode.DRAW);
                 }
                 break;
