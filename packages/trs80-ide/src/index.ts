@@ -274,7 +274,6 @@ const screenshotViewPlugin = ViewPlugin.fromClass(class {
     }
 
     update(update: ViewUpdate) {
-        console.log("screenshotViewPlugin.update()", update);
         if (update.docChanged || true) { // TODO maybe compare assembly result screenshot info?
             this.decorations = decorationsForScreenshots(update.view)
         }
@@ -397,7 +396,6 @@ const assemblyResultsStateField = StateField.define<AssemblyResults>({
         }
         // See if we should reassembly based on changes to the doc.
         if (tr.docChanged) {
-            console.log("Reassembling and updating state field");
             return assemble(tr.state.doc.toJSON());
         } else {
             return value;
@@ -536,7 +534,6 @@ function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] 
                 }
             }
 
-            console.log(beginLineNumber, endLineNumber, firstDataLineNumber, lastDataLineNumber, byteCount);
             const screenshotSection = new ScreenshotSection(beginLineNumber, endLineNumber,
                 firstDataLineNumber, lastDataLineNumber, byteCount);
             screenshotSections.push(screenshotSection);
@@ -579,7 +576,6 @@ function updateDiagnostics(results: AssemblyResults) {
 }
 
 function runProgram(results: AssemblyResults) {
-    console.log("runProgram");
     if (results.errorLines.length === 0 && autoDeployProgram) {
         if (trs80State === undefined) {
             trs80State = trs80.save();
@@ -734,7 +730,6 @@ emulatorDiv.append(screen.getNode());
 
 // Give focus to the emulator if the editor does not have it.
 function updateFocus() {
-    console.log("updateFocus");
     keyboard.interceptKeys = document.activeElement === document.body;
 }
 document.body.addEventListener("focus", () => updateFocus(), true);

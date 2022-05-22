@@ -7,7 +7,11 @@ import {toHexByte} from 'z80-base';
 import {AssemblyResults} from "./AssemblyResults.js";
 
 enum Mode {
-    DRAW, ERASE
+    DRAW, ERASE,
+}
+
+enum Tool {
+    PENCIL, BUCKET,
 }
 
 /**
@@ -29,6 +33,7 @@ export class ScreenEditor {
     private mouseDownPosition: ScreenMousePosition | undefined = undefined;
     private previousPosition: ScreenMousePosition | undefined = undefined;
     private mode: Mode = Mode.DRAW;
+    private tool: Tool = Tool.PENCIL;
     private showPixelGrid = false;
     private showCharGrid = false;
 
@@ -89,6 +94,20 @@ export class ScreenEditor {
         button.addEventListener("click", () => {
             this.showCharGrid = !this.showCharGrid;
             this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
+        });
+        this.controlPanelDiv.append(button);
+
+        button = document.createElement("button");
+        button.innerText = "Pencil";
+        button.addEventListener("click", () => {
+            this.tool = Tool.PENCIL;
+        });
+        this.controlPanelDiv.append(button);
+
+        button = document.createElement("button");
+        button.innerText = "Bucket";
+        button.addEventListener("click", () => {
+            this.tool = Tool.BUCKET;
         });
         this.controlPanelDiv.append(button);
 
@@ -194,15 +213,25 @@ export class ScreenEditor {
      * Handle a mouse event and update both our raster array and the TRS-80 screen.
      */
     private handleMouse(e: ScreenMouseEvent) {
+        const position = e.position;
+
         if (e.type === "mousedown") {
-            this.mouseDownPosition = e.position;
-            this.previousPosition = e.position;
+            switch (this.tool) {
+                case Tool.PENCIL:
+                    this.mouseDownPosition = e.position;
+                    this.previousPosition = e.position;
+                    break;
+                case Tool.BUCKET:
+                    if (position !== undefined) {
+                        this.floodFill(position, this.mode == Mode.DRAW);
+                    }
+                    break;
+            }
         }
         if (e.type === "mouseup") {
             this.mouseDownPosition = undefined;
             this.previousPosition = undefined;
         }
-        const position = e.position;
         if (this.previousPosition != undefined && position !== undefined) {
             this.drawLine(this.previousPosition, position, this.mode == Mode.DRAW);
             this.previousPosition = position;
@@ -274,5 +303,40 @@ export class ScreenEditor {
         this.raster[position.offset] = ch;
         this.screen.writeChar(position.address, ch);
         this.byteCount = Math.max(this.byteCount, position.offset + 1);
+    }
+
+    /**
+     * Flood fill from the given position with the given value.
+     */
+    private floodFill(position: ScreenMousePosition, value: boolean): void {
+        const pixels: ScreenMousePosition[] = [position];
+
+        while (pixels.length > 0) {
+            position = pixels.pop() as ScreenMousePosition;
+
+            const pixelValue = this.getPosition(position);
+            if (pixelValue !== value) {
+                this.setPosition(position, value);
+
+                const x = position.pixelX;
+                const y = position.pixelY;
+                if (x > 0) pixels.push(new ScreenMousePosition(x - 1, y));
+                if (x < 127) pixels.push(new ScreenMousePosition(x + 1, y));
+                if (y > 0) pixels.push(new ScreenMousePosition(x, y - 1));
+                if (y < 47) pixels.push(new ScreenMousePosition(x, y + 1));
+            }
+        }
+    }
+
+    /**
+     * Get the pixel value at the given position.
+     */
+    private getPosition(position: ScreenMousePosition): boolean {
+        const ch = this.raster[position.offset];
+        if (ch < 128 || ch >= 192) {
+            return false;
+        } else {
+            return (ch & position.mask) !== 0;
+        }
     }
 }
