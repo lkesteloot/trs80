@@ -12,21 +12,39 @@ import {AssemblyResults} from "./AssemblyResults.js";
 export class ScreenEditor {
     private readonly view: EditorView;
     private readonly screen: CanvasScreen;
+    private readonly trs80: Trs80;
+    private readonly onClose: () => void;
+    private readonly mouseUnsubscribe: () => void;
     private readonly raster = new Uint8Array(TRS80_SCREEN_SIZE);
     private readonly extraBytes: number[];
     private readonly begin: number;
+    private readonly controlPanelDiv: HTMLDivElement;
     private end: number;
     private byteCount: number;
     private mouseDown = false;
 
     constructor(view: EditorView, pos: number, assemblyResults: AssemblyResults,
-                screenshotIndex: number, trs80: Trs80, screen: CanvasScreen) {
+                screenshotIndex: number, trs80: Trs80, screen: CanvasScreen, onClose: () => void) {
 
         this.view = view;
         this.screen = screen;
-        screen.mouseActivity.subscribe(e => this.handleMouse(e));
+        this.trs80 = trs80;
+        this.onClose = onClose;
+        this.mouseUnsubscribe = screen.mouseActivity.subscribe(e => this.handleMouse(e));
 
         trs80.stop();
+
+        this.controlPanelDiv = document.createElement("div");
+        this.controlPanelDiv.style.position = "absolute";
+        this.controlPanelDiv.style.top = "-50px";
+        screen.getNode().append(this.controlPanelDiv);
+
+        const saveButton = document.createElement("button");
+        saveButton.innerText = "Save";
+        saveButton.addEventListener("click", () => {
+            this.save();
+        });
+        this.controlPanelDiv.append(saveButton);
 
         // Fill with blanks.
         this.raster.fill(0x80);
@@ -56,6 +74,14 @@ export class ScreenEditor {
         }
 
         this.rasterToScreen();
+    }
+
+    private save() {
+        this.rasterToCode();
+        this.trs80.start();
+        this.mouseUnsubscribe();
+        this.controlPanelDiv.remove();
+        this.onClose();
     }
 
     /**
@@ -111,7 +137,6 @@ export class ScreenEditor {
         }
         if (e.type === "mouseup") {
             this.mouseDown = false;
-            this.rasterToCode();
         }
         const position = e.position;
         if ((e.type === "mousedown" || this.mouseDown) && position !== undefined) {

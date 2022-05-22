@@ -293,7 +293,10 @@ let autoDeployProgram = true;
 function startScreenshotEditMode(view: EditorView, pos: number, screenshotIndex: number) {
     autoDeployProgram = false;
     const assemblyResults = view.state.field(assemblyResultsStateField);
-    const screenEditor = new ScreenEditor(view, pos, assemblyResults, screenshotIndex, trs80, screen);
+    const screenEditor = new ScreenEditor(view, pos, assemblyResults, screenshotIndex, trs80, screen, () => {
+        autoDeployProgram = true;
+        reassemble();
+    });
     return true;
 }
 
