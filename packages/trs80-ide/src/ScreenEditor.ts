@@ -11,7 +11,7 @@ enum Mode {
 }
 
 enum Tool {
-    PENCIL, LINE, RECTANGLE, BUCKET,
+    PENCIL, LINE, RECTANGLE, ELLIPSE, BUCKET,
 }
 
 /**
@@ -116,6 +116,13 @@ export class ScreenEditor {
         button.innerText = "Rectangle";
         button.addEventListener("click", () => {
             this.tool = Tool.RECTANGLE;
+        });
+        this.controlPanelDiv.append(button);
+
+        button = document.createElement("button");
+        button.innerText = "Ellipse";
+        button.addEventListener("click", () => {
+            this.tool = Tool.ELLIPSE;
         });
         this.controlPanelDiv.append(button);
 
@@ -238,6 +245,7 @@ export class ScreenEditor {
                     break;
                 case Tool.LINE:
                 case Tool.RECTANGLE:
+                case Tool.ELLIPSE:
                     this.mouseDownPosition = e.position;
                     this.previousPosition = undefined;
                     this.rasterBackup.set(this.raster);
@@ -256,7 +264,7 @@ export class ScreenEditor {
         switch (this.tool) {
             case Tool.PENCIL:
                 if (this.previousPosition != undefined && position !== undefined) {
-                    this.drawLine(this.previousPosition, position, this.mode == Mode.DRAW);
+                    this.drawLine(this.previousPosition, position, this.mode === Mode.DRAW);
                     this.previousPosition = position;
                 }
                 break;
@@ -291,7 +299,7 @@ export class ScreenEditor {
                         }
                         position = new ScreenMousePosition(x, y);
                     }
-                    this.drawLine(this.mouseDownPosition, position, this.mode == Mode.DRAW);
+                    this.drawLine(this.mouseDownPosition, position, this.mode === Mode.DRAW);
                 }
                 break;
             case Tool.RECTANGLE:
@@ -315,7 +323,35 @@ export class ScreenEditor {
 
                         position = new ScreenMousePosition(x, y);
                     }
-                    this.drawRectangle(this.mouseDownPosition, position, this.mode == Mode.DRAW);
+                    this.drawRectangle(this.mouseDownPosition, position, this.mode === Mode.DRAW);
+                }
+                break;
+            case Tool.ELLIPSE:
+                if (this.mouseDownPosition != undefined && position !== undefined) {
+                    this.raster.set(this.rasterBackup);
+                    this.rasterToScreen();
+
+                    if (e.shiftKey) {
+                        let x = position.pixelX;
+                        let y = position.pixelY;
+                        const dx = x - this.mouseDownPosition.pixelX;
+                        const dy = y - this.mouseDownPosition.pixelY;
+
+                        // Snap to square.
+                        if (Math.abs(dx) < Math.abs(dy)) {
+                            // X is shorter, clamp Y.
+                            y = this.mouseDownPosition.pixelY + Math.sign(dy)*Math.abs(dx);
+                        } else {
+                            // Y is shorter, clamp X.
+                            x = this.mouseDownPosition.pixelX + Math.sign(dx)*Math.abs(dy);
+                        }
+
+                        position = new ScreenMousePosition(x, y);
+                    }
+
+                    const dx = Math.abs(position.pixelX - this.mouseDownPosition.pixelX);
+                    const dy = Math.abs(position.pixelY - this.mouseDownPosition.pixelY);
+                    this.drawEllipse(this.mouseDownPosition, dx, dy, this.mode === Mode.DRAW);
                 }
                 break;
             case Tool.BUCKET:
@@ -384,10 +420,70 @@ export class ScreenEditor {
     }
 
     /**
+     * Draw an ellipse centered at c with the specified radii.
+     */
+    private drawEllipse(c: ScreenMousePosition, rx: number, ry: number, value: boolean): void {
+        const cx = c.pixelX;
+        const cy = c.pixelY;
+
+        // Draw a 4-way symmetric point.
+        const plot = (x: number, y: number) => {
+            this.setPixel(cx + x, cy + y, value);
+            this.setPixel(cx - x, cy + y, value);
+            this.setPixel(cx + x, cy - y, value);
+            this.setPixel(cx - x, cy - y, value);
+        };
+
+        // Use the midpoint ellipse drawing algorithm.
+        let x = 0;
+        let y = ry;
+
+        // Region 1.
+        let d1 = ry*ry - rx*rx*ry + rx*rx/4;
+        let dx = 2*ry*ry*x;
+        let dy = 2*rx*rx*y;
+        while (dx < dy) {
+            plot(x, y);
+
+            if (d1 < 0) {
+                x++;
+                dx = dx + 2*ry*ry;
+                d1 = d1 + dx + ry*ry;
+            } else {
+                x++;
+                y--;
+                dx = dx + 2*ry*ry;
+                dy = dy - 2*rx*rx;
+                d1 = d1 + dx - dy + ry*ry;
+            }
+        }
+
+        // Region 2.
+        let d2 = ry*ry*((x + 0.5)*(x + 0.5)) + rx*rx*((y - 1) * (y - 1)) - rx*rx*ry*ry;
+        while (y >= 0) {
+            plot(x, y);
+
+            if (d2 > 0) {
+                y--;
+                dy = dy - 2*rx*rx;
+                d2 = d2 + rx*rx - dy;
+            } else {
+                y--;
+                x++;
+                dx = dx + 2 * ry*ry;
+                dy = dy - 2 * rx*rx;
+                d2 = d2 + dx - dy + rx*rx;
+            }
+        }
+    }
+
+    /**
      * Turn the specified pixel on or off.
      */
     private setPixel(x: number, y: number, value: boolean): void {
-        this.setPosition(new ScreenMousePosition(x, y), value);
+        if (x >= 0 && y >= 0 && x < 128 && y < 48) {
+            this.setPosition(new ScreenMousePosition(x, y), value);
+        }
     }
 
     /**
