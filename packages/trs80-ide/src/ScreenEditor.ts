@@ -11,7 +11,7 @@ enum Mode {
 }
 
 enum Tool {
-    PENCIL, BUCKET,
+    PENCIL, LINE, BUCKET,
 }
 
 /**
@@ -25,6 +25,7 @@ export class ScreenEditor {
     private readonly onClose: () => void;
     private readonly mouseUnsubscribe: () => void;
     private readonly raster = new Uint8Array(TRS80_SCREEN_SIZE);
+    private readonly rasterBackup = new Uint8Array(TRS80_SCREEN_SIZE);
     private readonly extraBytes: number[];
     private readonly begin: number;
     private readonly controlPanelDiv: HTMLDivElement;
@@ -101,6 +102,13 @@ export class ScreenEditor {
         button.innerText = "Pencil";
         button.addEventListener("click", () => {
             this.tool = Tool.PENCIL;
+        });
+        this.controlPanelDiv.append(button);
+
+        button = document.createElement("button");
+        button.innerText = "Line";
+        button.addEventListener("click", () => {
+            this.tool = Tool.LINE;
         });
         this.controlPanelDiv.append(button);
 
@@ -221,6 +229,11 @@ export class ScreenEditor {
                     this.mouseDownPosition = e.position;
                     this.previousPosition = e.position;
                     break;
+                case Tool.LINE:
+                    this.mouseDownPosition = e.position;
+                    this.previousPosition = undefined;
+                    this.rasterBackup.set(this.raster);
+                    break;
                 case Tool.BUCKET:
                     if (position !== undefined) {
                         this.floodFill(position, this.mode == Mode.DRAW);
@@ -232,9 +245,22 @@ export class ScreenEditor {
             this.mouseDownPosition = undefined;
             this.previousPosition = undefined;
         }
-        if (this.previousPosition != undefined && position !== undefined) {
-            this.drawLine(this.previousPosition, position, this.mode == Mode.DRAW);
-            this.previousPosition = position;
+        switch (this.tool) {
+            case Tool.PENCIL:
+                if (this.previousPosition != undefined && position !== undefined) {
+                    this.drawLine(this.previousPosition, position, this.mode == Mode.DRAW);
+                    this.previousPosition = position;
+                }
+                break;
+            case Tool.LINE:
+                if (this.mouseDownPosition != undefined && position !== undefined) {
+                    this.raster.set(this.rasterBackup);
+                    this.rasterToScreen();
+                    this.drawLine(this.mouseDownPosition, position, this.mode == Mode.DRAW);
+                }
+                break;
+            case Tool.BUCKET:
+                break;
         }
     }
 
