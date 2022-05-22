@@ -6,6 +6,10 @@ import {CanvasScreen, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulato
 import {toHexByte} from 'z80-base';
 import {AssemblyResults} from "./AssemblyResults.js";
 
+enum Mode {
+    DRAW, ERASE
+}
+
 /**
  * Lets the user edit the screen with a paintbrush. Instantiate one of these
  * for each click of the Edit button.
@@ -24,6 +28,7 @@ export class ScreenEditor {
     private byteCount: number;
     private mouseDownPosition: ScreenMousePosition | undefined = undefined;
     private previousPosition: ScreenMousePosition | undefined = undefined;
+    private mode: Mode = Mode.DRAW;
 
     constructor(view: EditorView, pos: number, assemblyResults: AssemblyResults,
                 screenshotIndex: number, trs80: Trs80, screen: CanvasScreen, onClose: () => void) {
@@ -47,6 +52,20 @@ export class ScreenEditor {
             this.save();
         });
         this.controlPanelDiv.append(saveButton);
+
+        const drawButton = document.createElement("button");
+        drawButton.innerText = "Draw";
+        drawButton.addEventListener("click", () => {
+            this.mode = Mode.DRAW;
+        });
+        this.controlPanelDiv.append(drawButton);
+
+        const eraseButton = document.createElement("button");
+        eraseButton.innerText = "Erase";
+        eraseButton.addEventListener("click", () => {
+            this.mode = Mode.ERASE;
+        });
+        this.controlPanelDiv.append(eraseButton);
 
         // Fill with blanks.
         this.raster.fill(0x80);
@@ -156,7 +175,7 @@ export class ScreenEditor {
         }
         const position = e.position;
         if (this.previousPosition != undefined && position !== undefined) {
-            this.drawLine(this.previousPosition, position, true);
+            this.drawLine(this.previousPosition, position, this.mode == Mode.DRAW);
             this.previousPosition = position;
         }
     }
