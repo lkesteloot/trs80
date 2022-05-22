@@ -14,6 +14,97 @@ enum Tool {
     PENCIL, LINE, RECTANGLE, ELLIPSE, BUCKET,
 }
 
+let gPrefixCounter = 1;
+
+/**
+ * Make a group of action buttons.
+ */
+function makeButtons(parent: HTMLDivElement,
+                     buttons: {
+                         label: string,
+                         onClick: () => void
+                     }[]): void {
+
+    const container = document.createElement("div");
+    container.classList.add("screen-editor-button-group");
+    parent.append(container);
+
+    for (const { label, onClick } of buttons) {
+        const button = document.createElement("button");
+        button.innerText = label;
+        button.addEventListener("click", () => onClick());
+        container.append(button);
+    }
+}
+/**
+ * Make a group of buttons, only one of which can be selected at once.
+ */
+function makeRadioButtons(parent: HTMLDivElement,
+                          buttons: { label: string, value: number }[],
+                          defaultValue: number,
+                          onChange: (newValue: number) => void): void {
+
+    const prefix = "screen-editor-radio-" + gPrefixCounter++;
+
+    const container = document.createElement("div");
+    container.classList.add("screen-editor-button-group");
+    parent.append(container);
+
+    for (const { label, value } of buttons) {
+        const id = prefix + "-" + value;
+        const radio = document.createElement("input");
+
+        radio.id = id;
+        radio.type = "radio";
+        radio.name = prefix;
+        radio.value = value.toString();
+        radio.checked = value == defaultValue;
+        radio.addEventListener("change", function () {
+            onChange(value);
+        });
+
+        const radioLabel = document.createElement("label");
+        radioLabel.htmlFor = id;
+        radioLabel.innerText = label;
+        container.append(radio, radioLabel);
+    }
+}
+
+/**
+ * Make a group of buttons, any of which can be checked.
+ */
+function makeCheckboxButtons(parent: HTMLDivElement,
+                             buttons: {
+                                 label: string,
+                                 checked: boolean,
+                                 onChange: (newValue: boolean) => void
+                             }[]): void {
+
+    const prefix = "screen-editor-checkbox-" + gPrefixCounter++;
+
+    const container = document.createElement("div");
+    container.classList.add("screen-editor-button-group");
+    parent.append(container);
+
+    let value = 0;
+    for (const { label, checked, onChange } of buttons) {
+        const id = prefix + "-" + value++;
+        const checkbox = document.createElement("input");
+
+        checkbox.id = id;
+        checkbox.type = "checkbox";
+        checkbox.checked = checked;
+        checkbox.addEventListener("change", function () {
+            onChange(this.checked);
+        });
+
+        const radioLabel = document.createElement("label");
+        radioLabel.htmlFor = id;
+        radioLabel.innerText = label;
+        container.append(checkbox, radioLabel);
+    }
+}
+
 /**
  * Lets the user edit the screen with a paintbrush. Instantiate one of these
  * for each click of the Edit button.
@@ -50,88 +141,39 @@ export class ScreenEditor {
         trs80.stop();
 
         this.controlPanelDiv = document.createElement("div");
+        this.controlPanelDiv.classList.add("screen-editor-control-panel")
         this.controlPanelDiv.style.position = "absolute";
         this.controlPanelDiv.style.top = "-50px";
         screen.getNode().append(this.controlPanelDiv);
 
-        let button = document.createElement("button");
-        button.innerText = "Save";
-        button.addEventListener("click", () => {
-            this.close(true);
-        });
-        this.controlPanelDiv.append(button);
+        makeButtons(this.controlPanelDiv, [
+            { label: "Save", onClick: () => this.close(true) },
+            { label: "Cancel", onClick: () => this.close(false) },
+        ]);
 
-        button = document.createElement("button");
-        button.innerText = "Cancel";
-        button.addEventListener("click", () => {
-            this.close(false);
-        });
-        this.controlPanelDiv.append(button);
+        makeRadioButtons(this.controlPanelDiv, [
+            { label: "Draw", value: Mode.DRAW },
+            { label: "Erase", value: Mode.ERASE },
+        ], Mode.DRAW, mode => this.mode = mode);
 
-        button = document.createElement("button");
-        button.innerText = "Draw";
-        button.addEventListener("click", () => {
-            this.mode = Mode.DRAW;
-        });
-        this.controlPanelDiv.append(button);
+        makeCheckboxButtons(this.controlPanelDiv, [
+            { label: "Pixel Grid", checked: false, onChange: value => {
+                    this.showPixelGrid = value;
+                    this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
+                }},
+            { label: "Char Grid", checked: false, onChange: value => {
+                    this.showCharGrid = value;
+                    this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
+                }},
+        ]);
 
-        button = document.createElement("button");
-        button.innerText = "Erase";
-        button.addEventListener("click", () => {
-            this.mode = Mode.ERASE;
-        });
-        this.controlPanelDiv.append(button);
-
-        button = document.createElement("button");
-        button.innerText = "Pixel Grid";
-        button.addEventListener("click", () => {
-            this.showPixelGrid = !this.showPixelGrid;
-            this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
-        });
-        this.controlPanelDiv.append(button);
-
-        button = document.createElement("button");
-        button.innerText = "Char Grid";
-        button.addEventListener("click", () => {
-            this.showCharGrid = !this.showCharGrid;
-            this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
-        });
-        this.controlPanelDiv.append(button);
-
-        button = document.createElement("button");
-        button.innerText = "Pencil";
-        button.addEventListener("click", () => {
-            this.tool = Tool.PENCIL;
-        });
-        this.controlPanelDiv.append(button);
-
-        button = document.createElement("button");
-        button.innerText = "Line";
-        button.addEventListener("click", () => {
-            this.tool = Tool.LINE;
-        });
-        this.controlPanelDiv.append(button);
-
-        button = document.createElement("button");
-        button.innerText = "Rectangle";
-        button.addEventListener("click", () => {
-            this.tool = Tool.RECTANGLE;
-        });
-        this.controlPanelDiv.append(button);
-
-        button = document.createElement("button");
-        button.innerText = "Ellipse";
-        button.addEventListener("click", () => {
-            this.tool = Tool.ELLIPSE;
-        });
-        this.controlPanelDiv.append(button);
-
-        button = document.createElement("button");
-        button.innerText = "Bucket";
-        button.addEventListener("click", () => {
-            this.tool = Tool.BUCKET;
-        });
-        this.controlPanelDiv.append(button);
+        makeRadioButtons(this.controlPanelDiv, [
+            { label: "Pencil", value: Tool.PENCIL },
+            { label: "Line", value: Tool.LINE },
+            { label: "Rectangle", value: Tool.RECTANGLE },
+            { label: "Ellipse", value: Tool.ELLIPSE },
+            { label: "Bucket", value: Tool.BUCKET },
+        ], Tool.PENCIL, tool => this.tool = tool);
 
         // Fill with blanks.
         this.raster.fill(0x80);

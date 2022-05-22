@@ -111,3 +111,54 @@ body {
 .gutter-bytecode-address {
     margin-right: 1em;
 }
+
+.screen-editor-control-panel {
+    font-family: sans-serif;
+    font-size: 10pt;
+}
+
+.screen-editor-button-group {
+    display: inline-block;
+    margin-right: 5px;
+    margin-left: 5px;
+}
+
+.screen-editor-button-group:first-of-type {
+    margin-left: 0;
+}
+
+.screen-editor-button-group input[type=radio],
+.screen-editor-button-group input[type=checkbox] {
+    display: none;
+}
+
+.screen-editor-button-group label,
+.screen-editor-control-panel button {
+    padding: 5px 10px;
+    background-color: var(--background-highlights);
+    color: var(--base03);
+    border-top: 1px solid black;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+    border-left: none;
+}
+
+.screen-editor-button-group label:first-of-type,
+.screen-editor-button-group button:first-of-type {
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border-left: 1px solid black;
+}
+
+.screen-editor-button-group label:last-of-type,
+.screen-editor-button-group button:last-of-type {
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+.screen-editor-button-group input[type=radio]:checked + label,
+.screen-editor-button-group input[type=checkbox]:checked + label,
+.screen-editor-button-group button:active {
+    background-color: var(--blue);
+    color: var(--base3);
+}
