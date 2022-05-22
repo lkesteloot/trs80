@@ -1,7 +1,7 @@
 import {EditorView} from "@codemirror/view"
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
 import {Trs80} from 'trs80-emulator';
-import {CanvasScreen, ScreenMouseEvent} from 'trs80-emulator-web';
+import {CanvasScreen, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulator-web';
 import {toHexByte} from 'z80-base';
 import {AssemblyResults} from "./AssemblyResults.js";
 
@@ -21,7 +21,8 @@ export class ScreenEditor {
     private readonly controlPanelDiv: HTMLDivElement;
     private end: number;
     private byteCount: number;
-    private mouseDown = false;
+    private mouseDownPosition: ScreenMousePosition | undefined = undefined;
+    private previousPosition: ScreenMousePosition | undefined = undefined;
 
     constructor(view: EditorView, pos: number, assemblyResults: AssemblyResults,
                 screenshotIndex: number, trs80: Trs80, screen: CanvasScreen, onClose: () => void) {
@@ -133,21 +134,84 @@ export class ScreenEditor {
      */
     private handleMouse(e: ScreenMouseEvent) {
         if (e.type === "mousedown") {
-            this.mouseDown = true;
+            this.mouseDownPosition = e.position;
+            this.previousPosition = e.position;
         }
         if (e.type === "mouseup") {
-            this.mouseDown = false;
+            this.mouseDownPosition = undefined;
+            this.previousPosition = undefined;
         }
         const position = e.position;
-        if ((e.type === "mousedown" || this.mouseDown) && position !== undefined) {
-            let ch = this.raster[position.offset];
-            if (ch < 128 || ch >= 192) {
-                ch = 128;
-            }
-            ch |= position.mask | 0x80;
-            this.raster[position.offset] = ch;
-            this.screen.writeChar(position.address, ch);
-            this.byteCount = Math.max(this.byteCount, position.offset + 1);
+        if (this.previousPosition != undefined && position !== undefined) {
+            this.drawLine(this.previousPosition, position, true);
+            this.previousPosition = position;
         }
+    }
+
+    /**
+     * Draw a line from p1 to p2 of the specified value.
+     */
+    private drawLine(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean): void {
+        if (Math.abs(p2.pixelX - p1.pixelX) >= Math.abs(p2.pixelY - p1.pixelY)) {
+            // More across than vertical.
+
+            // Order left-to-right.
+            if (p1.pixelX > p2.pixelX) {
+                [p1, p2] = [p2, p1];
+            }
+
+            const dx = p2.pixelX - p1.pixelX;
+            const dy = p2.pixelY - p1.pixelY;
+            const slope = dy/dx;
+
+            let y = p1.pixelY;
+            for (let x = p1.pixelX; x <= p2.pixelX; x++) {
+                this.setPixel(x, Math.round(y), value);
+                y += slope;
+            }
+        } else {
+            // More vertical than across.
+
+            // Order top-to-bottom.
+            if (p1.pixelY > p2.pixelY) {
+                [p1, p2] = [p2, p1];
+            }
+
+            const dx = p2.pixelX - p1.pixelX;
+            const dy = p2.pixelY - p1.pixelY;
+            const slope = dx/dy;
+
+            let x = p1.pixelX;
+            for (let y = p1.pixelY; y <= p2.pixelY; y++) {
+                this.setPixel(Math.round(x), y, value);
+                x += slope;
+            }
+        }
+    }
+
+    /**
+     * Turn the specified pixel on or off.
+     */
+    private setPixel(x: number, y: number, value: boolean): void {
+        this.setPosition(new ScreenMousePosition(x, y), value);
+    }
+
+    /**
+     * Turn the specified position on or off.
+     */
+    private setPosition(position: ScreenMousePosition, value: boolean): void {
+        let ch = this.raster[position.offset];
+        if (ch < 128 || ch >= 192) {
+            // Convert to graphics.
+            ch = 128;
+        }
+        if (value) {
+            ch |= position.mask;
+        } else {
+            ch &= ~position.mask;
+        }
+        this.raster[position.offset] = ch;
+        this.screen.writeChar(position.address, ch);
+        this.byteCount = Math.max(this.byteCount, position.offset + 1);
     }
 }
