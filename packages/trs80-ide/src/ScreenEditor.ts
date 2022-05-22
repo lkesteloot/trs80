@@ -1,4 +1,5 @@
-import {EditorView} from "@codemirror/view"
+import {EditorView} from "@codemirror/view";
+import {ChangeSpec} from "@codemirror/state";
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
 import {Trs80} from 'trs80-emulator';
 import {CanvasScreen, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulator-web';
@@ -109,11 +110,23 @@ export class ScreenEditor {
         }
         const code = lines.join("\n");
 
-        const change = {
-            from: this.begin,
-            to: this.end,
-            insert: code,
-        };
+        // Update doc.
+        let change: ChangeSpec;
+        const docLength = this.view.state.doc.length;
+        if (this.begin > docLength) {
+            // We're at the very end of the doc, must insert another newline.
+            change = {
+                from: docLength,
+                to: docLength,
+                insert: "\n" + code,
+            };
+        } else {
+            change = {
+                from: this.begin,
+                to: this.end,
+                insert: code,
+            };
+        }
         this.view.dispatch({changes: change});
 
         // Update end.
