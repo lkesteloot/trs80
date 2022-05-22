@@ -211,9 +211,8 @@ class EditScreenshotWidget extends WidgetType {
         this.screenshotIndex = screenshotIndex;
     }
 
-    eq(): boolean{
-        // No content, so they're all equal.
-        return true;
+    eq(other: EditScreenshotWidget): boolean{
+        return this.screenshotIndex === other.screenshotIndex;
     }
 
     toDOM(): HTMLElement {

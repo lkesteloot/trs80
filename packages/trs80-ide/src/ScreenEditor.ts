@@ -49,9 +49,16 @@ export class ScreenEditor {
         const saveButton = document.createElement("button");
         saveButton.innerText = "Save";
         saveButton.addEventListener("click", () => {
-            this.save();
+            this.close(true);
         });
         this.controlPanelDiv.append(saveButton);
+
+        const cancelButton = document.createElement("button");
+        cancelButton.innerText = "Cancel";
+        cancelButton.addEventListener("click", () => {
+            this.close(false);
+        });
+        this.controlPanelDiv.append(cancelButton);
 
         const drawButton = document.createElement("button");
         drawButton.innerText = "Draw";
@@ -97,8 +104,10 @@ export class ScreenEditor {
         this.rasterToScreen();
     }
 
-    private save() {
-        this.rasterToCode();
+    private close(save: boolean) {
+        if (save) {
+            this.rasterToCode();
+        }
         this.trs80.start();
         this.mouseUnsubscribe();
         this.controlPanelDiv.remove();
