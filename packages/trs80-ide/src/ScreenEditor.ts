@@ -29,6 +29,8 @@ export class ScreenEditor {
     private mouseDownPosition: ScreenMousePosition | undefined = undefined;
     private previousPosition: ScreenMousePosition | undefined = undefined;
     private mode: Mode = Mode.DRAW;
+    private showPixelGrid = false;
+    private showCharGrid = false;
 
     constructor(view: EditorView, pos: number, assemblyResults: AssemblyResults,
                 screenshotIndex: number, trs80: Trs80, screen: CanvasScreen, onClose: () => void) {
@@ -46,33 +48,49 @@ export class ScreenEditor {
         this.controlPanelDiv.style.top = "-50px";
         screen.getNode().append(this.controlPanelDiv);
 
-        const saveButton = document.createElement("button");
-        saveButton.innerText = "Save";
-        saveButton.addEventListener("click", () => {
+        let button = document.createElement("button");
+        button.innerText = "Save";
+        button.addEventListener("click", () => {
             this.close(true);
         });
-        this.controlPanelDiv.append(saveButton);
+        this.controlPanelDiv.append(button);
 
-        const cancelButton = document.createElement("button");
-        cancelButton.innerText = "Cancel";
-        cancelButton.addEventListener("click", () => {
+        button = document.createElement("button");
+        button.innerText = "Cancel";
+        button.addEventListener("click", () => {
             this.close(false);
         });
-        this.controlPanelDiv.append(cancelButton);
+        this.controlPanelDiv.append(button);
 
-        const drawButton = document.createElement("button");
-        drawButton.innerText = "Draw";
-        drawButton.addEventListener("click", () => {
+        button = document.createElement("button");
+        button.innerText = "Draw";
+        button.addEventListener("click", () => {
             this.mode = Mode.DRAW;
         });
-        this.controlPanelDiv.append(drawButton);
+        this.controlPanelDiv.append(button);
 
-        const eraseButton = document.createElement("button");
-        eraseButton.innerText = "Erase";
-        eraseButton.addEventListener("click", () => {
+        button = document.createElement("button");
+        button.innerText = "Erase";
+        button.addEventListener("click", () => {
             this.mode = Mode.ERASE;
         });
-        this.controlPanelDiv.append(eraseButton);
+        this.controlPanelDiv.append(button);
+
+        button = document.createElement("button");
+        button.innerText = "Pixel Grid";
+        button.addEventListener("click", () => {
+            this.showPixelGrid = !this.showPixelGrid;
+            this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
+        });
+        this.controlPanelDiv.append(button);
+
+        button = document.createElement("button");
+        button.innerText = "Char Grid";
+        button.addEventListener("click", () => {
+            this.showCharGrid = !this.showCharGrid;
+            this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
+        });
+        this.controlPanelDiv.append(button);
 
         // Fill with blanks.
         this.raster.fill(0x80);
@@ -101,6 +119,7 @@ export class ScreenEditor {
             this.end = this.begin;
         }
 
+        this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
         this.rasterToScreen();
     }
 
@@ -108,6 +127,7 @@ export class ScreenEditor {
         if (save) {
             this.rasterToCode();
         }
+        this.screen.showGrid(false, false);
         this.trs80.start();
         this.mouseUnsubscribe();
         this.controlPanelDiv.remove();

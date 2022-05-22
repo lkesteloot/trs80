@@ -99,6 +99,7 @@ export class CanvasScreen extends Trs80WebScreen {
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private config: Config = Config.makeDefault();
     private glyphWidth = 0;
+    private overlayCanvas: HTMLCanvasElement | undefined = undefined;
 
     /**
      * Create a canvas screen.
@@ -128,7 +129,58 @@ export class CanvasScreen extends Trs80WebScreen {
 
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
+        this.showGrid(false, false);
         this.updateFromConfig();
+    }
+
+    /**
+     * Show the overlay grid.
+     *
+     * @param showPixelGrid whether to show the pixel (fine) grid.
+     * @param showCharGrid whether to show the character (coarse) grid.
+     */
+    public showGrid(showPixelGrid: boolean, showCharGrid: boolean): void {
+        if (this.overlayCanvas !== undefined) {
+            this.overlayCanvas.remove();
+            this.overlayCanvas = undefined;
+        }
+
+        if (showPixelGrid || showCharGrid) {
+            const width = this.canvas.width;
+            const height = this.canvas.height;
+
+            const overlayCanvas = document.createElement("canvas");
+            overlayCanvas.style.position = "absolute";
+            overlayCanvas.style.top = "0";
+            overlayCanvas.style.left = "0";
+            overlayCanvas.style.pointerEvents = "none";
+            overlayCanvas.width = width;
+            overlayCanvas.height = height;
+            this.node.append(overlayCanvas);
+
+            const ctx = overlayCanvas.getContext("2d") as CanvasRenderingContext2D;
+            ctx.strokeStyle = "rgba(160, 160, 255, 0.5)";
+            let step = showPixelGrid ? 1 : 2;
+            for (let i = 0; i <= 128; i += step) {
+                const x = Math.round(i*4*this.scale + this.padding);
+                ctx.lineWidth = showCharGrid && i % 2 === 0 ? 2 : 1;
+                ctx.beginPath();
+                ctx.moveTo(x, this.padding);
+                ctx.lineTo(x, height - this.padding);
+                ctx.stroke();
+            }
+            step = showPixelGrid ? 1 : 3;
+            for (let i = 0; i <= 48; i += step) {
+                const y = Math.round(i*8*this.scale + this.padding);
+                ctx.lineWidth = showCharGrid && i % 3 === 0 ? 2 : 1;
+                ctx.beginPath();
+                ctx.moveTo(this.padding, y);
+                ctx.lineTo(width - this.padding, y);
+                ctx.stroke();
+            }
+
+            this.overlayCanvas = overlayCanvas;
+        }
     }
 
     public getWidth(): number {
@@ -265,18 +317,19 @@ export class CanvasScreen extends Trs80WebScreen {
      * Draw the background of the canvas.
      */
     private drawBackground(): void {
+        const ctx = this.context;
         const width = this.canvas.width;
         const height = this.canvas.height;
         const radius = this.getBorderRadius();
 
-        this.context.fillStyle = this.getBackgroundColor();
-        this.context.beginPath();
-        this.context.moveTo(radius, 0);
-        this.context.arcTo(width, 0, width, radius, radius);
-        this.context.arcTo(width, height, width - radius, height, radius);
-        this.context.arcTo(0, height, 0, height - radius, radius);
-        this.context.arcTo(0, 0, radius, 0, radius);
-        this.context.fill();
+        ctx.fillStyle = this.getBackgroundColor();
+        ctx.beginPath();
+        ctx.moveTo(radius, 0);
+        ctx.arcTo(width, 0, width, radius, radius);
+        ctx.arcTo(width, height, width - radius, height, radius);
+        ctx.arcTo(0, height, 0, height - radius, radius);
+        ctx.arcTo(0, 0, radius, 0, radius);
+        ctx.fill();
     }
 
     /**
