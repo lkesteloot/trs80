@@ -7,6 +7,8 @@ import {toHexByte} from 'z80-base';
 import {AssemblyResults} from "./AssemblyResults.js";
 import saveIcon from "./icons/save.ico";
 import cancelIcon from "./icons/cancel.ico";
+import undoIcon from "./icons/undo.ico";
+import redoIcon from "./icons/redo.ico";
 import drawIcon from "./icons/draw.ico";
 import eraseIcon from "./icons/erase.ico";
 import pixelGridIcon from "./icons/pixel_grid.ico";
@@ -215,6 +217,8 @@ export class ScreenEditor {
     private readonly mouseUnsubscribe: () => void;
     private readonly raster = new Uint8Array(TRS80_SCREEN_SIZE);
     private readonly rasterBackup = new Uint8Array(TRS80_SCREEN_SIZE);
+    private readonly undoStack: Uint8Array[] = [];
+    private readonly redoStack: Uint8Array[] = [];
     private readonly extraBytes: number[];
     private readonly begin: number;
     private readonly controlPanelDiv: HTMLDivElement;
@@ -245,6 +249,11 @@ export class ScreenEditor {
         makeButtons(this.controlPanelDiv, [
             { label: "Save", icon: saveIcon, onClick: () => this.close(true) },
             { label: "Cancel", icon: cancelIcon, onClick: () => this.close(false) },
+        ]);
+
+        makeButtons(this.controlPanelDiv, [
+            { label: "Undo", icon: undoIcon, onClick: () => this.undo() },
+            { label: "Redo", icon: redoIcon, onClick: () => this.redo() },
         ]);
 
         makeRadioButtons(this.controlPanelDiv, [
@@ -314,6 +323,38 @@ export class ScreenEditor {
     }
 
     /**
+     * Call this just before making a mutating change that needs to be undoable.
+     */
+    private prepareForMutation(): void {
+        this.undoStack.push(this.raster.slice());
+        this.redoStack.splice(0, this.redoStack.length);
+    }
+
+    /**
+     * Undo the most recent change.
+     */
+    private undo(): void {
+        const raster = this.undoStack.pop() as Uint8Array;
+        if (raster !== undefined) {
+            this.redoStack.push(this.raster.slice());
+            this.raster.set(raster);
+            this.rasterToScreen();
+        }
+    }
+
+    /**
+     * Redo the most recent undo.
+     */
+    private redo(): void {
+        const raster = this.redoStack.pop() as Uint8Array;
+        if (raster !== undefined) {
+            this.undoStack.push(this.raster.slice());
+            this.raster.set(raster);
+            this.rasterToScreen();
+        }
+    }
+
+    /**
      * Write our raster array back to the source code.
      */
     private rasterToCode() {
@@ -376,6 +417,8 @@ export class ScreenEditor {
         let position = e.position;
 
         if (e.type === "mousedown") {
+            this.prepareForMutation();
+
             switch (this.tool) {
                 case Tool.PENCIL:
                     this.mouseDownPosition = e.position;
