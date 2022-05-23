@@ -284,7 +284,7 @@ const screenshotViewPlugin = ViewPlugin.fromClass(class {
     eventHandlers: {
         click: (e, view) => {
             const target = e.target as HTMLElement;
-            if (target.classList.contains("cm-screenshotEdit")) {
+            if (target.classList.contains("cm-screenshotEdit") && !view.state.field(editingScreenshotStateField)) {
                 const screenshotIndex = parseInt(target.dataset.screenshotIndex as string);
                 startScreenshotEditMode(view, view.posAtDOM(target), screenshotIndex);
                 return true;
@@ -302,15 +302,17 @@ function screenshotPlugin(): Extension {
     ];
 }
 
-let autoDeployProgram = true;
-
 function startScreenshotEditMode(view: EditorView, pos: number, screenshotIndex: number) {
-    autoDeployProgram = false;
     const assemblyResults = view.state.field(assemblyResultsStateField);
     controlPanel.disable();
+    view.dispatch({
+        effects: editingScreenshotStateEffect.of(true),
+    });
     const screenEditor = new ScreenEditor(view, pos, assemblyResults, screenshotIndex, trs80, screen, () => {
-        autoDeployProgram = true;
         controlPanel.enable();
+        view.dispatch({
+            effects: editingScreenshotStateEffect.of(false),
+        });
         reassemble();
     });
     return true;
@@ -405,6 +407,24 @@ const assemblyResultsStateField = StateField.define<AssemblyResults>({
     },
 });
 
+/**
+ * State field for whether editing a screenshot.
+ */
+const editingScreenshotStateEffect = StateEffect.define<boolean>();
+const editingScreenshotStateField = StateField.define<boolean>({
+        create: () => false,
+        update: (value: boolean, tr: Transaction) => {
+            for (const effect of tr.effects) {
+                if (effect.is(editingScreenshotStateEffect)) {
+                    value = effect.value;
+                }
+            }
+            return value;
+        },
+        compare: (a: boolean, b: boolean) => a === b,
+    }
+);
+
 const extensions: Extension = [
     lineNumbers(),
     bytecodeGutter(),
@@ -452,7 +472,10 @@ const extensions: Extension = [
     //   z80AssemblyLanguage(),
     screenshotPlugin(),
     assemblyResultsStateField,
+    editingScreenshotStateField,
     indentUnit.of("        "),
+    // Make editor read-only when editing a screenshot.
+    EditorState.readOnly.from(editingScreenshotStateField, editing => editing),
 ];
 
 let startState = EditorState.create({
@@ -578,7 +601,7 @@ function updateDiagnostics(results: AssemblyResults) {
 }
 
 function runProgram(results: AssemblyResults) {
-    if (results.errorLines.length === 0 && autoDeployProgram) {
+    if (results.errorLines.length === 0) {
         if (trs80State === undefined) {
             trs80State = trs80.save();
         } else {
