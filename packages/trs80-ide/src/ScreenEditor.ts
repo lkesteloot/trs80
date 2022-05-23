@@ -9,6 +9,8 @@ import saveIcon from "./icons/save.ico";
 import cancelIcon from "./icons/cancel.ico";
 import undoIcon from "./icons/undo.ico";
 import redoIcon from "./icons/redo.ico";
+import clearIcon from "./icons/clear.ico";
+import invertIcon from "./icons/invert.ico";
 import drawIcon from "./icons/draw.ico";
 import eraseIcon from "./icons/erase.ico";
 import pixelGridIcon from "./icons/pixel_grid.ico";
@@ -255,6 +257,8 @@ export class ScreenEditor {
         makeButtons(this.controlPanelDiv, [
             { label: "Undo", icon: undoIcon, onClick: () => this.undo() },
             { label: "Redo", icon: redoIcon, onClick: () => this.redo() },
+            { label: "Clear", icon: clearIcon, onClick: () => this.clear() },
+            { label: "Invert", icon: invertIcon, onClick: () => this.invert() },
         ]);
 
         makeRadioButtons(this.controlPanelDiv, [
@@ -371,6 +375,29 @@ export class ScreenEditor {
             this.raster.set(raster);
             this.rasterToScreen();
         }
+    }
+
+    /**
+     * Clear the screen to black.
+     */
+    private clear(): void {
+        this.prepareForMutation();
+        this.raster.fill(0x80, 0, this.byteCount);
+        this.rasterToScreen();
+    }
+
+    /**
+     * Invert the screen.
+     */
+    private invert(): void {
+        this.prepareForMutation();
+        for (let i = 0; i < this.byteCount; i++) {
+            const ch = this.raster[i];
+            if (ch >= 128 && ch < 192) {
+                this.raster[i] = ch ^ 0x3F;
+            }
+        }
+        this.rasterToScreen();
     }
 
     /**
