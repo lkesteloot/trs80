@@ -2,7 +2,7 @@ import {EditorView} from "@codemirror/view";
 import {ChangeSpec} from "@codemirror/state";
 import {TRS80_PIXEL_HEIGHT, TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
 import {Trs80} from 'trs80-emulator';
-import {CanvasScreen, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulator-web';
+import {CanvasScreen, OverlayOptions, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulator-web';
 import {toHexByte} from 'z80-base';
 import {AssemblyResults} from "./AssemblyResults.js";
 import saveIcon from "./icons/save.ico";
@@ -13,6 +13,7 @@ import drawIcon from "./icons/draw.ico";
 import eraseIcon from "./icons/erase.ico";
 import pixelGridIcon from "./icons/pixel_grid.ico";
 import charGridIcon from "./icons/char_grid.ico";
+import highlightGridIcon from "./icons/highlight_grid.ico";
 import pencilIcon from "./icons/pencil.ico";
 import lineIcon from "./icons/line.ico";
 import rectangleIcon from "./icons/rectangle.ico";
@@ -229,8 +230,7 @@ export class ScreenEditor {
     private previousPosition: ScreenMousePosition | undefined = undefined;
     private mode: Mode = Mode.DRAW;
     private tool: Tool = Tool.PENCIL;
-    private showPixelGrid = false;
-    private showCharGrid = false;
+    private overlayOptions: OverlayOptions = {};
 
     constructor(view: EditorView, pos: number, assemblyResults: AssemblyResults,
                 screenshotIndex: number, trs80: Trs80, screen: CanvasScreen, onClose: () => void) {
@@ -264,12 +264,16 @@ export class ScreenEditor {
 
         makeCheckboxButtons(this.controlPanelDiv, [
             { label: "Pixel Grid", icon: pixelGridIcon, checked: false, onChange: value => {
-                    this.showPixelGrid = value;
-                    this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
+                    this.overlayOptions.showPixelGrid = value;
+                    this.screen.setOverlayOptions(this.overlayOptions);
                 }},
             { label: "Char Grid", icon: charGridIcon, checked: false, onChange: value => {
-                    this.showCharGrid = value;
-                    this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
+                    this.overlayOptions.showCharGrid = value;
+                    this.screen.setOverlayOptions(this.overlayOptions);
+                }},
+            { label: "Highlight Grid", icon: highlightGridIcon, checked: false, onChange: value => {
+                    this.overlayOptions.showHighlight = value;
+                    this.screen.setOverlayOptions(this.overlayOptions);
                 }},
         ]);
 
@@ -312,7 +316,7 @@ export class ScreenEditor {
             this.end = this.begin;
         }
 
-        this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
+        this.screen.setOverlayOptions(this.overlayOptions);
         this.rasterToScreen();
     }
 
@@ -320,7 +324,7 @@ export class ScreenEditor {
         if (save) {
             this.rasterToCode();
         }
-        this.screen.showGrid(false, false);
+        this.screen.setOverlayOptions({});
         this.trs80.start();
         this.mouseUnsubscribe();
         this.controlPanelDiv.remove();
@@ -421,6 +425,10 @@ export class ScreenEditor {
     private handleMouse(e: ScreenMouseEvent) {
         let position = e.position;
         const statusText: string[] = [`(${position.pixelX}, ${position.pixelY})`];
+
+        this.overlayOptions.highlightPixelColumn = position.pixelX;
+        this.overlayOptions.highlightPixelRow = position.pixelY;
+        this.screen.setOverlayOptions(this.overlayOptions);
 
         if (e.type === "mousedown") {
             this.prepareForMutation();

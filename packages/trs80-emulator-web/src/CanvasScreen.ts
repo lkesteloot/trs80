@@ -89,6 +89,39 @@ export class ScreenMouseEvent {
 }
 
 /**
+ * Options for the overlay.
+ */
+export interface OverlayOptions {
+    // Whether to show the pixel (fine) grid.
+    showPixelGrid?: boolean;
+    // Whether to show the character (coarse) grid.
+    showCharGrid?: boolean;
+    // Whether to highlight an entire pixel column or row.
+    showHighlight?: boolean;
+    highlightPixelColumn?: number;
+    highlightPixelRow?: number;
+}
+
+const DEFAULT_OVERLAY_OPTIONS: Required<OverlayOptions> = {
+    showPixelGrid: false,
+    showCharGrid: false,
+    showHighlight: false,
+    highlightPixelColumn: 0,
+    highlightPixelRow: 0,
+};
+
+function overlayOptionsEqual(a: OverlayOptions, b: OverlayOptions): boolean {
+    return a.showPixelGrid === b.showPixelGrid &&
+        a.showCharGrid === b.showCharGrid &&
+        a.showHighlight === b.showHighlight &&
+        a.highlightPixelColumn === b.highlightPixelColumn &&
+        a.highlightPixelRow === b.highlightPixelRow;
+}
+
+const GRID_COLOR = "rgba(160, 160, 255, 0.5)";
+const GRID_HIGHLIGHT_COLOR = "rgba(255, 255, 160, 0.5)";
+
+/**
  * TRS-80 screen based on an HTML canvas element.
  */
 export class CanvasScreen extends Trs80WebScreen {
@@ -103,6 +136,7 @@ export class CanvasScreen extends Trs80WebScreen {
     private config: Config = Config.makeDefault();
     private glyphWidth = 0;
     private overlayCanvas: HTMLCanvasElement | undefined = undefined;
+    private overlayOptions: OverlayOptions = DEFAULT_OVERLAY_OPTIONS;
 
     /**
      * Create a canvas screen.
@@ -132,57 +166,84 @@ export class CanvasScreen extends Trs80WebScreen {
 
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
-        this.showGrid(false, false);
         this.updateFromConfig();
     }
 
     /**
-     * Show the overlay grid.
-     *
-     * @param showPixelGrid whether to show the pixel (fine) grid.
-     * @param showCharGrid whether to show the character (coarse) grid.
+     * Update the overlay options.
      */
-    public showGrid(showPixelGrid: boolean, showCharGrid: boolean): void {
-        if (this.overlayCanvas !== undefined) {
-            this.overlayCanvas.remove();
-            this.overlayCanvas = undefined;
+    public setOverlayOptions(userOptions: OverlayOptions): void {
+        // Fill in defaults.
+        const options: Required<OverlayOptions> = { ... DEFAULT_OVERLAY_OPTIONS, ... userOptions };
+        if (overlayOptionsEqual(options, this.overlayOptions)) {
+            return;
         }
+        this.overlayOptions = options;
 
-        if (showPixelGrid || showCharGrid) {
+        const showOverlay = options.showPixelGrid || options.showCharGrid || options.showHighlight !== undefined;
+        if (showOverlay) {
             const width = this.canvas.width;
             const height = this.canvas.height;
 
-            const overlayCanvas = document.createElement("canvas");
-            overlayCanvas.style.position = "absolute";
-            overlayCanvas.style.top = "0";
-            overlayCanvas.style.left = "0";
-            overlayCanvas.style.pointerEvents = "none";
-            overlayCanvas.width = width;
-            overlayCanvas.height = height;
-            this.node.append(overlayCanvas);
+            // Create overlay canvas if necessary.
+            let overlayCanvas = this.overlayCanvas;
+            if (overlayCanvas === undefined) {
+                overlayCanvas = document.createElement("canvas");
+                overlayCanvas.style.position = "absolute";
+                overlayCanvas.style.top = "0";
+                overlayCanvas.style.left = "0";
+                overlayCanvas.style.pointerEvents = "none";
+                overlayCanvas.width = width;
+                overlayCanvas.height = height;
+                this.node.append(overlayCanvas);
 
+                this.overlayCanvas = overlayCanvas;
+            }
+
+            // Whether to highlight a grid line.
+            function isHighlighted(showHighlight: boolean, highlightValue: number, value: number): boolean {
+                return showHighlight && (highlightValue === value || highlightValue + 1 === value);
+            }
+
+            // Clear the overlay.
             const ctx = overlayCanvas.getContext("2d") as CanvasRenderingContext2D;
-            ctx.strokeStyle = "rgba(160, 160, 255, 0.5)";
-            let step = showPixelGrid ? 1 : TRS80_CHAR_PIXEL_WIDTH;
-            for (let i = 0; i <= TRS80_PIXEL_WIDTH; i += step) {
-                const x = Math.round(i*4*this.scale + this.padding);
-                ctx.lineWidth = showCharGrid && i % TRS80_CHAR_PIXEL_WIDTH === 0 ? 2 : 1;
-                ctx.beginPath();
-                ctx.moveTo(x, this.padding);
-                ctx.lineTo(x, height - this.padding);
-                ctx.stroke();
-            }
-            step = showPixelGrid ? 1 : TRS80_CHAR_PIXEL_HEIGHT;
-            for (let i = 0; i <= TRS80_PIXEL_HEIGHT; i += step) {
-                const y = Math.round(i*8*this.scale + this.padding);
-                ctx.lineWidth = showCharGrid && i % TRS80_CHAR_PIXEL_HEIGHT === 0 ? 2 : 1;
-                ctx.beginPath();
-                ctx.moveTo(this.padding, y);
-                ctx.lineTo(width - this.padding, y);
-                ctx.stroke();
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw columns.
+            for (let i = 0; i <= TRS80_PIXEL_WIDTH; i++) {
+                const highlighted = isHighlighted(options.showHighlight, options.highlightPixelColumn, i);
+                const isCharLine = options.showCharGrid && i % TRS80_CHAR_PIXEL_WIDTH === 0;
+                if (highlighted || options.showPixelGrid || isCharLine) {
+                    const x = Math.round(i * 4 * this.scale + this.padding);
+                    ctx.lineWidth = isCharLine && !highlighted ? 2 : 1;
+                    ctx.strokeStyle = highlighted ? GRID_HIGHLIGHT_COLOR : GRID_COLOR;
+                    ctx.beginPath();
+                    ctx.moveTo(x, this.padding);
+                    ctx.lineTo(x, height - this.padding);
+                    ctx.stroke();
+                }
             }
 
-            this.overlayCanvas = overlayCanvas;
+            // Draw rows.
+            for (let i = 0; i <= TRS80_PIXEL_HEIGHT; i++) {
+                const highlighted = isHighlighted(options.showHighlight, options.highlightPixelRow, i);
+                const isCharLine = options.showCharGrid && i % TRS80_CHAR_PIXEL_HEIGHT === 0;
+                if (highlighted || options.showPixelGrid || isCharLine) {
+                    const y = Math.round(i * 8 * this.scale + this.padding);
+                    ctx.lineWidth = isCharLine && !highlighted ? 2 : 1;
+                    ctx.strokeStyle = highlighted ? GRID_HIGHLIGHT_COLOR : GRID_COLOR;
+                    ctx.beginPath();
+                    ctx.moveTo(this.padding, y);
+                    ctx.lineTo(width - this.padding, y);
+                    ctx.stroke();
+                }
+            }
+        } else {
+            // Remove overlay.
+            if (this.overlayCanvas !== undefined) {
+                this.overlayCanvas.remove();
+                this.overlayCanvas = undefined;
+            }
         }
     }
 
