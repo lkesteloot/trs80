@@ -2,7 +2,9 @@ import {Trs80WebScreen} from "./Trs80WebScreen.js";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
 import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "trs80-emulator";
 import {toHexByte} from "z80-base";
-import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
+import {TRS80_CHAR_HEIGHT, TRS80_CHAR_PIXEL_HEIGHT, TRS80_CHAR_PIXEL_WIDTH, TRS80_CHAR_WIDTH,
+    TRS80_PIXEL_HEIGHT,
+    TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 
 export const AUTHENTIC_BACKGROUND = "#334843";
@@ -60,13 +62,13 @@ export class ScreenMousePosition {
     public constructor(pixelX: number, pixelY: number) {
         this.pixelX = pixelX;
         this.pixelY = pixelY;
-        this.charX = Math.floor(pixelX / 2);
-        this.charY = Math.floor(pixelY / 3);
-        this.subPixelX = pixelX % 2;
-        this.subPixelY = pixelY % 3;
-        this.bit = this.subPixelY * 2 + this.subPixelX;
+        this.charX = Math.floor(pixelX / TRS80_CHAR_PIXEL_WIDTH);
+        this.charY = Math.floor(pixelY / TRS80_CHAR_PIXEL_HEIGHT);
+        this.subPixelX = pixelX % TRS80_CHAR_PIXEL_WIDTH;
+        this.subPixelY = pixelY % TRS80_CHAR_PIXEL_HEIGHT;
+        this.bit = this.subPixelY * TRS80_CHAR_PIXEL_WIDTH + this.subPixelX;
         this.mask = 1 << this.bit;
-        this.offset = this.charY * 64 + this.charX;
+        this.offset = this.charY * TRS80_CHAR_WIDTH + this.charX;
         this.address = this.offset + TRS80_SCREEN_BEGIN;
     }
 }
@@ -121,8 +123,8 @@ export class CanvasScreen extends Trs80WebScreen {
         this.canvas = document.createElement("canvas");
         // Make it block so we don't have any weird text margins on the bottom.
         this.canvas.style.display = "block";
-        this.canvas.width = 64*8*this.scale + 2*this.padding;
-        this.canvas.height = 16*24*this.scale + 2*this.padding;
+        this.canvas.width = TRS80_CHAR_WIDTH*8*this.scale + 2*this.padding;
+        this.canvas.height = TRS80_CHAR_HEIGHT*24*this.scale + 2*this.padding;
         this.canvas.addEventListener("mousemove", (event) => this.emitMouseActivity("mousemove", event));
         this.canvas.addEventListener("mousedown", (event) => this.emitMouseActivity("mousedown", event));
         this.canvas.addEventListener("mouseup", (event) => this.emitMouseActivity("mouseup", event));
@@ -161,19 +163,19 @@ export class CanvasScreen extends Trs80WebScreen {
 
             const ctx = overlayCanvas.getContext("2d") as CanvasRenderingContext2D;
             ctx.strokeStyle = "rgba(160, 160, 255, 0.5)";
-            let step = showPixelGrid ? 1 : 2;
-            for (let i = 0; i <= 128; i += step) {
+            let step = showPixelGrid ? 1 : TRS80_CHAR_PIXEL_WIDTH;
+            for (let i = 0; i <= TRS80_PIXEL_WIDTH; i += step) {
                 const x = Math.round(i*4*this.scale + this.padding);
-                ctx.lineWidth = showCharGrid && i % 2 === 0 ? 2 : 1;
+                ctx.lineWidth = showCharGrid && i % TRS80_CHAR_PIXEL_WIDTH === 0 ? 2 : 1;
                 ctx.beginPath();
                 ctx.moveTo(x, this.padding);
                 ctx.lineTo(x, height - this.padding);
                 ctx.stroke();
             }
-            step = showPixelGrid ? 1 : 3;
-            for (let i = 0; i <= 48; i += step) {
+            step = showPixelGrid ? 1 : TRS80_CHAR_PIXEL_HEIGHT;
+            for (let i = 0; i <= TRS80_PIXEL_HEIGHT; i += step) {
                 const y = Math.round(i*8*this.scale + this.padding);
-                ctx.lineWidth = showCharGrid && i % 3 === 0 ? 2 : 1;
+                ctx.lineWidth = showCharGrid && i % TRS80_CHAR_PIXEL_HEIGHT === 0 ? 2 : 1;
                 ctx.beginPath();
                 ctx.moveTo(this.padding, y);
                 ctx.lineTo(width - this.padding, y);
@@ -200,8 +202,8 @@ export class CanvasScreen extends Trs80WebScreen {
     private emitMouseActivity(type: ScreenMouseEventType, event: MouseEvent): void {
         const x = event.offsetX - this.padding;
         const y = event.offsetY - this.padding;
-        const pixelX = Math.min(127, Math.max(0, Math.floor(x / this.scale / 4)));
-        const pixelY = Math.min(47, Math.max(0, Math.floor(y / this.scale / 8)));
+        const pixelX = Math.min(TRS80_PIXEL_WIDTH - 1, Math.max(0, Math.floor(x / this.scale / 4)));
+        const pixelY = Math.min(TRS80_PIXEL_HEIGHT - 1, Math.max(0, Math.floor(y / this.scale / 8)));
         const position = new ScreenMousePosition(pixelX, pixelY);
         this.mouseActivity.dispatch(new ScreenMouseEvent(type, position, event.shiftKey));
     }

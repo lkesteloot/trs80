@@ -1,6 +1,6 @@
 import {EditorView} from "@codemirror/view";
 import {ChangeSpec} from "@codemirror/state";
-import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
+import {TRS80_PIXEL_HEIGHT, TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
 import {Trs80} from 'trs80-emulator';
 import {CanvasScreen, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulator-web';
 import {toHexByte} from 'z80-base';
@@ -660,7 +660,7 @@ export class ScreenEditor {
      * Turn the specified pixel on or off.
      */
     private setPixel(x: number, y: number, value: boolean): void {
-        if (x >= 0 && y >= 0 && x < 128 && y < 48) {
+        if (x >= 0 && y >= 0 && x < TRS80_PIXEL_WIDTH && y < TRS80_PIXEL_HEIGHT) {
             this.setPosition(new ScreenMousePosition(x, y), value);
         }
     }
@@ -700,9 +700,9 @@ export class ScreenEditor {
                 const x = position.pixelX;
                 const y = position.pixelY;
                 if (x > 0) pixels.push(new ScreenMousePosition(x - 1, y));
-                if (x < 127) pixels.push(new ScreenMousePosition(x + 1, y));
+                if (x < TRS80_PIXEL_WIDTH - 1) pixels.push(new ScreenMousePosition(x + 1, y));
                 if (y > 0) pixels.push(new ScreenMousePosition(x, y - 1));
-                if (y < 47) pixels.push(new ScreenMousePosition(x, y + 1));
+                if (y < TRS80_PIXEL_HEIGHT - 1) pixels.push(new ScreenMousePosition(x, y + 1));
             }
         }
     }
