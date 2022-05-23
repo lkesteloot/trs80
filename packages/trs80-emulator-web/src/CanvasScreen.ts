@@ -287,6 +287,15 @@ export class CanvasScreen extends Trs80WebScreen {
      * Handle a new mouse event.
      */
     private onMouseEvent(type: ScreenMouseEventType, event: MouseEvent): void {
+        if (type === "mousemove" &&
+            this.lastMouseEvent !== undefined &&
+            (this.lastMouseEvent.buttons & 1) !== 0 &&
+            (event.buttons & 1) === 0) {
+
+            // Mouse was release since the last event, probably outside the canvas or window.
+            // Fake a mouse up event.
+            this.emitMouseActivity("mouseup", event, event.shiftKey);
+        }
         this.lastMouseEvent = event;
         this.emitMouseActivity(type, event, event.shiftKey);
     }
