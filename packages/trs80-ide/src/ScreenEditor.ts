@@ -5,6 +5,23 @@ import {Trs80} from 'trs80-emulator';
 import {CanvasScreen, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulator-web';
 import {toHexByte} from 'z80-base';
 import {AssemblyResults} from "./AssemblyResults.js";
+import saveIcon from "./icons/save.ico";
+import cancelIcon from "./icons/cancel.ico";
+import drawIcon from "./icons/draw.ico";
+import eraseIcon from "./icons/erase.ico";
+import pixelGridIcon from "./icons/pixel_grid.ico";
+import charGridIcon from "./icons/char_grid.ico";
+import pencilIcon from "./icons/pencil.ico";
+import lineIcon from "./icons/line.ico";
+import rectangleIcon from "./icons/rectangle.ico";
+import ellipseIcon from "./icons/ellipse.ico";
+import bucketIcon from "./icons/bucket.ico";
+
+const PREFIX = "screen-editor";
+
+// Sync this with CSS:
+const NORMAL_ICON_COLOR = "#002b36";
+const SELECTED_ICON_COLOR = "#fdf6e3";
 
 enum Mode {
     DRAW, ERASE,
@@ -17,21 +34,101 @@ enum Tool {
 let gPrefixCounter = 1;
 
 /**
+ * Parse a 32x16 text string into an icon. Each pixel must take up two characters.
+ * Use "*" to be "on". The off pixels will be transparent.
+ */
+function parseIcon(icon: string, color: string): HTMLImageElement {
+    const lines = icon.split("\n").filter(line => line.length > 0);
+
+    const height = lines.length;
+    if (height !== 16) {
+        throw new Error(`icons must have 16 lines, has ${height}: ${icon}`);
+    }
+    const width = lines[0].length / 2;
+    if (width !== 16) {
+        throw new Error("icons must have 16 columns: " + icon);
+    }
+
+    // Create the icon canvas.
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D
+
+    // High-res canvas.
+    const canvas2 = document.createElement("canvas");
+    canvas2.width = width*2;
+    canvas2.height = height*2;
+    const ctx2 = canvas2.getContext("2d") as CanvasRenderingContext2D
+
+    // Draw the pixels.
+    ctx.fillStyle = color;
+    ctx2.fillStyle = color;
+    for (let y = 0; y < height; y++) {
+        const line = lines[y];
+        if (line.length !== width*2) {
+            throw new Error("icons must have 32 columns: " + icon);
+        }
+        for (let x = 0; x < width; x++) {
+            if (line[x*2] !== line[x*2 + 1]) {
+                throw new Error("icon has inconsistent pixel: " + icon);
+            }
+
+            if (line[x*2] === "*") {
+                ctx.fillRect(x, y, 1, 1);
+                ctx2.fillRect(x*2, y*2, 2, 2);
+            }
+        }
+    }
+
+    // Convert to an <img>
+    const img = document.createElement("img");
+    img.width = width;
+    img.height = height;
+    img.src = canvas.toDataURL("image/png");
+    img.srcset = canvas2.toDataURL("image/png") + " 2x";
+    return img;
+}
+
+/**
+ * Set the label or icon of a button.
+ */
+function setButtonLabel(element: HTMLElement, label: string, icon: string | undefined): void {
+    if (icon !== undefined) {
+        // CSS only shows one of these:
+        let img = parseIcon(icon, NORMAL_ICON_COLOR);
+        img.classList.add(PREFIX + "-normal-icon");
+        img.alt = label;
+        img.title = label;
+        element.append(img);
+
+        img = parseIcon(icon, SELECTED_ICON_COLOR);
+        img.classList.add(PREFIX + "-selected-icon");
+        img.alt = label;
+        img.title = label;
+        element.append(img);
+    } else {
+        element.innerText = label;
+    }
+}
+
+/**
  * Make a group of action buttons.
  */
 function makeButtons(parent: HTMLDivElement,
                      buttons: {
                          label: string,
+                         icon?: string,
                          onClick: () => void
                      }[]): void {
 
     const container = document.createElement("div");
-    container.classList.add("screen-editor-button-group");
+    container.classList.add(PREFIX + "-button-group");
     parent.append(container);
 
-    for (const { label, onClick } of buttons) {
+    for (const { label, icon, onClick } of buttons) {
         const button = document.createElement("button");
-        button.innerText = label;
+        setButtonLabel(button, label, icon);
         button.addEventListener("click", () => onClick());
         container.append(button);
     }
@@ -40,17 +137,17 @@ function makeButtons(parent: HTMLDivElement,
  * Make a group of buttons, only one of which can be selected at once.
  */
 function makeRadioButtons(parent: HTMLDivElement,
-                          buttons: { label: string, value: number }[],
+                          buttons: { label: string, icon?: string, value: number }[],
                           defaultValue: number,
                           onChange: (newValue: number) => void): void {
 
-    const prefix = "screen-editor-radio-" + gPrefixCounter++;
+    const prefix = PREFIX + "-radio-" + gPrefixCounter++;
 
     const container = document.createElement("div");
-    container.classList.add("screen-editor-button-group");
+    container.classList.add(PREFIX + "-button-group");
     parent.append(container);
 
-    for (const { label, value } of buttons) {
+    for (const { label, value, icon } of buttons) {
         const id = prefix + "-" + value;
         const radio = document.createElement("input");
 
@@ -65,7 +162,7 @@ function makeRadioButtons(parent: HTMLDivElement,
 
         const radioLabel = document.createElement("label");
         radioLabel.htmlFor = id;
-        radioLabel.innerText = label;
+        setButtonLabel(radioLabel, label, icon);
         container.append(radio, radioLabel);
     }
 }
@@ -76,18 +173,19 @@ function makeRadioButtons(parent: HTMLDivElement,
 function makeCheckboxButtons(parent: HTMLDivElement,
                              buttons: {
                                  label: string,
+                                 icon?: string,
                                  checked: boolean,
                                  onChange: (newValue: boolean) => void
                              }[]): void {
 
-    const prefix = "screen-editor-checkbox-" + gPrefixCounter++;
+    const prefix = PREFIX + "-checkbox-" + gPrefixCounter++;
 
     const container = document.createElement("div");
-    container.classList.add("screen-editor-button-group");
+    container.classList.add(PREFIX + "-button-group");
     parent.append(container);
 
     let value = 0;
-    for (const { label, checked, onChange } of buttons) {
+    for (const { label, icon, checked, onChange } of buttons) {
         const id = prefix + "-" + value++;
         const checkbox = document.createElement("input");
 
@@ -100,7 +198,7 @@ function makeCheckboxButtons(parent: HTMLDivElement,
 
         const radioLabel = document.createElement("label");
         radioLabel.htmlFor = id;
-        radioLabel.innerText = label;
+        setButtonLabel(radioLabel, label, icon);
         container.append(checkbox, radioLabel);
     }
 }
@@ -141,38 +239,36 @@ export class ScreenEditor {
         trs80.stop();
 
         this.controlPanelDiv = document.createElement("div");
-        this.controlPanelDiv.classList.add("screen-editor-control-panel")
-        this.controlPanelDiv.style.position = "absolute";
-        this.controlPanelDiv.style.top = "-50px";
+        this.controlPanelDiv.classList.add(PREFIX + "-control-panel")
         screen.getNode().append(this.controlPanelDiv);
 
         makeButtons(this.controlPanelDiv, [
-            { label: "Save", onClick: () => this.close(true) },
-            { label: "Cancel", onClick: () => this.close(false) },
+            { label: "Save", icon: saveIcon, onClick: () => this.close(true) },
+            { label: "Cancel", icon: cancelIcon, onClick: () => this.close(false) },
         ]);
 
         makeRadioButtons(this.controlPanelDiv, [
-            { label: "Draw", value: Mode.DRAW },
-            { label: "Erase", value: Mode.ERASE },
+            { label: "Draw", icon: drawIcon, value: Mode.DRAW },
+            { label: "Erase", icon: eraseIcon, value: Mode.ERASE },
         ], Mode.DRAW, mode => this.mode = mode);
 
         makeCheckboxButtons(this.controlPanelDiv, [
-            { label: "Pixel Grid", checked: false, onChange: value => {
+            { label: "Pixel Grid", icon: pixelGridIcon, checked: false, onChange: value => {
                     this.showPixelGrid = value;
                     this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
                 }},
-            { label: "Char Grid", checked: false, onChange: value => {
+            { label: "Char Grid", icon: charGridIcon, checked: false, onChange: value => {
                     this.showCharGrid = value;
                     this.screen.showGrid(this.showPixelGrid, this.showCharGrid);
                 }},
         ]);
 
         makeRadioButtons(this.controlPanelDiv, [
-            { label: "Pencil", value: Tool.PENCIL },
-            { label: "Line", value: Tool.LINE },
-            { label: "Rectangle", value: Tool.RECTANGLE },
-            { label: "Ellipse", value: Tool.ELLIPSE },
-            { label: "Bucket", value: Tool.BUCKET },
+            { label: "Pencil", icon: pencilIcon, value: Tool.PENCIL },
+            { label: "Line", icon: lineIcon, value: Tool.LINE },
+            { label: "Rectangle", icon: rectangleIcon, value: Tool.RECTANGLE },
+            { label: "Ellipse", icon: ellipseIcon, value: Tool.ELLIPSE },
+            { label: "Bucket", icon: bucketIcon, value: Tool.BUCKET },
         ], Tool.PENCIL, tool => this.tool = tool);
 
         // Fill with blanks.

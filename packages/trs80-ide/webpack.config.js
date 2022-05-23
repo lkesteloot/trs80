@@ -28,6 +28,22 @@ const exports = {
                 test: /\.css$/i,
                 use: [MiniCssExtractPlugin.loader, "css-loader"],
             },
+            {
+                test: /\.png$/i,
+                use: [
+                    {
+                        loader: "file-loader",
+                    },
+                ],
+            },
+            {
+                test: /\.ico/i,
+                use: [
+                    {
+                        loader: "raw-loader",
+                    },
+                ],
+            },
         ],
     },
     plugins: [

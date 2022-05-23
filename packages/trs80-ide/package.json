@@ -10,7 +10,8 @@
   "scripts": {
     "start": "webpack serve --open",
     "build": "webpack",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "publish": "npm run build && rsync -a dist/ lk@hitch.headcode.com:my-trs-80-website/ide/"
   },
   "dependencies": {
     "@codemirror/basic-setup": "^0.19.1",
