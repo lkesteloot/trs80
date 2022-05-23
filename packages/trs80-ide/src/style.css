@@ -146,6 +146,8 @@ body {
     border-right: 1px solid var(--base03);
     border-bottom: 1px solid var(--base03);
     border-left: none;
+    cursor: pointer;
+    user-select: none;
 }
 
 .screen-editor-button-group label .screen-editor-selected-icon,

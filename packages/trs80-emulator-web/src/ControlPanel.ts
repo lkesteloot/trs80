@@ -131,8 +131,12 @@ const GLOBAL_CSS = `
     position: relative;
 }
 
-.${gScreenNodeCssClass}:hover .${gPanelCssClass} {
+.${gScreenNodeCssClass}:hover:not(.panels-disabled) .${gPanelCssClass} {
     opacity: 1;
+}
+
+.${gScreenNodeCssClass}.panels-disabled .${gPanelCssClass} {
+    pointer-events: none;
 }
 
 /* Hide the control panel if any other panel is showing (like settings). */
@@ -186,6 +190,20 @@ export class ControlPanel {
         this.panelNode = document.createElement("div");
         this.panelNode.classList.add(gPanelCssClass);
         screenNode.appendChild(this.panelNode);
+    }
+
+    /**
+     * Enable the panel. This is the default.
+     */
+    public enable(): void {
+        this.screenNode.classList.remove("panels-disabled");
+    }
+
+    /**
+     * Disable the panel. It won't be shown and can't be interacted with.
+     */
+    public disable(): void {
+        this.screenNode.classList.add("panels-disabled");
     }
 
     /**

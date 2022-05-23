@@ -35,6 +35,11 @@ const GLOBAL_CSS = `
     visibility: visible;
 }
 
+.panels-disabled .${gPanelCssClass}.${gShownCssClass} {
+    opacity: 0;
+    visibility: hidden;
+}
+
 .${gPanelCssClass} > div {
     display: flex;
     flex-direction: column;
