@@ -133,6 +133,7 @@ export class CanvasScreen extends Trs80WebScreen {
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_END - TRS80_SCREEN_BEGIN);
     private readonly glyphs: HTMLCanvasElement[] = [];
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
+    private lastMouseEvent: MouseEvent | undefined = undefined;
     private config: Config = Config.makeDefault();
     private glyphWidth = 0;
     private overlayCanvas: HTMLCanvasElement | undefined = undefined;
@@ -159,9 +160,19 @@ export class CanvasScreen extends Trs80WebScreen {
         this.canvas.style.display = "block";
         this.canvas.width = TRS80_CHAR_WIDTH*8*this.scale + 2*this.padding;
         this.canvas.height = TRS80_CHAR_HEIGHT*24*this.scale + 2*this.padding;
-        this.canvas.addEventListener("mousemove", (event) => this.emitMouseActivity("mousemove", event));
-        this.canvas.addEventListener("mousedown", (event) => this.emitMouseActivity("mousedown", event));
-        this.canvas.addEventListener("mouseup", (event) => this.emitMouseActivity("mouseup", event));
+        this.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
+        this.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
+        this.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
+        // We dom't have a good way to unsubscribe from these two. We could add some kind of close() method.
+        // We could also check in the callback that the canvas's ancestor is window.
+        window.addEventListener("keydown", (event) => this.onKeyEvent(event), {
+            capture: true,
+            passive: true,
+        });
+        window.addEventListener("keyup", (event) => this.onKeyEvent(event), {
+            capture: true,
+            passive: true,
+        });
         this.node.append(this.canvas);
 
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
@@ -260,13 +271,33 @@ export class CanvasScreen extends Trs80WebScreen {
         this.updateFromConfig();
     }
 
-    private emitMouseActivity(type: ScreenMouseEventType, event: MouseEvent): void {
+    /**
+     * Send a new mouse event to listeners.
+     */
+    private emitMouseActivity(type: ScreenMouseEventType, event: MouseEvent, shiftKey: boolean): void {
         const x = event.offsetX - this.padding;
         const y = event.offsetY - this.padding;
         const pixelX = Math.min(TRS80_PIXEL_WIDTH - 1, Math.max(0, Math.floor(x / this.scale / 4)));
         const pixelY = Math.min(TRS80_PIXEL_HEIGHT - 1, Math.max(0, Math.floor(y / this.scale / 8)));
         const position = new ScreenMousePosition(pixelX, pixelY);
-        this.mouseActivity.dispatch(new ScreenMouseEvent(type, position, event.shiftKey));
+        this.mouseActivity.dispatch(new ScreenMouseEvent(type, position, shiftKey));
+    }
+
+    /**
+     * Handle a new mouse event.
+     */
+    private onMouseEvent(type: ScreenMouseEventType, event: MouseEvent): void {
+        this.lastMouseEvent = event;
+        this.emitMouseActivity(type, event, event.shiftKey);
+    }
+
+    /**
+     * Handle a new keyboard events. Only shift keys really matter.
+     */
+    private onKeyEvent(event: KeyboardEvent): void {
+        if (this.lastMouseEvent !== undefined) {
+            this.emitMouseActivity("mousemove", this.lastMouseEvent, event.shiftKey);
+        }
     }
 
     /**
