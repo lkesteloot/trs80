@@ -222,6 +222,7 @@ export class ScreenEditor {
     private readonly extraBytes: number[];
     private readonly begin: number;
     private readonly controlPanelDiv: HTMLDivElement;
+    private readonly statusPanelDiv: HTMLDivElement;
     private end: number;
     private byteCount: number;
     private mouseDownPosition: ScreenMousePosition | undefined = undefined;
@@ -243,7 +244,7 @@ export class ScreenEditor {
         trs80.stop();
 
         this.controlPanelDiv = document.createElement("div");
-        this.controlPanelDiv.classList.add(PREFIX + "-control-panel")
+        this.controlPanelDiv.classList.add(PREFIX + "-control-panel");
         screen.getNode().append(this.controlPanelDiv);
 
         makeButtons(this.controlPanelDiv, [
@@ -279,6 +280,10 @@ export class ScreenEditor {
             { label: "Ellipse", icon: ellipseIcon, value: Tool.ELLIPSE },
             { label: "Bucket", icon: bucketIcon, value: Tool.BUCKET },
         ], Tool.PENCIL, tool => this.tool = tool);
+
+        this.statusPanelDiv = document.createElement("div");
+        this.statusPanelDiv.classList.add(PREFIX + "-status-panel");
+        screen.getNode().append(this.statusPanelDiv);
 
         // Fill with blanks.
         this.raster.fill(0x80);
@@ -415,6 +420,7 @@ export class ScreenEditor {
      */
     private handleMouse(e: ScreenMouseEvent) {
         let position = e.position;
+        const statusText: string[] = [`(${position.pixelX}, ${position.pixelY})`];
 
         if (e.type === "mousedown") {
             this.prepareForMutation();
@@ -440,10 +446,11 @@ export class ScreenEditor {
             this.mouseDownPosition = undefined;
             this.previousPosition = undefined;
         }
+        const value = this.mode === Mode.DRAW;
         switch (this.tool) {
             case Tool.PENCIL:
                 if (this.previousPosition != undefined) {
-                    this.drawLine(this.previousPosition, position, this.mode === Mode.DRAW);
+                    this.drawLine(this.previousPosition, position, value);
                     this.previousPosition = position;
                 }
                 break;
@@ -478,7 +485,7 @@ export class ScreenEditor {
                         }
                         position = new ScreenMousePosition(x, y);
                     }
-                    this.drawLine(this.mouseDownPosition, position, this.mode === Mode.DRAW);
+                    statusText.push(this.drawLine(this.mouseDownPosition, position, value));
                 }
                 break;
             case Tool.RECTANGLE:
@@ -502,7 +509,7 @@ export class ScreenEditor {
 
                         position = new ScreenMousePosition(x, y);
                     }
-                    this.drawRectangle(this.mouseDownPosition, position, this.mode === Mode.DRAW);
+                    statusText.push(this.drawRectangle(this.mouseDownPosition, position, value));
                 }
                 break;
             case Tool.ELLIPSE:
@@ -530,28 +537,34 @@ export class ScreenEditor {
 
                     const dx = Math.abs(position.pixelX - this.mouseDownPosition.pixelX);
                     const dy = Math.abs(position.pixelY - this.mouseDownPosition.pixelY);
-                    this.drawEllipse(this.mouseDownPosition, dx, dy, this.mode === Mode.DRAW);
+                    statusText.push(this.drawEllipse(this.mouseDownPosition, dx, dy, value));
                 }
                 break;
             case Tool.BUCKET:
                 break;
         }
+
+        this.statusPanelDiv.innerText = statusText.filter(s => s.length > 0).join(", ");
     }
 
     /**
      * Draw a line from p1 to p2 of the specified value.
+     * @return text to show in the status bar.
      */
-    private drawLine(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean): void {
-        if (Math.abs(p2.pixelX - p1.pixelX) >= Math.abs(p2.pixelY - p1.pixelY)) {
+    private drawLine(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean): string {
+        let dx = p2.pixelX - p1.pixelX;
+        let dy = p2.pixelY - p1.pixelY;
+
+        if (Math.abs(dx) >= Math.abs(dy)) {
             // More across than vertical.
 
             // Order left-to-right.
             if (p1.pixelX > p2.pixelX) {
                 [p1, p2] = [p2, p1];
+                dx = -dx;
+                dy = -dy;
             }
 
-            const dx = p2.pixelX - p1.pixelX;
-            const dy = p2.pixelY - p1.pixelY;
             const slope = dy/dx;
 
             let y = p1.pixelY;
@@ -565,10 +578,10 @@ export class ScreenEditor {
             // Order top-to-bottom.
             if (p1.pixelY > p2.pixelY) {
                 [p1, p2] = [p2, p1];
+                dx = -dx;
+                dy = -dy;
             }
 
-            const dx = p2.pixelX - p1.pixelX;
-            const dy = p2.pixelY - p1.pixelY;
             const slope = dx/dy;
 
             let x = p1.pixelX;
@@ -577,12 +590,15 @@ export class ScreenEditor {
                 x += slope;
             }
         }
+
+        return `${dx + 1}×${dy + 1}`;
     }
 
     /**
      * Draw a (hollow) rectangle from p1 to p2.
+     * @return text to show in the status bar.
      */
-    private drawRectangle(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean): void {
+    private drawRectangle(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean): string {
         const x1 = Math.min(p1.pixelX, p2.pixelX);
         const y1 = Math.min(p1.pixelY, p2.pixelY);
         const x2 = Math.max(p1.pixelX, p2.pixelX);
@@ -596,12 +612,15 @@ export class ScreenEditor {
             this.setPixel(x1, y, value);
             this.setPixel(x2, y, value);
         }
+
+        return `${x2 - x1 + 1}×${y2 - y1 + 1}`;
     }
 
     /**
      * Draw an ellipse centered at c with the specified radii.
+     * @return text to show in the status bar.
      */
-    private drawEllipse(c: ScreenMousePosition, rx: number, ry: number, value: boolean): void {
+    private drawEllipse(c: ScreenMousePosition, rx: number, ry: number, value: boolean): string {
         const cx = c.pixelX;
         const cy = c.pixelY;
 
@@ -654,6 +673,8 @@ export class ScreenEditor {
                 d2 = d2 + dx - dy + rx*rx;
             }
         }
+
+        return `${rx*2 + 1}×${ry*2 + 1}`;
     }
 
     /**

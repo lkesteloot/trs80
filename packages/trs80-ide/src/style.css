@@ -121,7 +121,6 @@ body {
     gap: 10px;
     font-family: sans-serif;
     font-size: 10pt;
-
 }
 
 .screen-editor-button-group {
@@ -185,4 +184,13 @@ body {
 .screen-editor-button-group input[type=checkbox]:checked + label .screen-editor-normal-icon,
 .screen-editor-button-group button:active .screen-editor-normal-icon {
     display: none;
+}
+
+.screen-editor-status-panel {
+    position: absolute;
+    bottom: -30px;
+    display: flex;
+    gap: 10px;
+    font-family: sans-serif;
+    font-size: 10pt;
 }
