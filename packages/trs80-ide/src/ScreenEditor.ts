@@ -271,7 +271,7 @@ export class ScreenEditor {
                     this.overlayOptions.showCharGrid = value;
                     this.screen.setOverlayOptions(this.overlayOptions);
                 }},
-            { label: "Highlight Grid", icon: highlightGridIcon, checked: false, onChange: value => {
+            { label: "Highlight Row/Col", icon: highlightGridIcon, checked: false, onChange: value => {
                     this.overlayOptions.showHighlight = value;
                     this.screen.setOverlayOptions(this.overlayOptions);
                 }},
@@ -320,7 +320,17 @@ export class ScreenEditor {
         this.rasterToScreen();
     }
 
-    private close(save: boolean) {
+    /**
+     * Cancel editing, as if the Cancel button was pressed.
+     */
+    public cancel(): void {
+        this.close(false);
+    }
+
+    /**
+     * Close the editor, optionally saving the screen back to the code.
+     */
+    private close(save: boolean): void {
         if (save) {
             this.rasterToCode();
         }

@@ -302,13 +302,18 @@ function screenshotPlugin(): Extension {
     ];
 }
 
+let gScreenEditor: ScreenEditor | undefined = undefined;
 function startScreenshotEditMode(view: EditorView, pos: number, screenshotIndex: number) {
     const assemblyResults = view.state.field(assemblyResultsStateField);
     controlPanel.disable();
     view.dispatch({
         effects: editingScreenshotStateEffect.of(true),
     });
-    const screenEditor = new ScreenEditor(view, pos, assemblyResults, screenshotIndex, trs80, screen, () => {
+    if (gScreenEditor !== undefined) {
+        gScreenEditor.cancel();
+    }
+    gScreenEditor = new ScreenEditor(view, pos, assemblyResults, screenshotIndex, trs80, screen, () => {
+        gScreenEditor = undefined;
         controlPanel.enable();
         view.dispatch({
             effects: editingScreenshotStateEffect.of(false),
@@ -713,6 +718,10 @@ sampleChooser.addEventListener("change", () => {
     const sampleValue = sampleChooser.value;
     const sample = samples.filter(s => s.value === sampleValue)[0];
     if (sample !== undefined) {
+        if (gScreenEditor !== undefined) {
+            gScreenEditor.cancel();
+            // Set to undefined in the close callback.
+        }
         const code = sample.code;
         view.dispatch({
             changes: {
