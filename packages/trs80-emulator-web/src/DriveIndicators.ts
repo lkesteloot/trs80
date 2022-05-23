@@ -27,6 +27,14 @@ const GLOBAL_CSS = `
 .${gIndicatorDriveOnCssClass} {
     opacity: .75;
 }
+
+.panels-disabled .${gIndicatorCssClass} {
+    pointer-events: none;
+}
+
+.panels-disabled .${gIndicatorDriveOnCssClass} {
+    opacity: 0;
+}
 `;
 
 /**

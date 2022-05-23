@@ -432,9 +432,7 @@ export class ScreenEditor {
                     this.rasterBackup.set(this.raster);
                     break;
                 case Tool.BUCKET:
-                    if (position !== undefined) {
-                        this.floodFill(position, this.mode == Mode.DRAW);
-                    }
+                    this.floodFill(position, this.mode == Mode.DRAW);
                     break;
             }
         }
@@ -444,13 +442,13 @@ export class ScreenEditor {
         }
         switch (this.tool) {
             case Tool.PENCIL:
-                if (this.previousPosition != undefined && position !== undefined) {
+                if (this.previousPosition != undefined) {
                     this.drawLine(this.previousPosition, position, this.mode === Mode.DRAW);
                     this.previousPosition = position;
                 }
                 break;
             case Tool.LINE:
-                if (this.mouseDownPosition != undefined && position !== undefined) {
+                if (this.mouseDownPosition != undefined) {
                     this.raster.set(this.rasterBackup);
                     this.rasterToScreen();
                     if (e.shiftKey) {
@@ -484,7 +482,7 @@ export class ScreenEditor {
                 }
                 break;
             case Tool.RECTANGLE:
-                if (this.mouseDownPosition != undefined && position !== undefined) {
+                if (this.mouseDownPosition != undefined) {
                     this.raster.set(this.rasterBackup);
                     this.rasterToScreen();
                     if (e.shiftKey) {
@@ -508,7 +506,7 @@ export class ScreenEditor {
                 }
                 break;
             case Tool.ELLIPSE:
-                if (this.mouseDownPosition != undefined && position !== undefined) {
+                if (this.mouseDownPosition != undefined) {
                     this.raster.set(this.rasterBackup);
                     this.rasterToScreen();
 
