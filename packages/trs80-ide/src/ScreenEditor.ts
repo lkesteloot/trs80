@@ -228,6 +228,7 @@ export class ScreenEditor {
     private readonly statusPanelDiv: HTMLDivElement;
     private end: number;
     private byteCount: number;
+    private byteCountBackup: number = 0;
     private mouseDownPosition: ScreenMousePosition | undefined = undefined;
     private previousPosition: ScreenMousePosition | undefined = undefined;
     private mode: Mode = Mode.DRAW;
@@ -342,6 +343,7 @@ export class ScreenEditor {
         this.trs80.start();
         this.mouseUnsubscribe();
         this.controlPanelDiv.remove();
+        this.statusPanelDiv.remove();
         this.onClose();
     }
 
@@ -481,6 +483,7 @@ export class ScreenEditor {
                     this.mouseDownPosition = e.position;
                     this.previousPosition = undefined;
                     this.rasterBackup.set(this.raster);
+                    this.byteCountBackup = this.byteCount;
                     break;
                 case Tool.BUCKET:
                     this.floodFill(position, this.mode == Mode.DRAW);
@@ -503,6 +506,7 @@ export class ScreenEditor {
                 if (this.mouseDownPosition != undefined) {
                     this.raster.set(this.rasterBackup);
                     this.rasterToScreen();
+                    this.byteCount = this.byteCountBackup;
                     if (e.shiftKey) {
                         let x = position.pixelX;
                         let y = position.pixelY;
@@ -537,6 +541,7 @@ export class ScreenEditor {
                 if (this.mouseDownPosition != undefined) {
                     this.raster.set(this.rasterBackup);
                     this.rasterToScreen();
+                    this.byteCount = this.byteCountBackup;
                     if (e.shiftKey) {
                         let x = position.pixelX;
                         let y = position.pixelY;
@@ -561,6 +566,7 @@ export class ScreenEditor {
                 if (this.mouseDownPosition != undefined) {
                     this.raster.set(this.rasterBackup);
                     this.rasterToScreen();
+                    this.byteCount = this.byteCountBackup;
 
                     if (e.shiftKey) {
                         let x = position.pixelX;
@@ -747,7 +753,8 @@ export class ScreenEditor {
         }
         this.raster[position.offset] = ch;
         this.screen.writeChar(position.address, ch);
-        this.byteCount = Math.max(this.byteCount, position.offset + 1);
+        // Round up to the end of the line.
+        this.byteCount = Math.max(this.byteCount, (position.offset + 64) & 0xFFC0);
     }
 
     /**
