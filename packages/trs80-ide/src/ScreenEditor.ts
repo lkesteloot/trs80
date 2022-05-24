@@ -148,7 +148,7 @@ function makeButtons(parent: HTMLDivElement,
     parent.append(container);
 
     for (const { label, icon, onClick } of buttons) {
-        const button = document.createElement("button");
+        const button = document.createElement("label");
         setButtonLabel(button, label, icon);
         button.addEventListener("click", () => onClick());
         container.append(button);

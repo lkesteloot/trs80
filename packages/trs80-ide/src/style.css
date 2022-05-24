@@ -133,8 +133,7 @@ body {
     display: none;
 }
 
-.screen-editor-button-group label,
-.screen-editor-control-panel button {
+.screen-editor-button-group label {
     display: inline-flex;
     align-items: center;
     padding: 0 10px;
@@ -150,40 +149,37 @@ body {
     user-select: none;
 }
 
-.screen-editor-button-group label .screen-editor-selected-icon,
-.screen-editor-control-panel button .screen-editor-selected-icon {
+.screen-editor-button-group label .screen-editor-selected-icon {
     display: none;
 }
 
-.screen-editor-button-group label:first-of-type,
-.screen-editor-button-group button:first-of-type {
+.screen-editor-button-group label:first-of-type {
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
     border-left: 1px solid var(--base03);
 }
 
-.screen-editor-button-group label:last-of-type,
-.screen-editor-button-group button:last-of-type {
+.screen-editor-button-group label:last-of-type {
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
 }
 
 .screen-editor-button-group input[type=radio]:checked + label,
 .screen-editor-button-group input[type=checkbox]:checked + label,
-.screen-editor-button-group button:active {
+.screen-editor-button-group label:active {
     background-color: var(--blue);
     color: var(--base3);
 }
 
 .screen-editor-button-group input[type=radio]:checked + label .screen-editor-selected-icon,
 .screen-editor-button-group input[type=checkbox]:checked + label .screen-editor-selected-icon,
-.screen-editor-button-group button:active .screen-editor-selected-icon {
+.screen-editor-button-group label:active .screen-editor-selected-icon {
     display: inline;
 }
 
 .screen-editor-button-group input[type=radio]:checked + label .screen-editor-normal-icon,
 .screen-editor-button-group input[type=checkbox]:checked + label .screen-editor-normal-icon,
-.screen-editor-button-group button:active .screen-editor-normal-icon {
+.screen-editor-button-group label:active .screen-editor-normal-icon {
     display: none;
 }
 
