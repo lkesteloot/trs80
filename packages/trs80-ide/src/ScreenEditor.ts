@@ -45,10 +45,12 @@ class UndoInfo {
     public readonly raster: Uint8Array;
     // For text mode only.
     public readonly cursorPosition: number | undefined;
+    public readonly byteCount: number;
 
-    constructor(raster: Uint8Array, cursorPosition: number | undefined) {
+    constructor(raster: Uint8Array, cursorPosition: number | undefined, byteCount: number) {
         this.raster = raster.slice();
         this.cursorPosition = cursorPosition;
+        this.byteCount = byteCount;
     }
 }
 
@@ -317,7 +319,7 @@ export class ScreenEditor {
         this.raster.fill(0x80);
 
         const s = assemblyResults.screenshotSections[screenshotIndex];
-        this.byteCount = s.byteCount;
+        this.byteCount = s.byteCount; // Don't round up here, leave what user has.
         this.extraBytes = [];
         if (s.firstDataLineNumber !== undefined && s.lastDataLineNumber !== undefined) {
             let i = 0;
@@ -451,7 +453,7 @@ export class ScreenEditor {
      * Make a fresh undo info from the current state.
      */
     private makeUndoInfo(): UndoInfo {
-        return new UndoInfo(this.raster, this.overlayOptions.cursorPosition);
+        return new UndoInfo(this.raster, this.overlayOptions.cursorPosition, this.byteCount);
     }
 
     /**
@@ -467,6 +469,8 @@ export class ScreenEditor {
                 this.startBlinkTimer();
             }
         }
+
+        this.byteCount = undoInfo.byteCount;
     }
 
     /**
