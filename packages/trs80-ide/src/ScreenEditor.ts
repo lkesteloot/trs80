@@ -24,6 +24,7 @@ import bucketIcon from "./icons/bucket.ico";
 import textIcon from "./icons/text.ico";
 
 const PREFIX = "screen-editor";
+const MAX_UNDO = 1000; // About 1k each.
 
 // Sync this with CSS:
 const NORMAL_ICON_COLOR = "#002b36";
@@ -411,7 +412,16 @@ export class ScreenEditor {
      * Call this just before making a mutating change that needs to be undoable.
      */
     private prepareForMutation(): void {
+        // Add current state to undo stack.
         this.undoStack.push(this.makeUndoInfo());
+
+        // Make sure undo stack doesn't get too large. We push one for each character typed.
+        const cut = Math.max(this.undoStack.length - MAX_UNDO, 0);
+        if (cut > 0) {
+            this.undoStack.splice(0, cut);
+        }
+
+        // Wipe out redo stack.
         this.redoStack.splice(0, this.redoStack.length);
     }
 
