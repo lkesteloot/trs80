@@ -4,7 +4,7 @@ import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "trs80-
 import {toHexByte} from "z80-base";
 import {TRS80_CHAR_HEIGHT, TRS80_CHAR_PIXEL_HEIGHT, TRS80_CHAR_PIXEL_WIDTH, TRS80_CHAR_WIDTH,
     TRS80_PIXEL_HEIGHT,
-    TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
+    TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END, TRS80_SCREEN_SIZE} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 
 export const AUTHENTIC_BACKGROUND = "#334843";
@@ -100,6 +100,10 @@ export interface OverlayOptions {
     showHighlight?: boolean;
     highlightPixelColumn?: number;
     highlightPixelRow?: number;
+
+    // Whether to show a character cursor, and where.
+    showCursor?: boolean;
+    cursorPosition?: number; // 0 to 1023.
 }
 
 const DEFAULT_OVERLAY_OPTIONS: Required<OverlayOptions> = {
@@ -108,6 +112,8 @@ const DEFAULT_OVERLAY_OPTIONS: Required<OverlayOptions> = {
     showHighlight: false,
     highlightPixelColumn: 0,
     highlightPixelRow: 0,
+    showCursor: false,
+    cursorPosition: 0,
 };
 
 function overlayOptionsEqual(a: OverlayOptions, b: OverlayOptions): boolean {
@@ -115,7 +121,9 @@ function overlayOptionsEqual(a: OverlayOptions, b: OverlayOptions): boolean {
         a.showCharGrid === b.showCharGrid &&
         a.showHighlight === b.showHighlight &&
         a.highlightPixelColumn === b.highlightPixelColumn &&
-        a.highlightPixelRow === b.highlightPixelRow;
+        a.highlightPixelRow === b.highlightPixelRow &&
+        a.showCursor === b.showCursor &&
+        a.cursorPosition === b.cursorPosition;
 }
 
 const GRID_COLOR = "rgba(160, 160, 255, 0.5)";
@@ -163,7 +171,7 @@ export class CanvasScreen extends Trs80WebScreen {
         this.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
         this.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
         this.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
-        // We dom't have a good way to unsubscribe from these two. We could add some kind of close() method.
+        // We don't have a good way to unsubscribe from these two. We could add some kind of close() method.
         // We could also check in the callback that the canvas's ancestor is window.
         window.addEventListener("keydown", (event) => this.onKeyEvent(event), {
             capture: true,
@@ -185,13 +193,17 @@ export class CanvasScreen extends Trs80WebScreen {
      */
     public setOverlayOptions(userOptions: OverlayOptions): void {
         // Fill in defaults.
-        const options: Required<OverlayOptions> = { ... DEFAULT_OVERLAY_OPTIONS, ... userOptions };
+        const options: Required<OverlayOptions> = {
+            ... DEFAULT_OVERLAY_OPTIONS,
+            ... userOptions
+        };
         if (overlayOptionsEqual(options, this.overlayOptions)) {
             return;
         }
         this.overlayOptions = options;
 
-        const showOverlay = options.showPixelGrid || options.showCharGrid || options.showHighlight !== undefined;
+        const showOverlay = options.showPixelGrid || options.showCharGrid ||
+            options.showHighlight !== undefined || options.showCursor;
         if (showOverlay) {
             const width = this.canvas.width;
             const height = this.canvas.height;
@@ -248,6 +260,17 @@ export class CanvasScreen extends Trs80WebScreen {
                     ctx.lineTo(width - this.padding, y);
                     ctx.stroke();
                 }
+            }
+
+            // Draw cursor.
+            if (options.showCursor && options.cursorPosition >= 0 && options.cursorPosition < TRS80_SCREEN_SIZE) {
+                const x = options.cursorPosition % TRS80_CHAR_WIDTH;
+                const y = Math.floor(options.cursorPosition / TRS80_CHAR_WIDTH);
+
+                ctx.fillStyle = GRID_HIGHLIGHT_COLOR;
+                ctx.fillRect(x * 8 * this.scale + this.padding,
+                    y * 24 * this.scale + this.padding,
+                    8 * this.scale, 24 * this.scale);
             }
         } else {
             // Remove overlay.

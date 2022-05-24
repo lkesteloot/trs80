@@ -15,6 +15,7 @@ import {Context} from "./Context";
 import {PageTab} from "./PageTab";
 import {TagSet} from "./TagSet";
 import {PageTabs} from "./PageTabs";
+import { TRS80_BLINK_PERIOD_MS } from "trs80-base";
 
 const FILE_ID_ATTR = "data-file-id";
 const IMPORT_FILE_LABEL = "Import File";
@@ -41,8 +42,6 @@ function getRandomNoFilterQuote(): string {
  * A TRS-80-like cursor in HTML.
  */
 class AuthenticCursor {
-    // This is 7 ticks of the Model III timer (30 Hz).
-    private static readonly BLINK_PERIOD_MS = 233;
     public readonly node: HTMLElement;
     public readonly handle: number;
     public visible = true;
@@ -55,7 +54,7 @@ class AuthenticCursor {
         this.handle = window.setInterval(() => {
             this.visible = !this.visible;
             this.update();
-        }, AuthenticCursor.BLINK_PERIOD_MS);
+        }, TRS80_BLINK_PERIOD_MS);
     }
 
     /**

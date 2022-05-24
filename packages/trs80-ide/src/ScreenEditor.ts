@@ -1,6 +1,6 @@
 import {EditorView} from "@codemirror/view";
 import {ChangeSpec} from "@codemirror/state";
-import {TRS80_PIXEL_HEIGHT, TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
+import {TRS80_BLINK_PERIOD_MS, TRS80_PIXEL_HEIGHT, TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
 import {Trs80} from 'trs80-emulator';
 import {CanvasScreen, OverlayOptions, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulator-web';
 import {toHexByte} from 'z80-base';
@@ -21,6 +21,7 @@ import lineIcon from "./icons/line.ico";
 import rectangleIcon from "./icons/rectangle.ico";
 import ellipseIcon from "./icons/ellipse.ico";
 import bucketIcon from "./icons/bucket.ico";
+import textIcon from "./icons/text.ico";
 
 const PREFIX = "screen-editor";
 
@@ -33,7 +34,21 @@ enum Mode {
 }
 
 enum Tool {
-    PENCIL, LINE, RECTANGLE, ELLIPSE, BUCKET,
+    PENCIL, LINE, RECTANGLE, ELLIPSE, BUCKET, TEXT,
+}
+
+/**
+ * Everything restored with undo.
+ */
+class UndoInfo {
+    public readonly raster: Uint8Array;
+    // For text mode only.
+    public readonly cursorPosition: number | undefined;
+
+    constructor(raster: Uint8Array, cursorPosition: number | undefined) {
+        this.raster = raster.slice();
+        this.cursorPosition = cursorPosition;
+    }
 }
 
 let gPrefixCounter = 1;
@@ -220,12 +235,13 @@ export class ScreenEditor {
     private readonly mouseUnsubscribe: () => void;
     private readonly raster = new Uint8Array(TRS80_SCREEN_SIZE);
     private readonly rasterBackup = new Uint8Array(TRS80_SCREEN_SIZE);
-    private readonly undoStack: Uint8Array[] = [];
-    private readonly redoStack: Uint8Array[] = [];
+    private readonly undoStack: UndoInfo[] = [];
+    private readonly redoStack: UndoInfo[] = [];
     private readonly extraBytes: number[];
     private readonly begin: number;
     private readonly controlPanelDiv: HTMLDivElement;
     private readonly statusPanelDiv: HTMLDivElement;
+    private readonly onKeyDown = (event: KeyboardEvent) => this.handleKeyDown(event);
     private end: number;
     private byteCount: number;
     private byteCountBackup: number = 0;
@@ -234,6 +250,7 @@ export class ScreenEditor {
     private mode: Mode = Mode.DRAW;
     private tool: Tool = Tool.PENCIL;
     private overlayOptions: OverlayOptions = {};
+    private blinkHandle: number | undefined = undefined;
 
     constructor(view: EditorView, pos: number, assemblyResults: AssemblyResults,
                 screenshotIndex: number, trs80: Trs80, screen: CanvasScreen, onClose: () => void) {
@@ -288,7 +305,8 @@ export class ScreenEditor {
             { label: "Rectangle", icon: rectangleIcon, value: Tool.RECTANGLE },
             { label: "Ellipse", icon: ellipseIcon, value: Tool.ELLIPSE },
             { label: "Bucket", icon: bucketIcon, value: Tool.BUCKET },
-        ], Tool.PENCIL, tool => this.tool = tool);
+            { label: "Text", icon: textIcon, value: Tool.TEXT },
+        ], Tool.PENCIL, tool => this.setTool(tool));
 
         this.statusPanelDiv = document.createElement("div");
         this.statusPanelDiv.classList.add(PREFIX + "-status-panel");
@@ -321,6 +339,8 @@ export class ScreenEditor {
             this.end = this.begin;
         }
 
+        window.addEventListener("keydown", this.onKeyDown);
+
         this.screen.setOverlayOptions(this.overlayOptions);
         this.rasterToScreen();
     }
@@ -344,14 +364,54 @@ export class ScreenEditor {
         this.mouseUnsubscribe();
         this.controlPanelDiv.remove();
         this.statusPanelDiv.remove();
+        this.stopBlinkTimer();
+        window.removeEventListener("keydown", this.onKeyDown);
         this.onClose();
+    }
+
+    /**
+     * Set the current drawing tool.
+     */
+    private setTool(tool: Tool): void {
+        this.tool = tool;
+
+        if (this.tool === Tool.TEXT) {
+            this.startBlinkTimer();
+        } else {
+            this.stopBlinkTimer();
+        }
+    }
+
+    /**
+     * Starts a cursor blink timer.
+     */
+    private startBlinkTimer(): void {
+        this.stopBlinkTimer();
+        this.overlayOptions.showCursor = true;
+        this.screen.setOverlayOptions(this.overlayOptions);
+        this.blinkHandle = window.setInterval(() => {
+            this.overlayOptions.showCursor = !this.overlayOptions.showCursor;
+            this.screen.setOverlayOptions(this.overlayOptions);
+        }, TRS80_BLINK_PERIOD_MS);
+    }
+
+    /**
+     * Stops any ongoing blink timer.
+     */
+    private stopBlinkTimer(): void {
+        if (this.blinkHandle !== undefined) {
+            window.clearInterval(this.blinkHandle);
+            this.blinkHandle = undefined;
+        }
+        this.overlayOptions.showCursor = false;
+        this.screen.setOverlayOptions(this.overlayOptions);
     }
 
     /**
      * Call this just before making a mutating change that needs to be undoable.
      */
     private prepareForMutation(): void {
-        this.undoStack.push(this.raster.slice());
+        this.undoStack.push(this.makeUndoInfo());
         this.redoStack.splice(0, this.redoStack.length);
     }
 
@@ -359,11 +419,10 @@ export class ScreenEditor {
      * Undo the most recent change.
      */
     private undo(): void {
-        const raster = this.undoStack.pop() as Uint8Array;
-        if (raster !== undefined) {
-            this.redoStack.push(this.raster.slice());
-            this.raster.set(raster);
-            this.rasterToScreen();
+        const undoInfo = this.undoStack.pop() as UndoInfo;
+        if (undoInfo !== undefined) {
+            this.redoStack.push(this.makeUndoInfo());
+            this.restoreUndoInfo(undoInfo);
         }
     }
 
@@ -371,11 +430,32 @@ export class ScreenEditor {
      * Redo the most recent undo.
      */
     private redo(): void {
-        const raster = this.redoStack.pop() as Uint8Array;
-        if (raster !== undefined) {
-            this.undoStack.push(this.raster.slice());
-            this.raster.set(raster);
-            this.rasterToScreen();
+        const undoInfo = this.redoStack.pop() as UndoInfo;
+        if (undoInfo !== undefined) {
+            this.undoStack.push(this.makeUndoInfo());
+            this.restoreUndoInfo(undoInfo);
+        }
+    }
+
+    /**
+     * Make a fresh undo info from the current state.
+     */
+    private makeUndoInfo(): UndoInfo {
+        return new UndoInfo(this.raster, this.overlayOptions.cursorPosition);
+    }
+
+    /**
+     * Restore state from undo info.
+     */
+    private restoreUndoInfo(undoInfo: UndoInfo): void {
+        this.raster.set(undoInfo.raster);
+        this.rasterToScreen();
+
+        if (undoInfo.cursorPosition !== undefined) {
+            this.overlayOptions.cursorPosition = undoInfo.cursorPosition;
+            if (this.tool === Tool.TEXT) {
+                this.startBlinkTimer();
+            }
         }
     }
 
@@ -470,23 +550,28 @@ export class ScreenEditor {
         this.screen.setOverlayOptions(this.overlayOptions);
 
         if (e.type === "mousedown") {
-            this.prepareForMutation();
-
             switch (this.tool) {
                 case Tool.PENCIL:
+                    this.prepareForMutation();
                     this.mouseDownPosition = e.position;
                     this.previousPosition = e.position;
                     break;
                 case Tool.LINE:
                 case Tool.RECTANGLE:
                 case Tool.ELLIPSE:
+                    this.prepareForMutation();
                     this.mouseDownPosition = e.position;
                     this.previousPosition = undefined;
                     this.rasterBackup.set(this.raster);
                     this.byteCountBackup = this.byteCount;
                     break;
                 case Tool.BUCKET:
+                    this.prepareForMutation();
                     this.floodFill(position, this.mode == Mode.DRAW);
+                    break;
+                case Tool.TEXT:
+                    this.overlayOptions.cursorPosition = position.offset;
+                    this.startBlinkTimer();
                     break;
             }
         }
@@ -612,6 +697,65 @@ export class ScreenEditor {
         }
 
         this.statusPanelDiv.innerText = statusText.filter(s => s.length > 0).join(", ");
+    }
+
+    /**
+     * Handle key down events from anywhere in the window.
+     * @param event
+     * @private
+     */
+    private handleKeyDown(event: KeyboardEvent): void {
+        if (this.tool === Tool.TEXT) {
+            const key = event.key;
+
+            // Reset position.
+            let pos = this.overlayOptions.cursorPosition;
+            if (pos === undefined || pos < 0 || pos >= TRS80_SCREEN_SIZE) {
+                pos = 0;
+            }
+
+            // I don't know if there's a good way to tell an insertable key from a key like Enter.
+            if (key.length === 1) {
+                let code = key.codePointAt(0) as number;
+                if (code >= 32 && code < 127) {
+                    // ASCII character.
+                    this.prepareForMutation();
+                    this.raster[pos] = code;
+                    this.rasterToScreen();
+                    this.extendByteCount(pos);
+                    this.overlayOptions.cursorPosition = (pos + 1) % TRS80_SCREEN_SIZE;
+                    this.startBlinkTimer();
+                }
+            } else if (key === "Enter") {
+                this.overlayOptions.cursorPosition = ((pos & 0xFFC0) + 64) % TRS80_SCREEN_SIZE;
+                this.startBlinkTimer();
+            } else if (key === "Tab") {
+                if (event.shiftKey) {
+                    this.overlayOptions.cursorPosition = ((pos + TRS80_SCREEN_SIZE - 1) & 0xFFF8) % TRS80_SCREEN_SIZE;
+                } else {
+                    this.overlayOptions.cursorPosition = ((pos & 0xFFF8) + 8) % TRS80_SCREEN_SIZE;
+                }
+                this.startBlinkTimer();
+            } else if (key === "Backspace") {
+                this.prepareForMutation();
+                pos = (pos + TRS80_SCREEN_SIZE - 1) % TRS80_SCREEN_SIZE;
+                this.raster[pos] = 0x80;
+                this.rasterToScreen();
+                this.overlayOptions.cursorPosition = pos;
+                this.startBlinkTimer();
+            } else {
+                // Something else, ignore.
+            }
+        }
+    }
+
+    /**
+     * Extend what we consider to be the size of the screen being edited.
+     * @param pos position that we just modified.
+     */
+    private extendByteCount(pos: number): void {
+        // Round up to the end of the line.
+        this.byteCount = Math.max(this.byteCount, (pos + 64) & 0xFFC0);
     }
 
     /**
@@ -769,8 +913,7 @@ export class ScreenEditor {
         }
         this.raster[position.offset] = ch;
         this.screen.writeChar(position.address, ch);
-        // Round up to the end of the line.
-        this.byteCount = Math.max(this.byteCount, (position.offset + 64) & 0xFFC0);
+        this.extendByteCount(position.offset);
     }
 
     /**
