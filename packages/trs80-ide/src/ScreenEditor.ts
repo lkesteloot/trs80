@@ -510,28 +510,42 @@ export class ScreenEditor {
                     if (e.shiftKey) {
                         let x = position.pixelX;
                         let y = position.pixelY;
-                        const dx = x - this.mouseDownPosition.pixelX;
-                        const dy = y - this.mouseDownPosition.pixelY;
-                        const a = Math.atan2(dy, dx)*180/Math.PI;
+                        let dx = x - this.mouseDownPosition.pixelX;
+                        let dy = y - this.mouseDownPosition.pixelY;
 
-                        // Match Photoshop angle thresholds. Perhaps these should be adjusted
-                        // sine we have rectangular pixels.
-                        if (Math.abs(a) < 27 || Math.abs(a) > 153) {
+                        // Double dy because pixels are twice as tall as they are wide.
+                        // This angle is visual, and is from -180 to 180.
+                        const a = Math.atan2(dy*2, dx)*180/Math.PI;
+
+                        // We allow both pixel 45 degrees and visual 45 degrees. Since
+                        // our computed angle is visual, the pixel 45 degrees will be
+                        // at 63 degrees.
+                        if (Math.abs(a) < 27 || Math.abs(a) > 180 - 27) {
                             // Snap to horizontal.
-                            y = this.mouseDownPosition.pixelY;
-                        } else if (Math.abs(a) > 63 && Math.abs(a) < 117) {
+                            dy = 0;
+                        } else if (Math.abs(a) > 76 && Math.abs(a) < 180 - 76) { // Between 63 and 90
                             // Snap to vertical.
-                            x = this.mouseDownPosition.pixelX;
-                        } else {
-                            // Snap to 45 degrees.
-                            if (Math.abs(dx) < Math.abs(dy)) {
+                            dx = 0;
+                        } else if (Math.abs(a) < 54 || Math.abs(a) > 180 - 54) { // Between 45 and 63
+                            // Visual 45 degrees.
+                            if (Math.abs(dx) < Math.abs(dy*2)) {
                                 // X is shorter, clamp Y.
-                                y = this.mouseDownPosition.pixelY + Math.sign(dy)*Math.abs(dx);
+                                dy = Math.sign(dy)*Math.round(Math.abs(dx/2));
+                            }
+                            // X must always be an odd distance away horizontally.
+                            dx = Math.sign(dx)*Math.abs(dy*2 + Math.sign(dy));
+                        } else {
+                            // Pixel 45 degrees.
+                            if (Math.abs(dx) < Math.abs(dy*2)) {
+                                // X is shorter, clamp Y.
+                                dy = Math.sign(dy)*Math.abs(dx);
                             } else {
                                 // Y is shorter, clamp X.
-                                x = this.mouseDownPosition.pixelX + Math.sign(dx)*Math.abs(dy);
+                                dx = Math.sign(dx)*Math.abs(dy);
                             }
                         }
+                        x = this.mouseDownPosition.pixelX + dx;
+                        y = this.mouseDownPosition.pixelY + dy;
                         position = new ScreenMousePosition(x, y);
                     }
                     statusText.push(this.drawLine(this.mouseDownPosition, position, value));
@@ -545,18 +559,19 @@ export class ScreenEditor {
                     if (e.shiftKey) {
                         let x = position.pixelX;
                         let y = position.pixelY;
-                        const dx = x - this.mouseDownPosition.pixelX;
-                        const dy = y - this.mouseDownPosition.pixelY;
+                        let dx = x - this.mouseDownPosition.pixelX;
+                        let dy = y - this.mouseDownPosition.pixelY;
 
-                        // Snap to square.
-                        if (Math.abs(dx) < Math.abs(dy)) {
+                        // Snap to visual square.
+                        if (Math.abs(dx) < Math.abs(dy*2)) {
                             // X is shorter, clamp Y.
-                            y = this.mouseDownPosition.pixelY + Math.sign(dy)*Math.abs(dx);
-                        } else {
-                            // Y is shorter, clamp X.
-                            x = this.mouseDownPosition.pixelX + Math.sign(dx)*Math.abs(dy);
+                            dy = Math.sign(dy)*Math.round(Math.abs(dx/2));
                         }
+                        // X must always be an odd distance away horizontally.
+                        dx = Math.sign(dx)*Math.abs(dy*2 + Math.sign(dy));
 
+                        x = this.mouseDownPosition.pixelX + dx;
+                        y = this.mouseDownPosition.pixelY + dy;
                         position = new ScreenMousePosition(x, y);
                     }
                     statusText.push(this.drawRectangle(this.mouseDownPosition, position, value));
@@ -571,18 +586,19 @@ export class ScreenEditor {
                     if (e.shiftKey) {
                         let x = position.pixelX;
                         let y = position.pixelY;
-                        const dx = x - this.mouseDownPosition.pixelX;
-                        const dy = y - this.mouseDownPosition.pixelY;
+                        let dx = x - this.mouseDownPosition.pixelX;
+                        let dy = y - this.mouseDownPosition.pixelY;
 
                         // Snap to square.
-                        if (Math.abs(dx) < Math.abs(dy)) {
+                        if (Math.abs(dx) < Math.abs(dy*2)) {
                             // X is shorter, clamp Y.
-                            y = this.mouseDownPosition.pixelY + Math.sign(dy)*Math.abs(dx);
-                        } else {
-                            // Y is shorter, clamp X.
-                            x = this.mouseDownPosition.pixelX + Math.sign(dx)*Math.abs(dy);
+                            dy = Math.sign(dy)*Math.round(Math.abs(dx/2));
                         }
+                        // X must always be an odd distance away horizontally.
+                        dx = Math.sign(dx)*Math.abs(dy*2 + Math.sign(dy));
 
+                        x = this.mouseDownPosition.pixelX + dx;
+                        y = this.mouseDownPosition.pixelY + dy;
                         position = new ScreenMousePosition(x, y);
                     }
 
