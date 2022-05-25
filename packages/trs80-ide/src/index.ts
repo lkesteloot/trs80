@@ -75,15 +75,15 @@ loop:
         inc hl
         dec b
         jr nz,loop
-      
+
+stop:
+        jp stop
+
         ; Screenshot
 screenshot:
         .byte 65, 66
         ; End screenshot
         .byte 0
-        
-stop:
-        jp stop
 `;
 
 const space_invaders = `        .org 0x5000

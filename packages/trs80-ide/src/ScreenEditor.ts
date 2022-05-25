@@ -497,19 +497,38 @@ export class ScreenEditor {
     }
 
     /**
+     * Whether the byte value is considered printable ASCII.
+     */
+    private isPrintableAscii(b: number): boolean {
+        return b >= 32 && b < 127;
+    }
+
+    /**
      * Write our raster array back to the source code.
      */
     private rasterToCode() {
         const lines = [];
         const raster = Array.from(this.raster.subarray(0, this.byteCount));
-        for (let i = 0; i < raster.length; i += 8) {
-            const bytes = raster.slice(i, i + 8);
-            const bytesStrings = bytes.map(b => "0x" + toHexByte(b));
+        for (let i = 0; i < raster.length;) {
             // TODO guess the indent.
-            // TODO guess ASCII and use .text.
-            let text = `        .byte ${bytesStrings.join(",")}`;
-            if (i % 64 == 0) {
-                text += ` ; Line ${i / 64}`;
+            let text = "          ";
+            const begin = i++;
+            // Figure out if this is ASCII or binary.
+            if (this.isPrintableAscii(raster[begin])) {
+                // ASCII.
+                while (i < raster.length && this.isPrintableAscii(raster[i]) && i % 64 !== 0) {
+                    i++;
+                }
+                text += ".text '" + raster.slice(begin, i).map(b => String.fromCodePoint(b)).join("") + "'";
+            } else {
+                // Binary.
+                while (i < raster.length && !this.isPrintableAscii(raster[i]) && i % 8 !== 0) {
+                    i++;
+                }
+                text += ".byte " + raster.slice(begin, i).map(b => "0x" + toHexByte(b)).join(",");
+            }
+            if (begin % 64 == 0) {
+                text += ` ; Line ${begin / 64}`;
             }
             lines.push(text);
         }
@@ -731,7 +750,7 @@ export class ScreenEditor {
             // I don't know if there's a good way to tell an insertable key from a key like Enter.
             if (key.length === 1) {
                 let code = key.codePointAt(0) as number;
-                if (code >= 32 && code < 127) {
+                if (this.isPrintableAscii(code)) {
                     // ASCII character.
                     this.prepareForMutation();
                     this.raster[pos] = code;
