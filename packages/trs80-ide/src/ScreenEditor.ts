@@ -39,6 +39,13 @@ enum Tool {
 }
 
 /**
+ * Whether the byte value is considered printable ASCII.
+ */
+function isPrintableAscii(b: number): boolean {
+    return b >= 32 && b < 127;
+}
+
+/**
  * Everything restored with undo.
  */
 class UndoInfo {
@@ -254,6 +261,7 @@ export class ScreenEditor {
     private tool: Tool = Tool.PENCIL;
     private overlayOptions: OverlayOptions = {};
     private blinkHandle: number | undefined = undefined;
+    private pixelStatus = "";
 
     constructor(view: EditorView, pos: number, assemblyResults: AssemblyResults,
                 screenshotIndex: number, trs80: Trs80, screen: CanvasScreen, onClose: () => void) {
@@ -383,6 +391,8 @@ export class ScreenEditor {
         } else {
             this.stopBlinkTimer();
         }
+
+        this.updateStatus();
     }
 
     /**
@@ -464,10 +474,7 @@ export class ScreenEditor {
         this.rasterToScreen();
 
         if (undoInfo.cursorPosition !== undefined) {
-            this.overlayOptions.cursorPosition = undoInfo.cursorPosition;
-            if (this.tool === Tool.TEXT) {
-                this.startBlinkTimer();
-            }
+            this.setCursorPosition(undoInfo.cursorPosition);
         }
 
         this.byteCount = undoInfo.byteCount;
@@ -497,13 +504,6 @@ export class ScreenEditor {
     }
 
     /**
-     * Whether the byte value is considered printable ASCII.
-     */
-    private isPrintableAscii(b: number): boolean {
-        return b >= 32 && b < 127;
-    }
-
-    /**
      * Write our raster array back to the source code.
      */
     private rasterToCode() {
@@ -514,15 +514,15 @@ export class ScreenEditor {
             let text = "          ";
             const begin = i++;
             // Figure out if this is ASCII or binary.
-            if (this.isPrintableAscii(raster[begin])) {
+            if (isPrintableAscii(raster[begin])) {
                 // ASCII.
-                while (i < raster.length && this.isPrintableAscii(raster[i]) && i % 64 !== 0) {
+                while (i < raster.length && isPrintableAscii(raster[i]) && i % 64 !== 0) {
                     i++;
                 }
                 text += ".text '" + raster.slice(begin, i).map(b => String.fromCodePoint(b)).join("") + "'";
             } else {
                 // Binary.
-                while (i < raster.length && !this.isPrintableAscii(raster[i]) && i % 8 !== 0) {
+                while (i < raster.length && !isPrintableAscii(raster[i]) && i % 8 !== 0) {
                     i++;
                 }
                 text += ".byte " + raster.slice(begin, i).map(b => "0x" + toHexByte(b)).join(",");
@@ -603,8 +603,7 @@ export class ScreenEditor {
                     this.floodFill(position, this.mode == Mode.DRAW);
                     break;
                 case Tool.TEXT:
-                    this.overlayOptions.cursorPosition = position.offset;
-                    this.startBlinkTimer();
+                    this.setCursorPosition(position.offset);
                     break;
             }
         }
@@ -729,7 +728,8 @@ export class ScreenEditor {
                 break;
         }
 
-        this.statusPanelDiv.innerText = statusText.filter(s => s.length > 0).join(", ");
+        this.pixelStatus = statusText.filter(s => s.length > 0).join(", ");
+        this.updateStatus();
     }
 
     /**
@@ -750,32 +750,28 @@ export class ScreenEditor {
             // I don't know if there's a good way to tell an insertable key from a key like Enter.
             if (key.length === 1) {
                 let code = key.codePointAt(0) as number;
-                if (this.isPrintableAscii(code)) {
+                if (isPrintableAscii(code)) {
                     // ASCII character.
                     this.prepareForMutation();
                     this.raster[pos] = code;
                     this.rasterToScreen();
                     this.extendByteCount(pos);
-                    this.overlayOptions.cursorPosition = (pos + 1) % TRS80_SCREEN_SIZE;
-                    this.startBlinkTimer();
+                    this.setCursorPosition((pos + 1) % TRS80_SCREEN_SIZE);
                 }
             } else if (key === "Enter") {
-                this.overlayOptions.cursorPosition = ((pos & 0xFFC0) + 64) % TRS80_SCREEN_SIZE;
-                this.startBlinkTimer();
+                this.setCursorPosition(((pos & 0xFFC0) + 64) % TRS80_SCREEN_SIZE);
             } else if (key === "Tab") {
                 if (event.shiftKey) {
-                    this.overlayOptions.cursorPosition = ((pos + TRS80_SCREEN_SIZE - 1) & 0xFFF8) % TRS80_SCREEN_SIZE;
+                    this.setCursorPosition(((pos + TRS80_SCREEN_SIZE - 1) & 0xFFF8) % TRS80_SCREEN_SIZE);
                 } else {
-                    this.overlayOptions.cursorPosition = ((pos & 0xFFF8) + 8) % TRS80_SCREEN_SIZE;
+                    this.setCursorPosition(((pos & 0xFFF8) + 8) % TRS80_SCREEN_SIZE);
                 }
-                this.startBlinkTimer();
             } else if (key === "Backspace") {
                 this.prepareForMutation();
                 pos = (pos + TRS80_SCREEN_SIZE - 1) % TRS80_SCREEN_SIZE;
                 this.raster[pos] = 0x80;
                 this.rasterToScreen();
-                this.overlayOptions.cursorPosition = pos;
-                this.startBlinkTimer();
+                this.setCursorPosition(pos);
             } else {
                 // Something else, ignore.
             }
@@ -982,5 +978,32 @@ export class ScreenEditor {
         } else {
             return (ch & position.mask) !== 0;
         }
+    }
+
+    /**
+     * Set the cursor position to the given location.
+     * @param position
+     * @private
+     */
+    private setCursorPosition(position: number): void {
+        this.overlayOptions.cursorPosition = position;
+        this.updateStatus();
+        if (this.tool === Tool.TEXT) {
+            this.startBlinkTimer();
+        }
+    }
+
+    /**
+     * Update the status bar based on the current state.
+     */
+    private updateStatus(): void {
+        const parts = [this.pixelStatus];
+
+        if (this.tool === Tool.TEXT) {
+            const cursor = this.overlayOptions.cursorPosition ?? 0;
+            parts.push(`cursor at ${cursor}, column ${cursor % 64}, row ${Math.floor(cursor / 64)}`);
+        }
+
+        this.statusPanelDiv.innerText = parts.join(", ");
     }
 }
