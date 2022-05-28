@@ -1,6 +1,7 @@
 import {EditorView} from "@codemirror/view";
 import {ChangeSpec} from "@codemirror/state";
-import {TRS80_BLINK_PERIOD_MS, TRS80_PIXEL_HEIGHT, TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
+import {TRS80_BLINK_PERIOD_MS,
+    TRS80_CHAR_WIDTH, TRS80_PIXEL_HEIGHT, TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
 import {Trs80} from 'trs80-emulator';
 import {CanvasScreen, OverlayOptions, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulator-web';
 import {toHexByte} from 'z80-base';
@@ -758,22 +759,39 @@ export class ScreenEditor {
                     this.extendByteCount(pos);
                     this.setCursorPosition((pos + 1) % TRS80_SCREEN_SIZE);
                 }
-            } else if (key === "Enter") {
-                this.setCursorPosition(((pos & 0xFFC0) + 64) % TRS80_SCREEN_SIZE);
-            } else if (key === "Tab") {
-                if (event.shiftKey) {
-                    this.setCursorPosition(((pos + TRS80_SCREEN_SIZE - 1) & 0xFFF8) % TRS80_SCREEN_SIZE);
-                } else {
-                    this.setCursorPosition(((pos & 0xFFF8) + 8) % TRS80_SCREEN_SIZE);
-                }
-            } else if (key === "Backspace") {
-                this.prepareForMutation();
-                pos = (pos + TRS80_SCREEN_SIZE - 1) % TRS80_SCREEN_SIZE;
-                this.raster[pos] = 0x80;
-                this.rasterToScreen();
-                this.setCursorPosition(pos);
-            } else {
-                // Something else, ignore.
+            } else switch (key) {
+                case "Enter":
+                    this.setCursorPosition(((pos & 0xFFC0) + 64) % TRS80_SCREEN_SIZE);
+                    break;
+                case "Tab":
+                    if (event.shiftKey) {
+                        this.setCursorPosition(((pos + TRS80_SCREEN_SIZE - 1) & 0xFFF8) % TRS80_SCREEN_SIZE);
+                    } else {
+                        this.setCursorPosition(((pos & 0xFFF8) + 8) % TRS80_SCREEN_SIZE);
+                    }
+                    break;
+                case "Backspace":
+                    this.prepareForMutation();
+                    pos = (pos + TRS80_SCREEN_SIZE - 1) % TRS80_SCREEN_SIZE;
+                    this.raster[pos] = 0x80;
+                    this.rasterToScreen();
+                    this.setCursorPosition(pos);
+                    break;
+                case "ArrowLeft":
+                    this.setCursorPosition((pos + TRS80_SCREEN_SIZE - 1) % TRS80_SCREEN_SIZE);
+                    break;
+                case "ArrowRight":
+                    this.setCursorPosition((pos + 1) % TRS80_SCREEN_SIZE);
+                    break;
+                case "ArrowUp":
+                    this.setCursorPosition((pos + TRS80_SCREEN_SIZE - TRS80_CHAR_WIDTH) % TRS80_SCREEN_SIZE);
+                    break;
+                case "ArrowDown":
+                    this.setCursorPosition((pos + TRS80_CHAR_WIDTH) % TRS80_SCREEN_SIZE);
+                    break;
+                default:
+                    // Something else, ignore.
+                    break;
             }
         }
     }
