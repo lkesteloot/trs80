@@ -1012,24 +1012,27 @@ export class ScreenEditor {
                 break;
             case Tool.SELECT:
                 if (this.mouseDownPosition !== undefined) {
-                    const x1 = this.mouseDownPosition.pixelX;
-                    const y1 = this.mouseDownPosition.pixelY;
-                    const x2 = position.pixelX;
-                    const y2 = position.pixelY;
-                    const width = Math.abs(x1 - x2);
-                    const height = Math.abs(y1 - y2);
-                    this.overlayOptions.selection = new Selection(
-                        Math.min(x1, x2), Math.min(y1, y2), width, height);
-                    statusText.push(`${width}×${height}`);
+                    // Only update selection when moving, so that a normal click clears the selection.
+                    if (e.type === "mousemove") {
+                        const x1 = this.mouseDownPosition.pixelX;
+                        const y1 = this.mouseDownPosition.pixelY;
+                        const x2 = position.pixelX;
+                        const y2 = position.pixelY;
+                        const width = Math.abs(x1 - x2) + 1;
+                        const height = Math.abs(y1 - y2) + 1;
+                        this.overlayOptions.selection = new Selection(
+                            Math.min(x1, x2), Math.min(y1, y2), width, height);
+                        statusText.push(`${width}×${height}`);
+                    }
                 } else if (this.selMoving) {
                     let x1 = position.pixelX - this.selMoveDx;
                     let y1 = position.pixelY - this.selMoveDy;
-                    let x2 = x1 + this.selMoveWidth;
+                    let x2 = x1 + this.selMoveWidth; // Exclusive
                     let y2 = y1 + this.selMoveHeight;
                     x1 = Math.max(x1, 0);
                     y1 = Math.max(y1, 0);
-                    x2 = Math.min(x2, TRS80_PIXEL_WIDTH - 1);
-                    y2 = Math.min(y2, TRS80_PIXEL_HEIGHT - 1);
+                    x2 = Math.min(x2, TRS80_PIXEL_WIDTH);
+                    y2 = Math.min(y2, TRS80_PIXEL_HEIGHT);
                     this.overlayOptions.selection = new Selection(x1, y1, x2 - x1, y2 - y1);
                     statusText.push(`${sel.width}×${sel.height}`);
                 }
@@ -1089,7 +1092,7 @@ export class ScreenEditor {
                     this.copy();
                     event.preventDefault();
                     break;
-                case "p":
+                case "v":
                     this.paste();
                     event.preventDefault();
                     break;
