@@ -1,4 +1,5 @@
-export {CanvasScreen, ScreenMouseEvent, ScreenMousePosition, ScreenMouseEventType, OverlayOptions} from "./CanvasScreen.js";
+export {CanvasScreen, ScreenMouseEvent, ScreenMousePosition, ScreenMouseEventType, OverlayOptions,
+    Selection, FULL_SCREEN_SELECTION, EMPTY_SELECTION} from "./CanvasScreen.js";
 export {Trs80WebScreen} from "./Trs80WebScreen.js";
 export {ControlPanel} from "./ControlPanel.js";
 export {SettingsPanel, PanelType} from "./SettingsPanel.js";

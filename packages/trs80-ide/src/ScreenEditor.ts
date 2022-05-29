@@ -3,7 +3,7 @@ import {ChangeSpec} from "@codemirror/state";
 import {TRS80_BLINK_PERIOD_MS,
     TRS80_CHAR_WIDTH, TRS80_PIXEL_HEIGHT, TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
 import {Trs80} from 'trs80-emulator';
-import {CanvasScreen, OverlayOptions, ScreenMouseEvent, ScreenMousePosition} from 'trs80-emulator-web';
+import {CanvasScreen, FULL_SCREEN_SELECTION, OverlayOptions, ScreenMouseEvent, ScreenMousePosition, Selection} from 'trs80-emulator-web';
 import {toHexByte} from 'z80-base';
 import {AssemblyResults} from "./AssemblyResults.js";
 import saveIcon from "./icons/save.ico";
@@ -23,6 +23,12 @@ import rectangleIcon from "./icons/rectangle.ico";
 import ellipseIcon from "./icons/ellipse.ico";
 import bucketIcon from "./icons/bucket.ico";
 import textIcon from "./icons/text.ico";
+import selectIcon from "./icons/select.ico";
+import cutIcon from "./icons/cut.ico";
+import copyIcon from "./icons/copy.ico";
+import pasteIcon from "./icons/paste.ico";
+import flipHorizontalIcon from "./icons/flip_horizontal.ico";
+import flipVerticalIcon from "./icons/flip_vertical.ico";
 
 const PREFIX = "screen-editor";
 const MAX_UNDO = 1000; // About 1k each.
@@ -36,7 +42,26 @@ enum Mode {
 }
 
 enum Tool {
-    PENCIL, LINE, RECTANGLE, ELLIPSE, BUCKET, TEXT,
+    PENCIL, LINE, RECTANGLE, ELLIPSE, BUCKET, TEXT, SELECT,
+}
+
+enum Subtool {
+    NORMAL, MOVE_SELECTION,
+}
+
+/**
+ * The contents of the clipboard.
+ */
+class Clipboard {
+    public readonly width: number;
+    public readonly height: number;
+    public readonly pixels: boolean[];
+
+    constructor(width: number, height: number, pixels: boolean[]) {
+        this.width = width;
+        this.height = height;
+        this.pixels = pixels;
+    }
 }
 
 /**
@@ -250,7 +275,8 @@ export class ScreenEditor {
     private readonly redoStack: UndoInfo[] = [];
     private readonly extraBytes: number[];
     private readonly begin: number;
-    private readonly controlPanelDiv: HTMLDivElement;
+    private readonly controlPanelDiv1: HTMLDivElement;
+    private readonly controlPanelDiv2: HTMLDivElement;
     private readonly statusPanelDiv: HTMLDivElement;
     private readonly onKeyDown = (event: KeyboardEvent) => this.handleKeyDown(event);
     private end: number;
@@ -260,9 +286,20 @@ export class ScreenEditor {
     private previousPosition: ScreenMousePosition | undefined = undefined;
     private mode: Mode = Mode.DRAW;
     private tool: Tool = Tool.PENCIL;
-    private overlayOptions: OverlayOptions = {};
+    private subtool: Subtool = Subtool.NORMAL;
+    private overlayOptions: OverlayOptions = {
+        showSelection: true,
+    };
     private blinkHandle: number | undefined = undefined;
+    private antsHandle: number | undefined = undefined;
     private pixelStatus = "";
+    private clipboard: Clipboard | undefined = undefined;
+    private selMoving = false;
+    private selMoveDx = 0;
+    private selMoveDy = 0;
+    private selMoveWidth = 0;
+    private selMoveHeight = 0;
+    private pasting = false;
 
     constructor(view: EditorView, pos: number, assemblyResults: AssemblyResults,
                 screenshotIndex: number, trs80: Trs80, screen: CanvasScreen, onClose: () => void) {
@@ -275,28 +312,43 @@ export class ScreenEditor {
 
         trs80.stop();
 
-        this.controlPanelDiv = document.createElement("div");
-        this.controlPanelDiv.classList.add(PREFIX + "-control-panel");
-        screen.getNode().append(this.controlPanelDiv);
+        this.controlPanelDiv1 = document.createElement("div");
+        this.controlPanelDiv1.classList.add(PREFIX + "-control-panel1");
+        screen.getNode().append(this.controlPanelDiv1);
 
-        makeButtons(this.controlPanelDiv, [
+        this.controlPanelDiv2 = document.createElement("div");
+        this.controlPanelDiv2.classList.add(PREFIX + "-control-panel2");
+        screen.getNode().append(this.controlPanelDiv2);
+
+        makeButtons(this.controlPanelDiv1, [
             { label: "Save", icon: saveIcon, onClick: () => this.close(true) },
             { label: "Cancel", icon: cancelIcon, onClick: () => this.close(false) },
         ]);
 
-        makeButtons(this.controlPanelDiv, [
-            { label: "Undo", icon: undoIcon, onClick: () => this.undo() },
-            { label: "Redo", icon: redoIcon, onClick: () => this.redo() },
-            { label: "Clear", icon: clearIcon, onClick: () => this.clear() },
-            { label: "Invert", icon: invertIcon, onClick: () => this.invert() },
+        makeButtons(this.controlPanelDiv1, [
+            { label: "Cut", icon: cutIcon, onClick: () => this.cut() },
+            { label: "Copy", icon: copyIcon, onClick: () => this.copy() },
+            { label: "Paste", icon: pasteIcon, onClick: () => this.paste() },
         ]);
 
-        makeRadioButtons(this.controlPanelDiv, [
+        makeButtons(this.controlPanelDiv1, [
+            { label: "Undo", icon: undoIcon, onClick: () => this.undo() },
+            { label: "Redo", icon: redoIcon, onClick: () => this.redo() },
+        ]);
+
+        makeButtons(this.controlPanelDiv1, [
+            { label: "Clear", icon: clearIcon, onClick: () => this.clear() },
+            { label: "Invert", icon: invertIcon, onClick: () => this.invert() },
+            { label: "Flip Horizontally", icon: flipHorizontalIcon, onClick: () => this.flipHorizontally() },
+            { label: "Flip Vertically", icon: flipVerticalIcon, onClick: () => this.flipVertically() },
+        ]);
+
+        makeRadioButtons(this.controlPanelDiv2, [
             { label: "Draw", icon: drawIcon, value: Mode.DRAW },
             { label: "Erase", icon: eraseIcon, value: Mode.ERASE },
         ], Mode.DRAW, mode => this.mode = mode);
 
-        makeCheckboxButtons(this.controlPanelDiv, [
+        makeCheckboxButtons(this.controlPanelDiv2, [
             { label: "Pixel Grid", icon: pixelGridIcon, checked: false, onChange: value => {
                     this.overlayOptions.showPixelGrid = value;
                     this.screen.setOverlayOptions(this.overlayOptions);
@@ -311,13 +363,14 @@ export class ScreenEditor {
                 }},
         ]);
 
-        makeRadioButtons(this.controlPanelDiv, [
+        makeRadioButtons(this.controlPanelDiv2, [
             { label: "Pencil", icon: pencilIcon, value: Tool.PENCIL },
             { label: "Line", icon: lineIcon, value: Tool.LINE },
             { label: "Rectangle", icon: rectangleIcon, value: Tool.RECTANGLE },
             { label: "Ellipse", icon: ellipseIcon, value: Tool.ELLIPSE },
             { label: "Bucket", icon: bucketIcon, value: Tool.BUCKET },
             { label: "Text", icon: textIcon, value: Tool.TEXT },
+            { label: "Select", icon: selectIcon, value: Tool.SELECT },
         ], Tool.PENCIL, tool => this.setTool(tool));
 
         this.statusPanelDiv = document.createElement("div");
@@ -353,8 +406,13 @@ export class ScreenEditor {
 
         window.addEventListener("keydown", this.onKeyDown);
 
+        this.startAntsTimer();
+
         this.screen.setOverlayOptions(this.overlayOptions);
         this.rasterToScreen();
+
+        this.updateSubtool();
+        this.updateCursor();
     }
 
     /**
@@ -368,15 +426,18 @@ export class ScreenEditor {
      * Close the editor, optionally saving the screen back to the code.
      */
     private close(save: boolean): void {
+        this.exitPasting();
         if (save) {
             this.rasterToCode();
         }
-        this.screen.setOverlayOptions({});
+        this.overlayOptions = {}
+        this.screen.setOverlayOptions(this.overlayOptions);
         this.trs80.start();
         this.mouseUnsubscribe();
-        this.controlPanelDiv.remove();
+        this.controlPanelDiv1.remove();
         this.statusPanelDiv.remove();
         this.stopBlinkTimer();
+        this.stopAntsTimer();
         window.removeEventListener("keydown", this.onKeyDown);
         this.onClose();
     }
@@ -385,6 +446,8 @@ export class ScreenEditor {
      * Set the current drawing tool.
      */
     private setTool(tool: Tool): void {
+        this.exitPasting();
+
         this.tool = tool;
 
         if (this.tool === Tool.TEXT) {
@@ -393,7 +456,11 @@ export class ScreenEditor {
             this.stopBlinkTimer();
         }
 
+        this.screen.setOverlayOptions(this.overlayOptions);
+
         this.updateStatus();
+        this.updateSubtool();
+        this.updateCursor();
     }
 
     /**
@@ -422,9 +489,33 @@ export class ScreenEditor {
     }
 
     /**
+     * Starts a marching ants timer.
+     */
+    private startAntsTimer(): void {
+        this.stopAntsTimer();
+        this.antsHandle = window.requestAnimationFrame(() => {
+            this.overlayOptions.selectionAntsOffset = (this.overlayOptions.selectionAntsOffset ?? 0) - 0.1;
+            this.screen.setOverlayOptions(this.overlayOptions);
+            this.startAntsTimer();
+        });
+    }
+
+    /**
+     * Stops any ongoing marching ants timer.
+     */
+    private stopAntsTimer(): void {
+        if (this.antsHandle !== undefined) {
+            window.cancelAnimationFrame(this.antsHandle);
+            this.antsHandle = undefined;
+        }
+    }
+
+    /**
      * Call this just before making a mutating change that needs to be undoable.
      */
     private prepareForMutation(): void {
+        this.exitPasting();
+
         // Add current state to undo stack.
         this.undoStack.push(this.makeUndoInfo());
 
@@ -439,9 +530,101 @@ export class ScreenEditor {
     }
 
     /**
+     * Cut the screen or selection to the clipboard.
+     */
+    private cut(): void {
+        this.copy();
+        this.clear();
+    }
+
+    /**
+     * Copy the screen or selection to the clipboard.
+     */
+    private copy(): void {
+        this.exitPasting();
+        const sel = this.getSelectionOrScreen();
+        const pixels: boolean[] = [];
+
+        for (let y = sel.y1; y < sel.y2; y++) {
+            for (let x = sel.x1; x < sel.x2; x++) {
+                pixels.push(this.getPixel(x, y));
+            }
+        }
+
+        // Copy to system clipboard as an image.
+        const canvas = this.screen.makeSelectionCanvas(sel);
+        canvas.toBlob((blob: Blob | null) => {
+            if (blob !== null) {
+                try {
+                    navigator.clipboard.write([
+                        new ClipboardItem({
+                            "image/png": blob
+                        })
+                    ]);
+                } catch (e: any) {
+                    // Firefox doesn't support ClipboardItem.
+                    console.log("Can't copy selection to system clipboard", e);
+                }
+            }
+        });
+
+        this.clipboard = new Clipboard(sel.width, sel.height, pixels);
+    }
+
+    /**
+     * Copy the screen or selection to the clipboard.
+     */
+    private paste(): void {
+        this.exitPasting();
+        this.pasting = true;
+        this.rasterBackup.set(this.raster);
+        this.byteCountBackup = this.byteCount;
+        this.updatePaste(false);
+    }
+
+    /**
+     * Exit paste mode and restore everything.
+     */
+    private exitPasting(): void {
+        if (this.pasting) {
+            this.raster.set(this.rasterBackup);
+            this.rasterToScreen();
+            this.byteCount = this.byteCountBackup;
+            this.pasting = false;
+        }
+    }
+
+    /**
+     * Paste the clipboard.
+     */
+    private updatePaste(transparent: boolean): void {
+        this.raster.set(this.rasterBackup);
+        const x1 = this.overlayOptions.highlightPixelColumn ?? 0;
+        const y1 = this.overlayOptions.highlightPixelRow ?? 0;
+        const cb = this.clipboard;
+        if (cb !== undefined) {
+            let i = 0;
+            for (let y = 0; y < cb.height; y++) {
+                for (let x = 0; x < cb.width; x++) {
+                    if (cb.pixels[i]) {
+                        this.setPixel(x1 + x, y1 + y, true, FULL_SCREEN_SELECTION);
+                    } else if (!transparent) {
+                        this.setPixel(x1 + x, y1 + y, false, FULL_SCREEN_SELECTION);
+                    }
+                    i++;
+                }
+            }
+
+            this.rasterToScreen();
+            this.byteCount = this.byteCountBackup;
+        }
+    }
+
+    /**
      * Undo the most recent change.
      */
     private undo(): void {
+        this.exitPasting();
         const undoInfo = this.undoStack.pop() as UndoInfo;
         if (undoInfo !== undefined) {
             this.redoStack.push(this.makeUndoInfo());
@@ -453,6 +636,7 @@ export class ScreenEditor {
      * Redo the most recent undo.
      */
     private redo(): void {
+        this.exitPasting();
         const undoInfo = this.redoStack.pop() as UndoInfo;
         if (undoInfo !== undefined) {
             this.undoStack.push(this.makeUndoInfo());
@@ -482,11 +666,40 @@ export class ScreenEditor {
     }
 
     /**
-     * Clear the screen to black.
+     * Get the pixel selection, if available.
+     */
+    private getSelection(): Selection | undefined {
+        let sel = this.overlayOptions.selection;
+        return sel === undefined || sel.isEmpty() ? undefined : sel;
+    }
+
+    /**
+     * Get the selection, or if the selection is not set, return the whole screen.
+     */
+    private getSelectionOrScreen(): Selection {
+        const selection = this.getSelection();
+        if (selection === undefined) {
+            return FULL_SCREEN_SELECTION;
+        }
+
+        return selection;
+    }
+
+    /**
+     * Clear the screen or selection to black.
      */
     private clear(): void {
         this.prepareForMutation();
-        this.raster.fill(0x80, 0, this.byteCount);
+        const sel = this.getSelection();
+        if (sel !== undefined) {
+            for (let y = sel.y1; y < sel.y2; y++) {
+                for (let x = sel.x1; x < sel.x2; x++) {
+                    this.setPixel(x, y, false, sel);
+                }
+            }
+        } else {
+            this.raster.fill(0x80, 0, this.byteCount);
+        }
         this.rasterToScreen();
     }
 
@@ -495,13 +708,60 @@ export class ScreenEditor {
      */
     private invert(): void {
         this.prepareForMutation();
-        for (let i = 0; i < this.byteCount; i++) {
-            const ch = this.raster[i];
-            if (ch >= 128 && ch < 192) {
-                this.raster[i] = ch ^ 0x3F;
+        const sel = this.getSelection();
+        if (sel !== undefined) {
+            for (let y = sel.y1; y < sel.y2; y++) {
+                for (let x = sel.x1; x < sel.x2; x++) {
+                    this.setPixel(x, y, !this.getPixel(x, y), sel);
+                }
+            }
+        } else {
+            for (let i = 0; i < this.byteCount; i++) {
+                const ch = this.raster[i];
+                if (ch >= 128 && ch < 192) {
+                    this.raster[i] = ch ^ 0x3F;
+                }
             }
         }
         this.rasterToScreen();
+    }
+
+    /**
+     * Flip selection or screen horizontally.
+     */
+    private flipHorizontally(): void {
+        this.prepareForMutation();
+        const sel = this.getSelectionOrScreen();
+        const width = Math.floor(sel.width / 2);
+        for (let y = sel.y1; y < sel.y2; y++) {
+            for (let x = 0; x < width; x++) {
+                const x1 = sel.x1 + x;
+                const x2 = sel.x2 - 1 - x;
+                const p1 = this.getPixel(x1, y);
+                const p2 = this.getPixel(x2, y);
+                this.setPixel(x1, y, p2, sel);
+                this.setPixel(x2, y, p1, sel);
+            }
+        }
+    }
+
+    /**
+     * Flip selection or screen vertically.
+     */
+    private flipVertically(): void {
+        this.prepareForMutation();
+        const sel = this.getSelectionOrScreen();
+        const height = Math.floor(sel.height / 2);
+        for (let x = sel.x1; x < sel.x2; x++) {
+            for (let y = 0; y < height; y++) {
+                const y1 = sel.y1 + y;
+                const y2 = sel.y2 - 1 - y;
+                const p1 = this.getPixel(x, y1);
+                const p2 = this.getPixel(x, y2);
+                this.setPixel(x, y1, p2, sel);
+                this.setPixel(x, y2, p1, sel);
+            }
+        }
     }
 
     /**
@@ -582,41 +842,63 @@ export class ScreenEditor {
         this.overlayOptions.highlightPixelColumn = position.pixelX;
         this.overlayOptions.highlightPixelRow = position.pixelY;
         this.screen.setOverlayOptions(this.overlayOptions);
+        const sel = this.getSelectionOrScreen();
 
         if (e.type === "mousedown") {
+            if (this.pasting) {
+                // Must set up for undo here, since user might abort pasting.
+                this.exitPasting();
+                this.prepareForMutation();
+                this.updatePaste(e.shiftKey);
+                return;
+            }
             switch (this.tool) {
                 case Tool.PENCIL:
                     this.prepareForMutation();
-                    this.mouseDownPosition = e.position;
-                    this.previousPosition = e.position;
+                    this.mouseDownPosition = position;
+                    this.previousPosition = position;
                     break;
                 case Tool.LINE:
                 case Tool.RECTANGLE:
                 case Tool.ELLIPSE:
                     this.prepareForMutation();
-                    this.mouseDownPosition = e.position;
+                    this.mouseDownPosition = position;
                     this.previousPosition = undefined;
                     this.rasterBackup.set(this.raster);
                     this.byteCountBackup = this.byteCount;
                     break;
                 case Tool.BUCKET:
                     this.prepareForMutation();
-                    this.floodFill(position, this.mode == Mode.DRAW);
+                    this.floodFill(position, this.mode == Mode.DRAW, sel);
                     break;
                 case Tool.TEXT:
                     this.setCursorPosition(position.offset);
+                    break;
+                case Tool.SELECT:
+                    if (this.subtool === Subtool.MOVE_SELECTION) {
+                        this.selMoving = true;
+                        this.selMoveDx = position.pixelX - sel.x1;
+                        this.selMoveDy = position.pixelY - sel.y1;
+                        this.selMoveWidth = sel.width;
+                        this.selMoveHeight = sel.height;
+                    } else {
+                        this.selMoving = false;
+                        this.overlayOptions.selection = new Selection(position.pixelX, position.pixelY, 0, 0);
+                        this.mouseDownPosition = position;
+                    }
                     break;
             }
         }
         if (e.type === "mouseup") {
             this.mouseDownPosition = undefined;
             this.previousPosition = undefined;
+            this.selMoving = false;
         }
         const value = this.mode === Mode.DRAW;
         switch (this.tool) {
             case Tool.PENCIL:
                 if (this.previousPosition != undefined) {
-                    this.drawLine(this.previousPosition, position, value);
+                    this.drawLine(this.previousPosition, position, value, sel);
                     this.previousPosition = position;
                 }
                 break;
@@ -666,7 +948,7 @@ export class ScreenEditor {
                         y = this.mouseDownPosition.pixelY + dy;
                         position = new ScreenMousePosition(x, y);
                     }
-                    statusText.push(this.drawLine(this.mouseDownPosition, position, value));
+                    statusText.push(this.drawLine(this.mouseDownPosition, position, value, sel));
                 }
                 break;
             case Tool.RECTANGLE:
@@ -692,7 +974,7 @@ export class ScreenEditor {
                         y = this.mouseDownPosition.pixelY + dy;
                         position = new ScreenMousePosition(x, y);
                     }
-                    statusText.push(this.drawRectangle(this.mouseDownPosition, position, value));
+                    statusText.push(this.drawRectangle(this.mouseDownPosition, position, value, sel));
                 }
                 break;
             case Tool.ELLIPSE:
@@ -722,23 +1004,106 @@ export class ScreenEditor {
 
                     const dx = Math.abs(position.pixelX - this.mouseDownPosition.pixelX);
                     const dy = Math.abs(position.pixelY - this.mouseDownPosition.pixelY);
-                    statusText.push(this.drawEllipse(this.mouseDownPosition, dx, dy, value));
+                    statusText.push(this.drawEllipse(this.mouseDownPosition, dx, dy, value, sel));
                 }
                 break;
             case Tool.BUCKET:
+            case Tool.TEXT:
                 break;
+            case Tool.SELECT:
+                if (this.mouseDownPosition !== undefined) {
+                    const x1 = this.mouseDownPosition.pixelX;
+                    const y1 = this.mouseDownPosition.pixelY;
+                    const x2 = position.pixelX;
+                    const y2 = position.pixelY;
+                    const width = Math.abs(x1 - x2);
+                    const height = Math.abs(y1 - y2);
+                    this.overlayOptions.selection = new Selection(
+                        Math.min(x1, x2), Math.min(y1, y2), width, height);
+                    statusText.push(`${width}×${height}`);
+                } else if (this.selMoving) {
+                    let x1 = position.pixelX - this.selMoveDx;
+                    let y1 = position.pixelY - this.selMoveDy;
+                    let x2 = x1 + this.selMoveWidth;
+                    let y2 = y1 + this.selMoveHeight;
+                    x1 = Math.max(x1, 0);
+                    y1 = Math.max(y1, 0);
+                    x2 = Math.min(x2, TRS80_PIXEL_WIDTH - 1);
+                    y2 = Math.min(y2, TRS80_PIXEL_HEIGHT - 1);
+                    this.overlayOptions.selection = new Selection(x1, y1, x2 - x1, y2 - y1);
+                    statusText.push(`${sel.width}×${sel.height}`);
+                }
+                this.screen.setOverlayOptions(this.overlayOptions);
+                break;
+        }
+
+        if (this.pasting) {
+            this.updatePaste(e.shiftKey);
         }
 
         this.pixelStatus = statusText.filter(s => s.length > 0).join(", ");
         this.updateStatus();
+        this.updateSubtool();
+        this.updateCursor();
+    }
+
+    /**
+     * Update the subtool based on the cursor position.
+     */
+    private updateSubtool(): void {
+        this.subtool = Subtool.NORMAL;
+
+        const sel = this.getSelection();
+        const x = this.overlayOptions.highlightPixelColumn ?? 0;
+        const y = this.overlayOptions.highlightPixelRow ?? 0;
+        if (this.tool === Tool.SELECT && sel !== undefined && sel.contains(x, y)) {
+            this.subtool = Subtool.MOVE_SELECTION;
+        }
+    }
+
+    /**
+     * Update the cursor based on tool and subtool.
+     */
+    private updateCursor(): void {
+        let cursor = "default";
+
+        if (this.subtool === Subtool.MOVE_SELECTION) {
+            cursor = "move";
+        }
+
+        this.screen.getNode().style.cursor = cursor;
     }
 
     /**
      * Handle key down events from anywhere in the window.
-     * @param event
-     * @private
      */
     private handleKeyDown(event: KeyboardEvent): void {
+        // Hotkeys.
+        if (event.metaKey || event.ctrlKey) {
+            switch (event.key) {
+                case "x":
+                    this.cut();
+                    event.preventDefault();
+                    break;
+                case "c":
+                    this.copy();
+                    event.preventDefault();
+                    break;
+                case "p":
+                    this.paste();
+                    event.preventDefault();
+                    break;
+            }
+            return;
+        }
+
+        if ((event.key === "Esc" || event.key === "Escape") && this.pasting) {
+            this.exitPasting();
+            event.preventDefault();
+            return;
+        }
+
+        // Text mode.
         if (this.tool === Tool.TEXT) {
             const key = event.key;
 
@@ -809,7 +1174,7 @@ export class ScreenEditor {
      * Draw a line from p1 to p2 of the specified value.
      * @return text to show in the status bar.
      */
-    private drawLine(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean): string {
+    private drawLine(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean, sel: Selection): string {
         let dx = p2.pixelX - p1.pixelX;
         let dy = p2.pixelY - p1.pixelY;
 
@@ -827,7 +1192,7 @@ export class ScreenEditor {
 
             let y = p1.pixelY;
             for (let x = p1.pixelX; x <= p2.pixelX; x++) {
-                this.setPixel(x, Math.round(y), value);
+                this.setPixel(x, Math.round(y), value, sel);
                 y += slope;
             }
         } else {
@@ -844,7 +1209,7 @@ export class ScreenEditor {
 
             let x = p1.pixelX;
             for (let y = p1.pixelY; y <= p2.pixelY; y++) {
-                this.setPixel(Math.round(x), y, value);
+                this.setPixel(Math.round(x), y, value, sel);
                 x += slope;
             }
         }
@@ -856,19 +1221,19 @@ export class ScreenEditor {
      * Draw a (hollow) rectangle from p1 to p2.
      * @return text to show in the status bar.
      */
-    private drawRectangle(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean): string {
+    private drawRectangle(p1: ScreenMousePosition, p2: ScreenMousePosition, value: boolean, sel: Selection): string {
         const x1 = Math.min(p1.pixelX, p2.pixelX);
         const y1 = Math.min(p1.pixelY, p2.pixelY);
         const x2 = Math.max(p1.pixelX, p2.pixelX);
         const y2 = Math.max(p1.pixelY, p2.pixelY);
 
         for (let x = x1; x <= x2; x++) {
-            this.setPixel(x, y1, value);
-            this.setPixel(x, y2, value);
+            this.setPixel(x, y1, value, sel);
+            this.setPixel(x, y2, value, sel);
         }
         for (let y = y1; y <= y2; y++) {
-            this.setPixel(x1, y, value);
-            this.setPixel(x2, y, value);
+            this.setPixel(x1, y, value, sel);
+            this.setPixel(x2, y, value, sel);
         }
 
         return `${x2 - x1 + 1}×${y2 - y1 + 1}`;
@@ -878,16 +1243,16 @@ export class ScreenEditor {
      * Draw an ellipse centered at c with the specified radii.
      * @return text to show in the status bar.
      */
-    private drawEllipse(c: ScreenMousePosition, rx: number, ry: number, value: boolean): string {
+    private drawEllipse(c: ScreenMousePosition, rx: number, ry: number, value: boolean, sel: Selection): string {
         const cx = c.pixelX;
         const cy = c.pixelY;
 
         // Draw a 4-way symmetric point.
         const plot = (x: number, y: number) => {
-            this.setPixel(cx + x, cy + y, value);
-            this.setPixel(cx - x, cy + y, value);
-            this.setPixel(cx + x, cy - y, value);
-            this.setPixel(cx - x, cy - y, value);
+            this.setPixel(cx + x, cy + y, value, sel);
+            this.setPixel(cx - x, cy + y, value, sel);
+            this.setPixel(cx + x, cy - y, value, sel);
+            this.setPixel(cx - x, cy - y, value, sel);
         };
 
         // Use the midpoint ellipse drawing algorithm.
@@ -938,16 +1303,21 @@ export class ScreenEditor {
     /**
      * Turn the specified pixel on or off.
      */
-    private setPixel(x: number, y: number, value: boolean): void {
+    private setPixel(x: number, y: number, value: boolean, sel: Selection): void {
         if (x >= 0 && y >= 0 && x < TRS80_PIXEL_WIDTH && y < TRS80_PIXEL_HEIGHT) {
-            this.setPosition(new ScreenMousePosition(x, y), value);
+            this.setPosition(new ScreenMousePosition(x, y), value, sel);
         }
     }
 
     /**
      * Turn the specified position on or off.
      */
-    private setPosition(position: ScreenMousePosition, value: boolean): void {
+    private setPosition(position: ScreenMousePosition, value: boolean, sel: Selection): void {
+        if (position.pixelX < sel.x1 || position.pixelY < sel.y1 ||
+            position.pixelX >= sel.x2 || position.pixelY >= sel.y2) {
+
+            return;
+        }
         let ch = this.raster[position.offset];
         if (ch < 128 || ch >= 192) {
             // Convert to graphics.
@@ -966,7 +1336,7 @@ export class ScreenEditor {
     /**
      * Flood fill from the given position with the given value.
      */
-    private floodFill(position: ScreenMousePosition, value: boolean): void {
+    private floodFill(position: ScreenMousePosition, value: boolean, sel: Selection): void {
         const pixels: ScreenMousePosition[] = [position];
 
         while (pixels.length > 0) {
@@ -974,15 +1344,26 @@ export class ScreenEditor {
 
             const pixelValue = this.getPosition(position);
             if (pixelValue !== value) {
-                this.setPosition(position, value);
+                this.setPosition(position, value, sel);
 
                 const x = position.pixelX;
                 const y = position.pixelY;
-                if (x > 0) pixels.push(new ScreenMousePosition(x - 1, y));
-                if (x < TRS80_PIXEL_WIDTH - 1) pixels.push(new ScreenMousePosition(x + 1, y));
-                if (y > 0) pixels.push(new ScreenMousePosition(x, y - 1));
-                if (y < TRS80_PIXEL_HEIGHT - 1) pixels.push(new ScreenMousePosition(x, y + 1));
+                if (x > sel.x1) pixels.push(new ScreenMousePosition(x - 1, y));
+                if (x < sel.x2 - 1) pixels.push(new ScreenMousePosition(x + 1, y));
+                if (y > sel.y1) pixels.push(new ScreenMousePosition(x, y - 1));
+                if (y < sel.y2 - 1) pixels.push(new ScreenMousePosition(x, y + 1));
             }
+        }
+    }
+
+    /**
+     * Get the specified pixel value.
+     */
+    private getPixel(x: number, y: number): boolean {
+        if (x >= 0 && y >= 0 && x < TRS80_PIXEL_WIDTH && y < TRS80_PIXEL_HEIGHT) {
+            return this.getPosition(new ScreenMousePosition(x, y));
+        } else {
+            return false;
         }
     }
 

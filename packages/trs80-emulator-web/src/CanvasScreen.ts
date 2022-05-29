@@ -89,6 +89,50 @@ export class ScreenMouseEvent {
 }
 
 /**
+ * Simple representation of a pixel selection.
+ */
+export class Selection {
+    public readonly x1: number;
+    public readonly y1: number;
+    public readonly width: number;
+    public readonly height: number;
+
+    constructor(x: number, y: number, width: number, height: number) {
+        this.x1 = x;
+        this.y1 = y;
+        this.width = width;
+        this.height = height;
+    }
+
+    // Exclusive.
+    public get x2(): number {
+        return this.x1 + this.width;
+    }
+
+    // Exclusive.
+    public get y2(): number {
+        return this.y1 + this.height;
+    }
+
+    public contains(x: number, y: number): boolean {
+        return x >= this.x1 && y >= this.y1 && x < this.x2 && y < this.y2;
+    }
+
+    public isEmpty(): boolean {
+        return this.width <= 0 || this.height <= 0;
+    }
+
+    public equals(other: Selection): boolean {
+        return this.x1 === other.x1 &&
+            this.y1 === other.y1 &&
+            this.width === other.width &&
+            this.height === other.height;
+    }
+}
+export const FULL_SCREEN_SELECTION = new Selection(0, 0, TRS80_PIXEL_WIDTH, TRS80_PIXEL_HEIGHT);
+export const EMPTY_SELECTION = new Selection(0, 0, 0, 0);
+
+/**
  * Options for the overlay.
  */
 export interface OverlayOptions {
@@ -104,9 +148,15 @@ export interface OverlayOptions {
     // Whether to show a character cursor, and where.
     showCursor?: boolean;
     cursorPosition?: number; // 0 to 1023.
-}
 
-const DEFAULT_OVERLAY_OPTIONS: Required<OverlayOptions> = {
+    // Rectangular selection area.
+    showSelection?: boolean;
+    selection?: Selection;
+    selectionAntsOffset?: number;
+}
+type FullOverlayOptions = Required<OverlayOptions>;
+
+const DEFAULT_OVERLAY_OPTIONS: FullOverlayOptions = {
     showPixelGrid: false,
     showCharGrid: false,
     showHighlight: false,
@@ -114,16 +164,22 @@ const DEFAULT_OVERLAY_OPTIONS: Required<OverlayOptions> = {
     highlightPixelRow: 0,
     showCursor: false,
     cursorPosition: 0,
+    showSelection: false,
+    selection: EMPTY_SELECTION,
+    selectionAntsOffset: 0,
 };
 
-function overlayOptionsEqual(a: OverlayOptions, b: OverlayOptions): boolean {
+function overlayOptionsEqual(a: FullOverlayOptions, b: FullOverlayOptions): boolean {
     return a.showPixelGrid === b.showPixelGrid &&
         a.showCharGrid === b.showCharGrid &&
         a.showHighlight === b.showHighlight &&
         a.highlightPixelColumn === b.highlightPixelColumn &&
         a.highlightPixelRow === b.highlightPixelRow &&
         a.showCursor === b.showCursor &&
-        a.cursorPosition === b.cursorPosition;
+        a.cursorPosition === b.cursorPosition &&
+        a.showSelection === b.showSelection &&
+        a.selection.equals(b.selection) &&
+        a.selectionAntsOffset === b.selectionAntsOffset;
 }
 
 const GRID_COLOR = "rgba(160, 160, 255, 0.5)";
@@ -145,7 +201,7 @@ export class CanvasScreen extends Trs80WebScreen {
     private config: Config = Config.makeDefault();
     private glyphWidth = 0;
     private overlayCanvas: HTMLCanvasElement | undefined = undefined;
-    private overlayOptions: OverlayOptions = DEFAULT_OVERLAY_OPTIONS;
+    private overlayOptions: FullOverlayOptions = DEFAULT_OVERLAY_OPTIONS;
 
     /**
      * Create a canvas screen.
@@ -202,11 +258,14 @@ export class CanvasScreen extends Trs80WebScreen {
         }
         this.overlayOptions = options;
 
+        const showSelection = options.showSelection && !options.selection.isEmpty();
         const showOverlay = options.showPixelGrid || options.showCharGrid ||
-            options.showHighlight !== undefined || options.showCursor;
+            options.showHighlight !== undefined || options.showCursor || showSelection;
         if (showOverlay) {
             const width = this.canvas.width;
             const height = this.canvas.height;
+            const gridWidth = width - 2*this.padding;
+            const gridHeight = height - 2*this.padding;
 
             // Create overlay canvas if necessary.
             let overlayCanvas = this.overlayCanvas;
@@ -230,19 +289,21 @@ export class CanvasScreen extends Trs80WebScreen {
 
             // Clear the overlay.
             const ctx = overlayCanvas.getContext("2d") as CanvasRenderingContext2D;
+            ctx.save();
             ctx.clearRect(0, 0, width, height);
+            ctx.translate(this.padding, this.padding);
 
             // Draw columns.
             for (let i = 0; i <= TRS80_PIXEL_WIDTH; i++) {
                 const highlighted = isHighlighted(options.showHighlight, options.highlightPixelColumn, i);
                 const isCharLine = options.showCharGrid && i % TRS80_CHAR_PIXEL_WIDTH === 0;
                 if (highlighted || options.showPixelGrid || isCharLine) {
-                    const x = Math.round(i * 4 * this.scale + this.padding);
+                    const x = Math.round(i * 4 * this.scale);
                     ctx.lineWidth = isCharLine && !highlighted ? 2 : 1;
                     ctx.strokeStyle = highlighted ? GRID_HIGHLIGHT_COLOR : GRID_COLOR;
                     ctx.beginPath();
-                    ctx.moveTo(x, this.padding);
-                    ctx.lineTo(x, height - this.padding);
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, gridHeight);
                     ctx.stroke();
                 }
             }
@@ -252,12 +313,12 @@ export class CanvasScreen extends Trs80WebScreen {
                 const highlighted = isHighlighted(options.showHighlight, options.highlightPixelRow, i);
                 const isCharLine = options.showCharGrid && i % TRS80_CHAR_PIXEL_HEIGHT === 0;
                 if (highlighted || options.showPixelGrid || isCharLine) {
-                    const y = Math.round(i * 8 * this.scale + this.padding);
+                    const y = Math.round(i * 8 * this.scale);
                     ctx.lineWidth = isCharLine && !highlighted ? 2 : 1;
                     ctx.strokeStyle = highlighted ? GRID_HIGHLIGHT_COLOR : GRID_COLOR;
                     ctx.beginPath();
-                    ctx.moveTo(this.padding, y);
-                    ctx.lineTo(width - this.padding, y);
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(gridWidth, y);
                     ctx.stroke();
                 }
             }
@@ -268,10 +329,36 @@ export class CanvasScreen extends Trs80WebScreen {
                 const y = Math.floor(options.cursorPosition / TRS80_CHAR_WIDTH);
 
                 ctx.fillStyle = GRID_HIGHLIGHT_COLOR;
-                ctx.fillRect(x * 8 * this.scale + this.padding,
-                    y * 24 * this.scale + this.padding,
+                ctx.fillRect(x * 8 * this.scale, y * 24 * this.scale,
                     8 * this.scale, 24 * this.scale);
             }
+
+            // Draw selection.
+            if (showSelection) {
+                const x1 = options.selection.x1*4*this.scale;
+                const y1 = options.selection.y1*8*this.scale;
+                const x2 = options.selection.x2*4*this.scale;
+                const y2 = options.selection.y2*8*this.scale;
+                const dash = 5;
+                ctx.save();
+                ctx.setLineDash([dash, dash]);
+                for (let pass = 0; pass < 2; pass++) {
+                    ctx.lineDashOffset = options.selectionAntsOffset + pass*dash;
+                    ctx.strokeStyle = pass == 0 ? "black" : "white";
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y1);
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x1, y2);
+                    ctx.moveTo(x1, y2);
+                    ctx.lineTo(x2, y2);
+                    ctx.moveTo(x2, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+            ctx.restore();
         } else {
             // Remove overlay.
             if (this.overlayCanvas !== undefined) {
@@ -504,5 +591,23 @@ export class CanvasScreen extends Trs80WebScreen {
                 }
             });
         });
+    }
+
+    /**
+     * Make a canvas from the sub-rectangle section.
+     */
+    public makeSelectionCanvas(selection: Selection): HTMLCanvasElement {
+        const canvas = document.createElement("canvas");
+        canvas.width = selection.width*4*this.scale;
+        canvas.height = selection.height*8*this.scale;
+        const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+        ctx.drawImage(this.canvas,
+            selection.x1*4*this.scale + this.padding, selection.y1*8*this.scale + this.padding,
+            selection.width*4*this.scale, selection.height*8*this.scale,
+            0, 0,
+            selection.width*4*this.scale, selection.height*8*this.scale);
+
+        return canvas;
     }
 }
