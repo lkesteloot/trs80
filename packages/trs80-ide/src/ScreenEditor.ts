@@ -435,6 +435,7 @@ export class ScreenEditor {
         this.trs80.start();
         this.mouseUnsubscribe();
         this.controlPanelDiv1.remove();
+        this.controlPanelDiv2.remove();
         this.statusPanelDiv.remove();
         this.stopBlinkTimer();
         this.stopAntsTimer();
