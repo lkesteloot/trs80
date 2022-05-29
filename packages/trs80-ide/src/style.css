@@ -106,10 +106,15 @@ body {
 
 .gutter-bytecode {
     margin-left: .8em;
+    width: 12em;
 }
 
 .gutter-bytecode-address {
     margin-right: 1em;
+}
+
+.gutter-bytecode-bytes {
+    /* nothing */
 }
 
 /* -------------------------------------------------------------------------------------------- */

@@ -147,7 +147,7 @@ class BytecodeGutter extends GutterMarker {
         const bytes = tooBig ? this.bytes.slice(0, 3) : this.bytes;
         bytesDom.textContent = bytes.map(b => toHexByte(b)).join(" ") +
             (tooBig ? " ..." : "");
-        bytesDom.classList.add("gutter-bytecode-address");
+        bytesDom.classList.add("gutter-bytecode-bytes");
 
         dom.append(addressDom, bytesDom);
         return dom;

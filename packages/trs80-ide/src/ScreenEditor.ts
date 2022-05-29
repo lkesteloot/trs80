@@ -773,7 +773,7 @@ export class ScreenEditor {
         const raster = Array.from(this.raster.subarray(0, this.byteCount));
         for (let i = 0; i < raster.length;) {
             // TODO guess the indent.
-            let text = "          ";
+            let text = "        ";
             const begin = i++;
             // Figure out if this is ASCII or binary.
             if (isPrintableAscii(raster[begin])) {
