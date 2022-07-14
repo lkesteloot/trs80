@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
     "target": "ES2018",
-    "module": "commonjs",
+    "module": "esnext",
     "outDir": "./dist",
     "strict": true,
+    "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-      "src/**/*.ts"
+      "*.ts"
   ]
 }

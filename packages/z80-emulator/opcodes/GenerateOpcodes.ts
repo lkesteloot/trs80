@@ -4,7 +4,8 @@
 
 import * as path from "path";
 import * as fs from "fs";
-import {toHex, isWordReg, isByteReg, Flag} from "z80-base";
+import {toHex, isWordReg, isByteReg, Flag, toHexByte} from "z80-base";
+import { OpcodeMap, opcodeMap, OpcodeVariant } from "z80-inst";
 
 /**
  * Params that qualify as "byte-sized".
@@ -26,6 +27,10 @@ const TAB = "    ";
  */
 enum DataWidth {
     BYTE, WORD
+}
+
+function makeVariantLabel(variant: OpcodeVariant): string {
+    return (variant.mnemonic + " " + variant.params.join(",")).trim();
 }
 
 /**
@@ -898,429 +903,444 @@ function handleRotateA(output: string[], opcode: string): void {
     addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | ((oldA & " + bitIntoCarry + ") !== 0 ? Flag.C : 0);");
 }
 
-function generateDispatch(pathname: string, prefix: string): string {
+// Whether these two variants are aliases of each other.
+function areAliasVariants(v1: OpcodeVariant, v2: OpcodeVariant): boolean {
+    if (v1.mnemonic !== v2.mnemonic || v1.params.length != v2.params.length) {
+        return false;
+    }
+    for (let i = 0; i < v1.params.length; i++) {
+        if (v1.params[i] !== v2.params[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>, prefix: string): void {
     const output: string[] = [];
 
-    // There are groups of opcodes that map to the same behavior. In the input
-    // file these are listed first, so we keep track of them in this list
-    // and created aliases after the real opcode has been generated.
-    let fallthroughOpcodes: number[] = [];
+    // Variants that are aliases and that we shouldn't generate code for.
+    const aliasVariants: {opcode: number, variant: OpcodeVariant}[] = [];
 
     // Name of the TypeScript map to insert into.
     const mapName = "decodeMap" + prefix.toUpperCase();
 
-    fs.readFileSync(pathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
-        line = line.trim();
-        if (line.length === 0 || line.startsWith("#")) {
-            // Comment or empty line.
-            return;
+    // Put all aliases into our array first, in case some come over the canonical variant.
+    for (const [opcode, value] of opcodeMap.entries()) {
+        if (!(value instanceof Map) && value.isAlias) {
+            aliasVariants.push({opcode, variant: value});
+        }
+    }
+
+    for (const [opcode, value] of opcodeMap.entries()) {
+        if (!(value instanceof Map) && value.isAlias) {
+            // Handled above.
+            continue;
         }
 
-        const fields = line.split(/\s+/);
-        const numberString = fields.length >= 1 ? fields[0] : undefined;
-        const opcode = fields.length >= 2 ? fields[1].toLowerCase() : undefined;
-        const params = fields.length >= 3 ? fields[2].toLowerCase() : undefined;
-        const extra = fields.length >= 4 ? fields[3] : undefined;
-        if (fields.length > 4) {
-            throw new Error("Invalid opcode line: " + line);
-        }
-
-        if (numberString === undefined || numberString.length == 0 || !numberString.startsWith("0x")) {
-            throw new Error("Invalid number: " + line);
-        }
-
-        const number = parseInt(numberString, 16);
-
-        if (opcode === undefined) {
-            fallthroughOpcodes.push(number);
-            return;
-        }
-
-        addLine(output, mapName + ".set(0x" + toHex(number, 2) + ", (z80: Z80) => { // " + ((opcode || "") + " " + (params || "")).trim());
+        const label = value instanceof Map ? "shift " + toHexByte(opcode).toLowerCase() : makeVariantLabel(value);
+        addLine(output, mapName + ".set(0x" + toHex(opcode, 2) + ", (z80: Z80) => { // " + label);
         enter();
 
-        if (extra !== undefined) {
-            if (params === undefined) {
-                throw new Error(opcode + " requires params: " + line);
-            }
-            const [reg, newOpcode] = params.split(",");
-            if (newOpcode === "set" || newOpcode === "res") {
-                const bit = extra.split(",")[0];
-                const [bitValue, operator, hexBit] = getSetRes(newOpcode, bit);
-                addLine(output, "z80.regs." + reg + " = z80.readByte(z80.regs.memptr) " + operator + " " + hexBit + ";");
-                addLine(output, "z80.incTStateCount(1);");
-                addLine(output, "z80.writeByte(z80.regs.memptr, z80.regs." + reg + ");");
-            } else {
-                addLine(output, "z80.regs." + reg + " = z80.readByte(z80.regs.memptr);");
-                addLine(output, "z80.incTStateCount(1);");
-                addLine(output, "{");
-                enter();
-                handleRotateShiftIncDec(output, newOpcode, reg);
-                exit();
-                addLine(output, "}");
-                addLine(output, "z80.writeByte(z80.regs.memptr, z80.regs." + reg + ");");
-            }
+        if (value instanceof Map) {
+            const newPrefix = (prefix === "base" ? "" : prefix) + toHexByte(opcode);
+            const oldIndent = indent;
+            indent = "";
+            generateDispatch(value, dispatchMap, newPrefix);
+            indent = oldIndent;
+            addLine(output, "decode" + newPrefix.toUpperCase() + "(z80);");
         } else {
-            switch (opcode) {
-                case "nop": {
-                    // Nothing to do.
-                    break;
-                }
+            const variant = value;
+            const mnemonic = variant.mnemonic;
+            const params = variant.params;
 
-                case "add":
-                case "adc":
-                case "sub":
-                case "sbc": {
-                    if (params === undefined) {
-                        throw new Error(opcode + " requires params: " + line);
-                    }
-                    const parts = params.split(",");
-                    if (parts.length !== 2) {
-                        throw new Error(opcode + " requires two params: " + line);
-                    }
-                    const [dest, src] = parts;
-                    handleArith(output, opcode, dest, src);
-                    break;
-                }
+            // Special case handling for undocumented instructions that have a weird format in the data files.
+            if (params.length >= 2 && params[1].indexOf(" ") >= 0) {
+                // Two basic formats:
+                //     LD A,SRL (IY+dd)
+                //     LD A,RES 7,(IY+dd)
 
-                case "cp": {
-                    if (params === undefined) {
-                        throw new Error("CP requires params: " + line);
-                    }
-                    const parts = params.split(",");
-                    if (parts.length !== 1) {
-                        throw new Error("CP requires one param: " + line);
-                    }
-                    handleCp(output, parts[0]);
-                    break;
-                }
+                const reg = params[0];
+                const parts = params[1].split(" ");
+                // param[2] isn't used when present.
+                
+                const newOpcode = parts[0];
 
-                case "di": {
-                    addLine(output, "z80.regs.iff1 = 0;");
-                    addLine(output, "z80.regs.iff2 = 0;");
-                    break;
-                }
-
-                case "ex": {
-                    if (params === undefined) {
-                        throw new Error("EX requires params: " + line);
-                    }
-                    const parts = params.split(",");
-                    if (parts.length !== 2) {
-                        throw new Error("EX requires two params: " + line);
-                    }
-                    const [op1, op2] = parts;
-                    handleEx(output, op1, op2);
-                    break;
-                }
-
-                case "ei": {
-                    // TODO Wait another instruction before enabling interrupts.
-                    addLine(output, "z80.regs.iff1 = 1;");
-                    addLine(output, "z80.regs.iff2 = 1;");
-                    break;
-                }
-
-                case "im": {
-                    if (params === undefined) {
-                        throw new Error(opcode + " requires params: " + line);
-                    }
-                    addLine(output, "z80.regs.im = " + parseInt(params, 10) + ";");
-                    break;
-                }
-
-                case "reti":
-                case "retn": {
-                    addLine(output, "z80.regs.iff1 = z80.regs.iff2;");
-                    addLine(output, "z80.regs.pc = z80.popWord();");
-                    addLine(output, "z80.regs.memptr = z80.regs.pc;");
-                    break;
-                }
-
-                case "neg": {
-                    addLine(output, "const value = z80.regs.a;");
-                    addLine(output, "z80.regs.a = 0;");
-                    emitSub(output);
-                    break;
-                }
-
-                case "jr":
-                case "call":
-                case "jp": {
-                    if (params === undefined) {
-                        throw new Error(opcode + " requires params: " + line);
-                    }
-                    const parts = params.split(",");
-                    let cond: string | undefined;
-                    let dest: string;
-                    if (parts.length == 2) {
-                        cond = parts[0];
-                        dest = parts[1];
-                    } else {
-                        cond = undefined;
-                        dest = parts[0];
-                    }
-                    handleJpJrCall(output, opcode, cond, dest)
-                    break;
-                }
-
-                case "ld": {
-                    if (params === undefined) {
-                        throw new Error("LD requires params: " + line);
-                    }
-                    const parts = params.split(",");
-                    if (parts.length !== 2) {
-                        throw new Error("LD requires two params: " + line);
-                    }
-                    const [dest, src] = parts;
-                    handleLd(output, dest, src);
-                    break;
-                }
-
-                case "or":
-                case "and":
-                case "xor": {
-                    if (params === undefined) {
-                        throw new Error(opcode + " requires params: " + line);
-                    }
-                    let operand: string;
-                    const parts = params.split(",");
-                    if (parts.length === 2) {
-                        if (parts[0] === "a") {
-                            operand = parts[1];
-                        } else {
-                            throw new Error("First operand of " + opcode + " must be A");
-                        }
-                    } else if (parts.length === 1) {
-                        operand = parts[0];
-                    } else {
-                        throw new Error("LD requires two params: " + line);
-                    }
-                    handleLogic(output, opcode, operand);
-                    break;
-                }
-
-                case "outi":
-                case "outd":
-                case "otir":
-                case "otdr": {
-                    handleOutiOutd(output, opcode === "otdr" || opcode === "outd", opcode.endsWith("r"));
-                    break;
-                }
-
-                case "ini":
-                case "ind":
-                case "inir":
-                case "indr": {
-                    handleIniInd(output, opcode.startsWith("ind"), opcode.endsWith("r"));
-                    break;
-                }
-
-                case "cpi":
-                case "cpd":
-                case "cpir":
-                case "cpdr": {
-                    handleCpiCpd(output, opcode.startsWith("cpd"), opcode.endsWith("r"));
-                    break;
-                }
-
-                case "ldi":
-                case "ldd":
-                case "ldir":
-                case "lddr": {
-                    handleLdiLdd(output, opcode.startsWith("ldd"), opcode.endsWith("r"));
-                    break;
-                }
-
-                case "pop": {
-                    if (params === undefined) {
-                        throw new Error("POP requires params: " + line);
-                    }
-                    const parts = params.split(",");
-                    if (parts.length !== 1) {
-                        throw new Error("POP requires one param: " + line);
-                    }
-                    handlePop(output, parts[0]);
-                    break;
-                }
-
-                case "push": {
-                    if (params === undefined) {
-                        throw new Error("PUSH requires params: " + line);
-                    }
-                    const parts = params.split(",");
-                    if (parts.length !== 1) {
-                        throw new Error("PUSH requires one param: " + line);
-                    }
-                    handlePush(output, parts[0]);
-                    break;
-                }
-
-                case "ret": {
-                    handleRet(output, params);
-                    break;
-                }
-
-                case "rst": {
-                    if (params === undefined) {
-                        throw new Error("RST requires params: " + line);
-                    }
-                    handleRst(output, parseInt(params, 16));
-                    break;
-                }
-
-                case "out": {
-                    if (params === undefined) {
-                        throw new Error(opcode + " requires params: " + line);
-                    }
-                    const [port, src] = params.split(",");
-                    handleOut(output, port, src);
-                    break;
-                }
-
-                case "in": {
-                    if (params === undefined) {
-                        throw new Error(opcode + " requires params: " + line);
-                    }
-                    const [dest, port] = params.split(",");
-                    handleIn(output, dest, port);
-                    break;
-                }
-
-                case "rld": {
-                    addLine(output, "const tmp = z80.readByte(z80.regs.hl);");
-                    addLine(output, "z80.incTStateCount(4);");
-                    addLine(output, "z80.writeByte(z80.regs.hl, ((tmp << 4) | (z80.regs.a & 0x0F)) & 0xFF);");
-                    addLine(output, "z80.regs.a = (z80.regs.a & 0xF0) | (tmp >> 4);");
-                    addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53pTable[z80.regs.a];");
-                    addLine(output, "z80.regs.memptr = inc16(z80.regs.hl);");
-                    break;
-                }
-
-                case "rrd": {
-                    addLine(output, "const tmp = z80.readByte(z80.regs.hl);");
-                    addLine(output, "z80.incTStateCount(4);");
-                    addLine(output, "z80.writeByte(z80.regs.hl, ((z80.regs.a << 4) | (tmp >> 4)) & 0xFF);");
-                    addLine(output, "z80.regs.a = (z80.regs.a & 0xF0) | (tmp & 0x0F);");
-                    addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53pTable[z80.regs.a];");
-                    addLine(output, "z80.regs.memptr = inc16(z80.regs.hl);");
-                    break;
-                }
-
-                case "exx": {
-                    addLine(output, "let tmp: number;");
-                    addLine(output, "tmp = z80.regs.bc; z80.regs.bc = z80.regs.bcPrime; z80.regs.bcPrime = tmp;");
-                    addLine(output, "tmp = z80.regs.de; z80.regs.de = z80.regs.dePrime; z80.regs.dePrime = tmp;");
-                    addLine(output, "tmp = z80.regs.hl; z80.regs.hl = z80.regs.hlPrime; z80.regs.hlPrime = tmp;");
-                    break;
-                }
-
-                case "bit":
-                case "set":
-                case "res": {
-                    if (params === undefined) {
-                        throw new Error(opcode + " requires params: " + line);
-                    }
-                    const [bit, operand] = params.split(",");
-                    handleSetResBit(output, opcode, bit, operand);
-                    break;
-                }
-
-                case "rl":
-                case "rlc":
-                case "rr":
-                case "rrc":
-                case "sla":
-                case "sll":
-                case "sra":
-                case "srl":
-                case "inc":
-                case "dec": {
-                    if (params === undefined) {
-                        throw new Error(opcode + " requires params: " + line);
-                    }
-                    handleRotateShiftIncDec(output, opcode, params);
-                    break;
-                }
-
-                case "halt": {
-                    addLine(output, "z80.regs.halted = 1;");
-                    addLine(output, "z80.regs.pc = dec16(z80.regs.pc);");
-                    break;
-                }
-
-                case "ccf": {
-                    addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | ((z80.regs.f & Flag.C) !== 0 ? Flag.H : Flag.C) | (z80.regs.a & (Flag.X3 | Flag.X5));");
-                    break;
-                }
-
-                case "scf": {
-                    addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | Flag.C | (z80.regs.a & (Flag.X3 | Flag.X5));");
-                    break;
-                }
-
-                case "cpl": {
-                    addLine(output, "z80.regs.a ^= 0xFF;");
-                    addLine(output, "z80.regs.f = (z80.regs.f & (Flag.C | Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | Flag.N | Flag.H;");
-                    break;
-                }
-
-                case "daa": {
-                    handleDaa(output);
-                    break;
-                }
-
-                case "rla":
-                case "rra":
-                case "rlca":
-                case "rrca": {
-                    handleRotateA(output, opcode);
-                    break;
-                }
-
-                case "djnz": {
+                if (newOpcode === "set" || newOpcode === "res") {
+                    const bit = parts[1].split(",")[0];
+                    const [bitValue, operator, hexBit] = getSetRes(newOpcode, bit);
+                    addLine(output, "z80.regs." + reg + " = z80.readByte(z80.regs.memptr) " + operator + " " + hexBit + ";");
                     addLine(output, "z80.incTStateCount(1);");
-                    addLine(output, "z80.regs.b = dec8(z80.regs.b);");
-                    addLine(output, "if (z80.regs.b !== 0) {");
+                    addLine(output, "z80.writeByte(z80.regs.memptr, z80.regs." + reg + ");");
+                } else {
+                    addLine(output, "z80.regs." + reg + " = z80.readByte(z80.regs.memptr);");
+                    addLine(output, "z80.incTStateCount(1);");
+                    addLine(output, "{");
                     enter();
-                    handleJpJrCall(output, "jr", undefined, "nn");
-                    exit();
-                    addLine(output, "} else {");
-                    enter();
-                    addLine(output, "z80.incTStateCount(3);");
-                    addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+                    handleRotateShiftIncDec(output, newOpcode, reg);
                     exit();
                     addLine(output, "}");
-                    break;
+                    addLine(output, "z80.writeByte(z80.regs.memptr, z80.regs." + reg + ");");
                 }
-
-                case "shift":
-                    if (params === undefined) {
-                        throw new Error("Shift requires params: " + line);
+            } else {
+                switch (mnemonic) {
+                    case "nop": {
+                        // Nothing to do.
+                        break;
                     }
-                    addLine(output, "decode" + params.toUpperCase() + "(z80);");
-                    break;
 
-                default:
-                    console.log("Unhandled opcode in " + prefix + ": " + line);
-                    break;
+                    case "add":
+                    case "adc":
+                    case "sub":
+                    case "sbc": {
+                        if (params === undefined) {
+                            throw new Error(mnemonic + " requires params");
+                        }
+                        if (params.length !== 2) {
+                            throw new Error(mnemonic + " requires two params");
+                        }
+                        const [dest, src] = params;
+                        handleArith(output, mnemonic, dest, src);
+                        break;
+                    }
+
+                    case "cp": {
+                        if (params === undefined) {
+                            throw new Error("CP requires params");
+                        }
+                        if (params.length !== 1) {
+                            throw new Error("CP requires one param");
+                        }
+                        handleCp(output, params[0]);
+                        break;
+                    }
+
+                    case "di": {
+                        addLine(output, "z80.regs.iff1 = 0;");
+                        addLine(output, "z80.regs.iff2 = 0;");
+                        break;
+                    }
+
+                    case "ex": {
+                        if (params === undefined) {
+                            throw new Error("EX requires params");
+                        }
+                        if (params.length !== 2) {
+                            throw new Error("EX requires two params");
+                        }
+                        const [op1, op2] = params;
+                        handleEx(output, op1, op2);
+                        break;
+                    }
+
+                    case "ei": {
+                        // TODO Wait another instruction before enabling interrupts.
+                        addLine(output, "z80.regs.iff1 = 1;");
+                        addLine(output, "z80.regs.iff2 = 1;");
+                        break;
+                    }
+
+                    case "im": {
+                        if (params === undefined) {
+                            throw new Error(mnemonic + " requires params");
+                        }
+                        addLine(output, "z80.regs.im = " + parseInt(params[0], 10) + ";");
+                        break;
+                    }
+
+                    case "reti":
+                    case "retn": {
+                        addLine(output, "z80.regs.iff1 = z80.regs.iff2;");
+                        addLine(output, "z80.regs.pc = z80.popWord();");
+                        addLine(output, "z80.regs.memptr = z80.regs.pc;");
+                        break;
+                    }
+
+                    case "neg": {
+                        addLine(output, "const value = z80.regs.a;");
+                        addLine(output, "z80.regs.a = 0;");
+                        emitSub(output);
+                        break;
+                    }
+
+                    case "jr":
+                    case "call":
+                    case "jp": {
+                        if (params === undefined) {
+                            throw new Error(mnemonic + " requires params");
+                        }
+                        let cond: string | undefined;
+                        let dest: string;
+                        if (params.length == 2) {
+                            cond = params[0];
+                            dest = params[1];
+                        } else {
+                            cond = undefined;
+                            dest = params[0];
+                        }
+                        handleJpJrCall(output, mnemonic, cond, dest)
+                        break;
+                    }
+
+                    case "ld": {
+                        if (params === undefined) {
+                            throw new Error("LD requires params");
+                        }
+                        if (params.length !== 2) {
+                            throw new Error("LD requires two params");
+                        }
+                        const [dest, src] = params;
+                        handleLd(output, dest, src);
+                        break;
+                    }
+
+                    case "or":
+                    case "and":
+                    case "xor": {
+                        if (params === undefined) {
+                            throw new Error(mnemonic + " requires params");
+                        }
+                        let operand: string;
+                        if (params.length === 2) {
+                            if (params[0] === "a") {
+                                operand = params[1];
+                            } else {
+                                throw new Error("First operand of " + mnemonic + " must be A");
+                            }
+                        } else if (params.length === 1) {
+                            operand = params[0];
+                        } else {
+                            throw new Error("LD requires two params");
+                        }
+                        handleLogic(output, mnemonic, operand);
+                        break;
+                    }
+
+                    case "outi":
+                    case "outd":
+                    case "otir":
+                    case "otdr": {
+                        handleOutiOutd(output, mnemonic === "otdr" || mnemonic === "outd", mnemonic.endsWith("r"));
+                        break;
+                    }
+
+                    case "ini":
+                    case "ind":
+                    case "inir":
+                    case "indr": {
+                        handleIniInd(output, mnemonic.startsWith("ind"), mnemonic.endsWith("r"));
+                        break;
+                    }
+
+                    case "cpi":
+                    case "cpd":
+                    case "cpir":
+                    case "cpdr": {
+                        handleCpiCpd(output, mnemonic.startsWith("cpd"), mnemonic.endsWith("r"));
+                        break;
+                    }
+
+                    case "ldi":
+                    case "ldd":
+                    case "ldir":
+                    case "lddr": {
+                        handleLdiLdd(output, mnemonic.startsWith("ldd"), mnemonic.endsWith("r"));
+                        break;
+                    }
+
+                    case "pop": {
+                        if (params === undefined) {
+                            throw new Error("POP requires params");
+                        }
+                        if (params.length !== 1) {
+                            throw new Error("POP requires one param");
+                        }
+                        handlePop(output, params[0]);
+                        break;
+                    }
+
+                    case "push": {
+                        if (params === undefined) {
+                            throw new Error("PUSH requires params");
+                        }
+                        if (params.length !== 1) {
+                            throw new Error("PUSH requires one param");
+                        }
+                        handlePush(output, params[0]);
+                        break;
+                    }
+
+                    case "ret": {
+                        handleRet(output, params[0]);
+                        break;
+                    }
+
+                    case "rst": {
+                        if (params === undefined) {
+                            throw new Error("RST requires params");
+                        }
+                        handleRst(output, parseInt(params[0], 16));
+                        break;
+                    }
+
+                    case "out": {
+                        if (params === undefined) {
+                            throw new Error(mnemonic + " requires params");
+                        }
+                        const [port, src] = params;
+                        handleOut(output, port, src);
+                        break;
+                    }
+
+                    case "in": {
+                        if (params === undefined) {
+                            throw new Error(mnemonic + " requires params");
+                        }
+                        const [dest, port] = params;
+                        handleIn(output, dest, port);
+                        break;
+                    }
+
+                    case "rld": {
+                        addLine(output, "const tmp = z80.readByte(z80.regs.hl);");
+                        addLine(output, "z80.incTStateCount(4);");
+                        addLine(output, "z80.writeByte(z80.regs.hl, ((tmp << 4) | (z80.regs.a & 0x0F)) & 0xFF);");
+                        addLine(output, "z80.regs.a = (z80.regs.a & 0xF0) | (tmp >> 4);");
+                        addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53pTable[z80.regs.a];");
+                        addLine(output, "z80.regs.memptr = inc16(z80.regs.hl);");
+                        break;
+                    }
+
+                    case "rrd": {
+                        addLine(output, "const tmp = z80.readByte(z80.regs.hl);");
+                        addLine(output, "z80.incTStateCount(4);");
+                        addLine(output, "z80.writeByte(z80.regs.hl, ((z80.regs.a << 4) | (tmp >> 4)) & 0xFF);");
+                        addLine(output, "z80.regs.a = (z80.regs.a & 0xF0) | (tmp & 0x0F);");
+                        addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | z80.sz53pTable[z80.regs.a];");
+                        addLine(output, "z80.regs.memptr = inc16(z80.regs.hl);");
+                        break;
+                    }
+
+                    case "exx": {
+                        addLine(output, "let tmp: number;");
+                        addLine(output, "tmp = z80.regs.bc; z80.regs.bc = z80.regs.bcPrime; z80.regs.bcPrime = tmp;");
+                        addLine(output, "tmp = z80.regs.de; z80.regs.de = z80.regs.dePrime; z80.regs.dePrime = tmp;");
+                        addLine(output, "tmp = z80.regs.hl; z80.regs.hl = z80.regs.hlPrime; z80.regs.hlPrime = tmp;");
+                        break;
+                    }
+
+                    case "bit":
+                    case "set":
+                    case "res": {
+                        if (params === undefined) {
+                            throw new Error(mnemonic + " requires params");
+                        }
+                        const [bit, operand] = params;
+                        handleSetResBit(output, mnemonic, bit, operand);
+                        break;
+                    }
+
+                    case "rl":
+                    case "rlc":
+                    case "rr":
+                    case "rrc":
+                    case "sla":
+                    case "sll":
+                    case "sra":
+                    case "srl":
+                    case "inc":
+                    case "dec": {
+                        if (params === undefined) {
+                            throw new Error(mnemonic + " requires params");
+                        }
+                        handleRotateShiftIncDec(output, mnemonic, params[0]);
+                        break;
+                    }
+
+                    case "halt": {
+                        addLine(output, "z80.regs.halted = 1;");
+                        addLine(output, "z80.regs.pc = dec16(z80.regs.pc);");
+                        break;
+                    }
+
+                    case "ccf": {
+                        addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | ((z80.regs.f & Flag.C) !== 0 ? Flag.H : Flag.C) | (z80.regs.a & (Flag.X3 | Flag.X5));");
+                        break;
+                    }
+
+                    case "scf": {
+                        addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | Flag.C | (z80.regs.a & (Flag.X3 | Flag.X5));");
+                        break;
+                    }
+
+                    case "cpl": {
+                        addLine(output, "z80.regs.a ^= 0xFF;");
+                        addLine(output, "z80.regs.f = (z80.regs.f & (Flag.C | Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | Flag.N | Flag.H;");
+                        break;
+                    }
+
+                    case "daa": {
+                        handleDaa(output);
+                        break;
+                    }
+
+                    case "rla":
+                    case "rra":
+                    case "rlca":
+                    case "rrca": {
+                        handleRotateA(output, mnemonic);
+                        break;
+                    }
+
+                    case "djnz": {
+                        addLine(output, "z80.incTStateCount(1);");
+                        addLine(output, "z80.regs.b = dec8(z80.regs.b);");
+                        addLine(output, "if (z80.regs.b !== 0) {");
+                        enter();
+                        handleJpJrCall(output, "jr", undefined, "nn");
+                        exit();
+                        addLine(output, "} else {");
+                        enter();
+                        addLine(output, "z80.incTStateCount(3);");
+                        addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
+                        exit();
+                        addLine(output, "}");
+                        break;
+                    }
+
+                    default:
+                        console.log("Unhandled opcode in " + prefix + "");
+                        break;
+                }
             }
         }
 
         exit();
         addLine(output, "});");
 
-        for (const fallthroughOpcode of fallthroughOpcodes) {
-            addLine(output, mapName + ".set(0x" + toHex(fallthroughOpcode, 2) + ", " + mapName + ".get(0x" + toHex(number, 2) + ") as OpcodeFunc);");
+        // Generate aliases for this variant.
+        if (!(value instanceof Map)) {
+            for (let i = 0; i < aliasVariants.length; i++) {
+                const {opcode: aliasOpcode, variant: aliasVariant} = aliasVariants[i];
+                if (areAliasVariants(value, aliasVariant)) {
+                    addLine(output, mapName + ".set(0x" + toHexByte(aliasOpcode) + ", " + mapName + ".get(0x" + toHexByte(opcode) + ") as OpcodeFunc);");
+                    aliasVariants.splice(i, 1);
+                    i -= 1;
+                }
+            }
         }
-        fallthroughOpcodes = [];
-    });
+    }
 
     if (indent !== "") {
         throw new Error("Unbalanced enter/exit");
     }
+    if (aliasVariants.length > 0) {
+        throw new Error("Some alias variants left over: " + aliasVariants.length);
+    }
 
-    return output.join("\n");
+    const code = output.join("\n");
+    dispatchMap.set(prefix === "" ? "base" : prefix, code);
 }
 
 function generateSource(dispatchMap: Map<string, string>): void {
@@ -1337,18 +1357,10 @@ function generateSource(dispatchMap: Map<string, string>): void {
 }
 
 function generateOpcodes(): void {
-    const opcodesDir = path.join(__dirname, "..");
-    // All the prefixes to parse.
-    const prefixes = ["base", "cb", "dd", "ddcb", "ed", "fd", "fdcb"];
-    // Map from prefix (like "ddcb") to the switch statement contents for it.
+    // Map from prefix (like "base" or "ddcb") to the switch statement contents for it.
     const dispatchMap = new Map<string, string>();
 
-    for (const prefix of prefixes) {
-        const dataPathname = path.join(opcodesDir, "opcodes_" + prefix + ".dat");
-        const dispatch = generateDispatch(dataPathname, prefix);
-        dispatchMap.set(prefix, dispatch);
-    }
-
+    generateDispatch(opcodeMap, dispatchMap, "base");
     generateSource(dispatchMap);
 }
 

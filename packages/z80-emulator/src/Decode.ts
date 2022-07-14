@@ -4211,7 +4211,7 @@ decodeMapDD.set(0xBE, (z80: Z80) => { // cp (ix+dd)
     f |= diff & Flag.S;
     z80.regs.af = word(z80.regs.a, f);
 });
-decodeMapDD.set(0xCB, (z80: Z80) => { // shift ddcb
+decodeMapDD.set(0xCB, (z80: Z80) => { // shift cb
     decodeDDCB(z80);
 });
 decodeMapDD.set(0xE1, (z80: Z80) => { // pop ix
@@ -4243,7 +4243,7 @@ decodeMapDD.set(0xF9, (z80: Z80) => { // ld sp,ix
 });
 
 const decodeMapDDCB = new Map<number, OpcodeFunc>();
-decodeMapDDCB.set(0x00, (z80: Z80) => { // ld b,rlc
+decodeMapDDCB.set(0x00, (z80: Z80) => { // ld b,rlc (ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4256,7 +4256,7 @@ decodeMapDDCB.set(0x00, (z80: Z80) => { // ld b,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x01, (z80: Z80) => { // ld c,rlc
+decodeMapDDCB.set(0x01, (z80: Z80) => { // ld c,rlc (ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4269,7 +4269,7 @@ decodeMapDDCB.set(0x01, (z80: Z80) => { // ld c,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x02, (z80: Z80) => { // ld d,rlc
+decodeMapDDCB.set(0x02, (z80: Z80) => { // ld d,rlc (ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4282,7 +4282,7 @@ decodeMapDDCB.set(0x02, (z80: Z80) => { // ld d,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x03, (z80: Z80) => { // ld e,rlc
+decodeMapDDCB.set(0x03, (z80: Z80) => { // ld e,rlc (ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4295,7 +4295,7 @@ decodeMapDDCB.set(0x03, (z80: Z80) => { // ld e,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x04, (z80: Z80) => { // ld h,rlc
+decodeMapDDCB.set(0x04, (z80: Z80) => { // ld h,rlc (ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4308,7 +4308,7 @@ decodeMapDDCB.set(0x04, (z80: Z80) => { // ld h,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x05, (z80: Z80) => { // ld l,rlc
+decodeMapDDCB.set(0x05, (z80: Z80) => { // ld l,rlc (ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4330,7 +4330,7 @@ decodeMapDDCB.set(0x06, (z80: Z80) => { // rlc (ix+dd)
     z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapDDCB.set(0x07, (z80: Z80) => { // ld a,rlc
+decodeMapDDCB.set(0x07, (z80: Z80) => { // ld a,rlc (ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4343,7 +4343,7 @@ decodeMapDDCB.set(0x07, (z80: Z80) => { // ld a,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x08, (z80: Z80) => { // ld b,rrc
+decodeMapDDCB.set(0x08, (z80: Z80) => { // ld b,rrc (ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4356,7 +4356,7 @@ decodeMapDDCB.set(0x08, (z80: Z80) => { // ld b,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x09, (z80: Z80) => { // ld c,rrc
+decodeMapDDCB.set(0x09, (z80: Z80) => { // ld c,rrc (ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4369,7 +4369,7 @@ decodeMapDDCB.set(0x09, (z80: Z80) => { // ld c,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x0A, (z80: Z80) => { // ld d,rrc
+decodeMapDDCB.set(0x0A, (z80: Z80) => { // ld d,rrc (ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4382,7 +4382,7 @@ decodeMapDDCB.set(0x0A, (z80: Z80) => { // ld d,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x0B, (z80: Z80) => { // ld e,rrc
+decodeMapDDCB.set(0x0B, (z80: Z80) => { // ld e,rrc (ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4395,7 +4395,7 @@ decodeMapDDCB.set(0x0B, (z80: Z80) => { // ld e,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x0C, (z80: Z80) => { // ld h,rrc
+decodeMapDDCB.set(0x0C, (z80: Z80) => { // ld h,rrc (ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4408,7 +4408,7 @@ decodeMapDDCB.set(0x0C, (z80: Z80) => { // ld h,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x0D, (z80: Z80) => { // ld l,rrc
+decodeMapDDCB.set(0x0D, (z80: Z80) => { // ld l,rrc (ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4430,7 +4430,7 @@ decodeMapDDCB.set(0x0E, (z80: Z80) => { // rrc (ix+dd)
     z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapDDCB.set(0x0F, (z80: Z80) => { // ld a,rrc
+decodeMapDDCB.set(0x0F, (z80: Z80) => { // ld a,rrc (ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4443,7 +4443,7 @@ decodeMapDDCB.set(0x0F, (z80: Z80) => { // ld a,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x10, (z80: Z80) => { // ld b,rl
+decodeMapDDCB.set(0x10, (z80: Z80) => { // ld b,rl (ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4456,7 +4456,7 @@ decodeMapDDCB.set(0x10, (z80: Z80) => { // ld b,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x11, (z80: Z80) => { // ld c,rl
+decodeMapDDCB.set(0x11, (z80: Z80) => { // ld c,rl (ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4469,7 +4469,7 @@ decodeMapDDCB.set(0x11, (z80: Z80) => { // ld c,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x12, (z80: Z80) => { // ld d,rl
+decodeMapDDCB.set(0x12, (z80: Z80) => { // ld d,rl (ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4482,7 +4482,7 @@ decodeMapDDCB.set(0x12, (z80: Z80) => { // ld d,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x13, (z80: Z80) => { // ld e,rl
+decodeMapDDCB.set(0x13, (z80: Z80) => { // ld e,rl (ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4495,7 +4495,7 @@ decodeMapDDCB.set(0x13, (z80: Z80) => { // ld e,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x14, (z80: Z80) => { // ld h,rl
+decodeMapDDCB.set(0x14, (z80: Z80) => { // ld h,rl (ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4508,7 +4508,7 @@ decodeMapDDCB.set(0x14, (z80: Z80) => { // ld h,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x15, (z80: Z80) => { // ld l,rl
+decodeMapDDCB.set(0x15, (z80: Z80) => { // ld l,rl (ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4530,7 +4530,7 @@ decodeMapDDCB.set(0x16, (z80: Z80) => { // rl (ix+dd)
     z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapDDCB.set(0x17, (z80: Z80) => { // ld a,rl
+decodeMapDDCB.set(0x17, (z80: Z80) => { // ld a,rl (ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4543,7 +4543,7 @@ decodeMapDDCB.set(0x17, (z80: Z80) => { // ld a,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x18, (z80: Z80) => { // ld b,rr
+decodeMapDDCB.set(0x18, (z80: Z80) => { // ld b,rr (ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4556,7 +4556,7 @@ decodeMapDDCB.set(0x18, (z80: Z80) => { // ld b,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x19, (z80: Z80) => { // ld c,rr
+decodeMapDDCB.set(0x19, (z80: Z80) => { // ld c,rr (ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4569,7 +4569,7 @@ decodeMapDDCB.set(0x19, (z80: Z80) => { // ld c,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x1A, (z80: Z80) => { // ld d,rr
+decodeMapDDCB.set(0x1A, (z80: Z80) => { // ld d,rr (ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4582,7 +4582,7 @@ decodeMapDDCB.set(0x1A, (z80: Z80) => { // ld d,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x1B, (z80: Z80) => { // ld e,rr
+decodeMapDDCB.set(0x1B, (z80: Z80) => { // ld e,rr (ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4595,7 +4595,7 @@ decodeMapDDCB.set(0x1B, (z80: Z80) => { // ld e,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x1C, (z80: Z80) => { // ld h,rr
+decodeMapDDCB.set(0x1C, (z80: Z80) => { // ld h,rr (ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4608,7 +4608,7 @@ decodeMapDDCB.set(0x1C, (z80: Z80) => { // ld h,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x1D, (z80: Z80) => { // ld l,rr
+decodeMapDDCB.set(0x1D, (z80: Z80) => { // ld l,rr (ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4630,7 +4630,7 @@ decodeMapDDCB.set(0x1E, (z80: Z80) => { // rr (ix+dd)
     z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapDDCB.set(0x1F, (z80: Z80) => { // ld a,rr
+decodeMapDDCB.set(0x1F, (z80: Z80) => { // ld a,rr (ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4643,7 +4643,7 @@ decodeMapDDCB.set(0x1F, (z80: Z80) => { // ld a,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x20, (z80: Z80) => { // ld b,sla
+decodeMapDDCB.set(0x20, (z80: Z80) => { // ld b,sla (ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4656,7 +4656,7 @@ decodeMapDDCB.set(0x20, (z80: Z80) => { // ld b,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x21, (z80: Z80) => { // ld c,sla
+decodeMapDDCB.set(0x21, (z80: Z80) => { // ld c,sla (ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4669,7 +4669,7 @@ decodeMapDDCB.set(0x21, (z80: Z80) => { // ld c,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x22, (z80: Z80) => { // ld d,sla
+decodeMapDDCB.set(0x22, (z80: Z80) => { // ld d,sla (ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4682,7 +4682,7 @@ decodeMapDDCB.set(0x22, (z80: Z80) => { // ld d,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x23, (z80: Z80) => { // ld e,sla
+decodeMapDDCB.set(0x23, (z80: Z80) => { // ld e,sla (ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4695,7 +4695,7 @@ decodeMapDDCB.set(0x23, (z80: Z80) => { // ld e,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x24, (z80: Z80) => { // ld h,sla
+decodeMapDDCB.set(0x24, (z80: Z80) => { // ld h,sla (ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4708,7 +4708,7 @@ decodeMapDDCB.set(0x24, (z80: Z80) => { // ld h,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x25, (z80: Z80) => { // ld l,sla
+decodeMapDDCB.set(0x25, (z80: Z80) => { // ld l,sla (ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4730,7 +4730,7 @@ decodeMapDDCB.set(0x26, (z80: Z80) => { // sla (ix+dd)
     z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapDDCB.set(0x27, (z80: Z80) => { // ld a,sla
+decodeMapDDCB.set(0x27, (z80: Z80) => { // ld a,sla (ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4743,7 +4743,7 @@ decodeMapDDCB.set(0x27, (z80: Z80) => { // ld a,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x28, (z80: Z80) => { // ld b,sra
+decodeMapDDCB.set(0x28, (z80: Z80) => { // ld b,sra (ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4756,7 +4756,7 @@ decodeMapDDCB.set(0x28, (z80: Z80) => { // ld b,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x29, (z80: Z80) => { // ld c,sra
+decodeMapDDCB.set(0x29, (z80: Z80) => { // ld c,sra (ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4769,7 +4769,7 @@ decodeMapDDCB.set(0x29, (z80: Z80) => { // ld c,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x2A, (z80: Z80) => { // ld d,sra
+decodeMapDDCB.set(0x2A, (z80: Z80) => { // ld d,sra (ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4782,7 +4782,7 @@ decodeMapDDCB.set(0x2A, (z80: Z80) => { // ld d,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x2B, (z80: Z80) => { // ld e,sra
+decodeMapDDCB.set(0x2B, (z80: Z80) => { // ld e,sra (ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4795,7 +4795,7 @@ decodeMapDDCB.set(0x2B, (z80: Z80) => { // ld e,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x2C, (z80: Z80) => { // ld h,sra
+decodeMapDDCB.set(0x2C, (z80: Z80) => { // ld h,sra (ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4808,7 +4808,7 @@ decodeMapDDCB.set(0x2C, (z80: Z80) => { // ld h,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x2D, (z80: Z80) => { // ld l,sra
+decodeMapDDCB.set(0x2D, (z80: Z80) => { // ld l,sra (ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4830,7 +4830,7 @@ decodeMapDDCB.set(0x2E, (z80: Z80) => { // sra (ix+dd)
     z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapDDCB.set(0x2F, (z80: Z80) => { // ld a,sra
+decodeMapDDCB.set(0x2F, (z80: Z80) => { // ld a,sra (ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4843,7 +4843,7 @@ decodeMapDDCB.set(0x2F, (z80: Z80) => { // ld a,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x30, (z80: Z80) => { // ld b,sll
+decodeMapDDCB.set(0x30, (z80: Z80) => { // ld b,sll (ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4856,7 +4856,7 @@ decodeMapDDCB.set(0x30, (z80: Z80) => { // ld b,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x31, (z80: Z80) => { // ld c,sll
+decodeMapDDCB.set(0x31, (z80: Z80) => { // ld c,sll (ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4869,7 +4869,7 @@ decodeMapDDCB.set(0x31, (z80: Z80) => { // ld c,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x32, (z80: Z80) => { // ld d,sll
+decodeMapDDCB.set(0x32, (z80: Z80) => { // ld d,sll (ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4882,7 +4882,7 @@ decodeMapDDCB.set(0x32, (z80: Z80) => { // ld d,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x33, (z80: Z80) => { // ld e,sll
+decodeMapDDCB.set(0x33, (z80: Z80) => { // ld e,sll (ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4895,7 +4895,7 @@ decodeMapDDCB.set(0x33, (z80: Z80) => { // ld e,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x34, (z80: Z80) => { // ld h,sll
+decodeMapDDCB.set(0x34, (z80: Z80) => { // ld h,sll (ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4908,7 +4908,7 @@ decodeMapDDCB.set(0x34, (z80: Z80) => { // ld h,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x35, (z80: Z80) => { // ld l,sll
+decodeMapDDCB.set(0x35, (z80: Z80) => { // ld l,sll (ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4930,7 +4930,7 @@ decodeMapDDCB.set(0x36, (z80: Z80) => { // sll (ix+dd)
     z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapDDCB.set(0x37, (z80: Z80) => { // ld a,sll
+decodeMapDDCB.set(0x37, (z80: Z80) => { // ld a,sll (ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4943,7 +4943,7 @@ decodeMapDDCB.set(0x37, (z80: Z80) => { // ld a,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x38, (z80: Z80) => { // ld b,srl
+decodeMapDDCB.set(0x38, (z80: Z80) => { // ld b,srl (ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4956,7 +4956,7 @@ decodeMapDDCB.set(0x38, (z80: Z80) => { // ld b,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x39, (z80: Z80) => { // ld c,srl
+decodeMapDDCB.set(0x39, (z80: Z80) => { // ld c,srl (ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4969,7 +4969,7 @@ decodeMapDDCB.set(0x39, (z80: Z80) => { // ld c,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x3A, (z80: Z80) => { // ld d,srl
+decodeMapDDCB.set(0x3A, (z80: Z80) => { // ld d,srl (ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4982,7 +4982,7 @@ decodeMapDDCB.set(0x3A, (z80: Z80) => { // ld d,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x3B, (z80: Z80) => { // ld e,srl
+decodeMapDDCB.set(0x3B, (z80: Z80) => { // ld e,srl (ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -4995,7 +4995,7 @@ decodeMapDDCB.set(0x3B, (z80: Z80) => { // ld e,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x3C, (z80: Z80) => { // ld h,srl
+decodeMapDDCB.set(0x3C, (z80: Z80) => { // ld h,srl (ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -5008,7 +5008,7 @@ decodeMapDDCB.set(0x3C, (z80: Z80) => { // ld h,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x3D, (z80: Z80) => { // ld l,srl
+decodeMapDDCB.set(0x3D, (z80: Z80) => { // ld l,srl (ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -5030,7 +5030,7 @@ decodeMapDDCB.set(0x3E, (z80: Z80) => { // srl (ix+dd)
     z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapDDCB.set(0x3F, (z80: Z80) => { // ld a,srl
+decodeMapDDCB.set(0x3F, (z80: Z80) => { // ld a,srl (ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -5182,32 +5182,32 @@ decodeMapDDCB.set(0x7B, decodeMapDDCB.get(0x7F) as OpcodeFunc);
 decodeMapDDCB.set(0x7C, decodeMapDDCB.get(0x7F) as OpcodeFunc);
 decodeMapDDCB.set(0x7D, decodeMapDDCB.get(0x7F) as OpcodeFunc);
 decodeMapDDCB.set(0x7E, decodeMapDDCB.get(0x7F) as OpcodeFunc);
-decodeMapDDCB.set(0x80, (z80: Z80) => { // ld b,res
+decodeMapDDCB.set(0x80, (z80: Z80) => { // ld b,res 0,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x81, (z80: Z80) => { // ld c,res
+decodeMapDDCB.set(0x81, (z80: Z80) => { // ld c,res 0,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x82, (z80: Z80) => { // ld d,res
+decodeMapDDCB.set(0x82, (z80: Z80) => { // ld d,res 0,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x83, (z80: Z80) => { // ld e,res
+decodeMapDDCB.set(0x83, (z80: Z80) => { // ld e,res 0,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x84, (z80: Z80) => { // ld h,res
+decodeMapDDCB.set(0x84, (z80: Z80) => { // ld h,res 0,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x85, (z80: Z80) => { // ld l,res
+decodeMapDDCB.set(0x85, (z80: Z80) => { // ld l,res 0,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5217,37 +5217,37 @@ decodeMapDDCB.set(0x86, (z80: Z80) => { // res 0,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xFE);
 });
-decodeMapDDCB.set(0x87, (z80: Z80) => { // ld a,res
+decodeMapDDCB.set(0x87, (z80: Z80) => { // ld a,res 0,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x88, (z80: Z80) => { // ld b,res
+decodeMapDDCB.set(0x88, (z80: Z80) => { // ld b,res 1,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x89, (z80: Z80) => { // ld c,res
+decodeMapDDCB.set(0x89, (z80: Z80) => { // ld c,res 1,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x8A, (z80: Z80) => { // ld d,res
+decodeMapDDCB.set(0x8A, (z80: Z80) => { // ld d,res 1,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x8B, (z80: Z80) => { // ld e,res
+decodeMapDDCB.set(0x8B, (z80: Z80) => { // ld e,res 1,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x8C, (z80: Z80) => { // ld h,res
+decodeMapDDCB.set(0x8C, (z80: Z80) => { // ld h,res 1,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x8D, (z80: Z80) => { // ld l,res
+decodeMapDDCB.set(0x8D, (z80: Z80) => { // ld l,res 1,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5257,37 +5257,37 @@ decodeMapDDCB.set(0x8E, (z80: Z80) => { // res 1,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xFD);
 });
-decodeMapDDCB.set(0x8F, (z80: Z80) => { // ld a,res
+decodeMapDDCB.set(0x8F, (z80: Z80) => { // ld a,res 1,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x90, (z80: Z80) => { // ld b,res
+decodeMapDDCB.set(0x90, (z80: Z80) => { // ld b,res 2,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x91, (z80: Z80) => { // ld c,res
+decodeMapDDCB.set(0x91, (z80: Z80) => { // ld c,res 2,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x92, (z80: Z80) => { // ld d,res
+decodeMapDDCB.set(0x92, (z80: Z80) => { // ld d,res 2,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x93, (z80: Z80) => { // ld e,res
+decodeMapDDCB.set(0x93, (z80: Z80) => { // ld e,res 2,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x94, (z80: Z80) => { // ld h,res
+decodeMapDDCB.set(0x94, (z80: Z80) => { // ld h,res 2,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x95, (z80: Z80) => { // ld l,res
+decodeMapDDCB.set(0x95, (z80: Z80) => { // ld l,res 2,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5297,37 +5297,37 @@ decodeMapDDCB.set(0x96, (z80: Z80) => { // res 2,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xFB);
 });
-decodeMapDDCB.set(0x97, (z80: Z80) => { // ld a,res
+decodeMapDDCB.set(0x97, (z80: Z80) => { // ld a,res 2,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0x98, (z80: Z80) => { // ld b,res
+decodeMapDDCB.set(0x98, (z80: Z80) => { // ld b,res 3,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0x99, (z80: Z80) => { // ld c,res
+decodeMapDDCB.set(0x99, (z80: Z80) => { // ld c,res 3,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0x9A, (z80: Z80) => { // ld d,res
+decodeMapDDCB.set(0x9A, (z80: Z80) => { // ld d,res 3,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0x9B, (z80: Z80) => { // ld e,res
+decodeMapDDCB.set(0x9B, (z80: Z80) => { // ld e,res 3,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0x9C, (z80: Z80) => { // ld h,res
+decodeMapDDCB.set(0x9C, (z80: Z80) => { // ld h,res 3,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0x9D, (z80: Z80) => { // ld l,res
+decodeMapDDCB.set(0x9D, (z80: Z80) => { // ld l,res 3,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5337,37 +5337,37 @@ decodeMapDDCB.set(0x9E, (z80: Z80) => { // res 3,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xF7);
 });
-decodeMapDDCB.set(0x9F, (z80: Z80) => { // ld a,res
+decodeMapDDCB.set(0x9F, (z80: Z80) => { // ld a,res 3,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xA0, (z80: Z80) => { // ld b,res
+decodeMapDDCB.set(0xA0, (z80: Z80) => { // ld b,res 4,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xA1, (z80: Z80) => { // ld c,res
+decodeMapDDCB.set(0xA1, (z80: Z80) => { // ld c,res 4,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xA2, (z80: Z80) => { // ld d,res
+decodeMapDDCB.set(0xA2, (z80: Z80) => { // ld d,res 4,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xA3, (z80: Z80) => { // ld e,res
+decodeMapDDCB.set(0xA3, (z80: Z80) => { // ld e,res 4,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xA4, (z80: Z80) => { // ld h,res
+decodeMapDDCB.set(0xA4, (z80: Z80) => { // ld h,res 4,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xA5, (z80: Z80) => { // ld l,res
+decodeMapDDCB.set(0xA5, (z80: Z80) => { // ld l,res 4,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5377,37 +5377,37 @@ decodeMapDDCB.set(0xA6, (z80: Z80) => { // res 4,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xEF);
 });
-decodeMapDDCB.set(0xA7, (z80: Z80) => { // ld a,res
+decodeMapDDCB.set(0xA7, (z80: Z80) => { // ld a,res 4,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xA8, (z80: Z80) => { // ld b,res
+decodeMapDDCB.set(0xA8, (z80: Z80) => { // ld b,res 5,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xA9, (z80: Z80) => { // ld c,res
+decodeMapDDCB.set(0xA9, (z80: Z80) => { // ld c,res 5,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xAA, (z80: Z80) => { // ld d,res
+decodeMapDDCB.set(0xAA, (z80: Z80) => { // ld d,res 5,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xAB, (z80: Z80) => { // ld e,res
+decodeMapDDCB.set(0xAB, (z80: Z80) => { // ld e,res 5,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xAC, (z80: Z80) => { // ld h,res
+decodeMapDDCB.set(0xAC, (z80: Z80) => { // ld h,res 5,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xAD, (z80: Z80) => { // ld l,res
+decodeMapDDCB.set(0xAD, (z80: Z80) => { // ld l,res 5,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5417,37 +5417,37 @@ decodeMapDDCB.set(0xAE, (z80: Z80) => { // res 5,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xDF);
 });
-decodeMapDDCB.set(0xAF, (z80: Z80) => { // ld a,res
+decodeMapDDCB.set(0xAF, (z80: Z80) => { // ld a,res 5,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xB0, (z80: Z80) => { // ld b,res
+decodeMapDDCB.set(0xB0, (z80: Z80) => { // ld b,res 6,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xB1, (z80: Z80) => { // ld c,res
+decodeMapDDCB.set(0xB1, (z80: Z80) => { // ld c,res 6,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xB2, (z80: Z80) => { // ld d,res
+decodeMapDDCB.set(0xB2, (z80: Z80) => { // ld d,res 6,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xB3, (z80: Z80) => { // ld e,res
+decodeMapDDCB.set(0xB3, (z80: Z80) => { // ld e,res 6,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xB4, (z80: Z80) => { // ld h,res
+decodeMapDDCB.set(0xB4, (z80: Z80) => { // ld h,res 6,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xB5, (z80: Z80) => { // ld l,res
+decodeMapDDCB.set(0xB5, (z80: Z80) => { // ld l,res 6,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5457,37 +5457,37 @@ decodeMapDDCB.set(0xB6, (z80: Z80) => { // res 6,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xBF);
 });
-decodeMapDDCB.set(0xB7, (z80: Z80) => { // ld a,res
+decodeMapDDCB.set(0xB7, (z80: Z80) => { // ld a,res 6,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xB8, (z80: Z80) => { // ld b,res
+decodeMapDDCB.set(0xB8, (z80: Z80) => { // ld b,res 7,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xB9, (z80: Z80) => { // ld c,res
+decodeMapDDCB.set(0xB9, (z80: Z80) => { // ld c,res 7,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xBA, (z80: Z80) => { // ld d,res
+decodeMapDDCB.set(0xBA, (z80: Z80) => { // ld d,res 7,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xBB, (z80: Z80) => { // ld e,res
+decodeMapDDCB.set(0xBB, (z80: Z80) => { // ld e,res 7,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xBC, (z80: Z80) => { // ld h,res
+decodeMapDDCB.set(0xBC, (z80: Z80) => { // ld h,res 7,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xBD, (z80: Z80) => { // ld l,res
+decodeMapDDCB.set(0xBD, (z80: Z80) => { // ld l,res 7,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5497,37 +5497,37 @@ decodeMapDDCB.set(0xBE, (z80: Z80) => { // res 7,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0x7F);
 });
-decodeMapDDCB.set(0xBF, (z80: Z80) => { // ld a,res
+decodeMapDDCB.set(0xBF, (z80: Z80) => { // ld a,res 7,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xC0, (z80: Z80) => { // ld b,set
+decodeMapDDCB.set(0xC0, (z80: Z80) => { // ld b,set 0,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xC1, (z80: Z80) => { // ld c,set
+decodeMapDDCB.set(0xC1, (z80: Z80) => { // ld c,set 0,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xC2, (z80: Z80) => { // ld d,set
+decodeMapDDCB.set(0xC2, (z80: Z80) => { // ld d,set 0,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xC3, (z80: Z80) => { // ld e,set
+decodeMapDDCB.set(0xC3, (z80: Z80) => { // ld e,set 0,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xC4, (z80: Z80) => { // ld h,set
+decodeMapDDCB.set(0xC4, (z80: Z80) => { // ld h,set 0,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xC5, (z80: Z80) => { // ld l,set
+decodeMapDDCB.set(0xC5, (z80: Z80) => { // ld l,set 0,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5537,37 +5537,37 @@ decodeMapDDCB.set(0xC6, (z80: Z80) => { // set 0,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x01);
 });
-decodeMapDDCB.set(0xC7, (z80: Z80) => { // ld a,set
+decodeMapDDCB.set(0xC7, (z80: Z80) => { // ld a,set 0,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xC8, (z80: Z80) => { // ld b,set
+decodeMapDDCB.set(0xC8, (z80: Z80) => { // ld b,set 1,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xC9, (z80: Z80) => { // ld c,set
+decodeMapDDCB.set(0xC9, (z80: Z80) => { // ld c,set 1,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xCA, (z80: Z80) => { // ld d,set
+decodeMapDDCB.set(0xCA, (z80: Z80) => { // ld d,set 1,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xCB, (z80: Z80) => { // ld e,set
+decodeMapDDCB.set(0xCB, (z80: Z80) => { // ld e,set 1,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xCC, (z80: Z80) => { // ld h,set
+decodeMapDDCB.set(0xCC, (z80: Z80) => { // ld h,set 1,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xCD, (z80: Z80) => { // ld l,set
+decodeMapDDCB.set(0xCD, (z80: Z80) => { // ld l,set 1,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5577,37 +5577,37 @@ decodeMapDDCB.set(0xCE, (z80: Z80) => { // set 1,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x02);
 });
-decodeMapDDCB.set(0xCF, (z80: Z80) => { // ld a,set
+decodeMapDDCB.set(0xCF, (z80: Z80) => { // ld a,set 1,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xD0, (z80: Z80) => { // ld b,set
+decodeMapDDCB.set(0xD0, (z80: Z80) => { // ld b,set 2,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xD1, (z80: Z80) => { // ld c,set
+decodeMapDDCB.set(0xD1, (z80: Z80) => { // ld c,set 2,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xD2, (z80: Z80) => { // ld d,set
+decodeMapDDCB.set(0xD2, (z80: Z80) => { // ld d,set 2,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xD3, (z80: Z80) => { // ld e,set
+decodeMapDDCB.set(0xD3, (z80: Z80) => { // ld e,set 2,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xD4, (z80: Z80) => { // ld h,set
+decodeMapDDCB.set(0xD4, (z80: Z80) => { // ld h,set 2,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xD5, (z80: Z80) => { // ld l,set
+decodeMapDDCB.set(0xD5, (z80: Z80) => { // ld l,set 2,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5617,37 +5617,37 @@ decodeMapDDCB.set(0xD6, (z80: Z80) => { // set 2,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x04);
 });
-decodeMapDDCB.set(0xD7, (z80: Z80) => { // ld a,set
+decodeMapDDCB.set(0xD7, (z80: Z80) => { // ld a,set 2,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xD8, (z80: Z80) => { // ld b,set
+decodeMapDDCB.set(0xD8, (z80: Z80) => { // ld b,set 3,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xD9, (z80: Z80) => { // ld c,set
+decodeMapDDCB.set(0xD9, (z80: Z80) => { // ld c,set 3,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xDA, (z80: Z80) => { // ld d,set
+decodeMapDDCB.set(0xDA, (z80: Z80) => { // ld d,set 3,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xDB, (z80: Z80) => { // ld e,set
+decodeMapDDCB.set(0xDB, (z80: Z80) => { // ld e,set 3,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xDC, (z80: Z80) => { // ld h,set
+decodeMapDDCB.set(0xDC, (z80: Z80) => { // ld h,set 3,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xDD, (z80: Z80) => { // ld l,set
+decodeMapDDCB.set(0xDD, (z80: Z80) => { // ld l,set 3,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5657,37 +5657,37 @@ decodeMapDDCB.set(0xDE, (z80: Z80) => { // set 3,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x08);
 });
-decodeMapDDCB.set(0xDF, (z80: Z80) => { // ld a,set
+decodeMapDDCB.set(0xDF, (z80: Z80) => { // ld a,set 3,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xE0, (z80: Z80) => { // ld b,set
+decodeMapDDCB.set(0xE0, (z80: Z80) => { // ld b,set 4,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xE1, (z80: Z80) => { // ld c,set
+decodeMapDDCB.set(0xE1, (z80: Z80) => { // ld c,set 4,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xE2, (z80: Z80) => { // ld d,set
+decodeMapDDCB.set(0xE2, (z80: Z80) => { // ld d,set 4,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xE3, (z80: Z80) => { // ld e,set
+decodeMapDDCB.set(0xE3, (z80: Z80) => { // ld e,set 4,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xE4, (z80: Z80) => { // ld h,set
+decodeMapDDCB.set(0xE4, (z80: Z80) => { // ld h,set 4,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xE5, (z80: Z80) => { // ld l,set
+decodeMapDDCB.set(0xE5, (z80: Z80) => { // ld l,set 4,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5697,37 +5697,37 @@ decodeMapDDCB.set(0xE6, (z80: Z80) => { // set 4,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x10);
 });
-decodeMapDDCB.set(0xE7, (z80: Z80) => { // ld a,set
+decodeMapDDCB.set(0xE7, (z80: Z80) => { // ld a,set 4,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xE8, (z80: Z80) => { // ld b,set
+decodeMapDDCB.set(0xE8, (z80: Z80) => { // ld b,set 5,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xE9, (z80: Z80) => { // ld c,set
+decodeMapDDCB.set(0xE9, (z80: Z80) => { // ld c,set 5,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xEA, (z80: Z80) => { // ld d,set
+decodeMapDDCB.set(0xEA, (z80: Z80) => { // ld d,set 5,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xEB, (z80: Z80) => { // ld e,set
+decodeMapDDCB.set(0xEB, (z80: Z80) => { // ld e,set 5,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xEC, (z80: Z80) => { // ld h,set
+decodeMapDDCB.set(0xEC, (z80: Z80) => { // ld h,set 5,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xED, (z80: Z80) => { // ld l,set
+decodeMapDDCB.set(0xED, (z80: Z80) => { // ld l,set 5,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5737,37 +5737,37 @@ decodeMapDDCB.set(0xEE, (z80: Z80) => { // set 5,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x20);
 });
-decodeMapDDCB.set(0xEF, (z80: Z80) => { // ld a,set
+decodeMapDDCB.set(0xEF, (z80: Z80) => { // ld a,set 5,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xF0, (z80: Z80) => { // ld b,set
+decodeMapDDCB.set(0xF0, (z80: Z80) => { // ld b,set 6,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xF1, (z80: Z80) => { // ld c,set
+decodeMapDDCB.set(0xF1, (z80: Z80) => { // ld c,set 6,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xF2, (z80: Z80) => { // ld d,set
+decodeMapDDCB.set(0xF2, (z80: Z80) => { // ld d,set 6,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xF3, (z80: Z80) => { // ld e,set
+decodeMapDDCB.set(0xF3, (z80: Z80) => { // ld e,set 6,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xF4, (z80: Z80) => { // ld h,set
+decodeMapDDCB.set(0xF4, (z80: Z80) => { // ld h,set 6,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xF5, (z80: Z80) => { // ld l,set
+decodeMapDDCB.set(0xF5, (z80: Z80) => { // ld l,set 6,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5777,37 +5777,37 @@ decodeMapDDCB.set(0xF6, (z80: Z80) => { // set 6,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x40);
 });
-decodeMapDDCB.set(0xF7, (z80: Z80) => { // ld a,set
+decodeMapDDCB.set(0xF7, (z80: Z80) => { // ld a,set 6,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapDDCB.set(0xF8, (z80: Z80) => { // ld b,set
+decodeMapDDCB.set(0xF8, (z80: Z80) => { // ld b,set 7,(ix+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapDDCB.set(0xF9, (z80: Z80) => { // ld c,set
+decodeMapDDCB.set(0xF9, (z80: Z80) => { // ld c,set 7,(ix+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapDDCB.set(0xFA, (z80: Z80) => { // ld d,set
+decodeMapDDCB.set(0xFA, (z80: Z80) => { // ld d,set 7,(ix+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapDDCB.set(0xFB, (z80: Z80) => { // ld e,set
+decodeMapDDCB.set(0xFB, (z80: Z80) => { // ld e,set 7,(ix+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapDDCB.set(0xFC, (z80: Z80) => { // ld h,set
+decodeMapDDCB.set(0xFC, (z80: Z80) => { // ld h,set 7,(ix+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapDDCB.set(0xFD, (z80: Z80) => { // ld l,set
+decodeMapDDCB.set(0xFD, (z80: Z80) => { // ld l,set 7,(ix+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -5817,7 +5817,7 @@ decodeMapDDCB.set(0xFE, (z80: Z80) => { // set 7,(ix+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x80);
 });
-decodeMapDDCB.set(0xFF, (z80: Z80) => { // ld a,set
+decodeMapDDCB.set(0xFF, (z80: Z80) => { // ld a,set 7,(ix+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
@@ -5860,45 +5860,6 @@ decodeMapED.set(0x43, (z80: Z80) => { // ld (nnnn),bc
     z80.regs.memptr = addr;
     z80.writeByte(addr, hi(value));
 });
-decodeMapED.set(0x7C, (z80: Z80) => { // neg
-    const value = z80.regs.a;
-    z80.regs.a = 0;
-    const diff = sub16(z80.regs.a, value);
-    const lookup = (((z80.regs.a & 0x88) >> 3) |
-                   ((value & 0x88) >> 2) |
-                   ((diff & 0x88) >> 1)) & 0xFF;
-    z80.regs.a = diff;
-    let f = Flag.N;
-    if ((diff & 0x100) != 0) f |= Flag.C;
-    f |= halfCarrySubTable[lookup & 0x07];
-    f |= overflowSubTable[lookup >> 4];
-    f |= z80.sz53Table[z80.regs.a];
-    z80.regs.f = f;
-});
-decodeMapED.set(0x44, decodeMapED.get(0x7C) as OpcodeFunc);
-decodeMapED.set(0x4C, decodeMapED.get(0x7C) as OpcodeFunc);
-decodeMapED.set(0x54, decodeMapED.get(0x7C) as OpcodeFunc);
-decodeMapED.set(0x5C, decodeMapED.get(0x7C) as OpcodeFunc);
-decodeMapED.set(0x64, decodeMapED.get(0x7C) as OpcodeFunc);
-decodeMapED.set(0x6C, decodeMapED.get(0x7C) as OpcodeFunc);
-decodeMapED.set(0x74, decodeMapED.get(0x7C) as OpcodeFunc);
-decodeMapED.set(0x7D, (z80: Z80) => { // retn
-    z80.regs.iff1 = z80.regs.iff2;
-    z80.regs.pc = z80.popWord();
-    z80.regs.memptr = z80.regs.pc;
-});
-decodeMapED.set(0x45, decodeMapED.get(0x7D) as OpcodeFunc);
-decodeMapED.set(0x55, decodeMapED.get(0x7D) as OpcodeFunc);
-decodeMapED.set(0x5D, decodeMapED.get(0x7D) as OpcodeFunc);
-decodeMapED.set(0x65, decodeMapED.get(0x7D) as OpcodeFunc);
-decodeMapED.set(0x6D, decodeMapED.get(0x7D) as OpcodeFunc);
-decodeMapED.set(0x75, decodeMapED.get(0x7D) as OpcodeFunc);
-decodeMapED.set(0x6E, (z80: Z80) => { // im 0
-    z80.regs.im = 0;
-});
-decodeMapED.set(0x46, decodeMapED.get(0x6E) as OpcodeFunc);
-decodeMapED.set(0x4E, decodeMapED.get(0x6E) as OpcodeFunc);
-decodeMapED.set(0x66, decodeMapED.get(0x6E) as OpcodeFunc);
 decodeMapED.set(0x47, (z80: Z80) => { // ld i,a
     let value: number;
     value = z80.regs.a;
@@ -5987,10 +5948,6 @@ decodeMapED.set(0x53, (z80: Z80) => { // ld (nnnn),de
     z80.regs.memptr = addr;
     z80.writeByte(addr, hi(value));
 });
-decodeMapED.set(0x76, (z80: Z80) => { // im 1
-    z80.regs.im = 1;
-});
-decodeMapED.set(0x56, decodeMapED.get(0x76) as OpcodeFunc);
 decodeMapED.set(0x57, (z80: Z80) => { // ld a,i
     let value: number;
     value = z80.regs.i;
@@ -6033,10 +5990,6 @@ decodeMapED.set(0x5B, (z80: Z80) => { // ld de,(nnnn)
     value = word(z80.readByte(z80.regs.memptr), value);
     z80.regs.de = value;
 });
-decodeMapED.set(0x7E, (z80: Z80) => { // im 2
-    z80.regs.im = 2;
-});
-decodeMapED.set(0x5E, decodeMapED.get(0x7E) as OpcodeFunc);
 decodeMapED.set(0x5F, (z80: Z80) => { // ld a,r
     let value: number;
     value = z80.regs.rCombined;
@@ -6123,6 +6076,12 @@ decodeMapED.set(0x6B, (z80: Z80) => { // ld hl,(nnnn)
     value = word(z80.readByte(z80.regs.memptr), value);
     z80.regs.hl = value;
 });
+decodeMapED.set(0x6E, (z80: Z80) => { // im 0
+    z80.regs.im = 0;
+});
+decodeMapED.set(0x46, decodeMapED.get(0x6E) as OpcodeFunc);
+decodeMapED.set(0x4E, decodeMapED.get(0x6E) as OpcodeFunc);
+decodeMapED.set(0x66, decodeMapED.get(0x6E) as OpcodeFunc);
 decodeMapED.set(0x6F, (z80: Z80) => { // rld
     const tmp = z80.readByte(z80.regs.hl);
     z80.incTStateCount(4);
@@ -6167,6 +6126,10 @@ decodeMapED.set(0x73, (z80: Z80) => { // ld (nnnn),sp
     z80.regs.memptr = addr;
     z80.writeByte(addr, hi(value));
 });
+decodeMapED.set(0x76, (z80: Z80) => { // im 1
+    z80.regs.im = 1;
+});
+decodeMapED.set(0x56, decodeMapED.get(0x76) as OpcodeFunc);
 decodeMapED.set(0x78, (z80: Z80) => { // in a,(c)
     z80.regs.memptr = inc16(z80.regs.bc);
     z80.regs.a = z80.readPort(z80.regs.bc);
@@ -6202,6 +6165,43 @@ decodeMapED.set(0x7B, (z80: Z80) => { // ld sp,(nnnn)
     value = word(z80.readByte(z80.regs.memptr), value);
     z80.regs.sp = value;
 });
+decodeMapED.set(0x7C, (z80: Z80) => { // neg
+    const value = z80.regs.a;
+    z80.regs.a = 0;
+    const diff = sub16(z80.regs.a, value);
+    const lookup = (((z80.regs.a & 0x88) >> 3) |
+                   ((value & 0x88) >> 2) |
+                   ((diff & 0x88) >> 1)) & 0xFF;
+    z80.regs.a = diff;
+    let f = Flag.N;
+    if ((diff & 0x100) != 0) f |= Flag.C;
+    f |= halfCarrySubTable[lookup & 0x07];
+    f |= overflowSubTable[lookup >> 4];
+    f |= z80.sz53Table[z80.regs.a];
+    z80.regs.f = f;
+});
+decodeMapED.set(0x44, decodeMapED.get(0x7C) as OpcodeFunc);
+decodeMapED.set(0x4C, decodeMapED.get(0x7C) as OpcodeFunc);
+decodeMapED.set(0x54, decodeMapED.get(0x7C) as OpcodeFunc);
+decodeMapED.set(0x5C, decodeMapED.get(0x7C) as OpcodeFunc);
+decodeMapED.set(0x64, decodeMapED.get(0x7C) as OpcodeFunc);
+decodeMapED.set(0x6C, decodeMapED.get(0x7C) as OpcodeFunc);
+decodeMapED.set(0x74, decodeMapED.get(0x7C) as OpcodeFunc);
+decodeMapED.set(0x7D, (z80: Z80) => { // retn
+    z80.regs.iff1 = z80.regs.iff2;
+    z80.regs.pc = z80.popWord();
+    z80.regs.memptr = z80.regs.pc;
+});
+decodeMapED.set(0x45, decodeMapED.get(0x7D) as OpcodeFunc);
+decodeMapED.set(0x55, decodeMapED.get(0x7D) as OpcodeFunc);
+decodeMapED.set(0x5D, decodeMapED.get(0x7D) as OpcodeFunc);
+decodeMapED.set(0x65, decodeMapED.get(0x7D) as OpcodeFunc);
+decodeMapED.set(0x6D, decodeMapED.get(0x7D) as OpcodeFunc);
+decodeMapED.set(0x75, decodeMapED.get(0x7D) as OpcodeFunc);
+decodeMapED.set(0x7E, (z80: Z80) => { // im 2
+    z80.regs.im = 2;
+});
+decodeMapED.set(0x5E, decodeMapED.get(0x7E) as OpcodeFunc);
 decodeMapED.set(0xA0, (z80: Z80) => { // ldi
     let value = z80.readByte(z80.regs.hl);
     z80.writeByte(z80.regs.de, value);
@@ -7106,7 +7106,7 @@ decodeMapFD.set(0xBE, (z80: Z80) => { // cp (iy+dd)
     f |= diff & Flag.S;
     z80.regs.af = word(z80.regs.a, f);
 });
-decodeMapFD.set(0xCB, (z80: Z80) => { // shift fdcb
+decodeMapFD.set(0xCB, (z80: Z80) => { // shift cb
     decodeFDCB(z80);
 });
 decodeMapFD.set(0xE1, (z80: Z80) => { // pop iy
@@ -7138,7 +7138,7 @@ decodeMapFD.set(0xF9, (z80: Z80) => { // ld sp,iy
 });
 
 const decodeMapFDCB = new Map<number, OpcodeFunc>();
-decodeMapFDCB.set(0x00, (z80: Z80) => { // ld b,rlc
+decodeMapFDCB.set(0x00, (z80: Z80) => { // ld b,rlc (iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7151,7 +7151,7 @@ decodeMapFDCB.set(0x00, (z80: Z80) => { // ld b,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x01, (z80: Z80) => { // ld c,rlc
+decodeMapFDCB.set(0x01, (z80: Z80) => { // ld c,rlc (iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7164,7 +7164,7 @@ decodeMapFDCB.set(0x01, (z80: Z80) => { // ld c,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x02, (z80: Z80) => { // ld d,rlc
+decodeMapFDCB.set(0x02, (z80: Z80) => { // ld d,rlc (iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7177,7 +7177,7 @@ decodeMapFDCB.set(0x02, (z80: Z80) => { // ld d,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x03, (z80: Z80) => { // ld e,rlc
+decodeMapFDCB.set(0x03, (z80: Z80) => { // ld e,rlc (iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7190,7 +7190,7 @@ decodeMapFDCB.set(0x03, (z80: Z80) => { // ld e,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x04, (z80: Z80) => { // ld h,rlc
+decodeMapFDCB.set(0x04, (z80: Z80) => { // ld h,rlc (iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7203,7 +7203,7 @@ decodeMapFDCB.set(0x04, (z80: Z80) => { // ld h,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x05, (z80: Z80) => { // ld l,rlc
+decodeMapFDCB.set(0x05, (z80: Z80) => { // ld l,rlc (iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7225,7 +7225,7 @@ decodeMapFDCB.set(0x06, (z80: Z80) => { // rlc (iy+dd)
     z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapFDCB.set(0x07, (z80: Z80) => { // ld a,rlc
+decodeMapFDCB.set(0x07, (z80: Z80) => { // ld a,rlc (iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7238,7 +7238,7 @@ decodeMapFDCB.set(0x07, (z80: Z80) => { // ld a,rlc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x08, (z80: Z80) => { // ld b,rrc
+decodeMapFDCB.set(0x08, (z80: Z80) => { // ld b,rrc (iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7251,7 +7251,7 @@ decodeMapFDCB.set(0x08, (z80: Z80) => { // ld b,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x09, (z80: Z80) => { // ld c,rrc
+decodeMapFDCB.set(0x09, (z80: Z80) => { // ld c,rrc (iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7264,7 +7264,7 @@ decodeMapFDCB.set(0x09, (z80: Z80) => { // ld c,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x0A, (z80: Z80) => { // ld d,rrc
+decodeMapFDCB.set(0x0A, (z80: Z80) => { // ld d,rrc (iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7277,7 +7277,7 @@ decodeMapFDCB.set(0x0A, (z80: Z80) => { // ld d,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x0B, (z80: Z80) => { // ld e,rrc
+decodeMapFDCB.set(0x0B, (z80: Z80) => { // ld e,rrc (iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7290,7 +7290,7 @@ decodeMapFDCB.set(0x0B, (z80: Z80) => { // ld e,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x0C, (z80: Z80) => { // ld h,rrc
+decodeMapFDCB.set(0x0C, (z80: Z80) => { // ld h,rrc (iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7303,7 +7303,7 @@ decodeMapFDCB.set(0x0C, (z80: Z80) => { // ld h,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x0D, (z80: Z80) => { // ld l,rrc
+decodeMapFDCB.set(0x0D, (z80: Z80) => { // ld l,rrc (iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7325,7 +7325,7 @@ decodeMapFDCB.set(0x0E, (z80: Z80) => { // rrc (iy+dd)
     z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapFDCB.set(0x0F, (z80: Z80) => { // ld a,rrc
+decodeMapFDCB.set(0x0F, (z80: Z80) => { // ld a,rrc (iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7338,7 +7338,7 @@ decodeMapFDCB.set(0x0F, (z80: Z80) => { // ld a,rrc
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x10, (z80: Z80) => { // ld b,rl
+decodeMapFDCB.set(0x10, (z80: Z80) => { // ld b,rl (iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7351,7 +7351,7 @@ decodeMapFDCB.set(0x10, (z80: Z80) => { // ld b,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x11, (z80: Z80) => { // ld c,rl
+decodeMapFDCB.set(0x11, (z80: Z80) => { // ld c,rl (iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7364,7 +7364,7 @@ decodeMapFDCB.set(0x11, (z80: Z80) => { // ld c,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x12, (z80: Z80) => { // ld d,rl
+decodeMapFDCB.set(0x12, (z80: Z80) => { // ld d,rl (iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7377,7 +7377,7 @@ decodeMapFDCB.set(0x12, (z80: Z80) => { // ld d,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x13, (z80: Z80) => { // ld e,rl
+decodeMapFDCB.set(0x13, (z80: Z80) => { // ld e,rl (iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7390,7 +7390,7 @@ decodeMapFDCB.set(0x13, (z80: Z80) => { // ld e,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x14, (z80: Z80) => { // ld h,rl
+decodeMapFDCB.set(0x14, (z80: Z80) => { // ld h,rl (iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7403,7 +7403,7 @@ decodeMapFDCB.set(0x14, (z80: Z80) => { // ld h,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x15, (z80: Z80) => { // ld l,rl
+decodeMapFDCB.set(0x15, (z80: Z80) => { // ld l,rl (iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7425,7 +7425,7 @@ decodeMapFDCB.set(0x16, (z80: Z80) => { // rl (iy+dd)
     z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapFDCB.set(0x17, (z80: Z80) => { // ld a,rl
+decodeMapFDCB.set(0x17, (z80: Z80) => { // ld a,rl (iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7438,7 +7438,7 @@ decodeMapFDCB.set(0x17, (z80: Z80) => { // ld a,rl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x18, (z80: Z80) => { // ld b,rr
+decodeMapFDCB.set(0x18, (z80: Z80) => { // ld b,rr (iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7451,7 +7451,7 @@ decodeMapFDCB.set(0x18, (z80: Z80) => { // ld b,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x19, (z80: Z80) => { // ld c,rr
+decodeMapFDCB.set(0x19, (z80: Z80) => { // ld c,rr (iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7464,7 +7464,7 @@ decodeMapFDCB.set(0x19, (z80: Z80) => { // ld c,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x1A, (z80: Z80) => { // ld d,rr
+decodeMapFDCB.set(0x1A, (z80: Z80) => { // ld d,rr (iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7477,7 +7477,7 @@ decodeMapFDCB.set(0x1A, (z80: Z80) => { // ld d,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x1B, (z80: Z80) => { // ld e,rr
+decodeMapFDCB.set(0x1B, (z80: Z80) => { // ld e,rr (iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7490,7 +7490,7 @@ decodeMapFDCB.set(0x1B, (z80: Z80) => { // ld e,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x1C, (z80: Z80) => { // ld h,rr
+decodeMapFDCB.set(0x1C, (z80: Z80) => { // ld h,rr (iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7503,7 +7503,7 @@ decodeMapFDCB.set(0x1C, (z80: Z80) => { // ld h,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x1D, (z80: Z80) => { // ld l,rr
+decodeMapFDCB.set(0x1D, (z80: Z80) => { // ld l,rr (iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7525,7 +7525,7 @@ decodeMapFDCB.set(0x1E, (z80: Z80) => { // rr (iy+dd)
     z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapFDCB.set(0x1F, (z80: Z80) => { // ld a,rr
+decodeMapFDCB.set(0x1F, (z80: Z80) => { // ld a,rr (iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7538,7 +7538,7 @@ decodeMapFDCB.set(0x1F, (z80: Z80) => { // ld a,rr
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x20, (z80: Z80) => { // ld b,sla
+decodeMapFDCB.set(0x20, (z80: Z80) => { // ld b,sla (iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7551,7 +7551,7 @@ decodeMapFDCB.set(0x20, (z80: Z80) => { // ld b,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x21, (z80: Z80) => { // ld c,sla
+decodeMapFDCB.set(0x21, (z80: Z80) => { // ld c,sla (iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7564,7 +7564,7 @@ decodeMapFDCB.set(0x21, (z80: Z80) => { // ld c,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x22, (z80: Z80) => { // ld d,sla
+decodeMapFDCB.set(0x22, (z80: Z80) => { // ld d,sla (iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7577,7 +7577,7 @@ decodeMapFDCB.set(0x22, (z80: Z80) => { // ld d,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x23, (z80: Z80) => { // ld e,sla
+decodeMapFDCB.set(0x23, (z80: Z80) => { // ld e,sla (iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7590,7 +7590,7 @@ decodeMapFDCB.set(0x23, (z80: Z80) => { // ld e,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x24, (z80: Z80) => { // ld h,sla
+decodeMapFDCB.set(0x24, (z80: Z80) => { // ld h,sla (iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7603,7 +7603,7 @@ decodeMapFDCB.set(0x24, (z80: Z80) => { // ld h,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x25, (z80: Z80) => { // ld l,sla
+decodeMapFDCB.set(0x25, (z80: Z80) => { // ld l,sla (iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7625,7 +7625,7 @@ decodeMapFDCB.set(0x26, (z80: Z80) => { // sla (iy+dd)
     z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapFDCB.set(0x27, (z80: Z80) => { // ld a,sla
+decodeMapFDCB.set(0x27, (z80: Z80) => { // ld a,sla (iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7638,7 +7638,7 @@ decodeMapFDCB.set(0x27, (z80: Z80) => { // ld a,sla
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x28, (z80: Z80) => { // ld b,sra
+decodeMapFDCB.set(0x28, (z80: Z80) => { // ld b,sra (iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7651,7 +7651,7 @@ decodeMapFDCB.set(0x28, (z80: Z80) => { // ld b,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x29, (z80: Z80) => { // ld c,sra
+decodeMapFDCB.set(0x29, (z80: Z80) => { // ld c,sra (iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7664,7 +7664,7 @@ decodeMapFDCB.set(0x29, (z80: Z80) => { // ld c,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x2A, (z80: Z80) => { // ld d,sra
+decodeMapFDCB.set(0x2A, (z80: Z80) => { // ld d,sra (iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7677,7 +7677,7 @@ decodeMapFDCB.set(0x2A, (z80: Z80) => { // ld d,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x2B, (z80: Z80) => { // ld e,sra
+decodeMapFDCB.set(0x2B, (z80: Z80) => { // ld e,sra (iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7690,7 +7690,7 @@ decodeMapFDCB.set(0x2B, (z80: Z80) => { // ld e,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x2C, (z80: Z80) => { // ld h,sra
+decodeMapFDCB.set(0x2C, (z80: Z80) => { // ld h,sra (iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7703,7 +7703,7 @@ decodeMapFDCB.set(0x2C, (z80: Z80) => { // ld h,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x2D, (z80: Z80) => { // ld l,sra
+decodeMapFDCB.set(0x2D, (z80: Z80) => { // ld l,sra (iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7725,7 +7725,7 @@ decodeMapFDCB.set(0x2E, (z80: Z80) => { // sra (iy+dd)
     z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapFDCB.set(0x2F, (z80: Z80) => { // ld a,sra
+decodeMapFDCB.set(0x2F, (z80: Z80) => { // ld a,sra (iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7738,7 +7738,7 @@ decodeMapFDCB.set(0x2F, (z80: Z80) => { // ld a,sra
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x30, (z80: Z80) => { // ld b,sll
+decodeMapFDCB.set(0x30, (z80: Z80) => { // ld b,sll (iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7751,7 +7751,7 @@ decodeMapFDCB.set(0x30, (z80: Z80) => { // ld b,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x31, (z80: Z80) => { // ld c,sll
+decodeMapFDCB.set(0x31, (z80: Z80) => { // ld c,sll (iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7764,7 +7764,7 @@ decodeMapFDCB.set(0x31, (z80: Z80) => { // ld c,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x32, (z80: Z80) => { // ld d,sll
+decodeMapFDCB.set(0x32, (z80: Z80) => { // ld d,sll (iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7777,7 +7777,7 @@ decodeMapFDCB.set(0x32, (z80: Z80) => { // ld d,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x33, (z80: Z80) => { // ld e,sll
+decodeMapFDCB.set(0x33, (z80: Z80) => { // ld e,sll (iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7790,7 +7790,7 @@ decodeMapFDCB.set(0x33, (z80: Z80) => { // ld e,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x34, (z80: Z80) => { // ld h,sll
+decodeMapFDCB.set(0x34, (z80: Z80) => { // ld h,sll (iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7803,7 +7803,7 @@ decodeMapFDCB.set(0x34, (z80: Z80) => { // ld h,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x35, (z80: Z80) => { // ld l,sll
+decodeMapFDCB.set(0x35, (z80: Z80) => { // ld l,sll (iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7825,7 +7825,7 @@ decodeMapFDCB.set(0x36, (z80: Z80) => { // sll (iy+dd)
     z80.regs.f = ((oldValue & 0x80) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapFDCB.set(0x37, (z80: Z80) => { // ld a,sll
+decodeMapFDCB.set(0x37, (z80: Z80) => { // ld a,sll (iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7838,7 +7838,7 @@ decodeMapFDCB.set(0x37, (z80: Z80) => { // ld a,sll
     }
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x38, (z80: Z80) => { // ld b,srl
+decodeMapFDCB.set(0x38, (z80: Z80) => { // ld b,srl (iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7851,7 +7851,7 @@ decodeMapFDCB.set(0x38, (z80: Z80) => { // ld b,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x39, (z80: Z80) => { // ld c,srl
+decodeMapFDCB.set(0x39, (z80: Z80) => { // ld c,srl (iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7864,7 +7864,7 @@ decodeMapFDCB.set(0x39, (z80: Z80) => { // ld c,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x3A, (z80: Z80) => { // ld d,srl
+decodeMapFDCB.set(0x3A, (z80: Z80) => { // ld d,srl (iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7877,7 +7877,7 @@ decodeMapFDCB.set(0x3A, (z80: Z80) => { // ld d,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x3B, (z80: Z80) => { // ld e,srl
+decodeMapFDCB.set(0x3B, (z80: Z80) => { // ld e,srl (iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7890,7 +7890,7 @@ decodeMapFDCB.set(0x3B, (z80: Z80) => { // ld e,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x3C, (z80: Z80) => { // ld h,srl
+decodeMapFDCB.set(0x3C, (z80: Z80) => { // ld h,srl (iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7903,7 +7903,7 @@ decodeMapFDCB.set(0x3C, (z80: Z80) => { // ld h,srl
     }
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x3D, (z80: Z80) => { // ld l,srl
+decodeMapFDCB.set(0x3D, (z80: Z80) => { // ld l,srl (iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -7925,7 +7925,7 @@ decodeMapFDCB.set(0x3E, (z80: Z80) => { // srl (iy+dd)
     z80.regs.f = ((oldValue & 0x01) !== 0 ? Flag.C : 0) | z80.sz53pTable[value];
     z80.writeByte(z80.regs.memptr, value);
 });
-decodeMapFDCB.set(0x3F, (z80: Z80) => { // ld a,srl
+decodeMapFDCB.set(0x3F, (z80: Z80) => { // ld a,srl (iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr);
     z80.incTStateCount(1);
     {
@@ -8077,32 +8077,32 @@ decodeMapFDCB.set(0x7B, decodeMapFDCB.get(0x7F) as OpcodeFunc);
 decodeMapFDCB.set(0x7C, decodeMapFDCB.get(0x7F) as OpcodeFunc);
 decodeMapFDCB.set(0x7D, decodeMapFDCB.get(0x7F) as OpcodeFunc);
 decodeMapFDCB.set(0x7E, decodeMapFDCB.get(0x7F) as OpcodeFunc);
-decodeMapFDCB.set(0x80, (z80: Z80) => { // ld b,res
+decodeMapFDCB.set(0x80, (z80: Z80) => { // ld b,res 0,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x81, (z80: Z80) => { // ld c,res
+decodeMapFDCB.set(0x81, (z80: Z80) => { // ld c,res 0,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x82, (z80: Z80) => { // ld d,res
+decodeMapFDCB.set(0x82, (z80: Z80) => { // ld d,res 0,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x83, (z80: Z80) => { // ld e,res
+decodeMapFDCB.set(0x83, (z80: Z80) => { // ld e,res 0,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x84, (z80: Z80) => { // ld h,res
+decodeMapFDCB.set(0x84, (z80: Z80) => { // ld h,res 0,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x85, (z80: Z80) => { // ld l,res
+decodeMapFDCB.set(0x85, (z80: Z80) => { // ld l,res 0,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8112,37 +8112,37 @@ decodeMapFDCB.set(0x86, (z80: Z80) => { // res 0,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xFE);
 });
-decodeMapFDCB.set(0x87, (z80: Z80) => { // ld a,res
+decodeMapFDCB.set(0x87, (z80: Z80) => { // ld a,res 0,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xFE;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x88, (z80: Z80) => { // ld b,res
+decodeMapFDCB.set(0x88, (z80: Z80) => { // ld b,res 1,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x89, (z80: Z80) => { // ld c,res
+decodeMapFDCB.set(0x89, (z80: Z80) => { // ld c,res 1,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x8A, (z80: Z80) => { // ld d,res
+decodeMapFDCB.set(0x8A, (z80: Z80) => { // ld d,res 1,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x8B, (z80: Z80) => { // ld e,res
+decodeMapFDCB.set(0x8B, (z80: Z80) => { // ld e,res 1,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x8C, (z80: Z80) => { // ld h,res
+decodeMapFDCB.set(0x8C, (z80: Z80) => { // ld h,res 1,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x8D, (z80: Z80) => { // ld l,res
+decodeMapFDCB.set(0x8D, (z80: Z80) => { // ld l,res 1,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8152,37 +8152,37 @@ decodeMapFDCB.set(0x8E, (z80: Z80) => { // res 1,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xFD);
 });
-decodeMapFDCB.set(0x8F, (z80: Z80) => { // ld a,res
+decodeMapFDCB.set(0x8F, (z80: Z80) => { // ld a,res 1,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xFD;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x90, (z80: Z80) => { // ld b,res
+decodeMapFDCB.set(0x90, (z80: Z80) => { // ld b,res 2,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x91, (z80: Z80) => { // ld c,res
+decodeMapFDCB.set(0x91, (z80: Z80) => { // ld c,res 2,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x92, (z80: Z80) => { // ld d,res
+decodeMapFDCB.set(0x92, (z80: Z80) => { // ld d,res 2,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x93, (z80: Z80) => { // ld e,res
+decodeMapFDCB.set(0x93, (z80: Z80) => { // ld e,res 2,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x94, (z80: Z80) => { // ld h,res
+decodeMapFDCB.set(0x94, (z80: Z80) => { // ld h,res 2,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x95, (z80: Z80) => { // ld l,res
+decodeMapFDCB.set(0x95, (z80: Z80) => { // ld l,res 2,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8192,37 +8192,37 @@ decodeMapFDCB.set(0x96, (z80: Z80) => { // res 2,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xFB);
 });
-decodeMapFDCB.set(0x97, (z80: Z80) => { // ld a,res
+decodeMapFDCB.set(0x97, (z80: Z80) => { // ld a,res 2,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xFB;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0x98, (z80: Z80) => { // ld b,res
+decodeMapFDCB.set(0x98, (z80: Z80) => { // ld b,res 3,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0x99, (z80: Z80) => { // ld c,res
+decodeMapFDCB.set(0x99, (z80: Z80) => { // ld c,res 3,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0x9A, (z80: Z80) => { // ld d,res
+decodeMapFDCB.set(0x9A, (z80: Z80) => { // ld d,res 3,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0x9B, (z80: Z80) => { // ld e,res
+decodeMapFDCB.set(0x9B, (z80: Z80) => { // ld e,res 3,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0x9C, (z80: Z80) => { // ld h,res
+decodeMapFDCB.set(0x9C, (z80: Z80) => { // ld h,res 3,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0x9D, (z80: Z80) => { // ld l,res
+decodeMapFDCB.set(0x9D, (z80: Z80) => { // ld l,res 3,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8232,37 +8232,37 @@ decodeMapFDCB.set(0x9E, (z80: Z80) => { // res 3,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xF7);
 });
-decodeMapFDCB.set(0x9F, (z80: Z80) => { // ld a,res
+decodeMapFDCB.set(0x9F, (z80: Z80) => { // ld a,res 3,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xF7;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xA0, (z80: Z80) => { // ld b,res
+decodeMapFDCB.set(0xA0, (z80: Z80) => { // ld b,res 4,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xA1, (z80: Z80) => { // ld c,res
+decodeMapFDCB.set(0xA1, (z80: Z80) => { // ld c,res 4,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xA2, (z80: Z80) => { // ld d,res
+decodeMapFDCB.set(0xA2, (z80: Z80) => { // ld d,res 4,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xA3, (z80: Z80) => { // ld e,res
+decodeMapFDCB.set(0xA3, (z80: Z80) => { // ld e,res 4,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xA4, (z80: Z80) => { // ld h,res
+decodeMapFDCB.set(0xA4, (z80: Z80) => { // ld h,res 4,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xA5, (z80: Z80) => { // ld l,res
+decodeMapFDCB.set(0xA5, (z80: Z80) => { // ld l,res 4,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8272,37 +8272,37 @@ decodeMapFDCB.set(0xA6, (z80: Z80) => { // res 4,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xEF);
 });
-decodeMapFDCB.set(0xA7, (z80: Z80) => { // ld a,res
+decodeMapFDCB.set(0xA7, (z80: Z80) => { // ld a,res 4,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xEF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xA8, (z80: Z80) => { // ld b,res
+decodeMapFDCB.set(0xA8, (z80: Z80) => { // ld b,res 5,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xA9, (z80: Z80) => { // ld c,res
+decodeMapFDCB.set(0xA9, (z80: Z80) => { // ld c,res 5,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xAA, (z80: Z80) => { // ld d,res
+decodeMapFDCB.set(0xAA, (z80: Z80) => { // ld d,res 5,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xAB, (z80: Z80) => { // ld e,res
+decodeMapFDCB.set(0xAB, (z80: Z80) => { // ld e,res 5,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xAC, (z80: Z80) => { // ld h,res
+decodeMapFDCB.set(0xAC, (z80: Z80) => { // ld h,res 5,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xAD, (z80: Z80) => { // ld l,res
+decodeMapFDCB.set(0xAD, (z80: Z80) => { // ld l,res 5,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8312,37 +8312,37 @@ decodeMapFDCB.set(0xAE, (z80: Z80) => { // res 5,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xDF);
 });
-decodeMapFDCB.set(0xAF, (z80: Z80) => { // ld a,res
+decodeMapFDCB.set(0xAF, (z80: Z80) => { // ld a,res 5,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xDF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xB0, (z80: Z80) => { // ld b,res
+decodeMapFDCB.set(0xB0, (z80: Z80) => { // ld b,res 6,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xB1, (z80: Z80) => { // ld c,res
+decodeMapFDCB.set(0xB1, (z80: Z80) => { // ld c,res 6,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xB2, (z80: Z80) => { // ld d,res
+decodeMapFDCB.set(0xB2, (z80: Z80) => { // ld d,res 6,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xB3, (z80: Z80) => { // ld e,res
+decodeMapFDCB.set(0xB3, (z80: Z80) => { // ld e,res 6,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xB4, (z80: Z80) => { // ld h,res
+decodeMapFDCB.set(0xB4, (z80: Z80) => { // ld h,res 6,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xB5, (z80: Z80) => { // ld l,res
+decodeMapFDCB.set(0xB5, (z80: Z80) => { // ld l,res 6,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8352,37 +8352,37 @@ decodeMapFDCB.set(0xB6, (z80: Z80) => { // res 6,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0xBF);
 });
-decodeMapFDCB.set(0xB7, (z80: Z80) => { // ld a,res
+decodeMapFDCB.set(0xB7, (z80: Z80) => { // ld a,res 6,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0xBF;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xB8, (z80: Z80) => { // ld b,res
+decodeMapFDCB.set(0xB8, (z80: Z80) => { // ld b,res 7,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xB9, (z80: Z80) => { // ld c,res
+decodeMapFDCB.set(0xB9, (z80: Z80) => { // ld c,res 7,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xBA, (z80: Z80) => { // ld d,res
+decodeMapFDCB.set(0xBA, (z80: Z80) => { // ld d,res 7,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xBB, (z80: Z80) => { // ld e,res
+decodeMapFDCB.set(0xBB, (z80: Z80) => { // ld e,res 7,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xBC, (z80: Z80) => { // ld h,res
+decodeMapFDCB.set(0xBC, (z80: Z80) => { // ld h,res 7,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xBD, (z80: Z80) => { // ld l,res
+decodeMapFDCB.set(0xBD, (z80: Z80) => { // ld l,res 7,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8392,37 +8392,37 @@ decodeMapFDCB.set(0xBE, (z80: Z80) => { // res 7,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value & 0x7F);
 });
-decodeMapFDCB.set(0xBF, (z80: Z80) => { // ld a,res
+decodeMapFDCB.set(0xBF, (z80: Z80) => { // ld a,res 7,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) & 0x7F;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xC0, (z80: Z80) => { // ld b,set
+decodeMapFDCB.set(0xC0, (z80: Z80) => { // ld b,set 0,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xC1, (z80: Z80) => { // ld c,set
+decodeMapFDCB.set(0xC1, (z80: Z80) => { // ld c,set 0,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xC2, (z80: Z80) => { // ld d,set
+decodeMapFDCB.set(0xC2, (z80: Z80) => { // ld d,set 0,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xC3, (z80: Z80) => { // ld e,set
+decodeMapFDCB.set(0xC3, (z80: Z80) => { // ld e,set 0,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xC4, (z80: Z80) => { // ld h,set
+decodeMapFDCB.set(0xC4, (z80: Z80) => { // ld h,set 0,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xC5, (z80: Z80) => { // ld l,set
+decodeMapFDCB.set(0xC5, (z80: Z80) => { // ld l,set 0,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8432,37 +8432,37 @@ decodeMapFDCB.set(0xC6, (z80: Z80) => { // set 0,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x01);
 });
-decodeMapFDCB.set(0xC7, (z80: Z80) => { // ld a,set
+decodeMapFDCB.set(0xC7, (z80: Z80) => { // ld a,set 0,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x01;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xC8, (z80: Z80) => { // ld b,set
+decodeMapFDCB.set(0xC8, (z80: Z80) => { // ld b,set 1,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xC9, (z80: Z80) => { // ld c,set
+decodeMapFDCB.set(0xC9, (z80: Z80) => { // ld c,set 1,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xCA, (z80: Z80) => { // ld d,set
+decodeMapFDCB.set(0xCA, (z80: Z80) => { // ld d,set 1,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xCB, (z80: Z80) => { // ld e,set
+decodeMapFDCB.set(0xCB, (z80: Z80) => { // ld e,set 1,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xCC, (z80: Z80) => { // ld h,set
+decodeMapFDCB.set(0xCC, (z80: Z80) => { // ld h,set 1,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xCD, (z80: Z80) => { // ld l,set
+decodeMapFDCB.set(0xCD, (z80: Z80) => { // ld l,set 1,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8472,37 +8472,37 @@ decodeMapFDCB.set(0xCE, (z80: Z80) => { // set 1,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x02);
 });
-decodeMapFDCB.set(0xCF, (z80: Z80) => { // ld a,set
+decodeMapFDCB.set(0xCF, (z80: Z80) => { // ld a,set 1,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x02;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xD0, (z80: Z80) => { // ld b,set
+decodeMapFDCB.set(0xD0, (z80: Z80) => { // ld b,set 2,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xD1, (z80: Z80) => { // ld c,set
+decodeMapFDCB.set(0xD1, (z80: Z80) => { // ld c,set 2,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xD2, (z80: Z80) => { // ld d,set
+decodeMapFDCB.set(0xD2, (z80: Z80) => { // ld d,set 2,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xD3, (z80: Z80) => { // ld e,set
+decodeMapFDCB.set(0xD3, (z80: Z80) => { // ld e,set 2,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xD4, (z80: Z80) => { // ld h,set
+decodeMapFDCB.set(0xD4, (z80: Z80) => { // ld h,set 2,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xD5, (z80: Z80) => { // ld l,set
+decodeMapFDCB.set(0xD5, (z80: Z80) => { // ld l,set 2,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8512,37 +8512,37 @@ decodeMapFDCB.set(0xD6, (z80: Z80) => { // set 2,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x04);
 });
-decodeMapFDCB.set(0xD7, (z80: Z80) => { // ld a,set
+decodeMapFDCB.set(0xD7, (z80: Z80) => { // ld a,set 2,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x04;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xD8, (z80: Z80) => { // ld b,set
+decodeMapFDCB.set(0xD8, (z80: Z80) => { // ld b,set 3,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xD9, (z80: Z80) => { // ld c,set
+decodeMapFDCB.set(0xD9, (z80: Z80) => { // ld c,set 3,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xDA, (z80: Z80) => { // ld d,set
+decodeMapFDCB.set(0xDA, (z80: Z80) => { // ld d,set 3,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xDB, (z80: Z80) => { // ld e,set
+decodeMapFDCB.set(0xDB, (z80: Z80) => { // ld e,set 3,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xDC, (z80: Z80) => { // ld h,set
+decodeMapFDCB.set(0xDC, (z80: Z80) => { // ld h,set 3,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xDD, (z80: Z80) => { // ld l,set
+decodeMapFDCB.set(0xDD, (z80: Z80) => { // ld l,set 3,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8552,37 +8552,37 @@ decodeMapFDCB.set(0xDE, (z80: Z80) => { // set 3,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x08);
 });
-decodeMapFDCB.set(0xDF, (z80: Z80) => { // ld a,set
+decodeMapFDCB.set(0xDF, (z80: Z80) => { // ld a,set 3,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x08;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xE0, (z80: Z80) => { // ld b,set
+decodeMapFDCB.set(0xE0, (z80: Z80) => { // ld b,set 4,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xE1, (z80: Z80) => { // ld c,set
+decodeMapFDCB.set(0xE1, (z80: Z80) => { // ld c,set 4,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xE2, (z80: Z80) => { // ld d,set
+decodeMapFDCB.set(0xE2, (z80: Z80) => { // ld d,set 4,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xE3, (z80: Z80) => { // ld e,set
+decodeMapFDCB.set(0xE3, (z80: Z80) => { // ld e,set 4,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xE4, (z80: Z80) => { // ld h,set
+decodeMapFDCB.set(0xE4, (z80: Z80) => { // ld h,set 4,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xE5, (z80: Z80) => { // ld l,set
+decodeMapFDCB.set(0xE5, (z80: Z80) => { // ld l,set 4,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8592,37 +8592,37 @@ decodeMapFDCB.set(0xE6, (z80: Z80) => { // set 4,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x10);
 });
-decodeMapFDCB.set(0xE7, (z80: Z80) => { // ld a,set
+decodeMapFDCB.set(0xE7, (z80: Z80) => { // ld a,set 4,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x10;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xE8, (z80: Z80) => { // ld b,set
+decodeMapFDCB.set(0xE8, (z80: Z80) => { // ld b,set 5,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xE9, (z80: Z80) => { // ld c,set
+decodeMapFDCB.set(0xE9, (z80: Z80) => { // ld c,set 5,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xEA, (z80: Z80) => { // ld d,set
+decodeMapFDCB.set(0xEA, (z80: Z80) => { // ld d,set 5,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xEB, (z80: Z80) => { // ld e,set
+decodeMapFDCB.set(0xEB, (z80: Z80) => { // ld e,set 5,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xEC, (z80: Z80) => { // ld h,set
+decodeMapFDCB.set(0xEC, (z80: Z80) => { // ld h,set 5,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xED, (z80: Z80) => { // ld l,set
+decodeMapFDCB.set(0xED, (z80: Z80) => { // ld l,set 5,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8632,37 +8632,37 @@ decodeMapFDCB.set(0xEE, (z80: Z80) => { // set 5,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x20);
 });
-decodeMapFDCB.set(0xEF, (z80: Z80) => { // ld a,set
+decodeMapFDCB.set(0xEF, (z80: Z80) => { // ld a,set 5,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x20;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xF0, (z80: Z80) => { // ld b,set
+decodeMapFDCB.set(0xF0, (z80: Z80) => { // ld b,set 6,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xF1, (z80: Z80) => { // ld c,set
+decodeMapFDCB.set(0xF1, (z80: Z80) => { // ld c,set 6,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xF2, (z80: Z80) => { // ld d,set
+decodeMapFDCB.set(0xF2, (z80: Z80) => { // ld d,set 6,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xF3, (z80: Z80) => { // ld e,set
+decodeMapFDCB.set(0xF3, (z80: Z80) => { // ld e,set 6,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xF4, (z80: Z80) => { // ld h,set
+decodeMapFDCB.set(0xF4, (z80: Z80) => { // ld h,set 6,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xF5, (z80: Z80) => { // ld l,set
+decodeMapFDCB.set(0xF5, (z80: Z80) => { // ld l,set 6,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8672,37 +8672,37 @@ decodeMapFDCB.set(0xF6, (z80: Z80) => { // set 6,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x40);
 });
-decodeMapFDCB.set(0xF7, (z80: Z80) => { // ld a,set
+decodeMapFDCB.set(0xF7, (z80: Z80) => { // ld a,set 6,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x40;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);
 });
-decodeMapFDCB.set(0xF8, (z80: Z80) => { // ld b,set
+decodeMapFDCB.set(0xF8, (z80: Z80) => { // ld b,set 7,(iy+dd)
     z80.regs.b = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.b);
 });
-decodeMapFDCB.set(0xF9, (z80: Z80) => { // ld c,set
+decodeMapFDCB.set(0xF9, (z80: Z80) => { // ld c,set 7,(iy+dd)
     z80.regs.c = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.c);
 });
-decodeMapFDCB.set(0xFA, (z80: Z80) => { // ld d,set
+decodeMapFDCB.set(0xFA, (z80: Z80) => { // ld d,set 7,(iy+dd)
     z80.regs.d = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.d);
 });
-decodeMapFDCB.set(0xFB, (z80: Z80) => { // ld e,set
+decodeMapFDCB.set(0xFB, (z80: Z80) => { // ld e,set 7,(iy+dd)
     z80.regs.e = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.e);
 });
-decodeMapFDCB.set(0xFC, (z80: Z80) => { // ld h,set
+decodeMapFDCB.set(0xFC, (z80: Z80) => { // ld h,set 7,(iy+dd)
     z80.regs.h = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.h);
 });
-decodeMapFDCB.set(0xFD, (z80: Z80) => { // ld l,set
+decodeMapFDCB.set(0xFD, (z80: Z80) => { // ld l,set 7,(iy+dd)
     z80.regs.l = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.l);
@@ -8712,7 +8712,7 @@ decodeMapFDCB.set(0xFE, (z80: Z80) => { // set 7,(iy+dd)
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, value | 0x80);
 });
-decodeMapFDCB.set(0xFF, (z80: Z80) => { // ld a,set
+decodeMapFDCB.set(0xFF, (z80: Z80) => { // ld a,set 7,(iy+dd)
     z80.regs.a = z80.readByte(z80.regs.memptr) | 0x80;
     z80.incTStateCount(1);
     z80.writeByte(z80.regs.memptr, z80.regs.a);

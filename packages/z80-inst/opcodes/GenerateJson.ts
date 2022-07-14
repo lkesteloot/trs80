@@ -81,6 +81,8 @@ function fixClrDescription(desc: string): string {
 function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[], mnemonicMap: Mnemonics, clr: ClrFile): void {
     const pathname = path.join(dirname, "opcodes_" + prefix.toLowerCase() + ".dat");
 
+    let aliasOpcodes: number[] = [];
+
     fs.readFileSync(pathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
         line = line.trim();
         if (line.length === 0 || line.startsWith("#")) {
@@ -116,10 +118,12 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
         }
 
         const fullOpcodes: OpcodeTemplate[] = opcodes.concat([opcode]);
+        let opcodeIndex = fullOpcodes.length - 1;
 
         if (mnemonic === undefined) {
             // Fallthrough to next line. These are for different opcodes that map to the
-            // same instruction. Just use the last one, any will do.
+            // same instruction.
+            aliasOpcodes.push(opcode);
         } else {
             if (mnemonic === "shift") {
                 // Recurse for shifted instructions.
@@ -143,6 +147,7 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                         // For DDCB and FDCB instructions, the parameter is in the third position, not at the end.
                         if (fullOpcodes.length === 3 && (fullOpcodes[0] === 0xDD || fullOpcodes[0] === 0xFD) && fullOpcodes[1] === 0xCB) {
                             fullOpcodes.splice(2, 0, token);
+                            opcodeIndex += 1;
                         } else {
                             fullOpcodes.push(token);
                         }
@@ -165,9 +170,24 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                     tokens: tokens,
                     opcodes: fullOpcodes,
                     isPseudo: false,
+                    isAlias: false,
                     clr: clrInst ?? undefined,
                 };
                 mnemonicInfo.variants.push(variant);
+
+                if (aliasOpcodes.length > 0) {
+                    for (const aliasOpcode of aliasOpcodes) {
+                        const newOpcodes = [... variant.opcodes];
+                        newOpcodes[opcodeIndex] = aliasOpcode;
+                        const newVariant = {
+                            ... variant,
+                            opcodes: newOpcodes,
+                            isAlias: true,
+                        };
+                        mnemonicInfo.variants.push(newVariant);
+                    }
+                    aliasOpcodes = [];
+                }
 
                 // For instructions like "ADD A,C", also produce "ADD C" with an implicit "A".
                 if (tokens.length > 2 && tokens[0] === "a" && tokens[1] === ",") {
@@ -191,6 +211,10 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
             }
         }
     });
+
+    if (aliasOpcodes.length > 0) {
+        throw new Error("Didn't handle all aliases");
+    }
 }
 
 /**
@@ -205,6 +229,7 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         tokens: ["hl", ",", "bc"],
         opcodes: [0x60, 0x69],
         isPseudo: true,
+        isAlias: false,
         clr: undefined,
     });
     mnemonics["ld"].variants.push({
@@ -213,6 +238,7 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         tokens: ["bc", ",", "hl"],
         opcodes: [0x44, 0x4D],
         isPseudo: true,
+        isAlias: false,
         clr: undefined,
     });
     mnemonics["ld"].variants.push({
@@ -221,6 +247,7 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         tokens: ["de", ",", "hl"],
         opcodes: [0x54, 0x5D],
         isPseudo: true,
+        isAlias: false,
         clr: undefined,
     });
     mnemonics["ld"].variants.push({
@@ -229,6 +256,7 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         tokens: ["hl", ",", "de"],
         opcodes: [0x62, 0x6B],
         isPseudo: true,
+        isAlias: false,
         clr: undefined,
     });
     mnemonics["ld"].variants.push({
@@ -237,6 +265,7 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         tokens: ["bc", ",", "(", "hl", ")"],
         opcodes: [0x4E, 0x23, 0x46, 0x2B],
         isPseudo: true,
+        isAlias: false,
         clr: undefined,
     })
     mnemonics["ld"].variants.push({
@@ -245,6 +274,7 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         tokens: ["(", "hl", ")", ",", "bc"],
         opcodes: [0x71, 0x23, 0x70, 0x2B],
         isPseudo: true,
+        isAlias: false,
         clr: undefined,
     })
     mnemonics["ld"].variants.push({
@@ -253,6 +283,7 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         tokens: ["(", "hl", ")", ",", "de"],
         opcodes: [0x73, 0x23, 0x72, 0x2B],
         isPseudo: true,
+        isAlias: false,
         clr: undefined,
     })
     mnemonics["ld"].variants.push({
@@ -261,6 +292,7 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         tokens: ["de", ",", "bc"],
         opcodes: [0x50, 0x59],
         isPseudo: true,
+        isAlias: false,
         clr: undefined,
     })
 }
@@ -290,7 +322,7 @@ function outputOpcodeMap(opcodeMapCode: string[], map: CodeOpcodeMap, indent: nu
         } else {
             const variableName = makeVariantVariableName(value);
             const label = makeVariantLabel(value);
-            opcodeMapCode.push(indentString + "[ 0x" + toHexByte(key) + ", " +  variableName + " ], // " + label);
+            opcodeMapCode.push(indentString + "[ 0x" + toHexByte(key) + ", " +  variableName + " ], // " + label + (value.isAlias ? " (alias)" : ""));
         }
     }
 }
@@ -321,7 +353,9 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
             variantCode.push("// " + label);
             variantCode.push("const " + variableName + ": OpcodeVariant = " + JSON.stringify(variant, null, 2) + ";");
 
-            mnemonicMapCode.push("      " + variableName + ", // " + label);
+            if (!variant.isAlias) {
+                mnemonicMapCode.push("      " + variableName + ", // " + label);
+            }
 
             if (!variant.isPseudo) {
                 let map = mapEntries;

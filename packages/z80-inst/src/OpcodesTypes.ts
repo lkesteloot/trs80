@@ -33,6 +33,10 @@ export interface OpcodeVariant {
     // (like "ld hl,bc") or are synonyms (like "add c" for "add a,c").
     isPseudo: boolean;
 
+    // Whether this is an alias for another variant (whose "isAlias" field is false).
+    // For example the sequence DDCBdd47 is the same instruction as DDCBdd40.
+    isAlias: boolean;
+
     // Optional clr information. TODO: Make not optional.
     clr?: ClrInstruction;
 }
