@@ -1,16 +1,5 @@
 // This program generates the Opcodes.json source file that contains
-// the map from mnemonics to variants of those instructions.
-//
-//  Top-level JSON object:
-//      "mnemonics": Object:
-//          mnemonic: Object:    -- key is lower case, like "ld" or "nop".
-//              "variants": Array of variants, each an object:
-//                  "tokens": array of tokens, like ["a", ",", "nn"], all lower case.
-//                  "opcode": array of opcodes for this instruction. Each opcode can be:
-//                      A number literal, which is uses as-is as a byte.
-//                      "nn", a one-byte literal, from the tokens
-//                      "nnnn", a two-byte literal, to be written little endian, from the tokens.
-//                      "dd", a one-byte literal, from the tokens.
+// all variants of Z80 instructions and indexes from mnemonics and opcodes.
 
 import * as path from "path";
 import * as fs from "fs";
@@ -26,6 +15,7 @@ interface ClrFile {
     instructions: ClrInstruction[];
 }
 
+// Break a string into a list of tokens.
 function tokenize(s: string | undefined): string[] {
     if (s === undefined) {
         return [];
@@ -53,6 +43,7 @@ function findClrInstruction(clr: ClrFile, opcodes: string): ClrInstruction | und
     return undefined;
 }
 
+// Capitalize register names.
 function fixClrDescription(desc: string): string {
     return desc
         .replace(/\bpc\b/gi, "PC")
@@ -86,6 +77,7 @@ function fixClrDescription(desc: string): string {
 
 }
 
+// Parse the .dat files into the mnemonic map.
 function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[], mnemonicMap: Mnemonics, clr: ClrFile): void {
     const pathname = path.join(dirname, "opcodes_" + prefix.toLowerCase() + ".dat");
 
@@ -282,6 +274,27 @@ function makeVariantLabel(variant: OpcodeVariant): string {
     return (variant.mnemonic + " " + variant.params.join(",")).trim();
 }
 
+type CodeOpcodeMap = Map<number, OpcodeVariant | CodeOpcodeMap>;
+function outputOpcodeMap(opcodeMapCode: string[], map: CodeOpcodeMap, indent: number): void {
+    const indentString = "  ".repeat(indent + 1);
+    const keys = Array.from(map.keys()).sort((a, b) => a - b);
+    for (const key of keys) {
+        const value = map.get(key);
+        if (value === undefined) {
+            throw new Error("Can't happen");
+        }
+        if (value instanceof Map) {
+            opcodeMapCode.push(indentString + "[ 0x" + toHexByte(key) + ", new Map<number,OpcodeVariant | OpcodeMap>([");
+            outputOpcodeMap(opcodeMapCode, value, indent + 1);
+            opcodeMapCode.push(indentString + "])],");
+        } else {
+            const variableName = makeVariantVariableName(value);
+            const label = makeVariantLabel(value);
+            opcodeMapCode.push(indentString + "[ 0x" + toHexByte(key) + ", " +  variableName + " ], // " + label);
+        }
+    }
+}
+
 function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMapCode: string[], opcodeMapCode: string[]} {
     const variantCode: string[] = [];
     const mnemonicMapCode: string[] = [];
@@ -290,8 +303,7 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
     mnemonicMapCode.push("// Map from mnemonic to array of variants.");
     mnemonicMapCode.push("export const mnemonicMap = new Map<string,OpcodeVariant[]>([");
 
-    opcodeMapCode.push("// Map from opcode to variant or sub-map.");
-    opcodeMapCode.push("export const opcodeMap = new Map<number,OpcodeVariant>([");
+    const mapEntries: CodeOpcodeMap = new Map<number, OpcodeVariant | CodeOpcodeMap>();
 
     for (const mnemonic in mnemonics) {
         const mnemonicInfo = mnemonics[mnemonic];
@@ -311,8 +323,26 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
 
             mnemonicMapCode.push("      " + variableName + ", // " + label);
 
-            if (variant.opcodes.length === 1 && !variant.isPseudo) {
-                opcodeMapCode.push("  [ 0x" + toHexByte(variant.opcodes[0] as number) + ", " +  variableName + " ], // " + label);
+            if (!variant.isPseudo) {
+                let map = mapEntries;
+                const opcodes = variant.opcodes.filter(v => typeof(v) === "number") as number[];
+                if (opcodes.length === 0) {
+                    throw new Error("No opcodes found for variant");
+                }
+
+                for (let i = 0; i < opcodes.length - 1; i++) {
+                    const byte = opcodes[i];
+                    let submap = map.get(byte);
+                    if (submap === undefined) {
+                        submap = new Map<number, OpcodeVariant | CodeOpcodeMap>();
+                        map.set(byte, submap);
+                    } else if (!(submap instanceof Map)) {
+                        throw new Error("Map entry is both variant and submap");
+                    }
+                    map = submap;
+                }
+                const byte = opcodes[opcodes.length - 1];
+                map.set(byte, variant);
             }
         }
 
@@ -321,6 +351,11 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
     }
 
     mnemonicMapCode.push("]);");
+
+    // Opcode map in different pass.
+    opcodeMapCode.push("// Map from opcode to variant or sub-map.");
+    opcodeMapCode.push("export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([");
+    outputOpcodeMap(opcodeMapCode, mapEntries, 0);
     opcodeMapCode.push("]);");
 
     return {variantCode, mnemonicMapCode, opcodeMapCode};

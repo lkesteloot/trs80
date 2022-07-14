@@ -42732,12 +42732,71 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
 ]);
 
 // Map from opcode to variant or sub-map.
-export const opcodeMap = new Map<number,OpcodeVariant>([
+export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
   [ 0x00, variant_00 ], // nop
+  [ 0x01, variant_01_nnnn ], // ld bc,nnnn
   [ 0x02, variant_02 ], // ld (bc),a
+  [ 0x03, variant_03 ], // inc bc
+  [ 0x04, variant_04 ], // inc b
+  [ 0x05, variant_05 ], // dec b
+  [ 0x06, variant_06_nn ], // ld b,nn
+  [ 0x07, variant_07 ], // rlca
+  [ 0x08, variant_08 ], // ex af,af'
+  [ 0x09, variant_09 ], // add hl,bc
   [ 0x0A, variant_0A ], // ld a,(bc)
+  [ 0x0B, variant_0B ], // dec bc
+  [ 0x0C, variant_0C ], // inc c
+  [ 0x0D, variant_0D ], // dec c
+  [ 0x0E, variant_0E_nn ], // ld c,nn
+  [ 0x0F, variant_0F ], // rrca
+  [ 0x10, variant_10_offset ], // djnz offset
+  [ 0x11, variant_11_nnnn ], // ld de,nnnn
   [ 0x12, variant_12 ], // ld (de),a
+  [ 0x13, variant_13 ], // inc de
+  [ 0x14, variant_14 ], // inc d
+  [ 0x15, variant_15 ], // dec d
+  [ 0x16, variant_16_nn ], // ld d,nn
+  [ 0x17, variant_17 ], // rla
+  [ 0x18, variant_18_offset ], // jr offset
+  [ 0x19, variant_19 ], // add hl,de
   [ 0x1A, variant_1A ], // ld a,(de)
+  [ 0x1B, variant_1B ], // dec de
+  [ 0x1C, variant_1C ], // inc e
+  [ 0x1D, variant_1D ], // dec e
+  [ 0x1E, variant_1E_nn ], // ld e,nn
+  [ 0x1F, variant_1F ], // rra
+  [ 0x20, variant_20_offset ], // jr nz,offset
+  [ 0x21, variant_21_nnnn ], // ld hl,nnnn
+  [ 0x22, variant_22_nnnn ], // ld (nnnn),hl
+  [ 0x23, variant_23 ], // inc hl
+  [ 0x24, variant_24 ], // inc h
+  [ 0x25, variant_25 ], // dec h
+  [ 0x26, variant_26_nn ], // ld h,nn
+  [ 0x27, variant_27 ], // daa
+  [ 0x28, variant_28_offset ], // jr z,offset
+  [ 0x29, variant_29 ], // add hl,hl
+  [ 0x2A, variant_2A_nnnn ], // ld hl,(nnnn)
+  [ 0x2B, variant_2B ], // dec hl
+  [ 0x2C, variant_2C ], // inc l
+  [ 0x2D, variant_2D ], // dec l
+  [ 0x2E, variant_2E_nn ], // ld l,nn
+  [ 0x2F, variant_2F ], // cpl
+  [ 0x30, variant_30_offset ], // jr nc,offset
+  [ 0x31, variant_31_nnnn ], // ld sp,nnnn
+  [ 0x32, variant_32_nnnn ], // ld (nnnn),a
+  [ 0x33, variant_33 ], // inc sp
+  [ 0x34, variant_34 ], // inc (hl)
+  [ 0x35, variant_35 ], // dec (hl)
+  [ 0x36, variant_36_nn ], // ld (hl),nn
+  [ 0x37, variant_37 ], // scf
+  [ 0x38, variant_38_offset ], // jr c,offset
+  [ 0x39, variant_39 ], // add hl,sp
+  [ 0x3A, variant_3A_nnnn ], // ld a,(nnnn)
+  [ 0x3B, variant_3B ], // dec sp
+  [ 0x3C, variant_3C ], // inc a
+  [ 0x3D, variant_3D ], // dec a
+  [ 0x3E, variant_3E_nn ], // ld a,nn
+  [ 0x3F, variant_3F ], // ccf
   [ 0x40, variant_40 ], // ld b,b
   [ 0x41, variant_41 ], // ld b,c
   [ 0x42, variant_42 ], // ld b,d
@@ -42792,6 +42851,7 @@ export const opcodeMap = new Map<number,OpcodeVariant>([
   [ 0x73, variant_73 ], // ld (hl),e
   [ 0x74, variant_74 ], // ld (hl),h
   [ 0x75, variant_75 ], // ld (hl),l
+  [ 0x76, variant_76 ], // halt
   [ 0x77, variant_77 ], // ld (hl),a
   [ 0x78, variant_78 ], // ld a,b
   [ 0x79, variant_79 ], // ld a,c
@@ -42801,39 +42861,6 @@ export const opcodeMap = new Map<number,OpcodeVariant>([
   [ 0x7D, variant_7D ], // ld a,l
   [ 0x7E, variant_7E ], // ld a,(hl)
   [ 0x7F, variant_7F ], // ld a,a
-  [ 0xF9, variant_F9 ], // ld sp,hl
-  [ 0x03, variant_03 ], // inc bc
-  [ 0x04, variant_04 ], // inc b
-  [ 0x0C, variant_0C ], // inc c
-  [ 0x13, variant_13 ], // inc de
-  [ 0x14, variant_14 ], // inc d
-  [ 0x1C, variant_1C ], // inc e
-  [ 0x23, variant_23 ], // inc hl
-  [ 0x24, variant_24 ], // inc h
-  [ 0x2C, variant_2C ], // inc l
-  [ 0x33, variant_33 ], // inc sp
-  [ 0x34, variant_34 ], // inc (hl)
-  [ 0x3C, variant_3C ], // inc a
-  [ 0x05, variant_05 ], // dec b
-  [ 0x0B, variant_0B ], // dec bc
-  [ 0x0D, variant_0D ], // dec c
-  [ 0x15, variant_15 ], // dec d
-  [ 0x1B, variant_1B ], // dec de
-  [ 0x1D, variant_1D ], // dec e
-  [ 0x25, variant_25 ], // dec h
-  [ 0x2B, variant_2B ], // dec hl
-  [ 0x2D, variant_2D ], // dec l
-  [ 0x35, variant_35 ], // dec (hl)
-  [ 0x3B, variant_3B ], // dec sp
-  [ 0x3D, variant_3D ], // dec a
-  [ 0x07, variant_07 ], // rlca
-  [ 0x08, variant_08 ], // ex af,af'
-  [ 0xE3, variant_E3 ], // ex (sp),hl
-  [ 0xEB, variant_EB ], // ex de,hl
-  [ 0x09, variant_09 ], // add hl,bc
-  [ 0x19, variant_19 ], // add hl,de
-  [ 0x29, variant_29 ], // add hl,hl
-  [ 0x39, variant_39 ], // add hl,sp
   [ 0x80, variant_80 ], // add a,b
   [ 0x81, variant_81 ], // add a,c
   [ 0x82, variant_82 ], // add a,d
@@ -42842,14 +42869,6 @@ export const opcodeMap = new Map<number,OpcodeVariant>([
   [ 0x85, variant_85 ], // add a,l
   [ 0x86, variant_86 ], // add a,(hl)
   [ 0x87, variant_87 ], // add a,a
-  [ 0x0F, variant_0F ], // rrca
-  [ 0x17, variant_17 ], // rla
-  [ 0x1F, variant_1F ], // rra
-  [ 0x27, variant_27 ], // daa
-  [ 0x2F, variant_2F ], // cpl
-  [ 0x37, variant_37 ], // scf
-  [ 0x3F, variant_3F ], // ccf
-  [ 0x76, variant_76 ], // halt
   [ 0x88, variant_88 ], // adc a,b
   [ 0x89, variant_89 ], // adc a,c
   [ 0x8A, variant_8A ], // adc a,d
@@ -42907,32 +42926,961 @@ export const opcodeMap = new Map<number,OpcodeVariant>([
   [ 0xBE, variant_BE ], // cp (hl)
   [ 0xBF, variant_BF ], // cp a
   [ 0xC0, variant_C0 ], // ret nz
+  [ 0xC1, variant_C1 ], // pop bc
+  [ 0xC2, variant_C2_nnnn ], // jp nz,nnnn
+  [ 0xC3, variant_C3_nnnn ], // jp nnnn
+  [ 0xC4, variant_C4_nnnn ], // call nz,nnnn
+  [ 0xC5, variant_C5 ], // push bc
+  [ 0xC6, variant_C6_nn ], // add a,nn
+  [ 0xC7, variant_C7 ], // rst 00
   [ 0xC8, variant_C8 ], // ret z
   [ 0xC9, variant_C9 ], // ret
-  [ 0xD0, variant_D0 ], // ret nc
-  [ 0xD8, variant_D8 ], // ret c
-  [ 0xE0, variant_E0 ], // ret po
-  [ 0xE8, variant_E8 ], // ret pe
-  [ 0xF0, variant_F0 ], // ret p
-  [ 0xF8, variant_F8 ], // ret m
-  [ 0xC1, variant_C1 ], // pop bc
-  [ 0xD1, variant_D1 ], // pop de
-  [ 0xE1, variant_E1 ], // pop hl
-  [ 0xF1, variant_F1 ], // pop af
-  [ 0xE9, variant_E9 ], // jp hl
-  [ 0xC5, variant_C5 ], // push bc
-  [ 0xD5, variant_D5 ], // push de
-  [ 0xE5, variant_E5 ], // push hl
-  [ 0xF5, variant_F5 ], // push af
-  [ 0xC7, variant_C7 ], // rst 00
+  [ 0xCA, variant_CA_nnnn ], // jp z,nnnn
+  [ 0xCB, new Map<number,OpcodeVariant | OpcodeMap>([
+    [ 0x00, variant_CB_00 ], // rlc b
+    [ 0x01, variant_CB_01 ], // rlc c
+    [ 0x02, variant_CB_02 ], // rlc d
+    [ 0x03, variant_CB_03 ], // rlc e
+    [ 0x04, variant_CB_04 ], // rlc h
+    [ 0x05, variant_CB_05 ], // rlc l
+    [ 0x06, variant_CB_06 ], // rlc (hl)
+    [ 0x07, variant_CB_07 ], // rlc a
+    [ 0x08, variant_CB_08 ], // rrc b
+    [ 0x09, variant_CB_09 ], // rrc c
+    [ 0x0A, variant_CB_0A ], // rrc d
+    [ 0x0B, variant_CB_0B ], // rrc e
+    [ 0x0C, variant_CB_0C ], // rrc h
+    [ 0x0D, variant_CB_0D ], // rrc l
+    [ 0x0E, variant_CB_0E ], // rrc (hl)
+    [ 0x0F, variant_CB_0F ], // rrc a
+    [ 0x10, variant_CB_10 ], // rl b
+    [ 0x11, variant_CB_11 ], // rl c
+    [ 0x12, variant_CB_12 ], // rl d
+    [ 0x13, variant_CB_13 ], // rl e
+    [ 0x14, variant_CB_14 ], // rl h
+    [ 0x15, variant_CB_15 ], // rl l
+    [ 0x16, variant_CB_16 ], // rl (hl)
+    [ 0x17, variant_CB_17 ], // rl a
+    [ 0x18, variant_CB_18 ], // rr b
+    [ 0x19, variant_CB_19 ], // rr c
+    [ 0x1A, variant_CB_1A ], // rr d
+    [ 0x1B, variant_CB_1B ], // rr e
+    [ 0x1C, variant_CB_1C ], // rr h
+    [ 0x1D, variant_CB_1D ], // rr l
+    [ 0x1E, variant_CB_1E ], // rr (hl)
+    [ 0x1F, variant_CB_1F ], // rr a
+    [ 0x20, variant_CB_20 ], // sla b
+    [ 0x21, variant_CB_21 ], // sla c
+    [ 0x22, variant_CB_22 ], // sla d
+    [ 0x23, variant_CB_23 ], // sla e
+    [ 0x24, variant_CB_24 ], // sla h
+    [ 0x25, variant_CB_25 ], // sla l
+    [ 0x26, variant_CB_26 ], // sla (hl)
+    [ 0x27, variant_CB_27 ], // sla a
+    [ 0x28, variant_CB_28 ], // sra b
+    [ 0x29, variant_CB_29 ], // sra c
+    [ 0x2A, variant_CB_2A ], // sra d
+    [ 0x2B, variant_CB_2B ], // sra e
+    [ 0x2C, variant_CB_2C ], // sra h
+    [ 0x2D, variant_CB_2D ], // sra l
+    [ 0x2E, variant_CB_2E ], // sra (hl)
+    [ 0x2F, variant_CB_2F ], // sra a
+    [ 0x30, variant_CB_30 ], // sll b
+    [ 0x31, variant_CB_31 ], // sll c
+    [ 0x32, variant_CB_32 ], // sll d
+    [ 0x33, variant_CB_33 ], // sll e
+    [ 0x34, variant_CB_34 ], // sll h
+    [ 0x35, variant_CB_35 ], // sll l
+    [ 0x36, variant_CB_36 ], // sll (hl)
+    [ 0x37, variant_CB_37 ], // sll a
+    [ 0x38, variant_CB_38 ], // srl b
+    [ 0x39, variant_CB_39 ], // srl c
+    [ 0x3A, variant_CB_3A ], // srl d
+    [ 0x3B, variant_CB_3B ], // srl e
+    [ 0x3C, variant_CB_3C ], // srl h
+    [ 0x3D, variant_CB_3D ], // srl l
+    [ 0x3E, variant_CB_3E ], // srl (hl)
+    [ 0x3F, variant_CB_3F ], // srl a
+    [ 0x40, variant_CB_40 ], // bit 0,b
+    [ 0x41, variant_CB_41 ], // bit 0,c
+    [ 0x42, variant_CB_42 ], // bit 0,d
+    [ 0x43, variant_CB_43 ], // bit 0,e
+    [ 0x44, variant_CB_44 ], // bit 0,h
+    [ 0x45, variant_CB_45 ], // bit 0,l
+    [ 0x46, variant_CB_46 ], // bit 0,(hl)
+    [ 0x47, variant_CB_47 ], // bit 0,a
+    [ 0x48, variant_CB_48 ], // bit 1,b
+    [ 0x49, variant_CB_49 ], // bit 1,c
+    [ 0x4A, variant_CB_4A ], // bit 1,d
+    [ 0x4B, variant_CB_4B ], // bit 1,e
+    [ 0x4C, variant_CB_4C ], // bit 1,h
+    [ 0x4D, variant_CB_4D ], // bit 1,l
+    [ 0x4E, variant_CB_4E ], // bit 1,(hl)
+    [ 0x4F, variant_CB_4F ], // bit 1,a
+    [ 0x50, variant_CB_50 ], // bit 2,b
+    [ 0x51, variant_CB_51 ], // bit 2,c
+    [ 0x52, variant_CB_52 ], // bit 2,d
+    [ 0x53, variant_CB_53 ], // bit 2,e
+    [ 0x54, variant_CB_54 ], // bit 2,h
+    [ 0x55, variant_CB_55 ], // bit 2,l
+    [ 0x56, variant_CB_56 ], // bit 2,(hl)
+    [ 0x57, variant_CB_57 ], // bit 2,a
+    [ 0x58, variant_CB_58 ], // bit 3,b
+    [ 0x59, variant_CB_59 ], // bit 3,c
+    [ 0x5A, variant_CB_5A ], // bit 3,d
+    [ 0x5B, variant_CB_5B ], // bit 3,e
+    [ 0x5C, variant_CB_5C ], // bit 3,h
+    [ 0x5D, variant_CB_5D ], // bit 3,l
+    [ 0x5E, variant_CB_5E ], // bit 3,(hl)
+    [ 0x5F, variant_CB_5F ], // bit 3,a
+    [ 0x60, variant_CB_60 ], // bit 4,b
+    [ 0x61, variant_CB_61 ], // bit 4,c
+    [ 0x62, variant_CB_62 ], // bit 4,d
+    [ 0x63, variant_CB_63 ], // bit 4,e
+    [ 0x64, variant_CB_64 ], // bit 4,h
+    [ 0x65, variant_CB_65 ], // bit 4,l
+    [ 0x66, variant_CB_66 ], // bit 4,(hl)
+    [ 0x67, variant_CB_67 ], // bit 4,a
+    [ 0x68, variant_CB_68 ], // bit 5,b
+    [ 0x69, variant_CB_69 ], // bit 5,c
+    [ 0x6A, variant_CB_6A ], // bit 5,d
+    [ 0x6B, variant_CB_6B ], // bit 5,e
+    [ 0x6C, variant_CB_6C ], // bit 5,h
+    [ 0x6D, variant_CB_6D ], // bit 5,l
+    [ 0x6E, variant_CB_6E ], // bit 5,(hl)
+    [ 0x6F, variant_CB_6F ], // bit 5,a
+    [ 0x70, variant_CB_70 ], // bit 6,b
+    [ 0x71, variant_CB_71 ], // bit 6,c
+    [ 0x72, variant_CB_72 ], // bit 6,d
+    [ 0x73, variant_CB_73 ], // bit 6,e
+    [ 0x74, variant_CB_74 ], // bit 6,h
+    [ 0x75, variant_CB_75 ], // bit 6,l
+    [ 0x76, variant_CB_76 ], // bit 6,(hl)
+    [ 0x77, variant_CB_77 ], // bit 6,a
+    [ 0x78, variant_CB_78 ], // bit 7,b
+    [ 0x79, variant_CB_79 ], // bit 7,c
+    [ 0x7A, variant_CB_7A ], // bit 7,d
+    [ 0x7B, variant_CB_7B ], // bit 7,e
+    [ 0x7C, variant_CB_7C ], // bit 7,h
+    [ 0x7D, variant_CB_7D ], // bit 7,l
+    [ 0x7E, variant_CB_7E ], // bit 7,(hl)
+    [ 0x7F, variant_CB_7F ], // bit 7,a
+    [ 0x80, variant_CB_80 ], // res 0,b
+    [ 0x81, variant_CB_81 ], // res 0,c
+    [ 0x82, variant_CB_82 ], // res 0,d
+    [ 0x83, variant_CB_83 ], // res 0,e
+    [ 0x84, variant_CB_84 ], // res 0,h
+    [ 0x85, variant_CB_85 ], // res 0,l
+    [ 0x86, variant_CB_86 ], // res 0,(hl)
+    [ 0x87, variant_CB_87 ], // res 0,a
+    [ 0x88, variant_CB_88 ], // res 1,b
+    [ 0x89, variant_CB_89 ], // res 1,c
+    [ 0x8A, variant_CB_8A ], // res 1,d
+    [ 0x8B, variant_CB_8B ], // res 1,e
+    [ 0x8C, variant_CB_8C ], // res 1,h
+    [ 0x8D, variant_CB_8D ], // res 1,l
+    [ 0x8E, variant_CB_8E ], // res 1,(hl)
+    [ 0x8F, variant_CB_8F ], // res 1,a
+    [ 0x90, variant_CB_90 ], // res 2,b
+    [ 0x91, variant_CB_91 ], // res 2,c
+    [ 0x92, variant_CB_92 ], // res 2,d
+    [ 0x93, variant_CB_93 ], // res 2,e
+    [ 0x94, variant_CB_94 ], // res 2,h
+    [ 0x95, variant_CB_95 ], // res 2,l
+    [ 0x96, variant_CB_96 ], // res 2,(hl)
+    [ 0x97, variant_CB_97 ], // res 2,a
+    [ 0x98, variant_CB_98 ], // res 3,b
+    [ 0x99, variant_CB_99 ], // res 3,c
+    [ 0x9A, variant_CB_9A ], // res 3,d
+    [ 0x9B, variant_CB_9B ], // res 3,e
+    [ 0x9C, variant_CB_9C ], // res 3,h
+    [ 0x9D, variant_CB_9D ], // res 3,l
+    [ 0x9E, variant_CB_9E ], // res 3,(hl)
+    [ 0x9F, variant_CB_9F ], // res 3,a
+    [ 0xA0, variant_CB_A0 ], // res 4,b
+    [ 0xA1, variant_CB_A1 ], // res 4,c
+    [ 0xA2, variant_CB_A2 ], // res 4,d
+    [ 0xA3, variant_CB_A3 ], // res 4,e
+    [ 0xA4, variant_CB_A4 ], // res 4,h
+    [ 0xA5, variant_CB_A5 ], // res 4,l
+    [ 0xA6, variant_CB_A6 ], // res 4,(hl)
+    [ 0xA7, variant_CB_A7 ], // res 4,a
+    [ 0xA8, variant_CB_A8 ], // res 5,b
+    [ 0xA9, variant_CB_A9 ], // res 5,c
+    [ 0xAA, variant_CB_AA ], // res 5,d
+    [ 0xAB, variant_CB_AB ], // res 5,e
+    [ 0xAC, variant_CB_AC ], // res 5,h
+    [ 0xAD, variant_CB_AD ], // res 5,l
+    [ 0xAE, variant_CB_AE ], // res 5,(hl)
+    [ 0xAF, variant_CB_AF ], // res 5,a
+    [ 0xB0, variant_CB_B0 ], // res 6,b
+    [ 0xB1, variant_CB_B1 ], // res 6,c
+    [ 0xB2, variant_CB_B2 ], // res 6,d
+    [ 0xB3, variant_CB_B3 ], // res 6,e
+    [ 0xB4, variant_CB_B4 ], // res 6,h
+    [ 0xB5, variant_CB_B5 ], // res 6,l
+    [ 0xB6, variant_CB_B6 ], // res 6,(hl)
+    [ 0xB7, variant_CB_B7 ], // res 6,a
+    [ 0xB8, variant_CB_B8 ], // res 7,b
+    [ 0xB9, variant_CB_B9 ], // res 7,c
+    [ 0xBA, variant_CB_BA ], // res 7,d
+    [ 0xBB, variant_CB_BB ], // res 7,e
+    [ 0xBC, variant_CB_BC ], // res 7,h
+    [ 0xBD, variant_CB_BD ], // res 7,l
+    [ 0xBE, variant_CB_BE ], // res 7,(hl)
+    [ 0xBF, variant_CB_BF ], // res 7,a
+    [ 0xC0, variant_CB_C0 ], // set 0,b
+    [ 0xC1, variant_CB_C1 ], // set 0,c
+    [ 0xC2, variant_CB_C2 ], // set 0,d
+    [ 0xC3, variant_CB_C3 ], // set 0,e
+    [ 0xC4, variant_CB_C4 ], // set 0,h
+    [ 0xC5, variant_CB_C5 ], // set 0,l
+    [ 0xC6, variant_CB_C6 ], // set 0,(hl)
+    [ 0xC7, variant_CB_C7 ], // set 0,a
+    [ 0xC8, variant_CB_C8 ], // set 1,b
+    [ 0xC9, variant_CB_C9 ], // set 1,c
+    [ 0xCA, variant_CB_CA ], // set 1,d
+    [ 0xCB, variant_CB_CB ], // set 1,e
+    [ 0xCC, variant_CB_CC ], // set 1,h
+    [ 0xCD, variant_CB_CD ], // set 1,l
+    [ 0xCE, variant_CB_CE ], // set 1,(hl)
+    [ 0xCF, variant_CB_CF ], // set 1,a
+    [ 0xD0, variant_CB_D0 ], // set 2,b
+    [ 0xD1, variant_CB_D1 ], // set 2,c
+    [ 0xD2, variant_CB_D2 ], // set 2,d
+    [ 0xD3, variant_CB_D3 ], // set 2,e
+    [ 0xD4, variant_CB_D4 ], // set 2,h
+    [ 0xD5, variant_CB_D5 ], // set 2,l
+    [ 0xD6, variant_CB_D6 ], // set 2,(hl)
+    [ 0xD7, variant_CB_D7 ], // set 2,a
+    [ 0xD8, variant_CB_D8 ], // set 3,b
+    [ 0xD9, variant_CB_D9 ], // set 3,c
+    [ 0xDA, variant_CB_DA ], // set 3,d
+    [ 0xDB, variant_CB_DB ], // set 3,e
+    [ 0xDC, variant_CB_DC ], // set 3,h
+    [ 0xDD, variant_CB_DD ], // set 3,l
+    [ 0xDE, variant_CB_DE ], // set 3,(hl)
+    [ 0xDF, variant_CB_DF ], // set 3,a
+    [ 0xE0, variant_CB_E0 ], // set 4,b
+    [ 0xE1, variant_CB_E1 ], // set 4,c
+    [ 0xE2, variant_CB_E2 ], // set 4,d
+    [ 0xE3, variant_CB_E3 ], // set 4,e
+    [ 0xE4, variant_CB_E4 ], // set 4,h
+    [ 0xE5, variant_CB_E5 ], // set 4,l
+    [ 0xE6, variant_CB_E6 ], // set 4,(hl)
+    [ 0xE7, variant_CB_E7 ], // set 4,a
+    [ 0xE8, variant_CB_E8 ], // set 5,b
+    [ 0xE9, variant_CB_E9 ], // set 5,c
+    [ 0xEA, variant_CB_EA ], // set 5,d
+    [ 0xEB, variant_CB_EB ], // set 5,e
+    [ 0xEC, variant_CB_EC ], // set 5,h
+    [ 0xED, variant_CB_ED ], // set 5,l
+    [ 0xEE, variant_CB_EE ], // set 5,(hl)
+    [ 0xEF, variant_CB_EF ], // set 5,a
+    [ 0xF0, variant_CB_F0 ], // set 6,b
+    [ 0xF1, variant_CB_F1 ], // set 6,c
+    [ 0xF2, variant_CB_F2 ], // set 6,d
+    [ 0xF3, variant_CB_F3 ], // set 6,e
+    [ 0xF4, variant_CB_F4 ], // set 6,h
+    [ 0xF5, variant_CB_F5 ], // set 6,l
+    [ 0xF6, variant_CB_F6 ], // set 6,(hl)
+    [ 0xF7, variant_CB_F7 ], // set 6,a
+    [ 0xF8, variant_CB_F8 ], // set 7,b
+    [ 0xF9, variant_CB_F9 ], // set 7,c
+    [ 0xFA, variant_CB_FA ], // set 7,d
+    [ 0xFB, variant_CB_FB ], // set 7,e
+    [ 0xFC, variant_CB_FC ], // set 7,h
+    [ 0xFD, variant_CB_FD ], // set 7,l
+    [ 0xFE, variant_CB_FE ], // set 7,(hl)
+    [ 0xFF, variant_CB_FF ], // set 7,a
+  ])],
+  [ 0xCC, variant_CC_nnnn ], // call z,nnnn
+  [ 0xCD, variant_CD_nnnn ], // call nnnn
+  [ 0xCE, variant_CE_nn ], // adc a,nn
   [ 0xCF, variant_CF ], // rst 8
+  [ 0xD0, variant_D0 ], // ret nc
+  [ 0xD1, variant_D1 ], // pop de
+  [ 0xD2, variant_D2_nnnn ], // jp nc,nnnn
+  [ 0xD3, variant_D3_nn ], // out (nn),a
+  [ 0xD4, variant_D4_nnnn ], // call nc,nnnn
+  [ 0xD5, variant_D5 ], // push de
+  [ 0xD6, variant_D6_nn ], // sub a,nn
   [ 0xD7, variant_D7 ], // rst 10
-  [ 0xDF, variant_DF ], // rst 18
-  [ 0xE7, variant_E7 ], // rst 20
-  [ 0xEF, variant_EF ], // rst 28
-  [ 0xF7, variant_F7 ], // rst 30
-  [ 0xFF, variant_FF ], // rst 38
+  [ 0xD8, variant_D8 ], // ret c
   [ 0xD9, variant_D9 ], // exx
+  [ 0xDA, variant_DA_nnnn ], // jp c,nnnn
+  [ 0xDB, variant_DB_nn ], // in a,(nn)
+  [ 0xDC, variant_DC_nnnn ], // call c,nnnn
+  [ 0xDD, new Map<number,OpcodeVariant | OpcodeMap>([
+    [ 0x09, variant_DD_09 ], // add ix,bc
+    [ 0x19, variant_DD_19 ], // add ix,de
+    [ 0x21, variant_DD_21_nnnn ], // ld ix,nnnn
+    [ 0x22, variant_DD_22_nnnn ], // ld (nnnn),ix
+    [ 0x23, variant_DD_23 ], // inc ix
+    [ 0x24, variant_DD_24 ], // inc ixh
+    [ 0x25, variant_DD_25 ], // dec ixh
+    [ 0x26, variant_DD_26_nn ], // ld ixh,nn
+    [ 0x29, variant_DD_29 ], // add ix,ix
+    [ 0x2A, variant_DD_2A_nnnn ], // ld ix,(nnnn)
+    [ 0x2B, variant_DD_2B ], // dec ix
+    [ 0x2C, variant_DD_2C ], // inc ixl
+    [ 0x2D, variant_DD_2D ], // dec ixl
+    [ 0x2E, variant_DD_2E_nn ], // ld ixl,nn
+    [ 0x34, variant_DD_34_dd ], // inc (ix+dd)
+    [ 0x35, variant_DD_35_dd ], // dec (ix+dd)
+    [ 0x36, variant_DD_36_dd_nn ], // ld (ix+dd),nn
+    [ 0x39, variant_DD_39 ], // add ix,sp
+    [ 0x44, variant_DD_44 ], // ld b,ixh
+    [ 0x45, variant_DD_45 ], // ld b,ixl
+    [ 0x46, variant_DD_46_dd ], // ld b,(ix+dd)
+    [ 0x4C, variant_DD_4C ], // ld c,ixh
+    [ 0x4D, variant_DD_4D ], // ld c,ixl
+    [ 0x4E, variant_DD_4E_dd ], // ld c,(ix+dd)
+    [ 0x54, variant_DD_54 ], // ld d,ixh
+    [ 0x55, variant_DD_55 ], // ld d,ixl
+    [ 0x56, variant_DD_56_dd ], // ld d,(ix+dd)
+    [ 0x5C, variant_DD_5C ], // ld e,ixh
+    [ 0x5D, variant_DD_5D ], // ld e,ixl
+    [ 0x5E, variant_DD_5E_dd ], // ld e,(ix+dd)
+    [ 0x60, variant_DD_60 ], // ld ixh,b
+    [ 0x61, variant_DD_61 ], // ld ixh,c
+    [ 0x62, variant_DD_62 ], // ld ixh,d
+    [ 0x63, variant_DD_63 ], // ld ixh,e
+    [ 0x64, variant_DD_64 ], // ld ixh,ixh
+    [ 0x65, variant_DD_65 ], // ld ixh,ixl
+    [ 0x66, variant_DD_66_dd ], // ld h,(ix+dd)
+    [ 0x67, variant_DD_67 ], // ld ixh,a
+    [ 0x68, variant_DD_68 ], // ld ixl,b
+    [ 0x69, variant_DD_69 ], // ld ixl,c
+    [ 0x6A, variant_DD_6A ], // ld ixl,d
+    [ 0x6B, variant_DD_6B ], // ld ixl,e
+    [ 0x6C, variant_DD_6C ], // ld ixl,ixh
+    [ 0x6D, variant_DD_6D ], // ld ixl,ixl
+    [ 0x6E, variant_DD_6E_dd ], // ld l,(ix+dd)
+    [ 0x6F, variant_DD_6F ], // ld ixl,a
+    [ 0x70, variant_DD_70_dd ], // ld (ix+dd),b
+    [ 0x71, variant_DD_71_dd ], // ld (ix+dd),c
+    [ 0x72, variant_DD_72_dd ], // ld (ix+dd),d
+    [ 0x73, variant_DD_73_dd ], // ld (ix+dd),e
+    [ 0x74, variant_DD_74_dd ], // ld (ix+dd),h
+    [ 0x75, variant_DD_75_dd ], // ld (ix+dd),l
+    [ 0x77, variant_DD_77_dd ], // ld (ix+dd),a
+    [ 0x7C, variant_DD_7C ], // ld a,ixh
+    [ 0x7D, variant_DD_7D ], // ld a,ixl
+    [ 0x7E, variant_DD_7E_dd ], // ld a,(ix+dd)
+    [ 0x84, variant_DD_84 ], // add a,ixh
+    [ 0x85, variant_DD_85 ], // add a,ixl
+    [ 0x86, variant_DD_86_dd ], // add a,(ix+dd)
+    [ 0x8C, variant_DD_8C ], // adc a,ixh
+    [ 0x8D, variant_DD_8D ], // adc a,ixl
+    [ 0x8E, variant_DD_8E_dd ], // adc a,(ix+dd)
+    [ 0x94, variant_DD_94 ], // sub a,ixh
+    [ 0x95, variant_DD_95 ], // sub a,ixl
+    [ 0x96, variant_DD_96_dd ], // sub a,(ix+dd)
+    [ 0x9C, variant_DD_9C ], // sbc a,ixh
+    [ 0x9D, variant_DD_9D ], // sbc a,ixl
+    [ 0x9E, variant_DD_9E_dd ], // sbc a,(ix+dd)
+    [ 0xA4, variant_DD_A4 ], // and a,ixh
+    [ 0xA5, variant_DD_A5 ], // and a,ixl
+    [ 0xA6, variant_DD_A6_dd ], // and a,(ix+dd)
+    [ 0xAC, variant_DD_AC ], // xor a,ixh
+    [ 0xAD, variant_DD_AD ], // xor a,ixl
+    [ 0xAE, variant_DD_AE_dd ], // xor a,(ix+dd)
+    [ 0xB4, variant_DD_B4 ], // or a,ixh
+    [ 0xB5, variant_DD_B5 ], // or a,ixl
+    [ 0xB6, variant_DD_B6_dd ], // or a,(ix+dd)
+    [ 0xBC, variant_DD_BC ], // cp ixh
+    [ 0xBD, variant_DD_BD ], // cp ixl
+    [ 0xBE, variant_DD_BE_dd ], // cp (ix+dd)
+    [ 0xCB, new Map<number,OpcodeVariant | OpcodeMap>([
+      [ 0x00, variant_DD_CB_dd_00 ], // ld b,rlc (ix+dd)
+      [ 0x01, variant_DD_CB_dd_01 ], // ld c,rlc (ix+dd)
+      [ 0x02, variant_DD_CB_dd_02 ], // ld d,rlc (ix+dd)
+      [ 0x03, variant_DD_CB_dd_03 ], // ld e,rlc (ix+dd)
+      [ 0x04, variant_DD_CB_dd_04 ], // ld h,rlc (ix+dd)
+      [ 0x05, variant_DD_CB_dd_05 ], // ld l,rlc (ix+dd)
+      [ 0x06, variant_DD_CB_dd_06 ], // rlc (ix+dd)
+      [ 0x07, variant_DD_CB_dd_07 ], // ld a,rlc (ix+dd)
+      [ 0x08, variant_DD_CB_dd_08 ], // ld b,rrc (ix+dd)
+      [ 0x09, variant_DD_CB_dd_09 ], // ld c,rrc (ix+dd)
+      [ 0x0A, variant_DD_CB_dd_0A ], // ld d,rrc (ix+dd)
+      [ 0x0B, variant_DD_CB_dd_0B ], // ld e,rrc (ix+dd)
+      [ 0x0C, variant_DD_CB_dd_0C ], // ld h,rrc (ix+dd)
+      [ 0x0D, variant_DD_CB_dd_0D ], // ld l,rrc (ix+dd)
+      [ 0x0E, variant_DD_CB_dd_0E ], // rrc (ix+dd)
+      [ 0x0F, variant_DD_CB_dd_0F ], // ld a,rrc (ix+dd)
+      [ 0x10, variant_DD_CB_dd_10 ], // ld b,rl (ix+dd)
+      [ 0x11, variant_DD_CB_dd_11 ], // ld c,rl (ix+dd)
+      [ 0x12, variant_DD_CB_dd_12 ], // ld d,rl (ix+dd)
+      [ 0x13, variant_DD_CB_dd_13 ], // ld e,rl (ix+dd)
+      [ 0x14, variant_DD_CB_dd_14 ], // ld h,rl (ix+dd)
+      [ 0x15, variant_DD_CB_dd_15 ], // ld l,rl (ix+dd)
+      [ 0x16, variant_DD_CB_dd_16 ], // rl (ix+dd)
+      [ 0x17, variant_DD_CB_dd_17 ], // ld a,rl (ix+dd)
+      [ 0x18, variant_DD_CB_dd_18 ], // ld b,rr (ix+dd)
+      [ 0x19, variant_DD_CB_dd_19 ], // ld c,rr (ix+dd)
+      [ 0x1A, variant_DD_CB_dd_1A ], // ld d,rr (ix+dd)
+      [ 0x1B, variant_DD_CB_dd_1B ], // ld e,rr (ix+dd)
+      [ 0x1C, variant_DD_CB_dd_1C ], // ld h,rr (ix+dd)
+      [ 0x1D, variant_DD_CB_dd_1D ], // ld l,rr (ix+dd)
+      [ 0x1E, variant_DD_CB_dd_1E ], // rr (ix+dd)
+      [ 0x1F, variant_DD_CB_dd_1F ], // ld a,rr (ix+dd)
+      [ 0x20, variant_DD_CB_dd_20 ], // ld b,sla (ix+dd)
+      [ 0x21, variant_DD_CB_dd_21 ], // ld c,sla (ix+dd)
+      [ 0x22, variant_DD_CB_dd_22 ], // ld d,sla (ix+dd)
+      [ 0x23, variant_DD_CB_dd_23 ], // ld e,sla (ix+dd)
+      [ 0x24, variant_DD_CB_dd_24 ], // ld h,sla (ix+dd)
+      [ 0x25, variant_DD_CB_dd_25 ], // ld l,sla (ix+dd)
+      [ 0x26, variant_DD_CB_dd_26 ], // sla (ix+dd)
+      [ 0x27, variant_DD_CB_dd_27 ], // ld a,sla (ix+dd)
+      [ 0x28, variant_DD_CB_dd_28 ], // ld b,sra (ix+dd)
+      [ 0x29, variant_DD_CB_dd_29 ], // ld c,sra (ix+dd)
+      [ 0x2A, variant_DD_CB_dd_2A ], // ld d,sra (ix+dd)
+      [ 0x2B, variant_DD_CB_dd_2B ], // ld e,sra (ix+dd)
+      [ 0x2C, variant_DD_CB_dd_2C ], // ld h,sra (ix+dd)
+      [ 0x2D, variant_DD_CB_dd_2D ], // ld l,sra (ix+dd)
+      [ 0x2E, variant_DD_CB_dd_2E ], // sra (ix+dd)
+      [ 0x2F, variant_DD_CB_dd_2F ], // ld a,sra (ix+dd)
+      [ 0x30, variant_DD_CB_dd_30 ], // ld b,sll (ix+dd)
+      [ 0x31, variant_DD_CB_dd_31 ], // ld c,sll (ix+dd)
+      [ 0x32, variant_DD_CB_dd_32 ], // ld d,sll (ix+dd)
+      [ 0x33, variant_DD_CB_dd_33 ], // ld e,sll (ix+dd)
+      [ 0x34, variant_DD_CB_dd_34 ], // ld h,sll (ix+dd)
+      [ 0x35, variant_DD_CB_dd_35 ], // ld l,sll (ix+dd)
+      [ 0x36, variant_DD_CB_dd_36 ], // sll (ix+dd)
+      [ 0x37, variant_DD_CB_dd_37 ], // ld a,sll (ix+dd)
+      [ 0x38, variant_DD_CB_dd_38 ], // ld b,srl (ix+dd)
+      [ 0x39, variant_DD_CB_dd_39 ], // ld c,srl (ix+dd)
+      [ 0x3A, variant_DD_CB_dd_3A ], // ld d,srl (ix+dd)
+      [ 0x3B, variant_DD_CB_dd_3B ], // ld e,srl (ix+dd)
+      [ 0x3C, variant_DD_CB_dd_3C ], // ld h,srl (ix+dd)
+      [ 0x3D, variant_DD_CB_dd_3D ], // ld l,srl (ix+dd)
+      [ 0x3E, variant_DD_CB_dd_3E ], // srl (ix+dd)
+      [ 0x3F, variant_DD_CB_dd_3F ], // ld a,srl (ix+dd)
+      [ 0x47, variant_DD_CB_dd_47 ], // bit 0,(ix+dd)
+      [ 0x4F, variant_DD_CB_dd_4F ], // bit 1,(ix+dd)
+      [ 0x57, variant_DD_CB_dd_57 ], // bit 2,(ix+dd)
+      [ 0x5F, variant_DD_CB_dd_5F ], // bit 3,(ix+dd)
+      [ 0x67, variant_DD_CB_dd_67 ], // bit 4,(ix+dd)
+      [ 0x6F, variant_DD_CB_dd_6F ], // bit 5,(ix+dd)
+      [ 0x77, variant_DD_CB_dd_77 ], // bit 6,(ix+dd)
+      [ 0x7F, variant_DD_CB_dd_7F ], // bit 7,(ix+dd)
+      [ 0x80, variant_DD_CB_dd_80 ], // ld b,res 0,(ix+dd)
+      [ 0x81, variant_DD_CB_dd_81 ], // ld c,res 0,(ix+dd)
+      [ 0x82, variant_DD_CB_dd_82 ], // ld d,res 0,(ix+dd)
+      [ 0x83, variant_DD_CB_dd_83 ], // ld e,res 0,(ix+dd)
+      [ 0x84, variant_DD_CB_dd_84 ], // ld h,res 0,(ix+dd)
+      [ 0x85, variant_DD_CB_dd_85 ], // ld l,res 0,(ix+dd)
+      [ 0x86, variant_DD_CB_dd_86 ], // res 0,(ix+dd)
+      [ 0x87, variant_DD_CB_dd_87 ], // ld a,res 0,(ix+dd)
+      [ 0x88, variant_DD_CB_dd_88 ], // ld b,res 1,(ix+dd)
+      [ 0x89, variant_DD_CB_dd_89 ], // ld c,res 1,(ix+dd)
+      [ 0x8A, variant_DD_CB_dd_8A ], // ld d,res 1,(ix+dd)
+      [ 0x8B, variant_DD_CB_dd_8B ], // ld e,res 1,(ix+dd)
+      [ 0x8C, variant_DD_CB_dd_8C ], // ld h,res 1,(ix+dd)
+      [ 0x8D, variant_DD_CB_dd_8D ], // ld l,res 1,(ix+dd)
+      [ 0x8E, variant_DD_CB_dd_8E ], // res 1,(ix+dd)
+      [ 0x8F, variant_DD_CB_dd_8F ], // ld a,res 1,(ix+dd)
+      [ 0x90, variant_DD_CB_dd_90 ], // ld b,res 2,(ix+dd)
+      [ 0x91, variant_DD_CB_dd_91 ], // ld c,res 2,(ix+dd)
+      [ 0x92, variant_DD_CB_dd_92 ], // ld d,res 2,(ix+dd)
+      [ 0x93, variant_DD_CB_dd_93 ], // ld e,res 2,(ix+dd)
+      [ 0x94, variant_DD_CB_dd_94 ], // ld h,res 2,(ix+dd)
+      [ 0x95, variant_DD_CB_dd_95 ], // ld l,res 2,(ix+dd)
+      [ 0x96, variant_DD_CB_dd_96 ], // res 2,(ix+dd)
+      [ 0x97, variant_DD_CB_dd_97 ], // ld a,res 2,(ix+dd)
+      [ 0x98, variant_DD_CB_dd_98 ], // ld b,res 3,(ix+dd)
+      [ 0x99, variant_DD_CB_dd_99 ], // ld c,res 3,(ix+dd)
+      [ 0x9A, variant_DD_CB_dd_9A ], // ld d,res 3,(ix+dd)
+      [ 0x9B, variant_DD_CB_dd_9B ], // ld e,res 3,(ix+dd)
+      [ 0x9C, variant_DD_CB_dd_9C ], // ld h,res 3,(ix+dd)
+      [ 0x9D, variant_DD_CB_dd_9D ], // ld l,res 3,(ix+dd)
+      [ 0x9E, variant_DD_CB_dd_9E ], // res 3,(ix+dd)
+      [ 0x9F, variant_DD_CB_dd_9F ], // ld a,res 3,(ix+dd)
+      [ 0xA0, variant_DD_CB_dd_A0 ], // ld b,res 4,(ix+dd)
+      [ 0xA1, variant_DD_CB_dd_A1 ], // ld c,res 4,(ix+dd)
+      [ 0xA2, variant_DD_CB_dd_A2 ], // ld d,res 4,(ix+dd)
+      [ 0xA3, variant_DD_CB_dd_A3 ], // ld e,res 4,(ix+dd)
+      [ 0xA4, variant_DD_CB_dd_A4 ], // ld h,res 4,(ix+dd)
+      [ 0xA5, variant_DD_CB_dd_A5 ], // ld l,res 4,(ix+dd)
+      [ 0xA6, variant_DD_CB_dd_A6 ], // res 4,(ix+dd)
+      [ 0xA7, variant_DD_CB_dd_A7 ], // ld a,res 4,(ix+dd)
+      [ 0xA8, variant_DD_CB_dd_A8 ], // ld b,res 5,(ix+dd)
+      [ 0xA9, variant_DD_CB_dd_A9 ], // ld c,res 5,(ix+dd)
+      [ 0xAA, variant_DD_CB_dd_AA ], // ld d,res 5,(ix+dd)
+      [ 0xAB, variant_DD_CB_dd_AB ], // ld e,res 5,(ix+dd)
+      [ 0xAC, variant_DD_CB_dd_AC ], // ld h,res 5,(ix+dd)
+      [ 0xAD, variant_DD_CB_dd_AD ], // ld l,res 5,(ix+dd)
+      [ 0xAE, variant_DD_CB_dd_AE ], // res 5,(ix+dd)
+      [ 0xAF, variant_DD_CB_dd_AF ], // ld a,res 5,(ix+dd)
+      [ 0xB0, variant_DD_CB_dd_B0 ], // ld b,res 6,(ix+dd)
+      [ 0xB1, variant_DD_CB_dd_B1 ], // ld c,res 6,(ix+dd)
+      [ 0xB2, variant_DD_CB_dd_B2 ], // ld d,res 6,(ix+dd)
+      [ 0xB3, variant_DD_CB_dd_B3 ], // ld e,res 6,(ix+dd)
+      [ 0xB4, variant_DD_CB_dd_B4 ], // ld h,res 6,(ix+dd)
+      [ 0xB5, variant_DD_CB_dd_B5 ], // ld l,res 6,(ix+dd)
+      [ 0xB6, variant_DD_CB_dd_B6 ], // res 6,(ix+dd)
+      [ 0xB7, variant_DD_CB_dd_B7 ], // ld a,res 6,(ix+dd)
+      [ 0xB8, variant_DD_CB_dd_B8 ], // ld b,res 7,(ix+dd)
+      [ 0xB9, variant_DD_CB_dd_B9 ], // ld c,res 7,(ix+dd)
+      [ 0xBA, variant_DD_CB_dd_BA ], // ld d,res 7,(ix+dd)
+      [ 0xBB, variant_DD_CB_dd_BB ], // ld e,res 7,(ix+dd)
+      [ 0xBC, variant_DD_CB_dd_BC ], // ld h,res 7,(ix+dd)
+      [ 0xBD, variant_DD_CB_dd_BD ], // ld l,res 7,(ix+dd)
+      [ 0xBE, variant_DD_CB_dd_BE ], // res 7,(ix+dd)
+      [ 0xBF, variant_DD_CB_dd_BF ], // ld a,res 7,(ix+dd)
+      [ 0xC0, variant_DD_CB_dd_C0 ], // ld b,set 0,(ix+dd)
+      [ 0xC1, variant_DD_CB_dd_C1 ], // ld c,set 0,(ix+dd)
+      [ 0xC2, variant_DD_CB_dd_C2 ], // ld d,set 0,(ix+dd)
+      [ 0xC3, variant_DD_CB_dd_C3 ], // ld e,set 0,(ix+dd)
+      [ 0xC4, variant_DD_CB_dd_C4 ], // ld h,set 0,(ix+dd)
+      [ 0xC5, variant_DD_CB_dd_C5 ], // ld l,set 0,(ix+dd)
+      [ 0xC6, variant_DD_CB_dd_C6 ], // set 0,(ix+dd)
+      [ 0xC7, variant_DD_CB_dd_C7 ], // ld a,set 0,(ix+dd)
+      [ 0xC8, variant_DD_CB_dd_C8 ], // ld b,set 1,(ix+dd)
+      [ 0xC9, variant_DD_CB_dd_C9 ], // ld c,set 1,(ix+dd)
+      [ 0xCA, variant_DD_CB_dd_CA ], // ld d,set 1,(ix+dd)
+      [ 0xCB, variant_DD_CB_dd_CB ], // ld e,set 1,(ix+dd)
+      [ 0xCC, variant_DD_CB_dd_CC ], // ld h,set 1,(ix+dd)
+      [ 0xCD, variant_DD_CB_dd_CD ], // ld l,set 1,(ix+dd)
+      [ 0xCE, variant_DD_CB_dd_CE ], // set 1,(ix+dd)
+      [ 0xCF, variant_DD_CB_dd_CF ], // ld a,set 1,(ix+dd)
+      [ 0xD0, variant_DD_CB_dd_D0 ], // ld b,set 2,(ix+dd)
+      [ 0xD1, variant_DD_CB_dd_D1 ], // ld c,set 2,(ix+dd)
+      [ 0xD2, variant_DD_CB_dd_D2 ], // ld d,set 2,(ix+dd)
+      [ 0xD3, variant_DD_CB_dd_D3 ], // ld e,set 2,(ix+dd)
+      [ 0xD4, variant_DD_CB_dd_D4 ], // ld h,set 2,(ix+dd)
+      [ 0xD5, variant_DD_CB_dd_D5 ], // ld l,set 2,(ix+dd)
+      [ 0xD6, variant_DD_CB_dd_D6 ], // set 2,(ix+dd)
+      [ 0xD7, variant_DD_CB_dd_D7 ], // ld a,set 2,(ix+dd)
+      [ 0xD8, variant_DD_CB_dd_D8 ], // ld b,set 3,(ix+dd)
+      [ 0xD9, variant_DD_CB_dd_D9 ], // ld c,set 3,(ix+dd)
+      [ 0xDA, variant_DD_CB_dd_DA ], // ld d,set 3,(ix+dd)
+      [ 0xDB, variant_DD_CB_dd_DB ], // ld e,set 3,(ix+dd)
+      [ 0xDC, variant_DD_CB_dd_DC ], // ld h,set 3,(ix+dd)
+      [ 0xDD, variant_DD_CB_dd_DD ], // ld l,set 3,(ix+dd)
+      [ 0xDE, variant_DD_CB_dd_DE ], // set 3,(ix+dd)
+      [ 0xDF, variant_DD_CB_dd_DF ], // ld a,set 3,(ix+dd)
+      [ 0xE0, variant_DD_CB_dd_E0 ], // ld b,set 4,(ix+dd)
+      [ 0xE1, variant_DD_CB_dd_E1 ], // ld c,set 4,(ix+dd)
+      [ 0xE2, variant_DD_CB_dd_E2 ], // ld d,set 4,(ix+dd)
+      [ 0xE3, variant_DD_CB_dd_E3 ], // ld e,set 4,(ix+dd)
+      [ 0xE4, variant_DD_CB_dd_E4 ], // ld h,set 4,(ix+dd)
+      [ 0xE5, variant_DD_CB_dd_E5 ], // ld l,set 4,(ix+dd)
+      [ 0xE6, variant_DD_CB_dd_E6 ], // set 4,(ix+dd)
+      [ 0xE7, variant_DD_CB_dd_E7 ], // ld a,set 4,(ix+dd)
+      [ 0xE8, variant_DD_CB_dd_E8 ], // ld b,set 5,(ix+dd)
+      [ 0xE9, variant_DD_CB_dd_E9 ], // ld c,set 5,(ix+dd)
+      [ 0xEA, variant_DD_CB_dd_EA ], // ld d,set 5,(ix+dd)
+      [ 0xEB, variant_DD_CB_dd_EB ], // ld e,set 5,(ix+dd)
+      [ 0xEC, variant_DD_CB_dd_EC ], // ld h,set 5,(ix+dd)
+      [ 0xED, variant_DD_CB_dd_ED ], // ld l,set 5,(ix+dd)
+      [ 0xEE, variant_DD_CB_dd_EE ], // set 5,(ix+dd)
+      [ 0xEF, variant_DD_CB_dd_EF ], // ld a,set 5,(ix+dd)
+      [ 0xF0, variant_DD_CB_dd_F0 ], // ld b,set 6,(ix+dd)
+      [ 0xF1, variant_DD_CB_dd_F1 ], // ld c,set 6,(ix+dd)
+      [ 0xF2, variant_DD_CB_dd_F2 ], // ld d,set 6,(ix+dd)
+      [ 0xF3, variant_DD_CB_dd_F3 ], // ld e,set 6,(ix+dd)
+      [ 0xF4, variant_DD_CB_dd_F4 ], // ld h,set 6,(ix+dd)
+      [ 0xF5, variant_DD_CB_dd_F5 ], // ld l,set 6,(ix+dd)
+      [ 0xF6, variant_DD_CB_dd_F6 ], // set 6,(ix+dd)
+      [ 0xF7, variant_DD_CB_dd_F7 ], // ld a,set 6,(ix+dd)
+      [ 0xF8, variant_DD_CB_dd_F8 ], // ld b,set 7,(ix+dd)
+      [ 0xF9, variant_DD_CB_dd_F9 ], // ld c,set 7,(ix+dd)
+      [ 0xFA, variant_DD_CB_dd_FA ], // ld d,set 7,(ix+dd)
+      [ 0xFB, variant_DD_CB_dd_FB ], // ld e,set 7,(ix+dd)
+      [ 0xFC, variant_DD_CB_dd_FC ], // ld h,set 7,(ix+dd)
+      [ 0xFD, variant_DD_CB_dd_FD ], // ld l,set 7,(ix+dd)
+      [ 0xFE, variant_DD_CB_dd_FE ], // set 7,(ix+dd)
+      [ 0xFF, variant_DD_CB_dd_FF ], // ld a,set 7,(ix+dd)
+    ])],
+    [ 0xE1, variant_DD_E1 ], // pop ix
+    [ 0xE3, variant_DD_E3 ], // ex (sp),ix
+    [ 0xE5, variant_DD_E5 ], // push ix
+    [ 0xE9, variant_DD_E9 ], // jp ix
+    [ 0xF9, variant_DD_F9 ], // ld sp,ix
+  ])],
+  [ 0xDE, variant_DE_nn ], // sbc a,nn
+  [ 0xDF, variant_DF ], // rst 18
+  [ 0xE0, variant_E0 ], // ret po
+  [ 0xE1, variant_E1 ], // pop hl
+  [ 0xE2, variant_E2_nnnn ], // jp po,nnnn
+  [ 0xE3, variant_E3 ], // ex (sp),hl
+  [ 0xE4, variant_E4_nnnn ], // call po,nnnn
+  [ 0xE5, variant_E5 ], // push hl
+  [ 0xE6, variant_E6_nn ], // and nn
+  [ 0xE7, variant_E7 ], // rst 20
+  [ 0xE8, variant_E8 ], // ret pe
+  [ 0xE9, variant_E9 ], // jp hl
+  [ 0xEA, variant_EA_nnnn ], // jp pe,nnnn
+  [ 0xEB, variant_EB ], // ex de,hl
+  [ 0xEC, variant_EC_nnnn ], // call pe,nnnn
+  [ 0xED, new Map<number,OpcodeVariant | OpcodeMap>([
+    [ 0x40, variant_ED_40 ], // in b,(c)
+    [ 0x41, variant_ED_41 ], // out (c),b
+    [ 0x42, variant_ED_42 ], // sbc hl,bc
+    [ 0x43, variant_ED_43_nnnn ], // ld (nnnn),bc
+    [ 0x47, variant_ED_47 ], // ld i,a
+    [ 0x48, variant_ED_48 ], // in c,(c)
+    [ 0x49, variant_ED_49 ], // out (c),c
+    [ 0x4A, variant_ED_4A ], // adc hl,bc
+    [ 0x4B, variant_ED_4B_nnnn ], // ld bc,(nnnn)
+    [ 0x4D, variant_ED_4D ], // reti
+    [ 0x4F, variant_ED_4F ], // ld r,a
+    [ 0x50, variant_ED_50 ], // in d,(c)
+    [ 0x51, variant_ED_51 ], // out (c),d
+    [ 0x52, variant_ED_52 ], // sbc hl,de
+    [ 0x53, variant_ED_53_nnnn ], // ld (nnnn),de
+    [ 0x57, variant_ED_57 ], // ld a,i
+    [ 0x58, variant_ED_58 ], // in e,(c)
+    [ 0x59, variant_ED_59 ], // out (c),e
+    [ 0x5A, variant_ED_5A ], // adc hl,de
+    [ 0x5B, variant_ED_5B_nnnn ], // ld de,(nnnn)
+    [ 0x5F, variant_ED_5F ], // ld a,r
+    [ 0x60, variant_ED_60 ], // in h,(c)
+    [ 0x61, variant_ED_61 ], // out (c),h
+    [ 0x62, variant_ED_62 ], // sbc hl,hl
+    [ 0x63, variant_ED_63_nnnn ], // ld (nnnn),hl
+    [ 0x67, variant_ED_67 ], // rrd
+    [ 0x68, variant_ED_68 ], // in l,(c)
+    [ 0x69, variant_ED_69 ], // out (c),l
+    [ 0x6A, variant_ED_6A ], // adc hl,hl
+    [ 0x6B, variant_ED_6B_nnnn ], // ld hl,(nnnn)
+    [ 0x6E, variant_ED_6E ], // im 0
+    [ 0x6F, variant_ED_6F ], // rld
+    [ 0x70, variant_ED_70 ], // in f,(c)
+    [ 0x71, variant_ED_71 ], // out (c),0
+    [ 0x72, variant_ED_72 ], // sbc hl,sp
+    [ 0x73, variant_ED_73_nnnn ], // ld (nnnn),sp
+    [ 0x76, variant_ED_76 ], // im 1
+    [ 0x78, variant_ED_78 ], // in a,(c)
+    [ 0x79, variant_ED_79 ], // out (c),a
+    [ 0x7A, variant_ED_7A ], // adc hl,sp
+    [ 0x7B, variant_ED_7B_nnnn ], // ld sp,(nnnn)
+    [ 0x7C, variant_ED_7C ], // neg
+    [ 0x7D, variant_ED_7D ], // retn
+    [ 0x7E, variant_ED_7E ], // im 2
+    [ 0xA0, variant_ED_A0 ], // ldi
+    [ 0xA1, variant_ED_A1 ], // cpi
+    [ 0xA2, variant_ED_A2 ], // ini
+    [ 0xA3, variant_ED_A3 ], // outi
+    [ 0xA8, variant_ED_A8 ], // ldd
+    [ 0xA9, variant_ED_A9 ], // cpd
+    [ 0xAA, variant_ED_AA ], // ind
+    [ 0xAB, variant_ED_AB ], // outd
+    [ 0xB0, variant_ED_B0 ], // ldir
+    [ 0xB1, variant_ED_B1 ], // cpir
+    [ 0xB2, variant_ED_B2 ], // inir
+    [ 0xB3, variant_ED_B3 ], // otir
+    [ 0xB8, variant_ED_B8 ], // lddr
+    [ 0xB9, variant_ED_B9 ], // cpdr
+    [ 0xBA, variant_ED_BA ], // indr
+    [ 0xBB, variant_ED_BB ], // otdr
+  ])],
+  [ 0xEE, variant_EE_nn ], // xor a,nn
+  [ 0xEF, variant_EF ], // rst 28
+  [ 0xF0, variant_F0 ], // ret p
+  [ 0xF1, variant_F1 ], // pop af
+  [ 0xF2, variant_F2_nnnn ], // jp p,nnnn
   [ 0xF3, variant_F3 ], // di
+  [ 0xF4, variant_F4_nnnn ], // call p,nnnn
+  [ 0xF5, variant_F5 ], // push af
+  [ 0xF6, variant_F6_nn ], // or nn
+  [ 0xF7, variant_F7 ], // rst 30
+  [ 0xF8, variant_F8 ], // ret m
+  [ 0xF9, variant_F9 ], // ld sp,hl
+  [ 0xFA, variant_FA_nnnn ], // jp m,nnnn
   [ 0xFB, variant_FB ], // ei
+  [ 0xFC, variant_FC_nnnn ], // call m,nnnn
+  [ 0xFD, new Map<number,OpcodeVariant | OpcodeMap>([
+    [ 0x09, variant_FD_09 ], // add iy,bc
+    [ 0x19, variant_FD_19 ], // add iy,de
+    [ 0x21, variant_FD_21_nnnn ], // ld iy,nnnn
+    [ 0x22, variant_FD_22_nnnn ], // ld (nnnn),iy
+    [ 0x23, variant_FD_23 ], // inc iy
+    [ 0x24, variant_FD_24 ], // inc iyh
+    [ 0x25, variant_FD_25 ], // dec iyh
+    [ 0x26, variant_FD_26_nn ], // ld iyh,nn
+    [ 0x29, variant_FD_29 ], // add iy,iy
+    [ 0x2A, variant_FD_2A_nnnn ], // ld iy,(nnnn)
+    [ 0x2B, variant_FD_2B ], // dec iy
+    [ 0x2C, variant_FD_2C ], // inc iyl
+    [ 0x2D, variant_FD_2D ], // dec iyl
+    [ 0x2E, variant_FD_2E_nn ], // ld iyl,nn
+    [ 0x34, variant_FD_34_dd ], // inc (iy+dd)
+    [ 0x35, variant_FD_35_dd ], // dec (iy+dd)
+    [ 0x36, variant_FD_36_dd_nn ], // ld (iy+dd),nn
+    [ 0x39, variant_FD_39 ], // add iy,sp
+    [ 0x44, variant_FD_44 ], // ld b,iyh
+    [ 0x45, variant_FD_45 ], // ld b,iyl
+    [ 0x46, variant_FD_46_dd ], // ld b,(iy+dd)
+    [ 0x4C, variant_FD_4C ], // ld c,iyh
+    [ 0x4D, variant_FD_4D ], // ld c,iyl
+    [ 0x4E, variant_FD_4E_dd ], // ld c,(iy+dd)
+    [ 0x54, variant_FD_54 ], // ld d,iyh
+    [ 0x55, variant_FD_55 ], // ld d,iyl
+    [ 0x56, variant_FD_56_dd ], // ld d,(iy+dd)
+    [ 0x5C, variant_FD_5C ], // ld e,iyh
+    [ 0x5D, variant_FD_5D ], // ld e,iyl
+    [ 0x5E, variant_FD_5E_dd ], // ld e,(iy+dd)
+    [ 0x60, variant_FD_60 ], // ld iyh,b
+    [ 0x61, variant_FD_61 ], // ld iyh,c
+    [ 0x62, variant_FD_62 ], // ld iyh,d
+    [ 0x63, variant_FD_63 ], // ld iyh,e
+    [ 0x64, variant_FD_64 ], // ld iyh,iyh
+    [ 0x65, variant_FD_65 ], // ld iyh,iyl
+    [ 0x66, variant_FD_66_dd ], // ld h,(iy+dd)
+    [ 0x67, variant_FD_67 ], // ld iyh,a
+    [ 0x68, variant_FD_68 ], // ld iyl,b
+    [ 0x69, variant_FD_69 ], // ld iyl,c
+    [ 0x6A, variant_FD_6A ], // ld iyl,d
+    [ 0x6B, variant_FD_6B ], // ld iyl,e
+    [ 0x6C, variant_FD_6C ], // ld iyl,iyh
+    [ 0x6D, variant_FD_6D ], // ld iyl,iyl
+    [ 0x6E, variant_FD_6E_dd ], // ld l,(iy+dd)
+    [ 0x6F, variant_FD_6F ], // ld iyl,a
+    [ 0x70, variant_FD_70_dd ], // ld (iy+dd),b
+    [ 0x71, variant_FD_71_dd ], // ld (iy+dd),c
+    [ 0x72, variant_FD_72_dd ], // ld (iy+dd),d
+    [ 0x73, variant_FD_73_dd ], // ld (iy+dd),e
+    [ 0x74, variant_FD_74_dd ], // ld (iy+dd),h
+    [ 0x75, variant_FD_75_dd ], // ld (iy+dd),l
+    [ 0x77, variant_FD_77_dd ], // ld (iy+dd),a
+    [ 0x7C, variant_FD_7C ], // ld a,iyh
+    [ 0x7D, variant_FD_7D ], // ld a,iyl
+    [ 0x7E, variant_FD_7E_dd ], // ld a,(iy+dd)
+    [ 0x84, variant_FD_84 ], // add a,iyh
+    [ 0x85, variant_FD_85 ], // add a,iyl
+    [ 0x86, variant_FD_86_dd ], // add a,(iy+dd)
+    [ 0x8C, variant_FD_8C ], // adc a,iyh
+    [ 0x8D, variant_FD_8D ], // adc a,iyl
+    [ 0x8E, variant_FD_8E_dd ], // adc a,(iy+dd)
+    [ 0x94, variant_FD_94 ], // sub a,iyh
+    [ 0x95, variant_FD_95 ], // sub a,iyl
+    [ 0x96, variant_FD_96_dd ], // sub a,(iy+dd)
+    [ 0x9C, variant_FD_9C ], // sbc a,iyh
+    [ 0x9D, variant_FD_9D ], // sbc a,iyl
+    [ 0x9E, variant_FD_9E_dd ], // sbc a,(iy+dd)
+    [ 0xA4, variant_FD_A4 ], // and a,iyh
+    [ 0xA5, variant_FD_A5 ], // and a,iyl
+    [ 0xA6, variant_FD_A6_dd ], // and a,(iy+dd)
+    [ 0xAC, variant_FD_AC ], // xor a,iyh
+    [ 0xAD, variant_FD_AD ], // xor a,iyl
+    [ 0xAE, variant_FD_AE_dd ], // xor a,(iy+dd)
+    [ 0xB4, variant_FD_B4 ], // or a,iyh
+    [ 0xB5, variant_FD_B5 ], // or a,iyl
+    [ 0xB6, variant_FD_B6_dd ], // or a,(iy+dd)
+    [ 0xBC, variant_FD_BC ], // cp iyh
+    [ 0xBD, variant_FD_BD ], // cp iyl
+    [ 0xBE, variant_FD_BE_dd ], // cp (iy+dd)
+    [ 0xCB, new Map<number,OpcodeVariant | OpcodeMap>([
+      [ 0x00, variant_FD_CB_dd_00 ], // ld b,rlc (iy+dd)
+      [ 0x01, variant_FD_CB_dd_01 ], // ld c,rlc (iy+dd)
+      [ 0x02, variant_FD_CB_dd_02 ], // ld d,rlc (iy+dd)
+      [ 0x03, variant_FD_CB_dd_03 ], // ld e,rlc (iy+dd)
+      [ 0x04, variant_FD_CB_dd_04 ], // ld h,rlc (iy+dd)
+      [ 0x05, variant_FD_CB_dd_05 ], // ld l,rlc (iy+dd)
+      [ 0x06, variant_FD_CB_dd_06 ], // rlc (iy+dd)
+      [ 0x07, variant_FD_CB_dd_07 ], // ld a,rlc (iy+dd)
+      [ 0x08, variant_FD_CB_dd_08 ], // ld b,rrc (iy+dd)
+      [ 0x09, variant_FD_CB_dd_09 ], // ld c,rrc (iy+dd)
+      [ 0x0A, variant_FD_CB_dd_0A ], // ld d,rrc (iy+dd)
+      [ 0x0B, variant_FD_CB_dd_0B ], // ld e,rrc (iy+dd)
+      [ 0x0C, variant_FD_CB_dd_0C ], // ld h,rrc (iy+dd)
+      [ 0x0D, variant_FD_CB_dd_0D ], // ld l,rrc (iy+dd)
+      [ 0x0E, variant_FD_CB_dd_0E ], // rrc (iy+dd)
+      [ 0x0F, variant_FD_CB_dd_0F ], // ld a,rrc (iy+dd)
+      [ 0x10, variant_FD_CB_dd_10 ], // ld b,rl (iy+dd)
+      [ 0x11, variant_FD_CB_dd_11 ], // ld c,rl (iy+dd)
+      [ 0x12, variant_FD_CB_dd_12 ], // ld d,rl (iy+dd)
+      [ 0x13, variant_FD_CB_dd_13 ], // ld e,rl (iy+dd)
+      [ 0x14, variant_FD_CB_dd_14 ], // ld h,rl (iy+dd)
+      [ 0x15, variant_FD_CB_dd_15 ], // ld l,rl (iy+dd)
+      [ 0x16, variant_FD_CB_dd_16 ], // rl (iy+dd)
+      [ 0x17, variant_FD_CB_dd_17 ], // ld a,rl (iy+dd)
+      [ 0x18, variant_FD_CB_dd_18 ], // ld b,rr (iy+dd)
+      [ 0x19, variant_FD_CB_dd_19 ], // ld c,rr (iy+dd)
+      [ 0x1A, variant_FD_CB_dd_1A ], // ld d,rr (iy+dd)
+      [ 0x1B, variant_FD_CB_dd_1B ], // ld e,rr (iy+dd)
+      [ 0x1C, variant_FD_CB_dd_1C ], // ld h,rr (iy+dd)
+      [ 0x1D, variant_FD_CB_dd_1D ], // ld l,rr (iy+dd)
+      [ 0x1E, variant_FD_CB_dd_1E ], // rr (iy+dd)
+      [ 0x1F, variant_FD_CB_dd_1F ], // ld a,rr (iy+dd)
+      [ 0x20, variant_FD_CB_dd_20 ], // ld b,sla (iy+dd)
+      [ 0x21, variant_FD_CB_dd_21 ], // ld c,sla (iy+dd)
+      [ 0x22, variant_FD_CB_dd_22 ], // ld d,sla (iy+dd)
+      [ 0x23, variant_FD_CB_dd_23 ], // ld e,sla (iy+dd)
+      [ 0x24, variant_FD_CB_dd_24 ], // ld h,sla (iy+dd)
+      [ 0x25, variant_FD_CB_dd_25 ], // ld l,sla (iy+dd)
+      [ 0x26, variant_FD_CB_dd_26 ], // sla (iy+dd)
+      [ 0x27, variant_FD_CB_dd_27 ], // ld a,sla (iy+dd)
+      [ 0x28, variant_FD_CB_dd_28 ], // ld b,sra (iy+dd)
+      [ 0x29, variant_FD_CB_dd_29 ], // ld c,sra (iy+dd)
+      [ 0x2A, variant_FD_CB_dd_2A ], // ld d,sra (iy+dd)
+      [ 0x2B, variant_FD_CB_dd_2B ], // ld e,sra (iy+dd)
+      [ 0x2C, variant_FD_CB_dd_2C ], // ld h,sra (iy+dd)
+      [ 0x2D, variant_FD_CB_dd_2D ], // ld l,sra (iy+dd)
+      [ 0x2E, variant_FD_CB_dd_2E ], // sra (iy+dd)
+      [ 0x2F, variant_FD_CB_dd_2F ], // ld a,sra (iy+dd)
+      [ 0x30, variant_FD_CB_dd_30 ], // ld b,sll (iy+dd)
+      [ 0x31, variant_FD_CB_dd_31 ], // ld c,sll (iy+dd)
+      [ 0x32, variant_FD_CB_dd_32 ], // ld d,sll (iy+dd)
+      [ 0x33, variant_FD_CB_dd_33 ], // ld e,sll (iy+dd)
+      [ 0x34, variant_FD_CB_dd_34 ], // ld h,sll (iy+dd)
+      [ 0x35, variant_FD_CB_dd_35 ], // ld l,sll (iy+dd)
+      [ 0x36, variant_FD_CB_dd_36 ], // sll (iy+dd)
+      [ 0x37, variant_FD_CB_dd_37 ], // ld a,sll (iy+dd)
+      [ 0x38, variant_FD_CB_dd_38 ], // ld b,srl (iy+dd)
+      [ 0x39, variant_FD_CB_dd_39 ], // ld c,srl (iy+dd)
+      [ 0x3A, variant_FD_CB_dd_3A ], // ld d,srl (iy+dd)
+      [ 0x3B, variant_FD_CB_dd_3B ], // ld e,srl (iy+dd)
+      [ 0x3C, variant_FD_CB_dd_3C ], // ld h,srl (iy+dd)
+      [ 0x3D, variant_FD_CB_dd_3D ], // ld l,srl (iy+dd)
+      [ 0x3E, variant_FD_CB_dd_3E ], // srl (iy+dd)
+      [ 0x3F, variant_FD_CB_dd_3F ], // ld a,srl (iy+dd)
+      [ 0x47, variant_FD_CB_dd_47 ], // bit 0,(iy+dd)
+      [ 0x4F, variant_FD_CB_dd_4F ], // bit 1,(iy+dd)
+      [ 0x57, variant_FD_CB_dd_57 ], // bit 2,(iy+dd)
+      [ 0x5F, variant_FD_CB_dd_5F ], // bit 3,(iy+dd)
+      [ 0x67, variant_FD_CB_dd_67 ], // bit 4,(iy+dd)
+      [ 0x6F, variant_FD_CB_dd_6F ], // bit 5,(iy+dd)
+      [ 0x77, variant_FD_CB_dd_77 ], // bit 6,(iy+dd)
+      [ 0x7F, variant_FD_CB_dd_7F ], // bit 7,(iy+dd)
+      [ 0x80, variant_FD_CB_dd_80 ], // ld b,res 0,(iy+dd)
+      [ 0x81, variant_FD_CB_dd_81 ], // ld c,res 0,(iy+dd)
+      [ 0x82, variant_FD_CB_dd_82 ], // ld d,res 0,(iy+dd)
+      [ 0x83, variant_FD_CB_dd_83 ], // ld e,res 0,(iy+dd)
+      [ 0x84, variant_FD_CB_dd_84 ], // ld h,res 0,(iy+dd)
+      [ 0x85, variant_FD_CB_dd_85 ], // ld l,res 0,(iy+dd)
+      [ 0x86, variant_FD_CB_dd_86 ], // res 0,(iy+dd)
+      [ 0x87, variant_FD_CB_dd_87 ], // ld a,res 0,(iy+dd)
+      [ 0x88, variant_FD_CB_dd_88 ], // ld b,res 1,(iy+dd)
+      [ 0x89, variant_FD_CB_dd_89 ], // ld c,res 1,(iy+dd)
+      [ 0x8A, variant_FD_CB_dd_8A ], // ld d,res 1,(iy+dd)
+      [ 0x8B, variant_FD_CB_dd_8B ], // ld e,res 1,(iy+dd)
+      [ 0x8C, variant_FD_CB_dd_8C ], // ld h,res 1,(iy+dd)
+      [ 0x8D, variant_FD_CB_dd_8D ], // ld l,res 1,(iy+dd)
+      [ 0x8E, variant_FD_CB_dd_8E ], // res 1,(iy+dd)
+      [ 0x8F, variant_FD_CB_dd_8F ], // ld a,res 1,(iy+dd)
+      [ 0x90, variant_FD_CB_dd_90 ], // ld b,res 2,(iy+dd)
+      [ 0x91, variant_FD_CB_dd_91 ], // ld c,res 2,(iy+dd)
+      [ 0x92, variant_FD_CB_dd_92 ], // ld d,res 2,(iy+dd)
+      [ 0x93, variant_FD_CB_dd_93 ], // ld e,res 2,(iy+dd)
+      [ 0x94, variant_FD_CB_dd_94 ], // ld h,res 2,(iy+dd)
+      [ 0x95, variant_FD_CB_dd_95 ], // ld l,res 2,(iy+dd)
+      [ 0x96, variant_FD_CB_dd_96 ], // res 2,(iy+dd)
+      [ 0x97, variant_FD_CB_dd_97 ], // ld a,res 2,(iy+dd)
+      [ 0x98, variant_FD_CB_dd_98 ], // ld b,res 3,(iy+dd)
+      [ 0x99, variant_FD_CB_dd_99 ], // ld c,res 3,(iy+dd)
+      [ 0x9A, variant_FD_CB_dd_9A ], // ld d,res 3,(iy+dd)
+      [ 0x9B, variant_FD_CB_dd_9B ], // ld e,res 3,(iy+dd)
+      [ 0x9C, variant_FD_CB_dd_9C ], // ld h,res 3,(iy+dd)
+      [ 0x9D, variant_FD_CB_dd_9D ], // ld l,res 3,(iy+dd)
+      [ 0x9E, variant_FD_CB_dd_9E ], // res 3,(iy+dd)
+      [ 0x9F, variant_FD_CB_dd_9F ], // ld a,res 3,(iy+dd)
+      [ 0xA0, variant_FD_CB_dd_A0 ], // ld b,res 4,(iy+dd)
+      [ 0xA1, variant_FD_CB_dd_A1 ], // ld c,res 4,(iy+dd)
+      [ 0xA2, variant_FD_CB_dd_A2 ], // ld d,res 4,(iy+dd)
+      [ 0xA3, variant_FD_CB_dd_A3 ], // ld e,res 4,(iy+dd)
+      [ 0xA4, variant_FD_CB_dd_A4 ], // ld h,res 4,(iy+dd)
+      [ 0xA5, variant_FD_CB_dd_A5 ], // ld l,res 4,(iy+dd)
+      [ 0xA6, variant_FD_CB_dd_A6 ], // res 4,(iy+dd)
+      [ 0xA7, variant_FD_CB_dd_A7 ], // ld a,res 4,(iy+dd)
+      [ 0xA8, variant_FD_CB_dd_A8 ], // ld b,res 5,(iy+dd)
+      [ 0xA9, variant_FD_CB_dd_A9 ], // ld c,res 5,(iy+dd)
+      [ 0xAA, variant_FD_CB_dd_AA ], // ld d,res 5,(iy+dd)
+      [ 0xAB, variant_FD_CB_dd_AB ], // ld e,res 5,(iy+dd)
+      [ 0xAC, variant_FD_CB_dd_AC ], // ld h,res 5,(iy+dd)
+      [ 0xAD, variant_FD_CB_dd_AD ], // ld l,res 5,(iy+dd)
+      [ 0xAE, variant_FD_CB_dd_AE ], // res 5,(iy+dd)
+      [ 0xAF, variant_FD_CB_dd_AF ], // ld a,res 5,(iy+dd)
+      [ 0xB0, variant_FD_CB_dd_B0 ], // ld b,res 6,(iy+dd)
+      [ 0xB1, variant_FD_CB_dd_B1 ], // ld c,res 6,(iy+dd)
+      [ 0xB2, variant_FD_CB_dd_B2 ], // ld d,res 6,(iy+dd)
+      [ 0xB3, variant_FD_CB_dd_B3 ], // ld e,res 6,(iy+dd)
+      [ 0xB4, variant_FD_CB_dd_B4 ], // ld h,res 6,(iy+dd)
+      [ 0xB5, variant_FD_CB_dd_B5 ], // ld l,res 6,(iy+dd)
+      [ 0xB6, variant_FD_CB_dd_B6 ], // res 6,(iy+dd)
+      [ 0xB7, variant_FD_CB_dd_B7 ], // ld a,res 6,(iy+dd)
+      [ 0xB8, variant_FD_CB_dd_B8 ], // ld b,res 7,(iy+dd)
+      [ 0xB9, variant_FD_CB_dd_B9 ], // ld c,res 7,(iy+dd)
+      [ 0xBA, variant_FD_CB_dd_BA ], // ld d,res 7,(iy+dd)
+      [ 0xBB, variant_FD_CB_dd_BB ], // ld e,res 7,(iy+dd)
+      [ 0xBC, variant_FD_CB_dd_BC ], // ld h,res 7,(iy+dd)
+      [ 0xBD, variant_FD_CB_dd_BD ], // ld l,res 7,(iy+dd)
+      [ 0xBE, variant_FD_CB_dd_BE ], // res 7,(iy+dd)
+      [ 0xBF, variant_FD_CB_dd_BF ], // ld a,res 7,(iy+dd)
+      [ 0xC0, variant_FD_CB_dd_C0 ], // ld b,set 0,(iy+dd)
+      [ 0xC1, variant_FD_CB_dd_C1 ], // ld c,set 0,(iy+dd)
+      [ 0xC2, variant_FD_CB_dd_C2 ], // ld d,set 0,(iy+dd)
+      [ 0xC3, variant_FD_CB_dd_C3 ], // ld e,set 0,(iy+dd)
+      [ 0xC4, variant_FD_CB_dd_C4 ], // ld h,set 0,(iy+dd)
+      [ 0xC5, variant_FD_CB_dd_C5 ], // ld l,set 0,(iy+dd)
+      [ 0xC6, variant_FD_CB_dd_C6 ], // set 0,(iy+dd)
+      [ 0xC7, variant_FD_CB_dd_C7 ], // ld a,set 0,(iy+dd)
+      [ 0xC8, variant_FD_CB_dd_C8 ], // ld b,set 1,(iy+dd)
+      [ 0xC9, variant_FD_CB_dd_C9 ], // ld c,set 1,(iy+dd)
+      [ 0xCA, variant_FD_CB_dd_CA ], // ld d,set 1,(iy+dd)
+      [ 0xCB, variant_FD_CB_dd_CB ], // ld e,set 1,(iy+dd)
+      [ 0xCC, variant_FD_CB_dd_CC ], // ld h,set 1,(iy+dd)
+      [ 0xCD, variant_FD_CB_dd_CD ], // ld l,set 1,(iy+dd)
+      [ 0xCE, variant_FD_CB_dd_CE ], // set 1,(iy+dd)
+      [ 0xCF, variant_FD_CB_dd_CF ], // ld a,set 1,(iy+dd)
+      [ 0xD0, variant_FD_CB_dd_D0 ], // ld b,set 2,(iy+dd)
+      [ 0xD1, variant_FD_CB_dd_D1 ], // ld c,set 2,(iy+dd)
+      [ 0xD2, variant_FD_CB_dd_D2 ], // ld d,set 2,(iy+dd)
+      [ 0xD3, variant_FD_CB_dd_D3 ], // ld e,set 2,(iy+dd)
+      [ 0xD4, variant_FD_CB_dd_D4 ], // ld h,set 2,(iy+dd)
+      [ 0xD5, variant_FD_CB_dd_D5 ], // ld l,set 2,(iy+dd)
+      [ 0xD6, variant_FD_CB_dd_D6 ], // set 2,(iy+dd)
+      [ 0xD7, variant_FD_CB_dd_D7 ], // ld a,set 2,(iy+dd)
+      [ 0xD8, variant_FD_CB_dd_D8 ], // ld b,set 3,(iy+dd)
+      [ 0xD9, variant_FD_CB_dd_D9 ], // ld c,set 3,(iy+dd)
+      [ 0xDA, variant_FD_CB_dd_DA ], // ld d,set 3,(iy+dd)
+      [ 0xDB, variant_FD_CB_dd_DB ], // ld e,set 3,(iy+dd)
+      [ 0xDC, variant_FD_CB_dd_DC ], // ld h,set 3,(iy+dd)
+      [ 0xDD, variant_FD_CB_dd_DD ], // ld l,set 3,(iy+dd)
+      [ 0xDE, variant_FD_CB_dd_DE ], // set 3,(iy+dd)
+      [ 0xDF, variant_FD_CB_dd_DF ], // ld a,set 3,(iy+dd)
+      [ 0xE0, variant_FD_CB_dd_E0 ], // ld b,set 4,(iy+dd)
+      [ 0xE1, variant_FD_CB_dd_E1 ], // ld c,set 4,(iy+dd)
+      [ 0xE2, variant_FD_CB_dd_E2 ], // ld d,set 4,(iy+dd)
+      [ 0xE3, variant_FD_CB_dd_E3 ], // ld e,set 4,(iy+dd)
+      [ 0xE4, variant_FD_CB_dd_E4 ], // ld h,set 4,(iy+dd)
+      [ 0xE5, variant_FD_CB_dd_E5 ], // ld l,set 4,(iy+dd)
+      [ 0xE6, variant_FD_CB_dd_E6 ], // set 4,(iy+dd)
+      [ 0xE7, variant_FD_CB_dd_E7 ], // ld a,set 4,(iy+dd)
+      [ 0xE8, variant_FD_CB_dd_E8 ], // ld b,set 5,(iy+dd)
+      [ 0xE9, variant_FD_CB_dd_E9 ], // ld c,set 5,(iy+dd)
+      [ 0xEA, variant_FD_CB_dd_EA ], // ld d,set 5,(iy+dd)
+      [ 0xEB, variant_FD_CB_dd_EB ], // ld e,set 5,(iy+dd)
+      [ 0xEC, variant_FD_CB_dd_EC ], // ld h,set 5,(iy+dd)
+      [ 0xED, variant_FD_CB_dd_ED ], // ld l,set 5,(iy+dd)
+      [ 0xEE, variant_FD_CB_dd_EE ], // set 5,(iy+dd)
+      [ 0xEF, variant_FD_CB_dd_EF ], // ld a,set 5,(iy+dd)
+      [ 0xF0, variant_FD_CB_dd_F0 ], // ld b,set 6,(iy+dd)
+      [ 0xF1, variant_FD_CB_dd_F1 ], // ld c,set 6,(iy+dd)
+      [ 0xF2, variant_FD_CB_dd_F2 ], // ld d,set 6,(iy+dd)
+      [ 0xF3, variant_FD_CB_dd_F3 ], // ld e,set 6,(iy+dd)
+      [ 0xF4, variant_FD_CB_dd_F4 ], // ld h,set 6,(iy+dd)
+      [ 0xF5, variant_FD_CB_dd_F5 ], // ld l,set 6,(iy+dd)
+      [ 0xF6, variant_FD_CB_dd_F6 ], // set 6,(iy+dd)
+      [ 0xF7, variant_FD_CB_dd_F7 ], // ld a,set 6,(iy+dd)
+      [ 0xF8, variant_FD_CB_dd_F8 ], // ld b,set 7,(iy+dd)
+      [ 0xF9, variant_FD_CB_dd_F9 ], // ld c,set 7,(iy+dd)
+      [ 0xFA, variant_FD_CB_dd_FA ], // ld d,set 7,(iy+dd)
+      [ 0xFB, variant_FD_CB_dd_FB ], // ld e,set 7,(iy+dd)
+      [ 0xFC, variant_FD_CB_dd_FC ], // ld h,set 7,(iy+dd)
+      [ 0xFD, variant_FD_CB_dd_FD ], // ld l,set 7,(iy+dd)
+      [ 0xFE, variant_FD_CB_dd_FE ], // set 7,(iy+dd)
+      [ 0xFF, variant_FD_CB_dd_FF ], // ld a,set 7,(iy+dd)
+    ])],
+    [ 0xE1, variant_FD_E1 ], // pop iy
+    [ 0xE3, variant_FD_E3 ], // ex (sp),iy
+    [ 0xE5, variant_FD_E5 ], // push iy
+    [ 0xE9, variant_FD_E9 ], // jp iy
+    [ 0xF9, variant_FD_F9 ], // ld sp,iy
+  ])],
+  [ 0xFE, variant_FE_nn ], // cp nn
+  [ 0xFF, variant_FF ], // rst 38
 ]);
