@@ -1,6 +1,6 @@
 import {inc16, KnownLabel, signedByte, toHex, toHexByte, toHexWord, word} from "z80-base";
+import { opcodeMap } from "z80-inst";
 import {Instruction} from "./Instruction.js";
-import opcodeMap from "./Opcodes.js";
 import {Preamble} from "./Preamble.js";
 
 // Whether to dump statistics to the console, for debugging.
@@ -26,19 +26,6 @@ function isText(b: number): boolean {
 function isTextTerminator(b: number): boolean {
     // Allow terminating NUL. Also allow terminating 0x03, it was used by the TRS-80 $VDLINE routine.
     return b === 0x00 || b === 0x03;
-}
-
-// Types for the opcode map.
-interface OpcodeInstruction {
-    mnemonic: string,
-    params?: string[],
-    extra?: string[],
-}
-interface OpcodeShift {
-    shift: OpcodeMap,
-}
-type OpcodeMap = {
-    [opcode: string]: OpcodeInstruction | OpcodeShift,
 }
 
 /**
@@ -112,20 +99,20 @@ export class Disasm {
 
         // Fetch base instruction.
         let byte = next();
-        let map: OpcodeMap = opcodeMap;
+        let map = opcodeMap;
 
         let instruction: Instruction | undefined;
 
         while (instruction === undefined) {
-            let value = map[byte.toString(16)];
+            let value = map.get(byte);
             if (value === undefined) {
                 // TODO
                 // asm.push(".byte 0x" + byte.toString(16));
                 const stringParams = bytes.map((n) => "0x" + toHex(n, 2));
                 instruction = new Instruction(startAddress, bytes, ".byte", stringParams, stringParams, false);
-            } else if ("shift" in value) {
+            } else if (value instanceof Map) {
                 // Descend to sub-map.
-                map = value.shift;
+                map = value;
                 byte = next();
             } else {
                 // Found instruction. Parse arguments.
