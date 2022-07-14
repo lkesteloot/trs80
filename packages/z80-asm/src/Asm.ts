@@ -1,7 +1,9 @@
-import mnemonicData from "./Opcodes.js";
 import {hi, isByteReg, isWordReg, KnownLabel, lo, toHexWord} from "z80-base";
-import {isOpcodeTemplateOperand, OpcodeTemplateOperand, Variant} from "./OpcodesTypes.js";
 import {dirname, parse, resolve} from "./path.js";
+import {OpcodeVariant} from "z80-inst";
+import { mnemonicMap } from "z80-inst";
+import { OpcodeTemplateOperand } from "z80-inst";
+import { isOpcodeTemplateOperand } from "z80-inst";
 
 /**
  * List of all flags that can be specified in an instruction.
@@ -181,7 +183,7 @@ export class AssembledLine {
     // Any error found in the line.
     public error: string | undefined;
     // The variant of the instruction, if any.
-    public variant: Variant | undefined;
+    public variant: OpcodeVariant | undefined;
     // List of symbols defined or referenced on this line.
     public readonly symbols: SymbolInfo[] = [];
     // The next address, if it was explicitly specified.
@@ -1275,12 +1277,12 @@ class LineParser {
         }
 
         // See if it's a Z80 mnemonic.
-        const mnemonicInfo = mnemonicData.mnemonics[mnemonic];
+        const mnemonicInfo = mnemonicMap.get(mnemonic);
         if (mnemonicInfo !== undefined) {
             const argStart = this.column;
             let match = false;
 
-            for (const variant of mnemonicInfo.variants) {
+            for (const variant of mnemonicInfo) {
                 // Map from something like "nn" to its value.
                 const args = new Map<OpcodeTemplateOperand, number>();
 
@@ -1351,7 +1353,7 @@ class LineParser {
 
                 if (match) {
                     this.assembledLine.binary = [];
-                    for (const op of variant.opcode) {
+                    for (const op of variant.opcodes) {
                         if (typeof(op) === "string") {
                             const value = args.get(op);
                             if (value === undefined) {
