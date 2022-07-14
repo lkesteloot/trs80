@@ -1,5 +1,5 @@
 import {inc16, KnownLabel, signedByte, toHex, toHexByte, toHexWord, word} from "z80-base";
-import { opcodeMap } from "z80-inst";
+import { isDataThirdByte, opcodeMap } from "z80-inst";
 import {Instruction} from "./Instruction.js";
 import {Preamble} from "./Preamble.js";
 
@@ -102,17 +102,21 @@ export class Disasm {
         let map = opcodeMap;
 
         let instruction: Instruction | undefined;
+        let thirdDataByte: number | undefined = undefined;
 
         while (instruction === undefined) {
             let value = map.get(byte);
             if (value === undefined) {
-                // TODO
-                // asm.push(".byte 0x" + byte.toString(16));
-                const stringParams = bytes.map((n) => "0x" + toHex(n, 2));
+                const stringParams = bytes.map((n) => "0x" + toHexByte(n));
                 instruction = new Instruction(startAddress, bytes, ".byte", stringParams, stringParams, false);
             } else if (value instanceof Map) {
                 // Descend to sub-map.
                 map = value;
+                if (bytes.length === 2 && isDataThirdByte(bytes[0], bytes[1])) {
+                    // Hack to handle the case of the data being the third byte.
+                    thirdDataByte = next();
+                }
+
                 byte = next();
             } else {
                 // Found instruction. Parse arguments.
@@ -156,7 +160,8 @@ export class Disasm {
                             pos = arg.indexOf("dd");
                         }
                         if (pos >= 0) {
-                            const nn = next();
+                            const nn = thirdDataByte !== undefined ? thirdDataByte : next();
+                            thirdDataByte = undefined;
                             arg = arg.substr(0, pos) + "0x" + toHex(nn, 2) + arg.substr(pos + 2);
                             changed = true;
                         }

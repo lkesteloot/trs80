@@ -5,6 +5,7 @@ import * as path from "path";
 import * as fs from "fs";
 import {toHexByte} from "z80-base";
 import {OpcodeVariant, OpcodeTemplate, ClrInstruction, Mnemonics, Instructions} from "../src/OpcodesTypes.js";
+import {isDataThirdByte} from "../src/Utils.js";
 import {fileURLToPath} from "url";
 import {dirname} from "path";
 
@@ -145,7 +146,11 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                 for (const token of tokens) {
                     if (token === "nn" || token === "nnnn" || token === "dd" || token === "offset") {
                         // For DDCB and FDCB instructions, the parameter is in the third position, not at the end.
-                        if (fullOpcodes.length === 3 && (fullOpcodes[0] === 0xDD || fullOpcodes[0] === 0xFD) && fullOpcodes[1] === 0xCB) {
+                        if (fullOpcodes.length === 3 &&
+                             typeof(fullOpcodes[0]) === "number" &&
+                              typeof(fullOpcodes[1]) === "number" &&
+                               isDataThirdByte(fullOpcodes[0], fullOpcodes[1])) {
+
                             fullOpcodes.splice(2, 0, token);
                             opcodeIndex += 1;
                         } else {
