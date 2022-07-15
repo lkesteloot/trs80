@@ -67,6 +67,76 @@ const MACRO_TAGS = ["!", "#", "$", "%", "&", ".", ":", "?", "@", "\\", "^", "_",
 type Target = "bin" | "rom";
 
 /**
+ * Documentation about a set of (synonym) directives.
+ */
+export interface AsmDirectiveDoc {
+    // These are all synonyms for the same directive.
+    directives: Set<string>;
+    description: string;
+}
+
+/**
+ * Documentation about the assembly directives we support. This is
+ * for interactive (IDE) auto-complete.
+ */
+export function getAsmDirectiveDocs(): AsmDirectiveDoc[] {
+    return [
+        {
+            directives: PSEUDO_DEF_BYTES,
+            description: "Define a sequence of bytes, text, or strings.",
+        },
+        {
+            directives: PSEUDO_DEF_WORDS,
+            description: "Define a sequence of 16-bit words.",
+        },
+        {
+            directives: PSEUDO_DEF_LONGS,
+            description: "Define a sequence of 32-bit longs.",
+        },
+        {
+            directives: PSEUDO_EQU,
+            description: "Assign a value to a symbol.",
+        },
+        {
+            directives: PSEUDO_ORG,
+            description: "Specify address of next instruction.",
+        },
+        {
+            directives: PSEUDO_ALIGN,
+            description: "Add fill bytes until address is multiple of specified value.",
+        },
+        {
+            directives: PSEUDO_FILL,
+            description: "Fill memory with repeated 0 bytes.",
+        },
+        {
+            directives: PSEUDO_MACRO,
+            description: "Start a macro definition.",
+        },
+        {
+            directives: PSEUDO_ENDM,
+            description: "End a macro definition.",
+        },
+        {
+            directives: PSEUDO_IF,
+            description: "If conditional.",
+        },
+        {
+            directives: PSEUDO_ELSE,
+            description: "Else conditional.",
+        },
+        {
+            directives: PSEUDO_ENDIF,
+            description: "End of if conditional.",
+        },
+        {
+            directives: PSEUDO_END,
+            description: "End of file, optionally followed by entry address or label.",
+        },
+    ];
+}
+
+/**
  * Parse a single digit in the given base, or undefined if the digit does not
  * belong to that base.
  */
