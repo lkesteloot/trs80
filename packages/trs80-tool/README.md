@@ -258,6 +258,14 @@ Specify a program or floppy to load and run directly:
 The `--xray` flag shows nothing in the shell but starts a web server for the
 X-ray debugger. This is experimental and not yet documented.
 
+## `repl`
+
+Starts an interactive session for exploring the Z80. Type "help" to get
+a list of commands. Type an assembly language instruction (such as "ld a,5")
+to assemble it, write it to memory, explain it, execute it, and show
+its effects on flags and registers. This virtual machine is not in
+a TRS-80 context (it has no ROM or peripherals).
+
 ## `help`
 
 The `help` command shows more specific information about other commands:
