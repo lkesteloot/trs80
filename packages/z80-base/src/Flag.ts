@@ -36,7 +36,7 @@ export enum Flag {
      */
     Z = 0x40,
     /**
-     * Set of value is negative.
+     * Set if value is negative.
      */
     S = 0x80,
 }
