@@ -18,6 +18,7 @@
 ; - Parse hex more permissively.
 ;     - At least parse arbitrary decimal.
 ;     - Bonus: Parse 0x prefix, $ prefix (hex), % prefix (binary).
+;     - Error on parsing error.
 
 ; same as 'rom', except that the default fill byte for 'defs' etc. is 0x00
 #target bin
@@ -971,7 +972,7 @@ forth_interpret::
     or      a
     jp      z, forth_terminate
 
-    ; Save name for later (number parsing and error display).
+    ; Save name for later (number parsing).
     push    hl
 
     ; Find it in the dictionary.
@@ -987,8 +988,8 @@ forth_interpret::
 
     ; Not found, parse as number and push it.
     pop     hl
-    call    parse_hex16
-    ; XXX detect that parsing failed, and print error message below.
+    call    parse_decimal
+    jr      nz, word_not_found
 
     ; It's a number. Check if we're in immediate mode.
     ld      a, (Forth_compiling)
@@ -1011,11 +1012,12 @@ not_found_immediate:
     ld      bc, hl
     jp      forth_next
 
+word_not_found:
     ; Not found, display error message.
     ld	    (Forth_orig_hl), hl
     ld      hl, word_not_found_error_message
     call    print
-    pop     hl
+    ld      hl, Forth_word
     call    print
     call    print_newline
     ld	    hl, (Forth_orig_hl)
@@ -1094,6 +1096,54 @@ forth_init_dict::
     ld      (hl), hi(FORTH_LINK)
     pop     hl
     ret
+
+; uint16_t parse_decimal(char *s)
+; - parses a 16-bit decimal or hex (with "0x" prefix) nul-terminated number, into HL.
+; - NZ if parsing failed.
+; Based on code from "More TRS-80 Assembly Language Programming", page 154.
+#local
+parse_decimal::
+    push    ix
+    push    de
+
+    ld      ix, 0           ; Accumulation value
+
+loop:
+    ld      a, (hl)         ; Next character
+    or      NUL             ; Compare to NUL
+    jr      z, exit         ; Done parsing
+
+    add     ix, ix          ; acc*2
+    push    ix
+    add     ix, ix          ; acc*4
+    add     ix, ix          ; acc*8
+    pop     de              ; acc*2
+    add     ix, de          ; acc*10
+
+    sub     a, 0x30         ; Subtract '0'
+    jp      m, error_exit   ; Less than '0', error
+    cp      10              ; Compare to 10
+    jp      p, error_exit   ; Greater than '9', error
+
+    ld      e, a            ; Into E
+    ld      d, 0            ; Into DE
+    add     ix, de          ; Add to accumulator
+    inc     hl              ; Next character
+
+    jp      loop
+
+error_exit:
+    ld      a, 1            ; Set NZ, not sure if there's an easier way to do this
+    or      a
+
+exit:
+    push    ix              ; Move accumulator to HL
+    pop     hl
+
+    pop     de
+    pop     ix
+    ret
+#endlocal
 
 ; uint16_t parse_hex16(char *s)
 ; - parses a 16-bit hex value from "s".
