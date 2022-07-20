@@ -1183,24 +1183,22 @@ class LineParser {
                             this.assembledLine.error = "can't read directory \"" + libraryDir + "\"";
                             return;
                         }
+                        const includeLines: AssembledLine[] = [];
                         for (const filename of filenames) {
                             let parsedPath = parse(filename);
                             if (LIBRARY_EXTS.has(parsedPath.ext)) {
                                 const symbol = this.pass.globals().get(parsedPath.name);
                                 if (symbol !== undefined && symbol.definitions.length === 0) {
                                     // Found used but undefined symbol that matches a file in the library.
-                                    const includePathname = resolve(libraryDir, filename);
-                                    this.pass.insertLines([
+                                    const includePathname = resolve(dir, filename);
+                                    includeLines.push(
                                         new AssembledLine(this.assembledLine.fileInfo, undefined,
-                                            "#include \"" + includePathname + "\""),
-                                        new AssembledLine(this.assembledLine.fileInfo, undefined,
-                                            this.line),
-                                    ]);
+                                            "#include \"" + includePathname + "\""));
                                     this.pass.libraryIncludeCount++;
-                                    break;
                                 }
                             }
                         }
+                        this.pass.insertLines(includeLines);
                     }
                 } else if (token !== undefined) {
                     this.assembledLine.error = "unknown identifier " + token;
