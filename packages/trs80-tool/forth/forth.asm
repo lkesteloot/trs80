@@ -14,11 +14,8 @@
 ; AF registers are scratch (caller preserves, if needed).
 
 ; To do:
+; - Print the stack in decimal.
 ; - Consider making everything case-insensitive since lower case is not the default on TRS-80.
-; - Parse hex more permissively.
-;     - At least parse arbitrary decimal.
-;     - Bonus: Parse 0x prefix, $ prefix (hex), % prefix (binary).
-;     - Error on parsing error.
 
 ; same as 'rom', except that the default fill byte for 'defs' etc. is 0x00
 #target bin
@@ -988,7 +985,7 @@ forth_interpret::
 
     ; Not found, parse as number and push it.
     pop     hl
-    call    parse_decimal
+    call    parse_number
     jr      nz, word_not_found
 
     ; It's a number. Check if we're in immediate mode.
@@ -1097,8 +1094,28 @@ forth_init_dict::
     pop     hl
     ret
 
+; uint16_t parse_num(char *s)
+; - parses a 16-bit decimal or hex (with "$" prefix) nul-terminated number, into HL.
+; - NZ if parsing failed.
+#local
+parse_number::
+    ld      a, (hl)         ; Check prefix
+    cp      '$'             ; We only handle $, not 0x for hex or % for binary.
+    jp      z, is_hex
+
+    call    parse_decimal
+    jp      done
+
+is_hex:
+    inc     hl
+    call    parse_hex
+
+done:
+    ret
+#endlocal
+
 ; uint16_t parse_decimal(char *s)
-; - parses a 16-bit decimal or hex (with "0x" prefix) nul-terminated number, into HL.
+; - parses a 16-bit decimal nul-terminated number, into HL.
 ; - NZ if parsing failed.
 ; Based on code from "More TRS-80 Assembly Language Programming", page 154.
 #local
@@ -1125,6 +1142,64 @@ loop:
     cp      10              ; Compare to 10
     jp      p, error_exit   ; Greater than '9', error
 
+    ld      e, a            ; Into E
+    ld      d, 0            ; Into DE
+    add     ix, de          ; Add to accumulator
+    inc     hl              ; Next character
+
+    jp      loop
+
+error_exit:
+    ld      a, 1            ; Set NZ, not sure if there's an easier way to do this
+    or      a
+
+exit:
+    push    ix              ; Move accumulator to HL
+    pop     hl
+
+    pop     de
+    pop     ix
+    ret
+#endlocal
+
+; uint16_t parse_hex(char *s)
+; - parses a 16-bit hex (with no prefix) nul-terminated number, into HL.
+; - NZ if parsing failed.
+#local
+parse_hex::
+    push    ix
+    push    de
+
+    ld      ix, 0           ; Accumulation value
+
+loop:
+    ld      a, (hl)         ; Next character
+    or      NUL             ; Compare to NUL
+    jr      z, exit         ; Done parsing
+
+    add     ix, ix          ; acc*2
+    add     ix, ix          ; acc*4
+    add     ix, ix          ; acc*8
+    add     ix, ix          ; acc*16
+
+    sub     a, '0'          ; Subtract '0'
+    jp      m, error_exit   ; Less than '0', error
+    cp      10              ; Compare to 10
+    jp      m, good         ; Less than 'A', all good
+
+    sub     a, 'A'-'0'-10   ; Check upper case
+    cp      10
+    jp      m, error_exit   ; Less then 'A', error
+    cp      16
+    jp      m, good         ; Less then 16, all good
+
+    sub     a, 'a'-'A'      ; Check lower case
+    cp      10
+    jp      m, error_exit   ; Less then 'a', error
+    cp      16
+    jp      p, error_exit   ; Greater than 'f', error
+
+good:
     ld      e, a            ; Into E
     ld      d, 0            ; Into DE
     add     ix, de          ; Add to accumulator

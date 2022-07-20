@@ -43,10 +43,10 @@
 : a[] swap 2 * + ; \ ( index array -- address )
 : a@ a[] @ ; \ ( index array -- value )
 : a! a[] ! ; \ ( value index array -- )
-: @low @ 255 and ;
+: @low @ $00FF and ;
 : @high @ 8>> ;
-: !low dup @ 65280 and rot 255 and or swap ! ;
-: !high dup @ 255 and rot 8<< or swap ! ;
+: !low dup @ $FF00 and rot $00FF and or swap ! ;
+: !high dup @ $00FF and rot 8<< or swap ! ;
 : a@low a[] @low ;
 : a@high a[] @high ;
 : a!low a[] !low ; \ ( value index array -- )
