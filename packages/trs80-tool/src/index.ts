@@ -1849,7 +1849,7 @@ function asm(srcPathname: string, outPathname: string, baud: number, lstPathname
     if (lstPathname !== undefined) {
         const lstFd = fs.openSync(lstPathname, "w");
 
-        for (const line of sourceFile.assembledLines) {
+        for (const line of asm.assembledLines) {
             if (line.binary.length !== 0) {
                 // Show four bytes at a time.
                 let displayAddress = line.address;
@@ -1877,7 +1877,7 @@ function asm(srcPathname: string, outPathname: string, baud: number, lstPathname
 
     // Show errors.
     let errorCount = 0;
-    for (const line of sourceFile.assembledLines) {
+    for (const line of asm.assembledLines) {
         if (line.error !== undefined) {
             console.log(chalk.gray(line.line));
             console.log(chalk.red("error: " + line.error));
@@ -1888,14 +1888,14 @@ function asm(srcPathname: string, outPathname: string, baud: number, lstPathname
 
     // Don't generate output if we have errors.
     if (errorCount !== 0) {
-        console.log(errorCount + " errors");
+        console.log(pluralizeWithCount(errorCount, "error"));
         process.exit(1);
     }
 
     // Guess the entry point if necessary.
     let entryPoint: number | undefined = asm.entryPoint;
     if (entryPoint === undefined) {
-        for (const line of sourceFile.assembledLines) {
+        for (const line of asm.assembledLines) {
             if (line.binary.length > 0) {
                 entryPoint = line.address;
                 break;
@@ -1917,7 +1917,7 @@ function asm(srcPathname: string, outPathname: string, baud: number, lstPathname
         case ".CMD": {
             // Convert to CMD file.
             const builder = new CmdProgramBuilder();
-            for (const line of sourceFile.assembledLines) {
+            for (const line of asm.assembledLines) {
                 builder.addBytes(line.address, line.binary);
             }
             const chunks = [
@@ -1935,7 +1935,7 @@ function asm(srcPathname: string, outPathname: string, baud: number, lstPathname
         case ".WAV": {
             // Convert to 3BN file.
             const builder = new SystemProgramBuilder();
-            for (const line of sourceFile.assembledLines) {
+            for (const line of asm.assembledLines) {
                 builder.addBytes(line.address, line.binary);
             }
             const chunks = builder.getChunks();

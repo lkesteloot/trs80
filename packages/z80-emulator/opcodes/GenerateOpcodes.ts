@@ -926,7 +926,7 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
     // Name of the TypeScript map to insert into.
     const mapName = "decodeMap" + prefix.toUpperCase();
 
-    // Put all aliases into our array first, in case some come over the canonical variant.
+    // Put all aliases into our array first, in case some come after the canonical variant.
     for (const [opcode, value] of opcodeMap.entries()) {
         if (!(value instanceof Map) && value.isAlias) {
             aliasVariants.push({opcode, variant: value});
