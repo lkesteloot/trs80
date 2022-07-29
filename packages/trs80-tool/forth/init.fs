@@ -19,7 +19,7 @@
 : recurse immediate latest @ >cfa , ;
 : decimal 10 base ! ;
 : hex 16 base ! ;
-: u. base @ /mod ?dup if recurse then dup 10 < if 48 else 10 - 65 then + emit ;
+: u. base @ /mod ?dup if recurse then dup 10 < if 48 else 55 then + emit ;
 : nip swap drop ; \ ( x y -- y )
 : tuck swap over ; \ (x y -- y x y )
 : 1+ 1 + ;

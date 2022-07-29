@@ -111,8 +111,8 @@ forth_init::
     ld      hl, 0
     ld      (Forth_compiling), hl
 
-    ; Default to hex for printing.
-    ld      hl, 16
+    ; Default to decimal for printing (see the "u." command in init.fs).
+    ld      hl, 10
     ld      (Forth_base), hl
 
     ; Program is infinite loop to interpret words.
@@ -163,7 +163,7 @@ loop:
     inc     hl
     ld      h, (hl)
     ld      l, a
-    call    lcd_puthex16
+    call    lcd_putdec16
     ld      hl, de
 
     ; Write space.
@@ -474,7 +474,7 @@ zero:
     jp      forth_next
 
 ; - computes the remainder and quotient of the top two stack entries (n, d).
-; - (n d -- q r)
+; - (n d -- r q)
     M_forth_native "/mod", 0, divmod
     ld      (Forth_orig_de), de
     ld      de, bc
@@ -518,7 +518,7 @@ not_less_than:
     M_forth_native ".", 0, dot
     ld      hl, bc
     pop     bc
-    call    lcd_puthex16
+    call    lcd_putdec16
     ld      l, ' '
     call    putc_l
     jp      forth_next
@@ -1279,6 +1279,8 @@ parse_hex8::
 lcd_putdec16::
     push    bc
     push    hl
+    push    de                  ; e = whether to skip zeros
+    ld      e, 1                ; don't print initial 0
     ld      bc, -10000
     call    handle_digit
     ld      bc, -1000
@@ -1288,22 +1290,35 @@ lcd_putdec16::
     ld      c, -10
     call    handle_digit
     ld      c, -1
+    ld      e, 0                ; always print last 0
     call    handle_digit
+    pop     de
     pop     hl
     pop     bc
     ret
 
 handle_digit:
-    ld      a, '0'-1
+    ld      a, -1
 increment_digit:
     inc     a
     add     hl, bc
     jr      c, increment_digit
     sbc     hl, bc
+    or      a
+    jr      nz, print_digit     ; print any non-zero digit
+    ld      d, a                ; save a
+    ld      a, e                ; check whether printing zeros
+    or      a
+    jr      nz, skip_digit
+    ld      a, d                ; restore a
+print_digit:
+    add     '0'
     push    hl
     ld      l, a
     call    putc_l
     pop     hl
+    ld      e, 0                ; print zeros after any printed digit
+skip_digit:
     ret
 #endlocal
 
