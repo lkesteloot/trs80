@@ -2,23 +2,58 @@
 : / /mod swap drop ;
 \ (n d -- r)
 : mod /mod drop ;
-\ (a b c -- a b c b c)
-: 2dup over over ;
+\ define a constant: 123 constant foo
+: constant word create ' enter , ' lit , , ' exit , ;
+\ define a variable, initialized to 0: variable foo
+\ read with: foo @
+\ write with: 5 foo !
+: variable here @ 0 , word create ' enter , ' lit , , ' exit , ;
 \ control structures.
 : if immediate ' 0branch , here @ 0 , ;
 : then immediate dup here @ swap - swap ! ;
 : else immediate ' branch , here @ 0 , swap dup here @ swap - swap ! ;
-: begin immediate here @ ;
-: until immediate ' 0branch , here @ - , ;
-: again immediate ' branch , here @ - , ;
-: while immediate ' 0branch , here @ 0 , ;
-: repeat immediate ' branch , swap here @ - , dup here @ swap - swap ! ;
-\ basic logic and math.
 : not if 0 else 1 then ;
+\ (a b c -- a b c b c)
+: 2dup over over ;
+\ basic logic and math.
 : <= 2dup < -rot = or ;
 : > <= not ;
 : >= < not ;
 : <> = not ;
+\ push address of next position in code segment. starts all loops, essentially
+\ recording the top address of the loop.
+: begin immediate here @ ;
+\ loop until non-zero: begin 123 . cr 0 until
+\ add "0branch <DELTA>" to code, where DELTA is the relative jump to the start of the loop.
+\ the only thing left on the parameter stack (after the top address) should be the test value.
+: until immediate ' 0branch , here @ - , ;
+\ infinite loop: begin 123 . cr until
+\ add "branch <DELTA>" to code, where DELTA is the relative jump to the start of the loop.
+\ the top of the parameter stack should be the top addressed pushed by "begin".
+: again immediate ' branch , here @ - , ;
+\ loop while non-zero: 5 begin ?dup while dup . cr 1 - repeat
+\ add "0branch 0" to code, where 0 is a temporary that's replaced by "repeat" later.
+\ push the address of the zero.
+: while immediate ' 0branch , here @ 0 , ;
+\ end while loop (see above). add "branch <DELTA>" where DELTA is the relative jump to
+\ the top of the loop. Also update the 0 added by "while" with the current IP (past the loop).
+: repeat immediate ' branch , swap here @ - , dup here @ swap - swap ! ;
+
+\ do loop: 10 0 do i . cr loop
+\ loops from 0 (inclusive) to 10 (exclusive), setting i to value.
+variable ivar
+: i ivar @ ;
+variable limitvar
+\ : foo 10 0 do i . cr loop ;
+\ compiles to:
+\ 10 0 i ! limit ! (*) limit i @ > 0branch (to end) i . cr i @ 1 + i ! branch (to *) (end)
+: do immediate ' ivar , ' ! , ' limitvar , ' ! , here @
+    ' limitvar , ' @ , ' ivar , ' @ , ' > , ' 0branch , here @ 0 , ;
+: loop immediate ' ivar , ' @ , ' lit , 1 , ' + , ' ivar , ' ! , ' branch , swap here @ - , dup here @ swap - swap ! ;
+\ : decade 10 0 do i . cr loop ;
+\ : mul cr 11 1 do dup i * . loop drop ;
+
+
 \ write a space to the console.
 : space 32 emit ;
 \ dump all defined words (including native) to console.
@@ -42,19 +77,12 @@
     dsp@ + \ add to the stack pointer
     @ \ and fetch
 ;
-\ define a constant
-: constant word create ' enter , ' lit , , ' exit , ;
-\ def a var
-: variable here @ 0 , word create ' enter , ' lit , , ' exit , ;
 
 \ graphics routines
 : rx gfx_width rndn ;
 : ry gfx_height rndn ;
 : rp rx ry set ;
 : demo begin rp again ;
-
-: do begin ;
-: loop 1 + = until drop drop ;
 
 \ My own array words.
 : array here @ dup rot 2 * + here ! word create ' enter , ' lit , , ' exit , ; \ def an array, specify size in elements

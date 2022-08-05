@@ -16,15 +16,14 @@
 ; -------------------------------------------------------------------------------------
 
 ; To do:
-; - repeat/until seems to be broken:
-;     - repeat 5 until
-;     - removes two more things off the stack.
+; - Allow nesting of DO LOOP.
+;     - Innermost is I, then J, then K.
 ; 
 ; - Add graphics commands:
-;     - Set pixel.
+;     * Set pixel.
 ;     - Reset pixel.
 ;     - Read pixel.
-;     - Draw line (in assembly).
+;     - Draw line (in forth?).
 ; 
 ; - Get keyboard input?
 ;     - Need this to write simple game.
@@ -690,8 +689,6 @@ close_parens:
 ; - in compiled mode. There's another version that uses
 ; - word, find, and cfa, but I think it only works in
 ; - immediate mode, and I don't need it then. See below.
-; - Note that this version has identical code to the "lit"
-; - word, so we could just use that instead?
     M_forth_native "'", 0, tick
     push    bc
     ld      hl, de
@@ -810,7 +807,7 @@ loop:
 #endlocal
 
 
-; - gets the next word from the input stream and puts its address
+; - gets the next word from the input stream and puts the address of its string
 ; - on the parameter stack.
     M_forth_native "word", 0, word
     push    bc
