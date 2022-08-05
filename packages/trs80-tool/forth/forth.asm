@@ -13,9 +13,81 @@
 ; Caller pops arguments after call returns.
 ; AF registers are scratch (caller preserves, if needed).
 
+; -------------------------------------------------------------------------------------
+
 ; To do:
-; - Print the stack in decimal.
 ; - Consider making everything case-insensitive since lower case is not the default on TRS-80.
+; - repeat/until seems to be broken:
+;     - repeat 5 until
+;     - removes two more things off the stack.
+; 
+; - Add graphics commands:
+;     - Set pixel.
+;     - Reset pixel.
+;     - Read pixel.
+;     - Draw line (in assembly).
+; 
+; - Get keyboard input?
+;     - Need this to write simple game.
+
+
+; -------------------------------------------------------------------------------------
+
+; This is a Forth interpreter. There are two stacks:
+;
+; - The data stack (PSP, for "parameter stack pointer") is used to pass data
+;   between Forth routines. Between runs of interpreting lines, the Forth_psp
+;   pointer points to this stack (the top item). Once interpreting starts, 
+;   for speed we move the top item to the BC register and use the normal Z80
+;   stack (using the SP register) for the rest.
+; - The function return stack (RSP, "return stack pointer") is stored in memory
+;   and pointed to by the IX register. Like the regular Z80 stack, is grows
+;   downward and is pre-decremented and post-incremented.
+;
+; The HL register is the Forth "W" (working) register. We don't use this, though
+; we use HL for all sorts of things that W would normally be used for, like computing
+; addresses to jump to.
+;
+; The DE register is the Forth "IP" (instruction pointer) register. It points
+; to the instruction that we should decode next.
+;
+; The dictionary of defined words is stored in a linked list. Each node contains:
+;
+; - Pointer to the previous entry in the dictionary, or NULL. (2 bytes)
+; - Flags, which is either 0 or F_IMMED. (1 byte)
+; - Nul-terminated name of the word.
+; - Z80 code for the routine. For native routines this is just Z80 code. For compiled
+;   routines this is a Z80 call to the "enter" routine followed by a sequence of
+;   2-byte pointers to Forth words, terminated by the 2-byte address of "exit".
+;
+; This linked list is seeded with the built-in words at assembly time (!) by the
+; M_forth_native macro. At runtime, the "init.fs" file is parsed to create additional
+; useful words. The M_forth_word macro is similar to M_forth_native but has a call
+; to "enter" first so that the rest of it can be just the two-byte pointers to
+; the Forth native calls.
+
+; The interpreter uses Direct Threaded Code. See this page for a description:
+; https://en.wikipedia.org/wiki/Threaded_code
+
+; There are two modes, immediate and compiling. The Forth_compiling word
+; (accessible as "state" from Forth) is 1 if compiling and 0 if immediate.
+;
+; - In immediate mode, or if the word's F_IMMED flag is set, a word is executed
+;   as it is parsed.
+; - In compiling mode, the word's address is added to the code segment code
+;   as it is parsed.
+;
+; The "[" word ("lbrac" here) goes into immediate mode and the "]"
+; command ("rbrac" here) goes into compiling mode.
+
+; We set up a default program that reads the next word, executes it, and loops.
+; After the user types in a line, we configure the interpreter (e.g., move the
+; parameter stack from Forth_psp to the Z80 stack), then start executing, which
+; starts parsing the line.
+
+; The Forth_here pointer ("here" from Forth) is the location in our code segment
+; where we will next add new code that we're compiling.
+
 
 ; same as 'rom', except that the default fill byte for 'defs' etc. is 0x00
 #target bin
@@ -38,17 +110,7 @@ M_forth_add_code macro func
     inc     hl
     endm
 
-; #if defined(LOAD_LOW)
-; ; Our code loads at address 0, with the full address space mapped to RAM.
-; #code TEXT,0
-; #else
-; ; Our code loads immediately above the 16K ROM page
-; #code TEXT,0x4000
-; #endif
     org 0x8000
-
-; Careful, don't put anything before "init", as this is the entry point to our code.
-; When we are loaded at address 0, this is where "RST 0" sends us.
 #local
 init::
     di
@@ -74,23 +136,20 @@ hello_message:
     .text   "TRS-80 Forth Compiler", CR
     .text   "(c) 2021 Lawrence Kesteloot", CR
     .text   CR
-    .text   "Initializing...", NUL
+    .text   "Initializing", NUL
+progress_dot::
+    .text   ".", NUL
 prompt:
     .text   "> ", NUL
 #endlocal
 
 ; void forth_init()
 ; - initializes the Forth interpreter/compiler.
-; - Notes:
-;   - We're using Direct Threaded Code (DTC).
-;   - Machine register allocation:
-;       - BC: TOS (top of stack)
-;       - DE: IP (instruction to decode next)
-;       - HL: W (working register)
-;       - IX: RSP (return stack pointer)
-;       - SP: PSP (parameter stack pointer)
 forth_init::
     push    hl
+
+    ld      hl, Forth_initializing
+    ld      (hl), 0
 
     ; Set up parameter stack. Note that it must always have at least
     ; one item because the first thing we do is pop it off and stick
@@ -125,8 +184,12 @@ forth_init::
     ld      (Forth_here), hl
 
     ; Define some built-ins.
+    ld      hl, Forth_initializing
+    ld      (hl), 1
     ld      hl, Forth_init_cmd
     call    forth_parse_line
+    ld      hl, Forth_initializing
+    ld      (hl), 0
 
     pop     hl
     ret
@@ -239,14 +302,14 @@ forth_parse_line_terminate::
 ; - code for the Forth "next" routine, which executes the instruction at IP.
 #local
 forth_next::
-    ; W = (IP++)
+    ; HL = (IP++)
     ld      a, (de)             ; Low byte of (IP)
     ld      l, a
     inc     de
     ld      a, (de)             ; High byte of (IP)
     ld      h, a
     inc     de
-    ; JP (IP)
+
     jp      (hl)
 #endlocal
 
@@ -296,11 +359,12 @@ M_forth_const macro name, value
     M_forth_native "enter", 0, enter
     ; Push IP onto return address stack.
     dec     ix
-    ld      (ix+0), d
+    ld      (ix), d
     dec     ix
-    ld      (ix+0), e
+    ld      (ix), e
 
-    ; IP = W+2. We were called here from the code field, so the stack
+    ; We were called here from the code field (the beginning of
+    ; the M_forth_word macro, which is Z80 instructions), so the stack
     ; contains the address of the next IP.
     pop     de
     jp      forth_next
@@ -308,9 +372,9 @@ M_forth_const macro name, value
 ; - code for exiting a Forth word.
     M_forth_native "exit", 0, exit
     ; Pop IP from return address stack.
-    ld      e, (ix+0)
+    ld      e, (ix)
     inc     ix
-    ld      d, (ix+0)
+    ld      d, (ix)
     inc     ix
     jp      forth_next
 
@@ -553,7 +617,8 @@ not_less_than:
     call    print_newline
     jp      forth_next
 
-; - pushes the next word onto the parameter stack.
+; - pushes the pointer at IP onto the parameter stack and increment IP.
+; - only works for compiled code.
     M_forth_native "lit", 0, lit
     push    bc
     ld      hl, de
@@ -580,6 +645,33 @@ forth_comma:
     ld      (Forth_here), hl
     pop     bc
     ret
+
+; - set the pixel at (x y -- ). No bounds checking.
+    M_forth_native "set", 0, set_pixel
+    ld      a, c        ; y coordinate (from BC, top of stack)
+    pop     bc          ; pop x (in C)
+    ld      b, c        ; x coordinate
+    push    de
+    push    hl
+    push    ix
+    ld      h, 0x80     ; point (test) = 0, set = 0x80, reset = 0x01
+    call    graph
+    pop     ix
+    pop     hl
+    pop     de
+
+    pop     bc          ; new top of stack
+
+    jp      forth_next
+
+graph:
+    push    hl             ; push indicator
+    push    bc             ; push x coordinate
+    ld      hl, close_parens ; fake out BASIC’s RST8
+    jp      0x0150         ; call the BASIC set function
+
+close_parens:
+    defm    ');'
 
 ; Go into immediate (non-compiling) mode.
     M_forth_native "[", F_IMMED, lbrac
@@ -848,21 +940,31 @@ no_skip:
 
 ; - starts a definition of a new word.
     M_forth_word ":", 0, colon
-    .dw     forth_native_word
-    .dw     forth_native_create
-    .dw     forth_native_lit
-    .dw     forth_native_enter
-    .dw     forth_native_comma
-    .dw     forth_native_rbrac
-    .dw     forth_native_exit
+    .dw     forth_native_word       ; parse the next word and put its address on the stack.
+    .dw     forth_native_create     ; create a new dict entry using the name.
+    .dw     forth_native_lit        ; push the next word (address of "enter") onto the stack.
+    .dw     forth_native_enter      ; the address of "enter".
+    .dw     forth_native_comma      ; add address of "enter" to code segment.
+    .dw     forth_native_rbrac      ; go into compiling mode.
+    .dw     forth_native_exit       ; pop IP from function return stack (return from ":").
 
 ; - end a definition of a new word.
-    M_forth_word ";", F_IMMED, semicolon
-    .dw     forth_native_lit
-    .dw     forth_native_exit
-    .dw     forth_native_comma
-    .dw     forth_native_lbrac
-    .dw     forth_native_exit
+    M_forth_native ";", F_IMMED, semicolon
+    ; Dump progress dot to display, but only when parsing init.fs.
+    push    hl
+    ld      a, (Forth_initializing)
+    or      a
+    jr      z, skip_dot
+    ld      hl, progress_dot
+    call    print
+skip_dot:
+    pop     hl
+    call    forth_native_enter
+    .dw     forth_native_lit        ; push the next word (address of "exit") onto the stack.
+    .dw     forth_native_exit       ; the address of "exit".
+    .dw     forth_native_comma      ; add address of "exit" to code segment.
+    .dw     forth_native_lbrac      ; go into immediate mode.
+    .dw     forth_native_exit       ; pop IP from function return stack (return from ";").
 
 ; - plot a pixel.
     M_forth_native "gfx_set", 0, rnd
@@ -991,7 +1093,7 @@ forth_interpret::
     ; It's a number. Check if we're in immediate mode.
     ld      a, (Forth_compiling)
     or      a
-    jr      z, not_found_immediate
+    jr      z, is_number_in_immediate
 
     ; Compile IMM.
     push    hl
@@ -1003,7 +1105,7 @@ forth_interpret::
     call    forth_comma
     jp      forth_next
 
-not_found_immediate:
+is_number_in_immediate:
     ; Push parsed value.
     push    bc
     ld      bc, hl
@@ -1040,8 +1142,8 @@ found:
     jr      nz, found_immediate
 
     ; We're compiling it.
-    call    forth_cfa
-    call    forth_comma
+    call    forth_cfa           ; skip header of dict entry.
+    call    forth_comma         ; add HL to code segment.
     jp      forth_next
 
 found_immediate:
@@ -1429,7 +1531,8 @@ Forth_orig_hl:: defs 2  ; Temporary for saving HL.
 Forth_tmp1:: defs 2     ; Temporary.
 Forth_tmp2:: defs 2     ; Temporary.
 Forth_base:: defs 2     ; Current base for printing numbers.
-Forth_word:: defs 32    ; Typical max length of Forth word.
+Forth_initializing:: defs 1 ; Whether parsing init.fs.
+Forth_word:: defs 32    ; Typical max length of Forth word name.
 Forth_code:: defs FORTH_CODE_SIZE
 Forth_rstack:: defs FORTH_RSTACK_SIZE
 Forth_pstack:: defs FORTH_PSTACK_SIZE

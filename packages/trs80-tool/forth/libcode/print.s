@@ -8,7 +8,7 @@ print::
 print_loop:
     call 0x0033
     inc hl
-print_check
+print_check:
     ld a,(hl)
     or a
     jr nz,print_loop

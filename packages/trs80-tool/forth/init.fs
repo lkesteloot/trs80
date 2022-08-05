@@ -34,9 +34,11 @@
 
 : rx gfx_width rndn ;
 : ry gfx_height rndn ;
-\ : rl rx ry rx ry line ;
-\ : rc rnd rnd rnd color ;
-\ : demo begin rc rl again ;
+: rp rx ry set ;
+: demo begin rp again ;
+
+: do begin ;
+: loop 1 + = until drop drop ;
 
 \ My own array words.
 : array here @ dup rot 2 * + here ! word create ' enter , ' lit , , ' exit , ; \ def an array, specify size in elements
