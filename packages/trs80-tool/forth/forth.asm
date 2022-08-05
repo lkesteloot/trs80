@@ -16,7 +16,6 @@
 ; -------------------------------------------------------------------------------------
 
 ; To do:
-; - Consider making everything case-insensitive since lower case is not the default on TRS-80.
 ; - repeat/until seems to be broken:
 ;     - repeat 5 until
 ;     - removes two more things off the stack.
@@ -413,6 +412,7 @@ zero:
     jp      forth_next
 
 ; - duplicates the second-to-last word on the stack.
+; - (a b c -- a b c b)
     M_forth_native "over", 0, over
     pop     hl
     push    hl
@@ -869,6 +869,7 @@ word_loop:
     jr      z, end_of_word
     cp      NUL
     jr      z, end_of_word
+    call    to_lowercase
     ld      (de), a
     inc     hl
     inc     de
@@ -1153,6 +1154,18 @@ found_immediate:
 
 word_not_found_error_message:
     .text   "Word not found: ", NUL
+#endlocal
+
+; void lowercase()
+; - convert the character in A to lower case.
+#local
+to_lowercase::
+    cp      'A'
+    ret     c
+    cp      'Z'+1
+    ret     nc
+    or      0x20
+    ret
 #endlocal
 
 ; void forth_strequ()
