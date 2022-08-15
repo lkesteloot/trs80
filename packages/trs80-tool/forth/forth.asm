@@ -125,9 +125,10 @@ init::
     call    forth_init		    ; initialize Forth environment
     call    print_newline
 loop:
-    call    forth_dump_pstack       ; stack and prompt
     ld	    hl, prompt
     call    print
+    call    forth_dump_pstack
+    call    print_newline
     call    gets                    ; get a line of code
     ld      hl, Gets_buffer
     call    forth_parse_line
@@ -140,7 +141,7 @@ hello_message:
 progress_dot::
     .text   ".", NUL
 prompt:
-    .text   "> ", NUL
+    .text   "ok", NUL
 #endlocal
 
 ; void forth_init()
@@ -210,15 +211,26 @@ forth_dump_pstack::
     ld      hl, Forth_pstack+FORTH_PSTACK_SIZE
     ld      bc, (Forth_psp)
 
+    ; Skip initial value; it's never used, we only have it because
+    ; we store the head in BC, so can't have less than 1 item.
+    dec     hl
+    dec     hl
+
 loop:
     ; See if we're done.
     or      a           ; Clear carry.
-    sbc     hl, bc
+    sbc     hl, bc      ; Compare HL and BC.
     add     hl, bc
-    jr      z, done
+    jr      z, done     ; Same, we're done.
 
     dec     hl
     dec     hl
+
+    ; Write space before each item.
+    ld      de, hl      ; Save/restore L.
+    ld      l, ' '
+    call    putc_l
+    ld      hl, de
 
     ; Print (HL).
     ld      de, hl      ; Save/restore HL.
@@ -227,12 +239,6 @@ loop:
     ld      h, (hl)
     ld      l, a
     call    lcd_putdec16
-    ld      hl, de
-
-    ; Write space.
-    ld      de, hl      ; Save/restore L.
-    ld      l, ' '
-    call    putc_l
     ld      hl, de
 
     jr      loop
