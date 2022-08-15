@@ -17,14 +17,8 @@
 
 ; To do:
 ; 
-; - Add graphics commands:
-;     * Set pixel.
-;     - Reset pixel.
-;     - Read pixel.
-;     - Draw line (in forth?).
-; 
-; - Get keyboard input?
-;     - Need this to write simple game.
+; - Get keyboard input.
+;     - Need this to write simple game or quit infinite loops.
 
 
 ; -------------------------------------------------------------------------------------
@@ -652,12 +646,52 @@ forth_comma:
     push    hl
     push    ix
     ld      h, 0x80     ; point (test) = 0, set = 0x80, reset = 0x01
-    call    graph
+    call    fake_close_parens
     pop     ix
     pop     hl
     pop     de
 
     pop     bc          ; new top of stack
+
+    jp      forth_next
+
+; - reset (clear) the pixel at (x y -- ). No bounds checking.
+    M_forth_native "reset", 0, reset_pixel
+    ld      a, c        ; y coordinate (from BC, top of stack)
+    pop     bc          ; pop x (in C)
+    ld      b, c        ; x coordinate
+    push    de
+    push    hl
+    push    ix
+    ld      h, 0x01     ; point (test) = 0, set = 0x80, reset = 0x01
+    call    fake_close_parens
+    pop     ix
+    pop     hl
+    pop     de
+
+    pop     bc          ; new top of stack
+
+    jp      forth_next
+
+; - test the pixel at (x y -- p), where p = 1 if set otherwise 0.
+; No bounds checking.
+    M_forth_native "point", 0, point_pixel
+    ld      a, c        ; y coordinate (from BC, top of stack)
+    pop     bc          ; pop x (in C)
+    ld      b, c        ; x coordinate
+    push    de
+    push    hl
+    push    ix
+    ld      h, 0x00     ; point (test) = 0, set = 0x80, reset = 0x01
+    call    fake_close_parens
+    pop     ix
+    pop     hl
+    pop     de
+
+    ld      a, (0x4121) ; read point results
+    and     0x01        ; convert 255 to 1
+    ld      c, a
+    ld      b, 0
 
     jp      forth_next
 
@@ -698,8 +732,8 @@ loop4:
     jp      forth_next
 #endlocal
 
-graph:
-    push    hl             ; push indicator
+fake_close_parens:
+    push    hl             ; push function type (set, reset, point)
     push    bc             ; push x coordinate
     ld      hl, close_parens ; fake out BASIC’s RST8
     jp      0x0150         ; call the BASIC set function
