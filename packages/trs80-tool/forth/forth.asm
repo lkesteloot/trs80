@@ -16,8 +16,6 @@
 ; -------------------------------------------------------------------------------------
 
 ; To do:
-; - Allow nesting of DO LOOP.
-;     - Innermost is I, then J, then K.
 ; 
 ; - Add graphics commands:
 ;     * Set pixel.
@@ -131,7 +129,7 @@ loop:
     call    forth_parse_line
     jr      loop
 hello_message:
-    .text   "TRS-80 Forth Compiler", CR
+    .text   "TRS-80 Forth", CR
     .text   "(c) 2021 Lawrence Kesteloot", CR
     .text   CR
     .text   "Initializing", NUL

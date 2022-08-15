@@ -41,18 +41,70 @@
 
 \ do loop: 10 0 do i . cr loop
 \ loops from 0 (inclusive) to 10 (exclusive), setting i to value.
-variable ivar
-: i ivar @ ;
-variable limitvar
+\ Do loops can be nested three times. Define a stack pointer variable
+\ for the stack. The stack grows downward. First the limit is pushed,
+\ then the index.
+variable doloopptr
+\ Allocate space for the three indices and the three limits
+\ (3 depth * 2 vars * 2 bytes = 12 bytes).
+here @ 12 + here !
+\ Initialize the stack pointer to just above the stack.
+here @ doloopptr !
+\ Define some index accessors, from the inside out.
+: i doloopptr @ @ ;
+: j doloopptr @ 4 + @ ;
+: k doloopptr @ 8 + @ ;
 \ : foo 10 0 do i . cr loop ;
-\ compiles to:
+\ Compiles to:
 \ 10 0 i ! limit ! (*) limit i @ > 0branch (to end) i . cr i @ 1 + i ! branch (to *) (end)
-: do immediate ' ivar , ' ! , ' limitvar , ' ! , here @
-    ' limitvar , ' @ , ' ivar , ' @ , ' > , ' 0branch , here @ 0 , ;
-: loop immediate ' ivar , ' @ , ' lit , 1 , ' + , ' ivar , ' ! , ' branch , swap here @ - , dup here @ swap - swap ! ;
-\ : decade 10 0 do i . cr loop ;
-\ : mul cr 11 1 do dup i * . loop drop ;
-
+: do immediate
+    ' doloopptr ,       \ pre-decrement do-loop stack pointer
+        ' @ ,
+        ' lit ,
+        4 ,
+        ' - ,
+        ' doloopptr ,
+        ' ! ,
+    ' doloopptr ,       \ save index
+        ' @ ,
+        ' ! ,
+    ' doloopptr ,       \ save bound
+        ' @ ,
+        ' lit ,
+        2 ,
+        ' + ,
+        ' ! ,
+    here @              \ push location of start of loop
+    ' doloopptr ,       \ read bound
+        ' @ ,
+        ' lit ,
+        2 ,
+        ' + ,
+        ' @ ,
+    ' i ,               \ read index
+    ' > ,               \ compare, true (non-zero) if bound > index (still looping)
+    ' 0branch ,         \ loop if false (no longer looping
+    here @ 0 ,          \ leave space for jump amount, and push its location
+    ;
+: loop immediate
+    ' i ,               \ read index
+    ' lit ,             \ increment
+        1 ,
+        ' + ,
+    ' doloopptr ,       \ write index
+        ' @ ,
+        ' ! ,
+    ' branch ,          \ jump to top
+    swap here @ - ,     \ compute and write jump-to-top amount
+    dup here @ swap - swap ! \ write to branch jump location
+    ' doloopptr ,       \ post-increment do-loop stack pointer
+        ' @ ,
+        ' lit ,
+        4 ,
+        ' + ,
+        ' doloopptr ,
+        ' ! ,
+    ;
 
 \ write a space to the console.
 : space 32 emit ;
