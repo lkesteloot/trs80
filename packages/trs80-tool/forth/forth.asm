@@ -661,6 +661,43 @@ forth_comma:
 
     jp      forth_next
 
+; - clear the screen (with blank graphic character 128) and home the cursor.
+    M_forth_native "cls", 0, cls
+#local
+    push    hl
+    push    bc
+
+    ld      hl, 15360
+    ld      b, 0
+    ld      a, 128
+loop1:
+    ld      (hl), a
+    inc     hl
+    djnz    loop1
+loop2:
+    ld      (hl), a
+    inc     hl
+    djnz    loop2
+loop3:
+    ld      (hl), a
+    inc     hl
+    djnz    loop3
+loop4:
+    ld      (hl), a
+    inc     hl
+    djnz    loop4
+
+    ; Position cursor. Only works on Level 2.
+    ld      hl, 0x4020          ; low byte of 15360
+    ld      (hl), 0x00
+    ld      hl, 0x4021          ; high byte of 15360
+    ld      (hl), 0x3C
+
+    pop     bc
+    pop     hl
+    jp      forth_next
+#endlocal
+
 graph:
     push    hl             ; push indicator
     push    bc             ; push x coordinate
@@ -962,10 +999,6 @@ skip_dot:
     .dw     forth_native_lbrac      ; go into immediate mode.
     .dw     forth_native_exit       ; pop IP from function return stack (return from ";").
 
-; - plot a pixel.
-    M_forth_native "gfx_set", 0, rnd
-    jp      forth_next
-
 ; - pushes a random 16-bit number onto the stack.
     M_forth_native "rnd", 0, rnd
     push    bc
@@ -991,8 +1024,8 @@ skip_dot:
     jp      forth_next
 
 ; - various constants.
-    M_forth_const gfx_width, 128
-    M_forth_const gfx_height, 48
+    M_forth_const width, 128
+    M_forth_const height, 48
     M_forth_const latest, Forth_dict
     M_forth_const state, Forth_compiling
     M_forth_const here, Forth_here

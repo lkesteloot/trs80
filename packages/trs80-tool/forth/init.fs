@@ -8,7 +8,7 @@
 \ read with: foo @
 \ write with: 5 foo !
 : variable here @ 0 , word create ' enter , ' lit , , ' exit , ;
-\ control structures.
+\ control structures: cond if code else code then
 : if immediate ' 0branch , here @ 0 , ;
 : then immediate dup here @ swap - swap ! ;
 : else immediate ' branch , here @ 0 , swap dup here @ swap - swap ! ;
@@ -130,22 +130,119 @@ here @ doloopptr !
     @ \ and fetch
 ;
 
+\ Swap two variables. Pass in their addresses.
+: swapvar           \ &a &b
+    dup @           \ &a &b b
+    rot             \ &b b &a
+    dup @           \ &b b &a a
+    swap            \ &b b a &a
+    rot             \ &b a &a b
+    swap            \ &b a b &a
+    !               \ &b a
+    swap            \ a &b
+    !
+    ;
+
+\ The difference between two variables: abs(a - b)
+: diff              \ a b
+    over            \ a b a
+    over            \ a b a b
+    < if            \ a b (a < b)
+        swap        \ b a
+    then
+    -
+    ;
+
 \ graphics routines
-: rx gfx_width rndn ;
-: ry gfx_height rndn ;
-: rp rx ry set ;
-: demo begin rp again ;
+\ (x1 y1 x2 y2 --)
+variable line-x1
+variable line-x2
+variable line-y1
+variable line-y2
+variable line-dx
+variable line-dy
+variable line-m
+variable line-v
+: line
+    \ Save parameters.
+    line-y2 !
+    line-x2 !
+    line-y1 !
+    line-x1 !
+    \ See if we have a mostly-vertical or mostly-horizontal line.
+    line-x1 @ line-x2 @ diff line-y1 @ line-y2 @ diff < if
+        \ dx < dy, vertical line.
+        line-y2 @ line-y1 @ < if
+            line-x1 line-x2 swapvar
+            line-y1 line-y2 swapvar
+        then
+        line-x2 @ line-x1 @ - line-dx !
+        line-y2 @ line-y1 @ - line-dy !
+        line-x1 @ 256 * line-v !
+        line-x1 @ line-x2 @ < if
+            line-dx @ 256 * line-dy @ / line-m !
+            line-y2 @ 1 + line-y1 @ do
+                line-v @ 256 / i set
+                line-v @ line-m @ + line-v !
+            loop
+        else
+            0 line-dx @ - 256 * line-dy @ / line-m !
+            line-y2 @ 1 + line-y1 @ do
+                line-v @ 256 / i set
+                line-v @ line-m @ - line-v !
+            loop
+        then
+    else
+        \ dy < dx, horizontal line.
+        line-x2 @ line-x1 @ < if
+            line-x1 line-x2 swapvar
+            line-y1 line-y2 swapvar
+        then
+        line-x2 @ line-x1 @ - line-dx !
+        line-y2 @ line-y1 @ - line-dy !
+        line-y1 @ 256 * line-v !
+        line-y1 @ line-y2 @ < if
+            line-dy @ 256 * line-dx @ / line-m !
+            line-x2 @ 1 + line-x1 @ do
+                i line-v @ 256 / set
+                line-v @ line-m @ + line-v !
+            loop
+        else
+            0 line-dy @ - 256 * line-dx @ / line-m !
+            line-x2 @ 1 + line-x1 @ do
+                i line-v @ 256 / set
+                line-v @ line-m @ - line-v !
+            loop
+        then
+    then
+    ;
+
+: rx width rndn ;
+: ry height rndn ;
+: demo-points cls begin
+        rx ry set
+    again ;
+: demo-lines cls begin
+        rx ry rx ry line
+    again ;
+: demo-star cls
+    13 0 do 64 24 i 10 * 0 line loop
+    13 0 do 64 24 i 10 * 47 line loop
+    12 0 do 64 24 0 i 4 * line loop
+    12 0 do 64 24 127 i 4 * line loop
+    ;
+\ 4 0 do 117 i 10 * 10 + 10 24 line loop ;
 
 \ My own array words.
-: array here @ dup rot 2 * + here ! word create ' enter , ' lit , , ' exit , ; \ def an array, specify size in elements
-: a[] swap 2 * + ; \ ( index array -- address )
-: a@ a[] @ ; \ ( index array -- value )
-: a! a[] ! ; \ ( value index array -- )
-: @low @ $00FF and ;
-: @high @ 8>> ;
-: !low dup @ $FF00 and rot $00FF and or swap ! ;
-: !high dup @ $00FF and rot 8<< or swap ! ;
-: a@low a[] @low ;
-: a@high a[] @high ;
-: a!low a[] !low ; \ ( value index array -- )
-: a!high a[] !high ; \ ( value index array -- )
+\ : array here @ dup rot 2 * + here ! word create ' enter , ' lit , , ' exit , ; \ def an array, specify size in elements
+\ : a[] swap 2 * + ; \ ( index array -- address )
+\ : a@ a[] @ ; \ ( index array -- value )
+\ : a! a[] ! ; \ ( value index array -- )
+\ : @low @ $00FF and ;
+\ : @high @ 8>> ;
+\ : !low dup @ $FF00 and rot $00FF and or swap ! ;
+\ : !high dup @ $00FF and rot 8<< or swap ! ;
+\ : a@low a[] @low ;
+\ : a@high a[] @high ;
+\ : a!low a[] !low ; \ ( value index array -- )
+\ : a!high a[] !high ; \ ( value index array -- )
