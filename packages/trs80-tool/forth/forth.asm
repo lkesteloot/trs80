@@ -1,29 +1,6 @@
 ; TRS-80 Forth
 ; (c) 2022 Lawrence Kesteloot
 
-; Calling convention used in this program
-; ---------------------------------------
-;
-; Unless otherwise noted, the first parameter, and the return value are stored as follows:
-; 8 bits: L
-; 16 bits: HL
-; 32 bits: DEHL
-;
-; Additional parameters are passed on the stack, left-to-right.
-; Parameters and return values larger than 32 bits are passed on the stack (return value
-; space set up by caller as a hidden first argument).
-; Callee saves/restores any modified registers.
-; Caller pops arguments after call returns.
-; AF registers are scratch (caller preserves, if needed).
-
-; -------------------------------------------------------------------------------------
-
-; To do:
-; 
-; - Get keyboard input.
-;     - Need this to write simple game or quit infinite loops.
-
-
 ; -------------------------------------------------------------------------------------
 
 ; This is a Forth interpreter. There are two stacks:
@@ -86,6 +63,31 @@
 ; The Forth_here pointer ("here" from Forth) is the location in our code segment
 ; where we will next add new code that we're compiling.
 
+; The reason we use two-byte addresses and the IX register for PC is that
+; if we used regular Z80 CALL commands, then that would interfere with our
+; parameter stack. We have to choose whether we want to use the Z80 stack
+; for parameters or call return, and here we choose parameters, on the assumption
+; that messing with the parameter stack in Forth is more common than making
+; function calls.
+
+; -------------------------------------------------------------------------------------
+
+; Calling convention used in this program
+; ---------------------------------------
+;
+; Unless otherwise noted, the first parameter, and the return value are stored as follows:
+; 8 bits: L
+; 16 bits: HL
+; 32 bits: DEHL
+;
+; Additional parameters are passed on the stack, left-to-right.
+; Parameters and return values larger than 32 bits are passed on the stack (return value
+; space set up by caller as a hidden first argument).
+; Callee saves/restores any modified registers.
+; Caller pops arguments after call returns.
+; AF registers are scratch (caller preserves, if needed).
+
+; -------------------------------------------------------------------------------------
 
 ; same as 'rom', except that the default fill byte for 'defs' etc. is 0x00
 #target bin
