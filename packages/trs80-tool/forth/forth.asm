@@ -63,7 +63,7 @@
 ; The Forth_here pointer ("here" from Forth) is the location in our code segment
 ; where we will next add new code that we're compiling.
 
-; The reason we use two-byte addresses and the IX register for PC is that
+; The reason we use two-byte addresses and the DE register for PC is that
 ; if we used regular Z80 CALL commands, then that would interfere with our
 ; parameter stack. We have to choose whether we want to use the Z80 stack
 ; for parameters or call return, and here we choose parameters, on the assumption
@@ -559,6 +559,18 @@ zero:
     ld      de, (Forth_orig_de)
     jp      forth_next
 
+; - shifts the number right 8 bits, filling with zeros.
+    M_forth_native "highbyte", 0, highbyte
+    ld      c, b
+    ld      b, 0
+    jp      forth_next
+
+; - combines two stack entries into one word (high low -- highlow)
+    M_forth_native "makeword", 0, makeword
+    pop     hl
+    ld      b, l
+    jp      forth_next
+
 ; - determines if the top two stack entries are the same, leaving 0 or 1.
     M_forth_native "=", 0, equ
 #local
@@ -731,13 +743,85 @@ forth_comma:
     jp      forth_next
 
 fake_close_parens:
-    push    hl             ; push function type (set, reset, point)
-    push    bc             ; push x coordinate
+    push    hl             ; push function type (set, reset, point), in high byte
+    push    bc             ; push x coordinate, in high byte
     ld      hl, close_parens ; fake out BASIC’s RST8
     jp      0x0150         ; call the BASIC set function
 
 close_parens:
     defm    ');'
+
+; - internal routine to draw a horizontal-ish line
+; ((count x-start) y-start*256 dy*256 --)
+    M_forth_native "hline", 0, hline
+#local
+    ld      (Forth_orig_de), de
+    ld      de, bc      ; dy*256
+    pop     hl          ; y-start*256
+    pop     bc          ; (count x-start)
+
+    push    ix
+
+    ; B = count, HL = y*256, DE = dy*256, C = X
+loop:
+    push    hl
+    push    bc
+    push    de
+    ld      a, h        ; Y
+    ld      b, c        ; X
+    ld      h, 0x80     ; point (test) = 0, set = 0x80, reset = 0x01
+    call    fake_close_parens
+    pop     de
+    pop     bc
+    pop     hl
+
+    inc     c           ; x += 1
+    add     hl, de      ; y += dy
+
+    djnz    loop
+
+    pop     ix
+
+    pop     bc
+    ld      de, (Forth_orig_de)
+    jp      forth_next
+#endlocal
+
+; - internal routine to draw a vertical-ish line
+; ((count y-start) x-start*256 dx*256 --)
+    M_forth_native "vline", 0, vline
+#local
+    ld      (Forth_orig_de), de
+    ld      de, bc      ; dx*256
+    pop     hl          ; x-start*256
+    pop     bc          ; (count y-start)
+
+    push    ix
+
+    ; B = count, HL = x*256, DE = dx*256, C = Y
+loop:
+    push    hl
+    push    bc
+    push    de
+    ld      a, c        ; Y
+    ld      b, h        ; X
+    ld      h, 0x80     ; point (test) = 0, set = 0x80, reset = 0x01
+    call    fake_close_parens
+    pop     de
+    pop     bc
+    pop     hl
+
+    inc     c           ; y += 1
+    add     hl, de      ; x += dx
+
+    djnz    loop
+
+    pop     ix
+
+    pop     bc
+    ld      de, (Forth_orig_de)
+    jp      forth_next
+#endlocal
 
 ; Go into immediate (non-compiling) mode.
     M_forth_native "[", F_IMMED, lbrac

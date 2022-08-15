@@ -182,17 +182,10 @@ variable line-v
         line-x1 @ 256 * line-v !
         line-x1 @ line-x2 @ < if
             line-dx @ 256 * line-dy @ / line-m !
-            line-y2 @ 1 + line-y1 @ do
-                line-v @ 256 / i set
-                line-v @ line-m @ + line-v !
-            loop
         else
-            0 line-dx @ - 256 * line-dy @ / line-m !
-            line-y2 @ 1 + line-y1 @ do
-                line-v @ 256 / i set
-                line-v @ line-m @ - line-v !
-            loop
+            0 0 line-dx @ - 256 * line-dy @ / - line-m !
         then
+        line-y2 @ line-y1 @ - 1 + line-y1 @ makeword line-v @ line-m @ vline
     else
         \ dy < dx, horizontal line.
         line-x2 @ line-x1 @ < if
@@ -204,17 +197,10 @@ variable line-v
         line-y1 @ 256 * line-v !
         line-y1 @ line-y2 @ < if
             line-dy @ 256 * line-dx @ / line-m !
-            line-x2 @ 1 + line-x1 @ do
-                i line-v @ 256 / set
-                line-v @ line-m @ + line-v !
-            loop
         else
-            0 line-dy @ - 256 * line-dx @ / line-m !
-            line-x2 @ 1 + line-x1 @ do
-                i line-v @ 256 / set
-                line-v @ line-m @ - line-v !
-            loop
+            0 0 line-dy @ - 256 * line-dx @ / - line-m !
         then
+        line-x2 @ line-x1 @ - 1 + line-x1 @ makeword line-v @ line-m @ hline
     then
     ;
 
@@ -229,8 +215,8 @@ variable line-v
 : demo-star cls
     13 0 do 64 24 i 10 * 0 line loop
     13 0 do 64 24 i 10 * 47 line loop
-    12 0 do 64 24 0 i 4 * line loop
-    12 0 do 64 24 127 i 4 * line loop
+    12 1 do 64 24 0 i 4 * line loop
+    12 1 do 64 24 127 i 4 * line loop
     ;
 
 \ My own array words.
