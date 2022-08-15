@@ -24,10 +24,11 @@
 \ recording the top address of the loop.
 : begin immediate here @ ;
 \ loop until non-zero: begin 123 . cr 0 until
+\ loop until keypress: begin ... inkey until
 \ add "0branch <DELTA>" to code, where DELTA is the relative jump to the start of the loop.
 \ the only thing left on the parameter stack (after the top address) should be the test value.
 : until immediate ' 0branch , here @ - , ;
-\ infinite loop: begin 123 . cr until
+\ infinite loop: begin 123 . cr again
 \ add "branch <DELTA>" to code, where DELTA is the relative jump to the start of the loop.
 \ the top of the parameter stack should be the top addressed pushed by "begin".
 : again immediate ' branch , here @ - , ;
@@ -221,17 +222,16 @@ variable line-v
 : ry height rndn ;
 : demo-points cls begin
         rx ry set
-    again ;
+    inkey until ;
 : demo-lines cls begin
         rx ry rx ry line
-    again ;
+    inkey until ;
 : demo-star cls
     13 0 do 64 24 i 10 * 0 line loop
     13 0 do 64 24 i 10 * 47 line loop
     12 0 do 64 24 0 i 4 * line loop
     12 0 do 64 24 127 i 4 * line loop
     ;
-\ 4 0 do 117 i 10 * 10 + 10 24 line loop ;
 
 \ My own array words.
 \ : array here @ dup rot 2 * + here ! word create ' enter , ' lit , , ' exit , ; \ def an array, specify size in elements
