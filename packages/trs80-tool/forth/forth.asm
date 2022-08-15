@@ -1,3 +1,6 @@
+; TRS-80 Forth
+; (c) 2022 Lawrence Kesteloot
+
 ; Calling convention used in this program
 ; ---------------------------------------
 ;
@@ -69,6 +72,11 @@
 ;
 ; The "[" word ("lbrac" here) goes into immediate mode and the "]"
 ; command ("rbrac" here) goes into compiling mode.
+;
+; A call to an immediate-mode word from a compiled routine is a way
+; to run code at compile time. This code usually adds new code to the
+; code segment procedurally, to create things like conditionals and
+; loops.
 
 ; We set up a default program that reads the next word, executes it, and loops.
 ; After the user types in a line, we configure the interpreter (e.g., move the
@@ -124,7 +132,7 @@ loop:
     jr      loop
 hello_message:
     .text   "TRS-80 Forth", CR
-    .text   "(c) 2021 Lawrence Kesteloot", CR
+    .text   "(c) 2022 Lawrence Kesteloot", CR
     .text   CR
     .text   "Initializing", NUL
 progress_dot::
