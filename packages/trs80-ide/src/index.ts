@@ -14,19 +14,19 @@ import {
     WidgetType
 } from "@codemirror/view"
 import {EditorSelection, EditorState, Extension, StateField, StateEffect, Transaction} from "@codemirror/state"
-import {RangeSetBuilder} from "@codemirror/rangeset";
+import {RangeSetBuilder} from "@codemirror/state";
 import {defineLanguageFacet, indentOnInput, Language, LanguageSupport, indentUnit} from "@codemirror/language"
-import {history, historyKeymap} from "@codemirror/history"
-import {foldGutter, foldKeymap} from "@codemirror/fold"
-import {highlightActiveLineGutter, lineNumbers, gutter, GutterMarker} from "@codemirror/gutter"
-import {bracketMatching} from "@codemirror/matchbrackets"
-import {closeBrackets, closeBracketsKeymap} from "@codemirror/closebrackets"
+import {history, historyKeymap} from "@codemirror/commands"
+import {foldGutter, foldKeymap} from "@codemirror/language"
+import {highlightActiveLineGutter, lineNumbers, gutter, GutterMarker} from "@codemirror/view"
+import {bracketMatching} from "@codemirror/language"
+import {closeBrackets, closeBracketsKeymap} from "@codemirror/autocomplete"
 import {highlightSelectionMatches, searchKeymap} from "@codemirror/search"
 import {autocompletion, completionKeymap, CompletionContext, Completion, CompletionResult} from "@codemirror/autocomplete"
-import {commentKeymap} from "@codemirror/comment"
-import {rectangularSelection} from "@codemirror/rectangular-selection"
-import {defaultHighlightStyle} from "@codemirror/highlight"
+import {rectangularSelection} from "@codemirror/view"
+import {syntaxHighlighting, defaultHighlightStyle} from "@codemirror/language"
 import {Diagnostic, lintKeymap, setDiagnostics} from "@codemirror/lint"
+import { solarizedDark } from 'cm6-theme-solarized-dark'
 
 import {Asm, getAsmDirectiveDocs, SourceFile} from "z80-asm";
 import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
@@ -550,7 +550,7 @@ const extensions: Extension = [
     dropCursor(),
     EditorState.allowMultipleSelections.of(true),
     indentOnInput(),
-    defaultHighlightStyle.fallback,
+    syntaxHighlighting(defaultHighlightStyle),
     bracketMatching(),
     closeBrackets(),
     autocompletion({
@@ -567,7 +567,6 @@ const extensions: Extension = [
         ...searchKeymap,
         ...historyKeymap,
         ...foldKeymap,
-        ...commentKeymap,
         ...completionKeymap,
         ...lintKeymap,
         indentWithTab,
@@ -594,8 +593,10 @@ const extensions: Extension = [
     indentUnit.of("        "),
     // Make editor read-only when editing a screenshot.
     EditorState.readOnly.from(editingScreenshotStateField, editing => editing),
+    solarizedDark,
 ];
 
+console.log(extensions);
 let startState = EditorState.create({
     doc: initial_code,
     extensions: extensions,
