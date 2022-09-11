@@ -165,8 +165,10 @@ body.append(content);
 
 const editorPane = document.createElement("div");
 editorPane.classList.add("editor-pane");
-const sampleChooser = document.createElement("select");
-sampleChooser.classList.add("sample-chooser");
+const toolbar = document.createElement("div");
+toolbar.classList.add("toolbar");
+const projectChooser = document.createElement("select");
+projectChooser.classList.add("project-chooser");
 const samples = [
     {value: "initial_code", name: "Simple", code: initial_code},
     {value: "space_invaders", name: "Space Invaders", code: space_invaders},
@@ -177,8 +179,9 @@ for (const sample of samples) {
     const option = document.createElement("option");
     option.value = sample.value;
     option.textContent = sample.name;
-    sampleChooser.append(option);
+    projectChooser.append(option);
 }
+toolbar.append("Project:", projectChooser);
 const editorContainer = document.createElement("div");
 editorContainer.classList.add("editor-container");
 const editorDiv = document.createElement("div");
@@ -195,7 +198,7 @@ const nextErrorButton = document.createElement("button");
 nextErrorButton.textContent = "Next";
 nextErrorButton.addEventListener("click", () => nextError(view.state.field(assemblyResultsStateField)));
 errorContainer.append(errorMessageDiv, prevErrorButton, nextErrorButton);
-editorPane.append(sampleChooser, editorContainer, errorContainer);
+editorPane.append(toolbar, editorContainer, errorContainer);
 const saveButton = document.createElement("button");
 saveButton.innerText = "Save";
 const restoreButton = document.createElement("button");
@@ -824,8 +827,8 @@ restoreButton.addEventListener("click", () => {
         trs80.restore(trs80State);
     }
 });
-sampleChooser.addEventListener("change", () => {
-    const sampleValue = sampleChooser.value;
+projectChooser.addEventListener("change", () => {
+    const sampleValue = projectChooser.value;
     const sample = samples.filter(s => s.value === sampleValue)[0];
     if (sample !== undefined) {
         if (gScreenEditor !== undefined) {

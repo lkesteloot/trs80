@@ -43,11 +43,12 @@ body {
     padding: 0;
     margin: 0;
     background: var(--background);
+    font-family: sans-serif;
 }
 
 .content {
     box-sizing: border-box;
-    padding: 50px;
+    padding: 0 30px 0 0;
     height: 100vh;
     display: flex;
     gap: 30px;
@@ -59,6 +60,14 @@ body {
     gap: 15px;
     flex-grow: 1;
     align-self: stretch;
+}
+
+.toolbar {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+    padding: 20px 10px 0 10px;
 }
 
 .editor-container {
@@ -100,8 +109,6 @@ body {
     flex-direction: row;
     align-items: baseline;
     gap: 0.5em;
-
-    font-family: sans-serif;
 }
 
 .gutter-bytecode {
@@ -124,7 +131,6 @@ body {
     position: absolute;
     display: flex;
     gap: 10px;
-    font-family: sans-serif;
     font-size: 10pt;
 }
 
@@ -201,6 +207,5 @@ body {
     bottom: -30px;
     display: flex;
     gap: 10px;
-    font-family: sans-serif;
     font-size: 10pt;
 }
