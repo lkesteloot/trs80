@@ -1,5 +1,4 @@
-// Generate this with: npx pbjs ApiProtos.proto --ts RetroStoreProto.ts
-import * as RetroStoreProto from "./RetroStoreProto";
+import * as RetroStoreProto from "retrostore-api";
 import {clearElement} from "teamten-ts-utils";
 import {makeIcon, makeIconButton} from "./Utils";
 import {Context} from "./Context";

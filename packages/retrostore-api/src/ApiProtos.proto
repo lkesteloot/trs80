@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+option java_package = "org.retrostore.client.common.proto";
+option java_outer_classname = "ApiProtos";
+option java_multiple_files = true;
+
+// Response for APIs that receive a list of apps.
+message ApiResponseApps {
+    // Whether the request was a success.
+    bool success = 1;
+    // An optional (error) message, human-readable.
+    string message = 2;
+    // A list of apps returned by the request.
+    repeated App app = 3;
+}
+
+message ApiResponseMediaImages {
+    // Whether the request was a success.
+    bool success = 1;
+    // An optional (error) message, human-readable.
+    string message = 2;
+    // The media images returned by this response.
+    repeated MediaImage mediaImage = 3;
+}
+
+message ApiResponseDownloadSystemState {
+    // Whether the request was a success.
+    bool success = 1;
+    // An optional (error) message, human-readable.
+    string message = 2;
+    // The system state returned by this response.
+    SystemState systemState = 3;
+}
+
+message ApiResponseUploadSystemState {
+    // Whether the request was a success.
+    bool success = 1;
+    // An optional (error) message, human-readable.
+    string message = 2;
+    // The token referring to the just uploaded state.
+    int64 token = 3;
+}
+
+// A RetroStore app item.
+message App {
+    // The ID to uniquely identify an app.
+    string id = 1;
+    // The name of the app.
+    string name = 2;
+    // The human readable version of this app.
+    string version = 3;
+    // The description of this app.
+    string description = 4;
+    // The original release year of the app.
+    int32 release_year = 5;
+    // URLs to screenshots for this app.
+    repeated string screenshot_url = 6;
+    // The author of the app (not the uploader).
+    string author = 7;
+    // Extension set for TRS80 apps.
+    Trs80Extension ext_trs80 = 8;
+
+    // NEXT ID: 9;
+}
+
+// The TRS-80 model types.
+enum Trs80Model {
+    UNKNOWN_MODEL = 0;
+    MODEL_I = 1;
+    MODEL_III = 2;
+    MODEL_4 = 3;
+    MODEL_4P = 4;
+}
+
+// Parameters specific to TRS-80 apps.
+message Trs80Extension {
+    // The TRS-80 model type.
+    Trs80Model model = 1;
+}
+
+// A media image for an app.
+message MediaImage {
+    // The type of this media image.
+    MediaType type = 1;
+    // The file name of this media image.
+    string filename = 2;
+    // The actual data of this media image.
+    bytes data = 3;
+    // When the image was uploaded.
+    int64 uploadTime = 4;
+    // An optional description of this media image describing its contents.
+    string description = 5;
+}
+
+// Types of MediaImages.
+enum MediaType {
+    UNKNOWN = 0;
+    DISK = 1;
+    CASSETTE = 2;
+    COMMAND = 3;
+    BASIC = 4;
+}
+
+message Registers {
+    int32 ix = 1;
+    int32 iy = 2;
+    int32 pc = 3;
+    int32 sp = 4;
+    int32 af = 5;
+    int32 bc = 6;
+    int32 de = 7;
+    int32 hl = 8;
+    int32 af_prime = 9;
+    int32 bc_prime = 10;
+    int32 de_prime = 11;
+    int32 hl_prime = 12;
+    int32 i = 13;
+    int32 r_1 = 14;
+    int32 r_2 = 15;
+}
+
+// Single memory region.
+message MemoryRegion {
+    int32 start = 1;
+    int32 length = 3;
+    bytes data = 2;
+}
+
+// The state of a TRS system, including registers and memory.
+message SystemState {
+    Trs80Model model = 1;
+    Registers registers = 2;
+    repeated MemoryRegion memoryRegions = 3;
+}
+
+// API Params
+message FetchMediaImagesParams {
+    string app_id = 1;
+}
+
+// API Params
+message GetAppParams {
+    string app_id = 1;
+}
+
+message Trs80Params {
+    repeated MediaType media_types = 1;
+}
+
+// API Params
+message ListAppsParams {
+    int32 start = 1;
+    int32 num = 2;
+    string query = 3;
+    Trs80Params trs80 = 4;
+}
+
+// API Params
+message UploadSystemStateParams {
+    SystemState state = 1;
+}
+
+// API Params
+message DownloadSystemStateParams {
+    int64 token = 1;
+}

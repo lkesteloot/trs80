@@ -9,7 +9,7 @@ To do a clean install:
 
 To install a new package:
 
-    % npm -w PACKAGE_NAME install --save MODULE_NAME
+    % npm -w packages/OUR_PACKAGE_NAME install --save THEIR_PACKAGE_NAME
 
 ---------------------
 

@@ -1,0 +1,18 @@
+{
+  "name": "retrostore-api",
+  "version": "1.0.0",
+  "description": "Code for hitting the RetroStore service",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "repository": "https://github.com/lkesteloot/trs80.git",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "copy-proto": "cp ~/others/retrostore-jvm-sdk/src/main/proto/org/retrostore/client/common/proto/ApiProtos.proto src",
+    "proto": "npx pbjs src/ApiProtos.proto --ts src/RetroStoreProto.ts"
+  },
+  "keywords": [],
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "license": "MIT"
+}

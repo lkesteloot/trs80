@@ -214,6 +214,162 @@ function _decodeApiResponseMediaImages(bb: ByteBuffer): ApiResponseMediaImages {
   return message;
 }
 
+export interface ApiResponseDownloadSystemState {
+  success?: boolean;
+  message?: string;
+  systemState?: SystemState;
+}
+
+export function encodeApiResponseDownloadSystemState(message: ApiResponseDownloadSystemState): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeApiResponseDownloadSystemState(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeApiResponseDownloadSystemState(message: ApiResponseDownloadSystemState, bb: ByteBuffer): void {
+  // optional bool success = 1;
+  let $success = message.success;
+  if ($success !== undefined) {
+    writeVarint32(bb, 8);
+    writeByte(bb, $success ? 1 : 0);
+  }
+
+  // optional string message = 2;
+  let $message = message.message;
+  if ($message !== undefined) {
+    writeVarint32(bb, 18);
+    writeString(bb, $message);
+  }
+
+  // optional SystemState systemState = 3;
+  let $systemState = message.systemState;
+  if ($systemState !== undefined) {
+    writeVarint32(bb, 26);
+    let nested = popByteBuffer();
+    _encodeSystemState($systemState, nested);
+    writeVarint32(bb, nested.limit);
+    writeByteBuffer(bb, nested);
+    pushByteBuffer(nested);
+  }
+}
+
+export function decodeApiResponseDownloadSystemState(binary: Uint8Array): ApiResponseDownloadSystemState {
+  return _decodeApiResponseDownloadSystemState(wrapByteBuffer(binary));
+}
+
+function _decodeApiResponseDownloadSystemState(bb: ByteBuffer): ApiResponseDownloadSystemState {
+  let message: ApiResponseDownloadSystemState = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional bool success = 1;
+      case 1: {
+        message.success = !!readByte(bb);
+        break;
+      }
+
+      // optional string message = 2;
+      case 2: {
+        message.message = readString(bb, readVarint32(bb));
+        break;
+      }
+
+      // optional SystemState systemState = 3;
+      case 3: {
+        let limit = pushTemporaryLength(bb);
+        message.systemState = _decodeSystemState(bb);
+        bb.limit = limit;
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface ApiResponseUploadSystemState {
+  success?: boolean;
+  message?: string;
+  token?: Long;
+}
+
+export function encodeApiResponseUploadSystemState(message: ApiResponseUploadSystemState): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeApiResponseUploadSystemState(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeApiResponseUploadSystemState(message: ApiResponseUploadSystemState, bb: ByteBuffer): void {
+  // optional bool success = 1;
+  let $success = message.success;
+  if ($success !== undefined) {
+    writeVarint32(bb, 8);
+    writeByte(bb, $success ? 1 : 0);
+  }
+
+  // optional string message = 2;
+  let $message = message.message;
+  if ($message !== undefined) {
+    writeVarint32(bb, 18);
+    writeString(bb, $message);
+  }
+
+  // optional int64 token = 3;
+  let $token = message.token;
+  if ($token !== undefined) {
+    writeVarint32(bb, 24);
+    writeVarint64(bb, $token);
+  }
+}
+
+export function decodeApiResponseUploadSystemState(binary: Uint8Array): ApiResponseUploadSystemState {
+  return _decodeApiResponseUploadSystemState(wrapByteBuffer(binary));
+}
+
+function _decodeApiResponseUploadSystemState(bb: ByteBuffer): ApiResponseUploadSystemState {
+  let message: ApiResponseUploadSystemState = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional bool success = 1;
+      case 1: {
+        message.success = !!readByte(bb);
+        break;
+      }
+
+      // optional string message = 2;
+      case 2: {
+        message.message = readString(bb, readVarint32(bb));
+        break;
+      }
+
+      // optional int64 token = 3;
+      case 3: {
+        message.token = readVarint64(bb, /* unsigned */ false);
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
 export interface App {
   id?: string;
   name?: string;
@@ -507,6 +663,765 @@ function _decodeMediaImage(bb: ByteBuffer): MediaImage {
       // optional string description = 5;
       case 5: {
         message.description = readString(bb, readVarint32(bb));
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface Registers {
+  ix?: number;
+  iy?: number;
+  pc?: number;
+  sp?: number;
+  af?: number;
+  bc?: number;
+  de?: number;
+  hl?: number;
+  af_prime?: number;
+  bc_prime?: number;
+  de_prime?: number;
+  hl_prime?: number;
+  i?: number;
+  r_1?: number;
+  r_2?: number;
+}
+
+export function encodeRegisters(message: Registers): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeRegisters(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeRegisters(message: Registers, bb: ByteBuffer): void {
+  // optional int32 ix = 1;
+  let $ix = message.ix;
+  if ($ix !== undefined) {
+    writeVarint32(bb, 8);
+    writeVarint64(bb, intToLong($ix));
+  }
+
+  // optional int32 iy = 2;
+  let $iy = message.iy;
+  if ($iy !== undefined) {
+    writeVarint32(bb, 16);
+    writeVarint64(bb, intToLong($iy));
+  }
+
+  // optional int32 pc = 3;
+  let $pc = message.pc;
+  if ($pc !== undefined) {
+    writeVarint32(bb, 24);
+    writeVarint64(bb, intToLong($pc));
+  }
+
+  // optional int32 sp = 4;
+  let $sp = message.sp;
+  if ($sp !== undefined) {
+    writeVarint32(bb, 32);
+    writeVarint64(bb, intToLong($sp));
+  }
+
+  // optional int32 af = 5;
+  let $af = message.af;
+  if ($af !== undefined) {
+    writeVarint32(bb, 40);
+    writeVarint64(bb, intToLong($af));
+  }
+
+  // optional int32 bc = 6;
+  let $bc = message.bc;
+  if ($bc !== undefined) {
+    writeVarint32(bb, 48);
+    writeVarint64(bb, intToLong($bc));
+  }
+
+  // optional int32 de = 7;
+  let $de = message.de;
+  if ($de !== undefined) {
+    writeVarint32(bb, 56);
+    writeVarint64(bb, intToLong($de));
+  }
+
+  // optional int32 hl = 8;
+  let $hl = message.hl;
+  if ($hl !== undefined) {
+    writeVarint32(bb, 64);
+    writeVarint64(bb, intToLong($hl));
+  }
+
+  // optional int32 af_prime = 9;
+  let $af_prime = message.af_prime;
+  if ($af_prime !== undefined) {
+    writeVarint32(bb, 72);
+    writeVarint64(bb, intToLong($af_prime));
+  }
+
+  // optional int32 bc_prime = 10;
+  let $bc_prime = message.bc_prime;
+  if ($bc_prime !== undefined) {
+    writeVarint32(bb, 80);
+    writeVarint64(bb, intToLong($bc_prime));
+  }
+
+  // optional int32 de_prime = 11;
+  let $de_prime = message.de_prime;
+  if ($de_prime !== undefined) {
+    writeVarint32(bb, 88);
+    writeVarint64(bb, intToLong($de_prime));
+  }
+
+  // optional int32 hl_prime = 12;
+  let $hl_prime = message.hl_prime;
+  if ($hl_prime !== undefined) {
+    writeVarint32(bb, 96);
+    writeVarint64(bb, intToLong($hl_prime));
+  }
+
+  // optional int32 i = 13;
+  let $i = message.i;
+  if ($i !== undefined) {
+    writeVarint32(bb, 104);
+    writeVarint64(bb, intToLong($i));
+  }
+
+  // optional int32 r_1 = 14;
+  let $r_1 = message.r_1;
+  if ($r_1 !== undefined) {
+    writeVarint32(bb, 112);
+    writeVarint64(bb, intToLong($r_1));
+  }
+
+  // optional int32 r_2 = 15;
+  let $r_2 = message.r_2;
+  if ($r_2 !== undefined) {
+    writeVarint32(bb, 120);
+    writeVarint64(bb, intToLong($r_2));
+  }
+}
+
+export function decodeRegisters(binary: Uint8Array): Registers {
+  return _decodeRegisters(wrapByteBuffer(binary));
+}
+
+function _decodeRegisters(bb: ByteBuffer): Registers {
+  let message: Registers = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional int32 ix = 1;
+      case 1: {
+        message.ix = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 iy = 2;
+      case 2: {
+        message.iy = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 pc = 3;
+      case 3: {
+        message.pc = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 sp = 4;
+      case 4: {
+        message.sp = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 af = 5;
+      case 5: {
+        message.af = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 bc = 6;
+      case 6: {
+        message.bc = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 de = 7;
+      case 7: {
+        message.de = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 hl = 8;
+      case 8: {
+        message.hl = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 af_prime = 9;
+      case 9: {
+        message.af_prime = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 bc_prime = 10;
+      case 10: {
+        message.bc_prime = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 de_prime = 11;
+      case 11: {
+        message.de_prime = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 hl_prime = 12;
+      case 12: {
+        message.hl_prime = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 i = 13;
+      case 13: {
+        message.i = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 r_1 = 14;
+      case 14: {
+        message.r_1 = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 r_2 = 15;
+      case 15: {
+        message.r_2 = readVarint32(bb);
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface MemoryRegion {
+  start?: number;
+  length?: number;
+  data?: Uint8Array;
+}
+
+export function encodeMemoryRegion(message: MemoryRegion): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeMemoryRegion(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeMemoryRegion(message: MemoryRegion, bb: ByteBuffer): void {
+  // optional int32 start = 1;
+  let $start = message.start;
+  if ($start !== undefined) {
+    writeVarint32(bb, 8);
+    writeVarint64(bb, intToLong($start));
+  }
+
+  // optional int32 length = 3;
+  let $length = message.length;
+  if ($length !== undefined) {
+    writeVarint32(bb, 24);
+    writeVarint64(bb, intToLong($length));
+  }
+
+  // optional bytes data = 2;
+  let $data = message.data;
+  if ($data !== undefined) {
+    writeVarint32(bb, 18);
+    writeVarint32(bb, $data.length), writeBytes(bb, $data);
+  }
+}
+
+export function decodeMemoryRegion(binary: Uint8Array): MemoryRegion {
+  return _decodeMemoryRegion(wrapByteBuffer(binary));
+}
+
+function _decodeMemoryRegion(bb: ByteBuffer): MemoryRegion {
+  let message: MemoryRegion = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional int32 start = 1;
+      case 1: {
+        message.start = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 length = 3;
+      case 3: {
+        message.length = readVarint32(bb);
+        break;
+      }
+
+      // optional bytes data = 2;
+      case 2: {
+        message.data = readBytes(bb, readVarint32(bb));
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface SystemState {
+  model?: Trs80Model;
+  registers?: Registers;
+  memoryRegions?: MemoryRegion[];
+}
+
+export function encodeSystemState(message: SystemState): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeSystemState(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeSystemState(message: SystemState, bb: ByteBuffer): void {
+  // optional Trs80Model model = 1;
+  let $model = message.model;
+  if ($model !== undefined) {
+    writeVarint32(bb, 8);
+    writeVarint32(bb, encodeTrs80Model[$model]);
+  }
+
+  // optional Registers registers = 2;
+  let $registers = message.registers;
+  if ($registers !== undefined) {
+    writeVarint32(bb, 18);
+    let nested = popByteBuffer();
+    _encodeRegisters($registers, nested);
+    writeVarint32(bb, nested.limit);
+    writeByteBuffer(bb, nested);
+    pushByteBuffer(nested);
+  }
+
+  // repeated MemoryRegion memoryRegions = 3;
+  let array$memoryRegions = message.memoryRegions;
+  if (array$memoryRegions !== undefined) {
+    for (let value of array$memoryRegions) {
+      writeVarint32(bb, 26);
+      let nested = popByteBuffer();
+      _encodeMemoryRegion(value, nested);
+      writeVarint32(bb, nested.limit);
+      writeByteBuffer(bb, nested);
+      pushByteBuffer(nested);
+    }
+  }
+}
+
+export function decodeSystemState(binary: Uint8Array): SystemState {
+  return _decodeSystemState(wrapByteBuffer(binary));
+}
+
+function _decodeSystemState(bb: ByteBuffer): SystemState {
+  let message: SystemState = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional Trs80Model model = 1;
+      case 1: {
+        message.model = decodeTrs80Model[readVarint32(bb)];
+        break;
+      }
+
+      // optional Registers registers = 2;
+      case 2: {
+        let limit = pushTemporaryLength(bb);
+        message.registers = _decodeRegisters(bb);
+        bb.limit = limit;
+        break;
+      }
+
+      // repeated MemoryRegion memoryRegions = 3;
+      case 3: {
+        let limit = pushTemporaryLength(bb);
+        let values = message.memoryRegions || (message.memoryRegions = []);
+        values.push(_decodeMemoryRegion(bb));
+        bb.limit = limit;
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface FetchMediaImagesParams {
+  app_id?: string;
+}
+
+export function encodeFetchMediaImagesParams(message: FetchMediaImagesParams): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeFetchMediaImagesParams(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeFetchMediaImagesParams(message: FetchMediaImagesParams, bb: ByteBuffer): void {
+  // optional string app_id = 1;
+  let $app_id = message.app_id;
+  if ($app_id !== undefined) {
+    writeVarint32(bb, 10);
+    writeString(bb, $app_id);
+  }
+}
+
+export function decodeFetchMediaImagesParams(binary: Uint8Array): FetchMediaImagesParams {
+  return _decodeFetchMediaImagesParams(wrapByteBuffer(binary));
+}
+
+function _decodeFetchMediaImagesParams(bb: ByteBuffer): FetchMediaImagesParams {
+  let message: FetchMediaImagesParams = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional string app_id = 1;
+      case 1: {
+        message.app_id = readString(bb, readVarint32(bb));
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface GetAppParams {
+  app_id?: string;
+}
+
+export function encodeGetAppParams(message: GetAppParams): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeGetAppParams(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeGetAppParams(message: GetAppParams, bb: ByteBuffer): void {
+  // optional string app_id = 1;
+  let $app_id = message.app_id;
+  if ($app_id !== undefined) {
+    writeVarint32(bb, 10);
+    writeString(bb, $app_id);
+  }
+}
+
+export function decodeGetAppParams(binary: Uint8Array): GetAppParams {
+  return _decodeGetAppParams(wrapByteBuffer(binary));
+}
+
+function _decodeGetAppParams(bb: ByteBuffer): GetAppParams {
+  let message: GetAppParams = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional string app_id = 1;
+      case 1: {
+        message.app_id = readString(bb, readVarint32(bb));
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface Trs80Params {
+  media_types?: MediaType[];
+}
+
+export function encodeTrs80Params(message: Trs80Params): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeTrs80Params(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeTrs80Params(message: Trs80Params, bb: ByteBuffer): void {
+  // repeated MediaType media_types = 1;
+  let array$media_types = message.media_types;
+  if (array$media_types !== undefined) {
+    let packed = popByteBuffer();
+    for (let value of array$media_types) {
+      writeVarint32(packed, encodeMediaType[value]);
+    }
+    writeVarint32(bb, 10);
+    writeVarint32(bb, packed.offset);
+    writeByteBuffer(bb, packed);
+    pushByteBuffer(packed);
+  }
+}
+
+export function decodeTrs80Params(binary: Uint8Array): Trs80Params {
+  return _decodeTrs80Params(wrapByteBuffer(binary));
+}
+
+function _decodeTrs80Params(bb: ByteBuffer): Trs80Params {
+  let message: Trs80Params = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // repeated MediaType media_types = 1;
+      case 1: {
+        let values = message.media_types || (message.media_types = []);
+        if ((tag & 7) === 2) {
+          let outerLimit = pushTemporaryLength(bb);
+          while (!isAtEnd(bb)) {
+            values.push(decodeMediaType[readVarint32(bb)]);
+          }
+          bb.limit = outerLimit;
+        } else {
+          values.push(decodeMediaType[readVarint32(bb)]);
+        }
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface ListAppsParams {
+  start?: number;
+  num?: number;
+  query?: string;
+  trs80?: Trs80Params;
+}
+
+export function encodeListAppsParams(message: ListAppsParams): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeListAppsParams(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeListAppsParams(message: ListAppsParams, bb: ByteBuffer): void {
+  // optional int32 start = 1;
+  let $start = message.start;
+  if ($start !== undefined) {
+    writeVarint32(bb, 8);
+    writeVarint64(bb, intToLong($start));
+  }
+
+  // optional int32 num = 2;
+  let $num = message.num;
+  if ($num !== undefined) {
+    writeVarint32(bb, 16);
+    writeVarint64(bb, intToLong($num));
+  }
+
+  // optional string query = 3;
+  let $query = message.query;
+  if ($query !== undefined) {
+    writeVarint32(bb, 26);
+    writeString(bb, $query);
+  }
+
+  // optional Trs80Params trs80 = 4;
+  let $trs80 = message.trs80;
+  if ($trs80 !== undefined) {
+    writeVarint32(bb, 34);
+    let nested = popByteBuffer();
+    _encodeTrs80Params($trs80, nested);
+    writeVarint32(bb, nested.limit);
+    writeByteBuffer(bb, nested);
+    pushByteBuffer(nested);
+  }
+}
+
+export function decodeListAppsParams(binary: Uint8Array): ListAppsParams {
+  return _decodeListAppsParams(wrapByteBuffer(binary));
+}
+
+function _decodeListAppsParams(bb: ByteBuffer): ListAppsParams {
+  let message: ListAppsParams = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional int32 start = 1;
+      case 1: {
+        message.start = readVarint32(bb);
+        break;
+      }
+
+      // optional int32 num = 2;
+      case 2: {
+        message.num = readVarint32(bb);
+        break;
+      }
+
+      // optional string query = 3;
+      case 3: {
+        message.query = readString(bb, readVarint32(bb));
+        break;
+      }
+
+      // optional Trs80Params trs80 = 4;
+      case 4: {
+        let limit = pushTemporaryLength(bb);
+        message.trs80 = _decodeTrs80Params(bb);
+        bb.limit = limit;
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface UploadSystemStateParams {
+  state?: SystemState;
+}
+
+export function encodeUploadSystemStateParams(message: UploadSystemStateParams): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeUploadSystemStateParams(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeUploadSystemStateParams(message: UploadSystemStateParams, bb: ByteBuffer): void {
+  // optional SystemState state = 1;
+  let $state = message.state;
+  if ($state !== undefined) {
+    writeVarint32(bb, 10);
+    let nested = popByteBuffer();
+    _encodeSystemState($state, nested);
+    writeVarint32(bb, nested.limit);
+    writeByteBuffer(bb, nested);
+    pushByteBuffer(nested);
+  }
+}
+
+export function decodeUploadSystemStateParams(binary: Uint8Array): UploadSystemStateParams {
+  return _decodeUploadSystemStateParams(wrapByteBuffer(binary));
+}
+
+function _decodeUploadSystemStateParams(bb: ByteBuffer): UploadSystemStateParams {
+  let message: UploadSystemStateParams = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional SystemState state = 1;
+      case 1: {
+        let limit = pushTemporaryLength(bb);
+        message.state = _decodeSystemState(bb);
+        bb.limit = limit;
+        break;
+      }
+
+      default:
+        skipUnknownField(bb, tag & 7);
+    }
+  }
+
+  return message;
+}
+
+export interface DownloadSystemStateParams {
+  token?: Long;
+}
+
+export function encodeDownloadSystemStateParams(message: DownloadSystemStateParams): Uint8Array {
+  let bb = popByteBuffer();
+  _encodeDownloadSystemStateParams(message, bb);
+  return toUint8Array(bb);
+}
+
+function _encodeDownloadSystemStateParams(message: DownloadSystemStateParams, bb: ByteBuffer): void {
+  // optional int64 token = 1;
+  let $token = message.token;
+  if ($token !== undefined) {
+    writeVarint32(bb, 8);
+    writeVarint64(bb, $token);
+  }
+}
+
+export function decodeDownloadSystemStateParams(binary: Uint8Array): DownloadSystemStateParams {
+  return _decodeDownloadSystemStateParams(wrapByteBuffer(binary));
+}
+
+function _decodeDownloadSystemStateParams(bb: ByteBuffer): DownloadSystemStateParams {
+  let message: DownloadSystemStateParams = {} as any;
+
+  end_of_message: while (!isAtEnd(bb)) {
+    let tag = readVarint32(bb);
+
+    switch (tag >>> 3) {
+      case 0:
+        break end_of_message;
+
+      // optional int64 token = 1;
+      case 1: {
+        message.token = readVarint64(bb, /* unsigned */ false);
         break;
       }
 
