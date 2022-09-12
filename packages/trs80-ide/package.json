@@ -14,8 +14,15 @@
     "publish": "npm run build && rsync -a dist/ lk@hitch.headcode.com:my-trs-80-website/ide/"
   },
   "dependencies": {
-    "codemirror": "^6.0.0",
+    "cm6-theme-basic-dark": "^0.2.0",
+    "cm6-theme-basic-light": "^0.2.0",
+    "cm6-theme-gruvbox-dark": "^0.2.0",
+    "cm6-theme-gruvbox-light": "^0.2.0",
+    "cm6-theme-material-dark": "^0.2.0",
+    "cm6-theme-nord": "^0.2.0",
     "cm6-theme-solarized-dark": "^0.2.0",
+    "cm6-theme-solarized-light": "^0.2.0",
+    "codemirror": "^6.0.0",
     "teamten-ts-utils": "^1.0.3",
     "trs80-base": "^2.3.1",
     "trs80-emulator": "^2.3.1",

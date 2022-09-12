@@ -14,7 +14,7 @@ import {
     WidgetType
 } from "@codemirror/view"
 import {EditorSelection, EditorState, Extension, StateField, StateEffect, Transaction} from "@codemirror/state"
-import {RangeSetBuilder} from "@codemirror/state";
+import {RangeSetBuilder, Compartment} from "@codemirror/state";
 import {defineLanguageFacet, indentOnInput, Language, LanguageSupport, indentUnit} from "@codemirror/language"
 import {history, historyKeymap} from "@codemirror/commands"
 import {foldGutter, foldKeymap} from "@codemirror/language"
@@ -27,6 +27,13 @@ import {rectangularSelection} from "@codemirror/view"
 import {syntaxHighlighting, defaultHighlightStyle} from "@codemirror/language"
 import {Diagnostic, lintKeymap, setDiagnostics} from "@codemirror/lint"
 import { solarizedDark } from 'cm6-theme-solarized-dark'
+import { solarizedLight } from 'cm6-theme-solarized-light'
+import { basicDark } from 'cm6-theme-basic-dark'
+import { basicLight } from 'cm6-theme-basic-light'
+import { gruvboxDark } from 'cm6-theme-gruvbox-dark'
+import { gruvboxLight } from 'cm6-theme-gruvbox-light'
+import { materialDark } from 'cm6-theme-material-dark'
+import { nord } from 'cm6-theme-nord'
 
 import {Asm, getAsmDirectiveDocs, SourceFile} from "z80-asm";
 import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
@@ -128,6 +135,43 @@ stop:
         jp stop
 `;
 
+// Available themes.
+const THEMES = [
+    {
+        extension: basicLight,
+        name: 'Basic Light'
+    },
+    {
+        extension: basicDark,
+        name: 'Basic Dark'
+    },
+    {
+        extension: solarizedLight,
+        name: 'Solarized Light'
+    },
+    {
+        extension: solarizedDark,
+        name: 'Solarized Dark'
+    },
+    {
+        extension: materialDark,
+        name: 'Material Dark'
+    },
+    {
+        extension: nord,
+        name: 'Nord'
+    },
+    {
+        extension: gruvboxLight,
+        name: 'Gruvbox Light'
+    },
+    {
+        extension: gruvboxDark,
+        name: 'Gruvbox Dark'
+    },
+];
+const DEFAULT_THEME_INDEX = 3;
+
 /**
  * Gutter to show the line's address and bytecode.
  */
@@ -181,7 +225,26 @@ for (const sample of samples) {
     option.textContent = sample.name;
     projectChooser.append(option);
 }
-toolbar.append("Project:", projectChooser);
+const themeChooser = document.createElement("select");
+themeChooser.classList.add("theme-chooser");
+for (let i = 0; i < THEMES.length; i++) {
+    const option = document.createElement("option");
+    option.value = i.toString();
+    option.textContent = THEMES[i].name;
+    if (i === DEFAULT_THEME_INDEX) {
+        option.selected = true;
+    }
+    themeChooser.append(option)
+}
+themeChooser.addEventListener("change", e => {
+    if (e.currentTarget instanceof HTMLSelectElement) {
+        const i = parseInt(e.currentTarget.value, 10);
+        view.dispatch({
+            effects: themeConfig.reconfigure([THEMES[i]]),
+        });
+    }
+});
+toolbar.append("Project:", projectChooser, "Theme:", themeChooser);
 const editorContainer = document.createElement("div");
 editorContainer.classList.add("editor-container");
 const editorDiv = document.createElement("div");
@@ -539,6 +602,9 @@ function customCompletions(context: CompletionContext): CompletionResult | null 
     };
 }
 
+// Compartment to fit the current theme into.
+const themeConfig = new Compartment();
+
 const extensions: Extension = [
     lineNumbers(),
     bytecodeGutter(),
@@ -593,10 +659,9 @@ const extensions: Extension = [
     indentUnit.of("        "),
     // Make editor read-only when editing a screenshot.
     EditorState.readOnly.from(editingScreenshotStateField, editing => editing),
-    solarizedDark,
+    themeConfig.of(THEMES[DEFAULT_THEME_INDEX]),
 ];
 
-console.log(extensions);
 let startState = EditorState.create({
     doc: initial_code,
     extensions: extensions,
