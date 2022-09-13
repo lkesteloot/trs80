@@ -34,6 +34,7 @@ import { gruvboxDark } from 'cm6-theme-gruvbox-dark'
 import { gruvboxLight } from 'cm6-theme-gruvbox-light'
 import { materialDark } from 'cm6-theme-material-dark'
 import { nord } from 'cm6-theme-nord'
+import * as RetroStoreProto from "retrostore-api";
 
 import {Asm, getAsmDirectiveDocs, SourceFile} from "z80-asm";
 import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
@@ -52,14 +53,14 @@ import {Input, NodeType, Parser, PartialParse, Tree, TreeFragment} from "@lezer/
 import {breakdwn} from "./breakdwn.ts";
 import {scarfman} from "./scarfman.ts";
 import "./style.css";
-import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base"
-import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS} from "trs80-base"
+import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base";
+import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS, ProgramBuilder} from "trs80-base";
 import {ScreenEditor} from "./ScreenEditor.ts";
 import {ScreenshotSection} from "./ScreenshotSection.ts";
 import {AssemblyResults} from "./AssemblyResults.ts";
 import { mnemonicMap, OpcodeVariant } from "z80-inst";
 
-const initial_code = `        .org 0x5000
+const initial_code = `        .org 0x9000
         di
         
         ld hl,screenshot
@@ -173,6 +174,26 @@ const THEMES = [
 const DEFAULT_THEME_INDEX = 3;
 
 /**
+ * Builder of chunks of memory for the RetroStore interface.
+ */
+class RetroStoreProgramBuilder extends ProgramBuilder {
+    /**
+     * Get RetroStore memory regions for the bytes given so far.
+     */
+    public getMemoryRegions(): RetroStoreProto.MemoryRegion[] {
+        // Sort blocks by address (not really necessary for RetroStore).
+        this.blocks.sort((a, b) => a.address - b.address);
+
+        return this.blocks
+            .map(block => ({
+                start: block.address,
+                length: block.bytes.length,
+                data: new Uint8Array(block.bytes),
+            }));
+    }
+}
+
+/**
  * Gutter to show the line's address and bytecode.
  */
 class BytecodeGutter extends GutterMarker {
@@ -244,7 +265,57 @@ themeChooser.addEventListener("change", e => {
         });
     }
 });
-toolbar.append("Project:", projectChooser, "Theme:", themeChooser);
+const uploadButton = document.createElement("button");
+uploadButton.textContent = "RetroStore";
+uploadButton.addEventListener("click", async () => {
+    const results = view.state.field(assemblyResultsStateField);
+    if (results.errorLines.length !== 0) {
+        return;
+    }
+    const builder = new RetroStoreProgramBuilder();
+    for (const line of results.sourceFile.assembledLines) {
+        builder.addBytes(line.address, line.binary);
+    }
+    let entryPoint = results.asm.entryPoint;
+    if (entryPoint === undefined) {
+        for (const line of results.sourceFile.assembledLines) {
+            if (line.binary.length > 0) {
+                entryPoint = line.address;
+                break;
+            }
+        }
+    }
+    if (entryPoint === undefined) {
+        return;
+    }
+    const params: RetroStoreProto.UploadSystemStateParams = {
+        state: {
+            // Can't use the enum here because it's a "const enum", and the way we compile
+            // TS is one file at a time (probably transpile only?). So must hack it with
+            // a string that's cast.
+            model: "MODEL_III" as RetroStoreProto.Trs80Model,
+            registers: {
+                pc: entryPoint,
+            },
+            memoryRegions: builder.getMemoryRegions(),
+        },
+    };
+    console.log(params);
+    const response = await fetch("https://retrostore.org/api/uploadState", {
+        method: "POST",
+        body: RetroStoreProto.encodeUploadSystemStateParams(params),
+        mode: "cors",
+        cache: "no-cache",
+        redirect: "follow",
+    });
+    console.log(response);
+    const arrayBuffer = await response.arrayBuffer();
+    console.log(arrayBuffer);
+    const x = RetroStoreProto.decodeApiResponseUploadSystemState(new Uint8Array(arrayBuffer));
+    console.log(x);
+    console.log("Token: " + x.token?.low);
+});
+toolbar.append("Project:", projectChooser, "Theme:", themeChooser, uploadButton);
 const editorContainer = document.createElement("div");
 editorContainer.classList.add("editor-container");
 const editorDiv = document.createElement("div");
@@ -470,10 +541,11 @@ const assemblyResultsStateField = StateField.define<AssemblyResults>({
                 return effect.value;
             }
         }
-        // See if we should reassembly based on changes to the doc.
+        // See if we should reassemble based on changes to the doc.
         if (tr.docChanged) {
             return assemble(tr.state.doc.toJSON());
         } else {
+            // No, return old value.
             return value;
         }
     },
