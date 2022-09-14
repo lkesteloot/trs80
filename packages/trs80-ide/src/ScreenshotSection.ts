@@ -1,4 +1,7 @@
 
+/**
+ * Keeps track of a section of code that stores a screenshot (raw graphic characters).
+ */
 export class ScreenshotSection {
     // All line numbers are 1-based.
     public readonly beginCommentLineNumber: number;

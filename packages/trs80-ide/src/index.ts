@@ -59,6 +59,7 @@ import {ScreenEditor} from "./ScreenEditor.ts";
 import {ScreenshotSection} from "./ScreenshotSection.ts";
 import {AssemblyResults} from "./AssemblyResults.ts";
 import { mnemonicMap, OpcodeVariant } from "z80-inst";
+import {screenshotPlugin} from "./ScreenshotPlugin.ts";
 
 const initial_code = `        .org 0x9000
         di
@@ -79,11 +80,13 @@ enddraw:
         ld hl,15360
         ld b,10
         
+        ; Timing start
 loop:
         ld (hl),a
         inc hl
         dec b
         jr nz,loop
+        ; Timing end
 
 stop:
         jp stop
@@ -268,7 +271,7 @@ themeChooser.addEventListener("change", e => {
 const uploadButton = document.createElement("button");
 uploadButton.textContent = "RetroStore";
 uploadButton.addEventListener("click", async () => {
-    const results = view.state.field(assemblyResultsStateField);
+    const results = view.state.field(gAssemblyResultsStateField);
     if (results.errorLines.length !== 0) {
         return;
     }
@@ -327,140 +330,61 @@ const errorMessageDiv = document.createElement("div");
 errorMessageDiv.id = "error-message";
 const prevErrorButton = document.createElement("button");
 prevErrorButton.textContent = "Previous";
-prevErrorButton.addEventListener("click", () => prevError(view.state.field(assemblyResultsStateField)));
-const nextErrorButton = document.createElement("button");
-nextErrorButton.textContent = "Next";
-nextErrorButton.addEventListener("click", () => nextError(view.state.field(assemblyResultsStateField)));
-errorContainer.append(errorMessageDiv, prevErrorButton, nextErrorButton);
+prevErrorButton.addEventListener("click", () => prevError(view.state.field(gAssemblyResultsStateField)));
+const gNextErrorButton = document.createElement("button");
+gNextErrorButton.textContent = "Next";
+gNextErrorButton.addEventListener("click", () => nextError(view.state.field(gAssemblyResultsStateField)));
+errorContainer.append(errorMessageDiv, prevErrorButton, gNextErrorButton);
 editorPane.append(toolbar, editorContainer, errorContainer);
-const saveButton = document.createElement("button");
-saveButton.innerText = "Save";
-const restoreButton = document.createElement("button");
-restoreButton.innerText = "Restore";
-const emulatorDiv = document.createElement("div");
-emulatorDiv.id = "emulator";
-content.append(editorPane, emulatorDiv);
+const gSaveButton = document.createElement("button");
+gSaveButton.innerText = "Save";
+const gRestoreButton = document.createElement("button");
+gRestoreButton.innerText = "Restore";
+const gEmulatorDiv = document.createElement("div");
+gEmulatorDiv.id = "emulator";
+content.append(editorPane, gEmulatorDiv);
 
-class EditScreenshotWidget extends WidgetType {
-    private readonly screenshotIndex: number;
-
-    constructor(screenshotIndex: number) {
-        super();
-        this.screenshotIndex = screenshotIndex;
-    }
-
-    eq(other: EditScreenshotWidget): boolean{
-        return this.screenshotIndex === other.screenshotIndex;
-    }
-
-    toDOM(): HTMLElement {
-        const button = document.createElement("span");
-        button.setAttribute("aria-hidden", "true");
-        button.className = "cm-screenshotEdit";
-        button.innerText = "Edit";
-        button.dataset.screenshotIndex = this.screenshotIndex.toString();
-        return button;
-    }
-
-    ignoreEvent(): boolean {
-        // We want the click.
-        return false;
-    }
-}
-
-const screenshotTheme = EditorView.baseTheme({
-    ".cm-screenshotHighlight": { backgroundColor: "rgba(0, 0, 0, 0.05)" },
-});
-
-/**
- * Generate a set of decorations for all screenshots in the code.
- */
-function decorationsForScreenshots(view: EditorView): DecorationSet {
-    const builder = new RangeSetBuilder<Decoration>();
-
-    const assemblyResults = view.state.field(assemblyResultsStateField);
-    for (let i = 0; i < assemblyResults.screenshotSections.length; i++) {
-        const s = assemblyResults.screenshotSections[i];
-        const line = view.state.doc.line(s.beginCommentLineNumber);
-        const widgetDeco = Decoration.widget({
-            widget: new EditScreenshotWidget(i),
-            side: 1,
-        });
-        builder.add(line.to, line.to, widgetDeco);
-
-        if (s.firstDataLineNumber !== undefined && s.lastDataLineNumber !== undefined) {
-            for (let lineNumber = s.firstDataLineNumber; lineNumber <= s.lastDataLineNumber; lineNumber++) {
-                const line = view.state.doc.line(lineNumber);
-                const lineDeco = Decoration.line({ // TODO I think I only need to create one of these?
-                    attributes: {
-                        class: "cm-screenshotHighlight",
-                    },
-                });
-                builder.add(line.from, line.from, lineDeco);
-            }
-        }
-    }
-
-    return builder.finish();
-}
-
-const screenshotViewPlugin = ViewPlugin.fromClass(class {
-    decorations: DecorationSet
-
-    constructor(view: EditorView) {
-        this.decorations = decorationsForScreenshots(view);
-    }
-
-    update(update: ViewUpdate) {
-        if (update.docChanged || true) { // TODO maybe compare assembly result screenshot info?
-            this.decorations = decorationsForScreenshots(update.view)
-        }
-    }
-}, {
-    decorations: v => v.decorations,
-
-    eventHandlers: {
-        click: (e, view) => {
-            const target = e.target as HTMLElement;
-            if (target.classList.contains("cm-screenshotEdit") && !view.state.field(editingScreenshotStateField)) {
-                const screenshotIndex = parseInt(target.dataset.screenshotIndex as string);
-                startScreenshotEditMode(view, view.posAtDOM(target), screenshotIndex);
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-});
-
-function screenshotPlugin(): Extension {
-    return [
-        screenshotViewPlugin,
-        screenshotTheme,
-    ];
-}
+// /**
+//  * Plugin to set and update the timing results.
+//  */
+// const timingViewPlugin = ViewPlugin.fromClass(class {
+//     decorations: DecorationSet
+//
+//     constructor(view: EditorView) {
+//         this.decorations = decorationsForTiming(view);
+//     }
+//
+//     update(update: ViewUpdate) {
+//         if (update.docChanged || true) { // TODO maybe compare assembly result screenshot info?
+//             this.decorations = decorationsForTiming(update.view)
+//         }
+//     }
+// }, {
+//     decorations: v => v.decorations,
+// });
+//
+// function timingPlugin(): Extension {
+//     return [
+//         timingViewPlugin,
+//     ];
+// }
 
 let gScreenEditor: ScreenEditor | undefined = undefined;
-function startScreenshotEditMode(view: EditorView, pos: number, screenshotIndex: number) {
-    const assemblyResults = view.state.field(assemblyResultsStateField);
-    controlPanel.disable();
-    view.dispatch({
-        effects: editingScreenshotStateEffect.of(true),
-    });
+function startScreenEditor(view: EditorView, screenshotIndex: number, onClose: () => void) {
+    gControlPanel.disable();
     if (gScreenEditor !== undefined) {
         gScreenEditor.cancel();
     }
-    gScreenEditor = new ScreenEditor(view, pos, assemblyResults, screenshotIndex, trs80, screen, () => {
+    const assemblyResults = view.state.field(gAssemblyResultsStateField);
+    gScreenEditor = new ScreenEditor(view, assemblyResults, screenshotIndex, gTrs80, gScreen, () => {
         gScreenEditor = undefined;
-        controlPanel.enable();
-        view.dispatch({
-            effects: editingScreenshotStateEffect.of(false),
-        });
+        gControlPanel.enable();
+        onClose();
         reassemble();
     });
-    return true;
 }
 
+/*
 const nodeTypes = [
     NodeType.define({
         id: 0,
@@ -525,19 +449,20 @@ const language = new Language(
 function z80AssemblyLanguage() {
     return new LanguageSupport(language, []);
 }
+ */
 
 /**
  * State field for keeping the assembly results.
  */
-const assemblyResultsStateEffect = StateEffect.define<AssemblyResults>();
-const assemblyResultsStateField = StateField.define<AssemblyResults>({
+const gAssemblyResultsStateEffect = StateEffect.define<AssemblyResults>();
+const gAssemblyResultsStateField = StateField.define<AssemblyResults>({
     create: () => {
         return assemble([""]);
     },
     update: (value: AssemblyResults, tr: Transaction) => {
         // See if we're explicitly setting it from the outside.
         for (const effect of tr.effects) {
-            if (effect.is(assemblyResultsStateEffect)) {
+            if (effect.is(gAssemblyResultsStateEffect)) {
                 return effect.value;
             }
         }
@@ -550,24 +475,6 @@ const assemblyResultsStateField = StateField.define<AssemblyResults>({
         }
     },
 });
-
-/**
- * State field for whether editing a screenshot.
- */
-const editingScreenshotStateEffect = StateEffect.define<boolean>();
-const editingScreenshotStateField = StateField.define<boolean>({
-        create: () => false,
-        update: (value: boolean, tr: Transaction) => {
-            for (const effect of tr.effects) {
-                if (effect.is(editingScreenshotStateEffect)) {
-                    value = effect.value;
-                }
-            }
-            return value;
-        },
-        compare: (a: boolean, b: boolean) => a === b,
-    }
-);
 
 // Get the full label (such as "ld a,b") for the variant.
 function getVariantLabel(variant: OpcodeVariant): string {
@@ -711,7 +618,7 @@ const extensions: Extension = [
     ]),
     EditorView.updateListener.of(update => {
         if (update.docChanged) {
-            updateEverything(update.state.field(assemblyResultsStateField));
+            updateEverything(update.state.field(gAssemblyResultsStateField));
         }
     }),
     // linter(view => [
@@ -725,12 +632,13 @@ const extensions: Extension = [
     //   delay: 750,
     // }),
     //   z80AssemblyLanguage(),
-    screenshotPlugin(),
-    assemblyResultsStateField,
-    editingScreenshotStateField,
+    screenshotPlugin({
+        assemblyResultsStateField: gAssemblyResultsStateField,
+        startScreenEditor: startScreenEditor,
+    }),
+    // timingPlugin(),
+    gAssemblyResultsStateField,
     indentUnit.of("        "),
-    // Make editor read-only when editing a screenshot.
-    EditorState.readOnly.from(editingScreenshotStateField, editing => editing),
     themeConfig.of(THEMES[DEFAULT_THEME_INDEX]),
 ];
 
@@ -827,7 +735,7 @@ function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] 
 function reassemble() {
     const results = assemble(view.state.doc.toJSON());
     view.dispatch({
-       effects: assemblyResultsStateEffect.of(results),
+       effects: gAssemblyResultsStateEffect.of(results),
     });
     updateEverything(results);
 }
@@ -859,13 +767,13 @@ function updateDiagnostics(results: AssemblyResults) {
 function runProgram(results: AssemblyResults) {
     if (results.errorLines.length === 0) {
         if (trs80State === undefined) {
-            trs80State = trs80.save();
+            trs80State = gTrs80.save();
         } else {
-            trs80.restore(trs80State);
+            gTrs80.restore(trs80State);
         }
         for (const line of results.sourceFile.assembledLines) {
             for (let i = 0; i < line.binary.length; i++) {
-                trs80.writeMemory(line.address + i, line.binary[i]);
+                gTrs80.writeMemory(line.address + i, line.binary[i]);
             }
         }
         let entryPoint = results.asm.entryPoint;
@@ -878,7 +786,7 @@ function runProgram(results: AssemblyResults) {
             }
         }
         if (entryPoint !== undefined) {
-            trs80.jumpTo(entryPoint);
+            gTrs80.jumpTo(entryPoint);
         }
     }
 }
@@ -942,7 +850,7 @@ function bytecodeGutter() {
     return gutter({
         class: "gutter-bytecode",
         lineMarker: (view: EditorView, line: BlockInfo) => {
-            const results = view.state.field(assemblyResultsStateField);
+            const results = view.state.field(gAssemblyResultsStateField);
             const lineNumber = view.state.doc.lineAt(line.from).number;
             const assembledLine = results.lineMap.get(lineNumber);
             if (assembledLine !== undefined && assembledLine.binary.length > 0) {
@@ -957,12 +865,12 @@ function bytecodeGutter() {
 
 let trs80State: Trs80State | undefined;
 
-saveButton.addEventListener("click", () => {
-    trs80State = trs80.save();
+gSaveButton.addEventListener("click", () => {
+    trs80State = gTrs80.save();
 });
-restoreButton.addEventListener("click", () => {
+gRestoreButton.addEventListener("click", () => {
     if (trs80State !== undefined) {
-        trs80.restore(trs80State);
+        gTrs80.restore(trs80State);
     }
 });
 projectChooser.addEventListener("change", () => {
@@ -984,38 +892,38 @@ projectChooser.addEventListener("change", () => {
     }
 });
 
-const config = Config.makeDefault();
-const screen = new CanvasScreen(1.5);
-const keyboard = new WebKeyboard();
-const cassettePlayer = new CassettePlayer();
-const soundPlayer = new WebSoundPlayer();
-const trs80 = new Trs80(config, screen, keyboard, cassettePlayer, soundPlayer);
-keyboard.configureKeyboard();
+const gConfig = Config.makeDefault();
+const gScreen = new CanvasScreen(1.5);
+const gKeyboard = new WebKeyboard();
+const gCassettePlayer = new CassettePlayer();
+const gSoundPlayer = new WebSoundPlayer();
+const gTrs80 = new Trs80(gConfig, gScreen, gKeyboard, gCassettePlayer, gSoundPlayer);
+gKeyboard.configureKeyboard();
 
 const reboot = () => {
-    trs80.reset();
-    trs80.start();
+    gTrs80.reset();
+    gTrs80.start();
 };
 
-const hardwareSettingsPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.HARDWARE);
-const viewPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.VIEW);
-const controlPanel = new ControlPanel(screen.getNode());
-controlPanel.addResetButton(reboot);
+const gHardwareSettingsPanel = new SettingsPanel(gScreen.getNode(), gTrs80, PanelType.HARDWARE);
+const gViewPanel = new SettingsPanel(gScreen.getNode(), gTrs80, PanelType.VIEW);
+const gControlPanel = new ControlPanel(gScreen.getNode());
+gControlPanel.addResetButton(reboot);
 // controlPanel.addTapeRewindButton(() => {
 //   cassettePlayer.rewind();
 // });
-controlPanel.addSettingsButton(hardwareSettingsPanel);
-controlPanel.addSettingsButton(viewPanel);
-controlPanel.addMuteButton(soundPlayer);
+gControlPanel.addSettingsButton(gHardwareSettingsPanel);
+gControlPanel.addSettingsButton(gViewPanel);
+gControlPanel.addMuteButton(gSoundPlayer);
 
-const driveIndicators = new DriveIndicators(screen.getNode(), trs80.getMaxDrives());
-trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
+const gDriveIndicators = new DriveIndicators(gScreen.getNode(), gTrs80.getMaxDrives());
+gTrs80.onMotorOn.subscribe(drive => gDriveIndicators.setActiveDrive(drive));
 
-emulatorDiv.append(screen.getNode());
+gEmulatorDiv.append(gScreen.getNode());
 
 // Give focus to the emulator if the editor does not have it.
 function updateFocus() {
-    keyboard.interceptKeys = document.activeElement === document.body;
+    gKeyboard.interceptKeys = document.activeElement === document.body;
 }
 document.body.addEventListener("focus", () => updateFocus(), true);
 document.body.addEventListener("blur", () => updateFocus(), true);

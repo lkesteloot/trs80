@@ -301,7 +301,7 @@ export class ScreenEditor {
     private selMoveHeight = 0;
     private pasting = false;
 
-    constructor(view: EditorView, pos: number, assemblyResults: AssemblyResults,
+    constructor(view: EditorView, assemblyResults: AssemblyResults,
                 screenshotIndex: number, trs80: Trs80, screen: CanvasScreen, onClose: () => void) {
 
         this.view = view;
