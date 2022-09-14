@@ -25,7 +25,7 @@
     "jss": "^10.0.3",
     "jss-preset-default": "^10.0.3",
     "split.js": "^1.5.11",
-    "strongly-typed-events": "^2.0.0",
+    "strongly-typed-events": "^3.0.0",
     "teamten-ts-utils": "^1.0.3",
     "trs80-base": "^2.3.1",
     "trs80-cassette": "^2.3.1",
