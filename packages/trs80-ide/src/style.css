@@ -62,6 +62,82 @@ body {
     align-self: stretch;
 }
 
+.menubar-menu {
+    color: var(--foreground);
+    background-color: var(--background-highlights);
+    user-select: none;
+
+    display: none;
+}
+
+.menubar-menu.menubar-depth-0,
+.menubar-entry.menubar-open > .menubar-menu {
+    display: flex;
+}
+
+.menubar-depth-0 {
+    flex-direction: row;
+    padding-left: 20px;
+    position: relative;
+    z-index: 10;
+}
+
+.menubar-depth-1,
+.menubar-depth-2 {
+    flex-direction: column;
+    position: absolute;
+}
+
+.menubar-depth-1 {
+    z-index: 20;
+    top: 100%;
+    left: 0;
+}
+
+.menubar-depth-2 {
+    z-index: 30;
+    top: 0;
+    left: 100%;
+}
+
+.menubar-depth-0,
+.menubar-depth-1,
+.menubar-depth-2 {
+    box-shadow: rgba(99, 99, 99, 0.2) 0 2px 8px 0;
+}
+
+.menubar-entry {
+    padding: 7px 15px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.menubar-entry:hover,
+.menubar-entry.menubar-open {
+
+    color: var(--foreground-emphasized);
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.menubar-parent {
+    position: relative;
+}
+
+.menubar-parent-with-arrow {
+    display: flex;
+    align-items: baseline;
+    flex-direction: row;
+    gap: 30px;
+}
+
+.menubar-parent-text {
+    flex-grow: 1;
+}
+
+.menubar-parent-arrow {
+    font-size: 7pt;
+}
+
 .toolbar {
     display: flex;
     flex-direction: row;

@@ -60,6 +60,7 @@ import {ScreenshotSection} from "./ScreenshotSection.ts";
 import {AssemblyResults} from "./AssemblyResults.ts";
 import { mnemonicMap, OpcodeVariant } from "z80-inst";
 import {screenshotPlugin} from "./ScreenshotPlugin.ts";
+import {createMenubar, getMenuEntryById, Menu} from "./Menubar.ts";
 
 const initial_code = `        .org 0x9000
         di
@@ -176,6 +177,42 @@ const THEMES = [
 ];
 const DEFAULT_THEME_INDEX = 3;
 
+// Pull-down menu.
+const MENU: Menu = [
+    {
+        text: "File",
+        menu: [
+            {
+                text: "Open...",
+                action: () => alert("Open!!!"),
+            }
+        ],
+    },
+    {
+        text: "View",
+        menu: [
+            {
+                id: "theme-list",
+                text: "Theme",
+            },
+            {
+                text: "Numbers",
+                menu: [
+                    {
+                        text: "One",
+                    },
+                    {
+                        text: "Two",
+                    },
+                    {
+                        text: "Three",
+                    },
+                ],
+            }
+        ],
+    }
+];
+
 /**
  * Builder of chunks of memory for the RetroStore interface.
  */
@@ -233,6 +270,21 @@ body.append(content);
 
 const editorPane = document.createElement("div");
 editorPane.classList.add("editor-pane");
+const themeMenu = getMenuEntryById(MENU, "theme-list");
+if (themeMenu !== undefined) {
+    themeMenu.menu = [];
+    for (const theme of THEMES) {
+        themeMenu.menu.push({
+            text: theme.name,
+            action: () => {
+                view.dispatch({
+                    effects: themeConfig.reconfigure([theme]),
+                });
+            },
+        });
+    }
+}
+const menubar = createMenubar(MENU);
 const toolbar = document.createElement("div");
 toolbar.classList.add("toolbar");
 const projectChooser = document.createElement("select");
@@ -335,7 +387,7 @@ const gNextErrorButton = document.createElement("button");
 gNextErrorButton.textContent = "Next";
 gNextErrorButton.addEventListener("click", () => nextError(view.state.field(gAssemblyResultsStateField)));
 errorContainer.append(errorMessageDiv, prevErrorButton, gNextErrorButton);
-editorPane.append(toolbar, editorContainer, errorContainer);
+editorPane.append(menubar, toolbar, editorContainer, errorContainer);
 const gSaveButton = document.createElement("button");
 gSaveButton.innerText = "Save";
 const gRestoreButton = document.createElement("button");
