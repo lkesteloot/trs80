@@ -140,7 +140,7 @@ body.presentation-mode {
 .menubar-checkmark {
     display: none;
     visibility: hidden;
-    padding-right: 7px;
+    padding-right: 9px;
 }
 
 .menubar-any-checked > * > .menubar-checkmark {
@@ -193,15 +193,25 @@ body.presentation-mode {
 }
 
 .cm-screenshotEdit {
-    color: var(--foreground-emphasized);
-    background-color: var(--background-highlights);
+    color: var(--base3);
+    background-color: var(--violet);
     border-radius: 999px;
     padding: 2px 10px;
     cursor: pointer;
     margin-left: 10px;
     margin-right: 10px;
     font-family: "Roboto", sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
     font-size: 12px;
+    letter-spacing: 0.15em;
+    /* center vertically */
+    position: relative;
+    top: -.2ex;
+}
+
+.presentation-mode .cm-screenshotEdit {
+    font-size: 15px;
 }
 
 .error-container {
@@ -219,10 +229,16 @@ body.presentation-mode {
 
 .gutter-bytecode-address {
     margin-right: 1em;
+    color: var(--cyan);
 }
 
 .gutter-bytecode-bytes {
-    /* nothing */
+    color: var(--blue);
+}
+
+.cm-lineNumbers .cm-gutterElement {
+    color: var(--foreground-secondary);
+    opacity: 0.4;
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -309,4 +325,8 @@ body.presentation-mode {
     display: flex;
     gap: 10px;
     font-size: 10pt;
+}
+
+.presentation-mode .screen-editor-status-panel {
+    font-size: 12.5pt;
 }

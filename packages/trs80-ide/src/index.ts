@@ -191,10 +191,6 @@ const MENU: Menu = [
         text: "File",
         menu: [
             {
-                text: "Open...",
-                action: () => alert("Open!!!"),
-            },
-            {
                 id: "examples-list",
                 text: "Examples",
                 menu: [],
@@ -212,20 +208,6 @@ const MENU: Menu = [
                 id: "theme-list",
                 text: "Editor Theme",
                 menu: [],
-            },
-            {
-                text: "Numbers",
-                menu: [
-                    {
-                        text: "One",
-                    },
-                    {
-                        text: "Two",
-                    },
-                    {
-                        text: "Three",
-                    },
-                ],
             },
             {
                 text: "Presentation Mode",
