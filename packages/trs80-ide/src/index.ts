@@ -332,6 +332,7 @@ async function uploadToRetroStore() {
     }
 }
 
+// Load the code of an example into the editor.
 function loadExample(code: string) {
     if (gScreenEditor !== undefined) {
         gScreenEditor.cancel();
@@ -347,7 +348,7 @@ function loadExample(code: string) {
 }
 
 const body = document.body;
-body.classList.add("light-mode");
+body.classList.add("light-mode", "work-mode");
 
 const content = document.createElement("div");
 content.classList.add("content");
@@ -643,6 +644,13 @@ function customCompletions(context: CompletionContext): CompletionResult | null 
     };
 }
 
+// Our own theme for the editor, overlaid with the color theme the user can pick.
+const gCustomTheme = EditorView.theme({
+    ".cm-scroller": {
+        fontFamily: `"Roboto Mono", monospace`,
+    },
+});
+
 // Compartment to fit the current theme into.
 const themeConfig = new Compartment();
 
@@ -701,6 +709,7 @@ const extensions: Extension = [
     // timingPlugin(),
     gAssemblyResultsStateField,
     indentUnit.of("        "),
+    gCustomTheme,
     themeConfig.of(THEMES[DEFAULT_THEME_INDEX]),
 ];
 
