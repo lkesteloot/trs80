@@ -36,7 +36,7 @@ import { materialDark } from 'cm6-theme-material-dark'
 import { nord } from 'cm6-theme-nord'
 import * as RetroStoreProto from "retrostore-api";
 
-import {Asm, getAsmDirectiveDocs, SourceFile} from "z80-asm";
+import {Asm, getAsmDirectiveDocs, SourceFile, SymbolReference} from "z80-asm";
 import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
 import {
     CanvasScreen,
@@ -50,17 +50,17 @@ import {
 
 import {Input, NodeType, Parser, PartialParse, Tree, TreeFragment} from "@lezer/common";
 
-import {breakdwn} from "./breakdwn.ts";
-import {scarfman} from "./scarfman.ts";
+import {breakdwn} from "./breakdwn";
+import {scarfman} from "./scarfman";
 import "./style.css";
 import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base";
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS, ProgramBuilder} from "trs80-base";
-import {ScreenEditor} from "./ScreenEditor.ts";
-import {ScreenshotSection} from "./ScreenshotSection.ts";
-import {AssemblyResults} from "./AssemblyResults.ts";
+import {ScreenEditor} from "./ScreenEditor";
+import {ScreenshotSection} from "./ScreenshotSection";
+import {AssemblyResults} from "./AssemblyResults";
 import { mnemonicMap, OpcodeVariant } from "z80-inst";
-import {screenshotPlugin} from "./ScreenshotPlugin.ts";
-import {createMenubar, getMenuEntryById, Menu, MenuCommand} from "./Menubar.ts";
+import {screenshotPlugin} from "./ScreenshotPlugin";
+import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, MenuCommand} from "./Menubar";
 
 const initial_code = `        .org 0x9000
         di
@@ -214,16 +214,33 @@ const MENU: Menu = [
                 action: (menuCommand: MenuCommand) => {
                     // Toggle current mode.
                     const presentationMode = !(menuCommand.checked ?? false);
-                    view.dispatch({
+                    gView.dispatch({
                         effects: gBaseThemeConfig.reconfigure([presentationMode ? gPresentationTheme : gBaseTheme]),
                     });
                     document.body.classList.toggle("presentation-mode", presentationMode);
                     document.body.classList.toggle("work-mode", !presentationMode);
-                    menuCommand.setChecked(presentationMode);
+                    menuCommand.setChecked?.(presentationMode);
                 },
             },
         ],
-    }
+    },
+    {
+        text: "Navigate",
+        menu: [
+            {
+                text: "Declaration or Usages",
+                action: () => {
+                    jumpToDefinition(false);
+                },
+            },
+            {
+                text: "Next Declaration or Usages",
+                action: () => {
+                    jumpToDefinition(true);
+                },
+            },
+        ],
+    },
 ];
 
 /**
@@ -276,7 +293,7 @@ const BYTECODE_SPACER = new BytecodeGutter(0, [1, 2, 3, 4, 5]);
 
 // Uploads the already-assembled code to the RetroStore.
 async function uploadToRetroStore() {
-    const results = view.state.field(gAssemblyResultsStateField);
+    const results = gView.state.field(gAssemblyResultsStateField);
     if (results.errorLines.length !== 0) {
         return;
     }
@@ -327,16 +344,49 @@ async function uploadToRetroStore() {
     }
 }
 
+// Jump from a use to its definition and vice versa.
+//
+// @param nextUse whether to cycle uses/definitions (true) or switch between use and definition (false).
+function jumpToDefinition(nextUse: boolean) {
+    const assemblyResults = gView.state.field(gAssemblyResultsStateField);
+    const pos = gView.state.selection.main.head;
+    const line = gView.state.doc.lineAt(pos);
+    const symbolHit = assemblyResults.findSymbolAt(line.number - 1, pos - line.from);
+    if (symbolHit !== undefined) {
+        const symbol = symbolHit.symbol;
+
+        if (symbolHit.isDefinition) {
+            if (nextUse) {
+                const reference = symbol.definitions[(symbolHit.referenceNumber + 1) % symbol.definitions.length];
+                setCursorToReference(reference);
+            } else if (symbol.references.length > 0) {
+                setCursorToReference(symbol.references[0]);
+            } else {
+                // TODO: Display error.
+            }
+        } else {
+            if (nextUse) {
+                const reference = symbol.references[(symbolHit.referenceNumber + 1) % symbol.references.length];
+                setCursorToReference(reference);
+            } else if (symbol.definitions.length > 0) {
+                setCursorToReference(symbol.definitions[0]);
+            } else {
+                // TODO: Display error.
+            }
+        }
+    }
+}
+
 // Load the code of an example into the editor.
 function loadExample(code: string) {
     if (gScreenEditor !== undefined) {
         gScreenEditor.cancel();
         // Set to undefined in the close callback.
     }
-    view.dispatch({
+    gView.dispatch({
         changes: {
             from: 0,
-            to: view.state.doc.length,
+            to: gView.state.doc.length,
             insert: code,
         }
     });
@@ -352,7 +402,7 @@ body.append(content);
 const editorPane = document.createElement("div");
 editorPane.classList.add("editor-pane");
 const examplesMenu = getMenuEntryById(MENU, "examples-list");
-if (examplesMenu !== undefined) {
+if (examplesMenu !== undefined && isMenuParent(examplesMenu)) {
     for (const example of EXAMPLES) {
         examplesMenu.menu.push({
             text: example.name,
@@ -361,10 +411,15 @@ if (examplesMenu !== undefined) {
     }
 }
 const themeMenu = getMenuEntryById(MENU, "theme-list");
-if (themeMenu !== undefined) {
+if (themeMenu !== undefined && isMenuParent(themeMenu)) {
+    const menu = themeMenu.menu;
+
     function updateCheckmarks(index: number): void {
         for (let i = 0; i < THEMES.length; i++) {
-            themeMenu.menu[i].setChecked(i === index);
+            const menuEntry = menu[i];
+            if (isMenuCommand(menuEntry)) {
+                menuEntry.setChecked?.(i === index);
+            }
         }
     }
 
@@ -374,7 +429,7 @@ if (themeMenu !== undefined) {
         themeMenu.menu.push({
             text: theme.name,
             action: () => {
-                view.dispatch({
+                gView.dispatch({
                     effects: gColorThemeConfig.reconfigure([theme]),
                 });
                 updateCheckmarks(i);
@@ -398,10 +453,10 @@ const errorMessageDiv = document.createElement("div");
 errorMessageDiv.id = "error-message";
 const prevErrorButton = document.createElement("button");
 prevErrorButton.textContent = "Previous";
-prevErrorButton.addEventListener("click", () => prevError(view.state.field(gAssemblyResultsStateField)));
+prevErrorButton.addEventListener("click", () => prevError(gView.state.field(gAssemblyResultsStateField)));
 const gNextErrorButton = document.createElement("button");
 gNextErrorButton.textContent = "Next";
-gNextErrorButton.addEventListener("click", () => nextError(view.state.field(gAssemblyResultsStateField)));
+gNextErrorButton.addEventListener("click", () => nextError(gView.state.field(gAssemblyResultsStateField)));
 errorContainer.append(errorMessageDiv, prevErrorButton, gNextErrorButton);
 editorPane.append(menubar, toolbar, editorContainer, errorContainer);
 const gSaveButton = document.createElement("button");
@@ -737,7 +792,7 @@ let startState = EditorState.create({
     extensions: extensions,
 });
 
-const view = new EditorView({
+const gView = new EditorView({
     state: startState,
     parent: document.getElementById("editor") as HTMLDivElement
 });
@@ -823,8 +878,8 @@ function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] 
 }
 
 function reassemble() {
-    const results = assemble(view.state.doc.toJSON());
-    view.dispatch({
+    const results = assemble(gView.state.doc.toJSON());
+    gView.dispatch({
        effects: gAssemblyResultsStateEffect.of(results),
     });
     updateEverything(results);
@@ -841,7 +896,7 @@ function updateDiagnostics(results: AssemblyResults) {
     const diagnostics: Diagnostic[] = [];
     for (const line of results.errorLines) {
         if (line.lineNumber !== undefined /* TODO */) {
-            const lineInfo = view.state.doc.line(line.lineNumber + 1);
+            const lineInfo = gView.state.doc.line(line.lineNumber + 1);
             diagnostics.push({
                 from: lineInfo.from,  // TODO first non-blank.
                 to: lineInfo.to,
@@ -851,7 +906,7 @@ function updateDiagnostics(results: AssemblyResults) {
         }
     }
 
-    view.dispatch(setDiagnostics(view.state, diagnostics));
+    gView.dispatch(setDiagnostics(gView.state, diagnostics));
 }
 
 function runProgram(results: AssemblyResults) {
@@ -891,28 +946,32 @@ function updateAssemblyErrors(results: AssemblyResults) {
     }
 }
 
+function setCursorToReference(ref: SymbolReference): void {
+    moveCursorToLineNumber(ref.lineNumber + 1, ref.column);
+}
+
 // 1-based.
-function moveCursorToLineNumber(lineNumber: number) {
-    const lineInfo = view.state.doc.line(lineNumber);
-    view.dispatch({
-        selection: EditorSelection.single(lineInfo.from),
+function moveCursorToLineNumber(lineNumber: number, column: number) {
+    const lineInfo = gView.state.doc.line(lineNumber);
+    gView.dispatch({
+        selection: EditorSelection.single(lineInfo.from + column),
         scrollIntoView: true,
     });
-    view.focus();
+    gView.focus();
 }
 
 function nextError(results: AssemblyResults) {
     if (results.errorLineNumbers.length === 0) {
         return;
     }
-    const {from} = view.state.selection.main;
-    const line = view.state.doc.lineAt(from);
+    const {from} = gView.state.selection.main;
+    const line = gView.state.doc.lineAt(from);
     const cursorLineNumber = line.number;
     for (const errorLineNumber of results.errorLineNumbers) {
         if (errorLineNumber > cursorLineNumber ||
             cursorLineNumber >= results.errorLineNumbers[results.errorLineNumbers.length - 1]) {
 
-            moveCursorToLineNumber(errorLineNumber);
+            moveCursorToLineNumber(errorLineNumber, 0);
             break;
         }
     }
@@ -922,12 +981,12 @@ function prevError(results: AssemblyResults) {
     if (results.errorLineNumbers.length === 0) {
         return;
     }
-    const {from} = view.state.selection.main;
-    const line = view.state.doc.lineAt(from);
+    const {from} = gView.state.selection.main;
+    const line = gView.state.doc.lineAt(from);
     const cursorLineNumber = line.number;
     for (const errorLineNumber of results.errorLineNumbers.slice().reverse()) {
         if (errorLineNumber < cursorLineNumber || cursorLineNumber <= results.errorLineNumbers[0]) {
-            moveCursorToLineNumber(errorLineNumber);
+            moveCursorToLineNumber(errorLineNumber, 0);
             break;
         }
     }

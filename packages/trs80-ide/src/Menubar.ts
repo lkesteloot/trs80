@@ -43,7 +43,7 @@ export function isMenuParent(menuEntry: MenuEntry): menuEntry is MenuParent {
 }
 
 // List of menu entries for a menu.
-type Menu = MenuEntry[];
+export type Menu = (MenuCommand | MenuParent)[];
 
 const MAX_DEPTH = 2;
 const OPEN_TIMEOUT_MS = 250;

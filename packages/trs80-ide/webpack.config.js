@@ -57,6 +57,12 @@ const exports = {
         static: './dist',
     },
     devtool: 'inline-source-map',
+    resolve: {
+        extensions: [".ts", ".js"],
+        extensionAlias: {
+            ".js": [".ts", ".js"],
+        },
+    },
 };
 
 export default exports;

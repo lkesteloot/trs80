@@ -1,6 +1,7 @@
 
 import {Asm, AssembledLine, SourceFile} from "z80-asm";
-import {ScreenshotSection} from "./ScreenshotSection.js";
+import {ScreenshotSection} from "./ScreenshotSection";
+import {SymbolHit} from "./SymbolHit";
 
 // Error is required.
 type ErrorAssembledLine = AssembledLine & { error: string };
@@ -41,5 +42,26 @@ export class AssemblyResults {
         }
         this.errorLines = errorLines;
         this.errorLineNumbers = errorLineNumbers;
+    }
+
+    // Find symbol usage at a location, or undefined if we're not on a symbol.
+    public findSymbolAt(lineNumber: number, column: number): SymbolHit | undefined {
+        const assembledLine = this.sourceFile.assembledLines[lineNumber];
+        for (const symbol of assembledLine.symbols) {
+            // See if we're at a definition.
+            for (let i = 0; i < symbol.definitions.length; i++) {
+                if (symbol.matches(symbol.definitions[i], lineNumber, column)) {
+                    return new SymbolHit(symbol, true, i);
+                }
+            }
+            // See if we're at a use.
+            for (let i = 0; i < symbol.references.length; i++) {
+                if (symbol.matches(symbol.references[i], lineNumber, column)) {
+                    return new SymbolHit(symbol, false, i);
+                }
+            }
+        }
+
+        return undefined;
     }
 }
