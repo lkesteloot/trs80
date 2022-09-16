@@ -66,6 +66,8 @@ body.presentation-mode {
     align-self: stretch;
 }
 
+/* ------------------------------------------------------------------------- */
+
 .menubar-menu {
     color: var(--foreground-emphasized);
     background-color: var(--background-highlights);
@@ -111,6 +113,10 @@ body.presentation-mode {
 }
 
 .menubar-entry {
+    display: flex;
+    align-items: baseline;
+    flex-direction: row;
+
     padding: 7px 25px 7px 15px;
     white-space: nowrap;
     cursor: pointer;
@@ -127,24 +133,34 @@ body.presentation-mode {
     background-color: var(--blue);
 }
 
+.menubar-text {
+    flex-grow: 1;
+}
+
+.menubar-checkmark {
+    display: none;
+    visibility: hidden;
+    padding-right: 7px;
+}
+
+.menubar-any-checked > * > .menubar-checkmark {
+    display: block;
+}
+
+.menubar-checked > .menubar-checkmark {
+    visibility: visible;
+}
+
 .menubar-parent {
     position: relative;
 }
 
-.menubar-parent-with-arrow {
-    display: flex;
-    align-items: baseline;
-    flex-direction: row;
-    gap: 30px;
-}
-
-.menubar-parent-text {
-    flex-grow: 1;
-}
-
-.menubar-parent-arrow {
+.menubar-arrow {
     font-size: 7pt;
+    padding-left: 30px;
 }
+
+/* ------------------------------------------------------------------------- */
 
 .toolbar {
     display: flex;

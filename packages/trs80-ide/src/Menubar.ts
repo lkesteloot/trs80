@@ -6,14 +6,24 @@
 export interface MenuEntry {
     // Optional ID for use with getMenuEntryById().
     id?: string;
+
     // Text to display for this menu item.
     text: string;
+
+    // Injected by the menu builder.
+    node?: HTMLElement;
 }
 
 // Kind of menu entry that does something.
 export interface MenuCommand extends MenuEntry {
     // Action to call when user clicks on this menu item.
-    action: () => void;
+    action: (menuCommand: MenuCommand) => void;
+
+    // Optional, whether checked. Defaults to false.
+    checked?: boolean;
+
+    // Injected by menu builder.
+    setChecked?: (checked: boolean) => void;
 }
 
 // Whether this menu entry is a command.
@@ -78,14 +88,49 @@ function createNode(menu: Menu, depth: number): HTMLElement {
         node.classList.add("menubar-open");
     }
 
+    // Make checkmarks visible/invisible for every item in the menu.
+    function syncMenuChecked() {
+        let anyChecked = false;
+        for (const menuEntry of menu) {
+            if (isMenuCommand(menuEntry)) {
+                const isChecked = menuEntry.checked ?? false;
+                if (isChecked) {
+                    anyChecked = true;
+                }
+                menuEntry.node?.classList.toggle("menubar-checked", isChecked);
+            }
+        }
+
+        node.classList.toggle("menubar-any-checked", anyChecked);
+    }
+
     // Add each entry.
     for (const menuEntry of menu) {
         const entryNode = document.createElement("div");
         entryNode.classList.add("menubar-entry");
+        menuEntry.node = entryNode;
 
-        // Hook up action.
+        // All entries have a checkmark (possibly hidden) and the entry text.
+        const checkmarkNode = document.createElement("div");
+        checkmarkNode.classList.add("menubar-checkmark");
+        // https://www.compart.com/en/unicode/U+2713
+        checkmarkNode.textContent = "\u2713";
+        const textNode = document.createElement("div");
+        textNode.classList.add("menubar-text");
+        textNode.textContent = menuEntry.text;
+        entryNode.append(checkmarkNode, textNode);
+
         if (isMenuCommand(menuEntry)) {
+            // Hook up action.
             entryNode.classList.add("menubar-command");
+
+            // Inject function to set whether checked.
+            menuEntry.setChecked = (checked: boolean) => {
+                menuEntry.checked = checked;
+                syncMenuChecked();
+            };
+
+            // Handle action click.
             entryNode.addEventListener("click", e => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -96,28 +141,21 @@ function createNode(menu: Menu, depth: number): HTMLElement {
                     entryNode.classList.remove("menubar-entry-suppress-hover");
                     setTimeout(() => {
                         closeToDepth(0);
-                        menuEntry.action();
+                        menuEntry.action(menuEntry);
                     }, ENTRY_BLINK_MS);
                 }, ENTRY_BLINK_MS);
             });
-        }
-
-        // Add sub-menu.
-        if (isMenuParent(menuEntry)) {
+        } else if (isMenuParent(menuEntry)) {
+            // Add sub-menu.
             entryNode.classList.add("menubar-parent");
-            if (depth === 0) {
-                entryNode.textContent = menuEntry.text;
-            } else {
-                // Draw entry and right-facing arrow.
-                entryNode.classList.add("menubar-parent-with-arrow");
-                const textNode = document.createElement("div");
-                textNode.classList.add("menubar-parent-text");
-                textNode.textContent = menuEntry.text;
-                const arrowNode = document.createElement("span");
-                arrowNode.classList.add("menubar-parent-arrow");
+
+            // Draw right-facing arrow.
+            if (depth > 0) {
+                const arrowNode = document.createElement("div");
+                arrowNode.classList.add("menubar-arrow");
                 // https://www.compart.com/en/unicode/U+25BA
                 arrowNode.textContent = "\u25BA";
-                entryNode.append(textNode, arrowNode);
+                entryNode.append(arrowNode);
             }
 
             // Create sub-menu.
@@ -155,11 +193,11 @@ function createNode(menu: Menu, depth: number): HTMLElement {
                     cancelOpenTimer();
                 });
             }
-        } else {
-            entryNode.textContent = menuEntry.text;
         }
         node.append(entryNode);
     }
+
+    syncMenuChecked();
 
     return node;
 }

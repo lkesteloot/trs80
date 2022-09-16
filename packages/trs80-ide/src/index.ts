@@ -60,7 +60,7 @@ import {ScreenshotSection} from "./ScreenshotSection.ts";
 import {AssemblyResults} from "./AssemblyResults.ts";
 import { mnemonicMap, OpcodeVariant } from "z80-inst";
 import {screenshotPlugin} from "./ScreenshotPlugin.ts";
-import {createMenubar, getMenuEntryById, Menu} from "./Menubar.ts";
+import {createMenubar, getMenuEntryById, Menu, MenuCommand} from "./Menubar.ts";
 
 const initial_code = `        .org 0x9000
         di
@@ -228,23 +228,16 @@ const MENU: Menu = [
                 ],
             },
             {
-                text: "Work Mode",
-                action: () => {
-                    view.dispatch({
-                        effects: gBaseThemeConfig.reconfigure([gBaseTheme]),
-                    });
-                    document.body.classList.remove("presentation-mode");
-                    document.body.classList.add("work-mode");
-                },
-            },
-            {
                 text: "Presentation Mode",
-                action: () => {
+                action: (menuCommand: MenuCommand) => {
+                    // Toggle current mode.
+                    const presentationMode = !(menuCommand.checked ?? false);
                     view.dispatch({
-                        effects: gBaseThemeConfig.reconfigure([gPresentationTheme]),
+                        effects: gBaseThemeConfig.reconfigure([presentationMode ? gPresentationTheme : gBaseTheme]),
                     });
-                    document.body.classList.remove("work-mode");
-                    document.body.classList.add("presentation-mode");
+                    document.body.classList.toggle("presentation-mode", presentationMode);
+                    document.body.classList.toggle("work-mode", !presentationMode);
+                    menuCommand.setChecked(presentationMode);
                 },
             },
         ],
@@ -387,14 +380,24 @@ if (examplesMenu !== undefined) {
 }
 const themeMenu = getMenuEntryById(MENU, "theme-list");
 if (themeMenu !== undefined) {
-    for (const theme of THEMES) {
+    function updateCheckmarks(index: number): void {
+        for (let i = 0; i < THEMES.length; i++) {
+            themeMenu.menu[i].setChecked(i === index);
+        }
+    }
+
+    for (let i = 0; i < THEMES.length; i++) {
+        const theme = THEMES[i];
+
         themeMenu.menu.push({
             text: theme.name,
             action: () => {
                 view.dispatch({
                     effects: gColorThemeConfig.reconfigure([theme]),
                 });
+                updateCheckmarks(i);
             },
+            checked: i == DEFAULT_THEME_INDEX,
         });
     }
 }
