@@ -232,12 +232,14 @@ const MENU: Menu = [
                 action: () => {
                     jumpToDefinition(false);
                 },
+                hotkey: "Cmd-B",
             },
             {
                 text: "Next Declaration or Usages",
                 action: () => {
                     jumpToDefinition(true);
                 },
+                hotkey: "Shift-Cmd-B",
             },
         ],
     },

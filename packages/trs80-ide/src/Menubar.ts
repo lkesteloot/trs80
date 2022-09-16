@@ -19,6 +19,13 @@ export interface MenuCommand extends MenuEntry {
     // Action to call when user clicks on this menu item.
     action: (menuCommand: MenuCommand) => void;
 
+    // Optional, hotkey. The format is "Shift-Alt-Ctrl-Cmd-F", where
+    // all the modifiers are optional and can be in any order. The key
+    // can also be a function key, like "F8", or other keyboard
+    // key like "Tab", "Enter", "Backspace", "Space", or "Left". On
+    // non-Mac platforms the "Cmd" modifier is replaced by "Ctrl".
+    hotkey?: string;
+
     // Optional, whether checked. Defaults to false.
     checked?: boolean;
 
@@ -71,6 +78,129 @@ function closeToDepth(depth: number): void {
             node.classList.remove("menubar-open");
         }
     }
+}
+
+// Info about a specific key and its modifiers.
+class HotkeyInfo {
+    public readonly ctrlKey: boolean;
+    public readonly altKey: boolean;
+    public readonly shiftKey: boolean;
+    public readonly metaKey: boolean;
+    public readonly key: string;
+
+    constructor(ctrlKey: boolean, altKey: boolean, shiftKey: boolean, metaKey: boolean, key: string) {
+        this.ctrlKey = ctrlKey;
+        this.altKey = altKey;
+        this.shiftKey = shiftKey;
+        this.metaKey = metaKey;
+        this.key = key;
+    }
+
+    // To a string that can be used as a key in a map.
+    public toCanonical(): string {
+        const parts: string[] = [];
+
+        if (this.ctrlKey) {
+            parts.push("Ctrl");
+        }
+        if (this.altKey) {
+            parts.push("Alt");
+        }
+        if (this.shiftKey) {
+            parts.push("Shift");
+        }
+        if (this.metaKey) {
+            parts.push("Cmd");
+        }
+
+        parts.push(this.key);
+
+        return parts.join("-");
+    }
+
+    // To a string that can be shown to the user in a menu entry.
+    public toMenuString(): string {
+        const parts: string[] = [];
+
+        if (this.ctrlKey) {
+            parts.push("^");
+        }
+        if (this.altKey) { // TODO use symbols.
+            parts.push("Alt");
+        }
+        if (this.shiftKey) {
+            parts.push("Shift");
+        }
+        if (this.metaKey) {
+            parts.push("Cmd");
+        }
+
+        parts.push(this.key); // TODO make mixed-case.
+
+        return parts.join("-");
+    }
+
+    // From a user-supplied string in the menu definition.
+    static fromHotkey(hotkey: string): HotkeyInfo {
+        const parts = hotkey.toUpperCase().split("-");
+
+        let ctrlKey = false;
+        let altKey = false;
+        let shiftKey = false;
+        let metaKey = false;
+        let key = parts[parts.length - 1];
+
+        for (let i = 0; i < parts.length - 1; i++) {
+            switch (parts[i]) {
+                case "CTRL":
+                case "CTL":
+                case "CONTROL":
+                    ctrlKey = true;
+                    break;
+                case "ALT":
+                    altKey = true;
+                    break;
+                case "SHIFT":
+                    shiftKey = true;
+                    break;
+                case "CMD":
+                case "COMMAND":
+                case "META":
+                    metaKey = true; // TODO on non-Mac, set ctrlKey.
+                    break;
+            }
+        }
+
+        return new HotkeyInfo(ctrlKey, altKey, shiftKey, metaKey, key);
+    }
+
+    // From a keyboard event.
+    static fromKeyboardEvent(e: KeyboardEvent): HotkeyInfo {
+        return new HotkeyInfo(e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.key.toUpperCase());
+    }
+}
+
+// Map from a hotkey canonical representation to its command.
+const gHotkeyMap = new Map<string,MenuCommand>();
+
+// Register a hotkey and its command.
+function registerHotkey(hotkey: string, menuCommand: MenuCommand): HotkeyInfo {
+    const hotkeyInfo = HotkeyInfo.fromHotkey(hotkey);
+    const canonical = hotkeyInfo.toCanonical();
+    gHotkeyMap.set(canonical, menuCommand);
+    return hotkeyInfo;
+}
+
+// If the key has been registered, call its action and return true.
+function dispatchHotkey(e: KeyboardEvent): boolean {
+    const hotkeyInfo = HotkeyInfo.fromKeyboardEvent(e);
+    const canonical = hotkeyInfo.toCanonical();
+    const menuCommand = gHotkeyMap.get(canonical);
+    if (menuCommand !== undefined) {
+        menuCommand.action(menuCommand);
+        return true;
+    }
+    return false;
 }
 
 // Create an HTML node for this menu and its sub-menus. A depth of 0 means
@@ -145,6 +275,15 @@ function createNode(menu: Menu, depth: number): HTMLElement {
                     }, ENTRY_BLINK_MS);
                 }, ENTRY_BLINK_MS);
             });
+
+            if (menuEntry.hotkey !== undefined) {
+                const hotkeyInfo = registerHotkey(menuEntry.hotkey, menuEntry);
+
+                const hotkeyNode = document.createElement("div");
+                hotkeyNode.classList.add("menubar-hotkey");
+                hotkeyNode.textContent = hotkeyInfo.toMenuString();
+                entryNode.append(hotkeyNode);
+            }
         } else if (isMenuParent(menuEntry)) {
             // Add sub-menu.
             entryNode.classList.add("menubar-parent");
@@ -240,6 +379,15 @@ function registerWindowListeners(): void {
 
         window.addEventListener("blur", () => {
             closeToDepth(0);
+        });
+
+        // Handle hotkeys.
+        window.addEventListener("keydown", e => {
+            const handled = dispatchHotkey(e);
+            if (handled) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
         });
 
         gRegisteredWindowListeners = true;

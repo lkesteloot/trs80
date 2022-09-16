@@ -151,6 +151,15 @@ body.presentation-mode {
     visibility: visible;
 }
 
+.menubar-hotkey {
+    padding-left: 15px;
+    color: var(--foreground-secondary);
+}
+
+.menubar-entry:not(.menubar-entry-suppress-hover):hover > .menubar-hotkey {
+    color: var(--base2);
+}
+
 .menubar-parent {
     position: relative;
 }
