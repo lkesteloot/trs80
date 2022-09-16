@@ -912,6 +912,10 @@ function updateDiagnostics(results: AssemblyResults) {
 function runProgram(results: AssemblyResults) {
     if (results.errorLines.length === 0) {
         if (trs80State === undefined) {
+            // Disable interrupts, it causes the cursor to blink.
+            gTrs80.z80.regs.iff1 = 0;
+            gTrs80.z80.regs.iff2 = 0;
+
             trs80State = gTrs80.save();
         } else {
             gTrs80.restore(trs80State);
