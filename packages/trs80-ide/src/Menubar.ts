@@ -37,6 +37,7 @@ type Menu = MenuEntry[];
 
 const MAX_DEPTH = 2;
 const OPEN_TIMEOUT_MS = 250;
+const ENTRY_BLINK_MS = 70;
 
 // Timer to open a menu when the user hovers over its entry.
 let gOpenTimerHandler: number | undefined = undefined;
@@ -88,8 +89,16 @@ function createNode(menu: Menu, depth: number): HTMLElement {
             entryNode.addEventListener("click", e => {
                 e.preventDefault();
                 e.stopPropagation();
-                closeToDepth(0);
-                menuEntry.action();
+
+                // Blink entry before invoking action.
+                entryNode.classList.add("menubar-entry-suppress-hover");
+                setTimeout(() => {
+                    entryNode.classList.remove("menubar-entry-suppress-hover");
+                    setTimeout(() => {
+                        closeToDepth(0);
+                        menuEntry.action();
+                    }, ENTRY_BLINK_MS);
+                }, ENTRY_BLINK_MS);
             });
         }
 

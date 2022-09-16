@@ -63,7 +63,7 @@ body {
 }
 
 .menubar-menu {
-    color: var(--foreground);
+    color: var(--foreground-emphasized);
     background-color: var(--background-highlights);
     user-select: none;
 
@@ -116,11 +116,11 @@ body {
     padding-right: 15px;
 }
 
-.menubar-entry:hover,
+.menubar-entry:not(.menubar-entry-suppress-hover):hover,
 .menubar-entry.menubar-open {
 
-    color: var(--foreground-emphasized);
-    background-color: rgba(0, 0, 0, 0.04);
+    color: var(--base3);
+    background-color: var(--blue);
 }
 
 .menubar-parent {
