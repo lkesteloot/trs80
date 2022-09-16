@@ -226,7 +226,27 @@ const MENU: Menu = [
                         text: "Three",
                     },
                 ],
-            }
+            },
+            {
+                text: "Work Mode",
+                action: () => {
+                    view.dispatch({
+                        effects: gBaseThemeConfig.reconfigure([gBaseTheme]),
+                    });
+                    document.body.classList.remove("presentation-mode");
+                    document.body.classList.add("work-mode");
+                },
+            },
+            {
+                text: "Presentation Mode",
+                action: () => {
+                    view.dispatch({
+                        effects: gBaseThemeConfig.reconfigure([gPresentationTheme]),
+                    });
+                    document.body.classList.remove("work-mode");
+                    document.body.classList.add("presentation-mode");
+                },
+            },
         ],
     }
 ];
@@ -372,7 +392,7 @@ if (themeMenu !== undefined) {
             text: theme.name,
             action: () => {
                 view.dispatch({
-                    effects: themeConfig.reconfigure([theme]),
+                    effects: gColorThemeConfig.reconfigure([theme]),
                 });
             },
         });
@@ -645,14 +665,28 @@ function customCompletions(context: CompletionContext): CompletionResult | null 
 }
 
 // Our own theme for the editor, overlaid with the color theme the user can pick.
-const gCustomTheme = EditorView.theme({
+const gBaseTheme = EditorView.theme({
     ".cm-scroller": {
         fontFamily: `"Roboto Mono", monospace`,
+        fontSize: "16px",
     },
 });
 
-// Compartment to fit the current theme into.
-const themeConfig = new Compartment();
+// The base theme, plus whatever we need for presentations.
+const gPresentationTheme = [
+    EditorView.theme({
+        ".cm-scroller": {
+            fontSize: "20px",
+        },
+    }),
+    gBaseTheme,
+];
+
+// Compartment to fit the current base theme into.
+const gBaseThemeConfig = new Compartment();
+
+// Compartment to fit the current color theme into.
+const gColorThemeConfig = new Compartment();
 
 const extensions: Extension = [
     lineNumbers(),
@@ -709,8 +743,8 @@ const extensions: Extension = [
     // timingPlugin(),
     gAssemblyResultsStateField,
     indentUnit.of("        "),
-    gCustomTheme,
-    themeConfig.of(THEMES[DEFAULT_THEME_INDEX]),
+    gBaseThemeConfig.of(gBaseTheme),
+    gColorThemeConfig.of(THEMES[DEFAULT_THEME_INDEX]),
 ];
 
 let startState = EditorState.create({
