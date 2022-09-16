@@ -175,25 +175,28 @@ function createNode(menu: Menu, depth: number): HTMLElement {
                     }
                 }
             });
-
-            // Hook up hover on entry.
-            if (depth > 0) {
-                entryNode.addEventListener("mouseenter", e => {
-                    cancelOpenTimer();
-                    const alreadyOpen = entryNode.classList.contains("menubar-open");
-                    if (!alreadyOpen) {
-                        gOpenTimerHandler = window.setTimeout(() => {
-                            gOpenTimerHandler = undefined;
-                            closeToDepth(depth);
-                            entryNode.classList.add("menubar-open");
-                        }, OPEN_TIMEOUT_MS);
-                    }
-                });
-                entryNode.addEventListener("mouseleave", e => {
-                    cancelOpenTimer();
-                });
-            }
         }
+
+        // Hook up hover on entry.
+        if (depth > 0) {
+            entryNode.addEventListener("mouseenter", e => {
+                cancelOpenTimer();
+                const alreadyOpen = entryNode.classList.contains("menubar-open");
+                if (!alreadyOpen) {
+                    gOpenTimerHandler = window.setTimeout(() => {
+                        gOpenTimerHandler = undefined;
+                        closeToDepth(depth);
+                        if (isMenuParent(menuEntry)) {
+                            entryNode.classList.add("menubar-open");
+                        }
+                    }, OPEN_TIMEOUT_MS);
+                }
+            });
+            entryNode.addEventListener("mouseleave", e => {
+                cancelOpenTimer();
+            });
+        }
+
         node.append(entryNode);
     }
 
