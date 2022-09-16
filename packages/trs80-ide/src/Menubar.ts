@@ -121,9 +121,11 @@ function createNode(menu: Menu, depth: number): HTMLElement {
                 e.stopPropagation();
                 cancelOpenTimer();
                 const alreadyOpen = entryNode.classList.contains("menubar-open");
-                closeToDepth(depth);
-                if (!alreadyOpen) {
-                    entryNode.classList.add("menubar-open");
+                if (!alreadyOpen || depth === 0) {
+                    closeToDepth(depth);
+                    if (!alreadyOpen) {
+                        entryNode.classList.add("menubar-open");
+                    }
                 }
             });
 

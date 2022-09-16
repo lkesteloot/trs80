@@ -177,6 +177,14 @@ const THEMES = [
 ];
 const DEFAULT_THEME_INDEX = 3;
 
+// Available examples.
+const EXAMPLES = [
+    { name: "Simple", code: initial_code },
+    { name: "Space Invaders", code: space_invaders },
+    { name: "Breakdown", code: breakdwn },
+    { name: "Scarfman", code: scarfman },
+];
+
 // Pull-down menu.
 const MENU: Menu = [
     {
@@ -185,6 +193,15 @@ const MENU: Menu = [
             {
                 text: "Open...",
                 action: () => alert("Open!!!"),
+            },
+            {
+                id: "examples-list",
+                text: "Examples",
+                menu: [],
+            },
+            {
+                text: "Upload to RetroStore",
+                action: async () => await uploadToRetroStore(),
             }
         ],
     },
@@ -193,7 +210,8 @@ const MENU: Menu = [
         menu: [
             {
                 id: "theme-list",
-                text: "Theme",
+                text: "Editor Theme",
+                menu: [],
             },
             {
                 text: "Numbers",
@@ -261,68 +279,8 @@ class BytecodeGutter extends GutterMarker {
 }
 const BYTECODE_SPACER = new BytecodeGutter(0, [1, 2, 3, 4, 5]);
 
-const body = document.body;
-body.classList.add("light-mode");
-
-const content = document.createElement("div");
-content.classList.add("content");
-body.append(content);
-
-const editorPane = document.createElement("div");
-editorPane.classList.add("editor-pane");
-const themeMenu = getMenuEntryById(MENU, "theme-list");
-if (themeMenu !== undefined) {
-    themeMenu.menu = [];
-    for (const theme of THEMES) {
-        themeMenu.menu.push({
-            text: theme.name,
-            action: () => {
-                view.dispatch({
-                    effects: themeConfig.reconfigure([theme]),
-                });
-            },
-        });
-    }
-}
-const menubar = createMenubar(MENU);
-const toolbar = document.createElement("div");
-toolbar.classList.add("toolbar");
-const projectChooser = document.createElement("select");
-projectChooser.classList.add("project-chooser");
-const samples = [
-    {value: "initial_code", name: "Simple", code: initial_code},
-    {value: "space_invaders", name: "Space Invaders", code: space_invaders},
-    {value: "breakdwn", name: "Breakdown", code: breakdwn},
-    {value: "scarfman", name: "Scarfman", code: scarfman},
-];
-for (const sample of samples) {
-    const option = document.createElement("option");
-    option.value = sample.value;
-    option.textContent = sample.name;
-    projectChooser.append(option);
-}
-const themeChooser = document.createElement("select");
-themeChooser.classList.add("theme-chooser");
-for (let i = 0; i < THEMES.length; i++) {
-    const option = document.createElement("option");
-    option.value = i.toString();
-    option.textContent = THEMES[i].name;
-    if (i === DEFAULT_THEME_INDEX) {
-        option.selected = true;
-    }
-    themeChooser.append(option)
-}
-themeChooser.addEventListener("change", e => {
-    if (e.currentTarget instanceof HTMLSelectElement) {
-        const i = parseInt(e.currentTarget.value, 10);
-        view.dispatch({
-            effects: themeConfig.reconfigure([THEMES[i]]),
-        });
-    }
-});
-const uploadButton = document.createElement("button");
-uploadButton.textContent = "RetroStore";
-uploadButton.addEventListener("click", async () => {
+// Uploads the already-assembled code to the RetroStore.
+async function uploadToRetroStore() {
     const results = view.state.field(gAssemblyResultsStateField);
     if (results.errorLines.length !== 0) {
         return;
@@ -368,9 +326,61 @@ uploadButton.addEventListener("click", async () => {
     console.log(arrayBuffer);
     const x = RetroStoreProto.decodeApiResponseUploadSystemState(new Uint8Array(arrayBuffer));
     console.log(x);
-    console.log("Token: " + x.token?.low);
-});
-toolbar.append("Project:", projectChooser, "Theme:", themeChooser, uploadButton);
+    if (x.token !== undefined) {
+        console.log("Token: " + x.token.low);
+        alert("Code is " + x.token.low);
+    }
+}
+
+function loadExample(code: string) {
+    if (gScreenEditor !== undefined) {
+        gScreenEditor.cancel();
+        // Set to undefined in the close callback.
+    }
+    view.dispatch({
+        changes: {
+            from: 0,
+            to: view.state.doc.length,
+            insert: code,
+        }
+    });
+}
+
+const body = document.body;
+body.classList.add("light-mode");
+
+const content = document.createElement("div");
+content.classList.add("content");
+body.append(content);
+
+const editorPane = document.createElement("div");
+editorPane.classList.add("editor-pane");
+const examplesMenu = getMenuEntryById(MENU, "examples-list");
+if (examplesMenu !== undefined) {
+    for (const example of EXAMPLES) {
+        examplesMenu.menu.push({
+            text: example.name,
+            action: () => loadExample(example.code),
+        });
+    }
+}
+const themeMenu = getMenuEntryById(MENU, "theme-list");
+if (themeMenu !== undefined) {
+    for (const theme of THEMES) {
+        themeMenu.menu.push({
+            text: theme.name,
+            action: () => {
+                view.dispatch({
+                    effects: themeConfig.reconfigure([theme]),
+                });
+            },
+        });
+    }
+}
+const menubar = createMenubar(MENU);
+const toolbar = document.createElement("div");
+toolbar.classList.add("toolbar");
+// Toolbar is currently empty.
 const editorContainer = document.createElement("div");
 editorContainer.classList.add("editor-container");
 const editorDiv = document.createElement("div");
@@ -923,24 +933,6 @@ gSaveButton.addEventListener("click", () => {
 gRestoreButton.addEventListener("click", () => {
     if (trs80State !== undefined) {
         gTrs80.restore(trs80State);
-    }
-});
-projectChooser.addEventListener("change", () => {
-    const sampleValue = projectChooser.value;
-    const sample = samples.filter(s => s.value === sampleValue)[0];
-    if (sample !== undefined) {
-        if (gScreenEditor !== undefined) {
-            gScreenEditor.cancel();
-            // Set to undefined in the close callback.
-        }
-        const code = sample.code;
-        view.dispatch({
-            changes: {
-                from: 0,
-                to: view.state.doc.length,
-                insert: code,
-            }
-        });
     }
 });
 

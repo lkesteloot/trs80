@@ -107,9 +107,13 @@ body {
 }
 
 .menubar-entry {
-    padding: 7px 15px;
+    padding: 7px 25px 7px 15px;
     white-space: nowrap;
     cursor: pointer;
+}
+
+.menubar-depth-0 > .menubar-entry {
+    padding-right: 15px;
 }
 
 .menubar-entry:hover,
