@@ -12,6 +12,7 @@ export interface MenuEntry {
 
     // Injected by the menu builder.
     node?: HTMLElement;
+    parent?: MenuEntry | undefined;
 }
 
 // Kind of menu entry that does something.
@@ -55,6 +56,7 @@ export type Menu = (MenuCommand | MenuParent)[];
 const MAX_DEPTH = 2;
 const OPEN_TIMEOUT_MS = 250;
 const ENTRY_BLINK_MS = 70;
+const FLASH_MS = 150;
 
 // Timer to open a menu when the user hovers over its entry.
 let gOpenTimerHandler: number | undefined = undefined;
@@ -78,6 +80,11 @@ function closeToDepth(depth: number): void {
             node.classList.remove("menubar-open");
         }
     }
+}
+
+// Find the root entry for this menu entry. The root entry will be on the top-level menu bar.
+function getRoot(menuEntry: MenuEntry): MenuEntry {
+    return menuEntry.parent === undefined ? menuEntry : getRoot(menuEntry.parent);
 }
 
 // Info about a specific key and its modifiers.
@@ -197,6 +204,14 @@ function dispatchHotkey(e: KeyboardEvent): boolean {
     const canonical = hotkeyInfo.toCanonical();
     const menuCommand = gHotkeyMap.get(canonical);
     if (menuCommand !== undefined) {
+        // Flash the root entry.
+        const root = getRoot(menuCommand);
+        root.node?.classList.add("menubar-flash");
+        setTimeout(() => {
+            root.node?.classList.remove("menubar-flash");
+        }, FLASH_MS);
+
+        // Call the action handler.
         menuCommand.action(menuCommand);
         return true;
     }
@@ -205,7 +220,7 @@ function dispatchHotkey(e: KeyboardEvent): boolean {
 
 // Create an HTML node for this menu and its sub-menus. A depth of 0 means
 // the top level, 1 is the level below that, etc.
-function createNode(menu: Menu, depth: number): HTMLElement {
+function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): HTMLElement {
     if (depth > MAX_DEPTH) {
         throw new Error("Menu depth " + depth + " > " + MAX_DEPTH);
     }
@@ -236,6 +251,8 @@ function createNode(menu: Menu, depth: number): HTMLElement {
 
     // Add each entry.
     for (const menuEntry of menu) {
+        menuEntry.parent = parent;
+
         const entryNode = document.createElement("div");
         entryNode.classList.add("menubar-entry");
         menuEntry.node = entryNode;
@@ -298,7 +315,7 @@ function createNode(menu: Menu, depth: number): HTMLElement {
             }
 
             // Create sub-menu.
-            const subNode = createNode(menuEntry.menu, depth + 1);
+            const subNode = createNode(menuEntry.menu, depth + 1, menuEntry);
             entryNode.append(subNode);
 
             // Hook up click on entry.
@@ -397,5 +414,5 @@ function registerWindowListeners(): void {
 // Create this menu as a top-level pull-down, returning its HTML node.
 export function createMenubar(menu: Menu): HTMLElement {
     registerWindowListeners();
-    return createNode(menu, 0);
+    return createNode(menu, 0, undefined);
 }

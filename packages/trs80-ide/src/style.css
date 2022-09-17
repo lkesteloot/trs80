@@ -127,7 +127,8 @@ body.presentation-mode {
 }
 
 .menubar-entry:not(.menubar-entry-suppress-hover):hover,
-.menubar-entry.menubar-open {
+.menubar-entry.menubar-open,
+.menubar-entry.menubar-flash {
 
     color: var(--base3);
     background-color: var(--blue);
