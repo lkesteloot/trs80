@@ -243,7 +243,30 @@ const MENU: Menu = [
             },
         ],
     },
+    {
+        text: "Run",
+        menu: [
+            {
+                text: "Run",
+                action: () => {
+                    const assemblyResults = gView.state.field(gAssemblyResultsStateField);
+                    runProgram(assemblyResults);
+                },
+                hotkey: "Cmd-R",
+            },
+            {
+                id: "auto-run",
+                text: "Auto-run",
+                checked: true,
+                action: (menuCommand: MenuCommand) => {
+                    menuCommand.setChecked?.(!menuCommand.checked);
+                },
+            },
+        ],
+    },
 ];
+
+const gAutoRunMenuCommand = getMenuEntryById(MENU, "auto-run") as MenuCommand;
 
 /**
  * Builder of chunks of memory for the RetroStore interface.
@@ -890,7 +913,9 @@ function reassemble() {
 function updateEverything(results: AssemblyResults) {
     updateDiagnostics(results);
     updateAssemblyErrors(results);
-    runProgram(results);
+    if (gAutoRunMenuCommand.checked) {
+        runProgram(results);
+    }
 }
 
 // Update the squiggly lines in the editor.
