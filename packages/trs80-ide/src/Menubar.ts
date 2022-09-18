@@ -7,9 +7,6 @@ export interface MenuEntry {
     // Optional ID for use with getMenuEntryById().
     id?: string;
 
-    // Text to display for this menu item.
-    text: string;
-
     // Injected by the menu builder.
     node?: HTMLElement;
     parent?: MenuEntry | undefined;
@@ -17,6 +14,9 @@ export interface MenuEntry {
 
 // Kind of menu entry that does something.
 export interface MenuCommand extends MenuEntry {
+    // Text to display for this menu item.
+    text: string;
+
     // Action to call when user clicks on this menu item.
     action: (menuCommand: MenuCommand) => void;
 
@@ -39,8 +39,21 @@ export function isMenuCommand(menuEntry: MenuEntry): menuEntry is MenuCommand {
     return "action" in menuEntry;
 }
 
+// A visual separator in vertical menus.
+export interface MenuSeparator extends MenuEntry {
+    separator: true;
+}
+
+// Whether this menu entry is a separator.
+export function isMenuSeparator(menuEntry: MenuEntry): menuEntry is MenuSeparator {
+    return "separator" in menuEntry;
+}
+
 // Kind of menu entry that has a sub-menu.
 export interface MenuParent extends MenuEntry {
+    // Text to display for this menu item.
+    text: string;
+
     // Menu items, must be non-empty.
     menu: Menu;
 }
@@ -51,7 +64,7 @@ export function isMenuParent(menuEntry: MenuEntry): menuEntry is MenuParent {
 }
 
 // List of menu entries for a menu.
-export type Menu = (MenuCommand | MenuParent)[];
+export type Menu = (MenuCommand | MenuSeparator | MenuParent)[];
 
 const MAX_DEPTH = 2;
 const OPEN_TIMEOUT_MS = 250;
@@ -257,15 +270,17 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
         entryNode.classList.add("menubar-entry");
         menuEntry.node = entryNode;
 
-        // All entries have a checkmark (possibly hidden) and the entry text.
-        const checkmarkNode = document.createElement("div");
-        checkmarkNode.classList.add("menubar-checkmark");
-        // https://www.compart.com/en/unicode/U+2713
-        checkmarkNode.textContent = "\u2713";
-        const textNode = document.createElement("div");
-        textNode.classList.add("menubar-text");
-        textNode.textContent = menuEntry.text;
-        entryNode.append(checkmarkNode, textNode);
+        if (isMenuCommand(menuEntry) || isMenuParent(menuEntry)) {
+            // All entries have a checkmark (possibly hidden) and the entry text.
+            const checkmarkNode = document.createElement("div");
+            checkmarkNode.classList.add("menubar-checkmark");
+            // https://www.compart.com/en/unicode/U+2713
+            checkmarkNode.textContent = "\u2713";
+            const textNode = document.createElement("div");
+            textNode.classList.add("menubar-text");
+            textNode.textContent = menuEntry.text;
+            entryNode.append(checkmarkNode, textNode);
+        }
 
         if (isMenuCommand(menuEntry)) {
             // Hook up action.
@@ -301,6 +316,8 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
                 hotkeyNode.textContent = hotkeyInfo.toMenuString();
                 entryNode.append(hotkeyNode);
             }
+        } else if (isMenuSeparator(menuEntry)) {
+            entryNode.classList.add("menubar-separator");
         } else if (isMenuParent(menuEntry)) {
             // Add sub-menu.
             entryNode.classList.add("menubar-parent");

@@ -161,6 +161,14 @@ body.presentation-mode {
     color: var(--base2);
 }
 
+.menubar-separator {
+    height: 0;
+    border-top: 1px solid var(--foreground-secondary);
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 4px 0;
+}
+
 .menubar-parent {
     position: relative;
 }

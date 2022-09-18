@@ -242,6 +242,9 @@ const MENU: Menu = [
                 hotkey: "Shift-Cmd-B",
             },
             {
+                separator: true,
+            },
+            {
                 text: "Next Error",
                 action: () => {
                     nextError(gView.state.field(gAssemblyResultsStateField));
