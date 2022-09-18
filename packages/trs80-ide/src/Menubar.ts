@@ -335,7 +335,7 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
 
         // Hook up hover on entry.
         if (depth > 0) {
-            entryNode.addEventListener("mouseenter", e => {
+            entryNode.addEventListener("mouseenter", () => {
                 cancelOpenTimer();
                 const alreadyOpen = entryNode.classList.contains("menubar-open");
                 if (!alreadyOpen) {
@@ -348,7 +348,7 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
                     }, OPEN_TIMEOUT_MS);
                 }
             });
-            entryNode.addEventListener("mouseleave", e => {
+            entryNode.addEventListener("mouseleave", () => {
                 cancelOpenTimer();
             });
         }

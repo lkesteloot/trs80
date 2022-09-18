@@ -241,6 +241,20 @@ const MENU: Menu = [
                 },
                 hotkey: "Shift-Cmd-B",
             },
+            {
+                text: "Next Error",
+                action: () => {
+                    nextError(gView.state.field(gAssemblyResultsStateField));
+                },
+                hotkey: "F2",
+            },
+            {
+                text: "Previous Error",
+                action: () => {
+                    prevError(gView.state.field(gAssemblyResultsStateField));
+                },
+                hotkey: "Shift-F2",
+            },
         ],
     },
     {
@@ -476,13 +490,7 @@ const errorContainer = document.createElement("div");
 errorContainer.classList.add("error-container");
 const errorMessageDiv = document.createElement("div");
 errorMessageDiv.id = "error-message";
-const prevErrorButton = document.createElement("button");
-prevErrorButton.textContent = "Previous";
-prevErrorButton.addEventListener("click", () => prevError(gView.state.field(gAssemblyResultsStateField)));
-const gNextErrorButton = document.createElement("button");
-gNextErrorButton.textContent = "Next";
-gNextErrorButton.addEventListener("click", () => nextError(gView.state.field(gAssemblyResultsStateField)));
-errorContainer.append(errorMessageDiv, prevErrorButton, gNextErrorButton);
+errorContainer.append(errorMessageDiv);
 editorPane.append(menubar, toolbar, editorContainer, errorContainer);
 const gSaveButton = document.createElement("button");
 gSaveButton.innerText = "Save";
