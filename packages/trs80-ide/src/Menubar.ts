@@ -139,25 +139,26 @@ class HotkeyInfo {
     }
 
     // To a string that can be shown to the user in a menu entry.
+    // https://github.com/Zenexer/internet-reference/blob/main/Mac%20Keyboard%20Symbols.md
     public toMenuString(): string {
         const parts: string[] = [];
 
         if (this.ctrlKey) {
-            parts.push("^");
+            parts.push("\u2303");
         }
-        if (this.altKey) { // TODO use symbols.
-            parts.push("Alt");
+        if (this.altKey) {
+            parts.push("\u2325"); // TODO use \u2387 (Alt) on non-Mac.
         }
         if (this.shiftKey) {
-            parts.push("Shift");
+            parts.push("\u21E7");
         }
         if (this.metaKey) {
-            parts.push("Cmd");
+            parts.push("\u2318");
         }
 
         parts.push(this.key); // TODO make mixed-case.
 
-        return parts.join("-");
+        return parts.join("");
     }
 
     // From a user-supplied string in the menu definition.
