@@ -11,14 +11,18 @@ import {RangeSetBuilder} from "@codemirror/state";
 import {AssemblyResults} from "./AssemblyResults";
 
 /**
- * Config options for the screeshot plugin.
+ * Config options for the screenshot plugin.
  */
 export interface Config {
     // State field for finding the assembly results.
     assemblyResultsStateField: StateField<AssemblyResults>;
 
     // Function to call to start the screen editor.
-    startScreenEditor: (view: EditorView, screenshotIndex: number, onClose: () => void) => void;
+    startScreenEditor: (view: EditorView, assemblyResults: AssemblyResults,
+                        screenshotIndex: number, onClose: () => void) => void;
+
+    // Function to call when the editor closes.
+    onClose: () => void;
 }
 
 /**
@@ -135,11 +139,13 @@ function makeScreenshotViewPlugin(config: Config) {
                         effects: gEditingScreenshotStateEffect.of(true),
                     });
                     const screenshotIndex = parseInt(target.dataset.screenshotIndex as string);
-                    config.startScreenEditor(view, screenshotIndex, () => {
+                    const assemblyResults = view.state.field(config.assemblyResultsStateField);
+                    config.startScreenEditor(view, assemblyResults, screenshotIndex, () => {
                         // Re-enable clicking the Edit button.
                         view.dispatch({
                             effects: gEditingScreenshotStateEffect.of(false),
                         });
+                        config.onClose;
                     });
                     return true;
                 } else {

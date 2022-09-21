@@ -193,7 +193,7 @@ body.presentation-mode {
     position: relative;
 }
 
-#editor {
+.editor {
     /* make sure the editor is exactly the size of its parent regardless of content */
     position: absolute;
     top: 0;
