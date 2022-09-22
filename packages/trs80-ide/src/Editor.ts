@@ -327,8 +327,16 @@ export class Editor {
         for (const line of results.errorLines) {
             if (line.lineNumber !== undefined /* TODO */) {
                 const lineInfo = this.view.state.doc.line(line.lineNumber + 1);
+                const text = lineInfo.text;
+                let firstNonBlank = 0;
+                for (let i = 0; i < text.length; i++) {
+                    if (text.charAt(i) !== " ") {
+                        firstNonBlank = i;
+                        break;
+                    }
+                }
                 diagnostics.push({
-                    from: lineInfo.from,  // TODO first non-blank.
+                    from: lineInfo.from + firstNonBlank,
                     to: lineInfo.to,
                     severity: "error",
                     message: line.error,

@@ -54,8 +54,12 @@ screenshot:
         .byte 0
 `;
 
-const spaceInvaders = `        .org 0x5000
+const spaceInvaders = `        .org 0x9000
         di
+        ; Set up stack.
+        ld hl,0
+        ld sp,hl
+
         ld hl,15360
         inc hl
         inc hl
@@ -316,7 +320,7 @@ export class UserInterface {
         const errorMessageDiv = document.createElement("div");
         errorMessageDiv.id = "error-message";
         errorContainer.append(errorMessageDiv);
-        editorPane.append(menubar, toolbar, editorContainer, errorContainer);
+        editorPane.append(menubar, /*toolbar,*/ editorContainer, errorContainer);
         const emulatorDiv = document.createElement("div");
         emulatorDiv.id = "emulator";
         emulatorDiv.append(emulator.getNode());
