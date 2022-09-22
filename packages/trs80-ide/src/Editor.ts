@@ -20,8 +20,8 @@ import {
     EditorState,
     Extension,
     StateEffect,
-    StateField,
     StateEffectType,
+    StateField,
     Transaction
 } from "@codemirror/state"
 import {
@@ -45,6 +45,7 @@ import {screenshotPlugin} from "./ScreenshotPlugin";
 import {customCompletions} from "./AutoComplete";
 import {Emulator} from "./Emulator";
 import {getDefaultExample, getDefaultTheme} from "./UserInterface";
+import {getInitialSpaceCount} from "./utils";
 
 /**
  * Gutter to show the line's address and bytecode.
@@ -328,15 +329,8 @@ export class Editor {
             if (line.lineNumber !== undefined /* TODO */) {
                 const lineInfo = this.view.state.doc.line(line.lineNumber + 1);
                 const text = lineInfo.text;
-                let firstNonBlank = 0;
-                for (let i = 0; i < text.length; i++) {
-                    if (text.charAt(i) !== " ") {
-                        firstNonBlank = i;
-                        break;
-                    }
-                }
                 diagnostics.push({
-                    from: lineInfo.from + firstNonBlank,
+                    from: lineInfo.from + getInitialSpaceCount(text),
                     to: lineInfo.to,
                     severity: "error",
                     message: line.error,

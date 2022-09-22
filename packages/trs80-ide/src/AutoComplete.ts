@@ -1,6 +1,7 @@
 import { getAsmDirectiveDocs } from "z80-asm";
 import {mnemonicMap, OpcodeVariant } from "z80-inst";
 import {CompletionContext, Completion, CompletionResult} from "@codemirror/autocomplete";
+import {getInitialSpaceCount} from "./utils";
 
 // Get the full label (such as "ld a,b") for the variant.
 function getVariantLabel(variant: OpcodeVariant): string {
@@ -21,8 +22,17 @@ function matchesDescription(words: string[], description: string): boolean {
     description = description.toLowerCase();
 
     for (const word of words) {
-        if (description.indexOf(word) === -1) {
+        const index = description.indexOf(word);
+        if (index === -1) {
             return false;
+        }
+
+        // Must be at start of word.
+        if (index > 0) {
+            const ch = description.charAt(index - 1);
+            if (ch !== " " && ch !== "(") {
+                return false;
+            }
         }
     }
 
@@ -38,14 +48,7 @@ export function customCompletions(context: CompletionContext): CompletionResult 
     }
 
     // Skip initial space.
-    let spaceCount = 0;
-    for (let i = 0; i < word.text.length; i++) {
-        if (word.text.charAt(i) === " ") {
-            spaceCount += 1;
-        } else {
-            break;
-        }
-    }
+    let spaceCount = getInitialSpaceCount(word.text);
     if (spaceCount === 0) {
         // Don't autocomplete at start of line, that's for labels.
         return null;
@@ -60,19 +63,24 @@ export function customCompletions(context: CompletionContext): CompletionResult 
 
     // Find all variants.
     const options: Completion[] = [];
-    const matchingVariants: OpcodeVariant[] = [];
+    const matchingVariantsLabel: OpcodeVariant[] = [];
+    const matchingVariantsDesc: OpcodeVariant[] = [];
     for (const variants of mnemonicMap.values()) {
         for (const variant of variants) {
-            if ((variant.clr !== undefined && matchesDescription(searchWords, variant.clr.description)) ||
-                getVariantLabel(variant).toLowerCase().startsWith(search)) {
-
-                matchingVariants.push(variant);
+            if (getVariantLabel(variant).toLowerCase().startsWith(search)) {
+                matchingVariantsLabel.push(variant);
+            } else if (variant.clr !== undefined && matchesDescription(searchWords, variant.clr.description)) {
+                matchingVariantsDesc.push(variant);
             }
         }
     }
 
     // Sort to put most likely on top.
-    matchingVariants.sort((a, b) => a.opcodes.length - b.opcodes.length);
+    matchingVariantsLabel.sort((a, b) => a.opcodes.length - b.opcodes.length);
+    matchingVariantsDesc.sort((a, b) => a.opcodes.length - b.opcodes.length);
+
+    // Put label matches first, then description matches.
+    const matchingVariants = [... matchingVariantsLabel, ... matchingVariantsDesc];
 
     // Convert to options.
     for (const variant of matchingVariants) {
