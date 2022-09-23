@@ -22,6 +22,7 @@ import {
     StateEffect,
     StateEffectType,
     StateField,
+    Text,
     Transaction
 } from "@codemirror/state"
 import {
@@ -46,6 +47,8 @@ import {customCompletions} from "./AutoComplete";
 import {Emulator} from "./Emulator";
 import {getDefaultExample, getDefaultTheme} from "./UserInterface";
 import {getInitialSpaceCount} from "./utils";
+
+const AUTO_SAVE_KEY = "trs80-ide-auto-save";
 
 /**
  * Gutter to show the line's address and bytecode.
@@ -252,6 +255,11 @@ export class Editor {
                     this.updateEverything(update.state.field(this.assemblyResultsStateField));
                 }
             }),
+            EditorView.updateListener.of(update => {
+                if (update.docChanged) {
+                    window.localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(update.state.doc.toJSON()));
+                }
+            }),
             // linter(view => [
             //   {
             //     from: 3,
@@ -277,8 +285,17 @@ export class Editor {
             gColorThemeConfig.of(getDefaultTheme()),
         ];
 
+        let defaultDoc: string | Text | undefined = undefined;
+        const saveDoc = window.localStorage.getItem(AUTO_SAVE_KEY);
+        if (saveDoc !== null) {
+            const lines = JSON.parse(saveDoc);
+            defaultDoc = Text.of(lines);
+        } else {
+            defaultDoc = getDefaultExample();
+        }
+
         let startState = EditorState.create({
-            doc: getDefaultExample(),
+            doc: defaultDoc,
             extensions: extensions,
         });
 

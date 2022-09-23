@@ -14,7 +14,7 @@ import {Editor} from "./Editor";
 //     }
 //
 //     update(update: ViewUpdate) {
-//         if (update.docChanged || true) { // TODO maybe compare assembly result screenshot info?
+//         if (update.docChanged || true) {
 //             this.decorations = decorationsForTiming(update.view)
 //         }
 //     }
