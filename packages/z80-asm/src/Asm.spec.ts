@@ -267,4 +267,17 @@ describe("assemble", () => {
             "    foo \"A,B;C\"",
         ], [0x41, 0x2C, 0x42, 0x3B, 0x43, 0x41, 0x2C, 0x42, 0x3B, 0x43]);
     });
+    it("if", ()=>{
+        runMacroTest([
+            "    macro foo p",
+            "    if &p>0",
+            "     ld hl,0",
+            "    else",
+            "     ld de,0",
+            "    endif",
+            "    endm",
+            "    foo 10",
+            "    foo 0",
+        ], [0x21, 0x00, 0x00, 0x11, 0x00, 0x00]);
+    })
 });

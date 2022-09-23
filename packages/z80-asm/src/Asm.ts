@@ -499,6 +499,44 @@ export class Asm {
 }
 
 /**
+ * Represents a context for if...else...endif
+ */
+class IfContext{
+    public parent: IfContext|undefined;
+    // Whether the condition in if directive is true.
+    // Set "skipAll" when we see nested if while already skipping.
+    public condition:boolean|"skipAll";
+    // Should skip current line or not.
+    public skip:boolean;
+    constructor(parent: IfContext|undefined, condition:boolean|"skipAll") {
+        this.parent=parent;
+        this.condition=condition;
+        if (this.condition==="skipAll") {
+            this.skip=true;
+        } else {
+            this.skip=!condition;
+        }
+    }
+    meetIf(condition:boolean):IfContext {
+        if (this.skip) {
+            return new IfContext(this, "skipAll");
+        } else {
+            return new IfContext(this, condition);
+        }
+    }
+    meetElse() {
+        if (this.condition==="skipAll") {
+            this.skip=true;
+        } else {
+            this.skip=this.condition;
+        }
+        return this;
+    }
+    meetEndIf() {
+        return this.parent; 
+    }
+}
+/**
  * Represents a pass through all the files.
  */
 class Pass {
@@ -516,6 +554,8 @@ class Pass {
     public libraryIncludeCount = 0;
     // Whether we've seen an "end" directive.
     public sawEnd = false;
+    // The current IfContext. To skip part of if statement. 
+    public currentIfContext: IfContext|undefined;
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
@@ -609,6 +649,14 @@ class Pass {
      */
     public locals(): Scope {
         return this.currentScope;
+    }
+    meetIf(condition:boolean) {
+        if (this.currentIfContext) {
+            this.currentIfContext=this.currentIfContext.meetIf(condition);
+        } else {
+            this.currentIfContext=new IfContext(undefined, condition);
+        }
+        return this.currentIfContext;
     }
 
     /**
@@ -711,7 +759,35 @@ class LineParser {
             }
         }
         if (mnemonic !== undefined && this.previousToken > 0) {
-            if (PSEUDO_DEF_BYTES.has(mnemonic)) {
+            if (PSEUDO_IF.has(mnemonic)) {
+                const cond=this.readExpression(true);
+                this.pass.meetIf(!!cond);
+            } else if (PSEUDO_ELSE.has(mnemonic)) {
+                if (!this.pass.currentIfContext) {
+                    this.assembledLine.error = "else without if";
+                } else {
+                    this.pass.currentIfContext.meetElse();
+                }
+            } else if (PSEUDO_ENDIF.has(mnemonic)) {
+                if (!this.pass.currentIfContext) {
+                    this.assembledLine.error = "endif without if";
+                } else {
+                    this.pass.currentIfContext=
+                        this.pass.currentIfContext.meetEndIf();
+                }
+            }
+            let skip=this.pass.currentIfContext && 
+                this.pass.currentIfContext.skip;
+            if (skip) {
+                // To skip line, ensureEndOfLine should always succeed.
+                this.column = this.line.length;
+                //this.ensureEndOfLine(); 
+                return;
+            }
+            if (PSEUDO_IF.has(mnemonic)||
+            PSEUDO_ELSE.has(mnemonic)||
+            PSEUDO_ENDIF.has(mnemonic)){
+            } else if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
                     const s = this.readString();
                     if (s !== undefined) {
@@ -1545,8 +1621,46 @@ class LineParser {
             // with dereferencing.
             return undefined;
         }
-
-        return this.readSum();
+        return this.readComparison();
+    }
+    /**
+     * Read a comparison(x>0 etc.), or undefined if there was an error reading it.
+     */
+     private readComparison(): number | undefined {
+        let value = 0;
+        const leftValue = this.readSum();
+        if (leftValue === undefined) {
+            return undefined;
+        }
+        const ops:{[key:string]:string}={
+            ">": "gt", "<": "lt", 
+            ">=":"ge", "<=":"le",
+            "!=":"ne", "==":"eq",
+            "gt":"gt", "lt":"lt", 
+            "ge":"ge", "le":"le",
+            "ne":"ne", "eq":"eq",
+        };
+        const op=this.foundOneOfToken(Object.keys(ops));
+        if (!op) return leftValue;
+        const rightValue=this.readSum();
+        if (rightValue === undefined) {
+            return undefined;
+        }
+        switch (ops[op])  {
+            case "gt":
+                return leftValue>rightValue?1:0;
+            case "lt":
+                return leftValue<rightValue?1:0;
+            case "ge":
+                return leftValue>=rightValue?1:0;
+            case "le":
+                return leftValue<=rightValue?1:0;
+            case "eq":
+                return leftValue==rightValue?1:0;
+            case "ne":
+                return leftValue!=rightValue?1:0;                
+        }
+        return undefined;
     }
 
     /**
@@ -1964,6 +2078,34 @@ class LineParser {
         for (const ch of chars) {
             if (this.foundChar(ch)) {
                 return ch;
+            }
+        }
+
+        return undefined;
+    }
+    
+    /**
+     * If the next token(string with length>=1) matches the parameter, skips it and subsequent whitespace and return true.
+     * Else returns false.
+     */
+    private foundToken(token: string): boolean {
+        const looking=this.line.substring(this.column, this.column+token.length);
+        if (looking===token) {
+            this.column+=token.length;
+            this.skipWhitespace();
+            return true;
+        } else {
+            return false;
+        }
+    }
+    /**
+     * If any of the specified tokens is next, it is skipped (and subsequent whitespace) and returned.
+     * Else undefined is returned.
+     */
+    private foundOneOfToken(tokens: string[]): string|undefined {
+        for (const token of tokens) {
+            if (this.foundToken(token)) {
+                return token;
             }
         }
 
