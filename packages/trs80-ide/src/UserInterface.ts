@@ -313,14 +313,9 @@ export class UserInterface {
         editorContainer.classList.add("editor-container");
         const editorDiv = document.createElement("div");
         editorDiv.classList.add("editor");
-        editorDiv.append(editor.getNode());
+        editorDiv.append(editor.getNode(), editor.errorPill);
         editorContainer.append(editorDiv);
-        const errorContainer = document.createElement("div");
-        errorContainer.classList.add("error-container");
-        const errorMessageDiv = document.createElement("div");
-        errorMessageDiv.id = "error-message";
-        errorContainer.append(errorMessageDiv);
-        editorPane.append(menubar, /*toolbar,*/ editorContainer, errorContainer);
+        editorPane.append(menubar, /*toolbar,*/ editorContainer);
         const emulatorDiv = document.createElement("div");
         emulatorDiv.id = "emulator";
         emulatorDiv.append(emulator.getNode());

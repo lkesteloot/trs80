@@ -187,6 +187,7 @@ export class Editor {
     private readonly emulator: Emulator;
     private readonly assemblyResultsStateEffect: StateEffectType<AssemblyResults>;
     private readonly assemblyResultsStateField: StateField<AssemblyResults>;
+    public readonly errorPill: HTMLDivElement;
     public readonly view: EditorView;
     public autoRun = true;
 
@@ -302,6 +303,10 @@ export class Editor {
         this.view = new EditorView({
             state: startState,
         });
+
+        this.errorPill = document.createElement("div");
+        this.errorPill.classList.add("error-pill");
+        this.errorPill.addEventListener("click", () => this.nextError());
     }
 
     // Get the editor's node.
@@ -452,15 +457,12 @@ export class Editor {
     }
 
     private updateAssemblyErrors(results: AssemblyResults) {
-        // TODO move to an overlay in editor.
-        /*
         if (results.errorLines.length === 0) {
-            errorContainer.style.display = "none";
+            this.errorPill.style.display = "none";
         } else {
-            errorContainer.style.display = "flex";
-            errorMessageDiv.innerText = results.errorLines.length +
-                " error" + (results.errorLines.length === 1 ? "" : "s");
-        }*/
+            this.errorPill.style.display = "block";
+            this.errorPill.innerText = /*"\u26a0" + */ results.errorLines.length.toString();
+        }
     }
 
     private setCursorToReference(ref: SymbolReference): void {

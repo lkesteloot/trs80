@@ -66,6 +66,20 @@ body.presentation-mode {
     align-self: stretch;
 }
 
+.error-pill {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 30px;
+    color: white;
+    background-color: rgba(220, 50, 47, 0.8);
+    padding: 5px 10px 4px 10px;
+    border-radius: 999px;
+    font-size: 9pt;
+    user-select: none;
+    cursor: pointer;
+}
+
 /* ------------------------------------------------------------------------- */
 
 .menubar-menu {
@@ -230,14 +244,6 @@ body.presentation-mode {
 
 .presentation-mode .cm-screenshotEdit {
     font-size: 15px;
-}
-
-.error-container {
-    display: none; /* set to flex procedurally to display */
-    flex-direction: row;
-    align-items: baseline;
-    gap: 0.5em;
-    padding: 15px;
 }
 
 .gutter-bytecode {
