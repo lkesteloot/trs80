@@ -53,6 +53,8 @@ const PSEUDO_IF = new Set(["if", "cond", "#if"]);
 const PSEUDO_ELSE = new Set(["else", "#else"]);
 const PSEUDO_ENDIF = new Set(["endif", "endc", "#endif"]);
 
+const PSEUDO_REPT = new Set(["rept", ".rept"]);
+
 // End file instruction. Followed by optional entry address or label.
 const PSEUDO_END = new Set(["end"]);
 
@@ -128,6 +130,10 @@ export function getAsmDirectiveDocs(): AsmDirectiveDoc[] {
         {
             directives: PSEUDO_ENDIF,
             description: "End of if conditional.",
+        },
+        {
+            directives: PSEUDO_REPT,
+            description: "Repeat instructions by specified times.",
         },
         {
             directives: PSEUDO_END,
@@ -1035,7 +1041,7 @@ class LineParser {
                     const macroListingLineNumber = this.assembledLine.listingLineNumber;
                     let endmListingLineNumber: number | undefined = undefined;
                     const lines: string[] = [];
-
+                    let macroDepth=0; // Count "rept"s inside macro.
                     while (true) {
                         const assembledLine = this.pass.getNextLine();
                         if (assembledLine === undefined) {
@@ -1048,9 +1054,14 @@ class LineParser {
                         // # and the directive is one of the param names.
                         lineParser.skipWhitespace();
                         const token = lineParser.readIdentifier(false, true);
-                        if (token !== undefined && PSEUDO_ENDM.has(token)) {
-                            endmListingLineNumber = assembledLine.listingLineNumber;
-                            break;
+                        if (token !== undefined && PSEUDO_REPT.has(token)) {
+                            macroDepth++;
+                        } else if (token !== undefined && PSEUDO_ENDM.has(token)) {
+                            macroDepth--;
+                            if (macroDepth<0) {
+                                endmListingLineNumber = assembledLine.listingLineNumber;
+                                break;    
+                            }
                         }
 
                         lines.push(assembledLine.line);
@@ -1069,6 +1080,51 @@ class LineParser {
                     // Don't want to parse any more of the original macro line.
                     return;
                 }
+            } else if (PSEUDO_REPT.has(mnemonic)) {
+                // rept
+                const times = this.readExpression(true);
+                if (times===undefined) {
+                    this.assembledLine.error="rept must specify repeat times";
+                    return;
+                }
+                // As macro definition...
+                let endmListingLineNumber;
+                const lines:string[]=[];
+                let macroDepth=0; // Count "rept"s inside macro.
+
+                while (true) {
+                    const assembledLine = this.pass.getNextLine();
+                    if (assembledLine === undefined) {
+                        this.assembledLine.error = "rept macro has no endm";
+                        break;
+                    }
+
+                    const lineParser = new LineParser(this.pass, assembledLine);
+                    // TODO check to make sure macro doesn't contain a # directive, unless the tag is
+                    // # and the directive is one of the param names.
+                    lineParser.skipWhitespace();
+                    const token = lineParser.readIdentifier(false, true);
+                    if (token !== undefined && PSEUDO_REPT.has(token)) {
+                        macroDepth++;
+                    } else if (token !== undefined && PSEUDO_ENDM.has(token)) {
+                        macroDepth--;
+                        if (macroDepth<0) {
+                            endmListingLineNumber = assembledLine.listingLineNumber;
+                            break;
+                        }
+                    }
+                    lines.push(assembledLine.line);
+                }
+                if (this.pass.passNumber==1) {
+                    // insert lines by times
+                    for (let i=0;i<times;i++) {
+                        const clonedLines = lines.map((line) =>
+                            new AssembledLine(this.assembledLine.fileInfo, undefined, line));
+                        this.pass.insertLines(clonedLines);
+                    }
+                }
+                // Don't want to parse any more of the original rept line.
+                return;
             } else if (PSEUDO_ENDM.has(mnemonic)) {
                 this.assembledLine.error = "endm outside of macro definition";
                 return;

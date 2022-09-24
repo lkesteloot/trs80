@@ -269,7 +269,7 @@ describe("assemble", () => {
     });
     it("if", ()=>{
         runMacroTest([
-            "    macro foo p",
+            "    foo macro p",
             "    if &p>0",
             "     ld hl,0",
             "    else",
@@ -279,5 +279,15 @@ describe("assemble", () => {
             "    foo 10",
             "    foo 0",
         ], [0x21, 0x00, 0x00, 0x11, 0x00, 0x00]);
+    })
+    it("rept", ()=>{
+        runMacroTest([
+            "    incs macro &n",
+            "     rept &n",
+            "      inc hl",
+            "     endm",
+            "    endm",
+            "    incs 5",
+        ], [0x23, 0x23, 0x23, 0x23, 0x23]);
     })
 });
