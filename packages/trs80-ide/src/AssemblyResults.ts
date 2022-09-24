@@ -4,7 +4,7 @@ import {ScreenshotSection} from "./ScreenshotSection";
 import {SymbolHit} from "./SymbolHit";
 
 // Error is required.
-type ErrorAssembledLine = AssembledLine & { error: string };
+export type ErrorAssembledLine = AssembledLine & { error: string };
 
 /**
  * Everything we know about the assembled code.

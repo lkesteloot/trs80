@@ -41,7 +41,7 @@ import {Asm, SourceFile, SymbolReference} from "z80-asm";
 import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base";
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS} from "trs80-base";
 import {ScreenshotSection} from "./ScreenshotSection";
-import {AssemblyResults} from "./AssemblyResults";
+import {AssemblyResults, ErrorAssembledLine} from "./AssemblyResults";
 import {screenshotPlugin} from "./ScreenshotPlugin";
 import {customCompletions} from "./AutoComplete";
 import {Emulator} from "./Emulator";
@@ -190,6 +190,8 @@ export class Editor {
     public readonly errorPill: HTMLDivElement;
     public readonly view: EditorView;
     public autoRun = true;
+    private currentLineNumber = 0; // 1-based.
+    private currentLineHasError = false;
 
     public constructor(emulator: Emulator) {
         this.emulator = emulator;
@@ -259,6 +261,19 @@ export class Editor {
             EditorView.updateListener.of(update => {
                 if (update.docChanged) {
                     window.localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(update.state.doc.toJSON()));
+                }
+            }),
+            EditorView.updateListener.of(update => {
+                // Keep track of current line number and whether it had an error when we moved to it.
+                const cursor = update.state.selection.main.head;
+                const line = update.state.doc.lineAt(cursor);
+                const lineNumber = line.number;
+                if (lineNumber !== this.currentLineNumber) {
+                    const assemblyResults = update.state.field(this.assemblyResultsStateField);
+                    const hasError = assemblyResults.sourceFile.assembledLines[lineNumber - 1].error !== undefined;
+                    this.currentLineNumber = lineNumber;
+                    this.currentLineHasError = hasError;
+                    this.updateEverything(assemblyResults);
                 }
             }),
             // linter(view => [
@@ -348,7 +363,7 @@ export class Editor {
     public updateDiagnostics(results: AssemblyResults) {
         const diagnostics: Diagnostic[] = [];
         for (const line of results.errorLines) {
-            if (line.lineNumber !== undefined /* TODO */) {
+            if (line.lineNumber !== undefined /* TODO */ && this.lineShouldDisplayError(line)) {
                 const lineInfo = this.view.state.doc.line(line.lineNumber + 1);
                 const text = lineInfo.text;
                 diagnostics.push({
@@ -361,6 +376,13 @@ export class Editor {
         }
 
         this.view.dispatch(setDiagnostics(this.view.state, diagnostics));
+    }
+
+    // Whether we should highlight this error line.
+    private lineShouldDisplayError(line: ErrorAssembledLine): boolean {
+        // Don't show error if it didn't have an error when we moved to it, we're still typing the line.
+        return line.lineNumber !== undefined &&
+            (line.lineNumber + 1 !== this.currentLineNumber || this.currentLineHasError);
     }
 
     // 1-based.
@@ -456,12 +478,19 @@ export class Editor {
         }
     }
 
+    // Show error pill with number of assembly errors.
     private updateAssemblyErrors(results: AssemblyResults) {
-        if (results.errorLines.length === 0) {
+        let count = 0;
+        for (const line of results.errorLines) {
+            if (this.lineShouldDisplayError(line)) {
+                count += 1;
+            }
+        }
+        if (count === 0) {
             this.errorPill.style.display = "none";
         } else {
             this.errorPill.style.display = "block";
-            this.errorPill.innerText = /*"\u26a0" + */ results.errorLines.length.toString();
+            this.errorPill.innerText = count.toString();
         }
     }
 
