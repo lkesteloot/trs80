@@ -505,44 +505,6 @@ export class Asm {
 }
 
 /**
- * Represents a context for if...else...endif
- */
-class IfContext{
-    public parent: IfContext|undefined;
-    // Whether the condition in if directive is true.
-    // Set "skipAll" when we see nested if while already skipping.
-    public condition:boolean|"skipAll";
-    // Should skip current line or not.
-    public skip:boolean;
-    constructor(parent: IfContext|undefined, condition:boolean|"skipAll") {
-        this.parent=parent;
-        this.condition=condition;
-        if (this.condition==="skipAll") {
-            this.skip=true;
-        } else {
-            this.skip=!condition;
-        }
-    }
-    meetIf(condition:boolean):IfContext {
-        if (this.skip) {
-            return new IfContext(this, "skipAll");
-        } else {
-            return new IfContext(this, condition);
-        }
-    }
-    meetElse() {
-        if (this.condition==="skipAll") {
-            this.skip=true;
-        } else {
-            this.skip=this.condition;
-        }
-        return this;
-    }
-    meetEndIf() {
-        return this.parent; 
-    }
-}
-/**
  * Represents a pass through all the files.
  */
 class Pass {
@@ -560,8 +522,6 @@ class Pass {
     public libraryIncludeCount = 0;
     // Whether we've seen an "end" directive.
     public sawEnd = false;
-    // The current IfContext. To skip part of if statement. 
-    public currentIfContext: IfContext|undefined;
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
@@ -655,14 +615,6 @@ class Pass {
      */
     public locals(): Scope {
         return this.currentScope;
-    }
-    meetIf(condition:boolean) {
-        if (this.currentIfContext) {
-            this.currentIfContext=this.currentIfContext.meetIf(condition);
-        } else {
-            this.currentIfContext=new IfContext(undefined, condition);
-        }
-        return this.currentIfContext;
     }
 
     /**
@@ -767,32 +719,47 @@ class LineParser {
         if (mnemonic !== undefined && this.previousToken > 0) {
             if (PSEUDO_IF.has(mnemonic)) {
                 const cond=this.readExpression(true);
-                this.pass.meetIf(!!cond);
-            } else if (PSEUDO_ELSE.has(mnemonic)) {
-                if (!this.pass.currentIfContext) {
-                    this.assembledLine.error = "else without if";
-                } else {
-                    this.pass.currentIfContext.meetElse();
+
+                const thenLines:string[]=[];
+                const elseLines:string[]=[];
+                let curLines=thenLines;
+                let ifDepth=0; // Count nested ifs
+                while (true) {
+                    const assembledLine = this.pass.getNextLine();
+                    if (assembledLine === undefined) {
+                        this.assembledLine.error = "if has no endif";
+                        break;
+                    }
+
+                    const lineParser = new LineParser(this.pass, assembledLine);
+                    // TODO check to make sure macro doesn't contain a # directive, unless the tag is
+                    // # and the directive is one of the param names.
+                    lineParser.skipWhitespace();
+                    const token = lineParser.readIdentifier(false, true);
+                    if (token !== undefined && PSEUDO_IF.has(token)) {
+                        ifDepth++;
+                    } else if (token !== undefined && PSEUDO_ENDIF.has(token)) {
+                        ifDepth--;
+                        if (ifDepth<0) {
+                            break;    
+                        }
+                    } 
+                    if (token !== undefined && PSEUDO_ELSE.has(token) && ifDepth==0) {
+                        curLines=elseLines;
+                    } else {
+                        curLines.push(assembledLine.line);
+                    }
                 }
-            } else if (PSEUDO_ENDIF.has(mnemonic)) {
-                if (!this.pass.currentIfContext) {
-                    this.assembledLine.error = "endif without if";
-                } else {
-                    this.pass.currentIfContext=
-                        this.pass.currentIfContext.meetEndIf();
+                if (this.pass.passNumber==1) {
+                    const clonedLines = (cond?thenLines:elseLines).map((line) =>
+                    new AssembledLine(this.assembledLine.fileInfo, undefined, line));
+                    this.pass.insertLines(clonedLines);                   
                 }
-            }
-            let skip=this.pass.currentIfContext && 
-                this.pass.currentIfContext.skip;
-            if (skip) {
-                // To skip line, ensureEndOfLine should always succeed.
-                this.column = this.line.length;
-                //this.ensureEndOfLine(); 
+
+            } else if (PSEUDO_ELSE.has(mnemonic)||PSEUDO_ENDIF.has(mnemonic)) {
+                this.assembledLine.error = "else/endif outside of if directive";
                 return;
-            }
-            if (PSEUDO_IF.has(mnemonic)||
-            PSEUDO_ELSE.has(mnemonic)||
-            PSEUDO_ENDIF.has(mnemonic)){
+
             } else if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
                     const s = this.readString();
