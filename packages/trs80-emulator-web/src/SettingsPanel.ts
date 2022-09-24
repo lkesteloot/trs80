@@ -83,6 +83,8 @@ const GLOBAL_CSS = `
     border-radius: 3px;
     background-color: #44443A;
     white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
 }
 
 .${gPanelCssClass} input[type=radio] + label.${gColorButtonClass} {

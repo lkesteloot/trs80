@@ -84,6 +84,12 @@ function cancelOpenTimer(): void {
     }
 }
 
+// Whether any menu is open.
+function isAnyMenuOpen(): boolean {
+    const menus = document.querySelectorAll(".menubar-entry.menubar-open");
+    return menus.length > 0;
+}
+
 // Close all menus at the specified depth and below. A depth of 0 means all
 // menus, 1 means menus below the top level, etc.
 function closeToDepth(depth: number): void {
@@ -403,12 +409,10 @@ function registerWindowListeners(): void {
     if (!gRegisteredWindowListeners) {
         window.addEventListener("click", e => {
             const target = e.target;
-            if (target instanceof Element) {
-                if (!target.classList.contains("menubar-entry")) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    closeToDepth(0);
-                }
+            if (isAnyMenuOpen() && target instanceof Element && !target.classList.contains("menubar-entry")) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeToDepth(0);
             }
         });
 
