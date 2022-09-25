@@ -17,8 +17,23 @@ import {uploadToRetroStore} from "./RetroStore";
 import {Emulator} from "./Emulator";
 import {Editor} from "./Editor";
 
-const initialCode = `        .org 0x9000
-        di
+const simpleExample = `        .org 0x9000
+
+        ld a,191
+        ld hl,15360
+        ld b,10
+        
+loop:
+        ld (hl),a
+        inc hl
+        dec b
+        jr nz,loop
+
+stop:
+        jp stop
+`;
+
+const screenshotExample = `        .org 0x9000
         
         ld hl,screenshot
         ld de,15360
@@ -32,17 +47,6 @@ draw:
         jr draw
 
 enddraw:
-        ld a,191
-        ld hl,15360
-        ld b,10
-        
-        ; Timing start
-loop:
-        ld (hl),a
-        inc hl
-        dec b
-        jr nz,loop
-        ; Timing end
 
 stop:
         jp stop
@@ -138,7 +142,8 @@ const DEFAULT_THEME_INDEX = 3;
 
 // Available examples.
 const EXAMPLES = [
-    { name: "Simple", code: initialCode },
+    { name: "Simple", code: simpleExample },
+    { name: "Screenshot", code: screenshotExample },
     { name: "Space Invaders", code: spaceInvaders },
     { name: "Breakdown", code: breakdwn },
     { name: "Scarfman", code: scarfman },
@@ -151,7 +156,7 @@ export function getDefaultTheme(): Extension {
 
 // Get the code we should display initially.
 export function getDefaultExample(): string {
-    return initialCode;
+    return simpleExample;
 }
 
 // Everything related to the menus and the top-level UI.
