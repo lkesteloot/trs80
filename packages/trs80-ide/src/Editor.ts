@@ -255,7 +255,9 @@ export class Editor {
             ]),
             EditorView.updateListener.of(update => {
                 if (update.docChanged) {
-                    this.updateEverything(update.state.field(this.assemblyResultsStateField));
+                    const results = update.state.field(this.assemblyResultsStateField);
+                    this.updateEverything(results);
+                    this.potentiallyAutoRun(results);
                 }
             }),
             EditorView.updateListener.of(update => {
@@ -468,11 +470,17 @@ export class Editor {
             effects: this.assemblyResultsStateEffect.of(results),
         });
         this.updateEverything(results);
+        this.potentiallyAutoRun(results);
     }
 
+    // Update editor state as a result of assembly.
     private updateEverything(results: AssemblyResults) {
         this.updateDiagnostics(results);
         this.updateAssemblyErrors(results);
+    }
+
+    // Run the program if necessary.
+    private potentiallyAutoRun(results: AssemblyResults) {
         if (this.autoRun) {
             this.emulator.runProgram(results);
         }
