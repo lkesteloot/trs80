@@ -73,10 +73,6 @@ class EditScreenshotWidget extends WidgetType {
     }
 }
 
-const screenshotTheme = EditorView.baseTheme({
-    ".cm-screenshotHighlight": { backgroundColor: "rgba(0, 0, 0, 0.05)" },
-});
-
 /**
  * Generate a set of decorations for all screenshots in the code.
  */
@@ -96,13 +92,11 @@ function decorationsForScreenshots(view: EditorView,
         builder.add(line.to, line.to, widgetDeco);
 
         if (s.firstDataLineNumber !== undefined && s.lastDataLineNumber !== undefined) {
+            const lineDeco = Decoration.line({
+                class: "cm-screenshotLine",
+            });
             for (let lineNumber = s.firstDataLineNumber; lineNumber <= s.lastDataLineNumber; lineNumber++) {
                 const line = view.state.doc.line(lineNumber);
-                const lineDeco = Decoration.line({ // TODO I think I only need to create one of these?
-                    attributes: {
-                        class: "cm-screenshotHighlight",
-                    },
-                });
                 builder.add(line.from, line.from, lineDeco);
             }
         }
@@ -162,7 +156,6 @@ function makeScreenshotViewPlugin(config: Config) {
 export function screenshotPlugin(config: Config): Extension {
     return [
         makeScreenshotViewPlugin(config),
-        screenshotTheme,
         gEditingScreenshotStateField,
         // Make editor read-only when editing a screenshot.
         EditorState.readOnly.from(gEditingScreenshotStateField, editing => editing),
