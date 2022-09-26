@@ -198,6 +198,36 @@ export class UserInterface {
                             menuCommand.setChecked?.(presentationMode);
                         },
                     },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Show Line Numbers",
+                        checked: true,
+                        action: (menuCommand: MenuCommand) => {
+                            const show = !(menuCommand.checked ?? false);
+                            editor.setShowLineNumbers(show);
+                            menuCommand.setChecked?.(show);
+                        },
+                    },
+                    {
+                        text: "Show Addresses",
+                        checked: true,
+                        action: (menuCommand: MenuCommand) => {
+                            const show = !(menuCommand.checked ?? false);
+                            editor.setShowAddresses(show);
+                            menuCommand.setChecked?.(show);
+                        },
+                    },
+                    {
+                        text: "Show Bytecode",
+                        checked: true,
+                        action: (menuCommand: MenuCommand) => {
+                            const show = !(menuCommand.checked ?? false);
+                            editor.setShowBytecode(show);
+                            menuCommand.setChecked?.(show);
+                        },
+                    },
                 ],
             },
             {

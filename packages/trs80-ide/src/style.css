@@ -251,28 +251,30 @@ body.presentation-mode {
     font-size: 15px;
 }
 
-.gutter-bytecode {
-    margin-left: .8em;
-    width: 12em;
-}
-
-.gutter-bytecode-address {
-    margin-right: 1em;
+.gutter-addresses {
+    /* "XXXX " = 5 characters */
+    width: 5ch;
     color: var(--cyan);
 }
 
-.gutter-bytecode-bytes {
+.gutter-bytecode {
+    /* "XX XX XX ... " = 13 characters */
+    width: 13ch;
     color: var(--blue);
+}
+
+.hidable-gutter .cm-gutterElement {
+    padding-right: 1ch;
 }
 
 .cm-lineNumbers .cm-gutterElement {
     color: var(--foreground-secondary);
-    opacity: 0.4;
+    padding-right: 1ch !important;
 }
 
 .hover-tooltip {
     color: rgba(256, 256, 256, 0.8);
-    background-color: var(--cyan);
+    background-color: var(--blue);
     padding: 8px 10px;
     max-width: 15em;
 }

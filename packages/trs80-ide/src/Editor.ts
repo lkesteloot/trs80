@@ -54,32 +54,17 @@ import {getInitialSpaceCount} from "./utils";
 const AUTO_SAVE_KEY = "trs80-ide-auto-save";
 
 /**
- * Gutter to show the line's address and bytecode.
+ * Gutter to show info about the line (address, bytecode, etc.).
  */
-class BytecodeGutter extends GutterMarker {
-    constructor(private address: number, private bytes: number[]) {
+class InfoGutter extends GutterMarker {
+    constructor(private text: string) {
         super();
     }
 
     toDOM() {
-        const dom = document.createElement("div");
-
-        const addressDom = document.createElement("span");
-        addressDom.textContent = toHexWord(this.address);
-        addressDom.classList.add("gutter-bytecode-address");
-
-        const bytesDom = document.createElement("span");
-        const tooBig = this.bytes.length > 4;
-        const bytes = tooBig ? this.bytes.slice(0, 3) : this.bytes;
-        bytesDom.textContent = bytes.map(b => toHexByte(b)).join(" ") +
-            (tooBig ? " ..." : "");
-        bytesDom.classList.add("gutter-bytecode-bytes");
-
-        dom.append(addressDom, bytesDom);
-        return dom;
+        return document.createTextNode(this.text);
     }
 }
-const BYTECODE_SPACER = new BytecodeGutter(0, [1, 2, 3, 4, 5]);
 
 // Our own theme for the editor, overlaid with the color theme the user can pick.
 const gBaseTheme = EditorView.theme({
@@ -185,6 +170,37 @@ function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] 
     return screenshotSections;
 }
 
+// An extension that can be turned on or off.
+class OptionalExtension {
+    private enabled: boolean;
+    private readonly extension: Extension;
+    private readonly compartment: Compartment;
+
+    public constructor(enabled: boolean, extension: Extension) {
+        this.enabled = enabled;
+        this.extension = extension;
+        this.compartment = new Compartment();
+    }
+
+    // The initial extension to put into the editor's config.
+    public getInitialExtension(): Extension {
+        return this.compartment.of(this.getExtension());
+    }
+
+    // Enable or disable the extension.
+    public setEnabled(view: EditorView, enabled: boolean): void {
+        this.enabled = enabled;
+        view.dispatch({
+            effects: this.compartment.reconfigure(this.getExtension()),
+        });
+    }
+
+    // Get the extension, if enabled.
+    private getExtension(): Extension {
+        return this.enabled ? this.extension : [];
+    }
+}
+
 // Encapsulates the editor and methods for it.
 export class Editor {
     private readonly emulator: Emulator;
@@ -192,6 +208,9 @@ export class Editor {
     private readonly assemblyResultsStateField: StateField<AssemblyResults>;
     public readonly errorPill: HTMLDivElement;
     public readonly view: EditorView;
+    private lineNumbersGutter: OptionalExtension;
+    private addressesGutter: OptionalExtension;
+    private bytecodeGutter: OptionalExtension;
     public autoRun = true;
     private currentLineNumber = 0; // 1-based.
     private currentLineHasError = false;
@@ -224,13 +243,18 @@ export class Editor {
             },
         });
 
+        this.lineNumbersGutter = new OptionalExtension(true, lineNumbers());
+        this.addressesGutter = new OptionalExtension(true, this.makeAddressesGutter());
+        this.bytecodeGutter = new OptionalExtension(true, this.makeBytecodeGutter());
+
         const extensions: Extension = [
-            lineNumbers(),
-            this.bytecodeGutter(),
+            this.lineNumbersGutter.getInitialExtension(),
+            this.addressesGutter.getInitialExtension(),
+            this.bytecodeGutter.getInitialExtension(),
             highlightActiveLineGutter(),
             highlightSpecialChars(),
             history(),
-            foldGutter(),
+            // foldGutter(),
             drawSelection(),
             dropCursor(),
             EditorState.allowMultipleSelections.of(true),
@@ -251,7 +275,7 @@ export class Editor {
                 ...defaultKeymap,
                 ...searchKeymap,
                 ...historyKeymap,
-                ...foldKeymap,
+                // ...foldKeymap,
                 ...completionKeymap,
                 ...lintKeymap,
                 indentWithTab,
@@ -345,6 +369,21 @@ export class Editor {
         this.view.dispatch({
             effects: gBaseThemeConfig.reconfigure([presentationMode ? gPresentationTheme : gBaseTheme]),
         });
+    }
+
+    // Specify whether to show line numbers.
+    public setShowLineNumbers(showLineNumbers: boolean): void {
+        this.lineNumbersGutter.setEnabled(this.view, showLineNumbers);
+    }
+
+    // Specify whether to show addresses.
+    public setShowAddresses(showAddresses: boolean): void {
+        this.addressesGutter.setEnabled(this.view, showAddresses);
+    }
+
+    // Specify whether to show bytecodes.
+    public setShowBytecode(showBytecode: boolean): void {
+        this.bytecodeGutter.setEnabled(this.view, showBytecode);
     }
 
     // Set the editor to the specific color theme.
@@ -607,22 +646,47 @@ export class Editor {
     }
 
     /**
-     * Gutter to show address and bytecode.
+     * Gutter to show each line's address.
      */
-    private bytecodeGutter() {
+    private makeAddressesGutter() {
         return gutter({
-            class: "gutter-bytecode",
+            class: "gutter-addresses hidable-gutter",
             lineMarker: (view: EditorView, line: BlockInfo) => {
                 const results = view.state.field(this.assemblyResultsStateField);
                 const lineNumber = view.state.doc.lineAt(line.from).number;
-                const assembledLine = results.lineMap.get(lineNumber);
+                const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
                 if (assembledLine !== undefined && assembledLine.binary.length > 0) {
-                    return new BytecodeGutter(assembledLine.address, assembledLine.binary);
+                    return new InfoGutter(toHexWord(assembledLine.address));
                 }
                 return null;
             },
             lineMarkerChange: (update: ViewUpdate) => true, // TODO remove?
-            initialSpacer: () => BYTECODE_SPACER,
+        });
+    }
+
+    /**
+     * Gutter to show the line's bytecode.
+     */
+    private makeBytecodeGutter() {
+        return gutter({
+            class: "gutter-bytecode hidable-gutter",
+            lineMarker: (view: EditorView, line: BlockInfo) => {
+                const results = view.state.field(this.assemblyResultsStateField);
+                const lineNumber = view.state.doc.lineAt(line.from).number;
+                const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
+                if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+                    let bytes = assembledLine.binary;
+                    const tooBig = bytes.length > 4;
+                    if (tooBig) {
+                        bytes = bytes.slice(0, 3);
+                    }
+                    const text = bytes.map(b => toHexByte(b)).join(" ") + (tooBig ? " ..." : "");
+
+                    return new InfoGutter(text);
+                }
+                return null;
+            },
+            lineMarkerChange: (update: ViewUpdate) => true, // TODO remove?
         });
     }
 }
