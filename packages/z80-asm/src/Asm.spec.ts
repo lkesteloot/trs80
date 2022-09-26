@@ -290,4 +290,14 @@ describe("assemble", () => {
             "    incs 5",
         ], [0x23, 0x23, 0x23, 0x23, 0x23]);
     })
+    it("macro arg concat", ()=>{
+        runMacroTest([
+            "    test macro &aa, &bb",
+            "     ld a, &aa.&bb",
+            "    endm",
+            "    foo.bar equ 5",
+            "    test foo, bar",
+        ], [0x3e, 0x05]);
+    })
+
 });

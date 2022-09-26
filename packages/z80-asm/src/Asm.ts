@@ -1576,15 +1576,19 @@ class LineParser {
             if (ch === macro.tag) {
                 const beginName = i + 1;
                 let endName = beginName;
+                let maxArgIndex=-1, maxEndName=-1;
                 while (endName < line.length && isLegalIdentifierCharacter(line.charAt(endName), endName === beginName)) {
                     endName++;
+                    const name = line.substring(beginName, endName);
+                    const argIndex = macro.params.indexOf(name);
+                    if (argIndex >= 0) {
+                        maxArgIndex = argIndex;
+                        maxEndName = endName;
+                    }
                 }
-
-                const name = line.substring(beginName, endName);
-                const argIndex = macro.params.indexOf(name);
-                if (argIndex >= 0) {
-                    parts.push(args[argIndex]);
-                    i = endName;
+                if (maxArgIndex>=0) {
+                    parts.push(args[maxArgIndex]);
+                    i = maxEndName;
                 } else {
                     parts.push(ch);
                     i++;
