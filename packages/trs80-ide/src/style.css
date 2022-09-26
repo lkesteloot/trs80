@@ -263,6 +263,12 @@ body.presentation-mode {
     color: var(--blue);
 }
 
+.gutter-timing {
+    /* "XX/XX " = 6 characters */
+    width: 6ch;
+    color: var(--yellow);
+}
+
 .hidable-gutter .cm-gutterElement {
     padding-right: 1ch;
 }

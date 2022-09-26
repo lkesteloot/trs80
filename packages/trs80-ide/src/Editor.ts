@@ -211,6 +211,7 @@ export class Editor {
     private lineNumbersGutter: OptionalExtension;
     private addressesGutter: OptionalExtension;
     private bytecodeGutter: OptionalExtension;
+    private timingGutter: OptionalExtension;
     public autoRun = true;
     private currentLineNumber = 0; // 1-based.
     private currentLineHasError = false;
@@ -246,11 +247,13 @@ export class Editor {
         this.lineNumbersGutter = new OptionalExtension(true, lineNumbers());
         this.addressesGutter = new OptionalExtension(true, this.makeAddressesGutter());
         this.bytecodeGutter = new OptionalExtension(true, this.makeBytecodeGutter());
+        this.timingGutter = new OptionalExtension(false, this.makeTimingGutter());
 
         const extensions: Extension = [
             this.lineNumbersGutter.getInitialExtension(),
             this.addressesGutter.getInitialExtension(),
             this.bytecodeGutter.getInitialExtension(),
+            this.timingGutter.getInitialExtension(),
             highlightActiveLineGutter(),
             highlightSpecialChars(),
             history(),
@@ -384,6 +387,11 @@ export class Editor {
     // Specify whether to show bytecodes.
     public setShowBytecode(showBytecode: boolean): void {
         this.bytecodeGutter.setEnabled(this.view, showBytecode);
+    }
+
+    // Specify whether to show timing.
+    public setShowTiming(showTiming: boolean): void {
+        this.timingGutter.setEnabled(this.view, showTiming);
     }
 
     // Set the editor to the specific color theme.
@@ -683,6 +691,32 @@ export class Editor {
                     const text = bytes.map(b => toHexByte(b)).join(" ") + (tooBig ? " ..." : "");
 
                     return new InfoGutter(text);
+                }
+                return null;
+            },
+            lineMarkerChange: (update: ViewUpdate) => true, // TODO remove?
+        });
+    }
+
+    /**
+     * Gutter to show the line's timing info.
+     */
+    private makeTimingGutter() {
+        return gutter({
+            class: "gutter-timing hidable-gutter",
+            lineMarker: (view: EditorView, line: BlockInfo) => {
+                const results = view.state.field(this.assemblyResultsStateField);
+                const lineNumber = view.state.doc.lineAt(line.from).number;
+                const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
+                if (assembledLine !== undefined && assembledLine.variant !== undefined) {
+                    const clr = assembledLine.variant.clr;
+                    if (clr !== undefined) {
+                        let text = clr.without_jump_clock_count.toString();
+                        if (clr.with_jump_clock_count !== clr.without_jump_clock_count) {
+                            text += "/" + clr.with_jump_clock_count;
+                        }
+                        return new InfoGutter(text);
+                    }
                 }
                 return null;
             },

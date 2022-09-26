@@ -228,6 +228,15 @@ export class UserInterface {
                             menuCommand.setChecked?.(show);
                         },
                     },
+                    {
+                        text: "Show Timing",
+                        checked: false,
+                        action: (menuCommand: MenuCommand) => {
+                            const show = !(menuCommand.checked ?? false);
+                            editor.setShowTiming(show);
+                            menuCommand.setChecked?.(show);
+                        },
+                    },
                 ],
             },
             {
