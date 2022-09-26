@@ -187,6 +187,8 @@ export class SymbolReference {
     // Line number in listing.
     public lineNumber: number;
     public column: number;
+    // Value at this position. For SymbolInfos with changesValue==true.
+    public value: number|undefined;
 
     constructor(lineNumber: number, column: number) {
         this.lineNumber = lineNumber;
@@ -212,6 +214,12 @@ export class SymbolInfo {
     public matches(ref: SymbolReference, lineNumber: number, column: number) {
         return lineNumber === ref.lineNumber &&
             column >= ref.column && column <= ref.column + this.name.length;
+    }
+
+    // Find SymbolReference at the specified position. 
+    // list must be either this.definitions or this.references.
+    public find(list: SymbolReference[], lineNumber: number, column: number) {
+        return list.find((ref)=>this.matches(ref, lineNumber, column)); 
     }
 }
 
@@ -1145,6 +1153,9 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 symbolInfo.definitions.push(new SymbolReference(this.assembledLine.listingLineNumber, symbolColumn));
+            } else {
+                const symRef=symbolInfo.find(symbolInfo.definitions, this.assembledLine.listingLineNumber, symbolColumn);
+                if (symRef) symRef.value=labelValue;
             }
         }
     }
@@ -1916,6 +1927,10 @@ class LineParser {
 
                 this.assembledLine.error = "label \"" + identifier + "\" not yet defined here";
                 return 0;
+            }
+            if (this.pass.passNumber > 1) {
+                const symRef=symbolInfo.find(symbolInfo.references, this.assembledLine.listingLineNumber, startIndex);
+                if (symRef) symRef.value=symbolInfo.value;
             }
             return symbolInfo.value;
         }
