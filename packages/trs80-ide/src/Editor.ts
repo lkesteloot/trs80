@@ -711,7 +711,14 @@ export class Editor {
                 if (assembledLine !== undefined && assembledLine.variant !== undefined) {
                     const clr = assembledLine.variant.clr;
                     if (clr !== undefined) {
-                        let text = clr.without_jump_clock_count.toString();
+                        let text = "";
+                        const timing = results.timingMap.get(lineNumber);
+                        if (timing !== undefined) {
+                            text = timing.toString();
+                        }
+
+                        // Assume 3 digits max. Scarfman got as high as 500.
+                        text = text.padEnd(4, " ") + "+" + clr.without_jump_clock_count.toString();
                         if (clr.with_jump_clock_count !== clr.without_jump_clock_count) {
                             text += "/" + clr.with_jump_clock_count;
                         }

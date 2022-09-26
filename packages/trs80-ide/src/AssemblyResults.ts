@@ -17,6 +17,8 @@ export class AssemblyResults {
     public readonly lineMap = new Map<number, AssembledLine>();
     public readonly errorLines: ErrorAssembledLine[];
     public readonly errorLineNumbers: number[]; // 1-based.
+    // Map from 1-based line number to timing (clocks since most recent loop).
+    public readonly timingMap = new Map<number, number>();
 
     constructor(asm: Asm, sourceFile: SourceFile, screenshotSections: ScreenshotSection[]) {
         this.asm = asm;
@@ -26,6 +28,7 @@ export class AssemblyResults {
         // Gather all errors.
         const errorLines: ErrorAssembledLine[] = [];
         const errorLineNumbers: number[] = []; // 1-based.
+        let timing = 0;
         for (const line of sourceFile.assembledLines) {
             if (line.lineNumber !== undefined) {
                 this.lineMap.set(line.lineNumber + 1, line);
@@ -38,6 +41,30 @@ export class AssemblyResults {
                 if (line.lineNumber !== undefined) {
                     errorLineNumbers.push(line.lineNumber + 1);
                 }
+            }
+
+            // TODO find more direct way to know if this line defines a symbol.
+            let definesSymbol = false;
+            for (const symbol of line.symbols) {
+                for (const definition of symbol.definitions) {
+                    if (definition.lineNumber === line.lineNumber) {
+                        definesSymbol = true;
+                        break;
+                    }
+                }
+                if (definesSymbol) {
+                    break;
+                }
+            }
+            if (definesSymbol) {
+                timing = 0;
+            }
+            if (line.variant !== undefined && line.lineNumber !== undefined) {
+                const clocks = line.variant.clr?.without_jump_clock_count;
+                if (clocks !== undefined) {
+                    timing += clocks;
+                }
+                this.timingMap.set(line.lineNumber + 1, timing);
             }
         }
         this.errorLines = errorLines;

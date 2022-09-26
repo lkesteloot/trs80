@@ -264,9 +264,10 @@ body.presentation-mode {
 }
 
 .gutter-timing {
-    /* "XX/XX " = 6 characters */
-    width: 6ch;
+    /* "XXX +XX/XX " = 11 characters */
+    width: 11ch;
     color: var(--yellow);
+    white-space: pre;
 }
 
 .hidable-gutter .cm-gutterElement {
