@@ -9,9 +9,12 @@ import {
     highlightActiveLine,
     highlightActiveLineGutter,
     highlightSpecialChars,
+    hoverTooltip,
     keymap,
     lineNumbers,
     rectangularSelection,
+    Tooltip,
+    TooltipView,
     ViewUpdate
 } from "@codemirror/view"
 import {
@@ -301,6 +304,7 @@ export class Editor {
             indentUnit.of("        "),
             gBaseThemeConfig.of(gBaseTheme),
             gColorThemeConfig.of(getDefaultTheme()),
+            hoverTooltip(this.getHoverTooltip.bind(this)),
         ];
 
         let defaultDoc: string | Text | undefined = undefined;
@@ -359,6 +363,102 @@ export class Editor {
                 insert: code,
             }
         });
+    }
+
+    // Get tooltip content given a hover position.
+    private getHoverTooltip(view: EditorView, pos: number, side: number): Tooltip | null {
+        const {from, to, text, number} = view.state.doc.lineAt(pos);
+        const assemblyResults = view.state.field(this.assemblyResultsStateField);
+        const line = assemblyResults.sourceFile.assembledLines[number - 1];
+        if (line.variant === undefined) {
+            return null;
+        }
+
+        const dom = document.createElement("div");
+        dom.classList.add("hover-tooltip");
+
+        // Utility function to make a node with a class and text.
+        function makeNode(tagName: string, className: string, textContent?: string): HTMLElement {
+            const div = document.createElement(tagName);
+            div.classList.add(className);
+            if (textContent !== undefined) {
+                div.textContent = textContent;
+            }
+            return div;
+        }
+
+        const clr = line.variant.clr;
+        if (clr !== undefined) {
+            const headerNode = makeNode("div", "hover-tooltip-header");
+            dom.append(headerNode);
+            headerNode.append(makeNode("span", "hover-tooltip-instruction", clr.instruction));
+            const modifiers: string[] = [];
+            if (clr.undocumented) {
+                modifiers.push("undocumented");
+            }
+            if (line.variant.isPseudo) {
+                modifiers.push("pseudo");
+            }
+            if (modifiers.length > 0) {
+                headerNode.append(makeNode("span", "hover-tooltip-modifiers",
+                    " (" + modifiers.join(", ") + ")"));
+            }
+            dom.append(makeNode("div", "hover-tooltip-description", clr.description));
+            const clockNode = makeNode("div", "hover-tooltip-clocks");
+            dom.append(clockNode);
+            clockNode.append(makeNode("span", "hover-tooltip-clocks-label", "Clocks: "));
+            clockNode.append(makeNode("span", "hover-tooltip-clocks-value",
+                clr.without_jump_clock_count + (clr.with_jump_clock_count !== clr.without_jump_clock_count ?
+                    " (" + clr.with_jump_clock_count + " with jump)" : "")));
+            if (clr.flags === "------") {
+                dom.append(makeNode("div", "hover-tooltip-flags-unaffected", "Flags are unaffected"));
+            } else {
+                const FLAGS = "CNPHZS";
+                for (let i = 0; i < 6; i++) {
+                    const flagNode = makeNode("div", "hover-tooltip-flag");
+                    dom.append(flagNode);
+                    flagNode.append(makeNode("span", "hover-tooltip-clocks-label", FLAGS[i] + ": "));
+                    let value: string | undefined = undefined;
+                    switch (clr.flags[i]) {
+                        case "-": value = "unaffected"; break;
+                        case "0": value = "reset"; break;
+                        case "1": value = "set"; break;
+                        case "P": value = "detects parity"; break;
+                        case "V": value = "detects overflow"; break;
+                        case "+": value = "affected as defined"; break;
+                        case "*": value = "exceptional (see docs)"; break;
+                        case " ": value = "unknown"; break;
+                        default: value = "???"; break;
+                    }
+                    flagNode.append(makeNode("span", "hover-tooltip-clocks-value", value));
+                }
+            }
+        } else {
+            if (line.variant.isPseudo) {
+                dom.append(makeNode("div", "hover-tooltip-pseudo", "This is a pseudo instruction."));
+            }
+        }
+
+        if (dom.children.length === 0) {
+            return null;
+        }
+
+        const initialSpaceCount = getInitialSpaceCount(text);
+        const start = from + initialSpaceCount;
+        const end = to; // TODO could remove comment and trailing whitespace.
+
+        if (pos < start || pos > to) {
+            return null;
+        }
+
+        return {
+            pos: start,
+            end: end,
+            above: true,
+            create(view: EditorView): TooltipView {
+                return {dom};
+            },
+        };
     }
 
     // Update the squiggly lines in the editor.

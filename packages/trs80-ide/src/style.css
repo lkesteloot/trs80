@@ -270,6 +270,45 @@ body.presentation-mode {
     opacity: 0.4;
 }
 
+.hover-tooltip {
+    color: rgba(256, 256, 256, 0.8);
+    background-color: var(--cyan);
+    padding: 8px 10px;
+    max-width: 15em;
+}
+
+.hover-tooltip-header {
+    margin-bottom: 0.5em;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.hover-tooltip-instruction {
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.hover-tooltip-modifiers {
+    color: rgba(256, 256, 256, 0.5);
+}
+
+.hover-tooltip-description {
+    margin-bottom: 0.5em;
+}
+
+.hover-tooltip-clocks {
+    margin-bottom: 0.5em;
+}
+
+.hover-tooltip-clocks-label {
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.hover-tooltip-clocks-value {
+    /* nothing */
+}
+
 /* -------------------------------------------------------------------------------------------- */
 
 .screen-editor-control-panel1,

@@ -26,8 +26,7 @@ const simpleExample = `        .org 0x9000
 loop:
         ld (hl),a
         inc hl
-        dec b
-        jr nz,loop
+        djnz loop
 
 stop:
         jp stop
@@ -69,7 +68,7 @@ const spaceInvaders = `        .org 0x9000
         inc hl
         
         ld a,191
-        ld b, 100
+        ld b,100
         
 loop:
         push hl
@@ -88,7 +87,7 @@ loop:
         inc hl
       
         push bc
-        ld bc,5500
+        ld bc,1500
 wait:
         dec bc
         ld a,b
@@ -96,8 +95,7 @@ wait:
         jr nz,wait
         pop bc
       
-        dec b
-        jr nz,loop
+        djnz loop
       
 stop:
         jp stop
