@@ -157,6 +157,7 @@ export class Trs80 implements Hal, Machine {
     private startTime = Date.now();
     private tickHandle: TimeoutHandle | undefined;
     public started = false;
+    public readonly onStarted = new SimpleEventDispatcher<boolean>();
     // Internal state of the cassette controller.
     // Whether the motor is running.
     private cassetteMotorOn = false;
@@ -177,6 +178,9 @@ export class Trs80 implements Hal, Machine {
     public readonly eventScheduler = new EventScheduler();
     public readonly onPreStep = new SignalDispatcher();
     public readonly onPostStep = new SignalDispatcher();
+    // Must be exactly 65536 entries, values 0 or 1:
+    private breakpoints: Uint8Array | undefined = undefined;
+    private ignoreInitialInstructionBreakpoint = false;
 
     constructor(config: Config, screen: Trs80Screen, keyboard: Keyboard, cassette: CassettePlayer, soundPlayer: SoundPlayer) {
         this.screen = screen;
@@ -364,6 +368,7 @@ export class Trs80 implements Hal, Machine {
             this.keyboard.interceptKeys = true;
             this.scheduleNextTick();
             this.started = true;
+            this.onStarted.dispatch(this.started);
         }
     }
 
@@ -377,10 +382,29 @@ export class Trs80 implements Hal, Machine {
             this.keyboard.interceptKeys = false;
             this.cancelTickTimeout();
             this.started = false;
+            this.onStarted.dispatch(this.started);
             return true;
         } else {
             return false;
         }
+    }
+
+    /**
+     * Set all breakpoints. The array must have 65536 entries, each 0 or 1.
+     * Use undefined for no breakpoints.
+     */
+    public setBreakpoints(breakpoints: Uint8Array | undefined): void {
+        this.breakpoints = breakpoints;
+    }
+
+    /**
+     * Whether to ignore any breakpoint on the first instruction executed, in "start" mode (not
+     * single stepping). This is reset after the first instruction.
+     *
+     * @param ignoreInitialInstructionBreakpoint
+     */
+    public setIgnoreInitialInstructionBreakpoint(ignoreInitialInstructionBreakpoint: boolean): void {
+        this.ignoreInitialInstructionBreakpoint = ignoreInitialInstructionBreakpoint;
     }
 
     /**
@@ -412,8 +436,16 @@ export class Trs80 implements Hal, Machine {
 
     /**
      * Take one Z80 step and update the state of the hardware.
+     *
+     * @param ignoreBreakpoints whether to ignore any breakpoints at this address.
      */
-    public step(): void {
+    public step(ignoreBreakpoints: boolean = false): void {
+        // Check breakpoints.
+        if (!ignoreBreakpoints && this.breakpoints !== undefined && this.breakpoints[this.z80.regs.pc] !== 0) {
+            this.stop();
+            return;
+        }
+
         this.onPreStep.dispatch();
 
         this.z80.step();
@@ -750,7 +782,8 @@ export class Trs80 implements Hal, Machine {
      */
     private tick(): void {
         for (let i = 0; i < this.clocksPerTick && this.started; i++) {
-            this.step();
+            this.step(this.ignoreInitialInstructionBreakpoint);
+            this.ignoreInitialInstructionBreakpoint = false;
         }
         // We might have stopped in the step() routine (e.g., with scheduled event).
         if (this.started) {

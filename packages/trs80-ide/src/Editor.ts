@@ -22,6 +22,7 @@ import {
     EditorSelection,
     EditorState,
     Extension,
+    RangeSet,
     StateEffect,
     StateEffectType,
     StateField,
@@ -31,8 +32,6 @@ import {
 import {
     bracketMatching,
     defaultHighlightStyle,
-    foldGutter,
-    foldKeymap,
     indentOnInput,
     indentUnit,
     syntaxHighlighting
@@ -57,12 +56,19 @@ const AUTO_SAVE_KEY = "trs80-ide-auto-save";
  * Gutter to show info about the line (address, bytecode, etc.).
  */
 class InfoGutter extends GutterMarker {
-    constructor(private text: string) {
+    constructor(private readonly text: string, private readonly cssClasses: string[] = []) {
         super();
     }
 
     toDOM() {
-        return document.createTextNode(this.text);
+        if (this.cssClasses.length === 0) {
+            return document.createTextNode(this.text);
+        } else {
+            const span = document.createElement("span");
+            span.classList.add(... this.cssClasses);
+            span.textContent = this.text;
+            return span;
+        }
     }
 }
 
@@ -201,11 +207,19 @@ class OptionalExtension {
     }
 }
 
+// Encapsulates a command to manipulate breakpoints.
+interface BreakpointAction {
+    action: "set" | "reset" | "reset-all";
+    pos: number;
+}
+
 // Encapsulates the editor and methods for it.
 export class Editor {
     private readonly emulator: Emulator;
     private readonly assemblyResultsStateEffect: StateEffectType<AssemblyResults>;
     private readonly assemblyResultsStateField: StateField<AssemblyResults>;
+    private readonly breakpointEffect: StateEffectType<BreakpointAction>;
+    private readonly breakpointState: StateField<RangeSet<GutterMarker>>;
     public readonly errorPill: HTMLDivElement;
     public readonly view: EditorView;
     private lineNumbersGutter: OptionalExtension;
@@ -242,6 +256,43 @@ export class Editor {
                     return value;
                 }
             },
+        });
+
+        const dummyMarker = new class extends GutterMarker {};
+        this.breakpointEffect = StateEffect.define<BreakpointAction>({
+            map: (value, mapping) => ({
+                action: value.action,
+                pos: mapping.mapPos(value.pos),
+            }),
+        });
+        this.breakpointState = StateField.define<RangeSet<GutterMarker>>({
+            create: () => {
+                return RangeSet.empty;
+            },
+            update: (set: RangeSet<GutterMarker>, transaction: Transaction) => {
+                set = set.map(transaction.changes);
+
+                for (const e of transaction.effects) {
+                    if (e.is(this.breakpointEffect)) {
+                        const value = e.value as BreakpointAction;
+                        switch (value.action) {
+                            case "set":
+                                set = set.update({add: [dummyMarker.range(value.pos)]});
+                                break;
+                            case "reset":
+                                set = set.update({filter: from => from != value.pos});
+                                break;
+                            case "reset-all":
+                                set = RangeSet.empty;
+                                break;
+                        }
+                    }
+                }
+
+                this.updateBreakpoints(set);
+
+                return set;
+            }
         });
 
         this.lineNumbersGutter = new OptionalExtension(true, lineNumbers());
@@ -334,6 +385,7 @@ export class Editor {
             gBaseThemeConfig.of(gBaseTheme),
             gColorThemeConfig.of(getDefaultTheme()),
             hoverTooltip(this.getHoverTooltip.bind(this)),
+            this.breakpointState,
         ];
 
         let defaultDoc: string | Text | undefined = undefined;
@@ -655,6 +707,66 @@ export class Editor {
         this.moveCursorToLineNumber(ref.lineNumber + 1, ref.column);
     }
 
+    // Toggle the breakpoint at the specified location.
+    private toggleBreakpoint(view: EditorView, pos: number) {
+        const hasBreakpoint = this.posHasBreakpoint(view, pos);
+        view.dispatch({
+            effects: this.breakpointEffect.of({
+                action: hasBreakpoint ? "reset" : "set",
+                pos: pos,
+            }),
+        });
+    }
+
+    // Clear all breakpoints set by the user.
+    public clearAllBreakpoints(): void {
+        this.view.dispatch({
+            effects: this.breakpointEffect.of({
+                action: "reset-all",
+                pos: 0,
+            }),
+        });
+    }
+
+    // Whether the editor position (which should be the first on a line) has a breakpoint set.
+    private posHasBreakpoint(view: EditorView, pos: number): boolean {
+        const breakpoints = view.state.field(this.breakpointState);
+        let hasBreakpoint = false;
+        breakpoints.between(pos, pos, () => {hasBreakpoint = true});
+        return hasBreakpoint;
+    }
+
+    // Update the emulator's breakpoints from our editor breakpoints.
+    private updateBreakpoints(set: RangeSet<GutterMarker>): void {
+        let breakpoints: Uint8Array | undefined;
+        if (set.size === 0) {
+            breakpoints = undefined;
+        } else {
+            breakpoints = new Uint8Array(64*1024);
+
+            const results = this.view.state.field(this.assemblyResultsStateField);
+
+            let count = 0;
+            const itr = set.iter();
+            while (itr.value !== null) {
+                const lineNumber = this.view.state.doc.lineAt(itr.from).number;
+                const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
+                if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+                    breakpoints[assembledLine.address] = 1;
+                    count += 1;
+                }
+
+                itr.next();
+            }
+
+            // Faster run-time checks.
+            if (count === 0) {
+                breakpoints = undefined;
+            }
+        }
+        this.emulator.setBreakpoints(breakpoints);
+    }
+
     /**
      * Gutter to show each line's address.
      */
@@ -666,9 +778,28 @@ export class Editor {
                 const lineNumber = view.state.doc.lineAt(line.from).number;
                 const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
                 if (assembledLine !== undefined && assembledLine.binary.length > 0) {
-                    return new InfoGutter(toHexWord(assembledLine.address));
+                    const hasBreakpoint = this.posHasBreakpoint(view, line.from);
+                    return new InfoGutter(toHexWord(assembledLine.address), [
+                        "gutter-address",
+                        ... (hasBreakpoint ? ["gutter-breakpoint"] : []),
+                    ]);
                 }
                 return null;
+            },
+            domEventHandlers: {
+                mousedown: (view: EditorView, line: BlockInfo, event: Event) => {
+                    const mouseEvent = event as MouseEvent;
+                    if (mouseEvent.altKey || mouseEvent.shiftKey || mouseEvent.ctrlKey || mouseEvent.metaKey) {
+                        return true;
+                    }
+                    const results = view.state.field(this.assemblyResultsStateField);
+                    const lineNumber = view.state.doc.lineAt(line.from).number;
+                    const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
+                    if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+                        this.toggleBreakpoint(view, line.from);
+                    }
+                    return true;
+                },
             },
             lineMarkerChange: (update: ViewUpdate) => true, // TODO remove?
         });

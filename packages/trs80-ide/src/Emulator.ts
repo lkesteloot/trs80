@@ -114,4 +114,22 @@ export class Emulator {
             }
         }
     }
+
+    // Set all breakpoints.
+    public setBreakpoints(breakpoints: Uint8Array | undefined): void {
+        this.trs80.setBreakpoints(breakpoints);
+    }
+
+    // Step one instruction.
+    public step(): void {
+        this.trs80.step(true);
+    }
+
+    // Resume the emulator (if it's stopped). Don't call this to start a program
+    // from scratch, only to resume it after a breakpoint. Will skip any breakpoint
+    // that we're currently stopped on.
+    public continue(): void {
+        this.trs80.setIgnoreInitialInstructionBreakpoint(true);
+        this.trs80.start();
+    }
 }

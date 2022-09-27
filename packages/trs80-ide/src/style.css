@@ -257,6 +257,14 @@ body.presentation-mode {
     color: var(--cyan);
 }
 
+.gutter-addresses .gutter-address {
+    cursor: pointer;
+}
+
+.gutter-addresses .gutter-address.gutter-breakpoint {
+    color: var(--red);
+}
+
 .gutter-bytecode {
     /* "XX XX XX ... " = 13 characters */
     width: 13ch;

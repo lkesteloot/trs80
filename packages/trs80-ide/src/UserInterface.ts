@@ -298,6 +298,31 @@ export class UserInterface {
                     },
                 ],
             },
+            {
+                text: "Debug",
+                menu: [
+                    {
+                        text: "Step",
+                        hotkey: "Meta-Shift-S",
+                        action: () => {
+                            emulator.step();
+                        },
+                    },
+                    {
+                        text: "Continue",
+                        hotkey: "Meta-Shift-C",
+                        action: () => {
+                            emulator.continue();
+                        },
+                    },
+                    {
+                        text: "Clear All Breakpoints",
+                        action: () => {
+                            editor.clearAllBreakpoints();
+                        },
+                    },
+                ],
+            }
         ];
 
         const body = document.body;
