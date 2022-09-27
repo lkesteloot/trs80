@@ -272,7 +272,9 @@ export class Editor {
             }),
             rectangularSelection(),
             highlightActiveLine(),
-            highlightSelectionMatches(),
+            highlightSelectionMatches({
+                highlightWordAroundCursor: true,
+            }),
             keymap.of([
                 ...closeBracketsKeymap,
                 ...defaultKeymap,
