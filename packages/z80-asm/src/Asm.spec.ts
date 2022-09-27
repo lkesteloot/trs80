@@ -267,4 +267,37 @@ describe("assemble", () => {
             "    foo \"A,B;C\"",
         ], [0x41, 0x2C, 0x42, 0x3B, 0x43, 0x41, 0x2C, 0x42, 0x3B, 0x43]);
     });
+    it("if", ()=>{
+        runMacroTest([
+            "    foo macro p",
+            "    if &p>0",
+            "     ld hl,0",
+            "    else",
+            "     ld de,0",
+            "    endif",
+            "    endm",
+            "    foo 10",
+            "    foo 0",
+        ], [0x21, 0x00, 0x00, 0x11, 0x00, 0x00]);
+    })
+    it("rept", ()=>{
+        runMacroTest([
+            "    incs macro &n",
+            "     rept &n",
+            "      inc hl",
+            "     endm",
+            "    endm",
+            "    incs 5",
+        ], [0x23, 0x23, 0x23, 0x23, 0x23]);
+    })
+    it("macro arg concat", ()=>{
+        runMacroTest([
+            "    test macro &aa, &bb",
+            "     ld a, &aa.&bb",
+            "    endm",
+            "    foo.bar equ 5",
+            "    test foo, bar",
+        ], [0x3e, 0x05]);
+    })
+
 });

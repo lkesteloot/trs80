@@ -53,6 +53,8 @@ const PSEUDO_IF = new Set(["if", "cond", "#if"]);
 const PSEUDO_ELSE = new Set(["else", "#else"]);
 const PSEUDO_ENDIF = new Set(["endif", "endc", "#endif"]);
 
+const PSEUDO_REPT = new Set(["rept", ".rept"]);
+
 // End file instruction. Followed by optional entry address or label.
 const PSEUDO_END = new Set(["end"]);
 
@@ -130,6 +132,10 @@ export function getAsmDirectiveDocs(): AsmDirectiveDoc[] {
             description: "End of if conditional.",
         },
         {
+            directives: PSEUDO_REPT,
+            description: "Repeat instructions by specified times.",
+        },
+        {
             directives: PSEUDO_END,
             description: "End of file, optionally followed by entry address or label.",
         },
@@ -181,6 +187,8 @@ export class SymbolReference {
     // Line number in listing.
     public lineNumber: number;
     public column: number;
+    // Value at this position. For SymbolInfos with changesValue==true.
+    public value: number|undefined;
 
     constructor(lineNumber: number, column: number) {
         this.lineNumber = lineNumber;
@@ -206,6 +214,12 @@ export class SymbolInfo {
     public matches(ref: SymbolReference, lineNumber: number, column: number) {
         return lineNumber === ref.lineNumber &&
             column >= ref.column && column <= ref.column + this.name.length;
+    }
+
+    // Find SymbolReference at the specified position. 
+    // list must be either this.definitions or this.references.
+    public find(list: SymbolReference[], lineNumber: number, column: number) {
+        return list.find((ref)=>this.matches(ref, lineNumber, column)); 
     }
 }
 
@@ -711,7 +725,50 @@ class LineParser {
             }
         }
         if (mnemonic !== undefined && this.previousToken > 0) {
-            if (PSEUDO_DEF_BYTES.has(mnemonic)) {
+            if (PSEUDO_IF.has(mnemonic)) {
+                const cond=this.readExpression(true);
+
+                const thenLines:string[]=[];
+                const elseLines:string[]=[];
+                let curLines=thenLines;
+                let ifDepth=0; // Count nested ifs
+                while (true) {
+                    const assembledLine = this.pass.getNextLine();
+                    if (assembledLine === undefined) {
+                        this.assembledLine.error = "if has no endif";
+                        break;
+                    }
+
+                    const lineParser = new LineParser(this.pass, assembledLine);
+                    // TODO check to make sure macro doesn't contain a # directive, unless the tag is
+                    // # and the directive is one of the param names.
+                    lineParser.skipWhitespace();
+                    const token = lineParser.readIdentifier(false, true);
+                    if (token !== undefined && PSEUDO_IF.has(token)) {
+                        ifDepth++;
+                    } else if (token !== undefined && PSEUDO_ENDIF.has(token)) {
+                        ifDepth--;
+                        if (ifDepth<0) {
+                            break;    
+                        }
+                    } 
+                    if (token !== undefined && PSEUDO_ELSE.has(token) && ifDepth==0) {
+                        curLines=elseLines;
+                    } else {
+                        curLines.push(assembledLine.line);
+                    }
+                }
+                if (this.pass.passNumber==1) {
+                    const clonedLines = (cond?thenLines:elseLines).map((line) =>
+                    new AssembledLine(this.assembledLine.fileInfo, undefined, line));
+                    this.pass.insertLines(clonedLines);                   
+                }
+
+            } else if (PSEUDO_ELSE.has(mnemonic)||PSEUDO_ENDIF.has(mnemonic)) {
+                this.assembledLine.error = "else/endif outside of if directive";
+                return;
+
+            } else if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
                     const s = this.readString();
                     if (s !== undefined) {
@@ -959,7 +1016,7 @@ class LineParser {
                     const macroListingLineNumber = this.assembledLine.listingLineNumber;
                     let endmListingLineNumber: number | undefined = undefined;
                     const lines: string[] = [];
-
+                    let macroDepth=0; // Count "rept"s inside macro.
                     while (true) {
                         const assembledLine = this.pass.getNextLine();
                         if (assembledLine === undefined) {
@@ -972,9 +1029,14 @@ class LineParser {
                         // # and the directive is one of the param names.
                         lineParser.skipWhitespace();
                         const token = lineParser.readIdentifier(false, true);
-                        if (token !== undefined && PSEUDO_ENDM.has(token)) {
-                            endmListingLineNumber = assembledLine.listingLineNumber;
-                            break;
+                        if (token !== undefined && PSEUDO_REPT.has(token)) {
+                            macroDepth++;
+                        } else if (token !== undefined && PSEUDO_ENDM.has(token)) {
+                            macroDepth--;
+                            if (macroDepth<0) {
+                                endmListingLineNumber = assembledLine.listingLineNumber;
+                                break;    
+                            }
                         }
 
                         lines.push(assembledLine.line);
@@ -993,6 +1055,51 @@ class LineParser {
                     // Don't want to parse any more of the original macro line.
                     return;
                 }
+            } else if (PSEUDO_REPT.has(mnemonic)) {
+                // rept
+                const times = this.readExpression(true);
+                if (times===undefined) {
+                    this.assembledLine.error="rept must specify repeat times";
+                    return;
+                }
+                // As macro definition...
+                let endmListingLineNumber;
+                const lines:string[]=[];
+                let macroDepth=0; // Count "rept"s inside macro.
+
+                while (true) {
+                    const assembledLine = this.pass.getNextLine();
+                    if (assembledLine === undefined) {
+                        this.assembledLine.error = "rept macro has no endm";
+                        break;
+                    }
+
+                    const lineParser = new LineParser(this.pass, assembledLine);
+                    // TODO check to make sure macro doesn't contain a # directive, unless the tag is
+                    // # and the directive is one of the param names.
+                    lineParser.skipWhitespace();
+                    const token = lineParser.readIdentifier(false, true);
+                    if (token !== undefined && PSEUDO_REPT.has(token)) {
+                        macroDepth++;
+                    } else if (token !== undefined && PSEUDO_ENDM.has(token)) {
+                        macroDepth--;
+                        if (macroDepth<0) {
+                            endmListingLineNumber = assembledLine.listingLineNumber;
+                            break;
+                        }
+                    }
+                    lines.push(assembledLine.line);
+                }
+                if (this.pass.passNumber==1) {
+                    // insert lines by times
+                    for (let i=0;i<times;i++) {
+                        const clonedLines = lines.map((line) =>
+                            new AssembledLine(this.assembledLine.fileInfo, undefined, line));
+                        this.pass.insertLines(clonedLines);
+                    }
+                }
+                // Don't want to parse any more of the original rept line.
+                return;
             } else if (PSEUDO_ENDM.has(mnemonic)) {
                 this.assembledLine.error = "endm outside of macro definition";
                 return;
@@ -1046,6 +1153,9 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 symbolInfo.definitions.push(new SymbolReference(this.assembledLine.listingLineNumber, symbolColumn));
+            } else {
+                const symRef=symbolInfo.find(symbolInfo.definitions, this.assembledLine.listingLineNumber, symbolColumn);
+                if (symRef) symRef.value=labelValue;
             }
         }
     }
@@ -1477,15 +1587,19 @@ class LineParser {
             if (ch === macro.tag) {
                 const beginName = i + 1;
                 let endName = beginName;
+                let maxArgIndex=-1, maxEndName=-1;
                 while (endName < line.length && isLegalIdentifierCharacter(line.charAt(endName), endName === beginName)) {
                     endName++;
+                    const name = line.substring(beginName, endName);
+                    const argIndex = macro.params.indexOf(name);
+                    if (argIndex >= 0) {
+                        maxArgIndex = argIndex;
+                        maxEndName = endName;
+                    }
                 }
-
-                const name = line.substring(beginName, endName);
-                const argIndex = macro.params.indexOf(name);
-                if (argIndex >= 0) {
-                    parts.push(args[argIndex]);
-                    i = endName;
+                if (maxArgIndex>=0) {
+                    parts.push(args[maxArgIndex]);
+                    i = maxEndName;
                 } else {
                     parts.push(ch);
                     i++;
@@ -1545,8 +1659,46 @@ class LineParser {
             // with dereferencing.
             return undefined;
         }
-
-        return this.readSum();
+        return this.readComparison();
+    }
+    /**
+     * Read a comparison(x>0 etc.), or undefined if there was an error reading it.
+     */
+     private readComparison(): number | undefined {
+        let value = 0;
+        const leftValue = this.readSum();
+        if (leftValue === undefined) {
+            return undefined;
+        }
+        const ops:{[key:string]:string}={
+            ">": "gt", "<": "lt", 
+            ">=":"ge", "<=":"le",
+            "!=":"ne", "==":"eq",
+            "gt":"gt", "lt":"lt", 
+            "ge":"ge", "le":"le",
+            "ne":"ne", "eq":"eq",
+        };
+        const op=this.foundOneOfToken(Object.keys(ops));
+        if (!op) return leftValue;
+        const rightValue=this.readSum();
+        if (rightValue === undefined) {
+            return undefined;
+        }
+        switch (ops[op])  {
+            case "gt":
+                return leftValue>rightValue?1:0;
+            case "lt":
+                return leftValue<rightValue?1:0;
+            case "ge":
+                return leftValue>=rightValue?1:0;
+            case "le":
+                return leftValue<=rightValue?1:0;
+            case "eq":
+                return leftValue==rightValue?1:0;
+            case "ne":
+                return leftValue!=rightValue?1:0;                
+        }
+        return undefined;
     }
 
     /**
@@ -1776,6 +1928,10 @@ class LineParser {
                 this.assembledLine.error = "label \"" + identifier + "\" not yet defined here";
                 return 0;
             }
+            if (this.pass.passNumber > 1) {
+                const symRef=symbolInfo.find(symbolInfo.references, this.assembledLine.listingLineNumber, startIndex);
+                if (symRef) symRef.value=symbolInfo.value;
+            }
             return symbolInfo.value;
         }
 
@@ -1964,6 +2120,34 @@ class LineParser {
         for (const ch of chars) {
             if (this.foundChar(ch)) {
                 return ch;
+            }
+        }
+
+        return undefined;
+    }
+    
+    /**
+     * If the next token(string with length>=1) matches the parameter, skips it and subsequent whitespace and return true.
+     * Else returns false.
+     */
+    private foundToken(token: string): boolean {
+        const looking=this.line.substring(this.column, this.column+token.length);
+        if (looking===token) {
+            this.column+=token.length;
+            this.skipWhitespace();
+            return true;
+        } else {
+            return false;
+        }
+    }
+    /**
+     * If any of the specified tokens is next, it is skipped (and subsequent whitespace) and returned.
+     * Else undefined is returned.
+     */
+    private foundOneOfToken(tokens: string[]): string|undefined {
+        for (const token of tokens) {
+            if (this.foundToken(token)) {
+                return token;
             }
         }
 
