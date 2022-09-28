@@ -326,7 +326,7 @@ export class UserInterface {
         ];
 
         const body = document.body;
-        body.classList.add("light-mode", "work-mode");
+        body.classList.add("dark-mode", "work-mode");
 
         const content = document.createElement("div");
         content.classList.add("content");

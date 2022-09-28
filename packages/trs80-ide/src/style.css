@@ -17,6 +17,8 @@
     --blue:      #268bd2;
     --cyan:      #2aa198;
     --green:     #859900;
+
+    --very-dark: #00212A;
 }
 
 .light-mode {
@@ -42,7 +44,7 @@
 body {
     padding: 0;
     margin: 0;
-    background: var(--background);
+    background: var(--very-dark);
     font-family: "Roboto", sans-serif;
     font-size: 16px;
 }
@@ -85,6 +87,7 @@ body.presentation-mode {
 .menubar-menu {
     color: var(--foreground-emphasized);
     background-color: var(--background-highlights);
+    background-color: var(--very-dark);
     user-select: none;
 
     display: none;
