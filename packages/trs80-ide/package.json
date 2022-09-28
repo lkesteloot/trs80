@@ -27,10 +27,12 @@
     "strongly-typed-events": "^3.0.0",
     "teamten-ts-utils": "^1.0.3",
     "trs80-base": "^2.3.1",
+    "trs80-disasm": "^2.3.1",
     "trs80-emulator": "^2.3.1",
     "trs80-emulator-web": "^2.3.1",
     "z80-asm": "^2.3.0",
     "z80-base": "^2.0.1",
+    "z80-disasm": "^2.3.0",
     "z80-emulator": "^2.3.0",
     "z80-inst": "^2.0.1"
   },

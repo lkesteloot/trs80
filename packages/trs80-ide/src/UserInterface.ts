@@ -13,7 +13,7 @@ import {nord} from 'cm6-theme-nord'
 import {breakdwn} from "./breakdwn";
 import {scarfman} from "./scarfman";
 import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, MenuCommand} from "./Menubar";
-import {uploadToRetroStore} from "./RetroStore";
+import {downloadFromRetroStore, uploadToRetroStore} from "./RetroStore";
 import {Emulator} from "./Emulator";
 import {Editor} from "./Editor";
 import {wolf} from "./wolf";
@@ -176,7 +176,18 @@ export class UserInterface {
                             const assemblyResults = editor.getAssemblyResults();
                             await uploadToRetroStore(assemblyResults);
                         },
-                    }
+                    },
+                    {
+                        text: "Download from RetroStore",
+                        action: async () => {
+                            // const assemblyResults = editor.getAssemblyResults();
+                            const code = await downloadFromRetroStore();
+                            if (code !== undefined) {
+                                emulator.closeScreenEditor();
+                                editor.loadCode(code);
+                            }
+                        },
+                    },
                 ],
             },
             {
@@ -341,7 +352,7 @@ export class UserInterface {
                     text: example.name,
                     action: () => {
                         emulator.closeScreenEditor();
-                        editor.loadExample(example.code);
+                        editor.loadCode(example.code);
                     },
                 });
             }

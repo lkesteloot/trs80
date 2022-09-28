@@ -468,7 +468,7 @@ export class Editor {
     }
 
     // Load the code of an example into the editor.
-    public loadExample(code: string) {
+    public loadCode(code: string) {
         this.view.dispatch({
             changes: {
                 from: 0,

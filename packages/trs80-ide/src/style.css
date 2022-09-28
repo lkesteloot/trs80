@@ -86,7 +86,6 @@ body.presentation-mode {
 
 .menubar-menu {
     color: var(--foreground-emphasized);
-    background-color: var(--background-highlights);
     background-color: var(--very-dark);
     user-select: none;
 
