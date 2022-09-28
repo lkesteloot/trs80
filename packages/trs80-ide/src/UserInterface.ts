@@ -16,6 +16,7 @@ import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, Menu
 import {uploadToRetroStore} from "./RetroStore";
 import {Emulator} from "./Emulator";
 import {Editor} from "./Editor";
+import {wolf} from "./wolf";
 
 const simpleExample = `        .org 0x9000
 
@@ -141,6 +142,7 @@ const EXAMPLES = [
     { name: "Simple", code: simpleExample },
     { name: "Screenshot", code: screenshotExample },
     { name: "Space Invaders", code: spaceInvaders },
+    { name: "Wolfenstein", code: wolf },
     { name: "Breakdown", code: breakdwn },
     { name: "Scarfman", code: scarfman },
 ];
