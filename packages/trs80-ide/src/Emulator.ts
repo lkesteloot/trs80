@@ -88,34 +88,38 @@ export class Emulator {
         }
     }
 
+    /**
+     * Run the assembled program. We do this even if there are errors so that the
+     * editor and RAM have the same contents.
+     */
     public runProgram(results: AssemblyResults) {
-        if (results.errorLines.length === 0) {
-            if (this.trs80State === undefined) {
-                // Disable interrupts, it causes the cursor to blink.
-                this.trs80.z80.regs.iff1 = 0;
-                this.trs80.z80.regs.iff2 = 0;
+        if (this.trs80State === undefined) {
+            // Disable interrupts, it causes the cursor to blink.
+            this.trs80.z80.regs.iff1 = 0;
+            this.trs80.z80.regs.iff2 = 0;
 
-                this.trs80State = this.trs80.save();
-            } else {
-                this.trs80.restore(this.trs80State);
+            this.trs80State = this.trs80.save();
+        } else {
+            this.trs80.restore(this.trs80State);
+        }
+        for (const line of results.sourceFile.assembledLines) {
+            for (let i = 0; i < line.binary.length; i++) {
+                this.trs80.writeMemory(line.address + i, line.binary[i]);
             }
+        }
+        let entryPoint = results.asm.entryPoint;
+        if (entryPoint === undefined) {
             for (const line of results.sourceFile.assembledLines) {
-                for (let i = 0; i < line.binary.length; i++) {
-                    this.trs80.writeMemory(line.address + i, line.binary[i]);
+                if (line.binary.length > 0) {
+                    entryPoint = line.address;
+                    break;
                 }
             }
-            let entryPoint = results.asm.entryPoint;
-            if (entryPoint === undefined) {
-                for (const line of results.sourceFile.assembledLines) {
-                    if (line.binary.length > 0) {
-                        entryPoint = line.address;
-                        break;
-                    }
-                }
-            }
-            if (entryPoint !== undefined) {
-                this.trs80.jumpTo(entryPoint);
-            }
+        }
+        if (entryPoint !== undefined) {
+            this.trs80.jumpTo(entryPoint);
+            this.debugPc.dispatch(undefined);
+            this.trs80.start();
         }
     }
 
@@ -126,7 +130,7 @@ export class Emulator {
 
     // Step one instruction.
     public step(): void {
-        this.trs80.step(true);
+        this.trs80.step();
         this.debugPc.dispatch(this.trs80.z80.regs.pc);
     }
 

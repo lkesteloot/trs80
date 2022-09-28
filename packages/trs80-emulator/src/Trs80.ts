@@ -436,16 +436,8 @@ export class Trs80 implements Hal, Machine {
 
     /**
      * Take one Z80 step and update the state of the hardware.
-     *
-     * @param ignoreBreakpoints whether to ignore any breakpoints at this address.
      */
-    public step(ignoreBreakpoints: boolean = false): void {
-        // Check breakpoints.
-        if (!ignoreBreakpoints && this.breakpoints !== undefined && this.breakpoints[this.z80.regs.pc] !== 0) {
-            this.stop();
-            return;
-        }
-
+    public step(): void {
         this.onPreStep.dispatch();
 
         this.z80.step();
@@ -782,7 +774,16 @@ export class Trs80 implements Hal, Machine {
      */
     private tick(): void {
         for (let i = 0; i < this.clocksPerTick && this.started; i++) {
-            this.step(this.ignoreInitialInstructionBreakpoint);
+            // Check breakpoints.
+            if (!this.ignoreInitialInstructionBreakpoint &&
+                this.breakpoints !== undefined &&
+                this.breakpoints[this.z80.regs.pc] !== 0) {
+
+                this.stop();
+                break;
+            }
+
+            this.step();
             this.ignoreInitialInstructionBreakpoint = false;
         }
         // We might have stopped in the step() routine (e.g., with scheduled event).
