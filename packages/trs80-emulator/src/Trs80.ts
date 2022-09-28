@@ -365,7 +365,7 @@ export class Trs80 implements Hal, Machine {
      */
     public start(): void {
         if (!this.started) {
-            this.keyboard.interceptKeys = true;
+            this.keyboard.emulatorStarted = true;
             this.scheduleNextTick();
             this.started = true;
             this.onStarted.dispatch(this.started);
@@ -379,7 +379,7 @@ export class Trs80 implements Hal, Machine {
      */
     public stop(): boolean {
         if (this.started) {
-            this.keyboard.interceptKeys = false;
+            this.keyboard.emulatorStarted = false;
             this.cancelTickTimeout();
             this.started = false;
             this.onStarted.dispatch(this.started);

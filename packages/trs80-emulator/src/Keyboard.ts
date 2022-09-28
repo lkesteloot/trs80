@@ -155,8 +155,7 @@ export class Keyboard {
 
     // We queue up keystrokes so that we don't overwhelm the ROM polling routines.
     public keyQueue: KeyActivity[]  = [];
-    // Whether browser keys should be intercepted.
-    public interceptKeys = false;
+    public emulatorStarted = false;
     public keyProcessMinClock: number = 0;
     // 8 bytes, each a bitfield of keys currently pressed.
     private keys = new Uint8Array(8);
