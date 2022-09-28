@@ -286,6 +286,10 @@ body.presentation-mode {
     padding-right: 1ch !important;
 }
 
+.currentPcGutter, .currentPcLine {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
 .hover-tooltip {
     color: rgba(256, 256, 256, 0.8);
     background-color: var(--blue);

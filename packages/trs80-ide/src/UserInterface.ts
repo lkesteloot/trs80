@@ -63,14 +63,12 @@ const spaceInvaders = `        .org 0x9000
         ld hl,0
         ld sp,hl
 
+top:
         ld hl,15360
-        inc hl
-        inc hl
-        
-        ld a,191
         ld b,100
         
 loop:
+        ; Draw alien.
         push hl
         ld (hl),0x80
         inc hl
@@ -82,10 +80,11 @@ loop:
         inc hl
         ld (hl),0x81
         inc hl
-      
+
         pop hl
         inc hl
-      
+
+        ; Delay loop.
         push bc
         ld bc,1500
 wait:
@@ -94,11 +93,10 @@ wait:
         or a,c
         jr nz,wait
         pop bc
-      
+
         djnz loop
-      
-stop:
-        jp stop
+
+        jp top
 `;
 
 // Available themes.

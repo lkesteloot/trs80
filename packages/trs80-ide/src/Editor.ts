@@ -1,10 +1,13 @@
 import {defaultKeymap, history, historyKeymap, indentWithTab} from "@codemirror/commands"
 import {
     BlockInfo,
+    Decoration,
+    DecorationSet,
     drawSelection,
     dropCursor,
     EditorView,
     gutter,
+    gutterLineClass,
     GutterMarker,
     highlightActiveLine,
     highlightActiveLineGutter,
@@ -15,6 +18,7 @@ import {
     rectangularSelection,
     Tooltip,
     TooltipView,
+    ViewPlugin,
     ViewUpdate
 } from "@codemirror/view"
 import {
@@ -220,6 +224,7 @@ export class Editor {
     private readonly assemblyResultsStateField: StateField<AssemblyResults>;
     private readonly breakpointEffect: StateEffectType<BreakpointAction>;
     private readonly breakpointState: StateField<RangeSet<GutterMarker>>;
+    private readonly currentPcEffect: StateEffectType<number | undefined>;
     public readonly errorPill: HTMLDivElement;
     public readonly view: EditorView;
     private lineNumbersGutter: OptionalExtension;
@@ -232,6 +237,7 @@ export class Editor {
 
     public constructor(emulator: Emulator) {
         this.emulator = emulator;
+        this.emulator.debugPc.subscribe(this.onDebugPc.bind(this));
 
         /**
          * State field for keeping the assembly results.
@@ -294,6 +300,9 @@ export class Editor {
                 return set;
             }
         });
+
+        // Update the PC while single-stepping.
+        this.currentPcEffect = StateEffect.define<number | undefined>({});
 
         this.lineNumbersGutter = new OptionalExtension(true, lineNumbers());
         this.addressesGutter = new OptionalExtension(true, this.makeAddressesGutter());
@@ -386,6 +395,7 @@ export class Editor {
             gColorThemeConfig.of(getDefaultTheme()),
             hoverTooltip(this.getHoverTooltip.bind(this)),
             this.breakpointState,
+            this.currentPcHighlightExtension(),
         ];
 
         let defaultDoc: string | Text | undefined = undefined;
@@ -765,6 +775,96 @@ export class Editor {
             }
         }
         this.emulator.setBreakpoints(breakpoints);
+    }
+
+    // An extension to highlight the line for the PC.
+    private currentPcHighlightExtension(): Extension {
+        // Keep track of the current PC while single-stepping.
+        const currentPcState = StateField.define<number | undefined>({
+            create: () => undefined,
+            update: (value: number | undefined, transaction: Transaction): number | undefined => {
+                for (const e of transaction.effects) {
+                    if (e.is(this.currentPcEffect)) {
+                        value = e.value;
+                    }
+                }
+
+                return value;
+            },
+        });
+
+        // Get position of start of line where PC is.
+        const getPcLinePos = (state: EditorState): number | undefined => {
+            const pc = state.field(currentPcState);
+            if (pc !== undefined) {
+                const assemblyResults = this.getAssemblyResults();
+                const lineNumber = assemblyResults.addressToLineMap.get(pc);
+                if (lineNumber !== undefined) {
+                    return state.doc.line(lineNumber).from;
+                }
+            }
+
+            return undefined;
+        };
+
+        // Gutter marker for gutter highlighting.
+        const currentPcGutterMarker = new class extends GutterMarker {
+            elementClass = "currentPcGutter";
+        };
+
+        // Extension to highlight gutter of PC.
+        const currentPcGutterHighlighter = gutterLineClass.compute([currentPcState], state => {
+            const marks = [];
+            const linePos = getPcLinePos(state);
+            if (linePos !== undefined) {
+                marks.push(currentPcGutterMarker.range(linePos));
+            }
+            return RangeSet.of(marks)
+        });
+
+        // Decoration to highlight non-gutter line.
+        const lineDeco = Decoration.line({class: "currentPcLine"});
+
+        // Plugin to update decoration for PC line.
+        const currentPcHighlighter = ViewPlugin.fromClass(class {
+            decorations: DecorationSet;
+
+            constructor(view: EditorView) {
+                this.decorations = this.getDeco(view);
+            }
+
+            update(update: ViewUpdate) {
+                if (update.docChanged ||
+                    update.state.field(currentPcState) !== update.startState.field(currentPcState)) {
+
+                    this.decorations = this.getDeco(update.view);
+                }
+            }
+
+            private getDeco(view: EditorView) {
+                const linePos = getPcLinePos(view.state);
+                if (linePos === undefined) {
+                    return Decoration.none;
+                } else {
+                    return Decoration.set([lineDeco.range(linePos)]);
+                }
+            }
+        }, {
+            decorations: v => v.decorations,
+        })
+
+        return [
+            currentPcState,
+            currentPcGutterHighlighter,
+            currentPcHighlighter,
+        ];
+    }
+
+    // Update the PC while single-stepping.
+    private onDebugPc(pc: number | undefined): void {
+        this.view.dispatch({
+            effects: this.currentPcEffect.of(pc),
+        });
     }
 
     /**

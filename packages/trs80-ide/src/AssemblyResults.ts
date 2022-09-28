@@ -19,6 +19,8 @@ export class AssemblyResults {
     public readonly errorLineNumbers: number[]; // 1-based.
     // Map from 1-based line number to timing (clocks since most recent loop).
     public readonly timingMap = new Map<number, number>();
+    // From 16-bit address to 1-based line number.
+    public readonly addressToLineMap = new Map<number, number>();
 
     constructor(asm: Asm, sourceFile: SourceFile, screenshotSections: ScreenshotSection[]) {
         this.asm = asm;
@@ -32,6 +34,10 @@ export class AssemblyResults {
         for (const line of sourceFile.assembledLines) {
             if (line.lineNumber !== undefined) {
                 this.lineMap.set(line.lineNumber + 1, line);
+            }
+
+            if (line.lineNumber !== undefined && line.binary.length > 0) {
+                this.addressToLineMap.set(line.address, line.lineNumber + 1);
             }
 
             if (line.error !== undefined) {

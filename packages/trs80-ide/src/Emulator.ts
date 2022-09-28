@@ -14,6 +14,7 @@ import {
 
 import {ScreenEditor} from "./ScreenEditor";
 import {AssemblyResults} from "./AssemblyResults";
+import { SimpleEventDispatcher } from "strongly-typed-events";
 
 // Encapsulates the emulator and methods for it.
 export class Emulator {
@@ -22,6 +23,7 @@ export class Emulator {
     private readonly controlPanel: ControlPanel;
     private screenEditor: ScreenEditor | undefined = undefined;
     private trs80State: Trs80State | undefined = undefined;
+    public readonly debugPc = new SimpleEventDispatcher<number | undefined>();
 
     public constructor() {
         const config = Config.makeDefault();
@@ -33,6 +35,7 @@ export class Emulator {
         keyboard.configureKeyboard();
 
         const reboot = () => {
+            this.debugPc.dispatch(undefined);
             this.trs80.reset();
             this.trs80.start();
         };
@@ -47,6 +50,7 @@ export class Emulator {
 
         const driveIndicators = new DriveIndicators(this.screen.getNode(), this.trs80.getMaxDrives());
         this.trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
+        this.trs80.onStarted.subscribe(this.onTrs80Started.bind(this));
 
         reboot();
 
@@ -123,13 +127,24 @@ export class Emulator {
     // Step one instruction.
     public step(): void {
         this.trs80.step(true);
+        this.debugPc.dispatch(this.trs80.z80.regs.pc);
     }
 
     // Resume the emulator (if it's stopped). Don't call this to start a program
     // from scratch, only to resume it after a breakpoint. Will skip any breakpoint
     // that we're currently stopped on.
     public continue(): void {
+        this.debugPc.dispatch(undefined);
         this.trs80.setIgnoreInitialInstructionBreakpoint(true);
         this.trs80.start();
+    }
+
+    // Called by Trs80 when it starts or stops.
+    private onTrs80Started(started: boolean): void {
+        if (started) {
+            this.debugPc.dispatch(undefined);
+        } else {
+            this.debugPc.dispatch(this.trs80.z80.regs.pc);
+        }
     }
 }
