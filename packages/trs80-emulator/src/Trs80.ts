@@ -680,17 +680,25 @@ export class Trs80 implements Hal, Machine {
         // console.log("Wrote 0x" + toHex(value, 2) + " to port 0x" + toHex(port, 2));
     }
 
+    /**
+     * Write the given value to the screen. Does not update RAM. The address
+     * must be in the screen range.
+     */
+    private writeToScreenMemory(address: number, value: number): void {
+        if (this.config.cgChip === CGChip.ORIGINAL) {
+            // No bit 6 in video memory, need to compute it.
+            value = computeVideoBit6(value);
+        }
+
+        this.screen.writeChar(address, value);
+    }
+
     public writeMemory(address: number, value: number): void {
         if (address < ROM_SIZE) {
             warnOnce("Warning: Writing to ROM location 0x" + toHex(address, 4));
         } else {
             if (address >= TRS80_SCREEN_BEGIN && address < TRS80_SCREEN_END) {
-                if (this.config.cgChip === CGChip.ORIGINAL) {
-                    // No bit 6 in video memory, need to compute it.
-                    value = computeVideoBit6(value);
-                }
-
-                this.screen.writeChar(address, value);
+                this.writeToScreenMemory(address, value);
             } else if (address < RAM_START) {
                 warnOnce("Writing to unmapped memory at 0x" + toHex(address, 4));
             }
@@ -711,6 +719,16 @@ export class Trs80 implements Hal, Machine {
         }
 
         return address;
+    }
+
+    /**
+     * Copy the screen area from memory to the screen. This is useful if the screen was changed
+     * by a third party while the emulator was stopped.
+     */
+    public restoreScreen(): void {
+        for (let address = TRS80_SCREEN_BEGIN; address < TRS80_SCREEN_END; address++) {
+            this.writeToScreenMemory(address, this.memory[address]);
+        }
     }
 
     /**

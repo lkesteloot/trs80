@@ -427,6 +427,7 @@ export class ScreenEditor {
      */
     private close(save: boolean): void {
         this.exitPasting();
+        this.trs80.restoreScreen();
         if (save) {
             this.rasterToCode();
         }
