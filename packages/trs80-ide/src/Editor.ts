@@ -393,7 +393,9 @@ export class Editor {
             indentUnit.of("        "),
             gBaseThemeConfig.of(gBaseTheme),
             gColorThemeConfig.of(getDefaultTheme()),
-            hoverTooltip(this.getHoverTooltip.bind(this)),
+            hoverTooltip(this.getHoverTooltip.bind(this), {
+                hideOnChange: true,
+            }),
             this.breakpointState,
             this.currentPcHighlightExtension(),
         ];
