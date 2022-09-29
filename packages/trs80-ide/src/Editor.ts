@@ -347,9 +347,11 @@ export class Editor {
             ]),
             EditorView.updateListener.of(update => {
                 if (update.docChanged) {
-                    const results = update.state.field(this.assemblyResultsStateField);
+                    const results = this.getAssemblyResults(update.state);
                     this.updateEverything(results);
-                    this.potentiallyAutoRun(results);
+                    if (!this.getAssemblyResults(update.state).equals(this.getAssemblyResults(update.startState))) {
+                        this.potentiallyAutoRun(results);
+                    }
                 }
             }),
             EditorView.updateListener.of(update => {
@@ -363,7 +365,7 @@ export class Editor {
                 const line = update.state.doc.lineAt(cursor);
                 const lineNumber = line.number;
                 if (lineNumber !== this.currentLineNumber) {
-                    const assemblyResults = update.state.field(this.assemblyResultsStateField);
+                    const assemblyResults = this.getAssemblyResults(update.state);
                     const hasError = assemblyResults.sourceFile.assembledLines[lineNumber - 1].error !== undefined;
                     this.currentLineNumber = lineNumber;
                     this.currentLineHasError = hasError;
@@ -429,8 +431,9 @@ export class Editor {
     }
 
     // Get the most recent assembly results.
-    public getAssemblyResults(): AssemblyResults {
-        return this.view.state.field(this.assemblyResultsStateField);
+    public getAssemblyResults(state?: EditorState): AssemblyResults {
+        state = state ?? this.view.state;
+        return state.field(this.assemblyResultsStateField);
     }
 
     // Set the presentation mode (large text, etc.).
@@ -481,7 +484,7 @@ export class Editor {
     // Get tooltip content given a hover position.
     private getHoverTooltip(view: EditorView, pos: number, side: number): Tooltip | null {
         const {from, to, text, number} = view.state.doc.lineAt(pos);
-        const assemblyResults = view.state.field(this.assemblyResultsStateField);
+        const assemblyResults = this.getAssemblyResults(view.state);
         const line = assemblyResults.sourceFile.assembledLines[number - 1];
         if (line.variant === undefined) {
             return null;
@@ -756,7 +759,7 @@ export class Editor {
         } else {
             breakpoints = new Uint8Array(64*1024);
 
-            const results = this.view.state.field(this.assemblyResultsStateField);
+            const results = this.getAssemblyResults();
 
             let count = 0;
             const itr = set.iter();
@@ -892,7 +895,7 @@ export class Editor {
         return gutter({
             class: "gutter-addresses hidable-gutter",
             lineMarker: (view: EditorView, line: BlockInfo) => {
-                const results = view.state.field(this.assemblyResultsStateField);
+                const results = this.getAssemblyResults(view.state);
                 const lineNumber = view.state.doc.lineAt(line.from).number;
                 const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
                 if (assembledLine !== undefined && assembledLine.binary.length > 0) {
@@ -910,7 +913,7 @@ export class Editor {
                     if (mouseEvent.altKey || mouseEvent.shiftKey || mouseEvent.ctrlKey || mouseEvent.metaKey) {
                         return true;
                     }
-                    const results = view.state.field(this.assemblyResultsStateField);
+                    const results = this.getAssemblyResults(view.state);
                     const lineNumber = view.state.doc.lineAt(line.from).number;
                     const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
                     if (assembledLine !== undefined && assembledLine.binary.length > 0) {
@@ -930,7 +933,7 @@ export class Editor {
         return gutter({
             class: "gutter-bytecode hidable-gutter",
             lineMarker: (view: EditorView, line: BlockInfo) => {
-                const results = view.state.field(this.assemblyResultsStateField);
+                const results = this.getAssemblyResults(view.state);
                 const lineNumber = view.state.doc.lineAt(line.from).number;
                 const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
                 if (assembledLine !== undefined && assembledLine.binary.length > 0) {
@@ -956,7 +959,7 @@ export class Editor {
         return gutter({
             class: "gutter-timing hidable-gutter",
             lineMarker: (view: EditorView, line: BlockInfo) => {
-                const results = view.state.field(this.assemblyResultsStateField);
+                const results = this.getAssemblyResults(view.state);
                 const lineNumber = view.state.doc.lineAt(line.from).number;
                 const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
                 if (assembledLine !== undefined && assembledLine.variant !== undefined) {

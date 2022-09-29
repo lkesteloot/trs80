@@ -280,6 +280,31 @@ export class AssembledLine {
     public isData(): boolean {
         return this.binary.length > 0 && this.variant === undefined;
     }
+
+    /**
+     * Whether these two assembled lines equal each other, in the sense
+     * of where they're stored in memory. Does not consider things like
+     * symbols.
+     */
+    public equals(other: AssembledLine): boolean {
+        if (this.address !== other.address) {
+            return false;
+        }
+
+        const b1 = this.binary;
+        const b2 = other.binary;
+        if (b1.length !== b2.length) {
+            return false;
+        }
+
+        for (let i = 0; i < b1.length; i++) {
+            if (b1[i] !== b2[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
 
 /**

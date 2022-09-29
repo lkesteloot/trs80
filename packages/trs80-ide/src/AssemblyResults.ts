@@ -97,4 +97,29 @@ export class AssemblyResults {
 
         return undefined;
     }
+
+    // Whether these two assembly results are the same.
+    public equals(other: AssemblyResults): boolean {
+        // Not clear what to compare here. Do the simple thing and compare
+        // all assembled lines, since that's what ends up in ROM, and
+        // entry point, but maybe other things matter too.
+        if (this.asm.entryPoint !== other.asm.entryPoint) {
+            return false;
+        }
+
+        const a1 = this.asm.assembledLines;
+        const a2 = other.asm.assembledLines;
+
+        if (a1.length !== a2.length) {
+            return false;
+        }
+
+        for (let i = 0; i < a1.length; i++) {
+            if (!a1[i].equals(a2[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
