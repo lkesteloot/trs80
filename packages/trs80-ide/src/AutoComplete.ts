@@ -67,7 +67,12 @@ export function customCompletions(context: CompletionContext): CompletionResult 
     const matchingVariantsDesc: OpcodeVariant[] = [];
     for (const variants of mnemonicMap.values()) {
         for (const variant of variants) {
-            if (getVariantLabel(variant).toLowerCase().startsWith(search)) {
+            const variantLabel = getVariantLabel(variant).toLowerCase();
+            if (variantLabel === search) {
+                // If we exactly match a variant, then don't auto-complete. It's annoying
+                // to have to close the pop-up when you've typed the full string.
+                return null;
+            } else if (variantLabel.startsWith(search)) {
                 matchingVariantsLabel.push(variant);
             } else if (variant.clr !== undefined && matchesDescription(searchWords, variant.clr.description)) {
                 matchingVariantsDesc.push(variant);
