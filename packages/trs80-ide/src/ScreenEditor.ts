@@ -2,7 +2,7 @@ import {EditorView} from "@codemirror/view";
 import {ChangeSpec} from "@codemirror/state";
 import {TRS80_BLINK_PERIOD_MS,
     TRS80_CHAR_WIDTH, TRS80_PIXEL_HEIGHT, TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_SIZE} from 'trs80-base';
-import {Trs80} from 'trs80-emulator';
+import {RunningState, Trs80} from 'trs80-emulator';
 import {CanvasScreen, FULL_SCREEN_SELECTION, OverlayOptions, ScreenMouseEvent, ScreenMousePosition, Selection} from 'trs80-emulator-web';
 import {toHexByte} from 'z80-base';
 import {AssemblyResults} from "./AssemblyResults.js";
@@ -34,7 +34,7 @@ const PREFIX = "screen-editor";
 const MAX_UNDO = 1000; // About 1k each.
 
 // Sync this with CSS:
-const NORMAL_ICON_COLOR = "#002b36";
+const NORMAL_ICON_COLOR = "#93a1a1";
 const SELECTED_ICON_COLOR = "#fdf6e3";
 
 enum Mode {
@@ -310,7 +310,7 @@ export class ScreenEditor {
         this.onClose = onClose;
         this.mouseUnsubscribe = screen.mouseActivity.subscribe(e => this.handleMouse(e));
 
-        trs80.stop();
+        trs80.setRunningState(RunningState.STOPPED);
 
         this.controlPanelDiv1 = document.createElement("div");
         this.controlPanelDiv1.classList.add(PREFIX + "-control-panel1");
@@ -433,7 +433,7 @@ export class ScreenEditor {
         }
         this.overlayOptions = {}
         this.screen.setOverlayOptions(this.overlayOptions);
-        this.trs80.start();
+        this.trs80.setRunningState(RunningState.STARTED);
         this.mouseUnsubscribe();
         this.controlPanelDiv1.remove();
         this.controlPanelDiv2.remove();

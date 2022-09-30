@@ -414,7 +414,7 @@ body.presentation-mode {
     padding: 0 10px;
     height: 26px;
     box-sizing: content-box;
-    background-color: var(--background-highlights);
+    background-color: rgba(255, 255, 255, 0.2);
     color: var(--base03);
     border-top: 1px solid var(--base03);
     border-right: 1px solid var(--base03);
@@ -464,6 +464,7 @@ body.presentation-mode {
     display: flex;
     gap: 10px;
     font-size: 10pt;
+    color: var(--foreground);
 }
 
 .presentation-mode .screen-editor-status-panel {

@@ -58,6 +58,7 @@ import {
     Keyboard,
     ModelType,
     modelTypeFromString,
+    RunningState,
     SilentSoundPlayer,
     Trs80,
     Trs80Screen
@@ -1313,7 +1314,7 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
             context: {
                 system_name: "trs80-tool",
                 model: 3, // TODO get from config.
-                running: trs80.started,
+                running: trs80.runningState === RunningState.STARTED,
                 alt_single_step_mode: false,
             },
             breakpoints: [],
@@ -1377,12 +1378,12 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
                         break;
 
                     case "continue":
-                        trs80.start();
+                        trs80.setRunningState(RunningState.STARTED);
                         sendUpdate(ws);
                         break;
 
                     case "stop":
-                        trs80.stop();
+                        trs80.setRunningState(RunningState.STOPPED);
                         sendUpdate(ws);
                         break;
 
@@ -1413,7 +1414,7 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
         });
 
         setInterval(() => {
-            if (trs80.started) {
+            if (trs80.runningState === RunningState.STARTED) {
                 sendUpdate(ws);
                 sendMemory(ws);
             }
@@ -1780,7 +1781,7 @@ function run(programFiles: string[], xray: boolean, config: Config) {
     const soundPlayer = new SilentSoundPlayer();
     const trs80 = new Trs80(config, screen, keyboard, cassette, soundPlayer);
     trs80.reset();
-    trs80.start();
+    trs80.setRunningState(RunningState.STARTED);
 
     if (trs80Files.length > 0) {
         trs80.runTrs80File(trs80Files[0]);

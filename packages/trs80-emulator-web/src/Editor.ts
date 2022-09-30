@@ -1,5 +1,5 @@
 import {BasicProgram, decodeBasicProgram, ElementType, parseBasicText} from "trs80-base";
-import {Trs80} from "trs80-emulator";
+import {RunningState, Trs80} from "trs80-emulator";
 import {CanvasScreen} from "./CanvasScreen.js";
 import {addCssFontToPage} from "./EditorFont.js";
 import {ControlPanel} from "./ControlPanel.js";
@@ -16,7 +16,7 @@ export class Editor {
     private readonly editorNode: HTMLElement;
     private readonly textarea: HTMLTextAreaElement;
     private editing = false;
-    private wasStarted = false;
+    private oldRunningState: RunningState = RunningState.STARTED;
 
     constructor(trs80: Trs80, screen: CanvasScreen) {
         this.trs80 = trs80;
@@ -93,7 +93,7 @@ export class Editor {
             // TODO show error.
             console.error(basicProgram);
         } else {
-            this.wasStarted = this.trs80.stop();
+            this.oldRunningState = this.trs80.setRunningState(RunningState.STOPPED);
             this.setProgram(basicProgram);
             this.show();
         }
@@ -112,7 +112,7 @@ export class Editor {
             } else {
                 // If the emulator is not running, then the user's not paying attention to it and
                 // we shouldn't invoke the editor.
-                if (this.trs80.started) {
+                if (this.trs80.runningState === RunningState.STARTED) {
                     this.startEdit();
                     e.preventDefault();
                     e.stopPropagation();
@@ -153,9 +153,7 @@ export class Editor {
      * Close the editor and restart the emulator, if necessary.
      */
     private close(): void {
-        if (this.wasStarted) {
-            this.trs80.start();
-        }
+        this.trs80.setRunningState(this.oldRunningState);
         this.hide();
     }
 

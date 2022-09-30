@@ -57,6 +57,18 @@ const M4_CLOCK_HZ = 4_055_040;
 
 const INITIAL_CLICKS_PER_TICK = 2000;
 
+// Whether the emulator is going or not.
+export enum RunningState {
+    // Not running at all.
+    STOPPED,
+
+    // Running normally.
+    STARTED,
+
+    // Single-stepping through code, or at breakpoint.
+    PAUSED,
+}
+
 /**
  * Converts the two-bit cassette port to an audio value. These values are from "More TRS-80 Assembly
  * Language Programming", page 222, with the last value taken from "The B00K" volume 2 (page 5-2).
@@ -156,8 +168,8 @@ export class Trs80 implements Hal, Machine {
     private clocksPerTick = INITIAL_CLICKS_PER_TICK;
     private startTime = Date.now();
     private tickHandle: TimeoutHandle | undefined;
-    public started = false;
-    public readonly onStarted = new SimpleEventDispatcher<boolean>();
+    public runningState: RunningState = RunningState.STOPPED;
+    public readonly onRunningState = new SimpleEventDispatcher<RunningState>();
     // Internal state of the cassette controller.
     // Whether the motor is running.
     private cassetteMotorOn = false;
@@ -362,31 +374,36 @@ export class Trs80 implements Hal, Machine {
 
     /**
      * Start the CPU and intercept browser keys.
-     */
-    public start(): void {
-        if (!this.started) {
-            this.keyboard.emulatorStarted = true;
-            this.scheduleNextTick();
-            this.started = true;
-            this.onStarted.dispatch(this.started);
-        }
-    }
-
-    /**
-     * Stop the CPU and no longer intercept browser keys.
      *
-     * @return whether it was started.
+     * @return the old running state.
      */
-    public stop(): boolean {
-        if (this.started) {
-            this.keyboard.emulatorStarted = false;
-            this.cancelTickTimeout();
-            this.started = false;
-            this.onStarted.dispatch(this.started);
-            return true;
-        } else {
-            return false;
+    public setRunningState(runningState: RunningState): RunningState {
+        const oldRunningState = this.runningState;
+
+        this.runningState = runningState;
+        switch (runningState) {
+            // These two are the same from our perspective, but clients care about the difference.
+            case RunningState.STOPPED:
+            case RunningState.PAUSED:
+                if (oldRunningState === RunningState.STARTED) {
+                    this.keyboard.emulatorStarted = false;
+                    this.cancelTickTimeout();
+                }
+                break;
+
+            case RunningState.STARTED:
+                if (oldRunningState !== RunningState.STARTED) {
+                    this.keyboard.emulatorStarted = true;
+                    this.scheduleNextTick();
+                }
+                break;
         }
+
+        if (runningState !== oldRunningState) {
+            this.onRunningState.dispatch(runningState);
+        }
+
+        return oldRunningState;
     }
 
     /**
@@ -791,13 +808,13 @@ export class Trs80 implements Hal, Machine {
      * Run a certain number of CPU instructions and schedule another tick.
      */
     private tick(): void {
-        for (let i = 0; i < this.clocksPerTick && this.started; i++) {
+        for (let i = 0; i < this.clocksPerTick && this.runningState === RunningState.STARTED; i++) {
             // Check breakpoints.
             if (!this.ignoreInitialInstructionBreakpoint &&
                 this.breakpoints !== undefined &&
                 this.breakpoints[this.z80.regs.pc] !== 0) {
 
-                this.stop();
+                this.setRunningState(RunningState.PAUSED);
                 break;
             }
 
@@ -805,7 +822,7 @@ export class Trs80 implements Hal, Machine {
             this.ignoreInitialInstructionBreakpoint = false;
         }
         // We might have stopped in the step() routine (e.g., with scheduled event).
-        if (this.started) {
+        if (this.runningState === RunningState.STARTED) {
             this.scheduleNextTick();
         }
     }

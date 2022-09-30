@@ -1,5 +1,5 @@
 import {EditorView,} from "@codemirror/view"
-import {CassettePlayer, Config, Trs80, Trs80State} from "trs80-emulator";
+import {CassettePlayer, Config, RunningState, Trs80, Trs80State} from "trs80-emulator";
 import {
     CanvasScreen,
     ControlPanel,
@@ -45,7 +45,7 @@ export class Emulator {
         const reboot = () => {
             this.debugPc.dispatch(undefined);
             this.trs80.reset();
-            this.trs80.start();
+            this.trs80.setRunningState(RunningState.STARTED);
         };
 
         const hardwareSettingsPanel = new SettingsPanel(this.screen.getNode(), this.trs80, PanelType.HARDWARE);
@@ -58,7 +58,7 @@ export class Emulator {
 
         const driveIndicators = new DriveIndicators(this.screen.getNode(), this.trs80.getMaxDrives());
         this.trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
-        this.trs80.onStarted.subscribe(this.onTrs80Started.bind(this));
+        this.trs80.onRunningState.subscribe(this.onRunningState.bind(this));
 
         reboot();
 
@@ -127,7 +127,7 @@ export class Emulator {
         if (entryPoint !== undefined) {
             this.trs80.jumpTo(entryPoint);
             this.debugPc.dispatch(undefined);
-            this.trs80.start();
+            this.trs80.setRunningState(RunningState.STARTED);
         }
     }
 
@@ -148,12 +148,12 @@ export class Emulator {
     public continue(): void {
         this.debugPc.dispatch(undefined);
         this.trs80.setIgnoreInitialInstructionBreakpoint(true);
-        this.trs80.start();
+        this.trs80.setRunningState(RunningState.STARTED);
     }
 
     // Called by Trs80 when it starts or stops.
-    private onTrs80Started(started: boolean): void {
-        if (started) {
+    private onRunningState(runningState: RunningState): void {
+        if (runningState === RunningState.STARTED) {
             this.debugPc.dispatch(undefined);
         } else {
             this.debugPc.dispatch(this.trs80.z80.regs.pc);
@@ -168,8 +168,8 @@ export class Emulator {
         node.classList.add("z80-inspector");
 
         let timeoutHandle: number | undefined = undefined;
-        this.trs80.onStarted.subscribe(started => {
-            const visible = !started;
+        this.trs80.onRunningState.subscribe(runningState => {
+            const visible = runningState === RunningState.PAUSED;
 
             // We don't want to turn this off to quickly, because if you Continue, it'll
             // probably hit a breakpoint soon and show this right away.
