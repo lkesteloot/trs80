@@ -61,11 +61,19 @@ body.presentation-mode {
     gap: 30px;
 }
 
-.editor-pane {
+.left-pane {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     align-self: stretch;
+}
+
+.right-pane {
+    align-self: center;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .error-pill {
@@ -80,6 +88,51 @@ body.presentation-mode {
     font-size: 9pt;
     user-select: none;
     cursor: pointer;
+}
+
+.left-pane {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    align-self: stretch;
+}
+
+/* ------------------------------------------------------------------------- */
+
+.z80-inspector {
+    background-color: var(--background);
+    color: var(--foreground);
+    border-radius: 20px;
+    padding: 20px 30px;
+    font-family: 'Roboto Mono', monospace;
+
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 10px;
+}
+
+.z80-inspector:not(.z80-inspector-visible) {
+    display: none;
+}
+
+.z80-inspector-label {
+    color: var(--cyan);
+    white-space: pre;
+}
+
+.z80-inspector-value {
+    color: var(--blue);
+    white-space: pre;
+}
+
+.z80-inspector-extra {
+    color: var(--yellow);
+    white-space: pre;
+}
+
+.z80-inspector-changed {
+    color: var(--red);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -220,10 +273,6 @@ body.presentation-mode {
 
 .cm-editor {
     height: 100%;
-}
-
-#emulator {
-    align-self: center;
 }
 
 .cm-screenshotEdit {

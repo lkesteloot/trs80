@@ -343,8 +343,8 @@ export class UserInterface {
         content.classList.add("content");
         body.append(content);
 
-        const editorPane = document.createElement("div");
-        editorPane.classList.add("editor-pane");
+        const leftPane = document.createElement("div");
+        leftPane.classList.add("left-pane");
         const examplesMenu = getMenuEntryById(menu, "examples-list");
         if (examplesMenu !== undefined && isMenuParent(examplesMenu)) {
             for (const example of EXAMPLES) {
@@ -393,10 +393,13 @@ export class UserInterface {
         editorDiv.classList.add("editor");
         editorDiv.append(editor.getNode(), editor.errorPill);
         editorContainer.append(editorDiv);
-        editorPane.append(menubar, /*toolbar,*/ editorContainer);
-        const emulatorDiv = document.createElement("div");
-        emulatorDiv.id = "emulator";
-        emulatorDiv.append(emulator.getNode());
-        content.append(editorPane, emulatorDiv);
+        leftPane.append(menubar, /*toolbar,*/ editorContainer);
+
+        const rightPane = document.createElement("div");
+        rightPane.classList.add("right-pane");
+        const z80Inspector = emulator.createZ80Inspector();
+        rightPane.append(emulator.getNode(), z80Inspector);
+
+        content.append(leftPane, rightPane);
     }
 }
