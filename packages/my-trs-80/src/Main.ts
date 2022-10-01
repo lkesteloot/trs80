@@ -1,5 +1,6 @@
 import {
     CassettePlayer, Config,
+    RunningState,
     Trs80
 } from "trs80-emulator";
 import {
@@ -314,7 +315,7 @@ export function main() {
 
     const reboot = () => {
         trs80.reset();
-        trs80.start();
+        trs80.setRunningState(RunningState.STARTED);
     };
 
     const hardwareSettingsPanel = new SettingsPanel(screen.getNode(), trs80, PanelType.HARDWARE);
@@ -335,7 +336,7 @@ export function main() {
     body.append(screenDiv);
 
     let createdLibraryPanel = false;
-    let wasTrs80Started = false;
+    let oldRunningState = RunningState.STOPPED;
     panelManager.onOpenClose.subscribe(isOpen => {
         if (isOpen && !createdLibraryPanel) {
             panelManager.pushPanel(new LibraryPanel(context));
@@ -343,11 +344,9 @@ export function main() {
         }
 
         if (isOpen) {
-            wasTrs80Started = trs80.stop();
+            oldRunningState = trs80.setRunningState(RunningState.STOPPED);
         } else {
-            if (wasTrs80Started) {
-                trs80.start();
-            }
+            trs80.setRunningState(oldRunningState);
         }
     });
 

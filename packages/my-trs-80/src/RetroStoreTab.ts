@@ -5,6 +5,7 @@ import {Context} from "./Context";
 import {decodeTrs80File} from "trs80-base";
 import {FileBuilder} from "./File";
 import {PageTab} from "./PageTab";
+import { ModelType } from "trs80-emulator";
 
 const RETRO_STORE_API_URL = "https://retrostore.org/api/";
 
@@ -138,6 +139,18 @@ export class RetroStoreTab extends PageTab {
     public onShow(): void {
         // When showing the tab, wait for layout and maybe fetch more.
         setTimeout(() => this.fetchNextBatchIfNecessary(), 0);
+    }
+
+    public onKeyDown(e: KeyboardEvent): boolean {
+        if (e.key === "d" && !e.metaKey && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+            this.downloadByToken();
+            return true;
+        }
+        if (e.key === "u" && !e.metaKey && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+            this.uploadByToken();
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -301,9 +314,12 @@ export class RetroStoreTab extends PageTab {
                 .then(mediaImages => {
                     console.log(app.id, app.name, mediaImages);
                     for (const mediaImage of mediaImages) {
-                        if (mediaImage.type === RetroStoreProto.MediaType.COMMAND ||
-                            mediaImage.type === RetroStoreProto.MediaType.BASIC ||
-                            mediaImage.type === RetroStoreProto.MediaType.DISK) {
+                        // Can't use the enum here because it's a "const enum", and the way we compile
+                        // TS is one file at a time (probably transpile only?). So must hack it with
+                        // a string that's cast.
+                        if (mediaImage.type === "COMMAND" as RetroStoreProto.MediaType ||
+                            mediaImage.type === "BASIC" as RetroStoreProto.MediaType ||
+                            mediaImage.type === "DISK" as RetroStoreProto.MediaType) {
 
                             validMediaImage = mediaImage;
                             playButton.disabled = false;
@@ -319,5 +335,159 @@ export class RetroStoreTab extends PageTab {
         }
 
         return appDiv;
+    }
+
+    /**
+     * Run a program by downloading its state from the RetroStore.
+     */
+    private async downloadByToken(): Promise<void> {
+        const token = prompt("What is the RetroStore token?");
+        if (token === "" || token === null) {
+            return;
+        }
+
+        const params = {
+            token: {
+                low: parseInt(token, 10),
+                high: 0,
+                unsigned: true,
+            },
+        };
+        const response = await fetch("https://retrostore.org/api/downloadState", {
+            method: "POST",
+            body: RetroStoreProto.encodeDownloadSystemStateParams(params),
+            mode: "cors",
+            cache: "no-cache",
+            redirect: "follow",
+        });
+        console.log(response);
+        const arrayBuffer = await response.arrayBuffer();
+        const x = RetroStoreProto.decodeApiResponseDownloadSystemState(new Uint8Array(arrayBuffer));
+        console.log(x);
+        if (x.success !== true || x.systemState === undefined) {
+            console.log("Failed request");
+            return;
+        }
+
+        const trs80 = this.context.trs80;
+
+        for (const memoryRegion of x.systemState.memoryRegions ?? []) {
+            const data = memoryRegion.data;
+            if (data !== undefined) {
+                const start = memoryRegion.start ?? 0;
+                const length = data.length;
+
+                for (let i = 0; i < length; i++) {
+                    trs80.writeMemory(start + i, data[i]);
+                }
+            }
+        }
+
+        const regs = x.systemState.registers;
+        if (regs !== undefined) {
+            trs80.z80.regs.ix = regs.ix ?? 0;
+            trs80.z80.regs.iy = regs.iy ?? 0;
+            trs80.z80.regs.pc = regs.pc ?? 0;
+            trs80.z80.regs.sp = regs.sp ?? 0;
+            trs80.z80.regs.af = regs.af ?? 0;
+            trs80.z80.regs.bc = regs.bc ?? 0;
+            trs80.z80.regs.de = regs.de ?? 0;
+            trs80.z80.regs.hl = regs.hl ?? 0;
+            trs80.z80.regs.afPrime = regs.af_prime ?? 0;
+            trs80.z80.regs.bcPrime = regs.bc_prime ?? 0;
+            trs80.z80.regs.dePrime = regs.de_prime ?? 0;
+            trs80.z80.regs.hlPrime = regs.hl_prime ?? 0;
+            trs80.z80.regs.i = regs.i ?? 0;
+
+            // TODO not in RetroStore state.
+            trs80.z80.regs.memptr = 0;
+            trs80.z80.regs.r = 0;  // Low 7 bits of R.
+            trs80.z80.regs.r7 = 0; // Bit 7 of R.
+            trs80.z80.regs.iff1 = 0;
+            trs80.z80.regs.iff2 = 0;
+            trs80.z80.regs.im = 0;
+            trs80.z80.regs.halted = 0;
+        }
+
+        // TODO change model.
+
+        this.context.panelManager.close();
+    }
+
+    /**
+     * Upload current state to RetroStore.
+     */
+    private async uploadByToken(): Promise<void> {
+        const trs80 = this.context.trs80;
+
+        // Get memory.
+        const length = 64*1024;
+        const memory = new Uint8Array(length);
+        for (let i = 0; i < length; i++) {
+            memory[i] = trs80.readMemory(i);
+        }
+
+        // Get model type.
+        let model: RetroStoreProto.Trs80Model;
+        switch (trs80.getConfig().modelType) {
+            case ModelType.MODEL1:
+                // Can't use the enum here because it's a "const enum", and the way we compile
+                // TS is one file at a time (probably transpile only?). So must hack it with
+                // a string that's cast.
+                model = "MODEL_I" as RetroStoreProto.Trs80Model;
+                break;
+
+            case ModelType.MODEL3:
+            default:
+                model = "MODEL_III" as RetroStoreProto.Trs80Model;
+                break;
+
+            case ModelType.MODEL4:
+                model = "MODEL_4" as RetroStoreProto.Trs80Model;
+                break;
+        }
+
+        const params: RetroStoreProto.UploadSystemStateParams = {
+            state: {
+                model: model,
+                registers: {
+                    ix: trs80.z80.regs.ix,
+                    iy: trs80.z80.regs.iy,
+                    pc: trs80.z80.regs.pc,
+                    sp: trs80.z80.regs.sp,
+                    af: trs80.z80.regs.af,
+                    bc: trs80.z80.regs.bc,
+                    de: trs80.z80.regs.de,
+                    hl: trs80.z80.regs.hl,
+                    af_prime: trs80.z80.regs.afPrime,
+                    bc_prime: trs80.z80.regs.bcPrime,
+                    de_prime: trs80.z80.regs.dePrime,
+                    hl_prime: trs80.z80.regs.hlPrime,
+                    i: trs80.z80.regs.i,
+                },
+                memoryRegions: [
+                    {
+                        start: 0,
+                        length: 1024*64,
+                        data: memory,
+                    },
+                ],
+            },
+        };
+        console.log(params);
+        const response = await fetch("https://retrostore.org/api/uploadState", {
+            method: "POST",
+            body: RetroStoreProto.encodeUploadSystemStateParams(params),
+            mode: "cors",
+            cache: "no-cache",
+            redirect: "follow",
+        });
+        console.log(response);
+        const arrayBuffer = await response.arrayBuffer();
+        const x = RetroStoreProto.decodeApiResponseUploadSystemState(new Uint8Array(arrayBuffer));
+        console.log(x);
+        if (x.token !== undefined) {
+            alert("Token is " + x.token.low);
+        }
     }
 }
