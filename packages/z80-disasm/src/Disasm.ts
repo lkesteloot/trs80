@@ -14,7 +14,9 @@ const MEM_SIZE = 64*1024;
 
 // Whether the byte can be converted to readable ASCII.
 function isPrintable(b: number): boolean {
-    return b >= 32 && b < 127;
+    // 34 = ", which we can't include inside double-quoted strings (assemblers don't handle
+    // any way to escape it).
+    return b >= 32 && b < 127 && b !== 34;
 }
 
 // Whether the byte is appropriate for a .text instruction.
