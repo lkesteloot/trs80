@@ -1906,10 +1906,13 @@ class LineParser {
             let symbolInfo = this.pass.locals().get(identifier, this.pass.passNumber !== 1);
             if (symbolInfo === undefined) {
                 if (this.pass.passNumber === 1) {
+                    // For if directive, defined value is needed;
+                    const definedSymbolInfo = this.pass.locals().get(identifier, true);
+                    const value=definedSymbolInfo ? definedSymbolInfo.value : 0;
                     // Record that this identifier was used so that we can include its file with
                     // library includes. We don't know whether it's a local or global symbol.
                     // Assume local and push it out in #endlocal.
-                    symbolInfo = new SymbolInfo(identifier, 0);
+                    symbolInfo = new SymbolInfo(identifier, value);
                     this.pass.locals().set(symbolInfo);
                 } else {
                     throw new Error("Identifier " + identifier + " was not defined in pass 1");
