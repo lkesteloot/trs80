@@ -1459,13 +1459,12 @@ class LineParser {
         if (mnemonicInfo !== undefined) {
             const argStart = this.column;
             let match = false;
-
+            let ddValue:number|undefined = undefined; // for parse +dd or -dd
             for (const variant of mnemonicInfo) {
                 // Map from something like "nn" to its value.
                 const args = new Map<OpcodeTemplateOperand, number>();
 
                 match = true;
-                let sgn=1;
                 for (let i = 0; i < variant.tokens.length; i++) {
                     const token = variant.tokens[i];
 
@@ -1489,19 +1488,13 @@ class LineParser {
                             match = false;
                         }
                     } else if (token === "+" ) {
-                        // For LD A,(IX-dd)
-                        if (!this.foundChar(token)) {
-                            if (this.foundChar("-")) {
-                                sgn=-1;
-                            } else {
-                                match = false;
-                            }
-                        } else {
-                            sgn=1;
-                        }
+                        // For LD A,(IX-dd) or LD A,(IX+dd), preread '-dd' or '+dd' part
+                        ddValue = this.readExpression(false);
                     } else if (isOpcodeTemplateOperand(token)) {
-                        // Parse.
-                        const value = this.readExpression(false);
+                        // Parse. 
+                        // If +dd, -dd is preread, do not parse and use the value. 
+                        const value = ddValue !== undefined ? ddValue : this.readExpression(false);
+                        ddValue = undefined;
                         if (value === undefined) {
                             match = false;
                         } else {
@@ -1509,8 +1502,7 @@ class LineParser {
                             if (args.has(token)) {
                                 throw new Error("duplicate arg: " + this.line);
                             }
-                            args.set(token, value*sgn);
-                            sgn=1;
+                            args.set(token, value);
                         }
                     } else if (parseDigit(token[0], 10) !== undefined) {
                         // If the token is a number, then we must parse an expression and
