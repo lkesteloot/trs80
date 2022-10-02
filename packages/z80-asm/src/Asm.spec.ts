@@ -130,6 +130,13 @@ describe("assemble", () => {
             { line: " jp $", opcodes: [0xC3, 0x00, 0x40] },
         ]);
     });
+
+    it("ix minus offset", ()=>{
+        runTest([
+            {line :"ld (ix-3),a", opcodes:[0xdd, 0x77, 0xfd] }
+        ]);
+    });
+
 });
 
 describe("number parsing", () => {
