@@ -7,15 +7,11 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:test": "tsc -p tsconfig.test.json",
     "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateJson.js",
     "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
-    "test": "npm run build:test && mocha -r ts-node/register src/**/*.spec.ts",
-    "clean": "rm -rf dist dist-tests",
+    "test": "tsx src/Asm.spec.ts",
+    "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
-  },
-  "directories": {
-    "test": "tests"
   },
   "keywords": [
     "z80",
@@ -26,10 +22,9 @@
   "license": "MIT",
   "devDependencies": {
     "@types/chai": "^4.2.7",
-    "@types/mocha": "^5.2.7",
     "@types/node": "^16.0.0",
     "chai": "^4.2.0",
-    "mocha": "^6.2.2",
+    "tsx": "^3.9.0",
     "typedoc": "^0.22.13",
     "typescript": "^4.0.0"
   },
