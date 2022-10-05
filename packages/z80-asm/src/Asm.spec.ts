@@ -1,7 +1,21 @@
 
 import { expect } from "chai";
-import "mocha";
 import {Asm, FileSystem, SourceFile} from "./Asm";
+
+// I can't get mocha to work with TypeScript and ESM, so just provide their
+// functions.
+let testCount = 0;
+let successCount = 0;
+function describe(name: string, f: () => void): void {
+    testCount++
+    try {
+        f();
+        successCount += 1;
+    } catch (e) {
+        console.log(name + ": " + e);
+    }
+}
+const it = describe;
 
 interface TestLine {
     line: string;
@@ -268,3 +282,5 @@ describe("assemble", () => {
         ], [0x41, 0x2C, 0x42, 0x3B, 0x43, 0x41, 0x2C, 0x42, 0x3B, 0x43]);
     });
 });
+
+console.log(successCount + " successful out of " + testCount);
