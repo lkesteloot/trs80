@@ -204,12 +204,9 @@ describe("number parsing", () => {
 
 function runMacroTest(testLines: string[], expectedOpcodes: number[]): void {
     const asm = new Asm(linesToFileSystem(testLines));
-    const sourceFile = asm.assembleFile("unused.asm");
-    if (sourceFile === undefined) {
-        throw new Error("File not found");
-    }
+    asm.assembleFile("unused.asm");
     const opcodes: number[] = [];
-    for (const assembledLine of sourceFile.assembledLines) {
+    for (const assembledLine of asm.assembledLines) {
         opcodes.splice(opcodes.length, 0, ... assembledLine.binary);
     }
     expect(opcodes).to.deep.equal(expectedOpcodes);
