@@ -54,7 +54,7 @@ import {customCompletions} from "./AutoComplete";
 import {Emulator} from "./Emulator";
 import {getDefaultExample, getDefaultTheme} from "./UserInterface";
 import {getInitialSpaceCount} from "./utils";
-import {z80StreamParser} from "./Z80Parser";
+import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
 
 const AUTO_SAVE_KEY = "trs80-ide-auto-save";
 
@@ -402,7 +402,7 @@ export class Editor {
                 },
             }),
             this.assemblyResultsStateField,
-            indentUnit.of("        "),
+            indentUnit.of(" ".repeat(INDENTATION_SIZE)),
             gBaseThemeConfig.of(gBaseTheme),
             gColorThemeConfig.of(getDefaultTheme()),
             hoverTooltip(this.getHoverTooltip.bind(this), {
