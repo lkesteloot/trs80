@@ -108,8 +108,8 @@ function makeLink(link: string): () => void {
     };
 }
 
-// Available examples.
-const EXAMPLES = [
+// Available templates.
+const TEMPLATES = [
     { name: "Simple", code: simpleExample },
     { name: "Screenshot", code: screenshotExample },
     { name: "Space Invaders", code: spaceInvaders },
@@ -132,6 +132,18 @@ export class UserInterface {
                 text: "File",
                 menu: [
                     {
+                        text: "New",
+                        hotkey: "Cmd-N",
+                        action: async () => {
+                            await this.newFile(editor);
+                        },
+                    },
+                    {
+                        id: "template-list",
+                        text: "New From Template",
+                        menu: [],
+                    },
+                    {
                         text: "Open...",
                         hotkey: "Cmd-O",
                         action: async () => {
@@ -145,11 +157,8 @@ export class UserInterface {
                             await this.saveFile(editor);
                         },
                     },
-                    {
-                        id: "examples-list",
-                        text: "Examples",
-                        menu: [],
-                    },
+                    // Disable this, was only for demo.
+                    /*
                     {
                         text: "Upload to RetroStore",
                         action: async () => {
@@ -166,7 +175,7 @@ export class UserInterface {
                                 editor.setCode(code);
                             }
                         },
-                    },
+                    },*/
                 ],
             },
             {
@@ -334,14 +343,14 @@ export class UserInterface {
 
         const leftPane = document.createElement("div");
         leftPane.classList.add("left-pane");
-        const examplesMenu = getMenuEntryById(menu, "examples-list");
-        if (examplesMenu !== undefined && isMenuParent(examplesMenu)) {
-            for (const example of EXAMPLES) {
-                examplesMenu.menu.push({
-                    text: example.name,
+        const newFromExamplesMenu = getMenuEntryById(menu, "template-list");
+        if (newFromExamplesMenu !== undefined && isMenuParent(newFromExamplesMenu)) {
+            for (const template of TEMPLATES) {
+                newFromExamplesMenu.menu.push({
+                    text: template.name,
                     action: () => {
                         emulator.closeScreenEditor();
-                        editor.setCode(example.code);
+                        editor.setCode(template.code);
                     },
                 });
             }
@@ -364,6 +373,13 @@ export class UserInterface {
         rightPane.append(emulator.getNode(), z80Inspector);
 
         content.append(leftPane, rightPane);
+    }
+
+    /**
+     * Create a new source file.
+     */
+    private async newFile(editor: Editor) {
+        editor.setCode("");
     }
 
     /**
