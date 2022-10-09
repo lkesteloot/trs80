@@ -54,7 +54,7 @@ import {customCompletions} from "./AutoComplete";
 import {Emulator} from "./Emulator";
 import {getDefaultExample, getDefaultTheme} from "./UserInterface";
 import {getInitialSpaceCount} from "./utils";
-import {z80} from "./Z80Parser";
+import {z80StreamParser} from "./Z80Parser";
 
 const AUTO_SAVE_KEY = "trs80-ide-auto-save";
 
@@ -411,7 +411,7 @@ export class Editor {
             this.breakpointState,
             this.currentPcHighlightExtension(),
             this.fileHandleStateField,
-            StreamLanguage.define(z80),
+            StreamLanguage.define(z80StreamParser),
         ];
 
         // Load saved doc.
