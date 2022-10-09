@@ -351,10 +351,6 @@ export class Editor {
                 ],
             }),
             rectangularSelection(),
-            highlightActiveLine(),
-            highlightSelectionMatches({
-                highlightWordAroundCursor: true,
-            }),
             keymap.of([
                 ...closeBracketsKeymap,
                 ...defaultKeymap,
@@ -405,7 +401,19 @@ export class Editor {
             indentUnit.of(" ".repeat(INDENTATION_SIZE)),
             EditorState.tabSize.of(8),
             gBaseThemeConfig.of(gBaseTheme),
+            EditorView.theme({
+                // Override theme, which uses an opaque color for the active line, and this hides
+                // the selection, which is done in a separate layer below.
+                '.cm-activeLine': { backgroundColor: "rgba(255, 255, 255, 0.05)" },
+                // The selection in this theme is identical to the active line highlight.
+                // Make it more obvious.
+                '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': { backgroundColor: "rgba(255, 255, 255, 0.2)" },
+            }),
             gColorThemeConfig.of(getDefaultTheme()),
+            highlightActiveLine(),
+            highlightSelectionMatches({
+                highlightWordAroundCursor: true,
+            }),
             hoverTooltip(this.getHoverTooltip.bind(this), {
                 hideOnChange: true,
             }),

@@ -121,8 +121,14 @@ stop:
             program. Try changing the character (<tt>191</tt>) to different values
             and watch the emulator update.</p>
 
-            <p>Hex values can be specified in C-style (<tt>0x8000</tt>) or assembler
-            style (<tt>$8000</tt> or <tt>8000h</tt>).</p>
+            <h2>Assembler</h2>
+
+            <p>The assembler attempts to handle the union of all past Z80 assembler
+            syntaxes. For example, it handles both <tt>org</tt> and <tt>.org</tt>
+            directives. For numeric literals in non-decimal bases, it handles
+            C-style prefixes (<tt>0x3C00</tt>, <tt>0b10001010</tt>), assembler-style
+            prefixes (<tt>$3C00</tt>, <tt>%10001010</tt>), and assembler-style
+            suffixes (<tt>3C00h</tt>, <tt>10001010b</tt>).</p>
         </section>
     </body>
 </html>
