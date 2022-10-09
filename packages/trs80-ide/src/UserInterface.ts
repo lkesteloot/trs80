@@ -1,15 +1,3 @@
-import {
-    Extension,
-} from "@codemirror/state"
-import {solarizedDark} from 'cm6-theme-solarized-dark'
-import {solarizedLight} from 'cm6-theme-solarized-light'
-import {basicDark} from 'cm6-theme-basic-dark'
-import {basicLight} from 'cm6-theme-basic-light'
-import {gruvboxDark} from 'cm6-theme-gruvbox-dark'
-import {gruvboxLight} from 'cm6-theme-gruvbox-light'
-import {materialDark} from 'cm6-theme-material-dark'
-import {nord} from 'cm6-theme-nord'
-
 import {breakdwn} from "./breakdwn";
 import {scarfman} from "./scarfman";
 import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, MenuCommand} from "./Menubar";
@@ -108,43 +96,6 @@ wait:
         jp top
 `;
 
-// Available themes.
-const THEMES = [
-    {
-        extension: basicLight,
-        name: 'Basic Light'
-    },
-    {
-        extension: basicDark,
-        name: 'Basic Dark'
-    },
-    {
-        extension: solarizedLight,
-        name: 'Solarized Light'
-    },
-    {
-        extension: solarizedDark,
-        name: 'Solarized Dark'
-    },
-    {
-        extension: materialDark,
-        name: 'Material Dark'
-    },
-    {
-        extension: nord,
-        name: 'Nord'
-    },
-    {
-        extension: gruvboxLight,
-        name: 'Gruvbox Light'
-    },
-    {
-        extension: gruvboxDark,
-        name: 'Gruvbox Dark'
-    },
-];
-const DEFAULT_THEME_INDEX = 3;
-
 /**
  * Make a function that, when run, takes the user to the link.
  */
@@ -166,11 +117,6 @@ const EXAMPLES = [
     { name: "Breakdown", code: breakdwn },
     { name: "Scarfman", code: scarfman },
 ];
-
-// Get the color theme we should use initially.
-export function getDefaultTheme(): Extension {
-    return THEMES[DEFAULT_THEME_INDEX].extension;
-}
 
 // Get the code we should display initially.
 export function getDefaultExample(): string {
@@ -226,11 +172,8 @@ export class UserInterface {
             {
                 text: "View",
                 menu: [
-                    {
-                        id: "theme-list",
-                        text: "Editor Theme",
-                        menu: [],
-                    },
+                    // Disable presentation mode, it's really only for demos.
+                    /*
                     {
                         text: "Presentation Mode",
                         action: (menuCommand: MenuCommand) => {
@@ -244,7 +187,7 @@ export class UserInterface {
                     },
                     {
                         separator: true,
-                    },
+                    },*/
                     {
                         text: "Show Line Numbers",
                         checked: true,
@@ -400,32 +343,6 @@ export class UserInterface {
                         emulator.closeScreenEditor();
                         editor.setCode(example.code);
                     },
-                });
-            }
-        }
-        const themeMenu = getMenuEntryById(menu, "theme-list");
-        if (themeMenu !== undefined && isMenuParent(themeMenu)) {
-            const menu = themeMenu.menu;
-
-            function updateCheckmarks(index: number): void {
-                for (let i = 0; i < THEMES.length; i++) {
-                    const menuEntry = menu[i];
-                    if (isMenuCommand(menuEntry)) {
-                        menuEntry.setChecked?.(i === index);
-                    }
-                }
-            }
-
-            for (let i = 0; i < THEMES.length; i++) {
-                const theme = THEMES[i];
-
-                themeMenu.menu.push({
-                    text: theme.name,
-                    action: () => {
-                        editor.setTheme(theme);
-                        updateCheckmarks(i);
-                    },
-                    checked: i == DEFAULT_THEME_INDEX,
                 });
             }
         }

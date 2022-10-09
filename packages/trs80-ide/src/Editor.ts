@@ -52,9 +52,10 @@ import {AssemblyResults, ErrorAssembledLine} from "./AssemblyResults";
 import {screenshotPlugin} from "./ScreenshotPlugin";
 import {customCompletions} from "./AutoComplete";
 import {Emulator} from "./Emulator";
-import {getDefaultExample, getDefaultTheme} from "./UserInterface";
+import {getDefaultExample} from "./UserInterface";
 import {getInitialSpaceCount} from "./utils";
 import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
+import {solarizedDark} from 'cm6-theme-solarized-dark'
 
 const AUTO_SAVE_KEY = "trs80-ide-auto-save";
 
@@ -98,9 +99,6 @@ const gPresentationTheme = [
 
 // Compartment to fit the current base theme into.
 const gBaseThemeConfig = new Compartment();
-
-// Compartment to fit the current color theme into.
-const gColorThemeConfig = new Compartment();
 
 function assemble(code: string[]): AssemblyResults {
     const asm = new Asm({
@@ -409,7 +407,7 @@ export class Editor {
                 // Make it more obvious.
                 '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': { backgroundColor: "rgba(255, 255, 255, 0.2)" },
             }),
-            gColorThemeConfig.of(getDefaultTheme()),
+            solarizedDark,
             highlightActiveLine(),
             highlightSelectionMatches({
                 highlightWordAroundCursor: true,
@@ -484,13 +482,6 @@ export class Editor {
     // Specify whether to show timing.
     public setShowTiming(showTiming: boolean): void {
         this.timingGutter.setEnabled(this.view, showTiming);
-    }
-
-    // Set the editor to the specific color theme.
-    public setTheme(theme: Extension): void {
-        this.view.dispatch({
-            effects: gColorThemeConfig.reconfigure([theme]),
-        });
     }
 
     // Load the code of an example into the editor.
