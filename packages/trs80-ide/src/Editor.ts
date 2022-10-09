@@ -57,7 +57,9 @@ import {getInitialSpaceCount} from "./utils";
 import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
 import {solarizedDark} from 'cm6-theme-solarized-dark'
 
+// Keys for local storage.
 const AUTO_SAVE_KEY = "trs80-ide-auto-save";
+const ORIG_CODE_KEY = "trs80-ide-orig-code";
 
 /**
  * Gutter to show info about the line (address, bytecode, etc.).
@@ -236,6 +238,7 @@ export class Editor {
     public autoRun = true;
     private currentLineNumber = 0; // 1-based.
     private currentLineHasError = false;
+    private origCode = "";
 
     public constructor(emulator: Emulator) {
         this.emulator = emulator;
@@ -444,6 +447,10 @@ export class Editor {
         this.errorPill = document.createElement("div");
         this.errorPill.classList.add("error-pill");
         this.errorPill.addEventListener("click", () => this.nextError());
+
+        // Set the orig code from storage or current editor.
+        const origCode = window.localStorage.getItem(ORIG_CODE_KEY);
+        this.setOrigCode(origCode ?? this.getCode());
     }
 
     // Get the editor's node.
@@ -486,6 +493,7 @@ export class Editor {
 
     // Load the code of an example into the editor.
     public setCode(code: string, handle?: FileSystemFileHandle | undefined) {
+        this.setOrigCode(code);
         this.view.dispatch({
             changes: {
                 from: 0,
@@ -506,6 +514,24 @@ export class Editor {
     // Get the current file handle, if any.
     public getFileHandle(): FileSystemFileHandle | undefined {
         return this.view.state.field(this.fileHandleStateField);
+    }
+
+    // Whether the user has modified the editor code since it was loaded.
+    public fileHasBeenModified(): boolean {
+        return this.getCode() !== this.origCode;
+    }
+
+    // Indicate that the file was just saved, so the orig code is now
+    // the current contents of the editor.
+    public fileWasSaved() {
+        this.setOrigCode(this.getCode());
+    }
+
+    // Update the original code that we compare with when deciding whether
+    // the buffer has been saved.
+    public setOrigCode(origCode: string) {
+        this.origCode = origCode;
+        window.localStorage.setItem(ORIG_CODE_KEY, origCode);
     }
 
     // Get tooltip content given a hover position.

@@ -249,6 +249,53 @@ body.presentation-mode {
 
 /* ------------------------------------------------------------------------- */
 
+.modal-dialog {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: 18pt;
+    box-shadow: rgba(0, 0, 0, 1) 0 20px 100px;
+    border: none;
+    border-radius: 10px;
+}
+
+.modal-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.dialog-prompt {
+    margin-bottom: 2em;
+}
+
+.dialog-button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 1em;
+}
+
+.dialog-button-row button {
+    color: var(--foreground);
+    background-color: var(--background-highlights);
+    border: solid 1px var(--cyan);
+    border-radius: 5px;
+    padding: .5em 1em;
+    font-size: 18pt;
+}
+
+.dialog-button-row button:hover {
+    color: var(--foreground);
+    background-color: var(--background-highlights);
+}
+
+.dialog-button-row button.dialog-dont-save-button {
+    border: solid 1px var(--red);
+}
+
+.dialog-spacer {
+    flex-grow: 1;
+}
+
+/* ------------------------------------------------------------------------- */
+
 .toolbar {
     display: flex;
     flex-direction: row;
