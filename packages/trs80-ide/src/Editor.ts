@@ -493,6 +493,7 @@ export class Editor {
 
     // Load the code of an example into the editor.
     public setCode(code: string, handle?: FileSystemFileHandle | undefined) {
+        this.emulator.closeScreenEditor();
         this.setOrigCode(code);
         this.view.dispatch({
             changes: {

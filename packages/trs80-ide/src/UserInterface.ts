@@ -133,7 +133,8 @@ export class UserInterface {
                 menu: [
                     {
                         text: "New",
-                        hotkey: "Cmd-N",
+                        // Can't override Cmd-N in browsers.
+                        // hotkey: "Cmd-N",
                         action: async () => {
                             await this.newFile(editor);
                         },
@@ -349,7 +350,6 @@ export class UserInterface {
                 newFromExamplesMenu.menu.push({
                     text: template.name,
                     action: async () => {
-                        emulator.closeScreenEditor();
                         const proceed = await this.promptIfFileModified(editor);
                         if (proceed) {
                             editor.setCode(template.code);

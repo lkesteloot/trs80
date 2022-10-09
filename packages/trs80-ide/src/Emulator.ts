@@ -89,6 +89,9 @@ export class Emulator {
         });
     }
 
+    /**
+     * Close the screenshot editor if it's open. This abandons any changes to the screenshot.
+     */
     public closeScreenEditor() {
         if (this.screenEditor !== undefined) {
             this.screenEditor.cancel();
