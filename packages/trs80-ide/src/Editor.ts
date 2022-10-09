@@ -38,7 +38,8 @@ import {
     defaultHighlightStyle,
     indentOnInput,
     indentUnit,
-    syntaxHighlighting
+    syntaxHighlighting,
+    StreamLanguage,
 } from "@codemirror/language"
 import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from "@codemirror/autocomplete"
 import {highlightSelectionMatches, searchKeymap} from "@codemirror/search"
@@ -53,6 +54,7 @@ import {customCompletions} from "./AutoComplete";
 import {Emulator} from "./Emulator";
 import {getDefaultExample, getDefaultTheme} from "./UserInterface";
 import {getInitialSpaceCount} from "./utils";
+import {z80} from "./Z80Parser";
 
 const AUTO_SAVE_KEY = "trs80-ide-auto-save";
 
@@ -341,7 +343,6 @@ export class Editor {
             dropCursor(),
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
-            syntaxHighlighting(defaultHighlightStyle),
             bracketMatching(),
             closeBrackets(),
             autocompletion({
@@ -364,6 +365,7 @@ export class Editor {
                 ...lintKeymap,
                 indentWithTab,
             ]),
+            // Reassemble and run when contents change.
             EditorView.updateListener.of(update => {
                 if (update.docChanged) {
                     const results = this.getAssemblyResults(update.state);
@@ -373,13 +375,14 @@ export class Editor {
                     }
                 }
             }),
+            // Auto-save after doc changes.
             EditorView.updateListener.of(update => {
                 if (update.docChanged) {
                     window.localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(update.state.doc.toJSON()));
                 }
             }),
+            // Keep track of current line number and whether it had an error when we moved to it.
             EditorView.updateListener.of(update => {
-                // Keep track of current line number and whether it had an error when we moved to it.
                 const cursor = update.state.selection.main.head;
                 const line = update.state.doc.lineAt(cursor);
                 const lineNumber = line.number;
@@ -391,17 +394,6 @@ export class Editor {
                     this.updateEverything(assemblyResults);
                 }
             }),
-            // linter(view => [
-            //   {
-            //     from: 3,
-            //     to: 5,
-            //     severity: "error",
-            //     message: "bad",
-            //   },
-            // ], {
-            //   delay: 750,
-            // }),
-            //   z80AssemblyLanguage(),
             screenshotPlugin({
                 assemblyResultsStateField: this.assemblyResultsStateField,
                 startScreenEditor: emulator.startScreenEditor.bind(emulator),
@@ -409,7 +401,6 @@ export class Editor {
                     this.reassemble();
                 },
             }),
-            // timingPlugin(),
             this.assemblyResultsStateField,
             indentUnit.of("        "),
             gBaseThemeConfig.of(gBaseTheme),
@@ -420,8 +411,10 @@ export class Editor {
             this.breakpointState,
             this.currentPcHighlightExtension(),
             this.fileHandleStateField,
+            StreamLanguage.define(z80),
         ];
 
+        // Load saved doc.
         let defaultDoc: string | Text | undefined = undefined;
         const saveDoc = window.localStorage.getItem(AUTO_SAVE_KEY);
         if (saveDoc !== null) {
@@ -440,6 +433,7 @@ export class Editor {
             state: startState,
         });
 
+        // Create the pill that shows the number of errors.
         this.errorPill = document.createElement("div");
         this.errorPill.classList.add("error-pill");
         this.errorPill.addEventListener("click", () => this.nextError());
