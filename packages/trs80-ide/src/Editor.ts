@@ -225,6 +225,8 @@ export class Editor {
     private readonly breakpointEffect: StateEffectType<BreakpointAction>;
     private readonly breakpointState: StateField<RangeSet<GutterMarker>>;
     private readonly currentPcEffect: StateEffectType<number | undefined>;
+    private readonly fileHandleStateEffect: StateEffectType<FileSystemFileHandle | undefined>;
+    private readonly fileHandleStateField: StateField<FileSystemFileHandle | undefined>;
     public readonly errorPill: HTMLDivElement;
     public readonly view: EditorView;
     private lineNumbersGutter: OptionalExtension;
@@ -303,6 +305,23 @@ export class Editor {
 
         // Update the PC while single-stepping.
         this.currentPcEffect = StateEffect.define<number | undefined>({});
+
+        // Effect/field for the file handle.
+        this.fileHandleStateEffect = StateEffect.define<FileSystemFileHandle | undefined>();
+        this.fileHandleStateField = StateField.define<FileSystemFileHandle | undefined>({
+            create: () => {
+                return undefined;
+            },
+            update: (value: FileSystemFileHandle | undefined, tr: Transaction) => {
+                // See if we're explicitly setting it from the outside.
+                for (const effect of tr.effects) {
+                    if (effect.is(this.fileHandleStateEffect)) {
+                        return effect.value;
+                    }
+                }
+                return value;
+            },
+        });
 
         this.lineNumbersGutter = new OptionalExtension(true, lineNumbers());
         this.addressesGutter = new OptionalExtension(true, this.makeAddressesGutter());
@@ -400,6 +419,7 @@ export class Editor {
             }),
             this.breakpointState,
             this.currentPcHighlightExtension(),
+            this.fileHandleStateField,
         ];
 
         let defaultDoc: string | Text | undefined = undefined;
@@ -471,14 +491,27 @@ export class Editor {
     }
 
     // Load the code of an example into the editor.
-    public loadCode(code: string) {
+    public setCode(code: string, handle?: FileSystemFileHandle | undefined) {
         this.view.dispatch({
             changes: {
                 from: 0,
                 to: this.view.state.doc.length,
                 insert: code,
-            }
+            },
+            effects: [
+                this.fileHandleStateEffect.of(handle),
+            ],
         });
+    }
+
+    // Get the editor contents as a string.
+    public getCode(): string {
+        return this.view.state.doc.sliceString(0);
+    }
+
+    // Get the current file handle, if any.
+    public getFileHandle(): FileSystemFileHandle | undefined {
+        return this.view.state.field(this.fileHandleStateField);
     }
 
     // Get tooltip content given a hover position.

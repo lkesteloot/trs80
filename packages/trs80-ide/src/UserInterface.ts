@@ -17,6 +17,14 @@ import {downloadFromRetroStore, uploadToRetroStore} from "./RetroStore";
 import {Emulator} from "./Emulator";
 import {Editor} from "./Editor";
 import {wolf} from "./wolf";
+import { fileOpen, fileSave } from "browser-fs-access"
+
+// So that if we later have different types of files (images, project files), the user agent
+// can have a different default or current directory for each.
+const ASSEMBLY_LANGUAGE_FILES_DIR_ID = "asm_files";
+
+// File extensions for assembly language files.
+const ASSEMBLY_LANGUAGE_EXTENSIONS = [".asm", ".s"];
 
 const simpleExample = `        .org 0x9000
 
@@ -166,6 +174,20 @@ export class UserInterface {
                 text: "File",
                 menu: [
                     {
+                        text: "Open...",
+                        hotkey: "Cmd-O",
+                        action: async () => {
+                            await this.openFile(editor);
+                        },
+                    },
+                    {
+                        text: "Save",
+                        hotkey: "Cmd-S",
+                        action: async () => {
+                            await this.saveFile(editor);
+                        },
+                    },
+                    {
                         id: "examples-list",
                         text: "Examples",
                         menu: [],
@@ -180,11 +202,10 @@ export class UserInterface {
                     {
                         text: "Download from RetroStore",
                         action: async () => {
-                            // const assemblyResults = editor.getAssemblyResults();
                             const code = await downloadFromRetroStore();
                             if (code !== undefined) {
                                 emulator.closeScreenEditor();
-                                editor.loadCode(code);
+                                editor.setCode(code);
                             }
                         },
                     },
@@ -352,7 +373,7 @@ export class UserInterface {
                     text: example.name,
                     action: () => {
                         emulator.closeScreenEditor();
-                        editor.loadCode(example.code);
+                        editor.setCode(example.code);
                     },
                 });
             }
@@ -401,5 +422,33 @@ export class UserInterface {
         rightPane.append(emulator.getNode(), z80Inspector);
 
         content.append(leftPane, rightPane);
+    }
+
+    /**
+     * Prompt the user to open a new asm file.
+     */
+    private async openFile(editor: Editor) {
+        const blob = await fileOpen({
+            description: "Assembly Language files",
+            extensions: ASSEMBLY_LANGUAGE_EXTENSIONS,
+            id: ASSEMBLY_LANGUAGE_FILES_DIR_ID,
+        });
+        const text = await blob.text();
+        editor.setCode(text, blob.handle);
+    }
+
+    /**
+     * Prompt the user to save the current asm file.
+     */
+    private async saveFile(editor: Editor) {
+        const text = editor.getCode();
+        const blob = new Blob([text], {
+            type: "text/plain",
+        });
+        const handle = editor.getFileHandle();
+        await fileSave(blob, {
+            id: ASSEMBLY_LANGUAGE_FILES_DIR_ID,
+            extensions: ASSEMBLY_LANGUAGE_EXTENSIONS,
+        }, handle);
     }
 }
