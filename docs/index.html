@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>TRS-80 IDE Documentation</title>
+        <style type="text/css">
+            :root {
+                /* Solarized colors */
+                --base03:    #002b36;
+                --base02:    #073642;
+                --base01:    #586e75;
+                --base00:    #657b83;
+                --base0:     #839496;
+                --base1:     #93a1a1;
+                --base2:     #eee8d5;
+                --base3:     #fdf6e3;
+                --yellow:    #b58900;
+                --orange:    #cb4b16;
+                --red:       #dc322f;
+                --magenta:   #d33682;
+                --violet:    #6c71c4;
+                --blue:      #268bd2;
+                --cyan:      #2aa198;
+                --green:     #859900;
+
+                --very-dark: #00212A;
+            }
+
+            .dark-mode {
+                --background: var(--base03);
+                --background-highlights: var(--base02);
+                --foreground: var(--base0);
+                --foreground-emphasized: var(--base1);
+                --foreground-secondary: var(--base01);
+                --accent-color: var(--cyan);
+                --accent-foreground-color: var(--base3);
+            }
+
+            body {
+                margin: 0;
+                background-color: var(--background);
+                color: var(--foreground);
+                font-family: sans-serif;
+                font-size: 18pt;
+                padding: 20px;
+                line-height: 1.5;
+            }
+
+            section {
+                max-width: 35em;
+                margin: 8em auto;
+            }
+
+            h1 {
+                color: var(--cyan);
+                font-size: 40pt;
+            }
+
+            h2 {
+                color: var(--cyan);
+                font-size: 24pt;
+                margin-top: 2em;
+                margin-bottom: 0.5em;
+            }
+
+            pre {
+                font-size: 14pt;
+                padding: 2em;
+                color: var(--foreground-emphasized);
+                background-color: var(--background-highlights);
+                border-radius: 1em;
+            }
+
+            tt {
+                font-size: 17pt;
+                padding: 0 0.3em;
+                color: var(--foreground-emphasized);
+                background-color: var(--background-highlights);
+                border-radius: .3em;
+            }
+
+            a {
+                color: var(--blue);
+            }
+        </style>
+    </head>
+    <body class="dark-mode">
+        <section>
+            <h1>TRS-80 IDE Documentation</h1>
+
+            <p>The <a href="https://www.my-trs-80.com/ide/">IDE</a> documented here lets
+            you write Z80 assembly language and see it running within a few milliseconds
+            on a TRS-80 simulator.</p>
+
+            <h2>Editor</h2>
+
+            <p>The code is on the left, the simulator is on the right, and the
+            pull-down menu is on top. As you type into the editor, the code is
+            assembled on the fly. The machine language bytes are shown on the left
+            next to each line. With every assembly, the TRS-80 emulator on the right
+            is wiped clean, brought to a known state, and your program is loaded and
+            run.</p>
+
+            <p>Try this simple program:</p>
+
+            <pre>        .org 0x8000
+
+        ld hl,15360
+        ld a,191
+        ld (hl),a
+
+stop:
+        jp stop</pre>
+
+            <p>The <tt>stop</tt> label must be in the first column, the rest
+            must not be in the first column, and the indent is typically 8 spaces.
+            It loads at 0x8000 (the start of the top 32K of RAM) and puts
+            a graphic character block at the top-left of the screen. You should
+            see this block appears as soon as you've finished typing the
+            program. Try changing the character (<tt>191</tt>) to different values
+            and watch the emulator update.</p>
+
+            <p>Hex values can be specified in C-style (<tt>0x8000</tt>) or assembler
+            style (<tt>$8000</tt> or <tt>8000h</tt>).</p>
+        </section>
+    </body>
+</html>

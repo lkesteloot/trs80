@@ -145,6 +145,18 @@ const THEMES = [
 ];
 const DEFAULT_THEME_INDEX = 3;
 
+/**
+ * Make a function that, when run, takes the user to the link.
+ */
+function makeLink(link: string): () => void {
+    return () => {
+        const a = document.createElement("a");
+        a.href = link;
+        a.target = "_blank";
+        a.click();
+    };
+}
+
 // Available examples.
 const EXAMPLES = [
     { name: "Simple", code: simpleExample },
@@ -354,7 +366,20 @@ export class UserInterface {
                         },
                     },
                 ],
-            }
+            },
+            {
+                text: "Help",
+                menu: [
+                    {
+                        text: "IDE Documentation",
+                        action: makeLink("https://lkesteloot.github.io/trs80/"),
+                    },
+                    {
+                        text: "Z80 Instruction Summary",
+                        action: makeLink("https://clrhome.org/table/"),
+                    },
+                ],
+            },
         ];
 
         const body = document.body;
