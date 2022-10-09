@@ -403,6 +403,7 @@ export class Editor {
             }),
             this.assemblyResultsStateField,
             indentUnit.of(" ".repeat(INDENTATION_SIZE)),
+            EditorState.tabSize.of(8),
             gBaseThemeConfig.of(gBaseTheme),
             gColorThemeConfig.of(getDefaultTheme()),
             hoverTooltip(this.getHoverTooltip.bind(this), {
