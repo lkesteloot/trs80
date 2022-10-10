@@ -70,6 +70,7 @@ import * as ws from "ws";
 import {Asm, FileSystem} from "z80-asm";
 import {isRegisterSetField, RegisterSet, toHex, toHexByte, toHexWord} from "z80-base";
 import { Hal, Z80 } from "z80-emulator";
+import { asmToCmdBinary, asmToSystemBinary } from "trs80-asm";
 
 const HELP_TEXT = `
 See this page for full documentation:
@@ -1894,40 +1895,23 @@ function asm(srcPathname: string, outPathname: string, baud: number, lstPathname
     }
 
     // Guess the entry point if necessary.
-    let entryPoint: number | undefined = asm.entryPoint;
+    const { entryPoint, guessed } = asm.getEntryPoint();
     if (entryPoint === undefined) {
-        for (const line of asm.assembledLines) {
-            if (line.binary.length > 0) {
-                entryPoint = line.address;
-                break;
-            }
-        }
+        console.log("No entry point specified");
+        process.exit(1);
+    }
 
-        if (entryPoint === undefined) {
-            console.log("No entry point specified");
-            process.exit(1);
-        }
-
+    if (guessed) {
         console.log("Warning: No entry point specified, guessing 0x" + toHexWord(entryPoint));
     }
 
     // Generate output.
-    const binaryParts: Uint8Array[] = [];
+    let binary: Uint8Array;
     const extension = path.parse(outPathname).ext.toUpperCase();
     switch (extension) {
         case ".CMD": {
             // Convert to CMD file.
-            const builder = new CmdProgramBuilder();
-            for (const line of asm.assembledLines) {
-                builder.addBytes(line.address, line.binary);
-            }
-            const chunks = [
-                CmdLoadModuleHeaderChunk.fromFilename(name),
-                ... builder.getChunks(),
-                CmdTransferAddressChunk.fromEntryPointAddress(entryPoint),
-            ]
-            let binary = encodeCmdProgram(chunks);
-            binaryParts.push(binary);
+            binary = asmToCmdBinary(name, entryPoint, asm);
             break;
         }
 
@@ -1935,12 +1919,7 @@ function asm(srcPathname: string, outPathname: string, baud: number, lstPathname
         case ".CAS":
         case ".WAV": {
             // Convert to 3BN file.
-            const builder = new SystemProgramBuilder();
-            for (const line of asm.assembledLines) {
-                builder.addBytes(line.address, line.binary);
-            }
-            const chunks = builder.getChunks();
-            let binary = encodeSystemProgram(name, chunks, entryPoint);
+            binary = asmToSystemBinary(name, entryPoint, asm);
 
             if (extension === ".CAS" || extension === ".WAV") {
                 // Convert to CAS.
@@ -1952,8 +1931,6 @@ function asm(srcPathname: string, outPathname: string, baud: number, lstPathname
                     binary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
                 }
             }
-
-            binaryParts.push(binary);
             break;
         }
 
@@ -1964,9 +1941,7 @@ function asm(srcPathname: string, outPathname: string, baud: number, lstPathname
 
     // Write output.
     const binFd = fs.openSync(outPathname, "w");
-    for (const part of binaryParts) {
-        fs.writeSync(binFd, part);
-    }
+    fs.writeSync(binFd, binary);
     fs.closeSync(binFd);
 }
 

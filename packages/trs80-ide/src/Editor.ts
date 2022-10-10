@@ -56,6 +56,7 @@ import {getDefaultExample} from "./UserInterface";
 import {getInitialSpaceCount} from "./utils";
 import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
 import {solarizedDark} from 'cm6-theme-solarized-dark'
+import { asmToCmdBinary, asmToSystemBinary } from "trs80-asm"
 
 // Keys for local storage.
 const AUTO_SAVE_KEY = "trs80-ide-auto-save";
@@ -1037,5 +1038,33 @@ export class Editor {
             },
             lineMarkerChange: (update: ViewUpdate) => true, // TODO remove?
         });
+    }
+
+    /**
+     * Make a CMD file binary from the assembled code.
+     */
+    public makeCmdFile(): Uint8Array | undefined {
+        const results = this.getAssemblyResults();
+        const name = "program";
+        const { entryPoint } = results.asm.getEntryPoint();
+        if (entryPoint === undefined) {
+            return undefined;
+        }
+
+        return asmToCmdBinary(name, entryPoint, results.asm);
+    }
+
+    /**
+     * Make a system file binary from the assembled code.
+     */
+    public makeSystemFile(): Uint8Array | undefined {
+        const results = this.getAssemblyResults();
+        const name = "program";
+        const { entryPoint } = results.asm.getEntryPoint();
+        if (entryPoint === undefined) {
+            return undefined;
+        }
+
+        return asmToSystemBinary(name, entryPoint, results.asm);
     }
 }

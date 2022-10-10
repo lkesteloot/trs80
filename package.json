@@ -23,6 +23,7 @@
     "packages/z80-emulator",
     "packages/z80-test",
     "packages/trs80-base",
+    "packages/trs80-asm",
     "packages/trs80-disasm",
     "packages/trs80-emulator",
     "packages/trs80-emulator-web",

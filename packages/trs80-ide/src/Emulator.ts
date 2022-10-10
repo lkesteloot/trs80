@@ -118,15 +118,7 @@ export class Emulator {
                 this.trs80.writeMemory(line.address + i, line.binary[i]);
             }
         }
-        let entryPoint = results.asm.entryPoint;
-        if (entryPoint === undefined) {
-            for (const line of results.sourceFile.assembledLines) {
-                if (line.binary.length > 0) {
-                    entryPoint = line.address;
-                    break;
-                }
-            }
-        }
+        const { entryPoint } = results.asm.getEntryPoint();
         if (entryPoint !== undefined) {
             this.trs80.jumpTo(entryPoint);
             this.debugPc.dispatch(undefined);

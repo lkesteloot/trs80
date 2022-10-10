@@ -50,6 +50,7 @@ const exports = {
         new HtmlWebpackPlugin({
             title: "TRS-80 IDE",
             template: "src/index-template.ejs",
+            hash: true,
         }),
         new MiniCssExtractPlugin(),
     ],

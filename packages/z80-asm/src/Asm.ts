@@ -521,6 +521,26 @@ export class Asm {
 
         return filenames;
     }
+
+    /**
+     * Get the entry point of the program, guessing if necessary.
+     */
+    public getEntryPoint(): { entryPoint: number | undefined, guessed: boolean } {
+        let entryPoint = this.entryPoint;
+        let guessed = false;
+        if (entryPoint === undefined) {
+            for (const line of this.assembledLines) {
+                if (line.binary.length > 0) {
+                    entryPoint = line.address;
+                    break;
+                }
+            }
+
+            guessed = true;
+        }
+
+        return { entryPoint, guessed };
+    }
 }
 
 /**

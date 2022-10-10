@@ -6,6 +6,7 @@ import {Emulator} from "./Emulator";
 import {Editor} from "./Editor";
 import {wolf} from "./wolf";
 import { fileOpen, fileSave } from "browser-fs-access"
+import { binaryAsCasFile, casAsAudio, DEFAULT_SAMPLE_RATE, writeWavFile } from "trs80-cassette";
 
 // So that if we later have different types of files (images, project files), the user agent
 // can have a different default or current directory for each.
@@ -157,6 +158,43 @@ export class UserInterface {
                         action: async () => {
                             await this.saveFile(editor);
                         },
+                    },
+                    {
+                        text: "Export",
+                        menu: [
+                            {
+                                text: "Diskette program (.cmd)",
+                                action: () => {
+                                    const binary = editor.makeCmdFile();
+                                    if (binary !== undefined) {
+                                        this.exportFile(binary, "cmd");
+                                    }
+                                },
+                            },
+                            {
+                                text: "Cassette program (.cas)",
+                                action: () => {
+                                    let binary = editor.makeSystemFile();
+                                    if (binary !== undefined) {
+                                        // Convert to CAS.
+                                        binary = binaryAsCasFile(binary, 500);
+                                        this.exportFile(binary, "cas");
+                                    }
+                                },
+                            },
+                            {
+                                text: "Cassette audio (.wav, low speed)",
+                                action: () => {
+                                    this.exportWav(editor, 500);
+                                },
+                            },
+                            {
+                                text: "Cassette audio (.wav, high speed)",
+                                action: () => {
+                                    this.exportWav(editor, 1500);
+                                },
+                            },
+                        ],
                     },
                     // Disable this, was only for demo.
                     /*
@@ -495,5 +533,40 @@ export class UserInterface {
             editor.fileWasSaved();
             return true;
         }
+    }
+
+    /**
+     * Trigger download of a WAV file at the specified baud rate.
+     */
+    private exportWav(editor: Editor, baud: number) {
+        let binary = editor.makeSystemFile();
+        if (binary !== undefined) {
+            // Convert to CAS.
+            binary = binaryAsCasFile(binary, baud);
+
+            // Convert to WAV.
+            const audio = casAsAudio(binary, baud, DEFAULT_SAMPLE_RATE);
+            binary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
+
+            this.exportFile(binary, "wav");
+        }
+    }
+
+    /**
+     * Trigger a download for the file.
+     *
+     * @param contents the contents of the file to download.
+     * @param extension the file extension, not including the period.
+     */
+    private exportFile(contents: ArrayBuffer, extension: string) {
+        const name = "program";
+        extension = extension.toLowerCase();
+        const type = extension === "wav" ? "audio/wav" : "application/octet-stream";
+        const blob = new Blob([contents], {type: type});
+
+        const a = document.createElement("a");
+        a.href = window.URL.createObjectURL(blob);
+        a.download = name + "." + extension;
+        a.click();
     }
 }

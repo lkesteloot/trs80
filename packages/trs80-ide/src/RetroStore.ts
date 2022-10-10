@@ -34,15 +34,7 @@ export async function uploadToRetroStore(assemblyResults: AssemblyResults) {
     for (const line of assemblyResults.sourceFile.assembledLines) {
         builder.addBytes(line.address, line.binary);
     }
-    let entryPoint = assemblyResults.asm.entryPoint;
-    if (entryPoint === undefined) {
-        for (const line of assemblyResults.sourceFile.assembledLines) {
-            if (line.binary.length > 0) {
-                entryPoint = line.address;
-                break;
-            }
-        }
-    }
+    const { entryPoint } = assemblyResults.asm.getEntryPoint();
     if (entryPoint === undefined) {
         return;
     }

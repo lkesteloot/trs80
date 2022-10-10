@@ -1,0 +1,28 @@
+{
+  "name": "trs80-asm",
+  "version": "2.3.1",
+  "description": "Connects z80-asm and trs80-base",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "repository": "https://github.com/lkesteloot/trs80.git",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "watch": "tsc -p tsconfig.json --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "trs-80"
+  ],
+  "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^16.0.0",
+    "typescript": "^4.0.0"
+  },
+  "dependencies": {
+    "trs80-base": "^2.3.1",
+    "z80-asm": "^2.3.0"
+  }
+}
