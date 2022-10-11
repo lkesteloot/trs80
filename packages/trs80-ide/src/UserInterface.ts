@@ -13,7 +13,7 @@ import { binaryAsCasFile, casAsAudio, DEFAULT_SAMPLE_RATE, writeWavFile } from "
 const ASSEMBLY_LANGUAGE_FILES_DIR_ID = "asm_files";
 
 // File extensions for assembly language files.
-const ASSEMBLY_LANGUAGE_EXTENSIONS = [".asm", ".s"];
+const ASSEMBLY_LANGUAGE_EXTENSIONS = [".asm", ".s", ".z"];
 
 const simpleExample = `        .org 0x9000
 
@@ -124,6 +124,16 @@ export function getDefaultExample(): string {
     return simpleExample;
 }
 
+// Return the filename with the extension stripped (including the period).
+function stripExtension(name: string): string {
+    const i = name.lastIndexOf(".");
+    if (i >= 0) {
+        name = name.substring(0, i);
+    }
+
+    return name;
+}
+
 // Everything related to the menus and the top-level UI.
 export class UserInterface {
     public constructor(emulator: Emulator, editor: Editor) {
@@ -167,7 +177,7 @@ export class UserInterface {
                                 action: () => {
                                     const binary = editor.makeCmdFile();
                                     if (binary !== undefined) {
-                                        this.exportFile(binary, "cmd");
+                                        this.exportFile(binary, editor.getName(), "cmd");
                                     }
                                 },
                             },
@@ -178,7 +188,7 @@ export class UserInterface {
                                     if (binary !== undefined) {
                                         // Convert to CAS.
                                         binary = binaryAsCasFile(binary, 500);
-                                        this.exportFile(binary, "cas");
+                                        this.exportFile(binary, editor.getName(), "cas");
                                     }
                                 },
                             },
@@ -508,7 +518,8 @@ export class UserInterface {
                 id: ASSEMBLY_LANGUAGE_FILES_DIR_ID,
             });
             const text = await blob.text();
-            editor.setCode(text, blob.handle);
+            const name = stripExtension(blob.name);
+            editor.setCode(text, name, blob.handle);
         }
     }
 
@@ -518,6 +529,8 @@ export class UserInterface {
      * @return whether the file was saved.
      */
     private async saveFile(editor: Editor): Promise<boolean> {
+        const name = editor.getName();
+        const fileName = name + ".asm";
         const text = editor.getCode();
         const blob = new Blob([text], {
             type: "text/plain",
@@ -525,11 +538,14 @@ export class UserInterface {
         const handle = editor.getFileHandle();
         const newHandle = await fileSave(blob, {
             id: ASSEMBLY_LANGUAGE_FILES_DIR_ID,
+            fileName: fileName,
             extensions: ASSEMBLY_LANGUAGE_EXTENSIONS,
         }, handle);
         if (newHandle === null) {
             return false;
         } else {
+            editor.setName(stripExtension(newHandle.name));
+            editor.setHandle(newHandle);
             editor.fileWasSaved();
             return true;
         }
@@ -548,7 +564,7 @@ export class UserInterface {
             const audio = casAsAudio(binary, baud, DEFAULT_SAMPLE_RATE);
             binary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
 
-            this.exportFile(binary, "wav");
+            this.exportFile(binary, editor.getName(), "wav");
         }
     }
 
@@ -556,10 +572,10 @@ export class UserInterface {
      * Trigger a download for the file.
      *
      * @param contents the contents of the file to download.
+     * @param name name of the program (no extension).
      * @param extension the file extension, not including the period.
      */
-    private exportFile(contents: ArrayBuffer, extension: string) {
-        const name = "program";
+    private exportFile(contents: ArrayBuffer, name: string, extension: string) {
         extension = extension.toLowerCase();
         const type = extension === "wav" ? "audio/wav" : "application/octet-stream";
         const blob = new Blob([contents], {type: type});

@@ -59,8 +59,12 @@ import {solarizedDark} from 'cm6-theme-solarized-dark'
 import { asmToCmdBinary, asmToSystemBinary } from "trs80-asm"
 
 // Keys for local storage.
-const AUTO_SAVE_KEY = "trs80-ide-auto-save";
+const CODE_KEY = "trs80-ide-code";
 const ORIG_CODE_KEY = "trs80-ide-orig-code";
+const NAME_KEY = "trs80-ide-name";
+
+// Default name for file.
+const DEFAULT_FILE_NAME = "untitled";
 
 /**
  * Gutter to show info about the line (address, bytecode, etc.).
@@ -220,6 +224,30 @@ interface BreakpointAction {
     pos: number;
 }
 
+/**
+ * Simple editor state with an effect and field.
+ */
+class SimpleStateField<T> {
+    public readonly effect: StateEffectType<T>;
+    public readonly field: StateField<T>;
+
+    constructor(initialValue: T) {
+        this.effect = StateEffect.define<T>();
+        this.field = StateField.define<T>({
+            create: () => initialValue,
+            update: (value: T, tr: Transaction) => {
+                // See if we're explicitly setting it from the outside.
+                for (const effect of tr.effects) {
+                    if (effect.is(this.effect)) {
+                        return effect.value;
+                    }
+                }
+                return value;
+            },
+        });
+    }
+}
+
 // Encapsulates the editor and methods for it.
 export class Editor {
     private readonly emulator: Emulator;
@@ -228,8 +256,8 @@ export class Editor {
     private readonly breakpointEffect: StateEffectType<BreakpointAction>;
     private readonly breakpointState: StateField<RangeSet<GutterMarker>>;
     private readonly currentPcEffect: StateEffectType<number | undefined>;
-    private readonly fileHandleStateEffect: StateEffectType<FileSystemFileHandle | undefined>;
-    private readonly fileHandleStateField: StateField<FileSystemFileHandle | undefined>;
+    private readonly fileHandle = new SimpleStateField<FileSystemFileHandle | undefined>(undefined);
+    private readonly name = new SimpleStateField<string>(DEFAULT_FILE_NAME);
     public readonly errorPill: HTMLDivElement;
     public readonly view: EditorView;
     private lineNumbersGutter: OptionalExtension;
@@ -310,23 +338,6 @@ export class Editor {
         // Update the PC while single-stepping.
         this.currentPcEffect = StateEffect.define<number | undefined>({});
 
-        // Effect/field for the file handle.
-        this.fileHandleStateEffect = StateEffect.define<FileSystemFileHandle | undefined>();
-        this.fileHandleStateField = StateField.define<FileSystemFileHandle | undefined>({
-            create: () => {
-                return undefined;
-            },
-            update: (value: FileSystemFileHandle | undefined, tr: Transaction) => {
-                // See if we're explicitly setting it from the outside.
-                for (const effect of tr.effects) {
-                    if (effect.is(this.fileHandleStateEffect)) {
-                        return effect.value;
-                    }
-                }
-                return value;
-            },
-        });
-
         this.lineNumbersGutter = new OptionalExtension(true, lineNumbers());
         this.addressesGutter = new OptionalExtension(true, this.makeAddressesGutter());
         this.bytecodeGutter = new OptionalExtension(true, this.makeBytecodeGutter());
@@ -376,7 +387,7 @@ export class Editor {
             // Auto-save after doc changes.
             EditorView.updateListener.of(update => {
                 if (update.docChanged) {
-                    window.localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(update.state.doc.toJSON()));
+                    window.localStorage.setItem(CODE_KEY, JSON.stringify(update.state.doc.toJSON()));
                 }
             }),
             // Keep track of current line number and whether it had an error when we moved to it.
@@ -421,13 +432,14 @@ export class Editor {
             }),
             this.breakpointState,
             this.currentPcHighlightExtension(),
-            this.fileHandleStateField,
+            this.fileHandle.field,
+            this.name.field,
             StreamLanguage.define(z80StreamParser),
         ];
 
         // Load saved doc.
         let defaultDoc: string | Text | undefined = undefined;
-        const saveDoc = window.localStorage.getItem(AUTO_SAVE_KEY);
+        const saveDoc = window.localStorage.getItem(CODE_KEY);
         if (saveDoc !== null) {
             const lines = JSON.parse(saveDoc);
             defaultDoc = Text.of(lines);
@@ -452,6 +464,9 @@ export class Editor {
         // Set the orig code from storage or current editor.
         const origCode = window.localStorage.getItem(ORIG_CODE_KEY);
         this.setOrigCode(origCode ?? this.getCode());
+
+        // Set the name of the file.
+        this.setName(window.localStorage.getItem(NAME_KEY) ?? DEFAULT_FILE_NAME);
     }
 
     // Get the editor's node.
@@ -493,9 +508,11 @@ export class Editor {
     }
 
     // Load the code of an example into the editor.
-    public setCode(code: string, handle?: FileSystemFileHandle | undefined) {
+    public setCode(code: string, name?: string, handle?: FileSystemFileHandle | undefined) {
+        name = name ?? DEFAULT_FILE_NAME;
         this.emulator.closeScreenEditor();
         this.setOrigCode(code);
+        window.localStorage.setItem(NAME_KEY, name);
         this.view.dispatch({
             changes: {
                 from: 0,
@@ -503,7 +520,18 @@ export class Editor {
                 insert: code,
             },
             effects: [
-                this.fileHandleStateEffect.of(handle),
+                this.fileHandle.effect.of(handle),
+                this.name.effect.of(name),
+            ],
+        });
+        this.updateName();
+    }
+
+    // Update the file handle.
+    public setHandle(handle: FileSystemFileHandle | undefined) {
+        this.view.dispatch({
+            effects: [
+                this.fileHandle.effect.of(handle),
             ],
         });
     }
@@ -515,7 +543,31 @@ export class Editor {
 
     // Get the current file handle, if any.
     public getFileHandle(): FileSystemFileHandle | undefined {
-        return this.view.state.field(this.fileHandleStateField);
+        return this.view.state.field(this.fileHandle.field);
+    }
+
+    // Get the current file name (without extension).
+    public getName(): string {
+        return this.view.state.field(this.name.field);
+    }
+
+    // Set the current file name (without extension).
+    public setName(name: string) {
+        window.localStorage.setItem(NAME_KEY, name);
+        this.view.dispatch({
+            effects: [
+                this.name.effect.of(name),
+            ],
+        });
+        this.updateName();
+    }
+
+    // After the name has been set in the state field, call this to update various UI things.
+    private updateName() {
+        const title = document.head.querySelector("title");
+        if (title !== null) {
+            title.textContent = "TRS-80 IDE - " + this.getName();
+        }
     }
 
     // Whether the user has modified the editor code since it was loaded.
@@ -1045,7 +1097,7 @@ export class Editor {
      */
     public makeCmdFile(): Uint8Array | undefined {
         const results = this.getAssemblyResults();
-        const name = "program";
+        const name = this.getName();
         const { entryPoint } = results.asm.getEntryPoint();
         if (entryPoint === undefined) {
             return undefined;
@@ -1059,7 +1111,7 @@ export class Editor {
      */
     public makeSystemFile(): Uint8Array | undefined {
         const results = this.getAssemblyResults();
-        const name = "program";
+        const name = this.getName();
         const { entryPoint } = results.asm.getEntryPoint();
         if (entryPoint === undefined) {
             return undefined;
