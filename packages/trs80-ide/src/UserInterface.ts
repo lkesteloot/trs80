@@ -15,19 +15,26 @@ const ASSEMBLY_LANGUAGE_FILES_DIR_ID = "asm_files";
 // File extensions for assembly language files.
 const ASSEMBLY_LANGUAGE_EXTENSIONS = [".asm", ".s", ".z"];
 
-const simpleExample = `        .org 0x9000
+const minimalTemplate = `
+        ; Where to load the program in memory.
+        .org 5200h
 
-        ld a,191
-        ld hl,15360
-        ld b,10
-        
-loop:
-        ld (hl),a
-        inc hl
-        djnz loop
+main
+        ; Disable interrupts.
+        di
 
-stop:
-        jp stop
+        ; Set up the stack. This will wrap around to FFFFh.
+        ld sp,0
+
+        ; Put your code here.
+        ld hl,3C00h             ; Screen memory
+        ld (hl),191             ; Graphics block
+
+        ; Infinite loop.
+        jr $
+
+        ; Where to start the program.
+        end main
 `;
 
 const screenshotExample = `        .org 0x9000
@@ -111,7 +118,7 @@ function makeLink(link: string): () => void {
 
 // Available templates.
 const TEMPLATES = [
-    { name: "Simple", code: simpleExample },
+    { name: "Minimal", code: minimalTemplate },
     { name: "Screenshot", code: screenshotExample },
     { name: "Space Invaders", code: spaceInvaders },
     { name: "Wolfenstein", code: wolf },
@@ -121,7 +128,7 @@ const TEMPLATES = [
 
 // Get the code we should display initially.
 export function getDefaultExample(): string {
-    return simpleExample;
+    return minimalTemplate;
 }
 
 // Return the filename with the extension stripped (including the period).
