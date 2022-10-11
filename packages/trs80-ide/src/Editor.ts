@@ -1,4 +1,10 @@
-import {defaultKeymap, history, historyKeymap, indentWithTab} from "@codemirror/commands"
+import {
+    defaultKeymap,
+    history,
+    historyKeymap,
+    indentLess,
+    indentMore,
+} from "@codemirror/commands"
 import {
     BlockInfo,
     Decoration,
@@ -13,6 +19,7 @@ import {
     highlightActiveLineGutter,
     highlightSpecialChars,
     hoverTooltip,
+    KeyBinding,
     keymap,
     lineNumbers,
     rectangularSelection,
@@ -248,6 +255,27 @@ class SimpleStateField<T> {
     }
 }
 
+/**
+ * Handle the Tab key in a smart way.
+ */
+const fancyTab: KeyBinding = {
+    key: "Tab",
+    run: view => {
+        const { state, dispatch } = view;
+        if (state.readOnly) {
+            return false;
+        }
+        // If we have multi-line ranges, indent all the lines.
+        if (state.selection.ranges.some(r => !r.empty)) {
+            return indentMore(view);
+        }
+        // Insert tab. TODO: Support spaces.
+        dispatch(state.update(state.replaceSelection("\t"), {scrollIntoView: true, userEvent: "input"}));
+        return true;
+    },
+    shift: indentLess,
+};
+
 // Encapsulates the editor and methods for it.
 export class Editor {
     private readonly emulator: Emulator;
@@ -355,7 +383,7 @@ export class Editor {
             drawSelection(),
             dropCursor(),
             EditorState.allowMultipleSelections.of(true),
-            indentOnInput(),
+            // indentOnInput(),
             bracketMatching(),
             closeBrackets(),
             autocompletion({
@@ -372,7 +400,7 @@ export class Editor {
                 // ...foldKeymap,
                 ...completionKeymap,
                 ...lintKeymap,
-                indentWithTab,
+                fancyTab,
             ]),
             // Reassemble and run when contents change.
             EditorView.updateListener.of(update => {
