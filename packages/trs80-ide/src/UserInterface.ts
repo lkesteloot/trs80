@@ -37,29 +37,45 @@ main
         end main
 `;
 
-const screenshotExample = `        .org 0x9000
-        
-        ld hl,screenshot
-        ld de,15360
-draw:
-        ld a,(hl)
-        or a
-        jr z,enddraw
-        ld (de),a
-        inc de
-        inc hl
-        jr draw
+const screenshotExample = `
+        ; Where to load the program in memory.
+        .org 5200h
 
-enddraw:
+main
+        ; Disable interrupts.
+        di
 
-stop:
-        jp stop
+        ; Set up the stack. This will wrap around to FFFFh.
+        ld sp,0
 
+        ; Copy the splash screen to the screen.
+        ld hl,splash            ; Source of splash screen
+        ld de,3C00h             ; Screen memory
+
+draw
+        ld a,(hl)               ; Load next byte of splash screen
+        or a                    ; See if it's zero
+        jr z,enddraw            ; If it is, we're done
+        ld (de),a               ; Draw it to the screen
+        inc de                  ; Next screen location
+        inc hl                  ; Next splash screen location
+        jr draw                 ; Handle the next byte
+enddraw
+
+        ; Infinite loop.
+        jr $
+
+        ; Click the "EDIT" button below to start
+        ; the screenshot editor for this section
+        ; of the program.
         ; Screenshot
-screenshot:
-        .byte 65, 66
+splash
+        .byte "Screenshot will go here..."
         ; End screenshot
         .byte 0
+
+        ; Where to start the program.
+        end main
 `;
 
 const spaceInvaders = `        .org 0x9000
@@ -118,12 +134,12 @@ function makeLink(link: string): () => void {
 
 // Available templates.
 const TEMPLATES = [
-    { name: "Minimal", code: minimalTemplate },
-    { name: "Screenshot", code: screenshotExample },
-    { name: "Space Invaders", code: spaceInvaders },
-    { name: "Wolfenstein", code: wolf },
-    { name: "Breakdown", code: breakdwn },
-    { name: "Scarfman", code: scarfman },
+    { name: "Minimal", code: minimalTemplate, debugOnly: false },
+    { name: "Screenshot", code: screenshotExample, debugOnly: false },
+    { name: "Space Invaders", code: spaceInvaders, debugOnly: true },
+    { name: "Wolfenstein", code: wolf, debugOnly: true },
+    { name: "Breakdown", code: breakdwn, debugOnly: true },
+    { name: "Scarfman", code: scarfman, debugOnly: true },
 ];
 
 // Get the code we should display initially.
@@ -401,16 +417,19 @@ export class UserInterface {
         leftPane.classList.add("left-pane");
         const newFromExamplesMenu = getMenuEntryById(menu, "template-list");
         if (newFromExamplesMenu !== undefined && isMenuParent(newFromExamplesMenu)) {
+            const debugging = window.location.hostname === "localhost";
             for (const template of TEMPLATES) {
-                newFromExamplesMenu.menu.push({
-                    text: template.name,
-                    action: async () => {
-                        const proceed = await this.promptIfFileModified(editor);
-                        if (proceed) {
-                            editor.setCode(template.code);
-                        }
-                    },
-                });
+                if (!template.debugOnly || debugging) {
+                    newFromExamplesMenu.menu.push({
+                        text: template.name,
+                        action: async () => {
+                            const proceed = await this.promptIfFileModified(editor);
+                            if (proceed) {
+                                editor.setCode(template.code);
+                            }
+                        },
+                    });
+                }
             }
         }
         const menubar = createMenubar(menu);
