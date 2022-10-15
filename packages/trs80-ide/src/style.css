@@ -222,7 +222,7 @@ body.presentation-mode {
 }
 
 .menubar-hotkey {
-    padding-left: 15px;
+    padding-left: 4em;
     color: var(--foreground-secondary);
 }
 

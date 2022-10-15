@@ -933,6 +933,20 @@ export class Editor {
         });
     }
 
+    // Toggle the breakpoint on the current line.
+    public toggleBreakpointAtCurrentLine() {
+        const results = this.getAssemblyResults(this.view.state);
+
+        this.view.state.selection.ranges.filter(r => r.empty).forEach(r => {
+            const line = this.view.state.doc.lineAt(r.from);
+            const lineNumber = line.number;
+            const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
+            if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+                this.toggleBreakpoint(this.view, line.from);
+            }
+        });
+    }
+
     // Clear all breakpoints set by the user.
     public clearAllBreakpoints(): void {
         this.view.dispatch({

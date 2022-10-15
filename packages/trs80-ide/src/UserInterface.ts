@@ -437,6 +437,22 @@ export class UserInterface {
                 text: "Debug",
                 menu: [
                     {
+                        text: "Toggle Breakpoint",
+                        hotkey: "F9",
+                        action: () => {
+                            editor.toggleBreakpointAtCurrentLine();
+                        },
+                    },
+                    {
+                        text: "Clear All Breakpoints",
+                        action: () => {
+                            editor.clearAllBreakpoints();
+                        },
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
                         text: "Step",
                         hotkey: "Meta-Shift-S",
                         action: () => {
@@ -448,12 +464,6 @@ export class UserInterface {
                         hotkey: "Meta-Shift-C",
                         action: () => {
                             emulator.continue();
-                        },
-                    },
-                    {
-                        text: "Clear All Breakpoints",
-                        action: () => {
-                            editor.clearAllBreakpoints();
                         },
                     },
                 ],
