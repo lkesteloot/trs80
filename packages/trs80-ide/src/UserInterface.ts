@@ -378,14 +378,14 @@ export class UserInterface {
                 text: "Navigate",
                 menu: [
                     {
-                        text: "Declaration or Usages",
+                        text: "Declaration or Usage",
                         action: () => {
                             editor.jumpToDefinition(false);
                         },
                         hotkey: "Cmd-B",
                     },
                     {
-                        text: "Next Declaration or Usages",
+                        text: "Next Declaration or Usage",
                         action: () => {
                             editor.jumpToDefinition(true);
                         },

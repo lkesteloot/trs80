@@ -803,16 +803,19 @@ export class Editor {
             (line.lineNumber + 1 !== this.currentLineNumber || this.currentLineHasError);
     }
 
-    // 1-based.
+    // Moves the cursor to the specified line (1-based), centering it in the window.
     public moveCursorToLineNumber(lineNumber: number, column: number) {
         const lineInfo = this.view.state.doc.line(lineNumber);
         this.view.dispatch({
             selection: EditorSelection.single(lineInfo.from + column),
-            scrollIntoView: true,
+            effects: EditorView.scrollIntoView(lineInfo.from , {
+                y: "center",
+            }),
         });
         this.view.focus();
     }
 
+    // Move the cursor to the next error (after the current line), wrapping if necessary.
     public nextError() {
         const results = this.getAssemblyResults();
         if (results.errorLineNumbers.length === 0) {
@@ -831,6 +834,7 @@ export class Editor {
         }
     }
 
+    // Move the cursor to the previous error (before the current line), wrapping if necessary.
     public prevError() {
         const results = this.getAssemblyResults();
         if (results.errorLineNumbers.length === 0) {
