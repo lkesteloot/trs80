@@ -2,6 +2,9 @@
  * A menu bar at the top of the webpage with pull-down menus.
  */
 
+// Whether we're running on a Mac.
+const IS_MAC = navigator.platform.indexOf("Mac") === 0;
+
 // Base class of all menu entries.
 export interface MenuEntry {
     // Optional ID for use with getMenuEntryById().
@@ -153,7 +156,8 @@ class HotkeyInfo {
             parts.push("\u2303");
         }
         if (this.altKey) {
-            parts.push("\u2325"); // TODO use \u2387 (Alt) on non-Mac.
+            // Macs and non-Macs use different Alt key symbols.
+            parts.push(IS_MAC ? "\u2325" : "\u2387");
         }
         if (this.shiftKey) {
             parts.push("\u21E7");
@@ -193,9 +197,15 @@ class HotkeyInfo {
                 case "CMD":
                 case "COMMAND":
                 case "META":
-                    metaKey = true; // TODO on non-Mac, set ctrlKey.
+                    metaKey = true;
                     break;
             }
+        }
+
+        // Use Ctrl key on non-Macs.
+        if (!IS_MAC && metaKey) {
+            metaKey = false;
+            ctrlKey = true;
         }
 
         return new HotkeyInfo(ctrlKey, altKey, shiftKey, metaKey, key);
