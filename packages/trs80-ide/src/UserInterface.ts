@@ -251,6 +251,73 @@ export class UserInterface {
                 ],
             },
             {
+                text: "Edit",
+                menu: [
+                    {
+                        text: "Undo",
+                        hotkey: "Cmd-Z",
+                        action: () => editor.undo(),
+                    },
+                    {
+                        text: "Redo",
+                        hotkey: "Cmd-Y",
+                        macHotkey: "Shift-Cmd-Z",
+                        action: () => editor.redo(),
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Find...",
+                        hotkey: "Cmd-F",
+                        action: () => editor.openSearchPanel(),
+                    },
+                    {
+                        text: "Find Next",
+                        hotkey: "F3",
+                        macHotkey: "Cmd-G",
+                        action: () => editor.findNext(),
+                    },
+                    {
+                        text: "Find Previous",
+                        hotkey: "Shift-F3",
+                        macHotkey: "Shift-Cmd-G",
+                        action: () => editor.findPrevious(),
+                    },
+                    {
+                        text: "Select Next Occurrence",
+                        hotkey: "Cmd-D",
+                        action: () => editor.selectNextOccurrence(),
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Select All",
+                        hotkey: "Cmd-A",
+                        action: () => editor.selectAll(),
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Toggle Comment",
+                        hotkey: "Cmd-/",
+                        action: () => editor.toggleComment(),
+                    },
+                    {
+                        text: "Move Line Up",
+                        hotkey: "Alt-ArrowUp",
+                        action: () => editor.moveLineUp(),
+                    },
+                    {
+                        text: "Move Line Down",
+                        hotkey: "Alt-ArrowDown",
+                        action: () => editor.moveLineDown(),
+                    },
+                ],
+            },
+            {
                 text: "View",
                 menu: [
                     // Disable presentation mode, it's really only for demos.

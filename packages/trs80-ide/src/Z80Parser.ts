@@ -72,4 +72,9 @@ export const z80StreamParser: StreamParser<Z80State> = {
     indent: function() {
         return INDENTATION_SIZE;
     },
+    languageData: {
+        commentTokens: {
+            line: ";",
+        },
+    },
 };

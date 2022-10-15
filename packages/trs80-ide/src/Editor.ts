@@ -4,6 +4,12 @@ import {
     historyKeymap,
     indentLess,
     indentMore,
+    moveLineDown,
+    moveLineUp,
+    redo,
+    selectAll,
+    toggleComment,
+    undo,
 } from "@codemirror/commands"
 import {
     BlockInfo,
@@ -49,7 +55,14 @@ import {
     StreamLanguage,
 } from "@codemirror/language"
 import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from "@codemirror/autocomplete"
-import {highlightSelectionMatches, searchKeymap} from "@codemirror/search"
+import {
+    findNext,
+    findPrevious,
+    highlightSelectionMatches,
+    openSearchPanel,
+    searchKeymap,
+    selectNextOccurrence,
+} from "@codemirror/search"
 import {Diagnostic, lintKeymap, setDiagnostics} from "@codemirror/lint"
 import {Asm, SourceFile, SymbolReference} from "z80-asm";
 import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base";
@@ -399,7 +412,8 @@ export class Editor {
                 ...historyKeymap,
                 // ...foldKeymap,
                 ...completionKeymap,
-                ...lintKeymap,
+                // Opens a lint panel, seems kinda broken:
+                // ...lintKeymap,
                 fancyTab,
             ]),
             // Reassemble and run when contents change.
@@ -513,6 +527,57 @@ export class Editor {
         this.view.dispatch({
             effects: gBaseThemeConfig.reconfigure([presentationMode ? gPresentationTheme : gBaseTheme]),
         });
+    }
+
+    // Undo the last change.
+    public undo() {
+        undo(this.view);
+    }
+
+    // Redo the last undo'ed change.
+    public redo() {
+        redo(this.view);
+    }
+
+    // Open the Find panel below the editor.
+    public openSearchPanel() {
+        openSearchPanel(this.view);
+    }
+
+    // Find the next occurrence of the searched term.
+    public findNext() {
+        findNext(this.view);
+    }
+
+    // Find the previous occurrence of the searched term.
+    public findPrevious() {
+        findPrevious(this.view);
+    }
+
+    // Select the next occurrence of the searched term. If no term is being searched,
+    // use the one under the cursor.
+    public selectNextOccurrence() {
+        selectNextOccurrence(this.view);
+    }
+
+    // Select all text in the file.
+    public selectAll() {
+        selectAll(this.view);
+    }
+
+    // Toggle comment on cursor line.
+    public toggleComment() {
+        toggleComment(this.view);
+    }
+
+    // Move the current line up.
+    public moveLineUp() {
+        moveLineUp(this.view);
+    }
+
+    // Move the current line down.
+    public moveLineDown() {
+        moveLineDown(this.view);
     }
 
     // Specify whether to show line numbers.

@@ -5,6 +5,11 @@
 // Whether we're running on a Mac.
 const IS_MAC = navigator.platform.indexOf("Mac") === 0;
 
+const KEY_TO_KEY_SYMBOL = new Map<string,string>([
+    ["ARROWUP", "\u25B2"],
+    ["ARROWDOWN", "\u25BC"],
+]);
+
 // Base class of all menu entries.
 export interface MenuEntry {
     // Optional ID for use with getMenuEntryById().
@@ -29,6 +34,9 @@ export interface MenuCommand extends MenuEntry {
     // key like "Tab", "Enter", "Backspace", "Space", or "Left". On
     // non-Mac platforms the "Cmd" modifier is replaced by "Ctrl".
     hotkey?: string;
+
+    // Optional, hotkey used on the Mac. If not specified, uses hotkey.
+    macHotkey?: string;
 
     // Optional, whether checked. Defaults to false.
     checked?: boolean;
@@ -166,7 +174,7 @@ class HotkeyInfo {
             parts.push("\u2318");
         }
 
-        parts.push(this.key); // TODO make mixed-case.
+        parts.push(KEY_TO_KEY_SYMBOL.get(this.key) ?? this.key);
 
         return parts.join("");
     }
@@ -325,8 +333,9 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
                 }, ENTRY_BLINK_MS);
             });
 
-            if (menuEntry.hotkey !== undefined) {
-                const hotkeyInfo = registerHotkey(menuEntry.hotkey, menuEntry);
+            const hotkey = IS_MAC ? menuEntry.macHotkey ?? menuEntry.hotkey : menuEntry.hotkey;
+            if (hotkey !== undefined) {
+                const hotkeyInfo = registerHotkey(hotkey, menuEntry);
 
                 const hotkeyNode = document.createElement("div");
                 hotkeyNode.classList.add("menubar-hotkey");
@@ -437,6 +446,10 @@ function registerWindowListeners(): void {
                 e.preventDefault();
                 e.stopPropagation();
             }
+        }, {
+            // Capture so that we get these events on the way down the DOM
+            // and grab them before the editor gets them.
+            capture: true,
         });
 
         gRegisteredWindowListeners = true;
