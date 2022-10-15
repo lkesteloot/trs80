@@ -77,6 +77,9 @@ export class Emulator {
         return this.screen.getNode();
     }
 
+    /**
+     * Start the in-screen screenshot editor.
+     */
     public startScreenEditor(view: EditorView, assemblyResults: AssemblyResults,
                              screenshotIndex: number, onClose: () => void) {
 
@@ -148,7 +151,7 @@ export class Emulator {
 
     // Called by Trs80 when it starts or stops.
     private onRunningState(runningState: RunningState): void {
-        if (runningState === RunningState.STARTED) {
+        if (runningState !== RunningState.PAUSED) {
             this.debugPc.dispatch(undefined);
         } else {
             this.debugPc.dispatch(this.trs80.z80.regs.pc);
