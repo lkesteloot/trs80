@@ -517,7 +517,7 @@ export class UserInterface {
         editorContainer.classList.add("editor-container");
         const editorDiv = document.createElement("div");
         editorDiv.classList.add("editor");
-        editorDiv.append(editor.getNode(), editor.errorPill);
+        editorDiv.append(editor.getNode(), editor.pillNotice);
         editorContainer.append(editorDiv);
         leftPane.append(menubar, /*toolbar,*/ editorContainer);
 

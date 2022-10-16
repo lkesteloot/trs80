@@ -244,6 +244,19 @@ interface BreakpointAction {
     pos: number;
 }
 
+// Type of pill notice, so they can be hidden later or replaced.
+type PillNoticeId = "error" | "reference";
+
+// Information about a pill notice to be shown.
+interface PillNotice {
+    text: string,
+    isError: boolean,
+    priority: number,
+    onPrevious?: () => void,
+    onClick?: () => void,
+    onNext?: () => void,
+}
+
 /**
  * Simple editor state with an effect and field.
  */
@@ -299,8 +312,12 @@ export class Editor {
     private readonly currentPcEffect: StateEffectType<number | undefined>;
     private readonly fileHandle = new SimpleStateField<FileSystemFileHandle | undefined>(undefined);
     private readonly name = new SimpleStateField<string>(DEFAULT_FILE_NAME);
-    public readonly errorPill: HTMLDivElement;
+    private readonly pillNotice: HTMLDivElement;
+    private readonly pillNoticePrevious: HTMLElement;
+    private readonly pillNoticeText: HTMLElement;
+    private readonly pillNoticeNext: HTMLElement;
     public readonly view: EditorView;
+    private readonly pillNotices = new Map<PillNoticeId,PillNotice>();
     private lineNumbersGutter: OptionalExtension;
     private addressesGutter: OptionalExtension;
     private bytecodeGutter: OptionalExtension;
@@ -309,6 +326,7 @@ export class Editor {
     private currentLineNumber = 0; // 1-based.
     private currentLineHasError = false;
     private origCode = "";
+    private currentPillNotice: PillNotice | undefined = undefined;
 
     public constructor(emulator: Emulator) {
         this.emulator = emulator;
@@ -431,6 +449,10 @@ export class Editor {
                 if (update.docChanged) {
                     window.localStorage.setItem(CODE_KEY, JSON.stringify(update.state.doc.toJSON()));
                 }
+                if (update.docChanged || update.selectionSet) {
+                    // Hide "1 of 3 references" when user moves around.
+                    this.hidePillNotice("reference");
+                }
             }),
             // Keep track of current line number and whether it had an error when we moved to it.
             EditorView.updateListener.of(update => {
@@ -499,9 +521,31 @@ export class Editor {
         });
 
         // Create the pill that shows the number of errors.
-        this.errorPill = document.createElement("div");
-        this.errorPill.classList.add("error-pill");
-        this.errorPill.addEventListener("click", () => this.nextError());
+        this.pillNotice = document.createElement("div");
+        this.pillNotice.classList.add("pill-notice", "pill-notice-hidden");
+        this.pillNotice.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.currentPillNotice?.onClick?.();
+        });
+        this.pillNoticePrevious = document.createElement("div");
+        this.pillNoticePrevious.classList.add("pill-notice-arrow");
+        this.pillNoticePrevious.textContent = "\u25C0";
+        this.pillNoticePrevious.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.currentPillNotice?.onPrevious?.();
+        });
+        this.pillNoticeText = document.createElement("div");
+        this.pillNoticeNext = document.createElement("div");
+        this.pillNoticeNext.classList.add("pill-notice-arrow");
+        this.pillNoticeNext.textContent = "\u25B6";
+        this.pillNoticeNext.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.currentPillNotice?.onNext?.();
+        });
+        this.pillNotice.append(this.pillNoticePrevious, this.pillNoticeText, this.pillNoticeNext);
 
         // Set the orig code from storage or current editor.
         const origCode = window.localStorage.getItem(ORIG_CODE_KEY);
@@ -862,24 +906,58 @@ export class Editor {
         if (symbolHit !== undefined) {
             const symbol = symbolHit.symbol;
 
+            let count = 0;
+            let index = 0;
+            let noun = "";
+            let error: string | undefined;
+
             if (symbolHit.isDefinition) {
                 if (nextUse) {
-                    const reference = symbol.definitions[(symbolHit.referenceNumber + 1) % symbol.definitions.length];
+                    count = symbol.definitions.length;
+                    index = (symbolHit.referenceNumber + 1) % count;
+                    noun = "definitions";
+                    const reference = symbol.definitions[index];
                     this.setCursorToReference(reference);
                 } else if (symbol.references.length > 0) {
                     this.setCursorToReference(symbol.references[0]);
+                    count = symbol.references.length;
+                    index = 0;
+                    noun = "references";
                 } else {
-                    // TODO: Display error.
+                    error = "No references";
                 }
             } else {
                 if (nextUse) {
-                    const reference = symbol.references[(symbolHit.referenceNumber + 1) % symbol.references.length];
+                    count = symbol.references.length;
+                    index = (symbolHit.referenceNumber + 1) % count;
+                    noun = "references";
+                    const reference = symbol.references[index];
                     this.setCursorToReference(reference);
                 } else if (symbol.definitions.length > 0) {
                     this.setCursorToReference(symbol.definitions[0]);
+                    count = symbol.definitions.length;
+                    index = 0;
+                    noun = "definitions";
                 } else {
-                    // TODO: Display error.
+                    error = "No definition";
                 }
+            }
+
+            if (error !== undefined) {
+                this.showPillNotice("reference", {
+                    text: error,
+                    isError: false,
+                    priority: 10,
+                });
+            } else if (count > 1) {
+                this.showPillNotice("reference", {
+                    text: `${index + 1} of ${count} ${noun}`,
+                    isError: false,
+                    priority: 10,
+                    onNext: () => this.jumpToDefinition(true),
+                });
+            } else {
+                this.hidePillNotice("reference");
             }
         }
     }
@@ -915,10 +993,17 @@ export class Editor {
             }
         }
         if (count === 0) {
-            this.errorPill.style.display = "none";
+            this.hidePillNotice("error");
         } else {
-            this.errorPill.style.display = "block";
-            this.errorPill.innerText = count.toString();
+            const noun = count === 1 ? "error" : "errors";
+            this.showPillNotice("error", {
+                text: `${count} ${noun}`,
+                isError: true,
+                priority: 0,
+                onPrevious: count === 1 ? undefined : () => this.prevError(),
+                onClick: count !== 1 ? undefined : () => this.nextError(),
+                onNext: count === 1 ? undefined : () => this.nextError(),
+            });
         }
     }
 
@@ -1229,5 +1314,44 @@ export class Editor {
         }
 
         return asmToSystemBinary(name, entryPoint, results.asm);
+    }
+
+    /**
+     * Show a pill notice with the given ID.
+     */
+    private showPillNotice(id: PillNoticeId, pillNotice: PillNotice): void {
+        this.pillNotices.set(id, pillNotice);
+        this.updatePillNotices();
+    }
+
+    /**
+     * Hide the pill notice with the given ID.
+     */
+    private hidePillNotice(id: PillNoticeId): void {
+        this.pillNotices.delete(id);
+        this.updatePillNotices();
+    }
+
+    /**
+     * Update the visible pill notice, if any, from the map.
+     */
+    private updatePillNotices(): void {
+        if (this.pillNotices.size === 0) {
+            this.pillNotice.classList.add("pill-notice-hidden");
+            this.currentPillNotice = undefined;
+        } else {
+            // Pick highest priority notice.
+            const pillNotice = Array.from(this.pillNotices.values())
+                .sort((a, b) => b.priority - a.priority)[0];
+
+            this.pillNotice.style.display = "flex";
+            this.pillNotice.classList.remove("pill-notice-hidden");
+            this.pillNotice.classList.toggle("pill-notice-error", pillNotice.isError);
+            this.pillNotice.classList.toggle("pill-notice-has-click", pillNotice.onClick !== undefined);
+            this.pillNoticeText.innerText = pillNotice.text;
+            this.pillNoticePrevious.classList.toggle("pill-notice-arrow-hidden", pillNotice.onPrevious === undefined);
+            this.pillNoticeNext.classList.toggle("pill-notice-arrow-hidden", pillNotice.onNext === undefined);
+            this.currentPillNotice = pillNotice;
+        }
     }
 }

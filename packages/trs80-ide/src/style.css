@@ -76,18 +76,41 @@ body.presentation-mode {
     gap: 10px;
 }
 
-.error-pill {
-    display: none;
+.pill-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
     position: absolute;
     top: 10px;
     right: 30px;
     color: white;
-    background-color: rgba(220, 50, 47, 0.8);
+    background-color: rgba(133, 153, 0, 0.8); /* --green */
     padding: 5px 10px 4px 10px;
     border-radius: 999px;
     font-size: 9pt;
     user-select: none;
+    cursor: default;
+}
+
+.pill-notice-hidden {
+    display: none;
+}
+
+.pill-notice-has-click {
     cursor: pointer;
+}
+
+.pill-notice-error {
+    background-color: rgba(220, 50, 47, 0.8); /* --red */
+}
+
+.pill-notice-arrow {
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.pill-notice-arrow-hidden {
+    display: none;
 }
 
 .left-pane {

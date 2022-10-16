@@ -8,6 +8,8 @@ const IS_MAC = navigator.platform.indexOf("Mac") === 0;
 const KEY_TO_KEY_SYMBOL = new Map<string,string>([
     ["ARROWUP", "\u25B2"],
     ["ARROWDOWN", "\u25BC"],
+    ["ARROWLEFT", "\u25C0"],
+    ["ARROWRIGHT", "\u25B6"],
 ]);
 
 // Base class of all menu entries.
