@@ -64,7 +64,7 @@ import {
     selectNextOccurrence,
 } from "@codemirror/search"
 import {Diagnostic, lintKeymap, setDiagnostics} from "@codemirror/lint"
-import {Asm, SourceFile, SymbolReference} from "z80-asm";
+import {Asm, SourceFile, SymbolAppearance} from "z80-asm";
 import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base";
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS} from "trs80-base";
 import {ScreenshotSection} from "./ScreenshotSection";
@@ -914,7 +914,7 @@ export class Editor {
             if (symbolHit.isDefinition) {
                 if (nextUse) {
                     count = symbol.definitions.length;
-                    index = (symbolHit.referenceNumber + 1) % count;
+                    index = (symbolHit.appearanceNumber + 1) % count;
                     noun = "definitions";
                     const reference = symbol.definitions[index];
                     this.setCursorToReference(reference);
@@ -929,7 +929,7 @@ export class Editor {
             } else {
                 if (nextUse) {
                     count = symbol.references.length;
-                    index = (symbolHit.referenceNumber + 1) % count;
+                    index = (symbolHit.appearanceNumber + 1) % count;
                     noun = "references";
                     const reference = symbol.references[index];
                     this.setCursorToReference(reference);
@@ -1007,8 +1007,8 @@ export class Editor {
         }
     }
 
-    private setCursorToReference(ref: SymbolReference): void {
-        this.moveCursorToLineNumber(ref.lineNumber + 1, ref.column);
+    private setCursorToReference(appearance: SymbolAppearance): void {
+        this.moveCursorToLineNumber(appearance.lineNumber + 1, appearance.column);
     }
 
     // Toggle the breakpoint at the specified location.
@@ -1344,7 +1344,6 @@ export class Editor {
             const pillNotice = Array.from(this.pillNotices.values())
                 .sort((a, b) => b.priority - a.priority)[0];
 
-            this.pillNotice.style.display = "flex";
             this.pillNotice.classList.remove("pill-notice-hidden");
             this.pillNotice.classList.toggle("pill-notice-error", pillNotice.isError);
             this.pillNotice.classList.toggle("pill-notice-has-click", pillNotice.onClick !== undefined);

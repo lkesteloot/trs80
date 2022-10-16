@@ -4,11 +4,11 @@ import { SymbolInfo } from "z80-asm";
 export class SymbolHit {
     public readonly symbol: SymbolInfo;
     public readonly isDefinition: boolean;
-    public readonly referenceNumber: number;
+    public readonly appearanceNumber: number;
 
-    constructor(symbol: SymbolInfo, isDefinition: boolean, reference: number) {
+    constructor(symbol: SymbolInfo, isDefinition: boolean, appearanceNumber: number) {
         this.symbol = symbol;
         this.isDefinition = isDefinition;
-        this.referenceNumber = reference;
+        this.appearanceNumber = appearanceNumber;
     }
 }

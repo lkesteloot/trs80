@@ -49,20 +49,8 @@ export class AssemblyResults {
                 }
             }
 
-            // TODO find more direct way to know if this line defines a symbol.
-            let definesSymbol = false;
-            for (const symbol of line.symbols) {
-                for (const definition of symbol.definitions) {
-                    if (definition.lineNumber === line.lineNumber) {
-                        definesSymbol = true;
-                        break;
-                    }
-                }
-                if (definesSymbol) {
-                    break;
-                }
-            }
-            if (definesSymbol) {
+            // Restart timing if there's a label, assume it's a loop.
+            if (line.symbolsDefined.length > 0) {
                 timing = 0;
             }
             if (line.variant !== undefined && line.lineNumber !== undefined) {
@@ -80,18 +68,18 @@ export class AssemblyResults {
     // Find symbol usage at a location, or undefined if we're not on a symbol.
     public findSymbolAt(lineNumber: number, column: number): SymbolHit | undefined {
         const assembledLine = this.sourceFile.assembledLines[lineNumber];
-        for (const symbol of assembledLine.symbols) {
-            // See if we're at a definition.
-            for (let i = 0; i < symbol.definitions.length; i++) {
-                if (symbol.matches(symbol.definitions[i], lineNumber, column)) {
-                    return new SymbolHit(symbol, true, i);
-                }
+
+        // See if we're at a definition.
+        for (const appearance of assembledLine.symbolsDefined) {
+            if (appearance.matches(lineNumber, column)) {
+                return new SymbolHit(appearance.symbol, true, appearance.index);
             }
-            // See if we're at a use.
-            for (let i = 0; i < symbol.references.length; i++) {
-                if (symbol.matches(symbol.references[i], lineNumber, column)) {
-                    return new SymbolHit(symbol, false, i);
-                }
+        }
+
+        // See if we're at a use.
+        for (const appearance of assembledLine.symbolsReferenced) {
+            if (appearance.matches(lineNumber, column)) {
+                return new SymbolHit(appearance.symbol, false, appearance.index);
             }
         }
 

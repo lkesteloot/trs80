@@ -1,9 +1,6 @@
 import {hi, isByteReg, isWordReg, KnownLabel, lo, toHexWord} from "z80-base";
 import {dirname, parse, resolve} from "./path.js";
-import {OpcodeVariant} from "z80-inst";
-import { mnemonicMap } from "z80-inst";
-import { OpcodeTemplateOperand } from "z80-inst";
-import { isOpcodeTemplateOperand } from "z80-inst";
+import {isOpcodeTemplateOperand, mnemonicMap, OpcodeTemplateOperand, OpcodeVariant} from "z80-inst";
 
 /**
  * List of all flags that can be specified in an instruction.
@@ -176,15 +173,26 @@ function fillForTarget(target: Target): number {
     }
 }
 
-// A reference to a symbol.
-export class SymbolReference {
+// An appearance of a symbol somewhere in the code.
+export class SymbolAppearance {
+    public readonly symbol: SymbolInfo;
     // Line number in listing.
-    public lineNumber: number;
-    public column: number;
+    public readonly lineNumber: number;
+    public readonly column: number;
+    // Index in the SymbolInfo's appearance array.
+    public readonly index: number;
 
-    constructor(lineNumber: number, column: number) {
+    constructor(symbol: SymbolInfo, lineNumber: number, column: number, index: number) {
+        this.symbol = symbol;
         this.lineNumber = lineNumber;
         this.column = column;
+        this.index = index;
+    }
+
+    // Whether the specified point is in this appearance.
+    public matches(lineNumber: number, column: number) {
+        return lineNumber === this.lineNumber &&
+            column >= this.column && column <= this.column + this.symbol.name.length;
     }
 }
 
@@ -192,20 +200,14 @@ export class SymbolReference {
 export class SymbolInfo {
     public readonly name: string;
     public value: number;
-    public definitions: SymbolReference[] = [];
-    public references: SymbolReference[] = [];
+    public definitions: SymbolAppearance[] = [];
+    public references: SymbolAppearance[] = [];
     // If it has multiple definitions with different values.
     public changesValue = false;
 
     constructor(name: string, value: number) {
         this.name = name;
         this.value = value;
-    }
-
-    // Whether the specified point is in this reference.
-    public matches(ref: SymbolReference, lineNumber: number, column: number) {
-        return lineNumber === ref.lineNumber &&
-            column >= ref.column && column <= ref.column + this.name.length;
     }
 }
 
@@ -255,7 +257,8 @@ export class AssembledLine {
     // The variant of the instruction, if any.
     public variant: OpcodeVariant | undefined;
     // List of symbols defined or referenced on this line.
-    public readonly symbols: SymbolInfo[] = [];
+    public readonly symbolsDefined: SymbolAppearance[] = [];
+    public readonly symbolsReferenced: SymbolAppearance[] = [];
     // The next address, if it was explicitly specified.
     private specifiedNextAddress: number | undefined;
 
@@ -414,7 +417,8 @@ export class Asm {
     public addKnownLabel({ name, address }: KnownLabel): void {
         const symbolInfo = new SymbolInfo(name, address);
         // TODO find a better way to represent "not in our source file":
-        symbolInfo.definitions.push(new SymbolReference(0, 0));
+        symbolInfo.definitions.push(new SymbolAppearance(
+            symbolInfo, 0, 0, symbolInfo.definitions.length));
         this.scopes[0].set(symbolInfo);
     }
 
@@ -471,10 +475,10 @@ export class Asm {
         for (const scope of this.scopes) {
             for (const symbol of scope.symbols.values()) {
                 for (const reference of symbol.definitions) {
-                    this.assembledLines[reference.lineNumber].symbols.push(symbol);
+                    this.assembledLines[reference.lineNumber].symbolsDefined.push(reference);
                 }
                 for (const reference of symbol.references) {
-                    this.assembledLines[reference.lineNumber].symbols.push(symbol);
+                    this.assembledLines[reference.lineNumber].symbolsReferenced.push(reference);
                 }
             }
         }
@@ -1090,7 +1094,8 @@ class LineParser {
                 scope.set(symbolInfo);
             }
             if (this.pass.passNumber === 1) {
-                symbolInfo.definitions.push(new SymbolReference(this.assembledLine.listingLineNumber, symbolColumn));
+                symbolInfo.definitions.push(new SymbolAppearance(
+                    symbolInfo, this.assembledLine.listingLineNumber, symbolColumn, symbolInfo.definitions.length));
             }
         }
     }
@@ -1810,7 +1815,8 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 // TODO I don't like this, given that evaluating this expression might be speculative.
-                symbolInfo.references.push(new SymbolReference(this.assembledLine.listingLineNumber, startIndex));
+                symbolInfo.references.push(new SymbolAppearance(
+                    symbolInfo, this.assembledLine.listingLineNumber, startIndex, symbolInfo.references.length));
             } else if (symbolInfo.definitions.length === 0) {
                 this.assembledLine.error = "unknown identifier \"" + identifier + "\"";
                 return 0;
