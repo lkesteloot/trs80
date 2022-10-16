@@ -1,10 +1,26 @@
 import { expect } from "chai";
-import "mocha";
+import { Z80_KNOWN_LABELS } from "z80-base";
 import { Disasm } from "./Disasm.js";
 import {Instruction} from "./Instruction.js";
 
+// I can't get mocha to work with TypeScript and ESM, so just provide their
+// functions.
+let testCount = 0;
+let successCount = 0;
+function describe(name: string, f: () => void): void {
+    testCount++
+    try {
+        f();
+        successCount += 1;
+    } catch (e) {
+        console.log(name + ": " + e);
+    }
+}
+const it = describe;
+
 function disasm(bin: ArrayLike<number>, org: number = 0): Instruction[] {
     const d = new Disasm();
+    d.addLabels(Z80_KNOWN_LABELS);
     d.addChunk(bin, org);
     d.addEntryPoint(org);
     return d.disassemble();
@@ -49,22 +65,24 @@ describe("label", () => {
     it("built-in", () => {
         const result = disasm([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
             .map((i) => i.label);
-        expect(result).to.eql(["reset", undefined, undefined, undefined, undefined, undefined,
+        expect(result).to.eql(["rst00", undefined, undefined, undefined, undefined, undefined,
             undefined, undefined, "rst08"]);
     });
     it("jp", () => {
         const result = disasm([0xC3, 0x03, 0x00, 0x00]);
-        expect(result.map((i) => i.label)).to.eql(["reset", "L1"]);
-        expect(result.map((i) => i.toText())).to.eql(["jp L1", "nop"]);
+        expect(result.map((i) => i.label)).to.eql(["rst00", "label1"]);
+        expect(result.map((i) => i.toText())).to.eql(["jp label1", "nop"]);
     });
     it("call", () => {
         const result = disasm([0xCD, 0x03, 0x00, 0x00]);
-        expect(result.map((i) => i.label)).to.eql(["reset", "L1"]);
-        expect(result.map((i) => i.toText())).to.eql(["call L1", "nop"]);
+        expect(result.map((i) => i.label)).to.eql(["rst00", "label1"]);
+        expect(result.map((i) => i.toText())).to.eql(["call label1", "nop"]);
     });
     it("jr", () => {
         const result = disasm([0x18, 0x01, 0x00, 0x00]);
-        expect(result.map((i) => i.label)).to.eql(["reset", undefined, "L1"]);
-        expect(result.map((i) => i.toText())).to.eql(["jr L1", ".byte 0x00", "nop"]);
+        expect(result.map((i) => i.label)).to.eql(["rst00", undefined, "label1"]);
+        expect(result.map((i) => i.toText())).to.eql(["jr label1", ".byte 0x00", "nop"]);
     });
 });
+
+console.log(successCount + " successful out of " + testCount);
