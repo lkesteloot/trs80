@@ -42,6 +42,46 @@ stop:
             program. Try changing the character (<tt>191</tt>) to different values
             and watch the emulator update.</p>
 
+            <h2>Screenshot Editor</h2>
+
+            <p>In TRS-80 programs, screenshots such as splash screens and game
+            mazes are often hard-coded into the assembly language code using
+            a sequence of byte statements, like this:</p>
+
+            <pre>        .byte 0x87,0x8B,0x8C,0x8C,0x8C,0x8C,0x83,0x83
+        .byte 0x83,0x89,0x8C,0x8C,0x8C,0x8C,0x8C,0x8C</pre>
+
+            <p>These are tedious to write and edit. To simplify making
+            these, the IDE provides a built-in paint program. Simply
+            mark your bytes with these start and end comments:</p>
+
+            <pre>        ; Screenshot
+        .byte 0x87,0x8B,0x8C,0x8C,0x8C,0x8C,0x83,0x83
+        .byte 0x83,0x89,0x8C,0x8C,0x8C,0x8C,0x8C,0x8C
+        ; End screenshot</pre>
+
+            <p>A <tt>EDIT</tt> button will appear to the right of the
+            <tt>Screenshot</tt> comment. Click it to launch the paint
+            program, which will replace the emulator's screen on the right.
+            Click and drag in the screen to paint. Above the screen are various
+            standard paint tools, most of which should be self-explanatory.
+            Hover over each tool to see a hint about what it does.</p>
+
+            <p>To save the painted screen back into the source code, click the
+            check mark button. To cancel, click the circle-with-a-slash button
+            to the right of it.</p>
+
+            <p>The coordinates shown below the screen can be useful when
+            constructing screens. Hold the <tt>Shift</tt> key while dragging
+            out a new line, rectangle, or ellipse to get 45-degree lines,
+            squares, or circles. The copy button not only copies the screen (or
+            selected area) for later pasting within the paint program, but also
+            copies an image of the area to your system clipboard for pasting
+            into other applications.</p>
+
+            <p>The program has infinite undo/redo, so don't be afraid to
+            experiment!</p>
+
             <h2>Assembler</h2>
 
             <p>The assembler attempts to handle the union of all past Z80 assembler
