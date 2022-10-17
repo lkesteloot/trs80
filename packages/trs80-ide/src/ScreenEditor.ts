@@ -782,9 +782,22 @@ export class ScreenEditor {
      */
     private rasterToCode() {
         const lines = [];
+        const raster = Array.from(this.raster.subarray(0, this.byteCount));
         // TODO guess the indent (length and spaces/tabs).
         const indent = 8;
-        const raster = Array.from(this.raster.subarray(0, this.byteCount));
+        // Find long consecutive lengths of the same byte.
+        const startOfRun = new Set<number>();
+        for (let i = 0; i < raster.length;) {
+            let length = 1;
+            while (i + length < raster.length && raster[i + length] === raster[i]) {
+                length++;
+            }
+            if (length > 8) {
+                startOfRun.add(i);
+            }
+            i += length;
+        }
+        // Write out raster.
         for (let i = 0; i < raster.length;) {
             const begin = i++;
             const labels = this.labels.get(begin);
@@ -807,11 +820,22 @@ export class ScreenEditor {
                 }
                 text += ".text '" + raster.slice(begin, i).map(b => String.fromCodePoint(b)).join("") + "'";
             } else {
-                // Binary.
-                while (i < raster.length && !isPrintableAscii(raster[i]) && (i - begin) % 8 !== 0 && !this.labels.has(i)) {
+                // Binary. First look for sequences of the same character.
+                while (i < raster.length && !isPrintableAscii(raster[i]) && raster[i] === raster[begin] && !this.labels.has(i)) {
                     i++;
                 }
-                text += ".byte " + raster.slice(begin, i).map(b => "0x" + toHexByte(b)).join(",");
+                if (i - begin > 5) {
+                    // Long enough to use the repeating pseudo-op.
+                    text += ".ds " + (i - begin) + ",0x" + toHexByte(raster[0]);
+                } else {
+                    // Too short to bother, just write out the bytes.
+                    while (i < raster.length && !isPrintableAscii(raster[i]) && (i - begin) % 8 !== 0 &&
+                        !this.labels.has(i) && !startOfRun.has(i)) {
+
+                        i++;
+                    }
+                    text += ".byte " + raster.slice(begin, i).map(b => "0x" + toHexByte(b)).join(",");
+                }
             }
             if (begin % 64 == 0) {
                 text += ` ; Line ${begin / 64}`;

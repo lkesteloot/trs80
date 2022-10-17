@@ -104,7 +104,7 @@ export function getAsmDirectiveDocs(): AsmDirectiveDoc[] {
         },
         {
             directives: PSEUDO_FILL,
-            description: "Fill memory with repeated 0 bytes.",
+            description: "Fill memory with repeated bytes.",
         },
         {
             directives: PSEUDO_MACRO,
@@ -933,6 +933,7 @@ class LineParser {
                     }
 
                     if (fillChar === undefined) {
+                        // Don't fill with zeros, just skip the bytes.
                         this.assembledLine.nextAddress = thisAddress + length;
                     } else {
                         fillChar = lo(fillChar);
