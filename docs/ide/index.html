@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>TRS-80 IDE Documentation</title>
+        <link href="../style.css" rel="stylesheet">
+    </head>
+    <body class="dark-mode">
+        <section>
+            <h1>TRS-80 IDE Documentation</h1>
+
+            <p>The
+            <a href="https://www.my-trs-80.com/ide/">Integrated Development Environment (IDE)</a>
+            documented here lets
+            you write Z80 assembly language and see it running within a few milliseconds
+            on a TRS-80 emulator.</p>
+
+            <h2>Editor</h2>
+
+            <p>The code is on the left, the emulator is on the right, and the
+            pull-down menu is on top. As you type into the editor, the code is
+            assembled on the fly. The machine language bytes are shown on the left
+            next to each line. With every re-assembly, the TRS-80 emulator on the right
+            is wiped clean, brought to a known state, and your program is loaded and
+            run.</p>
+
+            <p>Try this simple program:</p>
+
+            <pre>        .org 0x8000
+
+        ld hl,15360
+        ld a,191
+        ld (hl),a
+
+stop:
+        jp stop</pre>
+
+            <p>The <tt>stop</tt> label must be in the first column, the rest
+            must not be in the first column, and the indent is typically 8 spaces.
+            It loads at 0x8000 (the start of the top 32K of RAM) and puts
+            a graphic character block at the top-left of the screen. You should
+            see this block appears as soon as you've finished typing the
+            program. Try changing the character (<tt>191</tt>) to different values
+            and watch the emulator update.</p>
+
+            <h2>Assembler</h2>
+
+            <p>The assembler attempts to handle the union of all past Z80 assembler
+            syntaxes. For example, it handles both <tt>org</tt> and <tt>.org</tt>
+            directives. For numeric literals in non-decimal bases, it handles
+            C-style prefixes (<tt>0x3C00</tt>, <tt>0b10001010</tt>), assembler-style
+            prefixes (<tt>$3C00</tt>, <tt>%10001010</tt>), and assembler-style
+            suffixes (<tt>3C00h</tt>, <tt>10001010b</tt>).</p>
+        </section>
+    </body>
+</html>

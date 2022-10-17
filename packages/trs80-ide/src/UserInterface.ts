@@ -473,11 +473,22 @@ export class UserInterface {
                 menu: [
                     {
                         text: "IDE Documentation",
-                        action: makeLink("https://lkesteloot.github.io/trs80/"),
+                        action: makeLink("https://lkesteloot.github.io/trs80/ide/"),
+                    },
+                    {
+                        text: "Emulator Documentation",
+                        action: makeLink("https://lkesteloot.github.io/trs80/emulator/"),
                     },
                     {
                         text: "Z80 Instruction Summary",
                         action: makeLink("https://clrhome.org/table/"),
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Github",
+                        action: makeLink("https://github.com/lkesteloot/trs80/tree/master/packages/trs80-ide"),
                     },
                 ],
             },
