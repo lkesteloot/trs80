@@ -279,6 +279,8 @@ export class ScreenEditor {
     private readonly controlPanelDiv2: HTMLDivElement;
     private readonly statusPanelDiv: HTMLDivElement;
     private readonly onKeyDown = (event: KeyboardEvent) => this.handleKeyDown(event);
+    // Map from (0-based) offset to list of labels we found for that offset.
+    private readonly labels = new Map<number,string[]>();
     private end: number;
     private byteCount: number;
     private byteCountBackup: number = 0;
@@ -387,6 +389,15 @@ export class ScreenEditor {
             let i = 0;
             for (let lineNumber = s.firstDataLineNumber; lineNumber <= s.lastDataLineNumber; lineNumber++) {
                 const line = assemblyResults.sourceFile.assembledLines[lineNumber - 1];
+
+                // Keep track of labels we find.
+                if (line.symbolsDefined.length > 0) {
+                    const existingLabels = this.labels.get(i) ?? [];
+                    const newLabels = line.symbolsDefined.map(appearance => appearance.symbol.name);
+                    this.labels.set(i, [... existingLabels, ... newLabels]);
+                }
+
+                // Add bytes to our raster, and remember extra bytes.
                 const length = Math.min(line.binary.length, this.raster.length - i);
                 for (let j = 0; j < length; j++) {
                     this.raster[i++] = line.binary[j];
@@ -771,21 +782,33 @@ export class ScreenEditor {
      */
     private rasterToCode() {
         const lines = [];
+        // TODO guess the indent (length and spaces/tabs).
+        const indent = 8;
         const raster = Array.from(this.raster.subarray(0, this.byteCount));
         for (let i = 0; i < raster.length;) {
-            // TODO guess the indent.
-            let text = "        ";
             const begin = i++;
+            const labels = this.labels.get(begin);
+            let text = "";
+            if (labels !== undefined && labels.length > 0) {
+                // Extra labels on a line by themselves.
+                for (let j = 0; j < labels.length - 1; j++) {
+                    lines.push(labels[j]);
+                }
+                // Final label on same line.
+                text = labels[labels.length - 1];
+            }
+            // Indent.
+            text = text.padEnd(indent, " ");
             // Figure out if this is ASCII or binary.
             if (isPrintableAscii(raster[begin])) {
                 // ASCII.
-                while (i < raster.length && isPrintableAscii(raster[i]) && i % 64 !== 0) {
+                while (i < raster.length && isPrintableAscii(raster[i]) && (i - begin) % 64 !== 0 && !this.labels.has(i)) {
                     i++;
                 }
                 text += ".text '" + raster.slice(begin, i).map(b => String.fromCodePoint(b)).join("") + "'";
             } else {
                 // Binary.
-                while (i < raster.length && !isPrintableAscii(raster[i]) && i % 8 !== 0) {
+                while (i < raster.length && !isPrintableAscii(raster[i]) && (i - begin) % 8 !== 0 && !this.labels.has(i)) {
                     i++;
                 }
                 text += ".byte " + raster.slice(begin, i).map(b => "0x" + toHexByte(b)).join(",");
