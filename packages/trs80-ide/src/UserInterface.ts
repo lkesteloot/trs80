@@ -466,6 +466,14 @@ export class UserInterface {
                             emulator.continue();
                         },
                     },
+                    {
+                        separator: true,
+                    },
+                    {
+                        id: "cpu-speed",
+                        text: "CPU Speed",
+                        menu: [],
+                    },
                 ],
             },
             {
@@ -504,7 +512,7 @@ export class UserInterface {
         const leftPane = document.createElement("div");
         leftPane.classList.add("left-pane");
         const newFromExamplesMenu = getMenuEntryById(menu, "template-list");
-        if (newFromExamplesMenu !== undefined && isMenuParent(newFromExamplesMenu)) {
+        if (isMenuParent(newFromExamplesMenu)) {
             const debugging = window.location.hostname === "localhost";
             for (const template of TEMPLATES) {
                 if (!template.debugOnly || debugging) {
@@ -519,6 +527,32 @@ export class UserInterface {
                     });
                 }
             }
+        }
+        const cpuSpeedMenu = getMenuEntryById(menu, "cpu-speed");
+        if (isMenuParent(cpuSpeedMenu)) {
+            const menu = cpuSpeedMenu.menu;
+            const SPEEDS = [1, 10, 100, 1000];
+            let currentSpeed = 100;
+            function updateChecked() {
+                for (let i = 0; i < menu.length; i++) {
+                    const menuEntry = menu[i];
+                    if (isMenuCommand(menuEntry)) {
+                        menuEntry.setChecked?.(SPEEDS[i] === currentSpeed);
+                    }
+                }
+            }
+            for (const speed of SPEEDS) {
+                menu.push({
+                    text: speed + "%",
+                    action: () => {
+                        currentSpeed = speed;
+                        emulator.trs80.setSpeedMultiplier(speed/100);
+                        updateChecked();
+                    },
+                    checked: speed === currentSpeed,
+                });
+            }
+
         }
         const menubar = createMenubar(menu);
         const toolbar = document.createElement("div");

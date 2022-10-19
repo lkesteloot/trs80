@@ -27,7 +27,7 @@ function emptyNode(node: HTMLElement): void {
 // Encapsulates the emulator and methods for it.
 export class Emulator {
     private readonly screen: CanvasScreen;
-    private readonly trs80: Trs80;
+    public readonly trs80: Trs80;
     private readonly controlPanel: ControlPanel;
     private screenEditor: ScreenEditor | undefined = undefined;
     private trs80State: Trs80State | undefined = undefined;

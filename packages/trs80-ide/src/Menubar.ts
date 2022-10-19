@@ -72,8 +72,8 @@ export interface MenuParent extends MenuEntry {
 }
 
 // Whether this menu entry is a sub-menu.
-export function isMenuParent(menuEntry: MenuEntry): menuEntry is MenuParent {
-    return "menu" in menuEntry;
+export function isMenuParent(menuEntry: MenuEntry | undefined): menuEntry is MenuParent {
+    return menuEntry !== undefined && "menu" in menuEntry;
 }
 
 // List of menu entries for a menu.
@@ -279,9 +279,7 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
         for (const menuEntry of menu) {
             if (isMenuCommand(menuEntry)) {
                 const isChecked = menuEntry.checked ?? false;
-                if (isChecked) {
-                    anyChecked = true;
-                }
+                anyChecked ||= isChecked;
                 menuEntry.node?.classList.toggle("menubar-checked", isChecked);
             }
         }

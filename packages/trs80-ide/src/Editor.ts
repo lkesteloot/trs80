@@ -312,7 +312,7 @@ export class Editor {
     private readonly currentPcEffect: StateEffectType<number | undefined>;
     private readonly fileHandle = new SimpleStateField<FileSystemFileHandle | undefined>(undefined);
     private readonly name = new SimpleStateField<string>(DEFAULT_FILE_NAME);
-    private readonly pillNotice: HTMLDivElement;
+    public readonly pillNotice: HTMLDivElement;
     private readonly pillNoticePrevious: HTMLElement;
     private readonly pillNoticeText: HTMLElement;
     private readonly pillNoticeNext: HTMLElement;
