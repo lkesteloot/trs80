@@ -460,6 +460,13 @@ export class UserInterface {
                         },
                     },
                     {
+                        text: "Step Over",
+                        hotkey: "Meta-Shift-O",
+                        action: () => {
+                            emulator.stepOver();
+                        },
+                    },
+                    {
                         text: "Continue",
                         hotkey: "Meta-Shift-C",
                         action: () => {

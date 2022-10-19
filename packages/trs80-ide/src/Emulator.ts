@@ -13,9 +13,26 @@ import {
 import {ScreenEditor} from "./ScreenEditor";
 import {AssemblyResults} from "./AssemblyResults";
 import {SimpleEventDispatcher} from "strongly-typed-events";
-import {Flag, hi, lo, RegisterSet, toHexByte} from "z80-base";
+import {Flag, hi, inc16, lo, RegisterSet, toHexByte} from "z80-base";
 import {disasmForTrs80} from "trs80-disasm";
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
+
+// Given two instruction bytes, whether we want to continue until the next
+// instruction, and if so how long the current instruction is.
+function getSkipLength(b1: number, b2: number): number | undefined {
+    // Regular CALL or variant with flag. Flag is in bits 3 to 5.
+    if (b1 === 0xCD || (b1 & 0b11000111) === 0b11000100) {
+        // CALLs are always 3 bytes.
+        return 3;
+    }
+
+    if (b1 === 0xED && (b2 & 0b11110100) === 0b10110000) {
+        // Repeating instruction like LDIR. They're all two bytes.
+        return 2;
+    }
+
+    return undefined;
+}
 
 // Remove all children from this node.
 function emptyNode(node: HTMLElement): void {
@@ -138,6 +155,21 @@ export class Emulator {
     public step(): void {
         this.trs80.step();
         this.debugPc.dispatch(this.trs80.z80.regs.pc);
+    }
+
+    // Step one instruction, unless it's a CALL or instructions like LDIR that might take a while,
+    // in which case go to the instruction after that.
+    public stepOver(): void {
+        const pc = this.trs80.z80.regs.pc;
+        const b1 = this.trs80.readMemory(pc);
+        const b2 = this.trs80.readMemory(inc16(pc));
+        const skipLength = getSkipLength(b1, b2);
+        if (skipLength !== undefined) {
+            this.trs80.setOneShotBreakpoint(pc + skipLength);
+            this.continue();
+        } else {
+            this.step();
+        }
     }
 
     // Resume the emulator (if it's stopped). Don't call this to start a program
