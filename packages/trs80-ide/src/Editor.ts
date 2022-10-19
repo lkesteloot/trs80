@@ -46,14 +46,7 @@ import {
     Text,
     Transaction
 } from "@codemirror/state"
-import {
-    bracketMatching,
-    defaultHighlightStyle,
-    indentOnInput,
-    indentUnit,
-    syntaxHighlighting,
-    StreamLanguage,
-} from "@codemirror/language"
+import {bracketMatching, indentUnit, StreamLanguage,} from "@codemirror/language"
 import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from "@codemirror/autocomplete"
 import {
     findNext,
@@ -63,7 +56,7 @@ import {
     searchKeymap,
     selectNextOccurrence,
 } from "@codemirror/search"
-import {Diagnostic, lintKeymap, setDiagnostics} from "@codemirror/lint"
+import {Diagnostic, setDiagnostics} from "@codemirror/lint"
 import {Asm, SourceFile, SymbolAppearance} from "z80-asm";
 import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base";
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS} from "trs80-base";
@@ -76,7 +69,7 @@ import {getDefaultExample} from "./UserInterface";
 import {getInitialSpaceCount} from "./utils";
 import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
 import {solarizedDark} from 'cm6-theme-solarized-dark'
-import { asmToCmdBinary, asmToSystemBinary } from "trs80-asm"
+import {asmToCmdBinary, asmToSystemBinary} from "trs80-asm"
 
 // Keys for local storage.
 const CODE_KEY = "trs80-ide-code";
@@ -1351,6 +1344,23 @@ export class Editor {
             this.pillNoticePrevious.classList.toggle("pill-notice-arrow-hidden", pillNotice.onPrevious === undefined);
             this.pillNoticeNext.classList.toggle("pill-notice-arrow-hidden", pillNotice.onNext === undefined);
             this.currentPillNotice = pillNotice;
+        }
+    }
+
+    /**
+     * Get the address of the selected line (where the cursor is), or undefined
+     * if it can't be determined.
+     */
+    public getCurrentLineAddress(): number | undefined {
+        const results = this.getAssemblyResults(this.view.state);
+
+        const pos = this.view.state.selection.main.head;
+        const line = this.view.state.doc.lineAt(pos);
+        const assembledLine = results.sourceFile.assembledLines[line.number - 1];
+        if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+            return assembledLine.address;
+        } else {
+            return undefined;
         }
     }
 }

@@ -194,6 +194,8 @@ export class Trs80 implements Hal, Machine {
     public readonly onPostStep = new SignalDispatcher();
     // Must be exactly 65536 entries, values 0 or 1:
     private breakpoints: Uint8Array | undefined = undefined;
+    // One-shot breakpoint, resets when hit:
+    private oneShotBreakpoint: number | undefined = undefined;
     // So that we can "continue" past a breakpoint.
     private ignoreInitialInstructionBreakpoint = false;
     private speedMultiplier = 1;
@@ -423,6 +425,13 @@ export class Trs80 implements Hal, Machine {
      */
     public setBreakpoints(breakpoints: Uint8Array | undefined): void {
         this.breakpoints = breakpoints;
+    }
+
+    /**
+     * Set a one-shot breakpoint, which is automatically reset to undefined when hit.
+     */
+    public setOneShotBreakpoint(oneShotBreakpoint: number | undefined): void {
+        this.oneShotBreakpoint = oneShotBreakpoint;
     }
 
     /**
@@ -820,12 +829,16 @@ export class Trs80 implements Hal, Machine {
         const startTStateCount = this.tStateCount;
         while (this.tStateCount < startTStateCount + this.clocksPerTick && this.runningState === RunningState.STARTED) {
             // Check breakpoints.
-            if (!this.ignoreInitialInstructionBreakpoint &&
-                this.breakpoints !== undefined &&
-                this.breakpoints[this.z80.regs.pc] !== 0) {
-
-                this.setRunningState(RunningState.PAUSED);
-                break;
+            if (!this.ignoreInitialInstructionBreakpoint) {
+                if (this.breakpoints !== undefined && this.breakpoints[this.z80.regs.pc] !== 0) {
+                    this.setRunningState(RunningState.PAUSED);
+                    break;
+                }
+                if (this.z80.regs.pc === this.oneShotBreakpoint) {
+                    this.oneShotBreakpoint = undefined;
+                    this.setRunningState(RunningState.PAUSED);
+                    break;
+                }
             }
 
             this.step();

@@ -467,6 +467,17 @@ export class UserInterface {
                         },
                     },
                     {
+                        text: "Run to Line",
+                        hotkey: "Meta-Shift-L",
+                        action: () => {
+                            const address = editor.getCurrentLineAddress();
+                            if (address !== undefined) {
+                                emulator.trs80.setOneShotBreakpoint(address);
+                                emulator.continue();
+                            }
+                        },
+                    },
+                    {
                         separator: true,
                     },
                     {
