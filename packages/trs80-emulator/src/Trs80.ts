@@ -55,7 +55,7 @@ const M1_CLOCK_HZ = 1_774_080;
 const M3_CLOCK_HZ = 2_027_520;
 const M4_CLOCK_HZ = 4_055_040;
 
-const INITIAL_CLICKS_PER_TICK = 2000;
+const INITIAL_CLOCKS_PER_TICK = 2000;
 
 // Whether the emulator is going or not.
 export enum RunningState {
@@ -165,9 +165,11 @@ export class Trs80 implements Hal, Machine {
     private nmiSeen = false;
     private previousTimerClock = 0;
     public readonly z80 = new Z80(this);
-    private clocksPerTick = INITIAL_CLICKS_PER_TICK;
-    private startTime = Date.now();
-    private tickHandle: TimeoutHandle | undefined;
+    private clocksPerTick = INITIAL_CLOCKS_PER_TICK;
+    // Time of last tick.
+    private prevTime = 0;
+    // Handle for requested animation frame.
+    private tickHandle: number | undefined;
     public runningState: RunningState = RunningState.STOPPED;
     public readonly onRunningState = new SimpleEventDispatcher<RunningState>();
     // Internal state of the cassette controller.
@@ -192,7 +194,9 @@ export class Trs80 implements Hal, Machine {
     public readonly onPostStep = new SignalDispatcher();
     // Must be exactly 65536 entries, values 0 or 1:
     private breakpoints: Uint8Array | undefined = undefined;
+    // So that we can "continue" past a breakpoint.
     private ignoreInitialInstructionBreakpoint = false;
+    private speedMultiplier = 1;
 
     constructor(config: Config, screen: Trs80Screen, keyboard: Keyboard, cassette: CassettePlayer, soundPlayer: SoundPlayer) {
         this.screen = screen;
@@ -358,6 +362,13 @@ export class Trs80 implements Hal, Machine {
     }
 
     /**
+     * Set how fast the CPU should go relative to real wall-clock speed. The default value is 1.
+     */
+    public setSpeedMultiplier(speedMultiplier: number) {
+        this.speedMultiplier = speedMultiplier;
+    }
+
+    /**
      * Start the executable at the given address. This sets up some
      * state and jumps to the address.
      */
@@ -417,8 +428,6 @@ export class Trs80 implements Hal, Machine {
     /**
      * Whether to ignore any breakpoint on the first instruction executed, in "start" mode (not
      * single stepping). This is reset after the first instruction.
-     *
-     * @param ignoreInitialInstructionBreakpoint
      */
     public setIgnoreInitialInstructionBreakpoint(ignoreInitialInstructionBreakpoint: boolean): void {
         this.ignoreInitialInstructionBreakpoint = ignoreInitialInstructionBreakpoint;
@@ -808,7 +817,8 @@ export class Trs80 implements Hal, Machine {
      * Run a certain number of CPU instructions and schedule another tick.
      */
     private tick(): void {
-        for (let i = 0; i < this.clocksPerTick && this.runningState === RunningState.STARTED; i++) {
+        const startTStateCount = this.tStateCount;
+        while (this.tStateCount < startTStateCount + this.clocksPerTick && this.runningState === RunningState.STARTED) {
             // Check breakpoints.
             if (!this.ignoreInitialInstructionBreakpoint &&
                 this.breakpoints !== undefined &&
@@ -828,50 +838,38 @@ export class Trs80 implements Hal, Machine {
     }
 
     /**
-     * Figure out how many CPU cycles we should optimally run and how long
-     * to wait until scheduling it, then schedule it to be run later.
+     * Figure out how many CPU cycles we should optimally run,
+     * then schedule it to be run later.
      */
     private scheduleNextTick(): void {
-        let delay: number;
-        if (this.cassetteMotorOn || this.keyboard.keyQueue.length > 4) {
-            // Go fast if we're accessing the cassette or pasting.
-            this.clocksPerTick = 100_000;
-            delay = 0;
+        if (this.cassetteMotorOn || (this.keyboard.keyQueue.length > 10 && this.speedMultiplier >= 1)) {
+            // Go fast if we're accessing the cassette or pasting. Disable paste detection if
+            // we're running slowly, the paste buffer can fill up.
+            this.clocksPerTick = Math.round(this.clockHz / 10);
         } else {
-            // Delay to match original clock speed.
             const now = Date.now();
-            const actualElapsed = now - this.startTime;
-            const expectedElapsed = this.tStateCount * 1000 / this.clockHz;
-            let behind = expectedElapsed - actualElapsed;
-            if (behind < -100 || behind > 100) {
-                // We're too far behind or ahead. Catch up artificially.
-                this.startTime = now - expectedElapsed;
-                behind = 0;
-            }
-            delay = Math.round(Math.max(0, behind));
-            if (delay === 0) {
-                // Delay too short, do more each tick.
-                this.clocksPerTick = Math.min(this.clocksPerTick + 100, 10000);
-            } else if (delay > 1) {
-                // Delay too long, do less each tick.
-                this.clocksPerTick = Math.max(this.clocksPerTick - 100, 100);
-            }
+            // Estimate how long since the last tick, but keep it reasonable.
+            const elapsedMs = Math.max(Math.min(now - this.prevTime, 100), 1);
+            // We spent this much time last time, so execute this many clocks this time.
+            this.clocksPerTick = Math.round(this.clockHz * this.speedMultiplier * elapsedMs / 1000);
+            this.prevTime = now;
+
+            // console.log("clocksPerTick", this.clocksPerTick, "elapsed", elapsedMs);
         }
-        // console.log(this.clocksPerTick, delay);
 
         this.cancelTickTimeout();
-        this.tickHandle = setTimeout(() => {
+        this.tickHandle = requestAnimationFrame(() => {
             this.tickHandle = undefined;
             this.tick();
-        }, delay);
+        });
     }
 
     /**
-     * Stop the tick timeout, if it's running.
+     * Stop the requested animation frame.
      */
     private cancelTickTimeout(): void {
         if (this.tickHandle !== undefined) {
-            clearTimeout(this.tickHandle);
+            cancelAnimationFrame(this.tickHandle);
             this.tickHandle = undefined;
         }
     }
