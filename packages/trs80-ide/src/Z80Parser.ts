@@ -8,8 +8,7 @@ const REGISTERS = /^(af?|bc?|c|de?|e|hl?|l|i[xy]?|r|sp)\b/i;
 const FLAGS = /^(n?[zc]|p[oe]?|m)\b/i;
 const NUMBERS = /^(\$[\da-f]+|%[01]+|0x[\da-f]+|0b[01]+|\d[\da-f]*h|[01]+b|\d+)\b/i;
 const COMMENT = /^;.*/;
-const STRING = /^"[^"]*"/;
-const CHARACTER = /^'.'/;
+const STRING = /^"[^"]*"|'[^']*'/;
 const IDENTIFIER = /^\.?\w+/;
 
 export const INDENTATION_SIZE = 8;
@@ -39,10 +38,6 @@ export const z80StreamParser: StreamParser<Z80State> = {
 
         if (stream.match(NUMBERS)) {
             return "integer";
-        }
-
-        if (stream.match(CHARACTER)) {
-            return "character";
         }
 
         if (stream.match(STRING)) {
