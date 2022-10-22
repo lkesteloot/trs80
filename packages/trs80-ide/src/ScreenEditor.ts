@@ -826,7 +826,7 @@ export class ScreenEditor {
                 }
                 if (i - begin > 5) {
                     // Long enough to use the repeating pseudo-op.
-                    text += ".ds " + (i - begin) + ",0x" + toHexByte(raster[0]);
+                    text += ".ds " + (i - begin) + ",0x" + toHexByte(raster[begin]);
                 } else {
                     // Too short to bother, just write out the bytes.
                     while (i < raster.length && !isPrintableAscii(raster[i]) && (i - begin) % 8 !== 0 &&

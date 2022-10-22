@@ -365,7 +365,7 @@ body.presentation-mode {
 
 .cm-screenshotLine {
     color: var(--base3);
-    background-color: var(--violet);
+    background-color: #cb4b1650;
 }
 
 .presentation-mode .cm-screenshotEdit {
