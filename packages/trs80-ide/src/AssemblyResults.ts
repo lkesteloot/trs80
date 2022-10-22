@@ -89,25 +89,40 @@ export class AssemblyResults {
     // Whether these two assembly results are the same.
     public equals(other: AssemblyResults): boolean {
         // Not clear what to compare here. Do the simple thing and compare
-        // all assembled lines, since that's what ends up in ROM, and
+        // all assembled lines, since that's what ends up in memory, and
         // entry point, but maybe other things matter too.
         if (this.asm.entryPoint !== other.asm.entryPoint) {
             return false;
         }
 
-        const a1 = this.asm.assembledLines;
-        const a2 = other.asm.assembledLines;
+        const lines1 = this.asm.assembledLines;
+        const lines2 = other.asm.assembledLines;
 
-        if (a1.length !== a2.length) {
-            return false;
-        }
+        let i1 = 0;
+        let i2 = 0;
 
-        for (let i = 0; i < a1.length; i++) {
-            if (!a1[i].equals(a2[i])) {
+        while (true) {
+            // It's nice to ignore blank lines, so that we can add comments without
+            // restarting everything.
+            while (i1 < lines1.length && lines1[i1].binary.length === 0) i1 += 1;
+            while (i2 < lines2.length && lines2[i2].binary.length === 0) i2 += 1;
+
+            if (i1 === lines1.length && i2 === lines2.length) {
+                // Reached end on both.
+                return true;
+            }
+            if (i1 === lines1.length || i2 === lines2.length) {
+                // Reached end on one, the other has extra lines.
                 return false;
             }
-        }
 
-        return true;
+            // Compare contents of lines.
+            if (!lines1[i1].equals(lines2[i2])) {
+                return false;
+            }
+
+            i1 += 1;
+            i2 += 1;
+        }
     }
 }
