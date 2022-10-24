@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+
+import math
+
+res = 64
+
+print("static int8_t DIR_TABLE_X[] = {")
+print("    " + ",".join(str(round(math.cos(dir/64.0*2*math.pi)*32)) for dir in range(res)))
+print("};")
+print("static int8_t DIR_TABLE_Y[] = {")
+print("    " + ",".join(str(round(-math.sin(dir/64.0*2*math.pi)*32)) for dir in range(res)))
+print("};")
+print("// abs(255/v)")
+print("static uint8_t SIGNED_DIV_TABLE[] = {")
+print("    " + ",".join(str(0 if v == 0 else 255//v if v < 128 else 255//abs(v - 256)) for v in range(256)))
+print("};")
+print("static uint8_t DIST_TO_HEIGHT[] = {")
+print("    " + ",".join(str(24 if v == 0 else max(1, min(24, 255//v))) for v in range(256)))
+print("};")
