@@ -6,7 +6,7 @@
  * 0,0 is upper-left of maze.
  * X is across
  * Y is down
- * Angle has 16 steps (22.5°), 0 to the right, 4 down, etc.
+ * Angle has 64 steps: 0 to the right, 16 down, 32 left, 48 up.
  *
  * All positions are 8 bits: 3 for the maze (cells) and 5 within the cells.
  *
@@ -166,7 +166,7 @@ uint8_t getColumnHeight(uint8_t x) {
         int hit = 0; // was there a wall hit?
         while (!hit) {
             // jump to next map square, either in x-direction, or in y-direction
-            if (sideDistX < sideDistY) { // XXX 16-bit comparison!
+            if (sideDistX < sideDistY) { // XXX 16-bit comparison! RST 0x18?
                 sideDistX += deltaDistX; // 16-bit add.
                 mapX += stepX;
                 side = 0;

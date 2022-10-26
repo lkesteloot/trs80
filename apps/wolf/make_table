@@ -17,3 +17,16 @@ print("};")
 print("static uint8_t DIST_TO_HEIGHT[] = {")
 print("    " + ",".join(str(24 if v == 0 else max(1, min(24, 255//v))) for v in range(256)))
 print("};")
+
+print("DIR_TABLE_X:")
+for i in range(res//8):
+    print("\t.db " + ",".join(str(round(math.cos(dir/64.0*2*math.pi)*32)) for dir in range(i*8, (i + 1)*8)))
+print("DIR_TABLE_Y:")
+for i in range(res//8):
+    print("\t.db " + ",".join(str(round(-math.sin(dir/64.0*2*math.pi)*32)) for dir in range(i*8, (i + 1)*8)))
+print("SIGNED_DIV_TABLE: ; abs(255/v)")
+for i in range(256//8):
+    print("\t.db " + ",".join(str(0 if v == 0 else 255//v if v < 128 else 255//abs(v - 256)) for v in range(i*8, (i + 1)*8)))
+print("DIST_TO_HEIGHT:")
+for i in range(256//8):
+    print("\t.db " + ",".join(str(24 if v == 0 else max(1, min(24, 255//v))) for v in range(i*8, (i + 1)*8)))
