@@ -255,15 +255,22 @@ export class Emulator {
 
             const lineNode = document.createElement("span");
 
-            if (a >= 32 && a < 127) {
-                const aNode = document.createElement("span");
-                aNode.textContent = '"' + String.fromCodePoint(a) + '" ';
-                if (a !== oldA) {
-                    aNode.classList.add("z80-inspector-changed");
-                }
-                lineNode.append(aNode);
+            // Info about A.
+            let aExtra = a.toString(10) + " ";
+            if (a >= 128) {
+                aExtra += (a - 256).toString(10) + " ";
             }
+            if (a >= 32 && a < 127) {
+                aExtra += '"' + String.fromCodePoint(a) + '" ';
+            }
+            const aNode = document.createElement("span");
+            aNode.textContent = aExtra;
+            if (a !== oldA) {
+                aNode.classList.add("z80-inspector-changed");
+            }
+            lineNode.append(aNode);
 
+            // Info about flags.
             for (const flag of FLAGS) {
                 const isOn = (flags & flag.value) !== 0;
                 const oldIsOn = (oldFlags & flag.value) !== 0;
