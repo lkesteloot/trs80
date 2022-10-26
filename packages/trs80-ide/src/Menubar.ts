@@ -176,6 +176,11 @@ class HotkeyInfo {
             parts.push("\u2318");
         }
 
+        // Thin space before symbol.
+        if (parts.length > 0) {
+            parts.push("\u2009");
+        }
+
         parts.push(KEY_TO_KEY_SYMBOL.get(this.key) ?? this.key);
 
         return parts.join("");
