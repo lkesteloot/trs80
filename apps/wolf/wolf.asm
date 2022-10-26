@@ -27,15 +27,20 @@ init:
 ; Update model from inputs.
 ; https://www.trs-80.com/wordpress/zaps-patches-pokes-tips/keyboard-map/
 update:
-        ld hl,dir
-        ld a,(0x3800 + 0x40)
+        ld a,(0x3800 + 0x40) ; keyboard
         bit 5,a
         jr z,not_left
-        dec (hl)
+        ld a,(dir)
+        dec a
+        and 63
+        ld (dir),a
 not_left:
         bit 6,a
         jr z,not_right
-        inc (hl)
+        ld a,(dir)
+        inc a
+        and 63
+        ld (dir),a
 not_right:
         ret
 
@@ -207,7 +212,7 @@ get_height::
         ld h,a
         ld a,(cameraX)
         ld e,a
-        call mult8
+        call signed_mult_8
         ; Divide by SCREEN_WIDTH (64) by shifting left and using high byte.
         add hl,hl
         add hl,hl
@@ -220,7 +225,7 @@ get_height::
         ld h,a
         ld a,(cameraX)
         ld e,a
-        call mult8
+        call signed_mult_8
         ; Divide by SCREEN_WIDTH (64) by shifting left and using high byte.
         add hl,hl
         add hl,hl
@@ -565,7 +570,54 @@ hit:	.db 0	; uint8_t
 ; return lineHeight;
 
 ; -------------------------------------------
-; Multiply 8-bit values
+; Multiply 8-bit signed values.
+; In:  Multiply H with E
+; Out: HL = result
+#local
+signed_mult_8::
+        push af
+        push de
+        ld l,0
+        ; Make H non-negative.
+        ld a,h
+        or a
+        jp p,h_not_negative
+        neg
+        ld h,a
+        ld l,1
+h_not_negative:
+        ; Make E non-negative.
+        ld a,e
+        or a
+        jp p,e_not_negative
+        neg
+        ld e,a
+        ld a,l
+        xor 1
+        ld l,a
+e_not_negative:
+        ld a,l
+        push af
+        call mult8
+        pop af
+        or a
+        jp z,hl_not_negative
+        ; Negate HL.
+        ld a,l
+        cpl
+        ld l,a
+        ld a,h
+        cpl
+        ld h,a
+        inc hl
+hl_not_negative:
+        pop de
+        pop af
+        ret
+#endlocal
+        
+; -------------------------------------------
+; Multiply 8-bit unsigned values.
 ; In:  Multiply H with E
 ; Out: HL = result, D = 0
 #local
