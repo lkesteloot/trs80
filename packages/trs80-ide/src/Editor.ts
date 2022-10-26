@@ -311,6 +311,8 @@ export class Editor {
     private readonly pillNoticeNext: HTMLElement;
     public readonly view: EditorView;
     private readonly pillNotices = new Map<PillNoticeId,PillNotice>();
+    private readonly backJumpStack: number[] = [];
+    private readonly forwardJumpStack: number[] = [];
     private lineNumbersGutter: OptionalExtension;
     private addressesGutter: OptionalExtension;
     private bytecodeGutter: OptionalExtension;
@@ -843,9 +845,19 @@ export class Editor {
     // Moves the cursor to the specified line (1-based), centering it in the window.
     public moveCursorToLineNumber(lineNumber: number, column: number) {
         const lineInfo = this.view.state.doc.line(lineNumber);
+        this.backJumpStack.push(this.view.state.selection.main.head);
+        this.forwardJumpStack.splice(0, this.forwardJumpStack.length);
+        this.moveCursorToPosAndCenter(lineInfo.from + column);
+    }
+
+    /**
+     * Move the cursor to the position. This is a low-level routine,
+     * you might prefer {@link #moveCursorToLineNumber}.
+     */
+    private moveCursorToPosAndCenter(pos: number) {
         this.view.dispatch({
-            selection: EditorSelection.single(lineInfo.from + column),
-            effects: EditorView.scrollIntoView(lineInfo.from , {
+            selection: EditorSelection.single(pos),
+            effects: EditorView.scrollIntoView(pos, {
                 y: "center",
             }),
         });
@@ -885,6 +897,28 @@ export class Editor {
                 this.moveCursorToLineNumber(errorLineNumber, 0);
                 break;
             }
+        }
+    }
+
+    /**
+     * Go back in the jump stack.
+     */
+    public back(): void {
+        const pos = this.backJumpStack.pop();
+        if (pos !== undefined) {
+            this.forwardJumpStack.push(this.view.state.selection.main.head);
+            this.moveCursorToPosAndCenter(pos);
+        }
+    }
+
+    /**
+     * Go forward in the jump stack.
+     */
+    public forward(): void {
+        const pos = this.forwardJumpStack.pop();
+        if (pos !== undefined) {
+            this.backJumpStack.push(this.view.state.selection.main.head);
+            this.moveCursorToPosAndCenter(pos);
         }
     }
 

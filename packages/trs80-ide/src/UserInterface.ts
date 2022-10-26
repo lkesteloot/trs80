@@ -378,17 +378,26 @@ export class UserInterface {
                 text: "Navigate",
                 menu: [
                     {
+                        text: "Back",
+                        action: () => editor.back(),
+                        hotkey: "Cmd-[",
+                    },
+                    {
+                        text: "Forward",
+                        action: () => editor.forward(),
+                        hotkey: "Cmd-]",
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
                         text: "Declaration or Usage",
-                        action: () => {
-                            editor.jumpToDefinition(false);
-                        },
+                        action: () => editor.jumpToDefinition(false),
                         hotkey: "Cmd-B",
                     },
                     {
                         text: "Next Declaration or Usage",
-                        action: () => {
-                            editor.jumpToDefinition(true);
-                        },
+                        action: () => editor.jumpToDefinition(true),
                         hotkey: "Shift-Cmd-B",
                     },
                     {
@@ -396,16 +405,12 @@ export class UserInterface {
                     },
                     {
                         text: "Next Error",
-                        action: () => {
-                            editor.nextError();
-                        },
+                        action: () => editor.nextError(),
                         hotkey: "F2",
                     },
                     {
                         text: "Previous Error",
-                        action: () => {
-                            editor.prevError();
-                        },
+                        action: () => editor.prevError(),
                         hotkey: "Shift-F2",
                     },
                 ],
@@ -439,15 +444,11 @@ export class UserInterface {
                     {
                         text: "Toggle Breakpoint",
                         hotkey: "F9",
-                        action: () => {
-                            editor.toggleBreakpointAtCurrentLine();
-                        },
+                        action: () => editor.toggleBreakpointAtCurrentLine(),
                     },
                     {
                         text: "Clear All Breakpoints",
-                        action: () => {
-                            editor.clearAllBreakpoints();
-                        },
+                        action: () => editor.clearAllBreakpoints(),
                     },
                     {
                         separator: true,
@@ -455,23 +456,17 @@ export class UserInterface {
                     {
                         text: "Step",
                         hotkey: "Meta-Shift-S",
-                        action: () => {
-                            emulator.step();
-                        },
+                        action: () => emulator.step(),
                     },
                     {
                         text: "Step Over",
                         hotkey: "Meta-Shift-O",
-                        action: () => {
-                            emulator.stepOver();
-                        },
+                        action: () => emulator.stepOver(),
                     },
                     {
                         text: "Continue",
                         hotkey: "Meta-Shift-C",
-                        action: () => {
-                            emulator.continue();
-                        },
+                        action: () => emulator.continue(),
                     },
                     {
                         text: "Run to Line",
