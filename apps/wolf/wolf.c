@@ -64,11 +64,11 @@ uint8_t getColumnHeight(uint8_t x) {
     int8_t rayDirY = dirY + planeY * cameraX / SCREEN_WIDTH;
 
     // which box of the map we're in
-    int mapX = posX >> 5;
-    int mapY = posY >> 5;
+    uint8_t mapX = posX >> 5;
+    uint8_t mapY = posY >> 5;
 
     // length of ray from one x or y-side to next x or y-side
-    int side; // was a NS or a EW wall hit?
+    uint8_t side; // was a NS or a EW wall hit?
     uint8_t perpWallDist;
     if (rayDirX == 0) {
         side = 1;
@@ -90,7 +90,7 @@ uint8_t getColumnHeight(uint8_t x) {
         }
 
         // perform DDA
-        int hit = 0; // was there a wall hit?
+        uint8_t hit = 0; // was there a wall hit?
         while (!hit) {
             // jump to next map square, either in x-direction, or in y-direction
             sideDistY += deltaDistY;
@@ -122,7 +122,7 @@ uint8_t getColumnHeight(uint8_t x) {
         }
 
         // perform DDA
-        int hit = 0; // was there a wall hit?
+        uint8_t hit = 0; // was there a wall hit?
         while (!hit) {
             // jump to next map square, either in x-direction, or in y-direction
             sideDistX += deltaDistX; // 16-bit add.
@@ -163,7 +163,7 @@ uint8_t getColumnHeight(uint8_t x) {
         }
 
         // perform DDA
-        int hit = 0; // was there a wall hit?
+        uint8_t hit = 0; // was there a wall hit?
         while (!hit) {
             // jump to next map square, either in x-direction, or in y-direction
             if (sideDistX < sideDistY) { // XXX 16-bit comparison! RST 0x18?

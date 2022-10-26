@@ -175,17 +175,268 @@ div3:
 
 ; -------------------------------------------
 ; Given 0 <= C <= 63 column, return 0 <= A <= 24 height.
-get_height:
+#local
+get_height::
         push hl
-        ld a,c
+        push bc
+
+        ; int8_t cameraX = 2*x - SCREEN_WIDTH; // x-coordinate in camera space
+        sla c ; c *= 2
+        ld c,a
+        sub SCREEN_WIDTH ; c -= SCREEN_WIDTH
+        ld (cameraX),a
+
+	; int8_t dirX = DIR_TABLE_X[dir];
         ld hl,dir
-        add (hl)
-        and 0x0f
+        ld l,(hl)
+        ld h,hi(DIR_TABLE_X)
+        ld a,(hl)
+        ld (dirX),a
+	; int8_t planeY = -dirX;
+        neg
+        ld (planeY),a
+	; int8_t dirY = DIR_TABLE_Y[dir];
+        ld h,hi(DIR_TABLE_Y)
+        ld a,(hl)
+        ld (dirY),a
+	; int8_t planeX = dirY;
+        ld (planeX),a
+
+        ; int8_t rayDirX = dirX + planeX * cameraX / SCREEN_WIDTH;
+        ld a,(planeX)
+        ld h,a
+        ld a,(cameraX)
+        ld e,a
+        call mult8
+        ; Divide by SCREEN_WIDTH (64) by shifting left and using high byte.
+        add hl,hl
+        add hl,hl
+        ld a,(dirX)
+        add h
+        ld (rayDirX),a
+
+	; int8_t rayDirY = dirY + planeY * cameraX / SCREEN_WIDTH;
+        ld a,(planeY)
+        ld h,a
+        ld a,(cameraX)
+        ld e,a
+        call mult8
+        ; Divide by SCREEN_WIDTH (64) by shifting left and using high byte.
+        add hl,hl
+        add hl,hl
+        ld a,(dirY)
+        add h
+        ld (rayDirY),a
+
+        ; // which box of the map we're in
+	; uint_8 mapX = posX >> 5;
+        ld a,(posX)
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        ld (mapX),a
+        
+	; uint_8 mapY = posY >> 5;
+        ld a,(posY)
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        ld (mapY),a
+
+        ; uint8_t deltaDistX = SIGNED_DIV_TABLE[(uint8_t) rayDirX];
+        ld h,hi(SIGNED_DIV_TABLE)
+        ld a,(rayDirX)
+        ld l,a
+        ld a,(hl)
+        ld (deltaDistX),a
+        
+	; uint8_t deltaDistY = SIGNED_DIV_TABLE[(uint8_t) rayDirY];
+        ld a,(rayDirY)
+        ld l,a
+        ld a,(hl)
+        ld (deltaDistY),a
+
+        ; calculate step and initial sideDist
+        ; if (rayDirX < 0) {
+        ld a,(rayDirX)
+        bit 7,a
+        jr z,rayDirXPos
+        ; stepX = -1;
+        ld a,-1
+        ld (stepX),a
+        ; sideDistX = (posX - mapX*32) * deltaDistX / 32;
+        jp rayDirXEnd
+rayDirXPos:
+        ; } else {
+        ; stepX = 1;
+        ld a,1
+        ld (stepX),a
+        ; sideDistX = ((mapX + 1)*32 - posX) * deltaDistX / 32;
+rayDirXEnd:
+
+
+        ld a,10
+
+        pop bc
         pop hl
         ret
 
+cameraX:.db 0	; int8_t
+dirX: 	.db 0	; int8_t
+dirY: 	.db 0	; int8_t
+planeX:	.db 0	; int8_t
+planeY: .db 0	; int8_t
+rayDirX:.db 0	; int8_t
+rayDirY:.db 0	; int8_t
+mapX:	.db 0	; uint8_t
+mapY:	.db 0	; uint8_t
+side:	.db 0	; uint8_t, was a NS or a EW wall hit?
+dist:	.db 0	; uint8_t
+deltaDistX:.db 0; uint8_t
+deltaDistY:.db 0; uint8_t
+; length of ray from current position to next x or y-side
+sideDistX:.dw 0 ; int16_t
+sideDistY:.dw 0 ; int16_t
+; what direction to step in x or y-direction (either +1 or -1)
+stepX:	.db 0	; int8_t
+stepY:	.db 0	; int8_t
+#endlocal
+
+; if (rayDirX == 0) {
+;     side = 1;
+;     uint8_t deltaDistY = SIGNED_DIV_TABLE[(uint8_t) rayDirY];
+; 
+;     // length of ray from current position to next x or y-side
+;     int16_t sideDistY;
+; 
+;     // what direction to step in x or y-direction (either +1 or -1)
+;     int8_t stepY;
+; 
+;     // calculate step and initial sideDist
+;     if (rayDirY < 0) {
+;         stepY = -1;
+;         sideDistY = (posY - mapY*32) * deltaDistY / 32;
+;     } else {
+;         stepY = 1;
+;         sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
+;     }
+; 
+;     // perform DDA
+;     int hit = 0; // was there a wall hit?
+;     while (!hit) {
+;         // jump to next map square, either in x-direction, or in y-direction
+;         sideDistY += deltaDistY;
+;         mapY += stepY;
+;         // Check if ray has hit a wall
+;         if (MAZE[mapY][mapX] != ' ') hit = 1;
+;     }
+; 
+;     // Calculate distance projected on camera direction (Euclidean distance
+;     // would give fisheye effect!)
+;     perpWallDist = sideDistY - deltaDistY;
+; } else if (rayDirY == 0) {
+;     side = 0;
+;     uint8_t deltaDistX = SIGNED_DIV_TABLE[(uint8_t) rayDirX];
+; 
+;     // length of ray from current position to next x or y-side
+;     int16_t sideDistX;
+; 
+;     // what direction to step in x or y-direction (either +1 or -1)
+;     int8_t stepX;
+; 
+;     // calculate step and initial sideDist
+;     if (rayDirX < 0) {
+;         stepX = -1;
+;         sideDistX = (posX - mapX*32) * deltaDistX / 32; // Shift
+;     } else {
+;         stepX = 1;
+;         sideDistX = ((mapX + 1)*32 - posX) * deltaDistX / 32;
+;     }
+; 
+;     // perform DDA
+;     int hit = 0; // was there a wall hit?
+;     while (!hit) {
+;         // jump to next map square, either in x-direction, or in y-direction
+;         sideDistX += deltaDistX; // 16-bit add.
+;         mapX += stepX;
+;         // Check if ray has hit a wall
+;         if (MAZE[mapY][mapX] != ' ') hit = 1;
+;     }
+; 
+;     // Calculate distance projected on camera direction (Euclidean distance
+;     // would give fisheye effect!)
+;     perpWallDist = sideDistX - deltaDistX;
+; } else {
+
+;     if (rayDirY < 0) {
+;         stepY = -1;
+;         sideDistY = (posY - mapY*32) * deltaDistY / 32;
+;     } else {
+;         stepY = 1;
+;         sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
+;     }
+; 
+;     // perform DDA
+;     int hit = 0; // was there a wall hit?
+;     while (!hit) {
+;         // jump to next map square, either in x-direction, or in y-direction
+;         if (sideDistX < sideDistY) { // XXX 16-bit comparison! RST 0x18?
+;             sideDistX += deltaDistX; // 16-bit add.
+;             mapX += stepX;
+;             side = 0;
+;         } else {
+;             sideDistY += deltaDistY;
+;             mapY += stepY;
+;             side = 1;
+;         }
+;         // Check if ray has hit a wall
+;         if (MAZE[mapY][mapX] != ' ') hit = 1;
+;     }
+; 
+;     // Calculate distance projected on camera direction (Euclidean distance
+;     // would give fisheye effect!)
+;     if (side == 0) {
+;         perpWallDist = sideDistX - deltaDistX;
+;     } else {
+;         perpWallDist = sideDistY - deltaDistY;
+;     }
+; }
+; 
+; // Calculate height of line to draw on screen
+; uint8_t lineHeight = DIST_TO_HEIGHT[perpWallDist];
+; 
+; if (side == 1) {
+;     lineHeight |= 0x80;
+; }
+; 
+; return lineHeight;
+
+; -------------------------------------------
+; Multiply 8-bit values
+; In:  Multiply H with E
+; Out: HL = result, D = 0
+#local
+mult8::
+	ld d,0		; clear d
+	ld l,d		; clear l
+	ld b,8		; number of bits
+loop:
+	add hl,hl	; shift left into carry
+	jr nc,no_add	; top bit was zero, don't add
+	add hl,de	; add E
+no_add:
+	djnz loop
+	ret
+#endlocal
+
 ; Game state
-dir	.db 0
+posX:	.db 100
+posY:	.db 128
+dir:	.db 0
 
 DIV3: ; Divide 0 to 24 by 3, floored.
         .db 0,0,0, 1,1,1, 2,2,2
@@ -228,6 +479,7 @@ MAZE:
 	.db "**     *"
 	.db "********"
 
+        .org ($ + 255) & 0xFF00
 DIR_TABLE_X:
 	.db 32,32,31,31,30,28,27,25
 	.db 23,20,18,15,12,9,6,3
@@ -237,6 +489,8 @@ DIR_TABLE_X:
 	.db -23,-20,-18,-15,-12,-9,-6,-3
 	.db 0,3,6,9,12,15,18,20
 	.db 23,25,27,28,30,31,31,32
+
+        .org ($ + 255) & 0xFF00
 DIR_TABLE_Y:
 	.db 0,-3,-6,-9,-12,-15,-18,-20
 	.db -23,-25,-27,-28,-30,-31,-31,-32
@@ -246,6 +500,8 @@ DIR_TABLE_Y:
 	.db 23,25,27,28,30,31,31,32
 	.db 32,32,31,31,30,28,27,25
 	.db 23,20,18,15,12,9,6,3
+
+        .org ($ + 255) & 0xFF00
 SIGNED_DIV_TABLE: ; abs(255/v)
 	.db 0,255,127,85,63,51,42,36
 	.db 31,28,25,23,21,19,18,17
@@ -279,6 +535,8 @@ SIGNED_DIV_TABLE: ; abs(255/v)
 	.db 10,11,11,12,12,13,14,15
 	.db 15,17,18,19,21,23,25,28
 	.db 31,36,42,51,63,85,127,255
+
+        .org ($ + 255) & 0xFF00
 DIST_TO_HEIGHT:
 	.db 24,24,24,24,24,24,24,24
 	.db 24,24,24,23,21,19,18,17
