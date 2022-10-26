@@ -174,7 +174,7 @@ div3:
         ret
 
 ; -------------------------------------------
-; Given 0 <= C <= 63 column, return 0 <= A <= 24 height.
+; Given 0 <= C <= 63 column, return 0 <= A <= 23 height.
 #local
 get_height::
         push hl
@@ -269,6 +269,16 @@ get_height::
         ld a,-1
         ld (stepX),a
         ; sideDistX = (posX - mapX*32) * deltaDistX / 32;
+        ld a,(mapX)
+        sla a
+        sla a
+        sla a
+        sla a
+        sla a
+        neg
+        ld h,a
+        ld a,(posX)
+        add h
         jp rayDirXEnd
 rayDirXPos:
         ; } else {
@@ -276,10 +286,181 @@ rayDirXPos:
         ld a,1
         ld (stepX),a
         ; sideDistX = ((mapX + 1)*32 - posX) * deltaDistX / 32;
+        ld a,(mapX)
+        inc a
+        sla a
+        sla a
+        sla a
+        sla a
+        sla a
+        neg
+        ld h,a
+        ld a,(posX)
+        add h
+        neg
 rayDirXEnd:
+        ld h,a
+        ld a,(deltaDistX)
+        ld e,a
+        call mult8
+        ; /= 32
+        xor a
+        add hl,hl
+        rla
+        add hl,hl
+        rla
+        add hl,hl
+        rla
+        ld l,h
+        ld h,a
+        ld (sideDistX),hl
 
+        ; if (rayDirY < 0) {
+        ld a,(rayDirY)
+        bit 7,a
+        jr z,rayDirYPos
+        ; stepY = -1;
+        ld a,-1
+        ld (stepY),a
+        ; sideDistY = (posY - mapY*32) * deltaDistY / 32;
+        ld a,(mapY)
+        sla a
+        sla a
+        sla a
+        sla a
+        sla a
+        neg
+        ld h,a
+        ld a,(posY)
+        add h
+        jp rayDirYEnd
+rayDirYPos:
+        ; } else {
+        ; stepY = 1;
+        ld a,1
+        ld (stepY),a
+        ; sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
+        ld a,(mapY)
+        inc a
+        sla a
+        sla a
+        sla a
+        sla a
+        sla a
+        neg
+        ld h,a
+        ld a,(posY)
+        add h
+        neg
+rayDirYEnd:
+        ld h,a
+        ld a,(deltaDistY)
+        ld e,a
+        call mult8
+        ; /= 32
+        xor a
+        add hl,hl
+        rla
+        add hl,hl
+        rla
+        add hl,hl
+        rla
+        ld l,h
+        ld h,a
+        ld (sideDistY),hl
 
-        ld a,10
+        ; perform DDA
+loop:
+        ; jump to next map square, either in x-direction, or in y-direction
+        ; if (sideDistX < sideDistY) {
+        ld hl,(sideDistX)
+        ld de,(sideDistY)
+	or a ; clear carry
+	sbc hl,de
+	add hl,de
+        jr c,moveY ; jump if de > hl
+        ; sideDistX += deltaDistX;
+        ld a,(deltaDistX)
+        ld e,a
+        ld d,0
+        add hl,de
+        ld (sideDistX),hl
+        ; mapX += stepX;
+        ld a,(stepX)
+        ld l,a
+        ld a,(mapX)
+        add l
+        ld (mapX),a
+        ; side = 0;
+        xor a
+        ld (side),a
+        jp moveEnd
+moveY:
+        ; } else {
+        ; sideDistY += deltaDistY;
+        ld a,(deltaDistY)
+        ld l,a
+        ld h,0
+        add hl,de
+        ld (sideDistY),hl
+        ; mapY += stepY;
+        ld a,(stepY)
+        ld l,a
+        ld a,(mapY)
+        add l
+        ld (mapY),a
+        ; side = 1;
+        ld a,1
+        ld (side),a
+moveEnd:
+        ; Check if ray has hit a wall
+        ; if (MAZE[mapY][mapX] != ' ') hit = 1;
+        ld a,(mapX)
+        ld l,a
+        ld a,(mapY)
+        sla a
+        sla a
+        sla a
+        or l
+        ld h,hi(MAZE)
+        ld l,a
+        ld a,(hl)
+        cp ' '
+        jp z,loop
+
+        ; Calculate distance projected on camera direction (Euclidean
+        ; distance would give fisheye effect!)
+	; if (side == 0) {
+        ld a,(side)
+        or a
+        jp nz,hitYSide
+	; perpWallDist = sideDistX - deltaDistX;
+        ld hl,(sideDistX)
+        ld a,(deltaDistX)
+        ld e,a
+        ld d,0
+        or a
+        sbc hl,de
+        ld (dist),hl
+        jp hitSideEnd
+hitYSide:
+        ; } else {
+        ; perpWallDist = sideDistY - deltaDistY;
+        ld hl,(sideDistY)
+        ld a,(deltaDistY)
+        ld e,a
+        ld d,0
+        or a
+        sbc hl,de
+        ld (dist),hl
+hitSideEnd:
+
+	; Calculate height of line to draw on screen
+	; uint8_t lineHeight = DIST_TO_HEIGHT[perpWallDist];
+        ld a,(dist)
+        ld h,hi(DIST_TO_HEIGHT)
+        ld l,a
+        ld a,(hl)
 
         pop bc
         pop hl
@@ -304,6 +485,7 @@ sideDistY:.dw 0 ; int16_t
 ; what direction to step in x or y-direction (either +1 or -1)
 stepX:	.db 0	; int8_t
 stepY:	.db 0	; int8_t
+hit:	.db 0	; uint8_t
 #endlocal
 
 ; if (rayDirX == 0) {
@@ -372,42 +554,9 @@ stepY:	.db 0	; int8_t
 ;     perpWallDist = sideDistX - deltaDistX;
 ; } else {
 
-;     if (rayDirY < 0) {
-;         stepY = -1;
-;         sideDistY = (posY - mapY*32) * deltaDistY / 32;
-;     } else {
-;         stepY = 1;
-;         sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
-;     }
 ; 
-;     // perform DDA
-;     int hit = 0; // was there a wall hit?
-;     while (!hit) {
-;         // jump to next map square, either in x-direction, or in y-direction
-;         if (sideDistX < sideDistY) { // XXX 16-bit comparison! RST 0x18?
-;             sideDistX += deltaDistX; // 16-bit add.
-;             mapX += stepX;
-;             side = 0;
-;         } else {
-;             sideDistY += deltaDistY;
-;             mapY += stepY;
-;             side = 1;
-;         }
-;         // Check if ray has hit a wall
-;         if (MAZE[mapY][mapX] != ' ') hit = 1;
-;     }
-; 
-;     // Calculate distance projected on camera direction (Euclidean distance
-;     // would give fisheye effect!)
-;     if (side == 0) {
-;         perpWallDist = sideDistX - deltaDistX;
-;     } else {
-;         perpWallDist = sideDistY - deltaDistY;
-;     }
 ; }
 ; 
-; // Calculate height of line to draw on screen
-; uint8_t lineHeight = DIST_TO_HEIGHT[perpWallDist];
 ; 
 ; if (side == 1) {
 ;     lineHeight |= 0x80;
@@ -468,6 +617,7 @@ BOTTOM:
 BUFFER:
         .ds SCREEN_WIDTH
 
+        .org ($ + 255) & 0xFF00
 MAZE:
         ; https://en.wikipedia.org/wiki/Wolfenstein_3D#Development
 	.db "********"

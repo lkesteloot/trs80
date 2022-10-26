@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define MAZE_SIZE 8
 #define SCREEN_WIDTH 64

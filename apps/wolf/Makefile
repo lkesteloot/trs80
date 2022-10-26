@@ -1,5 +1,5 @@
 
-CFLAGS=-Wall -g
+CFLAGS=-Wall
 
 wolf: wolf.c
 
