@@ -31,14 +31,14 @@ update:
         bit 5,a
         jr z,not_left
         ld a,(dir)
-        dec a
+        inc a
         and 63
         ld (dir),a
 not_left:
         bit 6,a
         jr z,not_right
         ld a,(dir)
-        inc a
+        dec a
         and 63
         ld (dir),a
 not_right:
@@ -70,17 +70,38 @@ hloop:
         add hl, bc
         ld a, (hl)
 
+	; Test top bit for texture.
+	bit 7, a
+	jp z,texture_2
+texture_1:
+	ld iyl,0x80+1+4+16
+	and 0x7F
         push af        
-        call get_top_char
-        ld ixh,a
-        pop af
-
+	ld h,hi(TOP_TEXTURE_1)
+	ld l,a
+	ld a,(hl)
+	ld ixh,a
+	ld h,hi(BOTTOM_TEXTURE_1)
+	ld a,(hl)
+	ld ixl,a
+        pop af	
+	jp end_texture
+texture_2:
+	ld iyl,0x80
+	and 0x7F
         push af        
-        call get_bottom_char
-        ld ixl,a
-        pop af
+	ld h,hi(TOP_TEXTURE_2)
+	ld l,a
+	ld a,(hl)
+	ld ixh,a
+	ld h,hi(BOTTOM_TEXTURE_2)
+	ld a,(hl)
+	ld ixl,a
+        pop af	
+end_texture:
 
         call div3
+	; Height is now in A.
 
         ; Top of column.
         ld hl, 15360
@@ -105,9 +126,10 @@ toplooptest:
         ; Wall.
         ld b, a
         sla b
+	ld c,iyl
         jp vlooptest
 vloop:
-        ld (hl), 128+1+4+16
+        ld (hl), c
         add hl, de
         dec b
 vlooptest:
@@ -139,32 +161,6 @@ bottomlooptest:
         ret
 
 ; -------------------------------------------
-get_top_char:
-        push hl
-        push bc
-        ld hl,TOP
-        ld b,0
-        ld c,a
-        add hl,bc
-        ld a,(hl)
-        pop bc
-        pop hl
-        ret
-
-; -------------------------------------------
-get_bottom_char:
-        push hl
-        push bc
-        ld hl,BOTTOM
-        ld b,0
-        ld c,a
-        add hl,bc
-        ld a,(hl)
-        pop bc
-        pop hl
-        ret
-
-; -------------------------------------------
 ; Divides A by 3, floored.
 div3:
         push hl
@@ -180,6 +176,7 @@ div3:
 
 ; -------------------------------------------
 ; Given 0 <= C <= 63 column, return 0 <= A <= 23 height.
+; Set high bit of A to use different texture.
 #local
 get_height::
         push hl
@@ -197,14 +194,14 @@ get_height::
         ld h,hi(DIR_TABLE_X)
         ld a,(hl)
         ld (dirX),a
-	; int8_t planeY = -dirX;
-        neg
+	; int8_t planeY = dirX;
         ld (planeY),a
 	; int8_t dirY = DIR_TABLE_Y[dir];
         ld h,hi(DIR_TABLE_Y)
         ld a,(hl)
         ld (dirY),a
-	; int8_t planeX = dirY;
+	; int8_t planeX = -dirY;
+        neg
         ld (planeX),a
 
         ; int8_t rayDirX = dirX + planeX * cameraX / SCREEN_WIDTH;
@@ -381,7 +378,7 @@ loop:
 	or a ; clear carry
 	sbc hl,de
 	add hl,de
-        jr c,moveY ; jump if de > hl
+        jr nc,moveY ; jump if de <= hl (y < x)
         ; sideDistX += deltaDistX;
         ld a,(deltaDistX)
         ld e,a
@@ -445,6 +442,7 @@ moveEnd:
         or a
         sbc hl,de
         ld (dist),hl
+	ld b,0x80 ; indicate hit X side.
         jp hitSideEnd
 hitYSide:
         ; } else {
@@ -456,6 +454,7 @@ hitYSide:
         or a
         sbc hl,de
         ld (dist),hl
+	ld b,0x00 ; indicate hit Y side.
 hitSideEnd:
 
 	; Calculate height of line to draw on screen
@@ -464,6 +463,9 @@ hitSideEnd:
         ld h,hi(DIST_TO_HEIGHT)
         ld l,a
         ld a,(hl)
+
+	; Set high bit depending on side.
+	or b
 
         pop bc
         pop hl
@@ -642,7 +644,8 @@ DIV3: ; Divide 0 to 24 by 3, floored.
         .db 3,3,3, 4,4,4, 5,5,5
         .db 6,6,6, 7,7,7, 8
 
-TOP: ; Map 0 to 24 to top characater.
+        .org ($ + 255) & 0xFF00
+TOP_TEXTURE_1: ; Map 0 to 24 to top characater.
         .db 128+16+32,128+4+8+16,128+1+2+4+16
         .db 128+16+32,128+4+8+16,128+1+2+4+16
         .db 128+16+32,128+4+8+16,128+1+2+4+16
@@ -653,7 +656,20 @@ TOP: ; Map 0 to 24 to top characater.
         .db 128+16+32,128+4+8+16,128+1+2+4+16
         .db 128+16+32,128+4+8+16,128+1+2+4+16
 
-BOTTOM:
+	.org ($ + 255) & 0xFF00
+TOP_TEXTURE_2: ; Map 0 to 24 to top characater.
+        .db 128+16+32,128+4+8,128+1+2
+        .db 128+16+32,128+4+8,128+1+2
+        .db 128+16+32,128+4+8,128+1+2
+        .db 128+16+32,128+4+8,128+1+2
+        .db 128+16+32,128+4+8,128+1+2
+        .db 128+16+32,128+4+8,128+1+2
+        .db 128+16+32,128+4+8,128+1+2
+        .db 128+16+32,128+4+8,128+1+2
+        .db 128+16+32,128+4+8,128+1+2
+
+	.org ($ + 255) & 0xFF00
+BOTTOM_TEXTURE_1:
         .db 128+1+2,128+1+4+8,128+1+4+16+32
         .db 128+1+2,128+1+4+8,128+1+4+16+32
         .db 128+1+2,128+1+4+8,128+1+4+16+32
@@ -663,6 +679,18 @@ BOTTOM:
         .db 128+1+2,128+1+4+8,128+1+4+16+32
         .db 128+1+2,128+1+4+8,128+1+4+16+32
         .db 128+1+2,128+1+4+8,128+1+4+16+32
+
+	.org ($ + 255) & 0xFF00
+BOTTOM_TEXTURE_2:
+        .db 128+1+2,128+4+8,128+16+32
+        .db 128+1+2,128+4+8,128+16+32
+        .db 128+1+2,128+4+8,128+16+32
+        .db 128+1+2,128+4+8,128+16+32
+        .db 128+1+2,128+4+8,128+16+32
+        .db 128+1+2,128+4+8,128+16+32
+        .db 128+1+2,128+4+8,128+16+32
+        .db 128+1+2,128+4+8,128+16+32
+        .db 128+1+2,128+4+8,128+16+32
 
 BUFFER:
         .ds SCREEN_WIDTH
