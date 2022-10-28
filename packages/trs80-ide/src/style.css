@@ -345,9 +345,8 @@ body.presentation-mode {
     height: 100%;
 }
 
-.cm-screenshotEdit {
+.inline-pill {
     color: var(--base3);
-    background-color: var(--violet);
     border-radius: 999px;
     padding: 2px 10px 1px 10px;
     cursor: pointer;
@@ -361,6 +360,16 @@ body.presentation-mode {
     /* center vertically */
     position: relative;
     top: -.2ex;
+}
+
+.cm-screenshotEdit {
+    background-color: var(--violet);
+}
+
+.cm-variablePill {
+    background-color: var(--background-highlights);
+    color: var(--foreground-emphasized);
+    border: 1px solid var(--foreground-secondary);
 }
 
 .cm-screenshotLine {

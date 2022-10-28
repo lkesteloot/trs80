@@ -757,6 +757,14 @@ export class Trs80 implements Hal, Machine {
     }
 
     /**
+     * Get a copy of the current memory. Does not include correct values of
+     * (non-screen) memory-mapped I/O, such as keyboard.
+     */
+    public getMemory(): Uint8Array {
+        return new Uint8Array(this.memory);
+    }
+
+    /**
      * Copy the screen area from memory to the screen. This is useful if the screen was changed
      * by a third party while the emulator was stopped.
      */

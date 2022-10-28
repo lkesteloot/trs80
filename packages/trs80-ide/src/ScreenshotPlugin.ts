@@ -61,7 +61,7 @@ class EditScreenshotWidget extends WidgetType {
     toDOM(): HTMLElement {
         const button = document.createElement("span");
         button.setAttribute("aria-hidden", "true");
-        button.className = "cm-screenshotEdit";
+        button.classList.add("inline-pill", "cm-screenshotEdit");
         button.innerText = "Edit";
         button.dataset.screenshotIndex = this.screenshotIndex.toString();
         return button;

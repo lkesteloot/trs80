@@ -1,5 +1,5 @@
 
-import {Asm, AssembledLine, SourceFile} from "z80-asm";
+import {Asm, AssembledLine, SourceFile, SymbolAppearance, SymbolType} from "z80-asm";
 import {ScreenshotSection} from "./ScreenshotSection";
 import {SymbolHit} from "./SymbolHit";
 
@@ -21,6 +21,8 @@ export class AssemblyResults {
     public readonly timingMap = new Map<number, number>();
     // From 16-bit address to 1-based line number.
     public readonly addressToLineMap = new Map<number, number>();
+    // All variable symbol references (not jump/code references).
+    public readonly variableReferences: SymbolAppearance[] = [];
 
     constructor(asm: Asm, sourceFile: SourceFile, screenshotSections: ScreenshotSection[]) {
         this.asm = asm;
@@ -60,7 +62,25 @@ export class AssemblyResults {
                 }
                 this.timingMap.set(line.lineNumber + 1, timing);
             }
+
+            // Append to list of all appearances.
+            for (const ref of line.symbolsReferenced) {
+                switch (ref.symbol.type) {
+                    case SymbolType.UNKNOWN:
+                    case SymbolType.CODE:
+                    default:
+                        // Skip it.
+                        break;
+
+                    case SymbolType.BYTE:
+                    case SymbolType.WORD:
+                    case SymbolType.ARRAY:
+                        this.variableReferences.push(ref);
+                        break;
+                }
+            }
         }
+
         this.errorLines = errorLines;
         this.errorLineNumbers = errorLineNumbers;
     }

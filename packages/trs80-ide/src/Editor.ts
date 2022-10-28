@@ -70,6 +70,7 @@ import {getInitialSpaceCount} from "./utils";
 import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
 import {solarizedDark} from 'cm6-theme-solarized-dark'
 import {asmToCmdBinary, asmToSystemBinary} from "trs80-asm"
+import {variablePillPlugin} from "./VariablePillPlugin";
 
 // Keys for local storage.
 const CODE_KEY = "trs80-ide-code";
@@ -305,6 +306,7 @@ export class Editor {
     private readonly currentPcEffect: StateEffectType<number | undefined>;
     private readonly fileHandle = new SimpleStateField<FileSystemFileHandle | undefined>(undefined);
     private readonly name = new SimpleStateField<string>(DEFAULT_FILE_NAME);
+    private readonly memory = new SimpleStateField<Uint8Array | undefined>(undefined);
     public readonly pillNotice: HTMLDivElement;
     private readonly pillNoticePrevious: HTMLElement;
     private readonly pillNoticeText: HTMLElement;
@@ -469,6 +471,10 @@ export class Editor {
                     this.reassemble();
                 },
             }),
+            variablePillPlugin({
+                assemblyResultsStateField: this.assemblyResultsStateField,
+                memoryStateField: this.memory.field,
+            }),
             this.assemblyResultsStateField,
             // indentUnit.of(" ".repeat(INDENTATION_SIZE)),
             indentUnit.of("\t"),
@@ -494,6 +500,7 @@ export class Editor {
             this.currentPcHighlightExtension(),
             this.fileHandle.field,
             this.name.field,
+            this.memory.field,
             StreamLanguage.define(z80StreamParser),
         ];
 
@@ -1214,10 +1221,13 @@ export class Editor {
         ];
     }
 
-    // Update the PC while single-stepping.
+    // Update the PC and memory while single-stepping.
     private onDebugPc(pc: number | undefined): void {
         this.view.dispatch({
-            effects: this.currentPcEffect.of(pc),
+            effects: [
+                this.currentPcEffect.of(pc),
+                this.memory.effect.of(pc === undefined ? undefined : this.emulator.trs80.getMemory()),
+            ],
         });
     }
 
