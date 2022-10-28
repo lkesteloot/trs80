@@ -179,7 +179,7 @@ export class SymbolAppearance {
     // Line number in listing.
     public readonly lineNumber: number;
     public readonly column: number;
-    // Index in the SymbolInfo's appearance array.
+    // Index in the SymbolInfo's definitions/references array.
     public readonly index: number;
 
     constructor(symbol: SymbolInfo, lineNumber: number, column: number, index: number) {
@@ -193,6 +193,16 @@ export class SymbolAppearance {
     public matches(lineNumber: number, column: number) {
         return lineNumber === this.lineNumber &&
             column >= this.column && column <= this.column + this.symbol.name.length;
+    }
+
+    /**
+     * Compare to the other, excluding index.
+     */
+    public equals(other: SymbolAppearance | undefined): boolean {
+        return other !== undefined &&
+            this.symbol === other.symbol &&
+            this.lineNumber === other.lineNumber &&
+            this.column === other.column;
     }
 }
 
@@ -1292,7 +1302,12 @@ class LineParser {
                             if (parentSymbol === undefined) {
                                 scope.parent.set(symbol);
                             } else {
-                                parentSymbol.references.splice(parentSymbol.references.length, 0, ...symbol.references);
+                                // Move references to other symbols.
+                                for (let i = 0; i < symbol.references.length; i++) {
+                                    const ref = symbol.references[i];
+                                    parentSymbol.references.push(new SymbolAppearance(
+                                        parentSymbol, ref.lineNumber, ref.column, parentSymbol.references.length));
+                                }
                             }
                         }
                     }
@@ -1787,9 +1802,11 @@ class LineParser {
                 }
                 switch (identifier) {
                     case "lo":
+                    case "low":
                         return lo(value);
 
                     case "hi":
+                    case "high":
                         return hi(value);
 
                     default:
@@ -1815,9 +1832,14 @@ class LineParser {
                 }
             }
             if (this.pass.passNumber === 1) {
-                // TODO I don't like this, given that evaluating this expression might be speculative.
-                symbolInfo.references.push(new SymbolAppearance(
-                    symbolInfo, this.assembledLine.listingLineNumber, startIndex, symbolInfo.references.length));
+                const symbolAppearance = new SymbolAppearance(symbolInfo,
+                    this.assembledLine.listingLineNumber, startIndex, symbolInfo.references.length);
+                // This is a terrible hack, but we might push this multiple times if we
+                // try multiple variants. Really we should roll this back if we decide
+                // against the variant. Instead, just check to see if we just pushed it.
+                if (!symbolAppearance.equals(symbolInfo.references[symbolInfo.references.length - 1])) {
+                    symbolInfo.references.push(symbolAppearance);
+                }
             } else if (symbolInfo.definitions.length === 0) {
                 this.assembledLine.error = "unknown identifier \"" + identifier + "\"";
                 return 0;

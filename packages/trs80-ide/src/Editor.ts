@@ -407,10 +407,10 @@ export class Editor {
             history(),
             // foldGutter(),
             drawSelection(),
-            dropCursor(),
+            // dropCursor(),
             EditorState.allowMultipleSelections.of(true),
             // indentOnInput(),
-            bracketMatching(),
+            // bracketMatching(),
             closeBrackets(),
             autocompletion({
                 override: [
@@ -470,8 +470,9 @@ export class Editor {
                 },
             }),
             this.assemblyResultsStateField,
-            indentUnit.of(" ".repeat(INDENTATION_SIZE)),
-            EditorState.tabSize.of(8),
+            // indentUnit.of(" ".repeat(INDENTATION_SIZE)),
+            indentUnit.of("\t"),
+            EditorState.tabSize.of(INDENTATION_SIZE),
             gBaseThemeConfig.of(gBaseTheme),
             EditorView.theme({
                 // Override theme, which uses an opaque color for the active line, and this hides
@@ -825,7 +826,7 @@ export class Editor {
                 const text = lineInfo.text;
                 diagnostics.push({
                     from: lineInfo.from + getInitialSpaceCount(text),
-                    to: lineInfo.to,
+                    to: lineInfo.to, // TODO don't include comment.
                     severity: "error",
                     message: line.error,
                 });
@@ -925,7 +926,8 @@ export class Editor {
     // Jump from a use to its definition and vice versa.
     //
     // @param nextUse whether to cycle uses/definitions (true) or switch between use and definition (false).
-    public jumpToDefinition(nextUse: boolean) {
+    // @param next go to the next (if nextUse is true), vs. previous.
+    public jumpToDefinition(nextUse: boolean, next: boolean) {
         const assemblyResults = this.getAssemblyResults();
         const pos = this.view.state.selection.main.head;
         const line = this.view.state.doc.lineAt(pos);
@@ -941,7 +943,7 @@ export class Editor {
             if (symbolHit.isDefinition) {
                 if (nextUse) {
                     count = symbol.definitions.length;
-                    index = (symbolHit.appearanceNumber + 1) % count;
+                    index = (symbolHit.appearanceNumber + (next ? 1 : count - 1)) % count;
                     noun = "definitions";
                     const reference = symbol.definitions[index];
                     this.setCursorToReference(reference);
@@ -956,7 +958,7 @@ export class Editor {
             } else {
                 if (nextUse) {
                     count = symbol.references.length;
-                    index = (symbolHit.appearanceNumber + 1) % count;
+                    index = (symbolHit.appearanceNumber + (next ? 1 : count - 1)) % count;
                     noun = "references";
                     const reference = symbol.references[index];
                     this.setCursorToReference(reference);
@@ -981,7 +983,8 @@ export class Editor {
                     text: `${index + 1} of ${count} ${noun}`,
                     isError: false,
                     priority: 10,
-                    onNext: () => this.jumpToDefinition(true),
+                    onPrevious: () => this.jumpToDefinition(true, false),
+                    onNext: () => this.jumpToDefinition(true, true),
                 });
             } else {
                 this.hidePillNotice("reference");

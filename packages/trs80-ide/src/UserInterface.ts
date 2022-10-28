@@ -392,12 +392,12 @@ export class UserInterface {
                     },
                     {
                         text: "Declaration or Usage",
-                        action: () => editor.jumpToDefinition(false),
+                        action: () => editor.jumpToDefinition(false, true),
                         hotkey: "Cmd-B",
                     },
                     {
                         text: "Next Declaration or Usage",
-                        action: () => editor.jumpToDefinition(true),
+                        action: () => editor.jumpToDefinition(true, true),
                         hotkey: "Shift-Cmd-B",
                     },
                     {
