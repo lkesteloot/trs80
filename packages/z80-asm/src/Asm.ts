@@ -206,10 +206,25 @@ export class SymbolAppearance {
     }
 }
 
+// Type of the symbol, as far as we can tell.
+export enum SymbolType {
+    // We don't know, not yet analyzed.
+    UNKNOWN,
+    // Next byte in memory is an opcode.
+    CODE,
+    // Next symbol is one byte away.
+    BYTE,
+    // Next symbol is two bytes away.
+    WORD,
+    // Next symbol is more than two bytes away.
+    ARRAY,
+}
+
 // Information about a symbol (label, constant).
 export class SymbolInfo {
     public readonly name: string;
     public value: number;
+    public type: SymbolType = SymbolType.UNKNOWN;
     public definitions: SymbolAppearance[] = [];
     public references: SymbolAppearance[] = [];
     // If it has multiple definitions with different values.
@@ -382,6 +397,12 @@ class Scope {
         this.parent = parent;
     }
 
+    /**
+     * Get a symbol for this identifier in this scope.
+     * @param identifier the name of the symbol.
+     * @param propagateUp whether to propagate to the outermost scopes if not found
+     * in this scope.
+     */
     public get(identifier: string, propagateUp?: boolean): SymbolInfo | undefined {
         let symbolInfo = this.symbols.get(identifier);
         if (symbolInfo === undefined && propagateUp && this.parent !== undefined) {
@@ -416,6 +437,8 @@ export class Asm {
     public macros = new Map<string,Macro>();
     // Entry point into program.
     public entryPoint: number | undefined = undefined;
+    // All symbols, sorted by value.
+    public readonly symbols: SymbolInfo[] = [];
 
     constructor(fileSystem: FileSystem) {
         this.fileSystem = fileSystem;
@@ -484,11 +507,62 @@ export class Asm {
         // Fill in symbols of each line.
         for (const scope of this.scopes) {
             for (const symbol of scope.symbols.values()) {
+                this.symbols.push(symbol);
                 for (const reference of symbol.definitions) {
                     this.assembledLines[reference.lineNumber].symbolsDefined.push(reference);
                 }
                 for (const reference of symbol.references) {
                     this.assembledLines[reference.lineNumber].symbolsReferenced.push(reference);
+                }
+            }
+        }
+
+        // Sort symbols by value.
+        this.symbols.sort((a, b) => {
+            return a.value - b.value;
+        });
+
+        // Keep track of all lines we know are code and addresses.
+        const codeAddresses = new Set<number>();
+        const dataAddresses = new Set<number>();
+        for (const line of this.assembledLines) {
+            const set = line.isData() ? dataAddresses : codeAddresses;
+            for (let i = 0; i < line.binary.length; i++) {
+                set.add(line.address + i);
+            }
+        }
+
+        // Find type of each symbol.
+        for (let i = 0; i < this.symbols.length; i++) {
+            const symbol = this.symbols[i];
+            if (codeAddresses.has(symbol.value)) {
+                symbol.type = SymbolType.CODE;
+            } else {
+                // Because of the fill instructions, which can just leave space, we can't really
+                // check the data addresses. We just assume anything not code is data.
+                if (i + 1 < this.symbols.length) {
+                    const nextSymbol = this.symbols[i + 1];
+                    const size = nextSymbol.value - symbol.value;
+                    switch (size) {
+                        case 0:
+                            symbol.type = SymbolType.UNKNOWN;
+                            break;
+
+                        case 1:
+                            symbol.type = SymbolType.BYTE;
+                            break;
+
+                        case 2:
+                            symbol.type = SymbolType.WORD;
+                            break;
+
+                        default:
+                            symbol.type = SymbolType.ARRAY;
+                            break;
+                    }
+                } else {
+                    // Last symbol, dunno.
+                    symbol.type = SymbolType.ARRAY;
                 }
             }
         }
