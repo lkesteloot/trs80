@@ -256,19 +256,19 @@ export class Emulator {
             const lineNode = document.createElement("span");
 
             // Info about A.
-            let aExtra = a.toString(10) + " ";
+            let aExtra = a.toString(10);
             if (a >= 128) {
-                aExtra += (a - 256).toString(10) + " ";
+                aExtra += " (" + (a - 256).toString(10) + ")";
             }
             if (a >= 32 && a < 127) {
-                aExtra += '"' + String.fromCodePoint(a) + '" ';
+                aExtra += ' "' + String.fromCodePoint(a) + '"';
             }
             const aNode = document.createElement("span");
             aNode.textContent = aExtra;
             if (a !== oldA) {
                 aNode.classList.add("z80-inspector-changed");
             }
-            lineNode.append(aNode);
+            lineNode.append(aNode, " ");
 
             // Info about flags.
             for (const flag of FLAGS) {
@@ -312,12 +312,23 @@ export class Emulator {
         };
 
         const extraForPointer = (value: number, oldValue: number): Node | string => {
+            const lineNode = document.createElement("span");
+            const unsignedNode = document.createElement("span");
+            unsignedNode.textContent = value.toString();
+            unsignedNode.classList.toggle("z80-inspector-changed", value !== oldValue);
+            lineNode.append(unsignedNode);
+            if (value >= 32768) {
+                const signedNode = document.createElement("span");
+                signedNode.textContent = (value - 65536).toString();
+                signedNode.classList.toggle("z80-inspector-changed", value !== oldValue);
+                lineNode.append(" (", signedNode, ")");
+            }
+
             if (value >= TRS80_SCREEN_BEGIN && value < TRS80_SCREEN_END) {
                 const offset = value - TRS80_SCREEN_BEGIN;
                 const row = Math.floor(offset/64);
                 const col = Math.floor(offset%64);
 
-                const lineNode = document.createElement("span");
                 const rowNode = document.createElement("span");
                 rowNode.textContent = row.toString();
                 const colNode = document.createElement("span");
@@ -336,10 +347,10 @@ export class Emulator {
                     }
                 }
 
-                lineNode.append("row ", rowNode, ", col ", colNode);
-                return lineNode;
+                lineNode.append(", row ", rowNode, ", col ", colNode);
             }
-            return "";
+
+            return lineNode;
         };
 
         const regsSpecs: RegisterSpec[] = [
