@@ -52,7 +52,7 @@ static uint8_t DIST_TO_HEIGHT[] = {
 
 static uint8_t posX = 100;
 static uint8_t posY = 128;
-static uint8_t dir = 0;
+static uint8_t dir = 24;
 
 uint8_t getColumnHeight(uint8_t x) {
     int8_t dirX = DIR_TABLE_X[dir];
@@ -102,7 +102,14 @@ uint8_t getColumnHeight(uint8_t x) {
         // Calculate distance projected on camera direction (Euclidean distance
         // would give fisheye effect!)
         perpWallDist = sideDistY - deltaDistY;
+
+#if DEBUG
+        printf("x: %d, dir: %d,%d,%d, cameraX: %d, raydir: %d %d, side: ? %d, delta: ? %d, mapX: %d, mapY: %d, perp: %d\n",
+                x, dir, dirX, dirY, cameraX, rayDirX, rayDirY, sideDistY, deltaDistY,
+                mapX, mapY, perpWallDist);
+#endif 
     } else if (rayDirY == 0) {
+        printf("rayDirY = 0\n");
         side = 0;
         uint8_t deltaDistX = SIGNED_DIV_TABLE[(uint8_t) rayDirX];
 
@@ -134,13 +141,19 @@ uint8_t getColumnHeight(uint8_t x) {
         // Calculate distance projected on camera direction (Euclidean distance
         // would give fisheye effect!)
         perpWallDist = sideDistX - deltaDistX;
+
+#if DEBUG
+        printf("x: %d, dir: %d,%d,%d, cameraX: %d, raydir: %d %d, side: %d ?, delta: %d ?, mapX: %d, mapY: %d, perp: %d\n",
+                x, dir, dirX, dirY, cameraX, rayDirX, rayDirY, sideDistX, deltaDistX,
+                mapX, mapY, perpWallDist);
+#endif 
     } else {
         uint8_t deltaDistX = SIGNED_DIV_TABLE[(uint8_t) rayDirX];
         uint8_t deltaDistY = SIGNED_DIV_TABLE[(uint8_t) rayDirY];
 
         // length of ray from current position to next x or y-side
-        int16_t sideDistX;
-        int16_t sideDistY;
+        uint16_t sideDistX;
+        uint16_t sideDistY;
 
         // what direction to step in x or y-direction (either +1 or -1)
         int8_t stepX;
@@ -162,12 +175,18 @@ uint8_t getColumnHeight(uint8_t x) {
             sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
         }
 
+#if DEBUG
+        printf("x: %d, dir: %d,%d,%d, cameraX: %d, raydir: %d %d, side: %d %d, delta: %d %d, mapX: %d, mapY: %d\n",
+                x, dir, dirX, dirY, cameraX, rayDirX, rayDirY, sideDistX, sideDistY, deltaDistX, deltaDistY,
+                mapX, mapY);
+#endif 
+
         // perform DDA
         uint8_t hit = 0; // was there a wall hit?
         while (!hit) {
             // jump to next map square, either in x-direction, or in y-direction
-            if (sideDistX < sideDistY) { // XXX 16-bit comparison! RST 0x18?
-                sideDistX += deltaDistX; // 16-bit add.
+            if (sideDistX < sideDistY) {
+                sideDistX += deltaDistX;
                 mapX += stepX;
                 side = 0;
             } else {
@@ -183,13 +202,15 @@ uint8_t getColumnHeight(uint8_t x) {
         // would give fisheye effect!)
         if (side == 0) {
             perpWallDist = sideDistX - deltaDistX;
+            printf("%d - %d = %d\n", sideDistX, deltaDistX, sideDistX - deltaDistX);
         } else {
             perpWallDist = sideDistY - deltaDistY;
+            printf("%d - %d = %d\n", sideDistY, deltaDistY, sideDistY - deltaDistY);
         }
 
 #if DEBUG
-        printf("x: %d, raydir: %d %d, side: %d %d, delta: %d %d, mapX: %d, mapY: %d, perp: %d\n",
-                x, rayDirX, rayDirY, sideDistX, sideDistY, deltaDistX, deltaDistY,
+        printf("x: %d, dir: %d,%d,%d, cameraX: %d, raydir: %d %d, side: %d %d, delta: %d %d, mapX: %d, mapY: %d, perp: %d\n",
+                x, dir, dirX, dirY, cameraX, rayDirX, rayDirY, sideDistX, sideDistY, deltaDistX, deltaDistY,
                 mapX, mapY, perpWallDist);
 #endif 
     }

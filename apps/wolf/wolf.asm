@@ -20,7 +20,7 @@ next_frame:
 ; Initialize game state.
 init:
         ld hl,dir
-        ld (hl),0
+        ld (hl),24
         ret
 
 ; -------------------------------------------
@@ -280,7 +280,7 @@ get_height::
         sla a
         sla a
         sla a
-        neg
+        neg ; 
         ld h,a
         ld a,(posX)
         add h
@@ -334,10 +334,9 @@ rayDirXEnd:
         sla a
         sla a
         sla a
-        neg
-        ld h,a
+	ld h,a
         ld a,(posY)
-        add h
+	sub h
         jp rayDirYEnd
 rayDirYPos:
         ; } else {
@@ -352,10 +351,9 @@ rayDirYPos:
         sla a
         sla a
         sla a
-        neg
-        ld h,a
+	ld h,a
         ld a,(posY)
-        add h
+	sub h
         neg
 rayDirYEnd:
         ld h,a
