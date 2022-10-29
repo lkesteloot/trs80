@@ -112,10 +112,48 @@ not_d:
 end_keyboard:
 	ret
 
+	; Save the player position so that if we
+	; run into a wall, we can back off.
 premove:
+	ld a,(posX)
+	ld (savePosX),a
+	ld a,(posY)
+	ld (savePosY),a
 	ret
 postmove:
+	; uint_8 mapX = posX >> 5;
+        ld a,(posX)
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        ld l,a
+        
+	; uint_8 mapY = (posY >> 5) << 3;
+        ld a,(posY)
+        srl a
+        srl a
+	and 0x38 ; 3 bits
+
+	; if (MAZE[mapY][mapX] != ' ')
+        or l
+        ld h,hi(MAZE)
+        ld l,a
+        ld a,(hl)
+        cp ' '
+        ret z ; not in wall
+
+	; In wall, restore old position.
+	ld a,(savePosX)
+	ld (posX),a
+	ld a,(savePosY)
+	ld (posY),a
+
 	ret
+
+savePosX: .db 0
+savePosY: .db 0
 #endlocal
 
 ; -------------------------------------------
