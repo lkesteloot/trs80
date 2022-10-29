@@ -30,7 +30,7 @@ update::
         bit 5,a ; left arrow
         jr z,not_left
         ld a,(dir)
-        inc a
+        add 2
         and 63
         ld (dir),a
 	jp end_keyboard
@@ -38,7 +38,7 @@ not_left:
         bit 6,a ; right arrow
         jr z,not_right
         ld a,(dir)
-        dec a
+	sub 2
         and 63
         ld (dir),a
 	jp end_keyboard
@@ -51,11 +51,15 @@ not_right:
 	ld hl,dir
         ld l,(hl)
         ld h,hi(DIR_TABLE_X)
-	add (hl)
+	ld h,(hl)
+	sra h
+	add h
 	ld (posX),a
 	ld a,(posY)
 	ld h,hi(DIR_TABLE_Y)
-	add (hl)
+	ld h,(hl)
+	sra h
+	add h
 	ld (posY),a
 	call postmove
 	jp end_keyboard
@@ -67,11 +71,15 @@ not_w:
 	ld hl,dir
         ld l,(hl)
         ld h,hi(DIR_TABLE_X)
-	sub (hl)
+	ld h,(hl)
+	sra h
+	sub h
 	ld (posX),a
 	ld a,(posY)
 	ld h,hi(DIR_TABLE_Y)
-	sub (hl)
+	ld h,(hl)
+	sra h
+	sub h
 	ld (posY),a
 	call postmove
 	jp end_keyboard
@@ -84,11 +92,15 @@ not_s:
 	ld hl,dir
         ld l,(hl)
         ld h,hi(DIR_TABLE_Y)
-	add (hl)
+	ld h,(hl)
+	sra h
+	add h
 	ld (posX),a
 	ld a,(posY)
 	ld h,hi(DIR_TABLE_X)
-	sub (hl)
+	ld h,(hl)
+	sra h
+	sub h
 	ld (posY),a
 	call postmove
 	jp end_keyboard
@@ -100,11 +112,15 @@ not_a:
 	ld hl,dir
         ld l,(hl)
         ld h,hi(DIR_TABLE_Y)
-	sub (hl)
+	ld h,(hl)
+	sra h
+	sub h
 	ld (posX),a
 	ld a,(posY)
 	ld h,hi(DIR_TABLE_X)
-	add (hl)
+	ld h,(hl)
+	sra h
+	add h
 	ld (posY),a
 	call postmove
 	jp end_keyboard
@@ -547,7 +563,7 @@ loop:
 	jp end_special_cases
 
 rayDirY_not_zero:
-#local ; ----------------------------------------
+#local ; neither is zero -------------------------
         ; uint8_t deltaDistX = SIGNED_DIV_TABLE[(uint8_t) rayDirX];
         ld h,hi(SIGNED_DIV_TABLE)
         ld a,(rayDirX)
