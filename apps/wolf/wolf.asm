@@ -176,7 +176,21 @@ texture_2:
         pop af	
 end_texture:
 
-        call div3
+	; See if we're too tall and should
+	; remove the top/bottom character.
+	cp 24
+	jr nz,not_too_tall
+	push af
+	ld a,iyl
+	ld ixh,a
+	ld ixl,a
+	pop af
+	dec a
+not_too_tall:
+	; Divide A by 3.
+	ld h,hi(DIV3)
+	ld l,a
+	ld a,(hl)
 	; Height is now in A.
 
         ; Top of column.
@@ -234,20 +248,6 @@ bottomlooptest:
         cp 64
         jp nz, hloop
 
-        ret
-
-; -------------------------------------------
-; Divides A by 3, floored.
-div3:
-        push hl
-        push bc
-        ld hl,DIV3
-        ld b,0
-        ld c,a
-        add hl,bc
-        ld a,(hl)
-        pop bc
-        pop hl
         ret
 
 ; -------------------------------------------
@@ -715,6 +715,7 @@ posX:	.db 100
 posY:	.db 128
 dir:	.db 0
 
+        .org ($ + 255) & 0xFF00
 DIV3: ; Divide 0 to 24 by 3, floored.
         .db 0,0,0, 1,1,1, 2,2,2
         .db 3,3,3, 4,4,4, 5,5,5
@@ -842,8 +843,8 @@ SIGNED_DIV_TABLE: ; abs(255/v)
 
         .org ($ + 255) & 0xFF00
 DIST_TO_HEIGHT:
-	.db 23,23,23,23,23,23,23,23
-	.db 23,23,23,22,20,18,17,16
+	.db 24,24,24,24,24,24,24,24
+	.db 24,24,23,22,20,18,17,16 ; Make one 24 -> 23.
 	.db 14,14,13,12,11,11,10,10
 	.db 9,9,8,8,8,7,7,7
 	.db 6,6,6,6,6,5,5,5
