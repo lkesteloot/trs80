@@ -37,9 +37,9 @@ class VariableValueWidget extends WidgetType {
         button.classList.add("inline-pill", "cm-variablePill");
         let text = this.value.toString();
         if (this.size === 1 && this.value >= 128) {
-            text += " " + (this.value - 256);
+            text += " (" + (this.value - 256) + ")";
         } else if (this.size === 2 && this.value >= 32768) {
-            text += " " + (this.value - 65536);
+            text += " (" + (this.value - 65536) + ")";
         }
         button.innerText = text;
         return button;
