@@ -26,23 +26,99 @@ init:
 ; -------------------------------------------
 ; Update model from inputs.
 ; https://www.trs-80.com/wordpress/zaps-patches-pokes-tips/keyboard-map/
-update:
+#local
+update::
         ld a,(0x3800 + 0x40) ; keyboard
-        bit 5,a
+        bit 5,a ; left arrow
         jr z,not_left
         ld a,(dir)
         inc a
         and 63
         ld (dir),a
+	jp end_keyboard
 not_left:
-        bit 6,a
+        bit 6,a ; right arrow
         jr z,not_right
         ld a,(dir)
         dec a
         and 63
         ld (dir),a
+	jp end_keyboard
 not_right:
-        ret
+	ld a,(0x3800 + 0x04) ; keyboard
+	bit 7,a ; W
+	jr z,not_w
+	call premove
+	ld a,(posX)
+	ld hl,dir
+        ld l,(hl)
+        ld h,hi(DIR_TABLE_X)
+	add (hl)
+	ld (posX),a
+	ld a,(posY)
+	ld h,hi(DIR_TABLE_Y)
+	add (hl)
+	ld (posY),a
+	call postmove
+	jp end_keyboard
+not_w:
+	bit 3,a ; S
+	jr z,not_s
+	call premove
+	ld a,(posX)
+	ld hl,dir
+        ld l,(hl)
+        ld h,hi(DIR_TABLE_X)
+	sub (hl)
+	ld (posX),a
+	ld a,(posY)
+	ld h,hi(DIR_TABLE_Y)
+	sub (hl)
+	ld (posY),a
+	call postmove
+	jp end_keyboard
+not_s:
+	ld a,(0x3800 + 0x01) ; keyboard
+	bit 1,a ; A
+	jr z,not_a
+	call premove
+	ld a,(posX)
+	ld hl,dir
+        ld l,(hl)
+        ld h,hi(DIR_TABLE_Y)
+	add (hl)
+	ld (posX),a
+	ld a,(posY)
+	ld h,hi(DIR_TABLE_X)
+	sub (hl)
+	ld (posY),a
+	call postmove
+	jp end_keyboard
+not_a:
+	bit 4,a ; D
+	jr z,not_d
+	call premove
+	ld a,(posX)
+	ld hl,dir
+        ld l,(hl)
+        ld h,hi(DIR_TABLE_Y)
+	sub (hl)
+	ld (posX),a
+	ld a,(posY)
+	ld h,hi(DIR_TABLE_X)
+	add (hl)
+	ld (posY),a
+	call postmove
+	jp end_keyboard
+not_d:
+end_keyboard:
+	ret
+
+premove:
+	ret
+postmove:
+	ret
+#endlocal
 
 ; -------------------------------------------
 fill_buffer:
