@@ -139,12 +139,16 @@ body.presentation-mode {
     display: none;
 }
 
-.z80-inspector-label {
+.z80-inspector-label,
+.z80-inspector-clock-label,
+.z80-inspector-time-label {
     color: var(--cyan);
     white-space: pre;
 }
 
-.z80-inspector-value {
+.z80-inspector-value,
+.z80-inspector-clock-value,
+.z80-inspector-time-value {
     color: var(--blue);
     white-space: pre;
 }

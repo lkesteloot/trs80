@@ -197,6 +197,7 @@ export class Emulator {
         const node = document.createElement("div");
         node.classList.add("z80-inspector");
 
+        // Show/hide the inspector automatically.
         let timeoutHandle: number | undefined = undefined;
         this.trs80.onRunningState.subscribe(runningState => {
             const visible = runningState === RunningState.PAUSED;
@@ -393,6 +394,29 @@ export class Emulator {
             container.append(registerNode);
         }
 
+        // Show elapsed clock ticks and time.
+        const clockNode = document.createElement("div");
+        clockNode.classList.add("z80-inspector-clock");
+        const clockLabelNode = document.createElement("span");
+        clockLabelNode.classList.add("z80-inspector-clock-label");
+        clockLabelNode.textContent = "Elapsed cycles: ";
+        const clockValueNode = document.createElement("span");
+        clockValueNode.classList.add("z80-inspector-clock-value");
+        clockNode.append(clockLabelNode, clockValueNode);
+        leftColumn.append(clockNode);
+
+        const timeNode = document.createElement("div");
+        timeNode.classList.add("z80-inspector-time");
+        const timeLabelNode = document.createElement("span");
+        timeLabelNode.classList.add("z80-inspector-time-label");
+        timeLabelNode.textContent = "Elapsed time: ";
+        const timeValueNode = document.createElement("span");
+        timeValueNode.classList.add("z80-inspector-time-value");
+        timeNode.append(timeLabelNode, timeValueNode);
+        rightColumn.append(timeNode);
+
+        let oldClock: number | undefined;
+
         // Update the contents when the PC changes.
         this.debugPc.subscribe(pc => {
             if (pc === undefined) {
@@ -419,6 +443,19 @@ export class Emulator {
 
                 spec.oldValue = value;
             }
+
+            const clock = this.trs80.tStateCount;
+            clockNode.hidden = oldClock === undefined;
+            timeNode.hidden = oldClock === undefined;
+            if (oldClock !== undefined) {
+                const elapsedClock = clock - oldClock;
+                const elapsedMs = Math.round(elapsedClock*1000/this.trs80.clockHz);
+                const fps = elapsedMs === 0 ? undefined : Math.round(1000/elapsedMs);
+
+                clockValueNode.textContent = elapsedClock.toLocaleString();
+                timeValueNode.textContent = elapsedMs + " ms" + (fps === undefined ? "" : " (" + fps + " fps)");
+            }
+            oldClock = clock;
         });
 
         return node;
