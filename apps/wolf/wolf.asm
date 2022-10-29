@@ -352,13 +352,11 @@ get_height::
         srl a
         ld (mapX),a
         
-	; uint_8 mapY = posY >> 5;
+	; uint_8 mapY = posY >> 5; (pre-shifted 3)
         ld a,(posY)
         srl a
         srl a
-        srl a
-        srl a
-        srl a
+	and 0x38
         ld (mapY),a	
 
 	; See if we're aligned with one of the
@@ -382,13 +380,10 @@ get_height::
         bit 7,a
         jr z,rayDirYPos
         ; stepY = -1;
-        ld a,-1
+        ld a,-8
         ld (stepY),a
         ; sideDistY = (posY - mapY*32) * deltaDistY / 32;
         ld a,(mapY)
-        sla a
-        sla a
-        sla a
         sla a
         sla a
 	ld h,a
@@ -398,14 +393,11 @@ get_height::
 rayDirYPos:
         ; } else {
         ; stepY = 1;
-        ld a,1
+        ld a,8
         ld (stepY),a
         ; sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
         ld a,(mapY)
-        inc a
-        sla a
-        sla a
-        sla a
+        add 8   ; means +1 on preshifted
         sla a
         sla a
 	ld h,a
@@ -439,6 +431,7 @@ loop:
         add hl,de
         ld (sideDistY),hl
         ; mapY += stepY;
+	
         ld a,(stepY)
         ld l,a
         ld a,(mapY)
@@ -448,12 +441,8 @@ loop:
 	; Check if ray has hit a wall
         ; if (MAZE[mapY][mapX] != ' ') hit = 1;
         ld a,(mapX)
-        ld l,a
-        ld a,(mapY)
-        sla a
-        sla a
-        sla a
-        or l
+	ld hl,mapY
+	or (hl)
         ld h,hi(MAZE)
         ld l,a
         ld a,(hl)
@@ -563,12 +552,8 @@ loop:
         ; Check if ray has hit a wall
         ; if (MAZE[mapY][mapX] != ' ') hit = 1;
         ld a,(mapX)
-        ld l,a
-        ld a,(mapY)
-        sla a
-        sla a
-        sla a
-        or l
+	ld hl,mapY
+	or (hl)
         ld h,hi(MAZE)
         ld l,a
         ld a,(hl)
@@ -665,13 +650,10 @@ rayDirXEnd:
         bit 7,a
         jr z,rayDirYPos
         ; stepY = -1;
-        ld a,-1
+        ld a,-8
         ld (stepY),a
         ; sideDistY = (posY - mapY*32) * deltaDistY / 32;
         ld a,(mapY)
-        sla a
-        sla a
-        sla a
         sla a
         sla a
 	ld h,a
@@ -681,14 +663,11 @@ rayDirXEnd:
 rayDirYPos:
         ; } else {
         ; stepY = 1;
-        ld a,1
+        ld a,8
         ld (stepY),a
         ; sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
         ld a,(mapY)
-        inc a
-        sla a
-        sla a
-        sla a
+	add 8  ; means +1 on preshifted
         sla a
         sla a
 	ld h,a
@@ -759,12 +738,8 @@ moveEnd:
         ; Check if ray has hit a wall
         ; if (MAZE[mapY][mapX] != ' ') hit = 1;
         ld a,(mapX)
-        ld l,a
-        ld a,(mapY)
-        sla a
-        sla a
-        sla a
-        or l
+	ld hl,mapY
+	or (hl)
         ld h,hi(MAZE)
         ld l,a
         ld a,(hl)
@@ -829,17 +804,17 @@ planeY: .db 0	; int8_t
 rayDirX:.db 0	; int8_t
 rayDirY:.db 0	; int8_t
 mapX:	.db 0	; uint8_t
-mapY:	.db 0	; uint8_t
+mapY:	.db 0	; uint8_t, pre-shifted left 3
 side:	.db 0	; uint8_t, was a NS or a EW wall hit?
 dist:	.db 0	; uint8_t
 deltaDistX:.db 0; uint8_t
 deltaDistY:.db 0; uint8_t
 ; length of ray from current position to next x or y-side
-sideDistX:.dw 0 ; int16_t
-sideDistY:.dw 0 ; int16_t
+sideDistX:.dw 0 ; uint16_t
+sideDistY:.dw 0 ; uint16_t
 ; what direction to step in x or y-direction (either +1 or -1)
 stepX:	.db 0	; int8_t
-stepY:	.db 0	; int8_t
+stepY:	.db 0	; int8_t, pre-shifted left 3
 hit:	.db 0	; uint8_t
 #endlocal
 
