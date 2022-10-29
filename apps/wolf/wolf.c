@@ -162,17 +162,17 @@ uint8_t getColumnHeight(uint8_t x) {
         // calculate step and initial sideDist
         if (rayDirX < 0) {
             stepX = -1;
-            sideDistX = (posX - mapX*32) * deltaDistX / 32; // Shift
+            sideDistX = (posX & 31) * deltaDistX / 32; // Shift
         } else {
             stepX = 1;
-            sideDistX = ((mapX + 1)*32 - posX) * deltaDistX / 32;
+            sideDistX = ((posX & 31) ^ 0x1F) * deltaDistX / 32;
         }
         if (rayDirY < 0) {
             stepY = -1;
-            sideDistY = (posY - mapY*32) * deltaDistY / 32;
+            sideDistY = (posY & 31) * deltaDistY / 32;
         } else {
             stepY = 1;
-            sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
+            sideDistY = ((posY & 31) ^ 0x1F) * deltaDistY / 32;
         }
 
 #if DEBUG

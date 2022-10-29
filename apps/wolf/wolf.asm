@@ -383,12 +383,8 @@ get_height::
         ld a,-8
         ld (stepY),a
         ; sideDistY = (posY - mapY*32) * deltaDistY / 32;
-        ld a,(mapY)
-        sla a
-        sla a
-	ld h,a
         ld a,(posY)
-	sub h
+	and 0x1F ; keep fractional part.
         jp rayDirYEnd
 rayDirYPos:
         ; } else {
@@ -396,14 +392,9 @@ rayDirYPos:
         ld a,8
         ld (stepY),a
         ; sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
-        ld a,(mapY)
-        add 8   ; means +1 on preshifted
-        sla a
-        sla a
-	ld h,a
         ld a,(posY)
-	sub h
-        neg
+	and 0x1F ; keep fractional part.
+	xor 0x1F ; subtract from 32.
 rayDirYEnd:
         ld h,a
         ld a,(deltaDistY)
@@ -485,15 +476,8 @@ rayDirX_not_zero:
         ld a,-1
         ld (stepX),a
         ; sideDistX = (posX - mapX*32) * deltaDistX / 32;
-        ld a,(mapX)
-        sla a
-        sla a
-        sla a
-        sla a
-        sla a
-        ld h,a
         ld a,(posX)
-        sub h
+	and 0x1F ; keep fractional part.
         jp rayDirXEnd
 rayDirXPos:
         ; } else {
@@ -501,17 +485,9 @@ rayDirXPos:
         ld a,1
         ld (stepX),a
         ; sideDistX = ((mapX + 1)*32 - posX) * deltaDistX / 32;
-        ld a,(mapX)
-        inc a
-        sla a
-        sla a
-        sla a
-        sla a
-        sla a
-        ld h,a
         ld a,(posX)
-        sub h
-        neg
+	and 0x1F ; keep fractional part.
+	xor 0x1F ; subtract from 32.
 rayDirXEnd:
         ld h,a
         ld a,(deltaDistX)
@@ -593,32 +569,17 @@ rayDirY_not_zero:
         ; stepX = -1;
 	ld ixl,-1
         ; sideDistX = (posX - mapX*32) * deltaDistX / 32;
-        ld a,(mapX)
-        sla a
-        sla a
-        sla a
-        sla a
-        sla a
-        ld h,a
         ld a,(posX)
-        sub h
+	and 0x1F ; keep fractional part
         jp rayDirXEnd
 rayDirXPos:
         ; } else {
         ; stepX = 1;
 	ld ixl,1
         ; sideDistX = ((mapX + 1)*32 - posX) * deltaDistX / 32;
-        ld a,(mapX)
-        inc a
-        sla a
-        sla a
-        sla a
-        sla a
-        sla a
-        ld h,a
-        ld a,(posX)
-        sub h
-        neg
+	ld a,(posX)
+	and 0x1F ; keep fractional part
+	xor 0x1F ; subtract from 32
 rayDirXEnd:
         ld h,a
         ld a,(deltaDistX)
@@ -643,26 +604,17 @@ rayDirXEnd:
         ; stepY = -1;
 	ld ixh,-8
         ; sideDistY = (posY - mapY*32) * deltaDistY / 32;
-        ld a,(mapY)
-        sla a
-        sla a
-	ld h,a
         ld a,(posY)
-	sub h
+	and 0x1F
         jp rayDirYEnd
 rayDirYPos:
         ; } else {
         ; stepY = 1;
 	ld ixh,8
         ; sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
-        ld a,(mapY)
-	add 8  ; means +1 on preshifted
-        sla a
-        sla a
-	ld h,a
         ld a,(posY)
-	sub h
-        neg
+	and 0x1F ; keep fractional part
+	xor 0x1F ; subtract from 32
 rayDirYEnd:
         ld h,a
         ld a,(deltaDistY)
