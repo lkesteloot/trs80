@@ -491,10 +491,9 @@ rayDirX_not_zero:
         sla a
         sla a
         sla a
-        neg
         ld h,a
         ld a,(posX)
-        add h
+        sub h
         jp rayDirXEnd
 rayDirXPos:
         ; } else {
@@ -509,10 +508,9 @@ rayDirXPos:
         sla a
         sla a
         sla a
-        neg
         ld h,a
         ld a,(posX)
-        add h
+        sub h
         neg
 rayDirXEnd:
         ld h,a
@@ -601,10 +599,9 @@ rayDirY_not_zero:
         sla a
         sla a
         sla a
-        neg
         ld h,a
         ld a,(posX)
-        add h
+        sub h
         jp rayDirXEnd
 rayDirXPos:
         ; } else {
@@ -618,10 +615,9 @@ rayDirXPos:
         sla a
         sla a
         sla a
-        neg
         ld h,a
         ld a,(posX)
-        add h
+        sub h
         neg
 rayDirXEnd:
         ld h,a
