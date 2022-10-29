@@ -23,6 +23,11 @@ export class WebKeyboard extends Keyboard {
                 return;
             }
 
+            // Don't submit auto-repeat keys, let emulator repeat if necessary.
+            if (event.repeat) {
+                return;
+            }
+
             const key = event.key;
             if (key !== "") {
                 this.keyEvent(key, isPressed);
