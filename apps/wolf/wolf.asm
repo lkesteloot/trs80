@@ -815,31 +815,26 @@ hit:	.db 0	; uint8_t
 signed_mult_8::
         push af
         push de
-        ld l,0
+        ld l,0 ; sign counter
         ; Make H non-negative.
+	bit 7,h
+        jp z,h_not_negative
         ld a,h
-        or a
-        jp p,h_not_negative
         neg
         ld h,a
-        ld l,1
+	inc l
 h_not_negative:
         ; Make E non-negative.
+	bit 7,e
+        jp z,e_not_negative
         ld a,e
-        or a
-        jp p,e_not_negative
         neg
         ld e,a
-        ld a,l
-        xor 1
-        ld l,a
+	inc l
 e_not_negative:
-        ld a,l
-        push af
-        call mult8
-        pop af
-        or a
+        bit 0,l
         jp z,hl_not_negative
+        call mult8
         ; Negate HL.
         ld a,l
         cpl
@@ -848,7 +843,11 @@ e_not_negative:
         cpl
         ld h,a
         inc hl
+        pop de
+        pop af
+	ret
 hl_not_negative:
+        call mult8
         pop de
         pop af
         ret
