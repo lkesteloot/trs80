@@ -1179,25 +1179,26 @@ export class Editor {
             }
 
             update(update: ViewUpdate) {
-                if (update.docChanged ||
-                    update.state.field(currentPcState) !== update.startState.field(currentPcState)) {
-
+                const pcChanged = update.state.field(currentPcState) !== update.startState.field(currentPcState);
+                if (update.docChanged || pcChanged) {
                     this.decorations = this.getDeco(update.view);
 
-                    const linePos = getPcLinePos(update.state);
-                    if (linePos !== undefined) {
-                        // TODO I put this setTimeout() here because we're not permitted to
-                        // dispatch a new transaction using an update. But I don't know what the
-                        // correct way is to observe changes to a state field and dispatch
-                        // new effects. In general I don't know how to react to changes
-                        // to state fields.
-                        setTimeout(() => {
-                            update.view.dispatch({
-                                effects: EditorView.scrollIntoView(linePos, {
-                                    y: "center",
-                                }),
-                            });
-                        }, 0);
+                    if (pcChanged) {
+                        const linePos = getPcLinePos(update.state);
+                        if (linePos !== undefined) {
+                            // TODO I put this setTimeout() here because we're not permitted to
+                            // dispatch a new transaction using an update. But I don't know what the
+                            // correct way is to observe changes to a state field and dispatch
+                            // new effects. In general I don't know how to react to changes
+                            // to state fields.
+                            setTimeout(() => {
+                                update.view.dispatch({
+                                    effects: EditorView.scrollIntoView(linePos, {
+                                        y: "center",
+                                    }),
+                                });
+                            }, 0);
+                        }
                     }
                 }
             }

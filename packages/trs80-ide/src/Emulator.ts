@@ -453,7 +453,8 @@ export class Emulator {
                 const fps = elapsedMs === 0 ? undefined : Math.round(1000/elapsedMs);
 
                 clockValueNode.textContent = elapsedClock.toLocaleString();
-                timeValueNode.textContent = elapsedMs + " ms" + (fps === undefined ? "" : " (" + fps + " fps)");
+                timeValueNode.textContent = elapsedMs.toLocaleString() + " ms" +
+                    (fps === undefined ? "" : " (" + fps + " fps)");
             }
             oldClock = clock;
         });
