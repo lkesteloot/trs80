@@ -136,8 +136,8 @@ function makeLink(link: string): () => void {
 const TEMPLATES = [
     { name: "Minimal", code: minimalTemplate, debugOnly: false },
     { name: "Screenshot", code: screenshotExample, debugOnly: false },
+    { name: "Wolfenstein 3D", code: wolf, debugOnly: false },
     { name: "Space Invaders", code: spaceInvaders, debugOnly: true },
-    { name: "Wolfenstein", code: wolf, debugOnly: true },
     { name: "Breakdown", code: breakdwn, debugOnly: true },
     { name: "Scarfman", code: scarfman, debugOnly: true },
 ];
