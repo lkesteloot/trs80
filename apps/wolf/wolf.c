@@ -183,7 +183,9 @@ uint8_t getColumnHeight(uint8_t x) {
 
         // perform DDA
         uint8_t hit = 0; // was there a wall hit?
+        int steps = 0;
         while (!hit) {
+            steps += 1;
             // jump to next map square, either in x-direction, or in y-direction
             if (sideDistX < sideDistY) {
                 sideDistX += deltaDistX;
@@ -209,9 +211,9 @@ uint8_t getColumnHeight(uint8_t x) {
         }
 
 #if DEBUG
-        printf("x: %d, dir: %d,%d,%d, cameraX: %d, raydir: %d %d, side: %d %d, delta: %d %d, mapX: %d, mapY: %d, perp: %d\n",
+        printf("x: %d, dir: %d,%d,%d, cameraX: %d, raydir: %d %d, side: %d %d, delta: %d %d, mapX: %d, mapY: %d, perp: %d, steps: %d\n",
                 x, dir, dirX, dirY, cameraX, rayDirX, rayDirY, sideDistX, sideDistY, deltaDistX, deltaDistY,
-                mapX, mapY, perpWallDist);
+                mapX, mapY, perpWallDist, steps);
 #endif 
     }
 

@@ -431,11 +431,9 @@ loop:
         add hl,de
         ld (sideDistY),hl
         ; mapY += stepY;
-	
-        ld a,(stepY)
-        ld l,a
         ld a,(mapY)
-        add l
+	ld hl,stepY
+	add (hl)
         ld (mapY),a
 
 	; Check if ray has hit a wall
@@ -543,10 +541,9 @@ loop:
         add hl,de
         ld (sideDistX),hl
         ; mapX += stepX;
-        ld a,(stepX)
-        ld l,a
         ld a,(mapX)
-        add l
+	ld hl,stepX
+	add (hl)
         ld (mapX),a
 
         ; Check if ray has hit a wall
@@ -596,8 +593,7 @@ rayDirY_not_zero:
         bit 7,a
         jr z,rayDirXPos
         ; stepX = -1;
-        ld a,-1
-        ld (stepX),a
+	ld ixl,-1
         ; sideDistX = (posX - mapX*32) * deltaDistX / 32;
         ld a,(mapX)
         sla a
@@ -613,8 +609,7 @@ rayDirY_not_zero:
 rayDirXPos:
         ; } else {
         ; stepX = 1;
-        ld a,1
-        ld (stepX),a
+	ld ixl,1
         ; sideDistX = ((mapX + 1)*32 - posX) * deltaDistX / 32;
         ld a,(mapX)
         inc a
@@ -650,8 +645,7 @@ rayDirXEnd:
         bit 7,a
         jr z,rayDirYPos
         ; stepY = -1;
-        ld a,-8
-        ld (stepY),a
+	ld ixh,-8
         ; sideDistY = (posY - mapY*32) * deltaDistY / 32;
         ld a,(mapY)
         sla a
@@ -663,8 +657,7 @@ rayDirXEnd:
 rayDirYPos:
         ; } else {
         ; stepY = 1;
-        ld a,8
-        ld (stepY),a
+	ld ixh,8
         ; sideDistY = ((mapY + 1)*32 - posY) * deltaDistY / 32;
         ld a,(mapY)
 	add 8  ; means +1 on preshifted
@@ -691,6 +684,15 @@ rayDirYEnd:
         ld h,a
         ld (sideDistY),hl
 
+	; BC is pointer into map.
+	; IXL = stepX.
+	; IXH = stepY.
+	ld a,(mapX)
+	ld hl,mapY
+	or (hl)
+        ld b,hi(MAZE)
+	ld c,a
+
         ; perform DDA
 loop:
         ; jump to next map square, either in x-direction, or in y-direction
@@ -708,11 +710,9 @@ loop:
         add hl,de
         ld (sideDistX),hl
         ; mapX += stepX;
-        ld a,(stepX)
-        ld l,a
-        ld a,(mapX)
-        add l
-        ld (mapX),a
+	ld a,c
+	add a,ixl
+	ld c,a
         ; side = 0;
         xor a
         ld (side),a
@@ -726,25 +726,18 @@ moveY:
         add hl,de
         ld (sideDistY),hl
         ; mapY += stepY;
-        ld a,(stepY)
-        ld l,a
-        ld a,(mapY)
-        add l
-        ld (mapY),a
-        ; side = 1;
+	ld a,c
+	add a,ixh
+	ld c,a
+	; side = 1;
         ld a,1
         ld (side),a
 moveEnd:
         ; Check if ray has hit a wall
         ; if (MAZE[mapY][mapX] != ' ') hit = 1;
-        ld a,(mapX)
-	ld hl,mapY
-	or (hl)
-        ld h,hi(MAZE)
-        ld l,a
-        ld a,(hl)
+	ld a,(bc)
         cp ' '
-        jp z,loop
+        jp z,loop	
 
         ; Calculate distance projected on camera direction (Euclidean
         ; distance would give fisheye effect!)
