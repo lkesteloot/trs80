@@ -145,8 +145,8 @@ export function customCompletions(context: CompletionContext): CompletionResult 
     }
 
     // Find all variants.
-    const matchingVariantsLabel: OpcodeVariant[] = [];
-    const matchingVariantsDesc: OpcodeVariant[] = [];
+    const matchingVariantsLabel: OpcodeVariant[] = []; // Match by label, we'll put those first.
+    const matchingVariantsDesc: OpcodeVariant[] = [];  // Match by description, put those later.
     for (const variants of mnemonicMap.values()) {
         for (const variant of variants) {
             const variantLabel = getVariantLabel(variant).toLowerCase();
@@ -171,12 +171,18 @@ export function customCompletions(context: CompletionContext): CompletionResult 
 
     // Convert to options.
     for (const variant of matchingVariants) {
-        const option: Completion = {
-            label: getVariantLabel(variant),
+        const label = getVariantLabel(variant);
+        let option: Completion = {
+            label: label,
         };
         if (variant.clr !== undefined) {
             option.info = variant.clr.description;
-            // Or "detail"?
+        }
+
+        // Make template with the constants.
+        const template = label.replace(/\b(offset|nn|nnnn|dd)\b/g, "#{$&}");
+        if (template !== label) {
+            option = snippetCompletion(template, option);
         }
         options.push(option);
     }
