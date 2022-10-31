@@ -483,10 +483,34 @@ export class Editor {
             EditorView.theme({
                 // Override theme, which uses an opaque color for the active line, and this hides
                 // the selection, which is done in a separate layer below.
-                '.cm-activeLine': { backgroundColor: "rgba(255, 255, 255, 0.05)" },
+                '.cm-activeLine': {
+                    backgroundColor: "rgba(255, 255, 255, 0.03)",
+                },
                 // The selection in this theme is identical to the active line highlight.
                 // Make it more obvious.
-                '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': { backgroundColor: "rgba(255, 255, 255, 0.2)" },
+                '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                },
+                // Our theme makes the highlighted item dim, which has the wrong effect, it makes it
+                // seem unhighlighted. Use a different effect.
+                '.cm-tooltip-autocomplete': {
+                    '& > ul > li[aria-selected]': {
+                        // Match menubar colors.
+                        backgroundColor: "var(--blue)",
+                        color: "white",
+                    },
+                },
+                // Default colors here make the text hard to read. Use a box instead.
+                '.cm-snippetField': {
+                    backgroundColor: "inherit",
+                    boxShadow: "inset 0 0 0.5px 0.5px var(--orange)",
+                },
+                '.cm-snippetField *': {
+                    // Stand out regardless of syntax highlight.
+                    color: "white",
+                    // Get rid of italic for comments, the text sticks out of the box.
+                    fontStyle: "normal",
+                },
             }),
             solarizedDark,
             highlightActiveLine(),

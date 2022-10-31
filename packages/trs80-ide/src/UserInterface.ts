@@ -501,8 +501,15 @@ export class UserInterface {
                         action: makeLink("https://lkesteloot.github.io/trs80/emulator/"),
                     },
                     {
+                        separator: true,
+                    },
+                    {
                         text: "Z80 Instruction Summary",
                         action: makeLink("https://clrhome.org/table/"),
+                    },
+                    {
+                        text: "16-bit Shifts",
+                        action: makeLink("https://www.chilliant.com/z80shift.html"),
                     },
                     {
                         separator: true,
@@ -510,6 +517,10 @@ export class UserInterface {
                     {
                         text: "Github",
                         action: makeLink("https://github.com/lkesteloot/trs80/tree/master/packages/trs80-ide"),
+                    },
+                    {
+                        text: "Feedback",
+                        action: makeLink("mailto:lk@teamten.com"),
                     },
                 ],
             },
