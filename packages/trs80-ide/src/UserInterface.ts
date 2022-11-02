@@ -133,13 +133,19 @@ function makeLink(link: string): () => void {
 }
 
 // Available templates.
-const TEMPLATES = [
-    { name: "Minimal", code: minimalTemplate, debugOnly: false },
-    { name: "Screenshot", code: screenshotExample, debugOnly: false },
-    { name: "Wolfenstein 3D", code: wolf, debugOnly: false },
-    { name: "Space Invaders", code: spaceInvaders, debugOnly: true },
-    { name: "Breakdown", code: breakdwn, debugOnly: true },
-    { name: "Scarfman", code: scarfman, debugOnly: true },
+interface Template {
+    label: string;
+    filename: string;
+    code: string;
+    debugOnly: boolean;
+}
+const TEMPLATES: Template[] = [
+    { label: "Minimal", filename: "minimal", code: minimalTemplate, debugOnly: false },
+    { label: "Screenshot", filename: "screenshot", code: screenshotExample, debugOnly: false },
+    { label: "Wolfenstein 3D", filename: "wolfenstein", code: wolf, debugOnly: false },
+    { label: "Space Invaders", filename: "space", code: spaceInvaders, debugOnly: true },
+    { label: "Breakdown", filename: "breakdwn", code: breakdwn, debugOnly: true },
+    { label: "Scarfman", filename: "scarfman", code: scarfman, debugOnly: true },
 ];
 
 // Get the code we should display initially.
@@ -541,11 +547,11 @@ export class UserInterface {
             for (const template of TEMPLATES) {
                 if (!template.debugOnly || debugging) {
                     newFromExamplesMenu.menu.push({
-                        text: template.name,
+                        text: template.label,
                         action: async () => {
                             const proceed = await this.promptIfFileModified(editor);
                             if (proceed) {
-                                editor.setCode(template.code);
+                                editor.setCode(template.code, template.filename);
                             }
                         },
                     });
