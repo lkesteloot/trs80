@@ -3,8 +3,8 @@ SCREEN_WIDTH equ 64
 SCREEN_HEIGHT equ 16
 MAZE_SIZE equ 8
 
-        .org 0x9000
-
+        .org 0x8000
+entry:
         ; Set up
         di
         ld sp,0
@@ -1006,4 +1006,5 @@ DIST_TO_HEIGHT:
 \t.db 0,0,0,0,0,0,0,0
 \t.db 0,0,0,0,0,0,0,0
 
+\tend entry
 `;
