@@ -22,7 +22,7 @@ export const CMD_TRANSFER_ADDRESS = 0x02;
 export const CMD_LOAD_MODULE_HEADER = 0x05;
 export const CMD_MAX_TYPE = 0x1F;
 
-export const MAX_CMD_CHUNK_DATA_SIZE = 258;
+export const MAX_CMD_CHUNK_DATA_SIZE = 256;
 
 /**
  * Represents a chunk of bytes from the file.
