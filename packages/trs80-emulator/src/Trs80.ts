@@ -139,6 +139,12 @@ export class Trs80State {
     }
 }
 
+// Work in both browser and node.
+const myRequestAnimationFrame = typeof window == "object" ? window.requestAnimationFrame : setTimeout;
+const myCancelAnimationFrame = typeof window == "object" ? window.cancelAnimationFrame : clearTimeout;
+// Tried to do the right thing here, but can't seem to get compile-time safety.
+type RequestAnimationFrameType = any;
+
 /**
  * HAL for the TRS-80 Model III.
  */
@@ -169,7 +175,7 @@ export class Trs80 implements Hal, Machine {
     // Time of last tick.
     private prevTime = 0;
     // Handle for requested animation frame.
-    private tickHandle: number | undefined;
+    private tickHandle: RequestAnimationFrameType | undefined;
     public runningState: RunningState = RunningState.STOPPED;
     public readonly onRunningState = new SimpleEventDispatcher<RunningState>();
     // Internal state of the cassette controller.
@@ -879,7 +885,7 @@ export class Trs80 implements Hal, Machine {
         }
 
         this.cancelTickTimeout();
-        this.tickHandle = requestAnimationFrame(() => {
+        this.tickHandle = myRequestAnimationFrame(() => {
             this.tickHandle = undefined;
             this.tick();
         });
@@ -890,7 +896,7 @@ export class Trs80 implements Hal, Machine {
      */
     private cancelTickTimeout(): void {
         if (this.tickHandle !== undefined) {
-            cancelAnimationFrame(this.tickHandle);
+            myCancelAnimationFrame(this.tickHandle);
             this.tickHandle = undefined;
         }
     }
