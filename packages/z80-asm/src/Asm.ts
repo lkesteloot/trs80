@@ -10,6 +10,9 @@ const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 // Title-definition pseudo instructions.
 const PSEUDO_TITLE = new Set([".title"]);
 
+// Force an error (for programmer errors).
+const PSEUDO_ERROR = new Set(["error"]);
+
 // Byte-defining pseudo instructions.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z54.htm
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z51.htm
@@ -84,6 +87,10 @@ export function getAsmDirectiveDocs(): AsmDirectiveDoc[] {
         {
             directives: PSEUDO_TITLE,
             description: "Set the title of the program, as a string.",
+        },
+        {
+            directives: PSEUDO_ERROR,
+            description: "Force an error.",
         },
         {
             directives: PSEUDO_DEF_BYTES,
@@ -656,6 +663,9 @@ class Pass {
     public libraryIncludeCount = 0;
     // Whether we've seen an "end" directive.
     public sawEnd = false;
+    // Stack of nested conditionals. The last entry is for the most nested if/else.
+    // The code is assembled if no element in this array is false.
+    public readonly ifStack: boolean[] = [];
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
@@ -785,6 +795,14 @@ class Pass {
 
         return true;
     }
+
+    /**
+     * Whether we're currently in an enabled section. Conditionals like "if" can disable code.
+     */
+    public isEnabled(): boolean {
+        // No entry can be false.
+        return this.ifStack.indexOf(false) === -1;
+    }
 }
 
 /**
@@ -818,11 +836,14 @@ class LineParser {
             return;
         }
 
+        // See if this line is disabled by an if/else.
+        const enabledLine = this.pass.isEnabled();
+
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
 
         // Look for compiler directive.
-        if (this.line.trim().startsWith("#")) {
+        if (enabledLine && this.line.trim().startsWith("#")) {
             this.parseDirective();
             return;
         }
@@ -845,6 +866,12 @@ class LineParser {
             symbolColumn = this.previousToken;
         }
 
+        // Ignore labels on disabled lines. (We have to parse them above though.)
+        if (!enabledLine) {
+            label = undefined;
+            labelValue = undefined;
+        }
+
         this.skipWhitespace();
         let mnemonic = this.readIdentifier(false, true);
         if (mnemonic === undefined) {
@@ -856,9 +883,58 @@ class LineParser {
             }
         }
         if (mnemonic !== undefined && this.previousToken > 0) {
+            // We must parse the if/else/endif ones specially since they're only partially
+            // affected by whether this line is enabled.
+            if (PSEUDO_IF.has(mnemonic)) {
+                if (enabledLine) {
+                    // Parse the if expression normally.
+                    const value = this.readExpression(true);
+                    if (value === undefined) {
+                        if (this.assembledLine.error === undefined) {
+                            this.assembledLine.error = "error in expression";
+                        }
+                        return;
+                    }
+                    this.pass.ifStack.push(value !== 0);
+                } else {
+                    // We're disabled, don't parse the expression, it might refer
+                    // to a symbol we skipped over. But keep track of this if in
+                    // the stack so we can properly deal with it at its else/endif.
+                    this.skipToEndOfLine();
+                    this.pass.ifStack.push(false); // Value doesn't matter.
+                }
+                this.ensureEndOfLine();
+                return;
+            } else if (PSEUDO_ELSE.has(mnemonic)) {
+                if (this.pass.ifStack.length === 0) {
+                    this.assembledLine.error = "else without if";
+                    return;
+                }
+                this.pass.ifStack.push(!this.pass.ifStack.pop());
+                this.ensureEndOfLine();
+                return;
+            } else if (PSEUDO_ENDIF.has(mnemonic)) {
+                if (this.pass.ifStack.length === 0) {
+                    this.assembledLine.error = "endif without if";
+                    return;
+                }
+                this.pass.ifStack.pop();
+                this.ensureEndOfLine();
+                return;
+            }
+
+            // Do no more processing if we're disabled.
+            if (!enabledLine) {
+                return;
+            }
+
             if (PSEUDO_TITLE.has(mnemonic)) {
                 // We don't do anything with this.
                 this.readString();
+            } else if (PSEUDO_ERROR.has(mnemonic)) {
+                // Rest of the line is not a string, just read it as-is.
+                this.assembledLine.error = this.readToEndOfLine();
+                return;
             } else if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
                     const s = this.readString();
@@ -1253,6 +1329,13 @@ class LineParser {
     // Advance the parser to the end of the line.
     private skipToEndOfLine(): void {
         this.column = this.line.length;
+    }
+
+    // Return all the text on the rest of the line.
+    private readToEndOfLine(): string {
+        const s = this.line.substring(this.column);
+        this.skipToEndOfLine();
+        return s;
     }
 
     // Whether we're at the end of the line. Assumes we've already skipped whitespace.
