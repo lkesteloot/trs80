@@ -205,6 +205,7 @@ export class Trs80 implements Hal, Machine {
     // So that we can "continue" past a breakpoint.
     private ignoreInitialInstructionBreakpoint = false;
     private speedMultiplier = 1;
+    private printerBuffer = "";
 
     constructor(config: Config, screen: Trs80Screen, keyboard: Keyboard, cassette: CassettePlayer, soundPlayer: SoundPlayer) {
         this.screen = screen;
@@ -560,6 +561,13 @@ export class Trs80 implements Hal, Machine {
                 }
                 break;
 
+            case 0xE8:
+            case 0xE9:
+            case 0xEA:
+            case 0xEB:
+                // Serial port, ignore.
+                break;
+
             case 0xEC:
             case 0xED:
             case 0xEE:
@@ -653,6 +661,13 @@ export class Trs80 implements Hal, Machine {
                 }
                 break;
 
+            case 0xE8:
+            case 0xE9:
+            case 0xEA:
+            case 0xEB:
+                // Serial port, ignore.
+                break;
+
             case 0xEC:
             case 0xED:
             case 0xEE:
@@ -694,7 +709,16 @@ export class Trs80 implements Hal, Machine {
             case 0xFA:
             case 0xFB:
                 // Printer write.
-                console.log("Writing \"" + String.fromCodePoint(value) + "\" to printer");
+                if (value === 10) {
+                    // Linefeed.
+                    console.log("Printer: " + this.printerBuffer);
+                    this.printerBuffer = "";
+                } else if (value === 13) {
+                    // Carriage return, ignore.
+                } else {
+                    this.printerBuffer += String.fromCodePoint(value);
+                }
+                // console.log("Writing \"" + String.fromCodePoint(value) + "\" (" + value + ") to printer");
                 break;
 
             case 0xFC:
