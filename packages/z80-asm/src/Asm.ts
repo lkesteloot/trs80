@@ -279,6 +279,23 @@ export class FileInfo {
 }
 
 /**
+ * Information about a conditional (if/endif).
+ */
+class Conditional {
+    // Line that the "if" is on.
+    public readonly line: AssembledLine;
+
+    // Current value. This is the value of the conditional between
+    // the "if" and "else" and its opposite between "else" and "endif".
+    public value: boolean;
+
+    constructor(line: AssembledLine, value: boolean) {
+        this.line = line;
+        this.value = value;
+    }
+}
+
+/**
  * A line from a source file that was assembled, along with all associated information.
  */
 export class AssembledLine {
@@ -699,7 +716,7 @@ class Pass {
     public sawEnd = false;
     // Stack of nested conditionals. The last entry is for the most nested if/else.
     // The code is assembled if no element in this array is false.
-    public readonly ifStack: boolean[] = [];
+    public readonly conditionals: Conditional[] = [];
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
@@ -739,6 +756,12 @@ class Pass {
                 lines[lines.length - 1].error = "missing #endlocal";
             }
         }
+
+        // Make sure if/endif are balanced.
+        for (const c of this.conditionals) {
+            c.line.error = "missing endif for if";
+        }
+
         const after = Date.now();
 
         /*
@@ -835,7 +858,12 @@ class Pass {
      */
     public isEnabled(): boolean {
         // No entry can be false.
-        return this.ifStack.indexOf(false) === -1;
+        for (const c of this.conditionals) {
+            if (!c.value) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
@@ -929,30 +957,32 @@ class LineParser {
                         }
                         return;
                     }
-                    this.pass.ifStack.push(value !== 0);
+                    this.pass.conditionals.push(new Conditional(this.assembledLine, value !== 0));
                 } else {
                     // We're disabled, don't parse the expression, it might refer
                     // to a symbol we skipped over. But keep track of this if in
                     // the stack so we can properly deal with it at its else/endif.
                     this.skipToEndOfLine();
-                    this.pass.ifStack.push(false); // Value doesn't matter.
+                    // Value doesn't matter:
+                    this.pass.conditionals.push(new Conditional(this.assembledLine, false));
                 }
                 this.ensureEndOfLine();
                 return;
             } else if (PSEUDO_ELSE.has(mnemonic)) {
-                if (this.pass.ifStack.length === 0) {
+                const c = this.pass.conditionals.at(-1);
+                if (c === undefined) {
                     this.assembledLine.error = "else without if";
                     return;
                 }
-                this.pass.ifStack.push(!this.pass.ifStack.pop());
+                c.value = !c.value;
                 this.ensureEndOfLine();
                 return;
             } else if (PSEUDO_ENDIF.has(mnemonic)) {
-                if (this.pass.ifStack.length === 0) {
+                if (this.pass.conditionals.length === 0) {
                     this.assembledLine.error = "endif without if";
                     return;
                 }
-                this.pass.ifStack.pop();
+                this.pass.conditionals.pop();
                 this.ensureEndOfLine();
                 return;
             }
