@@ -31,7 +31,7 @@ export async function uploadToRetroStore(assemblyResults: AssemblyResults) {
         return;
     }
     const builder = new RetroStoreProgramBuilder();
-    for (const line of assemblyResults.sourceFile.assembledLines) {
+    for (const line of assemblyResults.asm.assembledLines) {
         builder.addBytes(line.address, line.binary);
     }
     const { entryPoint } = assemblyResults.asm.getEntryPoint();

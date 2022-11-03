@@ -133,9 +133,10 @@ export class Emulator {
         } else {
             this.trs80.restore(this.trs80State);
         }
-        for (const line of results.sourceFile.assembledLines) {
-            for (let i = 0; i < line.binary.length; i++) {
-                this.trs80.writeMemory(line.address + i, line.binary[i]);
+        for (const line of results.asm.assembledLines) {
+            const binary = line.binary;
+            for (let i = 0; i < binary.length; i++) {
+                this.trs80.writeMemory(line.address + i, binary[i]);
             }
         }
         const { entryPoint } = results.asm.getEntryPoint();

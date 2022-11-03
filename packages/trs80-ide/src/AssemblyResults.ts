@@ -38,7 +38,7 @@ export class AssemblyResults {
                 this.lineMap.set(line.lineNumber + 1, line);
             }
 
-            if (line.lineNumber !== undefined && line.binary.length > 0) {
+            if (line.lineNumber !== undefined && line.getSourceFileBinary().length > 0) {
                 this.addressToLineMap.set(line.address, line.lineNumber + 1);
             }
 
@@ -124,8 +124,8 @@ export class AssemblyResults {
         while (true) {
             // It's nice to ignore blank lines, so that we can add comments without
             // restarting everything.
-            while (i1 < lines1.length && lines1[i1].binary.length === 0) i1 += 1;
-            while (i2 < lines2.length && lines2[i2].binary.length === 0) i2 += 1;
+            while (i1 < lines1.length && lines1[i1].getSourceFileBinary().length === 0) i1 += 1;
+            while (i2 < lines2.length && lines2[i2].getSourceFileBinary().length === 0) i2 += 1;
 
             if (i1 === lines1.length && i2 === lines2.length) {
                 // Reached end on both.

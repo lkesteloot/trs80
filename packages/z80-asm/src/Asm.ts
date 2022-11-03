@@ -278,6 +278,9 @@ export class FileInfo {
     }
 }
 
+/**
+ * A line from a source file that was assembled, along with all associated information.
+ */
 export class AssembledLine {
     // Source of line.
     public readonly fileInfo: FileInfo;
@@ -300,6 +303,12 @@ export class AssembledLine {
     public readonly symbolsReferenced: SymbolAppearance[] = [];
     // The next address, if it was explicitly specified.
     private specifiedNextAddress: number | undefined;
+    // Line that this line was expanded from (say, a macro or include statement).
+    public expandedFrom: AssembledLine | undefined;
+    // If this line was expanded (macro or include), the binar of the expanded lines
+    // go here. We avoid putting them in "binary" since that would be redundant
+    // for the top-level list of lines.
+    public expandedBinary: number[] = [];
 
     constructor(fileInfo: FileInfo, lineNumber: number | undefined, line: string) {
         this.fileInfo = fileInfo;
@@ -346,6 +355,19 @@ export class AssembledLine {
         }
 
         return true;
+    }
+
+    /**
+     * Return the binary for this line, for display purposes for a single
+     * file (not listing).
+     */
+    public getSourceFileBinary(): number[] {
+        if (this.binary.length > 0 && this.expandedBinary.length > 0) {
+            throw new Error("Can't have both kinds of binaries");
+        }
+
+        // Priority doesn't matter.
+        return this.binary.length > 0 ? this.binary : this.expandedBinary;
     }
 }
 
@@ -517,6 +539,18 @@ export class Asm {
             }
         };
         computeBeginEndLineNumbers(sourceFile.fileInfo);
+
+        // Go back and insert binary for expanded lines (macros, includes). This only affects
+        // the IDE, since actually generated code uses the asm-level array of lines.
+        for (const line of this.assembledLines) {
+            let orig = line;
+            while (orig.expandedFrom !== undefined) {
+                orig = orig.expandedFrom;
+            }
+            if (orig !== line) {
+                orig.expandedBinary.push(... line.binary);
+            }
+        }
 
         // Fill in symbols of each line.
         for (const scope of this.scopes) {
@@ -1530,6 +1564,7 @@ class LineParser {
         const macro = this.pass.asm.macros.get(mnemonic);
         if (macro !== undefined) {
             if (this.pass.passNumber > 1) {
+                // We expand on pass 1, so just check for error here.
                 if (this.assembledLine.listingLineNumber > macro.endmListingLineNumber) {
                     // Valid, used after definition. Skip macro call.
                     this.skipToEndOfLine();
@@ -1580,8 +1615,13 @@ class LineParser {
                     return;
                 }
 
-                const assembledLines = macro.lines.map((line) =>
-                    new AssembledLine(this.assembledLine.fileInfo, undefined, this.performMacroSubstitutions(line, macro, args)));
+                // Insert the macro, expanding the parameters.
+                const assembledLines = macro.lines.map((line) => {
+                    const a = new AssembledLine(this.assembledLine.fileInfo, undefined,
+                        this.performMacroSubstitutions(line, macro, args));
+                    a.expandedFrom = this.assembledLine;
+                    return a;
+                });
                 this.pass.insertLines(assembledLines);
                 return;
             }

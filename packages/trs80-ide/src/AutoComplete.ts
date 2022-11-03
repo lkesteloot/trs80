@@ -192,7 +192,8 @@ export function customCompletions(context: CompletionContext): CompletionResult 
         const descriptionMatches = searchWords.length > 0 &&
             matchesDescription(searchWords, doc.description);
         for (const directive of doc.directives.values()) {
-            if (descriptionMatches || directive.toLowerCase().startsWith(search)) {
+            const d = directive.toLowerCase();
+            if (d !== search && (descriptionMatches || d.startsWith(search))) {
                 options.push({
                     label: directive,
                     info: doc.description,

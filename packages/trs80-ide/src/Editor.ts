@@ -176,17 +176,18 @@ function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] 
                     break;
                 }
 
+                const binary = assembledLine.getSourceFileBinary();
                 if (assembledLine.isData()) {
                     if (firstDataLineNumber === undefined) {
                         firstDataLineNumber = lineNumber;
                     }
                     lastDataLineNumber = lineNumber;
-                } else if (assembledLine.binary.length > 0) {
+                } else if (binary.length > 0) {
                     // Reached instruction.
                     break;
                 }
 
-                byteCount += assembledLine.binary.length;
+                byteCount += binary.length;
                 if (byteCount >= 1024) {
                     break;
                 }
@@ -1091,7 +1092,7 @@ export class Editor {
             const line = this.view.state.doc.lineAt(r.from);
             const lineNumber = line.number;
             const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
-            if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+            if (assembledLine !== undefined && assembledLine.getSourceFileBinary().length > 0) {
                 this.toggleBreakpoint(this.view, line.from);
             }
         });
@@ -1130,7 +1131,7 @@ export class Editor {
             while (itr.value !== null) {
                 const lineNumber = this.view.state.doc.lineAt(itr.from).number;
                 const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
-                if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+                if (assembledLine !== undefined && assembledLine.getSourceFileBinary().length > 0) {
                     breakpoints[assembledLine.address] = 1;
                     count += 1;
                 }
@@ -1266,7 +1267,7 @@ export class Editor {
                 const results = this.getAssemblyResults(view.state);
                 const lineNumber = view.state.doc.lineAt(line.from).number;
                 const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
-                if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+                if (assembledLine !== undefined && assembledLine.getSourceFileBinary().length > 0) {
                     const hasBreakpoint = this.posHasBreakpoint(view, line.from);
                     return new InfoGutter(toHexWord(assembledLine.address), [
                         "gutter-address",
@@ -1284,7 +1285,7 @@ export class Editor {
                     const results = this.getAssemblyResults(view.state);
                     const lineNumber = view.state.doc.lineAt(line.from).number;
                     const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
-                    if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+                    if (assembledLine !== undefined && assembledLine.getSourceFileBinary().length > 0) {
                         this.toggleBreakpoint(view, line.from);
                     }
                     return true;
@@ -1304,8 +1305,8 @@ export class Editor {
                 const results = this.getAssemblyResults(view.state);
                 const lineNumber = view.state.doc.lineAt(line.from).number;
                 const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
-                if (assembledLine !== undefined && assembledLine.binary.length > 0) {
-                    let bytes = assembledLine.binary;
+                if (assembledLine !== undefined && assembledLine.getSourceFileBinary().length > 0) {
+                    let bytes = assembledLine.getSourceFileBinary();
                     const tooBig = bytes.length > 4;
                     if (tooBig) {
                         bytes = bytes.slice(0, 3);
@@ -1429,7 +1430,7 @@ export class Editor {
         const pos = this.view.state.selection.main.head;
         const line = this.view.state.doc.lineAt(pos);
         const assembledLine = results.sourceFile.assembledLines[line.number - 1];
-        if (assembledLine !== undefined && assembledLine.binary.length > 0) {
+        if (assembledLine !== undefined && assembledLine.getSourceFileBinary().length > 0) {
             return assembledLine.address;
         } else {
             return undefined;
