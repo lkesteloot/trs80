@@ -7,6 +7,9 @@ import {isOpcodeTemplateOperand, mnemonicMap, OpcodeTemplateOperand, OpcodeVaria
  */
 const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
 
+// Title-definition pseudo instructions.
+const PSEUDO_TITLE = new Set([".title"]);
+
 // Byte-defining pseudo instructions.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z54.htm
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z51.htm
@@ -78,6 +81,10 @@ export interface AsmDirectiveDoc {
  */
 export function getAsmDirectiveDocs(): AsmDirectiveDoc[] {
     return [
+        {
+            directives: PSEUDO_TITLE,
+            description: "Set the title of the program, as a string.",
+        },
         {
             directives: PSEUDO_DEF_BYTES,
             description: "Define a sequence of bytes, text, or strings.",
@@ -717,8 +724,13 @@ class Pass {
 
     /**
      * Rewind or skip ahead to this location. This line will be parsed next.
+     * Will throw if going backward in listing.
      */
     public setListingLineNumber(listingLineNumber: number): void {
+        // Don't allow going backwards, that can cause infinite loop.
+        if (listingLineNumber < this.listingLineNumber) {
+            throw new Error(`Can't go backward in listing (${listingLineNumber} < ${this.listingLineNumber})`);
+        }
         this.listingLineNumber = listingLineNumber;
     }
 
@@ -844,7 +856,10 @@ class LineParser {
             }
         }
         if (mnemonic !== undefined && this.previousToken > 0) {
-            if (PSEUDO_DEF_BYTES.has(mnemonic)) {
+            if (PSEUDO_TITLE.has(mnemonic)) {
+                // We don't do anything with this.
+                this.readString();
+            } else if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
                     const s = this.readString();
                     if (s !== undefined) {
@@ -1051,10 +1066,17 @@ class LineParser {
                 if (this.pass.passNumber > 1) {
                     // Skip macro definition.
                     if (macro === undefined) {
-                        throw new Error("Macro \"" + name + "\" not found in pass " + this.pass.passNumber);
+                        // The macro definition is missing. There must have been an error in it
+                        // in a previous pass.
+                        return;
                     }
-
-                    this.pass.setListingLineNumber(macro.endmListingLineNumber + 1);
+                    if (macro.macroListingLineNumber === this.assembledLine.lineNumber) {
+                        this.pass.setListingLineNumber(macro.endmListingLineNumber + 1);
+                    } else {
+                        // Can't skip, this isn't the right definition. The macro must have been
+                        // defined multiple times in pass 1. Let this keep going and generate
+                        // errors in the body of the macro.
+                    }
                     return;
                 } else {
                     // Can't redefine macro.
@@ -1098,7 +1120,7 @@ class LineParser {
                         const assembledLine = this.pass.getNextLine();
                         if (assembledLine === undefined) {
                             this.assembledLine.error = "macro has no endm";
-                            break;
+                            return;
                         }
 
                         const lineParser = new LineParser(this.pass, assembledLine);
@@ -1115,10 +1137,8 @@ class LineParser {
                     }
 
                     if (endmListingLineNumber === undefined) {
-                        // Error in macro. Try to recover.
-                        endmListingLineNumber = macroListingLineNumber;
-                        lines.splice(0, lines.length);
-                        this.pass.setListingLineNumber(macroListingLineNumber + 1);
+                        // Can't happen.
+                        throw new Error("endmListingLineNumber is undefined");
                     }
 
                     this.pass.asm.macros.set(name, new Macro(name, tag, params,
