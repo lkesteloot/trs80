@@ -233,9 +233,16 @@ entry points can be specified with the `--entry` flag:
     % trs80-tool disasm --entry 0x0000,0x3799,0x377B ~/Downloads/model3.rom
 
 Note that if any entry point is listed, then 0x0000 must be specified again if
-applicable. A listing file can instead be generated with the `--listing` flag:
+applicable. The output can be controlled with `--no-labels` to not create labels
+for jump targets and `--no-known` to not reference known ROM addresses. The
+`--hex-format` flag controls the format of hex numbers, which can be `c`
+for `0x12` (the default), `dollar` for `$12`, or `h` for `12h`.
+
+A listing file can instead be generated with the `--listing` flag:
 
     % trs80-tool disasm --listing program.cmd
+
+The `--no-binary` flag will suppress opcode binary in the listing.
 
 ## `run`
 

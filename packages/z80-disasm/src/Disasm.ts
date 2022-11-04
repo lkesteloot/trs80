@@ -3,6 +3,13 @@ import { isDataThirdByte, opcodeMap } from "z80-inst";
 import {Instruction} from "./Instruction.js";
 import {Preamble} from "./Preamble.js";
 
+// How to format hex numbers.
+export enum HexFormat {
+    C,  // 0x1234
+    DOLLAR, // $1234
+    H, // 1234H, prepends a 0 if it starts with a letter.
+}
+
 // Whether to dump statistics to the console, for debugging.
 const PRINT_STATISTICS = false;
 
@@ -31,6 +38,34 @@ function isTextTerminator(b: number): boolean {
 }
 
 /**
+ * Convert the number to hex, using the specified format.
+ */
+export function toFormattedHex(n: number, digits: number, hexFormat: HexFormat): string {
+    let h = toHex(n, digits);
+
+    switch (hexFormat) {
+        case HexFormat.C:
+            h = "0x" + h;
+            break;
+        case HexFormat.DOLLAR:
+            h = "$" + h;
+            break;
+        case HexFormat.H: {
+            // Must prefix with zero if it starts with a letter.
+            const ch = h.charAt(0).toUpperCase();
+            if (ch >= "A" && ch <= "F") {
+                h = "0" + h;
+            }
+            h = h + "h";
+            break;
+        }
+    }
+
+    return h;
+}
+
+
+/**
  * Main class for disassembling a binary.
  */
 export class Disasm {
@@ -53,6 +88,32 @@ export class Disasm {
      * Map from an opcode (like 0xCF for RST 8) to the number of additional data bytes to gobble up.
      */
     private opcodeToAdditionDataLength = new Map<number,number>();
+    private createLabels = true;
+    private useKnownLabels = true;
+    private hexFormat: HexFormat = HexFormat.C;
+
+    /**
+     * Whether to create labels for destination of jumps. If false, the address is always
+     * used directly. Defaults to true.
+     */
+    public setCreateLabels(createLabels: boolean): void {
+        this.createLabels = createLabels;
+    }
+
+    /**
+     * Whether to use the known labels that were passed in. If false, just uses the
+     * address directly. Defaults to true.
+     */
+    public setUseKnownLabels(useKnownLabels: boolean): void {
+        this.useKnownLabels = useKnownLabels;
+    }
+
+    /**
+     * Set the format used for hex numbers.
+     */
+    public setHexFormat(hexFormat: HexFormat): void {
+        this.hexFormat = hexFormat;
+    }
 
     /**
      * Add a chunk of binary somewhere in memory.
@@ -109,7 +170,7 @@ export class Disasm {
         while (instruction === undefined) {
             let value = map.get(byte);
             if (value === undefined) {
-                const stringParams = bytes.map((n) => "0x" + toHexByte(n));
+                const stringParams = bytes.map((n) => this.toHexByte(n));
                 instruction = new Instruction(startAddress, bytes, ".byte", stringParams, stringParams, false);
             } else if (value instanceof Map) {
                 // Descend to sub-map.
@@ -142,7 +203,7 @@ export class Disasm {
                                 jumpTarget = nnnn;
                                 target = TARGET;
                             } else {
-                                target = "0x" + toHex(nnnn, 4);
+                                target = this.toHexWord(nnnn);
 
                                 // Only do this if the destination register is HL, since that's
                                 // often an address and other registers are more often lengths.
@@ -164,7 +225,7 @@ export class Disasm {
                         if (pos >= 0) {
                             const nn = thirdDataByte !== undefined ? thirdDataByte : next();
                             thirdDataByte = undefined;
-                            arg = arg.substr(0, pos) + "0x" + toHex(nn, 2) + arg.substr(pos + 2);
+                            arg = arg.substr(0, pos) + this.toHexByte(nn) + arg.substring(pos + 2);
                             changed = true;
                         }
 
@@ -173,14 +234,14 @@ export class Disasm {
                         if (pos >= 0) {
                             const offset = signedByte(next());
                             jumpTarget = address + offset;
-                            arg = arg.substr(0, pos) + TARGET + arg.substr(pos + 6);
+                            arg = arg.substring(0, pos) + TARGET + arg.substring(pos + 6);
                             changed = true;
                         }
                     } while (changed);
 
                     // Our data has the hex without the prefix, which breaks the assembler.
                     if (value.mnemonic === "rst") {
-                        arg = "0x" + toHexByte(parseInt(arg, 16));
+                        arg = this.toHexByte(parseInt(arg, 16));
                     }
 
                     args[i] = arg;
@@ -274,7 +335,7 @@ export class Disasm {
                         parts.push("\"" + char + "\"");
                     }
                 } else {
-                    parts.push("0x" + toHexByte(byte));
+                    parts.push(this.toHexByte(byte));
                 }
             }
         } else {
@@ -287,7 +348,7 @@ export class Disasm {
             }
 
             for (address = startAddress; address < endAddress; address++) {
-                parts.push("0x" + toHexByte(this.memory[address]));
+                parts.push(this.toHexByte(this.memory[address]));
             }
         }
 
@@ -456,22 +517,24 @@ export class Disasm {
         }
 
         // Assign labels.
-        let labelCounter = 1;
-        for (const instruction of instructions) {
-            let label = this.knownLabels.get(instruction.address);
-            const sources = jumpTargetMap.get(instruction.address) ?? [];
-            if (sources.length !== 0) {
-                if (label === undefined) {
-                    // Make anonymous label.
-                    label = "label" + labelCounter++;
+        if (this.createLabels) {
+            let labelCounter = 1;
+            for (const instruction of instructions) {
+                let label = this.useKnownLabels ? this.knownLabels.get(instruction.address) : undefined;
+                const sources = jumpTargetMap.get(instruction.address) ?? [];
+                if (sources.length !== 0) {
+                    if (label === undefined) {
+                        // Make anonymous label.
+                        label = "label" + labelCounter++;
+                    }
                 }
-            }
-            if (label !== undefined) {
-                instruction.label = label;
+                if (label !== undefined) {
+                    instruction.label = label;
 
-                // Replace pseudo-target in instruction.
-                for (const source of sources) {
-                    source.replaceArgVariable(TARGET, label);
+                    // Replace pseudo-target in instruction.
+                    for (const source of sources) {
+                        source.replaceArgVariable(TARGET, label);
+                    }
                 }
             }
         }
@@ -507,9 +570,9 @@ export class Disasm {
      */
     private replaceTargetAddress(instruction: Instruction): void {
         if (instruction.jumpTarget !== undefined) {
-            let label = this.knownLabels.get(instruction.jumpTarget);
+            let label = this.useKnownLabels ? this.knownLabels.get(instruction.jumpTarget) : undefined;
             if (label === undefined) {
-                label = "0x" + toHexWord(instruction.jumpTarget);
+                label = this.toHexWord(instruction.jumpTarget);
             }
 
             instruction.replaceArgVariable(TARGET, label);
@@ -521,5 +584,19 @@ export class Disasm {
      */
     private getAdditionalDataLength(instruction: Instruction): number {
         return this.opcodeToAdditionDataLength.get(instruction.bin[0]) ?? 0;
+    }
+
+    /**
+     * Convert the 8-bit number to hex, using the configured format.
+     */
+    private toHexByte(n: number): string {
+        return toFormattedHex(n, 2, this.hexFormat);
+    }
+
+    /**
+     * Convert the 16-bit number to hex, using the configured format.
+     */
+    private toHexWord(n: number): string {
+        return toFormattedHex(n, 4, this.hexFormat);
     }
 }

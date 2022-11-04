@@ -47,7 +47,7 @@ import {
 } from "trs80-cassette";
 import {version} from "./version.js";
 import {addModel3RomEntryPoints, disasmForTrs80, disasmForTrs80Program} from "trs80-disasm";
-import {Disasm, instructionsToText} from "z80-disasm";
+import {Disasm, HexFormat, instructionsToText} from "z80-disasm";
 import chalk from "chalk";
 import {
     BasicLevel,
@@ -603,7 +603,7 @@ function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: number[
         disasm.addEntryPoint(entryPoint);
     }
     const instructions = disasm.disassemble()
-    const text = instructionsToText(instructions, makeListing).join("\n") + "\n";
+    const text = instructionsToText(instructions, { makeListing }).join("\n") + "\n";
     const outBinary = new TextEncoder().encode(text);
     const description = "Disassembled " + (trs80File.className === "CmdProgram" ? "CMD program" : "system program");
 
@@ -1210,7 +1210,8 @@ function hexdump(filename: string, collapse: boolean): void {
 /**
  * Handle the "disasm" command.
  */
-function disasm(filename: string, makeListing: boolean, org: number | undefined, entryPoints: number[]) {
+function disasm(filename: string, makeListing: boolean, org: number | undefined, entryPoints: number[],
+                createLabels: boolean, useKnownLabels: boolean, showBinary: boolean, hexFormat: HexFormat) {
     // Read the file.
     let buffer;
     try {
@@ -1242,13 +1243,17 @@ function disasm(filename: string, makeListing: boolean, org: number | undefined,
         return;
     }
 
+    disasm.setCreateLabels(createLabels);
+    disasm.setUseKnownLabels(useKnownLabels);
+    disasm.setHexFormat(hexFormat);
+
     // Add extra entry points, if any.
     for (const entryPoint of entryPoints) {
         disasm.addEntryPoint(entryPoint);
     }
 
     const instructions = disasm.disassemble()
-    const text = instructionsToText(instructions, makeListing).join("\n");
+    const text = instructionsToText(instructions, { makeListing, showBinary, hexFormat }).join("\n");
     console.log(text);
 }
 
@@ -2273,11 +2278,22 @@ function main() {
         .option("--listing", "generate listing file instead of assembly")
         .option('--org <address>', "where to assume the binary is loaded")
         .option("--entry <addresses>", "add entry points of binary (comma-separated)")
+        .option("--no-labels", "do not generate labels for jump targets")
+        .option("--no-known", "do not use labels for known ROM locations")
+        .option("--no-binary", "do not show program binary in listing")
+        .option("--hex-format <format>", "format for hex numbers: c for 0x12, dollar for $12, and h for 12h",
+            "c")
         .action((infile, options) => {
             setColorLevel(program.opts().color);
             const org = options.org === undefined ? undefined : parseInt(options.org);
             const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
-            disasm(infile, options.listing, org, entryPoints);
+            const hexFormatString = options.hexFormat as string;
+            if (hexFormatString !== "c" && hexFormatString !== "dollar" && hexFormatString !== "h") {
+                console.log("Invalid hex format: " + hexFormatString);
+                process.exit(1);
+            }
+            const hexFormat = hexFormatString === "c" ? HexFormat.C : hexFormatString === "dollar" ? HexFormat.DOLLAR : HexFormat.H;
+            disasm(infile, options.listing, org, entryPoints, options.labels, options.known, options.binary, hexFormat);
         });
     program
         .command("run [program...]")
