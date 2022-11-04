@@ -287,6 +287,16 @@ The `help` command shows more specific information about other commands:
 
 # Change log
 
+## 2.4.0
+
+* Add `repl` command.
+* Add `--no-labels`, `--no-known`, `--hex-format`, and `--no-binary` flags
+  to the `disasm` command.
+
+## 2.3.1
+
+* Use braille for graphics characters.
+
 ## 2.3.0
 
 * Add support for TRSDOS for Model I and 4, and for LDOS.
