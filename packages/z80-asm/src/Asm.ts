@@ -322,10 +322,6 @@ export class AssembledLine {
     private specifiedNextAddress: number | undefined;
     // Line that this line was expanded from (say, a macro or include statement).
     public expandedFrom: AssembledLine | undefined;
-    // If this line was expanded (macro or include), the binar of the expanded lines
-    // go here. We avoid putting them in "binary" since that would be redundant
-    // for the top-level list of lines.
-    public expandedBinary: number[] = [];
 
     constructor(fileInfo: FileInfo, lineNumber: number | undefined, line: string) {
         this.fileInfo = fileInfo;
@@ -375,16 +371,18 @@ export class AssembledLine {
     }
 
     /**
-     * Return the binary for this line, for display purposes for a single
-     * file (not listing).
+     * A mostly shallow clone of the object.
      */
-    public getSourceFileBinary(): number[] {
-        if (this.binary.length > 0 && this.expandedBinary.length > 0) {
-            throw new Error("Can't have both kinds of binaries");
-        }
+    public clone(): AssembledLine {
+        const c = Object.assign(Object.create(Object.getPrototypeOf(this)), this) as AssembledLine;
 
-        // Priority doesn't matter.
-        return this.binary.length > 0 ? this.binary : this.expandedBinary;
+        // The binary array is extended, so must be copied here.
+        c.binary = c.binary.slice();
+
+        // Keep track of what we were cloned from.
+        c.expandedFrom = this;
+
+        return c;
     }
 }
 
@@ -524,8 +522,9 @@ export class Asm {
             return undefined;
         }
 
-        // This array will grow as we include files and expand macros.
-        this.assembledLines = sourceFile.assembledLines.slice();
+        // This array will grow as we include files and expand macros. We must clone
+        // each line because we modify the source lines and the asm lines differently.
+        this.assembledLines = sourceFile.assembledLines.map(x => x.clone());
 
         // FIRST PASS. Expand include files and macros, assemble instructions so that each
         // label knows where it'll be.
@@ -557,18 +556,6 @@ export class Asm {
         };
         computeBeginEndLineNumbers(sourceFile.fileInfo);
 
-        // Go back and insert binary for expanded lines (macros, includes). This only affects
-        // the IDE, since actually generated code uses the asm-level array of lines.
-        for (const line of this.assembledLines) {
-            let orig = line;
-            while (orig.expandedFrom !== undefined) {
-                orig = orig.expandedFrom;
-            }
-            if (orig !== line) {
-                orig.expandedBinary.push(... line.binary);
-            }
-        }
-
         // Fill in symbols of each line.
         for (const scope of this.scopes) {
             for (const symbol of scope.symbols.values()) {
@@ -578,6 +565,23 @@ export class Asm {
                 }
                 for (const reference of symbol.references) {
                     this.assembledLines[reference.lineNumber].symbolsReferenced.push(reference);
+                }
+            }
+        }
+
+        // Go back and insert binary for expanded lines (macros, includes). This only affects
+        // the IDE, since actually generated code uses the asm-level array of lines.
+        for (const line of this.assembledLines) {
+            // Find root line. This will go from expanded macro line to the macro line
+            // in the asm, and from there to the original line in the source.
+            let orig = line;
+            while (orig.expandedFrom !== undefined) {
+                orig = orig.expandedFrom;
+            }
+            if (orig !== line) {
+                orig.binary.push(...line.binary);
+                if (orig.error === undefined && line.error !== undefined) {
+                    orig.error = line.error;
                 }
             }
         }
