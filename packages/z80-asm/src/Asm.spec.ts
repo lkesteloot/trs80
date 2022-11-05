@@ -296,7 +296,19 @@ bar     macro
         ld a,5
         endm`,
             [0x3E, 0x05]);
-    })
+    });
+    it("macro local label", () => {
+        runMacroTest(`
+foo     macro #abc,?def
+?def:
+        ld a,#abc
+        jr z,?def
+        endm
+
+        foo 5
+        foo 6`,
+            [0x3E, 0x05, 0x28, 0xFC, 0x3E, 0x06, 0x28, 0xFC]);
+    });
 });
 
 console.log(successCount + " successful out of " + testCount);

@@ -420,6 +420,8 @@ class Macro {
     public readonly tag: string;
     // Parameter names, not including the tags.
     public readonly params: string[];
+    // Label names, not including the ?.
+    public readonly labels: string[];
     // Line number of ".macro" in the listing.
     public readonly macroListingLineNumber: number;
     // Line number of ".endm" in the listing.
@@ -427,10 +429,12 @@ class Macro {
     // Lines of text, not including .macro or endm.
     public readonly lines: string[];
 
-    constructor(name: string, tag: string, params: string[], macroListingLineNumber: number, endmListingLineNumber: number, lines: string[]) {
+    constructor(name: string, tag: string, params: string[], labels: string[],
+                macroListingLineNumber: number, endmListingLineNumber: number, lines: string[]) {
         this.name = name;
         this.tag = tag;
         this.params = params;
+        this.labels = labels;
         this.macroListingLineNumber = macroListingLineNumber;
         this.endmListingLineNumber = endmListingLineNumber;
         this.lines = lines;
@@ -721,6 +725,8 @@ class Pass {
     // Stack of nested conditionals. The last entry is for the most nested if/else.
     // The code is assembled if no element in this array is false.
     public readonly conditionals: Conditional[] = [];
+    // Counter for automatically-generated labels in macros.
+    public labelCounter = 1;
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
@@ -1231,13 +1237,18 @@ class LineParser {
 
                     // Parse parameters.
                     const params: string[] = [];
+                    const labels: string[] = [];
                     if (!this.isEndOfLine()) {
                         // See if the first parameter specifies a tag. It's okay to not have one.
-                        tag = this.foundOneOfChar(MACRO_TAGS) ?? tag;
+                        let thisTag = this.foundOneOfChar(MACRO_TAGS) ?? tag;
+                        if (thisTag !== "?") {
+                            // We reserve ? for labels.
+                            tag = thisTag;
+                        }
 
                         do {
-                            const thisTag = this.foundOneOfChar(MACRO_TAGS) ?? tag;
-                            if (thisTag !== tag) {
+                            thisTag = this.foundOneOfChar(MACRO_TAGS) ?? tag;
+                            if (thisTag !== "?" && thisTag !== tag) {
                                 this.assembledLine.error = "Inconsistent tags in macro: " + tag + " and " + thisTag;
                                 return;
                             }
@@ -1248,7 +1259,11 @@ class LineParser {
                                 return;
                             }
 
-                            params.push(param);
+                            if (thisTag === "?") {
+                                labels.push(param);
+                            } else {
+                                params.push(param);
+                            }
                         } while (this.foundChar(","));
 
                         // Make sure there's no extra junk.
@@ -1285,7 +1300,7 @@ class LineParser {
                         throw new Error("endmListingLineNumber is undefined");
                     }
 
-                    this.pass.asm.macros.set(name, new Macro(name, tag, params,
+                    this.pass.asm.macros.set(name, new Macro(name, tag, params, labels,
                         macroListingLineNumber, endmListingLineNumber, lines));
 
                     // Don't want to parse any more of the original macro line.
@@ -1649,10 +1664,15 @@ class LineParser {
                     return;
                 }
 
+                // Come up with unique labels.
+                const labels: string[] = [];
+                for (const label of macro.labels) {
+                    labels.push("tmp" + this.pass.labelCounter++);
+                }
                 // Insert the macro, expanding the parameters.
                 const assembledLines = macro.lines.map((line) => {
                     const a = new AssembledLine(this.assembledLine.fileInfo, undefined,
-                        this.performMacroSubstitutions(line, macro, args));
+                        this.performMacroSubstitutions(line, macro, args, labels));
                     a.expandedFrom = this.assembledLine;
                     return a;
                 });
@@ -1785,13 +1805,13 @@ class LineParser {
     /**
      * Substitute macro parameters.
      */
-    private performMacroSubstitutions(line: string, macro: Macro, args: string[]): string {
+    private performMacroSubstitutions(line: string, macro: Macro, args: string[], labels: string[]): string {
         const parts: string[] = [];
 
         let i = 0;
         while (i < line.length) {
             const ch = line.charAt(i);
-            if (ch === macro.tag) {
+            if (ch === macro.tag || ch === "?") {
                 const beginName = i + 1;
                 let endName = beginName;
                 while (endName < line.length && isLegalIdentifierCharacter(line.charAt(endName), endName === beginName)) {
@@ -1799,9 +1819,11 @@ class LineParser {
                 }
 
                 const name = line.substring(beginName, endName);
-                const argIndex = macro.params.indexOf(name);
+                const params = ch === "?" ? macro.labels : macro.params;
+                const subs = ch === "?" ? labels : args;
+                const argIndex = params.indexOf(name);
                 if (argIndex >= 0) {
-                    parts.push(args[argIndex]);
+                    parts.push(subs[argIndex]);
                     i = endName;
                 } else {
                     parts.push(ch);
