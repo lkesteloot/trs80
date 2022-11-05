@@ -202,12 +202,18 @@ describe("number parsing", () => {
     }
 });
 
-function runMacroTest(testLines: string[], expectedOpcodes: number[]): void {
+function runMacroTest(testLines: string | string[], expectedOpcodes: number[]): void {
+    if (typeof testLines === "string") {
+        testLines = testLines.split("\n");
+    }
     const asm = new Asm(linesToFileSystem(testLines));
     asm.assembleFile("unused.asm");
     const opcodes: number[] = [];
     for (const assembledLine of asm.assembledLines) {
-        opcodes.splice(opcodes.length, 0, ... assembledLine.binary);
+        if (assembledLine.error !== undefined) {
+            throw new Error(assembledLine.error);
+        }
+        opcodes.push(... assembledLine.binary);
     }
     expect(opcodes).to.deep.equal(expectedOpcodes);
 }
@@ -278,6 +284,19 @@ describe("assemble", () => {
             "    foo \"A,B;C\"",
         ], [0x41, 0x2C, 0x42, 0x3B, 0x43, 0x41, 0x2C, 0x42, 0x3B, 0x43]);
     });
+    it("macro def after use", () => {
+        runMacroTest(`
+foo     macro
+        ld a,5
+        endm
+
+        foo
+
+bar     macro
+        ld a,5
+        endm`,
+            [0x3E, 0x05]);
+    })
 });
 
 console.log(successCount + " successful out of " + testCount);

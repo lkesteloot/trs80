@@ -1208,13 +1208,13 @@ class LineParser {
                 const macro = this.pass.asm.macros.get(name);
 
                 if (this.pass.passNumber > 1) {
-                    // Skip macro definition.
                     if (macro === undefined) {
                         // The macro definition is missing. There must have been an error in it
                         // in a previous pass.
                         return;
                     }
-                    if (macro.macroListingLineNumber === this.assembledLine.lineNumber) {
+                    // Skip macro definition.
+                    if (macro.macroListingLineNumber === this.assembledLine.listingLineNumber) {
                         this.pass.setListingLineNumber(macro.endmListingLineNumber + 1);
                     } else {
                         // Can't skip, this isn't the right definition. The macro must have been
@@ -1783,7 +1783,7 @@ class LineParser {
     }
 
     /**
-     * Substitute macro parameters and expand {} expressions.
+     * Substitute macro parameters.
      */
     private performMacroSubstitutions(line: string, macro: Macro, args: string[]): string {
         const parts: string[] = [];
