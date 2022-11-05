@@ -1166,8 +1166,10 @@ class LineParser {
                 }
             } else if (PSEUDO_FILL.has(mnemonic)) {
                 const length = this.readExpression(true);
-                if (length === undefined || length <= 0) {
+                if (length === undefined) {
                     this.assembledLine.error = "length value expected";
+                } else if (length < 0) {
+                    this.assembledLine.error = "length cannot be negative";
                 } else {
                     let fillChar: number | undefined;
                     if (this.foundChar(",")) {
@@ -1628,27 +1630,39 @@ class LineParser {
                 const args: string[] = [];
                 if (!this.isEndOfLine()) {
                     do {
-                        const begin = this.column;
-                        while (this.column < this.line.length && !this.isChar(",") && !this.isChar(";")) {
-                            if (this.isChar("\"") || this.isChar("'")) {
-                                const str = this.readString();
-                                if (str === undefined) {
-                                    // Error is already set.
-                                    return;
-                                }
-                            } else {
+                        let arg: string | undefined;
+                        if (this.isChar("\"") || this.isChar("'")) {
+                            const begin = this.column;
+                            const str = this.readString();
+                            if (str === undefined) {
+                                // Error is already set.
+                                return;
+                            }
+                            arg = this.line.substring(begin, this.column).trim();
+                        } else if (this.isChar("<")) {
+                            this.column++;
+                            const begin = this.column;
+                            while (this.column < this.line.length && this.line[this.column] !== ">") {
                                 this.column++;
                             }
-                        }
-                        // Back up over trailing spaces.
-                        while (this.column > begin && isWhitespace(this.line.charAt(this.column - 1))) {
-                            this.column--;
+                            if (this.column === this.line.length) {
+                                this.assembledLine.error = "Missing > after < in macro argument";
+                                return;
+                            }
+                            arg = this.line.substring(begin, this.column);
+                            this.column++;
+                            this.skipWhitespace();
+                        } else {
+                            // Read to next comma.
+                            const begin = this.column;
+                            while (this.column < this.line.length && !this.isChar(",") && !this.isChar(";")) {
+                                this.column++;
+                            }
+                            arg = this.line.substring(begin, this.column).trim();
+                            this.skipWhitespace();
                         }
 
-                        const arg = this.line.substring(begin, this.column);
                         args.push(arg);
-
-                        this.skipWhitespace();
                     } while (this.foundChar(","));
                 }
 
@@ -1716,7 +1730,11 @@ class LineParser {
                             match = false;
                         }
                     } else if (isOpcodeTemplateOperand(token)) {
-                        // Parse.
+                        // Parse. We don't allow a starting parenthesis here because
+                        // "ld a,(5)" would be ambiguous. One option here is to always
+                        // try "ld a,(nnnn)" first, then try "ld a,n" and allow parentheses,
+                        // so that "ld a,(1+2)+3" would work. The order of variants is
+                        // not currently guaranteed, though.
                         const value = this.readExpression(false);
                         if (value === undefined) {
                             match = false;
@@ -1999,12 +2017,18 @@ class LineParser {
                 value = subValue;
             }
 
-            op = this.line.substr(this.column, 2);
-            if (op === "<<" || op === ">>") {
-                this.column += 2;
-                this.skipWhitespace();
+            if (this.foundIdentifier("shl", true)) {
+                op = "<<";
+            } else if (this.foundIdentifier("shr", true)) {
+                op = ">>";
             } else {
-                break;
+                op = this.line.substring(this.column, this.column + 2);
+                if (op === "<<" || op === ">>") {
+                    this.column += 2;
+                    this.skipWhitespace();
+                } else {
+                    break;
+                }
             }
         }
 
@@ -2015,7 +2039,13 @@ class LineParser {
      * Read a monadic (unary prefix operator) expression, or undefined if there was an error reading it.
      */
     private readMonadic(): number | undefined {
-        const ch = this.foundOneOfChar(["+", "-", "~", "!"]);
+        let ch = this.foundOneOfChar(["+", "-", "~", "!"]);
+        if (ch === undefined && this.foundIdentifier("low", true)) {
+            ch = "low";
+        }
+        if (ch === undefined && this.foundIdentifier("high", true)) {
+            ch = "high";
+        }
         if (ch !== undefined) {
             const value = this.readMonadic();
             if (value === undefined) {
@@ -2034,6 +2064,12 @@ class LineParser {
 
                 case "!":
                     return !value ? 1 : 0;
+
+                case "low":
+                    return lo(value);
+
+                case "high":
+                    return hi(value);
             }
         } else {
             return this.readAtom();
@@ -2075,11 +2111,9 @@ class LineParser {
                 }
                 switch (identifier) {
                     case "lo":
-                    case "low":
                         return lo(value);
 
                     case "hi":
-                    case "high":
                         return hi(value);
 
                     default:
@@ -2171,6 +2205,21 @@ class LineParser {
             }
             this.column = beforeIndex;
         }
+        // Before we parse the number, we need to look ahead to see
+        // if it ends with O, like 123O.
+        if (base === 10) {
+            const beforeIndex = this.column;
+            while (this.column < this.line.length && parseDigit(this.line[this.column], 8) !== undefined) {
+                this.column++;
+            }
+            if (this.column < this.line.length && this.line[this.column].toUpperCase() === "O" &&
+                // "O" can't be followed by octal digit, or it's not the final character.
+                (this.column === this.line.length || parseDigit(this.line[this.column + 1], 8) === undefined)) {
+
+                base = 8;
+            }
+            this.column = beforeIndex;
+        }
         // And again we need to look for B, like 010010101B. We can't fold this into the
         // above look since a "B" is a legal hex number!
         if (base === 10) {
@@ -2192,6 +2241,9 @@ class LineParser {
         if (base === 10 && this.column + 2 < this.line.length && this.line[this.column] === '0') {
             if (this.line[this.column + 1].toLowerCase() == 'x') {
                 base = 16;
+                this.column += 2;
+            } else if (this.line[this.column + 1].toLowerCase() == 'o') {
+                base = 8;
                 this.column += 2;
             } else if (this.line[this.column + 1].toLowerCase() == 'b' &&
                 // Must check next digit to distinguish from just "0B".
@@ -2232,6 +2284,15 @@ class LineParser {
                 if (base !== 16) {
                     if (this.assembledLine.error === undefined) {
                         this.assembledLine.error = "found H at end of non-hex number: " + this.line.substring(startIndex, this.column + 1);
+                    }
+                    return undefined;
+                }
+                this.column++;
+            } else if (baseChar === "O") {
+                // Check for programmer errors.
+                if (base !== 8) {
+                    if (this.assembledLine.error === undefined) {
+                        this.assembledLine.error = "found O at end of non-octal number: " + this.line.substring(startIndex, this.column + 1);
                     }
                     return undefined;
                 }
@@ -2287,6 +2348,21 @@ class LineParser {
         } else {
             return undefined;
         }
+    }
+
+    /**
+     * If the next identifier matches the given one, return it.
+     */
+    private foundIdentifier(identifier: string, toLowerCase: boolean): boolean {
+        const beforeColumn = this.column;
+        const foundIdentifier = this.readIdentifier(false, toLowerCase);
+        if (foundIdentifier === identifier) {
+            return true;
+        }
+
+        // Back up.
+        this.column = beforeColumn;
+        return false;
     }
 
     /**

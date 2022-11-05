@@ -44,12 +44,12 @@ function runTest(testLines: TestLine[]): Asm {
     const assembledLines = sourceFile.assembledLines;
     expect(assembledLines.length).to.be.equal(testLines.length);
     for (let i = 0; i < testLines.length; i++) {
-        expect(assembledLines[i].binary).to.deep.equal(testLines[i].opcodes ?? []);
         if (testLines[i].error) {
             expect(assembledLines[i].error).to.not.be.undefined;
         } else {
             expect(assembledLines[i].error).to.be.undefined;
         }
+        expect(assembledLines[i].binary).to.deep.equal(testLines[i].opcodes ?? []);
     }
     return asm;
 }
@@ -100,6 +100,26 @@ describe("assemble", () => {
         ]);
     });
 
+    it("or 0x55", () => {
+        runTest([
+            { line: " or 0x55", opcodes: [0xF6, 0x55] },
+        ]);
+    });
+
+    // Alternative syntax.
+    it("or a,0x55", () => {
+        runTest([
+            { line: " or a,0x55", opcodes: [0xF6, 0x55] },
+        ]);
+    });
+
+    // Expression that starts with (. Disable this, it's hard to handle and user can add 0+ at the front.
+    // it("ld a,(2+3)+2", () => {
+    //     runTest([
+    //         { line: " ld a,(2+3)+2", opcodes: [0x3E, 0x07] },
+    //     ]);
+    // });
+
     it("ld a,c w/spaces", () => {
         runTest([
             { line: " ld a , c ", opcodes: [0x79] },
@@ -146,7 +166,7 @@ describe("assemble", () => {
     });
 });
 
-describe("number parsing", () => {
+describe("expressions", () => {
     const tests = [
         // Decimal.
         [ '0', 0 ],
@@ -166,6 +186,12 @@ describe("number parsing", () => {
         [ '0b1010', 0b1010 ],
         [ '1010B', 0b1010 ],
 
+        // Octal.
+        [ '0123o', 0o123 ],
+        [ '0777o', 0o777 ],
+        [ '0o123', 0o123 ],
+        [ '0o777', 0o777 ],
+
         // Current address.
         [ '$', 0x1234 ],
         [ '$+1', 0x1235 ],
@@ -184,6 +210,15 @@ describe("number parsing", () => {
         // Operators.
         [ '2 << 3', 16 ],
         [ '16 >> 3', 2 ],
+        [ '2 shl 3', 16 ],
+        [ '16 shr 3', 2 ],
+        [ 'lo(0x1234)', 0x34 ],
+        [ 'low(0x1234)', 0x34 ],
+        [ 'low 0x1234', 0x34 ],
+        [ 'hi(0x1234)', 0x12 ],
+        [ 'high(0x1234)', 0x12 ],
+        [ 'high 0x1234', 0x12 ],
+        [ '(high 0x1234) shr 3', 0x02 ],
     ];
 
     for (const test of tests) {
@@ -308,6 +343,16 @@ foo     macro #abc,?def
         foo 5
         foo 6`,
             [0x3E, 0x05, 0x28, 0xFC, 0x3E, 0x06, 0x28, 0xFC]);
+    });
+    it("macro <arg>", () => {
+        runMacroTest(`
+foo     macro #abc
+        ld #abc
+        endm
+
+        foo <a,5>
+        foo <a,(hl)>`,
+            [0x3E, 0x05, 0x7E]);
     });
 });
 

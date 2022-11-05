@@ -27606,8 +27606,38 @@ const variant_DD_A6_dd_pseudo: OpcodeVariant = {
   }
 };
 
-// and nn
+// and a,nn
 const variant_E6_nn: OpcodeVariant = {
+  "mnemonic": "and",
+  "params": [
+    "a",
+    "nn"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "nn"
+  ],
+  "opcodes": [
+    230,
+    "nn"
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "E6",
+    "undocumented": false,
+    "flags": "00P1++",
+    "byte_count": 2,
+    "with_jump_clock_count": 7,
+    "without_jump_clock_count": 7,
+    "description": "Bitwise AND on A with *.",
+    "instruction": "and *"
+  }
+};
+
+// and nn
+const variant_E6_nn_pseudo: OpcodeVariant = {
   "mnemonic": "and",
   "params": [
     "nn"
@@ -27619,7 +27649,7 @@ const variant_E6_nn: OpcodeVariant = {
     230,
     "nn"
   ],
-  "isPseudo": false,
+  "isPseudo": true,
   "isAlias": false,
   "clr": {
     "opcodes": "E6",
@@ -29302,8 +29332,38 @@ const variant_DD_B6_dd_pseudo: OpcodeVariant = {
   }
 };
 
-// or nn
+// or a,nn
 const variant_F6_nn: OpcodeVariant = {
+  "mnemonic": "or",
+  "params": [
+    "a",
+    "nn"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "nn"
+  ],
+  "opcodes": [
+    246,
+    "nn"
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "F6",
+    "undocumented": false,
+    "flags": "00P0++",
+    "byte_count": 2,
+    "with_jump_clock_count": 7,
+    "without_jump_clock_count": 7,
+    "description": "Bitwise OR on A with *.",
+    "instruction": "or *"
+  }
+};
+
+// or nn
+const variant_F6_nn_pseudo: OpcodeVariant = {
   "mnemonic": "or",
   "params": [
     "nn"
@@ -29315,7 +29375,7 @@ const variant_F6_nn: OpcodeVariant = {
     246,
     "nn"
   ],
-  "isPseudo": false,
+  "isPseudo": true,
   "isAlias": false,
   "clr": {
     "opcodes": "F6",
@@ -29510,13 +29570,16 @@ const variant_FD_B6_dd_pseudo: OpcodeVariant = {
   }
 };
 
-// cp b
+// cp a,b
 const variant_B8: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "b"
   ],
   "tokens": [
+    "a",
+    ",",
     "b"
   ],
   "opcodes": [
@@ -29536,13 +29599,42 @@ const variant_B8: OpcodeVariant = {
   }
 };
 
-// cp c
+// cp b
+const variant_B8_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "b"
+  ],
+  "tokens": [
+    "b"
+  ],
+  "opcodes": [
+    184
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "B8",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 1,
+    "with_jump_clock_count": 4,
+    "without_jump_clock_count": 4,
+    "description": "Subtracts B from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp b"
+  }
+};
+
+// cp a,c
 const variant_B9: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "c"
   ],
   "tokens": [
+    "a",
+    ",",
     "c"
   ],
   "opcodes": [
@@ -29562,13 +29654,42 @@ const variant_B9: OpcodeVariant = {
   }
 };
 
-// cp d
+// cp c
+const variant_B9_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "c"
+  ],
+  "tokens": [
+    "c"
+  ],
+  "opcodes": [
+    185
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "B9",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 1,
+    "with_jump_clock_count": 4,
+    "without_jump_clock_count": 4,
+    "description": "Subtracts C from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp c"
+  }
+};
+
+// cp a,d
 const variant_BA: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "d"
   ],
   "tokens": [
+    "a",
+    ",",
     "d"
   ],
   "opcodes": [
@@ -29588,13 +29709,42 @@ const variant_BA: OpcodeVariant = {
   }
 };
 
-// cp e
+// cp d
+const variant_BA_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "d"
+  ],
+  "tokens": [
+    "d"
+  ],
+  "opcodes": [
+    186
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "BA",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 1,
+    "with_jump_clock_count": 4,
+    "without_jump_clock_count": 4,
+    "description": "Subtracts D from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp d"
+  }
+};
+
+// cp a,e
 const variant_BB: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "e"
   ],
   "tokens": [
+    "a",
+    ",",
     "e"
   ],
   "opcodes": [
@@ -29614,13 +29764,42 @@ const variant_BB: OpcodeVariant = {
   }
 };
 
-// cp h
+// cp e
+const variant_BB_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "e"
+  ],
+  "tokens": [
+    "e"
+  ],
+  "opcodes": [
+    187
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "BB",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 1,
+    "with_jump_clock_count": 4,
+    "without_jump_clock_count": 4,
+    "description": "Subtracts E from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp e"
+  }
+};
+
+// cp a,h
 const variant_BC: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "h"
   ],
   "tokens": [
+    "a",
+    ",",
     "h"
   ],
   "opcodes": [
@@ -29640,13 +29819,42 @@ const variant_BC: OpcodeVariant = {
   }
 };
 
-// cp l
+// cp h
+const variant_BC_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "h"
+  ],
+  "tokens": [
+    "h"
+  ],
+  "opcodes": [
+    188
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "BC",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 1,
+    "with_jump_clock_count": 4,
+    "without_jump_clock_count": 4,
+    "description": "Subtracts H from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp h"
+  }
+};
+
+// cp a,l
 const variant_BD: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "l"
   ],
   "tokens": [
+    "a",
+    ",",
     "l"
   ],
   "opcodes": [
@@ -29666,13 +29874,42 @@ const variant_BD: OpcodeVariant = {
   }
 };
 
-// cp (hl)
+// cp l
+const variant_BD_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "l"
+  ],
+  "tokens": [
+    "l"
+  ],
+  "opcodes": [
+    189
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "BD",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 1,
+    "with_jump_clock_count": 4,
+    "without_jump_clock_count": 4,
+    "description": "Subtracts L from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp l"
+  }
+};
+
+// cp a,(hl)
 const variant_BE: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "(hl)"
   ],
   "tokens": [
+    "a",
+    ",",
     "(",
     "hl",
     ")"
@@ -29694,8 +29931,65 @@ const variant_BE: OpcodeVariant = {
   }
 };
 
-// cp a
+// cp (hl)
+const variant_BE_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "(hl)"
+  ],
+  "tokens": [
+    "(",
+    "hl",
+    ")"
+  ],
+  "opcodes": [
+    190
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "BE",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 1,
+    "with_jump_clock_count": 7,
+    "without_jump_clock_count": 7,
+    "description": "Subtracts (HL) from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp (hl)"
+  }
+};
+
+// cp a,a
 const variant_BF: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "a",
+    "a"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    191
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "BF",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 1,
+    "with_jump_clock_count": 4,
+    "without_jump_clock_count": 4,
+    "description": "Subtracts A from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp a"
+  }
+};
+
+// cp a
+const variant_BF_pseudo: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
     "a"
@@ -29706,7 +30000,7 @@ const variant_BF: OpcodeVariant = {
   "opcodes": [
     191
   ],
-  "isPseudo": false,
+  "isPseudo": true,
   "isAlias": false,
   "clr": {
     "opcodes": "BF",
@@ -29892,8 +30186,38 @@ const variant_FD_BE_dd: OpcodeVariant = {
   }
 };
 
-// cp nn
+// cp a,nn
 const variant_FE_nn: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "a",
+    "nn"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "nn"
+  ],
+  "opcodes": [
+    254,
+    "nn"
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FE",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 7,
+    "without_jump_clock_count": 7,
+    "description": "Subtracts * from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp *"
+  }
+};
+
+// cp nn
+const variant_FE_nn_pseudo: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
     "nn"
@@ -29905,7 +30229,7 @@ const variant_FE_nn: OpcodeVariant = {
     254,
     "nn"
   ],
-  "isPseudo": false,
+  "isPseudo": true,
   "isAlias": false,
   "clr": {
     "opcodes": "FE",
@@ -47779,7 +48103,8 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_DD_A5_pseudo, // and ixl
       variant_DD_A6_dd, // and a,(ix+dd)
       variant_DD_A6_dd_pseudo, // and (ix+dd)
-      variant_E6_nn, // and nn
+      variant_E6_nn, // and a,nn
+      variant_E6_nn_pseudo, // and nn
       variant_FD_A4, // and a,iyh
       variant_FD_A4_pseudo, // and iyh
       variant_FD_A5, // and a,iyl
@@ -47848,7 +48173,8 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_DD_B5_pseudo, // or ixl
       variant_DD_B6_dd, // or a,(ix+dd)
       variant_DD_B6_dd_pseudo, // or (ix+dd)
-      variant_F6_nn, // or nn
+      variant_F6_nn, // or a,nn
+      variant_F6_nn_pseudo, // or nn
       variant_FD_B4, // or a,iyh
       variant_FD_B4_pseudo, // or iyh
       variant_FD_B5, // or a,iyl
@@ -47860,21 +48186,30 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
   [
     "cp",
     [
-      variant_B8, // cp b
-      variant_B9, // cp c
-      variant_BA, // cp d
-      variant_BB, // cp e
-      variant_BC, // cp h
-      variant_BD, // cp l
-      variant_BE, // cp (hl)
-      variant_BF, // cp a
+      variant_B8, // cp a,b
+      variant_B8_pseudo, // cp b
+      variant_B9, // cp a,c
+      variant_B9_pseudo, // cp c
+      variant_BA, // cp a,d
+      variant_BA_pseudo, // cp d
+      variant_BB, // cp a,e
+      variant_BB_pseudo, // cp e
+      variant_BC, // cp a,h
+      variant_BC_pseudo, // cp h
+      variant_BD, // cp a,l
+      variant_BD_pseudo, // cp l
+      variant_BE, // cp a,(hl)
+      variant_BE_pseudo, // cp (hl)
+      variant_BF, // cp a,a
+      variant_BF_pseudo, // cp a
       variant_DD_BC, // cp ixh
       variant_DD_BD, // cp ixl
       variant_DD_BE_dd, // cp (ix+dd)
       variant_FD_BC, // cp iyh
       variant_FD_BD, // cp iyl
       variant_FD_BE_dd, // cp (iy+dd)
-      variant_FE_nn, // cp nn
+      variant_FE_nn, // cp a,nn
+      variant_FE_nn_pseudo, // cp nn
     ],
   ],
   [
@@ -48703,14 +49038,14 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
   [ 0xB5, variant_B5 ], // or a,l
   [ 0xB6, variant_B6 ], // or a,(hl)
   [ 0xB7, variant_B7 ], // or a,a
-  [ 0xB8, variant_B8 ], // cp b
-  [ 0xB9, variant_B9 ], // cp c
-  [ 0xBA, variant_BA ], // cp d
-  [ 0xBB, variant_BB ], // cp e
-  [ 0xBC, variant_BC ], // cp h
-  [ 0xBD, variant_BD ], // cp l
-  [ 0xBE, variant_BE ], // cp (hl)
-  [ 0xBF, variant_BF ], // cp a
+  [ 0xB8, variant_B8 ], // cp a,b
+  [ 0xB9, variant_B9 ], // cp a,c
+  [ 0xBA, variant_BA ], // cp a,d
+  [ 0xBB, variant_BB ], // cp a,e
+  [ 0xBC, variant_BC ], // cp a,h
+  [ 0xBD, variant_BD ], // cp a,l
+  [ 0xBE, variant_BE ], // cp a,(hl)
+  [ 0xBF, variant_BF ], // cp a,a
   [ 0xC0, variant_C0 ], // ret nz
   [ 0xC1, variant_C1 ], // pop bc
   [ 0xC2, variant_C2_nnnn ], // jp nz,nnnn
@@ -49350,7 +49685,7 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
   [ 0xE3, variant_E3 ], // ex (sp),hl
   [ 0xE4, variant_E4_nnnn ], // call po,nnnn
   [ 0xE5, variant_E5 ], // push hl
-  [ 0xE6, variant_E6_nn ], // and nn
+  [ 0xE6, variant_E6_nn ], // and a,nn
   [ 0xE7, variant_E7 ], // rst 20
   [ 0xE8, variant_E8 ], // ret pe
   [ 0xE9, variant_E9 ], // jp hl
@@ -49445,7 +49780,7 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
   [ 0xF3, variant_F3 ], // di
   [ 0xF4, variant_F4_nnnn ], // call p,nnnn
   [ 0xF5, variant_F5 ], // push af
-  [ 0xF6, variant_F6_nn ], // or nn
+  [ 0xF6, variant_F6_nn ], // or a,nn
   [ 0xF7, variant_F7 ], // rst 30
   [ 0xF8, variant_F8 ], // ret m
   [ 0xF9, variant_F9 ], // ld sp,hl
@@ -49797,6 +50132,6 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0xE9, variant_FD_E9 ], // jp iy
     [ 0xF9, variant_FD_F9 ], // ld sp,iy
   ])],
-  [ 0xFE, variant_FE_nn ], // cp nn
+  [ 0xFE, variant_FE_nn ], // cp a,nn
   [ 0xFF, variant_FF ], // rst 38
 ]);
