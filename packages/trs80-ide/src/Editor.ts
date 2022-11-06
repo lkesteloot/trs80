@@ -766,11 +766,15 @@ export class Editor {
         dom.classList.add("hover-tooltip");
 
         // Utility function to make a node with a class and text.
-        function makeNode(tagName: string, className: string, textContent?: string): HTMLElement {
+        function makeNode(tagName: string, className: string, textContent?: string, allowHtml = false): HTMLElement {
             const div = document.createElement(tagName);
             div.classList.add(className);
             if (textContent !== undefined) {
-                div.textContent = textContent;
+                if (allowHtml) {
+                    div.innerHTML = textContent;
+                } else {
+                    div.textContent = textContent;
+                }
             }
             return div;
         }
@@ -791,7 +795,7 @@ export class Editor {
                 headerNode.append(makeNode("span", "hover-tooltip-modifiers",
                     " (" + modifiers.join(", ") + ")"));
             }
-            dom.append(makeNode("div", "hover-tooltip-description", clr.description));
+            dom.append(makeNode("div", "hover-tooltip-description", clr.description, true));
             const clockNode = makeNode("div", "hover-tooltip-clocks");
             dom.append(clockNode);
             clockNode.append(makeNode("span", "hover-tooltip-clocks-label", "Clocks: "));

@@ -176,7 +176,13 @@ export function customCompletions(context: CompletionContext): CompletionResult 
             label: label,
         };
         if (variant.clr !== undefined) {
-            option.info = variant.clr.description;
+            const description = variant.clr.description;
+            // Use the callback because that's the only way to use the HTML in the description.
+            option.info = () => {
+                const span = document.createElement("span");
+                span.innerHTML = description;
+                return span;
+            };
         }
 
         // Make template with the constants.
