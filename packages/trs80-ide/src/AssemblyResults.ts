@@ -4,7 +4,7 @@ import {ScreenshotSection} from "./ScreenshotSection";
 import {SymbolHit} from "./SymbolHit";
 
 // Error is required.
-export type ErrorAssembledLine = AssembledLine & { error: string };
+export type ErrorAssembledLine = AssembledLine & { rolledUpError: string };
 
 /**
  * Everything we know about the assembled code.
@@ -38,11 +38,11 @@ export class AssemblyResults {
                 this.lineMap.set(line.lineNumber + 1, line);
             }
 
-            if (line.lineNumber !== undefined && line.binary.length > 0) {
+            if (line.lineNumber !== undefined && line.rolledUpBinary.length > 0) {
                 this.addressToLineMap.set(line.address, line.lineNumber + 1);
             }
 
-            if (line.error !== undefined) {
+            if (line.rolledUpError !== undefined) {
                 // Too bad TS can't detect this narrowing.
                 errorLines.push(line as ErrorAssembledLine);
 
@@ -124,8 +124,8 @@ export class AssemblyResults {
         while (true) {
             // It's nice to ignore blank lines, so that we can add comments without
             // restarting everything.
-            while (i1 < lines1.length && lines1[i1].binary.length === 0) i1 += 1;
-            while (i2 < lines2.length && lines2[i2].binary.length === 0) i2 += 1;
+            while (i1 < lines1.length && lines1[i1].rolledUpBinary.length === 0) i1 += 1;
+            while (i2 < lines2.length && lines2[i2].rolledUpBinary.length === 0) i2 += 1;
 
             if (i1 === lines1.length && i2 === lines2.length) {
                 // Reached end on both.

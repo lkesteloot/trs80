@@ -398,7 +398,7 @@ export class ScreenEditor {
                 }
 
                 // Add bytes to our raster, and remember extra bytes.
-                const binary = line.binary;
+                const binary = line.rolledUpBinary;
                 const length = Math.min(binary.length, this.raster.length - i);
                 for (let j = 0; j < length; j++) {
                     this.raster[i++] = binary[j];
