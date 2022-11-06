@@ -1009,10 +1009,10 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                         if (params === undefined) {
                             throw new Error("CP requires params");
                         }
-                        if (params.length !== 1) {
-                            throw new Error("CP requires one param");
+                        if (params.length !== 2) {
+                            throw new Error("CP requires two params: " + params);
                         }
-                        handleCp(output, params[0]);
+                        handleCp(output, params[1]);
                         break;
                     }
 
@@ -1265,12 +1265,12 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     }
 
                     case "ccf": {
-                        addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | ((z80.regs.f & Flag.C) !== 0 ? Flag.H : Flag.C) | (z80.regs.a & (Flag.X3 | Flag.X5));");
+                        addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | ((z80.regs.f & Flag.C) !== 0 ? Flag.H : Flag.C) | ((z80.regs.f | z80.regs.a) & (Flag.X3 | Flag.X5));");
                         break;
                     }
 
                     case "scf": {
-                        addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | Flag.C | (z80.regs.a & (Flag.X3 | Flag.X5));");
+                        addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | Flag.C | ((z80.regs.f | z80.regs.a) & (Flag.X3 | Flag.X5));");
                         break;
                     }
 

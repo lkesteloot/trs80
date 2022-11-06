@@ -140,6 +140,9 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                 } else {
                     // Fix up description to convert register names to upper case.
                     clrInst.description = fixClrDescription(clrInst.description);
+
+                    // Mark it as used.
+                    clrInst.used = true;
                 }
 
                 // Add parameters.
@@ -427,6 +430,23 @@ function generateOpcodes(): void {
     ];
 
     fs.writeFileSync("src/Opcodes.ts", text.join("\n"));
+
+    // Warn about the clr entries we didn't use.
+    let clrUnusedCount = 0;
+    for (const instruction of clr.instructions) {
+        if (!instruction.used) {
+            if (clrUnusedCount < 10) {
+                console.log("Warning: Unused CLR instruction: " +
+                            instruction.opcodes + " " + instruction.instruction);
+            }
+            clrUnusedCount += 1;
+        }
+    }
+    if (clrUnusedCount === 0) {
+        console.log("Used all CLR instructions");
+    } else {
+        console.log("Warning: Did not use " + clrUnusedCount + " CLR instructions");
+    }
 }
 
 generateOpcodes();

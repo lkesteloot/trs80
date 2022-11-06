@@ -20,7 +20,8 @@ const variant_00: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "No operation is performed.",
-    "instruction": "nop"
+    "instruction": "nop",
+    "used": true
   }
 };
 
@@ -49,8 +50,9 @@ const variant_01_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "Loads ** into BC.",
-    "instruction": "ld bc,**"
+    "description": "Loads <var>nn</var> into BC.",
+    "instruction": "ld bc,nn",
+    "used": true
   }
 };
 
@@ -81,7 +83,8 @@ const variant_02: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Stores A into the memory location pointed to by BC.",
-    "instruction": "ld (bc),a"
+    "instruction": "ld (bc),a",
+    "used": true
   }
 };
 
@@ -110,8 +113,9 @@ const variant_06_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Loads * into B.",
-    "instruction": "ld b,*"
+    "description": "Loads <var>n</var> into B.",
+    "instruction": "ld b,n",
+    "used": true
   }
 };
 
@@ -142,7 +146,8 @@ const variant_0A: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Loads the value pointed to by BC into A.",
-    "instruction": "ld a,(bc)"
+    "instruction": "ld a,(bc)",
+    "used": true
   }
 };
 
@@ -170,7 +175,8 @@ const variant_0A_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Loads the value pointed to by BC into A.",
-    "instruction": "ld a,(bc)"
+    "instruction": "ld a,(bc)",
+    "used": true
   }
 };
 
@@ -199,8 +205,9 @@ const variant_0E_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Loads * into C.",
-    "instruction": "ld c,*"
+    "description": "Loads <var>n</var> into C.",
+    "instruction": "ld c,n",
+    "used": true
   }
 };
 
@@ -229,8 +236,9 @@ const variant_11_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "Loads ** into DE.",
-    "instruction": "ld de,**"
+    "description": "Loads <var>nn</var> into DE.",
+    "instruction": "ld de,nn",
+    "used": true
   }
 };
 
@@ -261,7 +269,8 @@ const variant_12: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Stores A into the memory location pointed to by DE.",
-    "instruction": "ld (de),a"
+    "instruction": "ld (de),a",
+    "used": true
   }
 };
 
@@ -290,8 +299,9 @@ const variant_16_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Loads * into D.",
-    "instruction": "ld d,*"
+    "description": "Loads <var>n</var> into D.",
+    "instruction": "ld d,n",
+    "used": true
   }
 };
 
@@ -322,7 +332,8 @@ const variant_1A: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Loads the value pointed to by DE into A.",
-    "instruction": "ld a,(de)"
+    "instruction": "ld a,(de)",
+    "used": true
   }
 };
 
@@ -350,7 +361,8 @@ const variant_1A_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Loads the value pointed to by DE into A.",
-    "instruction": "ld a,(de)"
+    "instruction": "ld a,(de)",
+    "used": true
   }
 };
 
@@ -379,8 +391,9 @@ const variant_1E_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Loads * into E.",
-    "instruction": "ld e,*"
+    "description": "Loads <var>n</var> into E.",
+    "instruction": "ld e,n",
+    "used": true
   }
 };
 
@@ -409,8 +422,9 @@ const variant_21_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "Loads ** into HL.",
-    "instruction": "ld hl,**"
+    "description": "Loads <var>nn</var> into HL.",
+    "instruction": "ld hl,nn",
+    "used": true
   }
 };
 
@@ -441,8 +455,9 @@ const variant_22_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
-    "description": "Stores HL into the memory location pointed to by **.",
-    "instruction": "ld (**),hl"
+    "description": "Stores HL into the memory location pointed to by <var>nn</var>.",
+    "instruction": "ld (nn),hl",
+    "used": true
   }
 };
 
@@ -471,8 +486,9 @@ const variant_26_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Loads * into H.",
-    "instruction": "ld h,*"
+    "description": "Loads <var>n</var> into H.",
+    "instruction": "ld h,n",
+    "used": true
   }
 };
 
@@ -503,8 +519,9 @@ const variant_2A_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
-    "description": "Loads the value pointed to by ** into HL.",
-    "instruction": "ld hl,(**)"
+    "description": "Loads the value pointed to by <var>nn</var> into HL.",
+    "instruction": "ld hl,(nn)",
+    "used": true
   }
 };
 
@@ -533,8 +550,9 @@ const variant_2E_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Loads * into L.",
-    "instruction": "ld l,*"
+    "description": "Loads <var>n</var> into L.",
+    "instruction": "ld l,n",
+    "used": true
   }
 };
 
@@ -563,8 +581,9 @@ const variant_31_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "Loads ** into SP.",
-    "instruction": "ld sp,**"
+    "description": "Loads <var>nn</var> into SP.",
+    "instruction": "ld sp,nn",
+    "used": true
   }
 };
 
@@ -595,8 +614,9 @@ const variant_32_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 13,
     "without_jump_clock_count": 13,
-    "description": "Stores A into the memory location pointed to by **.",
-    "instruction": "ld (**),a"
+    "description": "Stores A into the memory location pointed to by <var>nn</var>.",
+    "instruction": "ld (nn),a",
+    "used": true
   }
 };
 
@@ -627,8 +647,9 @@ const variant_36_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "Loads * into (HL).",
-    "instruction": "ld (hl),*"
+    "description": "Loads <var>n</var> into (HL).",
+    "instruction": "ld (hl),n",
+    "used": true
   }
 };
 
@@ -659,8 +680,9 @@ const variant_3A_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 13,
     "without_jump_clock_count": 13,
-    "description": "Loads the value pointed to by ** into A.",
-    "instruction": "ld a,(**)"
+    "description": "Loads the value pointed to by <var>nn</var> into A.",
+    "instruction": "ld a,(nn)",
+    "used": true
   }
 };
 
@@ -688,8 +710,9 @@ const variant_3A_nnnn_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 13,
     "without_jump_clock_count": 13,
-    "description": "Loads the value pointed to by ** into A.",
-    "instruction": "ld a,(**)"
+    "description": "Loads the value pointed to by <var>nn</var> into A.",
+    "instruction": "ld a,(nn)",
+    "used": true
   }
 };
 
@@ -718,8 +741,9 @@ const variant_3E_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Loads * into A.",
-    "instruction": "ld a,*"
+    "description": "Loads <var>n</var> into A.",
+    "instruction": "ld a,n",
+    "used": true
   }
 };
 
@@ -745,8 +769,9 @@ const variant_3E_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Loads * into A.",
-    "instruction": "ld a,*"
+    "description": "Loads <var>n</var> into A.",
+    "instruction": "ld a,n",
+    "used": true
   }
 };
 
@@ -775,7 +800,8 @@ const variant_40: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of B are loaded into B.",
-    "instruction": "ld b,b"
+    "instruction": "ld b,b",
+    "used": true
   }
 };
 
@@ -804,7 +830,8 @@ const variant_41: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of C are loaded into B.",
-    "instruction": "ld b,c"
+    "instruction": "ld b,c",
+    "used": true
   }
 };
 
@@ -833,7 +860,8 @@ const variant_42: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of D are loaded into B.",
-    "instruction": "ld b,d"
+    "instruction": "ld b,d",
+    "used": true
   }
 };
 
@@ -862,7 +890,8 @@ const variant_43: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of E are loaded into B.",
-    "instruction": "ld b,e"
+    "instruction": "ld b,e",
+    "used": true
   }
 };
 
@@ -891,7 +920,8 @@ const variant_44: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of H are loaded into B.",
-    "instruction": "ld b,h"
+    "instruction": "ld b,h",
+    "used": true
   }
 };
 
@@ -920,7 +950,8 @@ const variant_45: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of L are loaded into B.",
-    "instruction": "ld b,l"
+    "instruction": "ld b,l",
+    "used": true
   }
 };
 
@@ -951,7 +982,8 @@ const variant_46: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of (HL) are loaded into B.",
-    "instruction": "ld b,(hl)"
+    "instruction": "ld b,(hl)",
+    "used": true
   }
 };
 
@@ -980,7 +1012,8 @@ const variant_47: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are loaded into B.",
-    "instruction": "ld b,a"
+    "instruction": "ld b,a",
+    "used": true
   }
 };
 
@@ -1009,7 +1042,8 @@ const variant_48: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of B are loaded into C.",
-    "instruction": "ld c,b"
+    "instruction": "ld c,b",
+    "used": true
   }
 };
 
@@ -1038,7 +1072,8 @@ const variant_49: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of C are loaded into C.",
-    "instruction": "ld c,c"
+    "instruction": "ld c,c",
+    "used": true
   }
 };
 
@@ -1067,7 +1102,8 @@ const variant_4A: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of D are loaded into C.",
-    "instruction": "ld c,d"
+    "instruction": "ld c,d",
+    "used": true
   }
 };
 
@@ -1096,7 +1132,8 @@ const variant_4B: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of E are loaded into C.",
-    "instruction": "ld c,e"
+    "instruction": "ld c,e",
+    "used": true
   }
 };
 
@@ -1125,7 +1162,8 @@ const variant_4C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of H are loaded into C.",
-    "instruction": "ld c,h"
+    "instruction": "ld c,h",
+    "used": true
   }
 };
 
@@ -1154,7 +1192,8 @@ const variant_4D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of L are loaded into C.",
-    "instruction": "ld c,l"
+    "instruction": "ld c,l",
+    "used": true
   }
 };
 
@@ -1185,7 +1224,8 @@ const variant_4E: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of (HL) are loaded into C.",
-    "instruction": "ld c,(hl)"
+    "instruction": "ld c,(hl)",
+    "used": true
   }
 };
 
@@ -1214,7 +1254,8 @@ const variant_4F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are loaded into C.",
-    "instruction": "ld c,a"
+    "instruction": "ld c,a",
+    "used": true
   }
 };
 
@@ -1243,7 +1284,8 @@ const variant_50: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of B are loaded into D.",
-    "instruction": "ld d,b"
+    "instruction": "ld d,b",
+    "used": true
   }
 };
 
@@ -1272,7 +1314,8 @@ const variant_51: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of C are loaded into D.",
-    "instruction": "ld d,c"
+    "instruction": "ld d,c",
+    "used": true
   }
 };
 
@@ -1301,7 +1344,8 @@ const variant_52: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of D are loaded into D.",
-    "instruction": "ld d,d"
+    "instruction": "ld d,d",
+    "used": true
   }
 };
 
@@ -1330,7 +1374,8 @@ const variant_53: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of E are loaded into D.",
-    "instruction": "ld d,e"
+    "instruction": "ld d,e",
+    "used": true
   }
 };
 
@@ -1359,7 +1404,8 @@ const variant_54: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of H are loaded into D.",
-    "instruction": "ld d,h"
+    "instruction": "ld d,h",
+    "used": true
   }
 };
 
@@ -1388,7 +1434,8 @@ const variant_55: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of L are loaded into D.",
-    "instruction": "ld d,l"
+    "instruction": "ld d,l",
+    "used": true
   }
 };
 
@@ -1419,7 +1466,8 @@ const variant_56: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of (HL) are loaded into D.",
-    "instruction": "ld d,(hl)"
+    "instruction": "ld d,(hl)",
+    "used": true
   }
 };
 
@@ -1448,7 +1496,8 @@ const variant_57: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are loaded into D.",
-    "instruction": "ld d,a"
+    "instruction": "ld d,a",
+    "used": true
   }
 };
 
@@ -1477,7 +1526,8 @@ const variant_58: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of B are loaded into E.",
-    "instruction": "ld e,b"
+    "instruction": "ld e,b",
+    "used": true
   }
 };
 
@@ -1506,7 +1556,8 @@ const variant_59: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of C are loaded into E.",
-    "instruction": "ld e,c"
+    "instruction": "ld e,c",
+    "used": true
   }
 };
 
@@ -1535,7 +1586,8 @@ const variant_5A: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of D are loaded into E.",
-    "instruction": "ld e,d"
+    "instruction": "ld e,d",
+    "used": true
   }
 };
 
@@ -1564,7 +1616,8 @@ const variant_5B: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of E are loaded into E.",
-    "instruction": "ld e,e"
+    "instruction": "ld e,e",
+    "used": true
   }
 };
 
@@ -1593,7 +1646,8 @@ const variant_5C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of H are loaded into E.",
-    "instruction": "ld e,h"
+    "instruction": "ld e,h",
+    "used": true
   }
 };
 
@@ -1622,7 +1676,8 @@ const variant_5D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of L are loaded into E.",
-    "instruction": "ld e,l"
+    "instruction": "ld e,l",
+    "used": true
   }
 };
 
@@ -1653,7 +1708,8 @@ const variant_5E: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of (HL) are loaded into E.",
-    "instruction": "ld e,(hl)"
+    "instruction": "ld e,(hl)",
+    "used": true
   }
 };
 
@@ -1682,7 +1738,8 @@ const variant_5F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are loaded into E.",
-    "instruction": "ld e,a"
+    "instruction": "ld e,a",
+    "used": true
   }
 };
 
@@ -1711,7 +1768,8 @@ const variant_60: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of B are loaded into H.",
-    "instruction": "ld h,b"
+    "instruction": "ld h,b",
+    "used": true
   }
 };
 
@@ -1740,7 +1798,8 @@ const variant_61: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of C are loaded into H.",
-    "instruction": "ld h,c"
+    "instruction": "ld h,c",
+    "used": true
   }
 };
 
@@ -1769,7 +1828,8 @@ const variant_62: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of D are loaded into H.",
-    "instruction": "ld h,d"
+    "instruction": "ld h,d",
+    "used": true
   }
 };
 
@@ -1798,7 +1858,8 @@ const variant_63: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of E are loaded into H.",
-    "instruction": "ld h,e"
+    "instruction": "ld h,e",
+    "used": true
   }
 };
 
@@ -1827,7 +1888,8 @@ const variant_64: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of H are loaded into H.",
-    "instruction": "ld h,h"
+    "instruction": "ld h,h",
+    "used": true
   }
 };
 
@@ -1856,7 +1918,8 @@ const variant_65: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of L are loaded into H.",
-    "instruction": "ld h,l"
+    "instruction": "ld h,l",
+    "used": true
   }
 };
 
@@ -1887,7 +1950,8 @@ const variant_66: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of (HL) are loaded into H.",
-    "instruction": "ld h,(hl)"
+    "instruction": "ld h,(hl)",
+    "used": true
   }
 };
 
@@ -1916,7 +1980,8 @@ const variant_67: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are loaded into H.",
-    "instruction": "ld h,a"
+    "instruction": "ld h,a",
+    "used": true
   }
 };
 
@@ -1945,7 +2010,8 @@ const variant_68: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of B are loaded into L.",
-    "instruction": "ld l,b"
+    "instruction": "ld l,b",
+    "used": true
   }
 };
 
@@ -1974,7 +2040,8 @@ const variant_69: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of C are loaded into L.",
-    "instruction": "ld l,c"
+    "instruction": "ld l,c",
+    "used": true
   }
 };
 
@@ -2003,7 +2070,8 @@ const variant_6A: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of D are loaded into L.",
-    "instruction": "ld l,d"
+    "instruction": "ld l,d",
+    "used": true
   }
 };
 
@@ -2032,7 +2100,8 @@ const variant_6B: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of E are loaded into L.",
-    "instruction": "ld l,e"
+    "instruction": "ld l,e",
+    "used": true
   }
 };
 
@@ -2061,7 +2130,8 @@ const variant_6C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of H are loaded into L.",
-    "instruction": "ld l,h"
+    "instruction": "ld l,h",
+    "used": true
   }
 };
 
@@ -2090,7 +2160,8 @@ const variant_6D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of L are loaded into L.",
-    "instruction": "ld l,l"
+    "instruction": "ld l,l",
+    "used": true
   }
 };
 
@@ -2121,7 +2192,8 @@ const variant_6E: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of (HL) are loaded into L.",
-    "instruction": "ld l,(hl)"
+    "instruction": "ld l,(hl)",
+    "used": true
   }
 };
 
@@ -2150,7 +2222,8 @@ const variant_6F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are loaded into L.",
-    "instruction": "ld l,a"
+    "instruction": "ld l,a",
+    "used": true
   }
 };
 
@@ -2181,7 +2254,8 @@ const variant_70: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of B are loaded into (HL).",
-    "instruction": "ld (hl),b"
+    "instruction": "ld (hl),b",
+    "used": true
   }
 };
 
@@ -2212,7 +2286,8 @@ const variant_71: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of C are loaded into (HL).",
-    "instruction": "ld (hl),c"
+    "instruction": "ld (hl),c",
+    "used": true
   }
 };
 
@@ -2243,7 +2318,8 @@ const variant_72: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of D are loaded into (HL).",
-    "instruction": "ld (hl),d"
+    "instruction": "ld (hl),d",
+    "used": true
   }
 };
 
@@ -2274,7 +2350,8 @@ const variant_73: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of E are loaded into (HL).",
-    "instruction": "ld (hl),e"
+    "instruction": "ld (hl),e",
+    "used": true
   }
 };
 
@@ -2305,7 +2382,8 @@ const variant_74: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of H are loaded into (HL).",
-    "instruction": "ld (hl),h"
+    "instruction": "ld (hl),h",
+    "used": true
   }
 };
 
@@ -2336,7 +2414,8 @@ const variant_75: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of L are loaded into (HL).",
-    "instruction": "ld (hl),l"
+    "instruction": "ld (hl),l",
+    "used": true
   }
 };
 
@@ -2367,7 +2446,8 @@ const variant_77: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of A are loaded into (HL).",
-    "instruction": "ld (hl),a"
+    "instruction": "ld (hl),a",
+    "used": true
   }
 };
 
@@ -2396,7 +2476,8 @@ const variant_78: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of B are loaded into A.",
-    "instruction": "ld a,b"
+    "instruction": "ld a,b",
+    "used": true
   }
 };
 
@@ -2422,7 +2503,8 @@ const variant_78_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of B are loaded into A.",
-    "instruction": "ld a,b"
+    "instruction": "ld a,b",
+    "used": true
   }
 };
 
@@ -2451,7 +2533,8 @@ const variant_79: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of C are loaded into A.",
-    "instruction": "ld a,c"
+    "instruction": "ld a,c",
+    "used": true
   }
 };
 
@@ -2477,7 +2560,8 @@ const variant_79_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of C are loaded into A.",
-    "instruction": "ld a,c"
+    "instruction": "ld a,c",
+    "used": true
   }
 };
 
@@ -2506,7 +2590,8 @@ const variant_7A: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of D are loaded into A.",
-    "instruction": "ld a,d"
+    "instruction": "ld a,d",
+    "used": true
   }
 };
 
@@ -2532,7 +2617,8 @@ const variant_7A_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of D are loaded into A.",
-    "instruction": "ld a,d"
+    "instruction": "ld a,d",
+    "used": true
   }
 };
 
@@ -2561,7 +2647,8 @@ const variant_7B: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of E are loaded into A.",
-    "instruction": "ld a,e"
+    "instruction": "ld a,e",
+    "used": true
   }
 };
 
@@ -2587,7 +2674,8 @@ const variant_7B_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of E are loaded into A.",
-    "instruction": "ld a,e"
+    "instruction": "ld a,e",
+    "used": true
   }
 };
 
@@ -2616,7 +2704,8 @@ const variant_7C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of H are loaded into A.",
-    "instruction": "ld a,h"
+    "instruction": "ld a,h",
+    "used": true
   }
 };
 
@@ -2642,7 +2731,8 @@ const variant_7C_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of H are loaded into A.",
-    "instruction": "ld a,h"
+    "instruction": "ld a,h",
+    "used": true
   }
 };
 
@@ -2671,7 +2761,8 @@ const variant_7D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of L are loaded into A.",
-    "instruction": "ld a,l"
+    "instruction": "ld a,l",
+    "used": true
   }
 };
 
@@ -2697,7 +2788,8 @@ const variant_7D_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of L are loaded into A.",
-    "instruction": "ld a,l"
+    "instruction": "ld a,l",
+    "used": true
   }
 };
 
@@ -2728,7 +2820,8 @@ const variant_7E: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of (HL) are loaded into A.",
-    "instruction": "ld a,(hl)"
+    "instruction": "ld a,(hl)",
+    "used": true
   }
 };
 
@@ -2756,7 +2849,8 @@ const variant_7E_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "The contents of (HL) are loaded into A.",
-    "instruction": "ld a,(hl)"
+    "instruction": "ld a,(hl)",
+    "used": true
   }
 };
 
@@ -2785,7 +2879,8 @@ const variant_7F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are loaded into A.",
-    "instruction": "ld a,a"
+    "instruction": "ld a,a",
+    "used": true
   }
 };
 
@@ -2811,7 +2906,8 @@ const variant_7F_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are loaded into A.",
-    "instruction": "ld a,a"
+    "instruction": "ld a,a",
+    "used": true
   }
 };
 
@@ -2841,8 +2937,9 @@ const variant_DD_21_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 14,
     "without_jump_clock_count": 14,
-    "description": "Loads ** into register IX.",
-    "instruction": "ld ix,**"
+    "description": "Loads <var>nn</var> into register IX.",
+    "instruction": "ld ix,nn",
+    "used": true
   }
 };
 
@@ -2874,8 +2971,9 @@ const variant_DD_22_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Stores IX into the memory location pointed to by **.",
-    "instruction": "ld (**),ix"
+    "description": "Stores IX into the memory location pointed to by <var>nn</var>.",
+    "instruction": "ld (nn),ix",
+    "used": true
   }
 };
 
@@ -2905,8 +3003,9 @@ const variant_DD_26_nn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "Loads * into IXH.",
-    "instruction": "ld ixh,*"
+    "description": "Loads <var>n</var> into IXH.",
+    "instruction": "ld ixh,n",
+    "used": true
   }
 };
 
@@ -2938,8 +3037,9 @@ const variant_DD_2A_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Loads the value pointed to by ** into IX.",
-    "instruction": "ld ix,(**)"
+    "description": "Loads the value pointed to by <var>nn</var> into IX.",
+    "instruction": "ld ix,(nn)",
+    "used": true
   }
 };
 
@@ -2969,8 +3069,9 @@ const variant_DD_2E_nn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "Loads * into IXL.",
-    "instruction": "ld ixl,*"
+    "description": "Loads <var>n</var> into IXL.",
+    "instruction": "ld ixl,n",
+    "used": true
   }
 };
 
@@ -3005,8 +3106,133 @@ const variant_DD_36_dd_nn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores * to the memory location pointed to by IX plus *.",
-    "instruction": "ld (ix+*),*"
+    "description": "Stores <var>n</var> to the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "ld (ix+d),n",
+    "used": true
+  }
+};
+
+// ld b,b
+const variant_DD_40: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "b"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    221,
+    64
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD40",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into B.",
+    "instruction": "ld b,b",
+    "used": true
+  }
+};
+
+// ld b,c
+const variant_DD_41: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "c"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    221,
+    65
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD41",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into B.",
+    "instruction": "ld b,c",
+    "used": true
+  }
+};
+
+// ld b,d
+const variant_DD_42: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "d"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    221,
+    66
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD42",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into B.",
+    "instruction": "ld b,d",
+    "used": true
+  }
+};
+
+// ld b,e
+const variant_DD_43: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "e"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    221,
+    67
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD43",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into B.",
+    "instruction": "ld b,e",
+    "used": true
   }
 };
 
@@ -3036,7 +3262,8 @@ const variant_DD_44: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXH are loaded into B.",
-    "instruction": "ld b,ixh"
+    "instruction": "ld b,ixh",
+    "used": true
   }
 };
 
@@ -3066,7 +3293,8 @@ const variant_DD_45: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXL are loaded into B.",
-    "instruction": "ld b,ixl"
+    "instruction": "ld b,ixl",
+    "used": true
   }
 };
 
@@ -3100,8 +3328,164 @@ const variant_DD_46_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IX plus * into B.",
-    "instruction": "ld b,(ix+*)"
+    "description": "Loads the value pointed to by IX plus <var>D</var> into B.",
+    "instruction": "ld b,(ix+d)",
+    "used": true
+  }
+};
+
+// ld b,a
+const variant_DD_47: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "a"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    221,
+    71
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD47",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into B.",
+    "instruction": "ld b,a",
+    "used": true
+  }
+};
+
+// ld c,b
+const variant_DD_48: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "b"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    221,
+    72
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD48",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into C.",
+    "instruction": "ld c,b",
+    "used": true
+  }
+};
+
+// ld c,c
+const variant_DD_49: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "c"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    221,
+    73
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD49",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into C.",
+    "instruction": "ld c,c",
+    "used": true
+  }
+};
+
+// ld c,d
+const variant_DD_4A: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "d"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    221,
+    74
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD4A",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into C.",
+    "instruction": "ld c,d",
+    "used": true
+  }
+};
+
+// ld c,e
+const variant_DD_4B: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "e"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    221,
+    75
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD4B",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into C.",
+    "instruction": "ld c,e",
+    "used": true
   }
 };
 
@@ -3131,7 +3515,8 @@ const variant_DD_4C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXH are loaded into C.",
-    "instruction": "ld c,ixh"
+    "instruction": "ld c,ixh",
+    "used": true
   }
 };
 
@@ -3161,7 +3546,8 @@ const variant_DD_4D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXL are loaded into C.",
-    "instruction": "ld c,ixl"
+    "instruction": "ld c,ixl",
+    "used": true
   }
 };
 
@@ -3195,8 +3581,164 @@ const variant_DD_4E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IX plus * into C.",
-    "instruction": "ld c,(ix+*)"
+    "description": "Loads the value pointed to by IX plus <var>D</var> into C.",
+    "instruction": "ld c,(ix+d)",
+    "used": true
+  }
+};
+
+// ld c,a
+const variant_DD_4F: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "a"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    221,
+    79
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD4F",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into C.",
+    "instruction": "ld c,a",
+    "used": true
+  }
+};
+
+// ld d,b
+const variant_DD_50: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "b"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    221,
+    80
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD50",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into D.",
+    "instruction": "ld d,b",
+    "used": true
+  }
+};
+
+// ld d,c
+const variant_DD_51: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "c"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    221,
+    81
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD51",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into D.",
+    "instruction": "ld d,c",
+    "used": true
+  }
+};
+
+// ld d,d
+const variant_DD_52: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "d"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    221,
+    82
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD52",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into D.",
+    "instruction": "ld d,d",
+    "used": true
+  }
+};
+
+// ld d,e
+const variant_DD_53: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "e"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    221,
+    83
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD53",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into D.",
+    "instruction": "ld d,e",
+    "used": true
   }
 };
 
@@ -3226,7 +3768,8 @@ const variant_DD_54: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXH are loaded into D.",
-    "instruction": "ld d,ixh"
+    "instruction": "ld d,ixh",
+    "used": true
   }
 };
 
@@ -3256,7 +3799,8 @@ const variant_DD_55: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXL are loaded into D.",
-    "instruction": "ld d,ixl"
+    "instruction": "ld d,ixl",
+    "used": true
   }
 };
 
@@ -3290,8 +3834,164 @@ const variant_DD_56_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IX plus * into D.",
-    "instruction": "ld d,(ix+*)"
+    "description": "Loads the value pointed to by IX plus <var>D</var> into D.",
+    "instruction": "ld d,(ix+d)",
+    "used": true
+  }
+};
+
+// ld d,a
+const variant_DD_57: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "a"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    221,
+    87
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD57",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into D.",
+    "instruction": "ld d,a",
+    "used": true
+  }
+};
+
+// ld e,b
+const variant_DD_58: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "b"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    221,
+    88
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD58",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into E.",
+    "instruction": "ld e,b",
+    "used": true
+  }
+};
+
+// ld e,c
+const variant_DD_59: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "c"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    221,
+    89
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD59",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into E.",
+    "instruction": "ld e,c",
+    "used": true
+  }
+};
+
+// ld e,d
+const variant_DD_5A: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "d"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    221,
+    90
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD5A",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into E.",
+    "instruction": "ld e,d",
+    "used": true
+  }
+};
+
+// ld e,e
+const variant_DD_5B: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "e"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    221,
+    91
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD5B",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into E.",
+    "instruction": "ld e,e",
+    "used": true
   }
 };
 
@@ -3321,7 +4021,8 @@ const variant_DD_5C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXH are loaded into E.",
-    "instruction": "ld e,ixh"
+    "instruction": "ld e,ixh",
+    "used": true
   }
 };
 
@@ -3351,7 +4052,8 @@ const variant_DD_5D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXL are loaded into E.",
-    "instruction": "ld e,ixl"
+    "instruction": "ld e,ixl",
+    "used": true
   }
 };
 
@@ -3385,8 +4087,40 @@ const variant_DD_5E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IX plus * into E.",
-    "instruction": "ld e,(ix+*)"
+    "description": "Loads the value pointed to by IX plus <var>D</var> into E.",
+    "instruction": "ld e,(ix+d)",
+    "used": true
+  }
+};
+
+// ld e,a
+const variant_DD_5F: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "a"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    221,
+    95
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD5F",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into E.",
+    "instruction": "ld e,a",
+    "used": true
   }
 };
 
@@ -3416,7 +4150,8 @@ const variant_DD_60: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are loaded into IXH.",
-    "instruction": "ld ixh,b"
+    "instruction": "ld ixh,b",
+    "used": true
   }
 };
 
@@ -3446,7 +4181,8 @@ const variant_DD_61: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are loaded into IXH.",
-    "instruction": "ld ixh,c"
+    "instruction": "ld ixh,c",
+    "used": true
   }
 };
 
@@ -3476,7 +4212,8 @@ const variant_DD_62: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are loaded into IXH.",
-    "instruction": "ld ixh,d"
+    "instruction": "ld ixh,d",
+    "used": true
   }
 };
 
@@ -3506,7 +4243,8 @@ const variant_DD_63: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are loaded into IXH.",
-    "instruction": "ld ixh,e"
+    "instruction": "ld ixh,e",
+    "used": true
   }
 };
 
@@ -3536,7 +4274,8 @@ const variant_DD_64: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXH are loaded into IXH.",
-    "instruction": "ld ixh,ixh"
+    "instruction": "ld ixh,ixh",
+    "used": true
   }
 };
 
@@ -3566,7 +4305,8 @@ const variant_DD_65: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXL are loaded into IXH.",
-    "instruction": "ld ixh,ixl"
+    "instruction": "ld ixh,ixl",
+    "used": true
   }
 };
 
@@ -3600,8 +4340,9 @@ const variant_DD_66_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IX plus * into H.",
-    "instruction": "ld h,(ix+*)"
+    "description": "Loads the value pointed to by IX plus <var>D</var> into H.",
+    "instruction": "ld h,(ix+d)",
+    "used": true
   }
 };
 
@@ -3631,7 +4372,8 @@ const variant_DD_67: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are loaded into IXH.",
-    "instruction": "ld ixh,a"
+    "instruction": "ld ixh,a",
+    "used": true
   }
 };
 
@@ -3661,7 +4403,8 @@ const variant_DD_68: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are loaded into IXL.",
-    "instruction": "ld ixl,b"
+    "instruction": "ld ixl,b",
+    "used": true
   }
 };
 
@@ -3691,7 +4434,8 @@ const variant_DD_69: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are loaded into IXL.",
-    "instruction": "ld ixl,c"
+    "instruction": "ld ixl,c",
+    "used": true
   }
 };
 
@@ -3721,7 +4465,8 @@ const variant_DD_6A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are loaded into IXL.",
-    "instruction": "ld ixl,d"
+    "instruction": "ld ixl,d",
+    "used": true
   }
 };
 
@@ -3751,7 +4496,8 @@ const variant_DD_6B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are loaded into IXL.",
-    "instruction": "ld ixl,e"
+    "instruction": "ld ixl,e",
+    "used": true
   }
 };
 
@@ -3781,7 +4527,8 @@ const variant_DD_6C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXH are loaded into IXL.",
-    "instruction": "ld ixl,ixh"
+    "instruction": "ld ixl,ixh",
+    "used": true
   }
 };
 
@@ -3811,7 +4558,8 @@ const variant_DD_6D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXL are loaded into IXL.",
-    "instruction": "ld ixl,ixl"
+    "instruction": "ld ixl,ixl",
+    "used": true
   }
 };
 
@@ -3845,8 +4593,9 @@ const variant_DD_6E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IX plus * into L.",
-    "instruction": "ld l,(ix+*)"
+    "description": "Loads the value pointed to by IX plus <var>D</var> into L.",
+    "instruction": "ld l,(ix+d)",
+    "used": true
   }
 };
 
@@ -3876,7 +4625,8 @@ const variant_DD_6F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are loaded into IXL.",
-    "instruction": "ld ixl,a"
+    "instruction": "ld ixl,a",
+    "used": true
   }
 };
 
@@ -3910,8 +4660,9 @@ const variant_DD_70_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores B to the memory location pointed to by IX plus *.",
-    "instruction": "ld (ix+*),b"
+    "description": "Stores B to the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "ld (ix+d),b",
+    "used": true
   }
 };
 
@@ -3945,8 +4696,9 @@ const variant_DD_71_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores C to the memory location pointed to by IX plus *.",
-    "instruction": "ld (ix+*),c"
+    "description": "Stores C to the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "ld (ix+d),c",
+    "used": true
   }
 };
 
@@ -3980,8 +4732,9 @@ const variant_DD_72_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores D to the memory location pointed to by IX plus *.",
-    "instruction": "ld (ix+*),d"
+    "description": "Stores D to the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "ld (ix+d),d",
+    "used": true
   }
 };
 
@@ -4015,8 +4768,9 @@ const variant_DD_73_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores E to the memory location pointed to by IX plus *.",
-    "instruction": "ld (ix+*),e"
+    "description": "Stores E to the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "ld (ix+d),e",
+    "used": true
   }
 };
 
@@ -4050,8 +4804,9 @@ const variant_DD_74_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores H to the memory location pointed to by IX plus *.",
-    "instruction": "ld (ix+*),h"
+    "description": "Stores H to the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "ld (ix+d),h",
+    "used": true
   }
 };
 
@@ -4085,8 +4840,9 @@ const variant_DD_75_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores L to the memory location pointed to by IX plus *.",
-    "instruction": "ld (ix+*),l"
+    "description": "Stores L to the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "ld (ix+d),l",
+    "used": true
   }
 };
 
@@ -4120,8 +4876,245 @@ const variant_DD_77_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores A to the memory location pointed to by IX plus *.",
-    "instruction": "ld (ix+*),a"
+    "description": "Stores A to the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "ld (ix+d),a",
+    "used": true
+  }
+};
+
+// ld a,b
+const variant_DD_78: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "b"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    221,
+    120
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD78",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into A.",
+    "instruction": "ld a,b",
+    "used": true
+  }
+};
+
+// ld b
+const variant_DD_78_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b"
+  ],
+  "tokens": [
+    "b"
+  ],
+  "opcodes": [
+    221,
+    120
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD78",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into A.",
+    "instruction": "ld a,b",
+    "used": true
+  }
+};
+
+// ld a,c
+const variant_DD_79: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "c"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    221,
+    121
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD79",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into A.",
+    "instruction": "ld a,c",
+    "used": true
+  }
+};
+
+// ld c
+const variant_DD_79_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c"
+  ],
+  "tokens": [
+    "c"
+  ],
+  "opcodes": [
+    221,
+    121
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD79",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into A.",
+    "instruction": "ld a,c",
+    "used": true
+  }
+};
+
+// ld a,d
+const variant_DD_7A: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "d"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    221,
+    122
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD7A",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into A.",
+    "instruction": "ld a,d",
+    "used": true
+  }
+};
+
+// ld d
+const variant_DD_7A_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d"
+  ],
+  "tokens": [
+    "d"
+  ],
+  "opcodes": [
+    221,
+    122
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD7A",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into A.",
+    "instruction": "ld a,d",
+    "used": true
+  }
+};
+
+// ld a,e
+const variant_DD_7B: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "e"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    221,
+    123
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD7B",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into A.",
+    "instruction": "ld a,e",
+    "used": true
+  }
+};
+
+// ld e
+const variant_DD_7B_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e"
+  ],
+  "tokens": [
+    "e"
+  ],
+  "opcodes": [
+    221,
+    123
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD7B",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into A.",
+    "instruction": "ld a,e",
+    "used": true
   }
 };
 
@@ -4151,7 +5144,8 @@ const variant_DD_7C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXH are loaded into A.",
-    "instruction": "ld a,ixh"
+    "instruction": "ld a,ixh",
+    "used": true
   }
 };
 
@@ -4178,7 +5172,8 @@ const variant_DD_7C_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXH are loaded into A.",
-    "instruction": "ld a,ixh"
+    "instruction": "ld a,ixh",
+    "used": true
   }
 };
 
@@ -4208,7 +5203,8 @@ const variant_DD_7D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXL are loaded into A.",
-    "instruction": "ld a,ixl"
+    "instruction": "ld a,ixl",
+    "used": true
   }
 };
 
@@ -4235,7 +5231,8 @@ const variant_DD_7D_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IXL are loaded into A.",
-    "instruction": "ld a,ixl"
+    "instruction": "ld a,ixl",
+    "used": true
   }
 };
 
@@ -4269,8 +5266,9 @@ const variant_DD_7E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IX plus * into A.",
-    "instruction": "ld a,(ix+*)"
+    "description": "Loads the value pointed to by IX plus <var>D</var> into A.",
+    "instruction": "ld a,(ix+d)",
+    "used": true
   }
 };
 
@@ -4301,8 +5299,68 @@ const variant_DD_7E_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IX plus * into A.",
-    "instruction": "ld a,(ix+*)"
+    "description": "Loads the value pointed to by IX plus <var>D</var> into A.",
+    "instruction": "ld a,(ix+d)",
+    "used": true
+  }
+};
+
+// ld a,a
+const variant_DD_7F: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "a"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    221,
+    127
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD7F",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into A.",
+    "instruction": "ld a,a",
+    "used": true
+  }
+};
+
+// ld a
+const variant_DD_7F_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a"
+  ],
+  "tokens": [
+    "a"
+  ],
+  "opcodes": [
+    221,
+    127
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DD7F",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into A.",
+    "instruction": "ld a,a",
+    "used": true
   }
 };
 
@@ -4332,14 +5390,15 @@ const variant_DD_CB_dd_00: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**00",
+    "opcodes": "DDCB00",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in B.",
-    "instruction": "rlc (ix+*),b"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in B.",
+    "instruction": "rlc (ix+d),b",
+    "used": true
   }
 };
 
@@ -4369,14 +5428,15 @@ const variant_DD_CB_dd_01: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**01",
+    "opcodes": "DDCB01",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in C.",
-    "instruction": "rlc (ix+*),c"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in C.",
+    "instruction": "rlc (ix+d),c",
+    "used": true
   }
 };
 
@@ -4406,14 +5466,15 @@ const variant_DD_CB_dd_02: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**02",
+    "opcodes": "DDCB02",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in D.",
-    "instruction": "rlc (ix+*),d"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in D.",
+    "instruction": "rlc (ix+d),d",
+    "used": true
   }
 };
 
@@ -4443,14 +5504,15 @@ const variant_DD_CB_dd_03: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**03",
+    "opcodes": "DDCB03",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in E.",
-    "instruction": "rlc (ix+*),e"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in E.",
+    "instruction": "rlc (ix+d),e",
+    "used": true
   }
 };
 
@@ -4480,14 +5542,15 @@ const variant_DD_CB_dd_04: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**04",
+    "opcodes": "DDCB04",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in H.",
-    "instruction": "rlc (ix+*),h"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in H.",
+    "instruction": "rlc (ix+d),h",
+    "used": true
   }
 };
 
@@ -4517,14 +5580,15 @@ const variant_DD_CB_dd_05: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**05",
+    "opcodes": "DDCB05",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in L.",
-    "instruction": "rlc (ix+*),l"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in L.",
+    "instruction": "rlc (ix+d),l",
+    "used": true
   }
 };
 
@@ -4554,14 +5618,15 @@ const variant_DD_CB_dd_07: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**07",
+    "opcodes": "DDCB07",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
-    "instruction": "rlc (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
+    "instruction": "rlc (ix+d),a",
+    "used": true
   }
 };
 
@@ -4588,14 +5653,15 @@ const variant_DD_CB_dd_07_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**07",
+    "opcodes": "DDCB07",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
-    "instruction": "rlc (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
+    "instruction": "rlc (ix+d),a",
+    "used": true
   }
 };
 
@@ -4625,14 +5691,15 @@ const variant_DD_CB_dd_08: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**08",
+    "opcodes": "DDCB08",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in B.",
-    "instruction": "rrc (ix+*),b"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in B.",
+    "instruction": "rrc (ix+d),b",
+    "used": true
   }
 };
 
@@ -4662,14 +5729,15 @@ const variant_DD_CB_dd_09: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**09",
+    "opcodes": "DDCB09",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in C.",
-    "instruction": "rrc (ix+*),c"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in C.",
+    "instruction": "rrc (ix+d),c",
+    "used": true
   }
 };
 
@@ -4699,14 +5767,15 @@ const variant_DD_CB_dd_0A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**0A",
+    "opcodes": "DDCB0A",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in D.",
-    "instruction": "rrc (ix+*),d"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in D.",
+    "instruction": "rrc (ix+d),d",
+    "used": true
   }
 };
 
@@ -4736,14 +5805,15 @@ const variant_DD_CB_dd_0B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**0B",
+    "opcodes": "DDCB0B",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in E.",
-    "instruction": "rrc (ix+*),e"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in E.",
+    "instruction": "rrc (ix+d),e",
+    "used": true
   }
 };
 
@@ -4773,14 +5843,15 @@ const variant_DD_CB_dd_0C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**0C",
+    "opcodes": "DDCB0C",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in H.",
-    "instruction": "rrc (ix+*),h"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in H.",
+    "instruction": "rrc (ix+d),h",
+    "used": true
   }
 };
 
@@ -4810,14 +5881,15 @@ const variant_DD_CB_dd_0D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**0D",
+    "opcodes": "DDCB0D",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in L.",
-    "instruction": "rrc (ix+*),l"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in L.",
+    "instruction": "rrc (ix+d),l",
+    "used": true
   }
 };
 
@@ -4847,14 +5919,15 @@ const variant_DD_CB_dd_0F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**0F",
+    "opcodes": "DDCB0F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
-    "instruction": "rrc (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
+    "instruction": "rrc (ix+d),a",
+    "used": true
   }
 };
 
@@ -4881,14 +5954,15 @@ const variant_DD_CB_dd_0F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**0F",
+    "opcodes": "DDCB0F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
-    "instruction": "rrc (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
+    "instruction": "rrc (ix+d),a",
+    "used": true
   }
 };
 
@@ -4918,14 +5992,15 @@ const variant_DD_CB_dd_10: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**10",
+    "opcodes": "DDCB10",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in B.",
-    "instruction": "rl (ix+*),b"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in B.",
+    "instruction": "rl (ix+d),b",
+    "used": true
   }
 };
 
@@ -4955,14 +6030,15 @@ const variant_DD_CB_dd_11: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**11",
+    "opcodes": "DDCB11",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in C.",
-    "instruction": "rl (ix+*),c"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in C.",
+    "instruction": "rl (ix+d),c",
+    "used": true
   }
 };
 
@@ -4992,14 +6068,15 @@ const variant_DD_CB_dd_12: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**12",
+    "opcodes": "DDCB12",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in D.",
-    "instruction": "rl (ix+*),d"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in D.",
+    "instruction": "rl (ix+d),d",
+    "used": true
   }
 };
 
@@ -5029,14 +6106,15 @@ const variant_DD_CB_dd_13: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**13",
+    "opcodes": "DDCB13",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in E.",
-    "instruction": "rl (ix+*),e"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in E.",
+    "instruction": "rl (ix+d),e",
+    "used": true
   }
 };
 
@@ -5066,14 +6144,15 @@ const variant_DD_CB_dd_14: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**14",
+    "opcodes": "DDCB14",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in H.",
-    "instruction": "rl (ix+*),h"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in H.",
+    "instruction": "rl (ix+d),h",
+    "used": true
   }
 };
 
@@ -5103,14 +6182,15 @@ const variant_DD_CB_dd_15: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**15",
+    "opcodes": "DDCB15",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in L.",
-    "instruction": "rl (ix+*),l"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in L.",
+    "instruction": "rl (ix+d),l",
+    "used": true
   }
 };
 
@@ -5140,14 +6220,15 @@ const variant_DD_CB_dd_17: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**17",
+    "opcodes": "DDCB17",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
-    "instruction": "rl (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
+    "instruction": "rl (ix+d),a",
+    "used": true
   }
 };
 
@@ -5174,14 +6255,15 @@ const variant_DD_CB_dd_17_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**17",
+    "opcodes": "DDCB17",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
-    "instruction": "rl (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
+    "instruction": "rl (ix+d),a",
+    "used": true
   }
 };
 
@@ -5211,14 +6293,15 @@ const variant_DD_CB_dd_18: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**18",
+    "opcodes": "DDCB18",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in B.",
-    "instruction": "rr (ix+*),b"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in B.",
+    "instruction": "rr (ix+d),b",
+    "used": true
   }
 };
 
@@ -5248,14 +6331,15 @@ const variant_DD_CB_dd_19: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**19",
+    "opcodes": "DDCB19",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in C.",
-    "instruction": "rr (ix+*),c"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in C.",
+    "instruction": "rr (ix+d),c",
+    "used": true
   }
 };
 
@@ -5285,14 +6369,15 @@ const variant_DD_CB_dd_1A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**1A",
+    "opcodes": "DDCB1A",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in D.",
-    "instruction": "rr (ix+*),d"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in D.",
+    "instruction": "rr (ix+d),d",
+    "used": true
   }
 };
 
@@ -5322,14 +6407,15 @@ const variant_DD_CB_dd_1B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**1B",
+    "opcodes": "DDCB1B",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in E.",
-    "instruction": "rr (ix+*),e"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in E.",
+    "instruction": "rr (ix+d),e",
+    "used": true
   }
 };
 
@@ -5359,14 +6445,15 @@ const variant_DD_CB_dd_1C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**1C",
+    "opcodes": "DDCB1C",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in H.",
-    "instruction": "rr (ix+*),h"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in H.",
+    "instruction": "rr (ix+d),h",
+    "used": true
   }
 };
 
@@ -5396,14 +6483,15 @@ const variant_DD_CB_dd_1D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**1D",
+    "opcodes": "DDCB1D",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in L.",
-    "instruction": "rr (ix+*),l"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in L.",
+    "instruction": "rr (ix+d),l",
+    "used": true
   }
 };
 
@@ -5433,14 +6521,15 @@ const variant_DD_CB_dd_1F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**1F",
+    "opcodes": "DDCB1F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
-    "instruction": "rr (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
+    "instruction": "rr (ix+d),a",
+    "used": true
   }
 };
 
@@ -5467,14 +6556,15 @@ const variant_DD_CB_dd_1F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**1F",
+    "opcodes": "DDCB1F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
-    "instruction": "rr (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
+    "instruction": "rr (ix+d),a",
+    "used": true
   }
 };
 
@@ -5504,14 +6594,15 @@ const variant_DD_CB_dd_20: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**20",
+    "opcodes": "DDCB20",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in B.",
-    "instruction": "sla (ix+*),b"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in B.",
+    "instruction": "sla (ix+d),b",
+    "used": true
   }
 };
 
@@ -5541,14 +6632,15 @@ const variant_DD_CB_dd_21: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**21",
+    "opcodes": "DDCB21",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in C.",
-    "instruction": "sla (ix+*),c"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in C.",
+    "instruction": "sla (ix+d),c",
+    "used": true
   }
 };
 
@@ -5578,14 +6670,15 @@ const variant_DD_CB_dd_22: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**22",
+    "opcodes": "DDCB22",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in D.",
-    "instruction": "sla (ix+*),d"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in D.",
+    "instruction": "sla (ix+d),d",
+    "used": true
   }
 };
 
@@ -5615,14 +6708,15 @@ const variant_DD_CB_dd_23: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**23",
+    "opcodes": "DDCB23",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in E.",
-    "instruction": "sla (ix+*),e"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in E.",
+    "instruction": "sla (ix+d),e",
+    "used": true
   }
 };
 
@@ -5652,14 +6746,15 @@ const variant_DD_CB_dd_24: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**24",
+    "opcodes": "DDCB24",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in H.",
-    "instruction": "sla (ix+*),h"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in H.",
+    "instruction": "sla (ix+d),h",
+    "used": true
   }
 };
 
@@ -5689,14 +6784,15 @@ const variant_DD_CB_dd_25: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**25",
+    "opcodes": "DDCB25",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in L.",
-    "instruction": "sla (ix+*),l"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in L.",
+    "instruction": "sla (ix+d),l",
+    "used": true
   }
 };
 
@@ -5726,14 +6822,15 @@ const variant_DD_CB_dd_27: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**27",
+    "opcodes": "DDCB27",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
-    "instruction": "sla (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
+    "instruction": "sla (ix+d),a",
+    "used": true
   }
 };
 
@@ -5760,14 +6857,15 @@ const variant_DD_CB_dd_27_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**27",
+    "opcodes": "DDCB27",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
-    "instruction": "sla (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
+    "instruction": "sla (ix+d),a",
+    "used": true
   }
 };
 
@@ -5797,14 +6895,15 @@ const variant_DD_CB_dd_28: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**28",
+    "opcodes": "DDCB28",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in B.",
-    "instruction": "sra (ix+*),b"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in B.",
+    "instruction": "sra (ix+d),b",
+    "used": true
   }
 };
 
@@ -5834,14 +6933,15 @@ const variant_DD_CB_dd_29: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**29",
+    "opcodes": "DDCB29",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in C.",
-    "instruction": "sra (ix+*),c"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in C.",
+    "instruction": "sra (ix+d),c",
+    "used": true
   }
 };
 
@@ -5871,14 +6971,15 @@ const variant_DD_CB_dd_2A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**2A",
+    "opcodes": "DDCB2A",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in D.",
-    "instruction": "sra (ix+*),d"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in D.",
+    "instruction": "sra (ix+d),d",
+    "used": true
   }
 };
 
@@ -5908,14 +7009,15 @@ const variant_DD_CB_dd_2B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**2B",
+    "opcodes": "DDCB2B",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in E.",
-    "instruction": "sra (ix+*),e"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in E.",
+    "instruction": "sra (ix+d),e",
+    "used": true
   }
 };
 
@@ -5945,14 +7047,15 @@ const variant_DD_CB_dd_2C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**2C",
+    "opcodes": "DDCB2C",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in H.",
-    "instruction": "sra (ix+*),h"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in H.",
+    "instruction": "sra (ix+d),h",
+    "used": true
   }
 };
 
@@ -5982,14 +7085,15 @@ const variant_DD_CB_dd_2D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**2D",
+    "opcodes": "DDCB2D",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in L.",
-    "instruction": "sra (ix+*),l"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in L.",
+    "instruction": "sra (ix+d),l",
+    "used": true
   }
 };
 
@@ -6019,14 +7123,15 @@ const variant_DD_CB_dd_2F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**2F",
+    "opcodes": "DDCB2F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
-    "instruction": "sra (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
+    "instruction": "sra (ix+d),a",
+    "used": true
   }
 };
 
@@ -6053,14 +7158,15 @@ const variant_DD_CB_dd_2F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**2F",
+    "opcodes": "DDCB2F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
-    "instruction": "sra (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
+    "instruction": "sra (ix+d),a",
+    "used": true
   }
 };
 
@@ -6090,14 +7196,15 @@ const variant_DD_CB_dd_30: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**30",
+    "opcodes": "DDCB30",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in B.",
-    "instruction": "sll (ix+*),b"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in B.",
+    "instruction": "sll (ix+d),b",
+    "used": true
   }
 };
 
@@ -6127,14 +7234,15 @@ const variant_DD_CB_dd_31: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**31",
+    "opcodes": "DDCB31",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in C.",
-    "instruction": "sll (ix+*),c"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in C.",
+    "instruction": "sll (ix+d),c",
+    "used": true
   }
 };
 
@@ -6164,14 +7272,15 @@ const variant_DD_CB_dd_32: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**32",
+    "opcodes": "DDCB32",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in D.",
-    "instruction": "sll (ix+*),d"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in D.",
+    "instruction": "sll (ix+d),d",
+    "used": true
   }
 };
 
@@ -6201,14 +7310,15 @@ const variant_DD_CB_dd_33: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**33",
+    "opcodes": "DDCB33",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in E.",
-    "instruction": "sll (ix+*),e"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in E.",
+    "instruction": "sll (ix+d),e",
+    "used": true
   }
 };
 
@@ -6238,14 +7348,15 @@ const variant_DD_CB_dd_34: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**34",
+    "opcodes": "DDCB34",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in H.",
-    "instruction": "sll (ix+*),h"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in H.",
+    "instruction": "sll (ix+d),h",
+    "used": true
   }
 };
 
@@ -6275,14 +7386,15 @@ const variant_DD_CB_dd_35: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**35",
+    "opcodes": "DDCB35",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in L.",
-    "instruction": "sll (ix+*),l"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in L.",
+    "instruction": "sll (ix+d),l",
+    "used": true
   }
 };
 
@@ -6312,14 +7424,15 @@ const variant_DD_CB_dd_37: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**37",
+    "opcodes": "DDCB37",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
-    "instruction": "sll (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
+    "instruction": "sll (ix+d),a",
+    "used": true
   }
 };
 
@@ -6346,14 +7459,15 @@ const variant_DD_CB_dd_37_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**37",
+    "opcodes": "DDCB37",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
-    "instruction": "sll (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
+    "instruction": "sll (ix+d),a",
+    "used": true
   }
 };
 
@@ -6383,14 +7497,15 @@ const variant_DD_CB_dd_38: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**38",
+    "opcodes": "DDCB38",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in B.",
-    "instruction": "srl (ix+*),b"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in B.",
+    "instruction": "srl (ix+d),b",
+    "used": true
   }
 };
 
@@ -6420,14 +7535,15 @@ const variant_DD_CB_dd_39: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**39",
+    "opcodes": "DDCB39",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in C.",
-    "instruction": "srl (ix+*),c"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in C.",
+    "instruction": "srl (ix+d),c",
+    "used": true
   }
 };
 
@@ -6457,14 +7573,15 @@ const variant_DD_CB_dd_3A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**3A",
+    "opcodes": "DDCB3A",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in D.",
-    "instruction": "srl (ix+*),d"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in D.",
+    "instruction": "srl (ix+d),d",
+    "used": true
   }
 };
 
@@ -6494,14 +7611,15 @@ const variant_DD_CB_dd_3B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**3B",
+    "opcodes": "DDCB3B",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in E.",
-    "instruction": "srl (ix+*),e"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in E.",
+    "instruction": "srl (ix+d),e",
+    "used": true
   }
 };
 
@@ -6531,14 +7649,15 @@ const variant_DD_CB_dd_3C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**3C",
+    "opcodes": "DDCB3C",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in H.",
-    "instruction": "srl (ix+*),h"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in H.",
+    "instruction": "srl (ix+d),h",
+    "used": true
   }
 };
 
@@ -6568,14 +7687,15 @@ const variant_DD_CB_dd_3D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**3D",
+    "opcodes": "DDCB3D",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in L.",
-    "instruction": "srl (ix+*),l"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in L.",
+    "instruction": "srl (ix+d),l",
+    "used": true
   }
 };
 
@@ -6605,14 +7725,15 @@ const variant_DD_CB_dd_3F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**3F",
+    "opcodes": "DDCB3F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
-    "instruction": "srl (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
+    "instruction": "srl (ix+d),a",
+    "used": true
   }
 };
 
@@ -6639,14 +7760,15 @@ const variant_DD_CB_dd_3F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**3F",
+    "opcodes": "DDCB3F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
-    "instruction": "srl (ix+*),a"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
+    "instruction": "srl (ix+d),a",
+    "used": true
   }
 };
 
@@ -6679,14 +7801,15 @@ const variant_DD_CB_dd_80: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**80",
+    "opcodes": "DDCB80",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "res 0,(ix+*),b"
+    "description": "Resets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 0,(ix+d),b",
+    "used": true
   }
 };
 
@@ -6719,14 +7842,15 @@ const variant_DD_CB_dd_81: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**81",
+    "opcodes": "DDCB81",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "res 0,(ix+*),c"
+    "description": "Resets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 0,(ix+d),c",
+    "used": true
   }
 };
 
@@ -6759,14 +7883,15 @@ const variant_DD_CB_dd_82: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**82",
+    "opcodes": "DDCB82",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "res 0,(ix+*),d"
+    "description": "Resets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 0,(ix+d),d",
+    "used": true
   }
 };
 
@@ -6799,14 +7924,15 @@ const variant_DD_CB_dd_83: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**83",
+    "opcodes": "DDCB83",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "res 0,(ix+*),e"
+    "description": "Resets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 0,(ix+d),e",
+    "used": true
   }
 };
 
@@ -6839,14 +7965,15 @@ const variant_DD_CB_dd_84: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**84",
+    "opcodes": "DDCB84",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "res 0,(ix+*),h"
+    "description": "Resets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 0,(ix+d),h",
+    "used": true
   }
 };
 
@@ -6879,14 +8006,15 @@ const variant_DD_CB_dd_85: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**85",
+    "opcodes": "DDCB85",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "res 0,(ix+*),l"
+    "description": "Resets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 0,(ix+d),l",
+    "used": true
   }
 };
 
@@ -6919,14 +8047,15 @@ const variant_DD_CB_dd_87: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**87",
+    "opcodes": "DDCB87",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "res 0,(ix+*),a"
+    "description": "Resets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 0,(ix+d),a",
+    "used": true
   }
 };
 
@@ -6956,14 +8085,15 @@ const variant_DD_CB_dd_87_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**87",
+    "opcodes": "DDCB87",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "res 0,(ix+*),a"
+    "description": "Resets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 0,(ix+d),a",
+    "used": true
   }
 };
 
@@ -6996,14 +8126,15 @@ const variant_DD_CB_dd_88: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**88",
+    "opcodes": "DDCB88",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "res 1,(ix+*),b"
+    "description": "Resets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 1,(ix+d),b",
+    "used": true
   }
 };
 
@@ -7036,14 +8167,15 @@ const variant_DD_CB_dd_89: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**89",
+    "opcodes": "DDCB89",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "res 1,(ix+*),c"
+    "description": "Resets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 1,(ix+d),c",
+    "used": true
   }
 };
 
@@ -7076,14 +8208,15 @@ const variant_DD_CB_dd_8A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**8A",
+    "opcodes": "DDCB8A",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "res 1,(ix+*),d"
+    "description": "Resets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 1,(ix+d),d",
+    "used": true
   }
 };
 
@@ -7116,14 +8249,15 @@ const variant_DD_CB_dd_8B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**8B",
+    "opcodes": "DDCB8B",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "res 1,(ix+*),e"
+    "description": "Resets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 1,(ix+d),e",
+    "used": true
   }
 };
 
@@ -7156,14 +8290,15 @@ const variant_DD_CB_dd_8C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**8C",
+    "opcodes": "DDCB8C",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "res 1,(ix+*),h"
+    "description": "Resets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 1,(ix+d),h",
+    "used": true
   }
 };
 
@@ -7196,14 +8331,15 @@ const variant_DD_CB_dd_8D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**8D",
+    "opcodes": "DDCB8D",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "res 1,(ix+*),l"
+    "description": "Resets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 1,(ix+d),l",
+    "used": true
   }
 };
 
@@ -7236,14 +8372,15 @@ const variant_DD_CB_dd_8F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**8F",
+    "opcodes": "DDCB8F",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "res 1,(ix+*),a"
+    "description": "Resets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 1,(ix+d),a",
+    "used": true
   }
 };
 
@@ -7273,14 +8410,15 @@ const variant_DD_CB_dd_8F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**8F",
+    "opcodes": "DDCB8F",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "res 1,(ix+*),a"
+    "description": "Resets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 1,(ix+d),a",
+    "used": true
   }
 };
 
@@ -7313,14 +8451,15 @@ const variant_DD_CB_dd_90: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**90",
+    "opcodes": "DDCB90",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "res 2,(ix+*),b"
+    "description": "Resets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 2,(ix+d),b",
+    "used": true
   }
 };
 
@@ -7353,14 +8492,15 @@ const variant_DD_CB_dd_91: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**91",
+    "opcodes": "DDCB91",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "res 2,(ix+*),c"
+    "description": "Resets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 2,(ix+d),c",
+    "used": true
   }
 };
 
@@ -7393,14 +8533,15 @@ const variant_DD_CB_dd_92: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**92",
+    "opcodes": "DDCB92",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "res 2,(ix+*),d"
+    "description": "Resets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 2,(ix+d),d",
+    "used": true
   }
 };
 
@@ -7433,14 +8574,15 @@ const variant_DD_CB_dd_93: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**93",
+    "opcodes": "DDCB93",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "res 2,(ix+*),e"
+    "description": "Resets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 2,(ix+d),e",
+    "used": true
   }
 };
 
@@ -7473,14 +8615,15 @@ const variant_DD_CB_dd_94: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**94",
+    "opcodes": "DDCB94",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "res 2,(ix+*),h"
+    "description": "Resets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 2,(ix+d),h",
+    "used": true
   }
 };
 
@@ -7513,14 +8656,15 @@ const variant_DD_CB_dd_95: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**95",
+    "opcodes": "DDCB95",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "res 2,(ix+*),l"
+    "description": "Resets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 2,(ix+d),l",
+    "used": true
   }
 };
 
@@ -7553,14 +8697,15 @@ const variant_DD_CB_dd_97: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**97",
+    "opcodes": "DDCB97",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "res 2,(ix+*),a"
+    "description": "Resets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 2,(ix+d),a",
+    "used": true
   }
 };
 
@@ -7590,14 +8735,15 @@ const variant_DD_CB_dd_97_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**97",
+    "opcodes": "DDCB97",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "res 2,(ix+*),a"
+    "description": "Resets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 2,(ix+d),a",
+    "used": true
   }
 };
 
@@ -7630,14 +8776,15 @@ const variant_DD_CB_dd_98: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**98",
+    "opcodes": "DDCB98",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "res 3,(ix+*),b"
+    "description": "Resets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 3,(ix+d),b",
+    "used": true
   }
 };
 
@@ -7670,14 +8817,15 @@ const variant_DD_CB_dd_99: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**99",
+    "opcodes": "DDCB99",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "res 3,(ix+*),c"
+    "description": "Resets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 3,(ix+d),c",
+    "used": true
   }
 };
 
@@ -7710,14 +8858,15 @@ const variant_DD_CB_dd_9A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**9A",
+    "opcodes": "DDCB9A",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "res 3,(ix+*),d"
+    "description": "Resets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 3,(ix+d),d",
+    "used": true
   }
 };
 
@@ -7750,14 +8899,15 @@ const variant_DD_CB_dd_9B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**9B",
+    "opcodes": "DDCB9B",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "res 3,(ix+*),e"
+    "description": "Resets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 3,(ix+d),e",
+    "used": true
   }
 };
 
@@ -7790,14 +8940,15 @@ const variant_DD_CB_dd_9C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**9C",
+    "opcodes": "DDCB9C",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "res 3,(ix+*),h"
+    "description": "Resets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 3,(ix+d),h",
+    "used": true
   }
 };
 
@@ -7830,14 +8981,15 @@ const variant_DD_CB_dd_9D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**9D",
+    "opcodes": "DDCB9D",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "res 3,(ix+*),l"
+    "description": "Resets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 3,(ix+d),l",
+    "used": true
   }
 };
 
@@ -7870,14 +9022,15 @@ const variant_DD_CB_dd_9F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**9F",
+    "opcodes": "DDCB9F",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "res 3,(ix+*),a"
+    "description": "Resets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 3,(ix+d),a",
+    "used": true
   }
 };
 
@@ -7907,14 +9060,15 @@ const variant_DD_CB_dd_9F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**9F",
+    "opcodes": "DDCB9F",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "res 3,(ix+*),a"
+    "description": "Resets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 3,(ix+d),a",
+    "used": true
   }
 };
 
@@ -7947,14 +9101,15 @@ const variant_DD_CB_dd_A0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A0",
+    "opcodes": "DDCBA0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "res 4,(ix+*),b"
+    "description": "Resets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 4,(ix+d),b",
+    "used": true
   }
 };
 
@@ -7987,14 +9142,15 @@ const variant_DD_CB_dd_A1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A1",
+    "opcodes": "DDCBA1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "res 4,(ix+*),c"
+    "description": "Resets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 4,(ix+d),c",
+    "used": true
   }
 };
 
@@ -8027,14 +9183,15 @@ const variant_DD_CB_dd_A2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A2",
+    "opcodes": "DDCBA2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "res 4,(ix+*),d"
+    "description": "Resets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 4,(ix+d),d",
+    "used": true
   }
 };
 
@@ -8067,14 +9224,15 @@ const variant_DD_CB_dd_A3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A3",
+    "opcodes": "DDCBA3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "res 4,(ix+*),e"
+    "description": "Resets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 4,(ix+d),e",
+    "used": true
   }
 };
 
@@ -8107,14 +9265,15 @@ const variant_DD_CB_dd_A4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A4",
+    "opcodes": "DDCBA4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "res 4,(ix+*),h"
+    "description": "Resets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 4,(ix+d),h",
+    "used": true
   }
 };
 
@@ -8147,14 +9306,15 @@ const variant_DD_CB_dd_A5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A5",
+    "opcodes": "DDCBA5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "res 4,(ix+*),l"
+    "description": "Resets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 4,(ix+d),l",
+    "used": true
   }
 };
 
@@ -8187,14 +9347,15 @@ const variant_DD_CB_dd_A7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A7",
+    "opcodes": "DDCBA7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "res 4,(ix+*),a"
+    "description": "Resets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 4,(ix+d),a",
+    "used": true
   }
 };
 
@@ -8224,14 +9385,15 @@ const variant_DD_CB_dd_A7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A7",
+    "opcodes": "DDCBA7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "res 4,(ix+*),a"
+    "description": "Resets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 4,(ix+d),a",
+    "used": true
   }
 };
 
@@ -8264,14 +9426,15 @@ const variant_DD_CB_dd_A8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A8",
+    "opcodes": "DDCBA8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "res 5,(ix+*),b"
+    "description": "Resets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 5,(ix+d),b",
+    "used": true
   }
 };
 
@@ -8304,14 +9467,15 @@ const variant_DD_CB_dd_A9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A9",
+    "opcodes": "DDCBA9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "res 5,(ix+*),c"
+    "description": "Resets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 5,(ix+d),c",
+    "used": true
   }
 };
 
@@ -8344,14 +9508,15 @@ const variant_DD_CB_dd_AA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**AA",
+    "opcodes": "DDCBAA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "res 5,(ix+*),d"
+    "description": "Resets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 5,(ix+d),d",
+    "used": true
   }
 };
 
@@ -8384,14 +9549,15 @@ const variant_DD_CB_dd_AB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**AB",
+    "opcodes": "DDCBAB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "res 5,(ix+*),e"
+    "description": "Resets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 5,(ix+d),e",
+    "used": true
   }
 };
 
@@ -8424,14 +9590,15 @@ const variant_DD_CB_dd_AC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**AC",
+    "opcodes": "DDCBAC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "res 5,(ix+*),h"
+    "description": "Resets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 5,(ix+d),h",
+    "used": true
   }
 };
 
@@ -8464,14 +9631,15 @@ const variant_DD_CB_dd_AD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**AD",
+    "opcodes": "DDCBAD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "res 5,(ix+*),l"
+    "description": "Resets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 5,(ix+d),l",
+    "used": true
   }
 };
 
@@ -8504,14 +9672,15 @@ const variant_DD_CB_dd_AF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**AF",
+    "opcodes": "DDCBAF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "res 5,(ix+*),a"
+    "description": "Resets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 5,(ix+d),a",
+    "used": true
   }
 };
 
@@ -8541,14 +9710,15 @@ const variant_DD_CB_dd_AF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**AF",
+    "opcodes": "DDCBAF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "res 5,(ix+*),a"
+    "description": "Resets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 5,(ix+d),a",
+    "used": true
   }
 };
 
@@ -8581,14 +9751,15 @@ const variant_DD_CB_dd_B0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B0",
+    "opcodes": "DDCBB0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "res 6,(ix+*),b"
+    "description": "Resets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 6,(ix+d),b",
+    "used": true
   }
 };
 
@@ -8621,14 +9792,15 @@ const variant_DD_CB_dd_B1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B1",
+    "opcodes": "DDCBB1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "res 6,(ix+*),c"
+    "description": "Resets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 6,(ix+d),c",
+    "used": true
   }
 };
 
@@ -8661,14 +9833,15 @@ const variant_DD_CB_dd_B2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B2",
+    "opcodes": "DDCBB2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "res 6,(ix+*),d"
+    "description": "Resets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 6,(ix+d),d",
+    "used": true
   }
 };
 
@@ -8701,14 +9874,15 @@ const variant_DD_CB_dd_B3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B3",
+    "opcodes": "DDCBB3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "res 6,(ix+*),e"
+    "description": "Resets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 6,(ix+d),e",
+    "used": true
   }
 };
 
@@ -8741,14 +9915,15 @@ const variant_DD_CB_dd_B4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B4",
+    "opcodes": "DDCBB4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "res 6,(ix+*),h"
+    "description": "Resets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 6,(ix+d),h",
+    "used": true
   }
 };
 
@@ -8781,14 +9956,15 @@ const variant_DD_CB_dd_B5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B5",
+    "opcodes": "DDCBB5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "res 6,(ix+*),l"
+    "description": "Resets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 6,(ix+d),l",
+    "used": true
   }
 };
 
@@ -8821,14 +9997,15 @@ const variant_DD_CB_dd_B7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B7",
+    "opcodes": "DDCBB7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "res 6,(ix+*),a"
+    "description": "Resets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 6,(ix+d),a",
+    "used": true
   }
 };
 
@@ -8858,14 +10035,15 @@ const variant_DD_CB_dd_B7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B7",
+    "opcodes": "DDCBB7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "res 6,(ix+*),a"
+    "description": "Resets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 6,(ix+d),a",
+    "used": true
   }
 };
 
@@ -8898,14 +10076,15 @@ const variant_DD_CB_dd_B8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B8",
+    "opcodes": "DDCBB8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "res 7,(ix+*),b"
+    "description": "Resets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 7,(ix+d),b",
+    "used": true
   }
 };
 
@@ -8938,14 +10117,15 @@ const variant_DD_CB_dd_B9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B9",
+    "opcodes": "DDCBB9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "res 7,(ix+*),c"
+    "description": "Resets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 7,(ix+d),c",
+    "used": true
   }
 };
 
@@ -8978,14 +10158,15 @@ const variant_DD_CB_dd_BA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**BA",
+    "opcodes": "DDCBBA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "res 7,(ix+*),d"
+    "description": "Resets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 7,(ix+d),d",
+    "used": true
   }
 };
 
@@ -9018,14 +10199,15 @@ const variant_DD_CB_dd_BB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**BB",
+    "opcodes": "DDCBBB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "res 7,(ix+*),e"
+    "description": "Resets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 7,(ix+d),e",
+    "used": true
   }
 };
 
@@ -9058,14 +10240,15 @@ const variant_DD_CB_dd_BC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**BC",
+    "opcodes": "DDCBBC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "res 7,(ix+*),h"
+    "description": "Resets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 7,(ix+d),h",
+    "used": true
   }
 };
 
@@ -9098,14 +10281,15 @@ const variant_DD_CB_dd_BD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**BD",
+    "opcodes": "DDCBBD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "res 7,(ix+*),l"
+    "description": "Resets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 7,(ix+d),l",
+    "used": true
   }
 };
 
@@ -9138,14 +10322,15 @@ const variant_DD_CB_dd_BF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**BF",
+    "opcodes": "DDCBBF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "res 7,(ix+*),a"
+    "description": "Resets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 7,(ix+d),a",
+    "used": true
   }
 };
 
@@ -9175,14 +10360,15 @@ const variant_DD_CB_dd_BF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**BF",
+    "opcodes": "DDCBBF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "res 7,(ix+*),a"
+    "description": "Resets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 7,(ix+d),a",
+    "used": true
   }
 };
 
@@ -9215,14 +10401,15 @@ const variant_DD_CB_dd_C0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C0",
+    "opcodes": "DDCBC0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "set 0,(ix+*),b"
+    "description": "Sets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 0,(ix+d),b",
+    "used": true
   }
 };
 
@@ -9255,14 +10442,15 @@ const variant_DD_CB_dd_C1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C1",
+    "opcodes": "DDCBC1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "set 0,(ix+*),c"
+    "description": "Sets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 0,(ix+d),c",
+    "used": true
   }
 };
 
@@ -9295,14 +10483,15 @@ const variant_DD_CB_dd_C2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C2",
+    "opcodes": "DDCBC2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "set 0,(ix+*),d"
+    "description": "Sets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 0,(ix+d),d",
+    "used": true
   }
 };
 
@@ -9335,14 +10524,15 @@ const variant_DD_CB_dd_C3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C3",
+    "opcodes": "DDCBC3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "set 0,(ix+*),e"
+    "description": "Sets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 0,(ix+d),e",
+    "used": true
   }
 };
 
@@ -9375,14 +10565,15 @@ const variant_DD_CB_dd_C4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C4",
+    "opcodes": "DDCBC4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "set 0,(ix+*),h"
+    "description": "Sets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 0,(ix+d),h",
+    "used": true
   }
 };
 
@@ -9415,14 +10606,15 @@ const variant_DD_CB_dd_C5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C5",
+    "opcodes": "DDCBC5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "set 0,(ix+*),l"
+    "description": "Sets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 0,(ix+d),l",
+    "used": true
   }
 };
 
@@ -9455,14 +10647,15 @@ const variant_DD_CB_dd_C7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C7",
+    "opcodes": "DDCBC7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "set 0,(ix+*),a"
+    "description": "Sets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 0,(ix+d),a",
+    "used": true
   }
 };
 
@@ -9492,14 +10685,15 @@ const variant_DD_CB_dd_C7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C7",
+    "opcodes": "DDCBC7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "set 0,(ix+*),a"
+    "description": "Sets bit 0 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 0,(ix+d),a",
+    "used": true
   }
 };
 
@@ -9532,14 +10726,15 @@ const variant_DD_CB_dd_C8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C8",
+    "opcodes": "DDCBC8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "set 1,(ix+*),b"
+    "description": "Sets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 1,(ix+d),b",
+    "used": true
   }
 };
 
@@ -9572,14 +10767,15 @@ const variant_DD_CB_dd_C9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C9",
+    "opcodes": "DDCBC9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "set 1,(ix+*),c"
+    "description": "Sets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 1,(ix+d),c",
+    "used": true
   }
 };
 
@@ -9612,14 +10808,15 @@ const variant_DD_CB_dd_CA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**CA",
+    "opcodes": "DDCBCA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "set 1,(ix+*),d"
+    "description": "Sets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 1,(ix+d),d",
+    "used": true
   }
 };
 
@@ -9652,14 +10849,15 @@ const variant_DD_CB_dd_CB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**CB",
+    "opcodes": "DDCBCB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "set 1,(ix+*),e"
+    "description": "Sets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 1,(ix+d),e",
+    "used": true
   }
 };
 
@@ -9692,14 +10890,15 @@ const variant_DD_CB_dd_CC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**CC",
+    "opcodes": "DDCBCC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "set 1,(ix+*),h"
+    "description": "Sets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 1,(ix+d),h",
+    "used": true
   }
 };
 
@@ -9732,14 +10931,15 @@ const variant_DD_CB_dd_CD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**CD",
+    "opcodes": "DDCBCD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "set 1,(ix+*),l"
+    "description": "Sets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 1,(ix+d),l",
+    "used": true
   }
 };
 
@@ -9772,14 +10972,15 @@ const variant_DD_CB_dd_CF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**CF",
+    "opcodes": "DDCBCF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "set 1,(ix+*),a"
+    "description": "Sets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 1,(ix+d),a",
+    "used": true
   }
 };
 
@@ -9809,14 +11010,15 @@ const variant_DD_CB_dd_CF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**CF",
+    "opcodes": "DDCBCF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "set 1,(ix+*),a"
+    "description": "Sets bit 1 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 1,(ix+d),a",
+    "used": true
   }
 };
 
@@ -9849,14 +11051,15 @@ const variant_DD_CB_dd_D0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D0",
+    "opcodes": "DDCBD0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "set 2,(ix+*),b"
+    "description": "Sets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 2,(ix+d),b",
+    "used": true
   }
 };
 
@@ -9889,14 +11092,15 @@ const variant_DD_CB_dd_D1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D1",
+    "opcodes": "DDCBD1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "set 2,(ix+*),c"
+    "description": "Sets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 2,(ix+d),c",
+    "used": true
   }
 };
 
@@ -9929,14 +11133,15 @@ const variant_DD_CB_dd_D2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D2",
+    "opcodes": "DDCBD2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "set 2,(ix+*),d"
+    "description": "Sets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 2,(ix+d),d",
+    "used": true
   }
 };
 
@@ -9969,14 +11174,15 @@ const variant_DD_CB_dd_D3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D3",
+    "opcodes": "DDCBD3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "set 2,(ix+*),e"
+    "description": "Sets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 2,(ix+d),e",
+    "used": true
   }
 };
 
@@ -10009,14 +11215,15 @@ const variant_DD_CB_dd_D4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D4",
+    "opcodes": "DDCBD4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "set 2,(ix+*),h"
+    "description": "Sets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 2,(ix+d),h",
+    "used": true
   }
 };
 
@@ -10049,14 +11256,15 @@ const variant_DD_CB_dd_D5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D5",
+    "opcodes": "DDCBD5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "set 2,(ix+*),l"
+    "description": "Sets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 2,(ix+d),l",
+    "used": true
   }
 };
 
@@ -10089,14 +11297,15 @@ const variant_DD_CB_dd_D7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D7",
+    "opcodes": "DDCBD7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "set 2,(ix+*),a"
+    "description": "Sets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 2,(ix+d),a",
+    "used": true
   }
 };
 
@@ -10126,14 +11335,15 @@ const variant_DD_CB_dd_D7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D7",
+    "opcodes": "DDCBD7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "set 2,(ix+*),a"
+    "description": "Sets bit 2 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 2,(ix+d),a",
+    "used": true
   }
 };
 
@@ -10166,14 +11376,15 @@ const variant_DD_CB_dd_D8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D8",
+    "opcodes": "DDCBD8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "set 3,(ix+*),b"
+    "description": "Sets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 3,(ix+d),b",
+    "used": true
   }
 };
 
@@ -10206,14 +11417,15 @@ const variant_DD_CB_dd_D9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D9",
+    "opcodes": "DDCBD9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "set 3,(ix+*),c"
+    "description": "Sets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 3,(ix+d),c",
+    "used": true
   }
 };
 
@@ -10246,14 +11458,15 @@ const variant_DD_CB_dd_DA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**DA",
+    "opcodes": "DDCBDA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "set 3,(ix+*),d"
+    "description": "Sets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 3,(ix+d),d",
+    "used": true
   }
 };
 
@@ -10286,14 +11499,15 @@ const variant_DD_CB_dd_DB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**DB",
+    "opcodes": "DDCBDB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "set 3,(ix+*),e"
+    "description": "Sets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 3,(ix+d),e",
+    "used": true
   }
 };
 
@@ -10326,14 +11540,15 @@ const variant_DD_CB_dd_DC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**DC",
+    "opcodes": "DDCBDC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "set 3,(ix+*),h"
+    "description": "Sets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 3,(ix+d),h",
+    "used": true
   }
 };
 
@@ -10366,14 +11581,15 @@ const variant_DD_CB_dd_DD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**DD",
+    "opcodes": "DDCBDD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "set 3,(ix+*),l"
+    "description": "Sets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 3,(ix+d),l",
+    "used": true
   }
 };
 
@@ -10406,14 +11622,15 @@ const variant_DD_CB_dd_DF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**DF",
+    "opcodes": "DDCBDF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "set 3,(ix+*),a"
+    "description": "Sets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 3,(ix+d),a",
+    "used": true
   }
 };
 
@@ -10443,14 +11660,15 @@ const variant_DD_CB_dd_DF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**DF",
+    "opcodes": "DDCBDF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "set 3,(ix+*),a"
+    "description": "Sets bit 3 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 3,(ix+d),a",
+    "used": true
   }
 };
 
@@ -10483,14 +11701,15 @@ const variant_DD_CB_dd_E0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E0",
+    "opcodes": "DDCBE0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "set 4,(ix+*),b"
+    "description": "Sets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 4,(ix+d),b",
+    "used": true
   }
 };
 
@@ -10523,14 +11742,15 @@ const variant_DD_CB_dd_E1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E1",
+    "opcodes": "DDCBE1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "set 4,(ix+*),c"
+    "description": "Sets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 4,(ix+d),c",
+    "used": true
   }
 };
 
@@ -10563,14 +11783,15 @@ const variant_DD_CB_dd_E2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E2",
+    "opcodes": "DDCBE2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "set 4,(ix+*),d"
+    "description": "Sets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 4,(ix+d),d",
+    "used": true
   }
 };
 
@@ -10603,14 +11824,15 @@ const variant_DD_CB_dd_E3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E3",
+    "opcodes": "DDCBE3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "set 4,(ix+*),e"
+    "description": "Sets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 4,(ix+d),e",
+    "used": true
   }
 };
 
@@ -10643,14 +11865,15 @@ const variant_DD_CB_dd_E4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E4",
+    "opcodes": "DDCBE4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "set 4,(ix+*),h"
+    "description": "Sets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 4,(ix+d),h",
+    "used": true
   }
 };
 
@@ -10683,14 +11906,15 @@ const variant_DD_CB_dd_E5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E5",
+    "opcodes": "DDCBE5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "set 4,(ix+*),l"
+    "description": "Sets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 4,(ix+d),l",
+    "used": true
   }
 };
 
@@ -10723,14 +11947,15 @@ const variant_DD_CB_dd_E7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E7",
+    "opcodes": "DDCBE7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "set 4,(ix+*),a"
+    "description": "Sets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 4,(ix+d),a",
+    "used": true
   }
 };
 
@@ -10760,14 +11985,15 @@ const variant_DD_CB_dd_E7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E7",
+    "opcodes": "DDCBE7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "set 4,(ix+*),a"
+    "description": "Sets bit 4 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 4,(ix+d),a",
+    "used": true
   }
 };
 
@@ -10800,14 +12026,15 @@ const variant_DD_CB_dd_E8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E8",
+    "opcodes": "DDCBE8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "set 5,(ix+*),b"
+    "description": "Sets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 5,(ix+d),b",
+    "used": true
   }
 };
 
@@ -10840,14 +12067,15 @@ const variant_DD_CB_dd_E9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E9",
+    "opcodes": "DDCBE9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "set 5,(ix+*),c"
+    "description": "Sets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 5,(ix+d),c",
+    "used": true
   }
 };
 
@@ -10880,14 +12108,15 @@ const variant_DD_CB_dd_EA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**EA",
+    "opcodes": "DDCBEA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "set 5,(ix+*),d"
+    "description": "Sets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 5,(ix+d),d",
+    "used": true
   }
 };
 
@@ -10920,14 +12149,15 @@ const variant_DD_CB_dd_EB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**EB",
+    "opcodes": "DDCBEB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "set 5,(ix+*),e"
+    "description": "Sets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 5,(ix+d),e",
+    "used": true
   }
 };
 
@@ -10960,14 +12190,15 @@ const variant_DD_CB_dd_EC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**EC",
+    "opcodes": "DDCBEC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "set 5,(ix+*),h"
+    "description": "Sets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 5,(ix+d),h",
+    "used": true
   }
 };
 
@@ -11000,14 +12231,15 @@ const variant_DD_CB_dd_ED: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**ED",
+    "opcodes": "DDCBED",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "set 5,(ix+*),l"
+    "description": "Sets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 5,(ix+d),l",
+    "used": true
   }
 };
 
@@ -11040,14 +12272,15 @@ const variant_DD_CB_dd_EF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**EF",
+    "opcodes": "DDCBEF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "set 5,(ix+*),a"
+    "description": "Sets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 5,(ix+d),a",
+    "used": true
   }
 };
 
@@ -11077,14 +12310,15 @@ const variant_DD_CB_dd_EF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**EF",
+    "opcodes": "DDCBEF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "set 5,(ix+*),a"
+    "description": "Sets bit 5 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 5,(ix+d),a",
+    "used": true
   }
 };
 
@@ -11117,14 +12351,15 @@ const variant_DD_CB_dd_F0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F0",
+    "opcodes": "DDCBF0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "set 6,(ix+*),b"
+    "description": "Sets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 6,(ix+d),b",
+    "used": true
   }
 };
 
@@ -11157,14 +12392,15 @@ const variant_DD_CB_dd_F1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F1",
+    "opcodes": "DDCBF1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "set 6,(ix+*),c"
+    "description": "Sets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 6,(ix+d),c",
+    "used": true
   }
 };
 
@@ -11197,14 +12433,15 @@ const variant_DD_CB_dd_F2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F2",
+    "opcodes": "DDCBF2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "set 6,(ix+*),d"
+    "description": "Sets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 6,(ix+d),d",
+    "used": true
   }
 };
 
@@ -11237,14 +12474,15 @@ const variant_DD_CB_dd_F3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F3",
+    "opcodes": "DDCBF3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "set 6,(ix+*),e"
+    "description": "Sets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 6,(ix+d),e",
+    "used": true
   }
 };
 
@@ -11277,14 +12515,15 @@ const variant_DD_CB_dd_F4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F4",
+    "opcodes": "DDCBF4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "set 6,(ix+*),h"
+    "description": "Sets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 6,(ix+d),h",
+    "used": true
   }
 };
 
@@ -11317,14 +12556,15 @@ const variant_DD_CB_dd_F5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F5",
+    "opcodes": "DDCBF5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "set 6,(ix+*),l"
+    "description": "Sets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 6,(ix+d),l",
+    "used": true
   }
 };
 
@@ -11357,14 +12597,15 @@ const variant_DD_CB_dd_F7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F7",
+    "opcodes": "DDCBF7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "set 6,(ix+*),a"
+    "description": "Sets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 6,(ix+d),a",
+    "used": true
   }
 };
 
@@ -11394,14 +12635,15 @@ const variant_DD_CB_dd_F7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F7",
+    "opcodes": "DDCBF7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "set 6,(ix+*),a"
+    "description": "Sets bit 6 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 6,(ix+d),a",
+    "used": true
   }
 };
 
@@ -11434,14 +12676,15 @@ const variant_DD_CB_dd_F8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F8",
+    "opcodes": "DDCBF8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "set 7,(ix+*),b"
+    "description": "Sets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 7,(ix+d),b",
+    "used": true
   }
 };
 
@@ -11474,14 +12717,15 @@ const variant_DD_CB_dd_F9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F9",
+    "opcodes": "DDCBF9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "set 7,(ix+*),c"
+    "description": "Sets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 7,(ix+d),c",
+    "used": true
   }
 };
 
@@ -11514,14 +12758,15 @@ const variant_DD_CB_dd_FA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**FA",
+    "opcodes": "DDCBFA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "set 7,(ix+*),d"
+    "description": "Sets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 7,(ix+d),d",
+    "used": true
   }
 };
 
@@ -11554,14 +12799,15 @@ const variant_DD_CB_dd_FB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**FB",
+    "opcodes": "DDCBFB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "set 7,(ix+*),e"
+    "description": "Sets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 7,(ix+d),e",
+    "used": true
   }
 };
 
@@ -11594,14 +12840,15 @@ const variant_DD_CB_dd_FC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**FC",
+    "opcodes": "DDCBFC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "set 7,(ix+*),h"
+    "description": "Sets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 7,(ix+d),h",
+    "used": true
   }
 };
 
@@ -11634,14 +12881,15 @@ const variant_DD_CB_dd_FD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**FD",
+    "opcodes": "DDCBFD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "set 7,(ix+*),l"
+    "description": "Sets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 7,(ix+d),l",
+    "used": true
   }
 };
 
@@ -11674,14 +12922,15 @@ const variant_DD_CB_dd_FF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**FF",
+    "opcodes": "DDCBFF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "set 7,(ix+*),a"
+    "description": "Sets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 7,(ix+d),a",
+    "used": true
   }
 };
 
@@ -11711,14 +12960,15 @@ const variant_DD_CB_dd_FF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**FF",
+    "opcodes": "DDCBFF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "set 7,(ix+*),a"
+    "description": "Sets bit 7 of the memory location pointed to by IX plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 7,(ix+d),a",
+    "used": true
   }
 };
 
@@ -11748,7 +12998,8 @@ const variant_DD_F9: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "Loads the value of IX into SP.",
-    "instruction": "ld sp,ix"
+    "instruction": "ld sp,ix",
+    "used": true
   }
 };
 
@@ -11780,8 +13031,9 @@ const variant_ED_43_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Stores BC into the memory location pointed to by **.",
-    "instruction": "ld (**),bc"
+    "description": "Stores BC into the memory location pointed to by <var>nn</var>.",
+    "instruction": "ld (nn),bc",
+    "used": true
   }
 };
 
@@ -11810,8 +13062,9 @@ const variant_ED_47: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 9,
     "without_jump_clock_count": 9,
-    "description": "Stores the value of A into register i or r.",
-    "instruction": "ld i,a"
+    "description": "Stores the value of A into register I.",
+    "instruction": "ld i,a",
+    "used": true
   }
 };
 
@@ -11843,8 +13096,9 @@ const variant_ED_4B_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Loads the value pointed to by ** into BC.",
-    "instruction": "ld bc,(**)"
+    "description": "Loads the value pointed to by <var>nn</var> into BC.",
+    "instruction": "ld bc,(nn)",
+    "used": true
   }
 };
 
@@ -11873,8 +13127,9 @@ const variant_ED_4F: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 9,
     "without_jump_clock_count": 9,
-    "description": "Stores the value of A into register i or r.",
-    "instruction": "ld r,a"
+    "description": "Stores the value of A into register R.",
+    "instruction": "ld r,a",
+    "used": true
   }
 };
 
@@ -11906,8 +13161,9 @@ const variant_ED_53_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Stores DE into the memory location pointed to by **.",
-    "instruction": "ld (**),de"
+    "description": "Stores DE into the memory location pointed to by <var>nn</var>.",
+    "instruction": "ld (nn),de",
+    "used": true
   }
 };
 
@@ -11936,8 +13192,9 @@ const variant_ED_57: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 9,
     "without_jump_clock_count": 9,
-    "description": "Stores the value of register i or r into A.",
-    "instruction": "ld a,i"
+    "description": "Stores the value of register I into A.",
+    "instruction": "ld a,i",
+    "used": true
   }
 };
 
@@ -11963,8 +13220,9 @@ const variant_ED_57_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 9,
     "without_jump_clock_count": 9,
-    "description": "Stores the value of register i or r into A.",
-    "instruction": "ld a,i"
+    "description": "Stores the value of register I into A.",
+    "instruction": "ld a,i",
+    "used": true
   }
 };
 
@@ -11996,8 +13254,9 @@ const variant_ED_5B_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Loads the value pointed to by ** into DE.",
-    "instruction": "ld de,(**)"
+    "description": "Loads the value pointed to by <var>nn</var> into DE.",
+    "instruction": "ld de,(nn)",
+    "used": true
   }
 };
 
@@ -12026,8 +13285,9 @@ const variant_ED_5F: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 9,
     "without_jump_clock_count": 9,
-    "description": "Stores the value of register i or r into A.",
-    "instruction": "ld a,r"
+    "description": "Stores the value of register R into A.",
+    "instruction": "ld a,r",
+    "used": true
   }
 };
 
@@ -12053,8 +13313,9 @@ const variant_ED_5F_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 9,
     "without_jump_clock_count": 9,
-    "description": "Stores the value of register i or r into A.",
-    "instruction": "ld a,r"
+    "description": "Stores the value of register R into A.",
+    "instruction": "ld a,r",
+    "used": true
   }
 };
 
@@ -12086,8 +13347,9 @@ const variant_ED_63_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Stores HL into the memory location pointed to by **.",
-    "instruction": "ld (**),hl"
+    "description": "Stores HL into the memory location pointed to by <var>nn</var>.",
+    "instruction": "ld (nn),hl",
+    "used": true
   }
 };
 
@@ -12119,8 +13381,9 @@ const variant_ED_6B_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Loads the value pointed to by ** into HL.",
-    "instruction": "ld hl,(**)"
+    "description": "Loads the value pointed to by <var>nn</var> into HL.",
+    "instruction": "ld hl,(nn)",
+    "used": true
   }
 };
 
@@ -12152,8 +13415,9 @@ const variant_ED_73_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Stores SP into the memory location pointed to by **.",
-    "instruction": "ld (**),sp"
+    "description": "Stores SP into the memory location pointed to by <var>nn</var>.",
+    "instruction": "ld (nn),sp",
+    "used": true
   }
 };
 
@@ -12185,8 +13449,9 @@ const variant_ED_7B_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Loads the value pointed to by ** into SP.",
-    "instruction": "ld sp,(**)"
+    "description": "Loads the value pointed to by <var>nn</var> into SP.",
+    "instruction": "ld sp,(nn)",
+    "used": true
   }
 };
 
@@ -12215,7 +13480,8 @@ const variant_F9: OpcodeVariant = {
     "with_jump_clock_count": 6,
     "without_jump_clock_count": 6,
     "description": "Loads the value of HL into SP.",
-    "instruction": "ld sp,hl"
+    "instruction": "ld sp,hl",
+    "used": true
   }
 };
 
@@ -12245,8 +13511,9 @@ const variant_FD_21_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 14,
     "without_jump_clock_count": 14,
-    "description": "Loads ** into register IY.",
-    "instruction": "ld iy,**"
+    "description": "Loads <var>nn</var> into register IY.",
+    "instruction": "ld iy,nn",
+    "used": true
   }
 };
 
@@ -12278,8 +13545,9 @@ const variant_FD_22_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Stores IY into the memory location pointed to by **.",
-    "instruction": "ld (**),iy"
+    "description": "Stores IY into the memory location pointed to by <var>nn</var>.",
+    "instruction": "ld (nn),iy",
+    "used": true
   }
 };
 
@@ -12309,8 +13577,9 @@ const variant_FD_26_nn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "Loads * into IYH.",
-    "instruction": "ld iyh,*"
+    "description": "Loads <var>n</var> into IYH.",
+    "instruction": "ld iyh,n",
+    "used": true
   }
 };
 
@@ -12342,8 +13611,9 @@ const variant_FD_2A_nnnn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Loads the value pointed to by ** into IY.",
-    "instruction": "ld iy,(**)"
+    "description": "Loads the value pointed to by <var>nn</var> into IY.",
+    "instruction": "ld iy,(nn)",
+    "used": true
   }
 };
 
@@ -12373,8 +13643,9 @@ const variant_FD_2E_nn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "Loads * into IYL.",
-    "instruction": "ld iyl,*"
+    "description": "Loads <var>n</var> into IYL.",
+    "instruction": "ld iyl,n",
+    "used": true
   }
 };
 
@@ -12409,8 +13680,133 @@ const variant_FD_36_dd_nn: OpcodeVariant = {
     "byte_count": 4,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores * to the memory location pointed to by IY plus *.",
-    "instruction": "ld (iy+*),*"
+    "description": "Stores <var>n</var> to the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "ld (iy+d),n",
+    "used": true
+  }
+};
+
+// ld b,b
+const variant_FD_40: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "b"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    253,
+    64
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD40",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into B.",
+    "instruction": "ld b,b",
+    "used": true
+  }
+};
+
+// ld b,c
+const variant_FD_41: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "c"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    253,
+    65
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD41",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into B.",
+    "instruction": "ld b,c",
+    "used": true
+  }
+};
+
+// ld b,d
+const variant_FD_42: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "d"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    253,
+    66
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD42",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into B.",
+    "instruction": "ld b,d",
+    "used": true
+  }
+};
+
+// ld b,e
+const variant_FD_43: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "e"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    253,
+    67
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD43",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into B.",
+    "instruction": "ld b,e",
+    "used": true
   }
 };
 
@@ -12440,7 +13836,8 @@ const variant_FD_44: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYH are loaded into B.",
-    "instruction": "ld b,iyh"
+    "instruction": "ld b,iyh",
+    "used": true
   }
 };
 
@@ -12470,7 +13867,8 @@ const variant_FD_45: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYL are loaded into B.",
-    "instruction": "ld b,iyl"
+    "instruction": "ld b,iyl",
+    "used": true
   }
 };
 
@@ -12504,8 +13902,164 @@ const variant_FD_46_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IY plus * into B.",
-    "instruction": "ld b,(iy+*)"
+    "description": "Loads the value pointed to by IY plus <var>D</var> into B.",
+    "instruction": "ld b,(iy+d)",
+    "used": true
+  }
+};
+
+// ld b,a
+const variant_FD_47: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b",
+    "a"
+  ],
+  "tokens": [
+    "b",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    253,
+    71
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD47",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into B.",
+    "instruction": "ld b,a",
+    "used": true
+  }
+};
+
+// ld c,b
+const variant_FD_48: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "b"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    253,
+    72
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD48",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into C.",
+    "instruction": "ld c,b",
+    "used": true
+  }
+};
+
+// ld c,c
+const variant_FD_49: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "c"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    253,
+    73
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD49",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into C.",
+    "instruction": "ld c,c",
+    "used": true
+  }
+};
+
+// ld c,d
+const variant_FD_4A: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "d"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    253,
+    74
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD4A",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into C.",
+    "instruction": "ld c,d",
+    "used": true
+  }
+};
+
+// ld c,e
+const variant_FD_4B: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "e"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    253,
+    75
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD4B",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into C.",
+    "instruction": "ld c,e",
+    "used": true
   }
 };
 
@@ -12535,7 +14089,8 @@ const variant_FD_4C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYH are loaded into C.",
-    "instruction": "ld c,iyh"
+    "instruction": "ld c,iyh",
+    "used": true
   }
 };
 
@@ -12565,7 +14120,8 @@ const variant_FD_4D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYL are loaded into C.",
-    "instruction": "ld c,iyl"
+    "instruction": "ld c,iyl",
+    "used": true
   }
 };
 
@@ -12599,8 +14155,164 @@ const variant_FD_4E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IY plus * into C.",
-    "instruction": "ld c,(iy+*)"
+    "description": "Loads the value pointed to by IY plus <var>D</var> into C.",
+    "instruction": "ld c,(iy+d)",
+    "used": true
+  }
+};
+
+// ld c,a
+const variant_FD_4F: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c",
+    "a"
+  ],
+  "tokens": [
+    "c",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    253,
+    79
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD4F",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into C.",
+    "instruction": "ld c,a",
+    "used": true
+  }
+};
+
+// ld d,b
+const variant_FD_50: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "b"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    253,
+    80
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD50",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into D.",
+    "instruction": "ld d,b",
+    "used": true
+  }
+};
+
+// ld d,c
+const variant_FD_51: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "c"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    253,
+    81
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD51",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into D.",
+    "instruction": "ld d,c",
+    "used": true
+  }
+};
+
+// ld d,d
+const variant_FD_52: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "d"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    253,
+    82
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD52",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into D.",
+    "instruction": "ld d,d",
+    "used": true
+  }
+};
+
+// ld d,e
+const variant_FD_53: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "e"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    253,
+    83
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD53",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into D.",
+    "instruction": "ld d,e",
+    "used": true
   }
 };
 
@@ -12630,7 +14342,8 @@ const variant_FD_54: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYH are loaded into D.",
-    "instruction": "ld d,iyh"
+    "instruction": "ld d,iyh",
+    "used": true
   }
 };
 
@@ -12660,7 +14373,8 @@ const variant_FD_55: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYL are loaded into D.",
-    "instruction": "ld d,iyl"
+    "instruction": "ld d,iyl",
+    "used": true
   }
 };
 
@@ -12694,8 +14408,164 @@ const variant_FD_56_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IY plus * into D.",
-    "instruction": "ld d,(iy+*)"
+    "description": "Loads the value pointed to by IY plus <var>D</var> into D.",
+    "instruction": "ld d,(iy+d)",
+    "used": true
+  }
+};
+
+// ld d,a
+const variant_FD_57: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d",
+    "a"
+  ],
+  "tokens": [
+    "d",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    253,
+    87
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD57",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into D.",
+    "instruction": "ld d,a",
+    "used": true
+  }
+};
+
+// ld e,b
+const variant_FD_58: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "b"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    253,
+    88
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD58",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into E.",
+    "instruction": "ld e,b",
+    "used": true
+  }
+};
+
+// ld e,c
+const variant_FD_59: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "c"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    253,
+    89
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD59",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into E.",
+    "instruction": "ld e,c",
+    "used": true
+  }
+};
+
+// ld e,d
+const variant_FD_5A: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "d"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    253,
+    90
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD5A",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into E.",
+    "instruction": "ld e,d",
+    "used": true
+  }
+};
+
+// ld e,e
+const variant_FD_5B: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "e"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    253,
+    91
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD5B",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into E.",
+    "instruction": "ld e,e",
+    "used": true
   }
 };
 
@@ -12725,7 +14595,8 @@ const variant_FD_5C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYH are loaded into E.",
-    "instruction": "ld e,iyh"
+    "instruction": "ld e,iyh",
+    "used": true
   }
 };
 
@@ -12755,7 +14626,8 @@ const variant_FD_5D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYL are loaded into E.",
-    "instruction": "ld e,iyl"
+    "instruction": "ld e,iyl",
+    "used": true
   }
 };
 
@@ -12789,8 +14661,40 @@ const variant_FD_5E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IY plus * into E.",
-    "instruction": "ld e,(iy+*)"
+    "description": "Loads the value pointed to by IY plus <var>D</var> into E.",
+    "instruction": "ld e,(iy+d)",
+    "used": true
+  }
+};
+
+// ld e,a
+const variant_FD_5F: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e",
+    "a"
+  ],
+  "tokens": [
+    "e",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    253,
+    95
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD5F",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into E.",
+    "instruction": "ld e,a",
+    "used": true
   }
 };
 
@@ -12820,7 +14724,8 @@ const variant_FD_60: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are loaded into IYH.",
-    "instruction": "ld iyh,b"
+    "instruction": "ld iyh,b",
+    "used": true
   }
 };
 
@@ -12850,7 +14755,8 @@ const variant_FD_61: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are loaded into IYH.",
-    "instruction": "ld iyh,c"
+    "instruction": "ld iyh,c",
+    "used": true
   }
 };
 
@@ -12880,7 +14786,8 @@ const variant_FD_62: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are loaded into IYH.",
-    "instruction": "ld iyh,d"
+    "instruction": "ld iyh,d",
+    "used": true
   }
 };
 
@@ -12910,7 +14817,8 @@ const variant_FD_63: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are loaded into IYH.",
-    "instruction": "ld iyh,e"
+    "instruction": "ld iyh,e",
+    "used": true
   }
 };
 
@@ -12940,7 +14848,8 @@ const variant_FD_64: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYH are loaded into IYH.",
-    "instruction": "ld iyh,iyh"
+    "instruction": "ld iyh,iyh",
+    "used": true
   }
 };
 
@@ -12970,7 +14879,8 @@ const variant_FD_65: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYL are loaded into IYH.",
-    "instruction": "ld iyh,iyl"
+    "instruction": "ld iyh,iyl",
+    "used": true
   }
 };
 
@@ -13004,8 +14914,9 @@ const variant_FD_66_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IY plus * into H.",
-    "instruction": "ld h,(iy+*)"
+    "description": "Loads the value pointed to by IY plus <var>D</var> into H.",
+    "instruction": "ld h,(iy+d)",
+    "used": true
   }
 };
 
@@ -13035,7 +14946,8 @@ const variant_FD_67: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are loaded into IYH.",
-    "instruction": "ld iyh,a"
+    "instruction": "ld iyh,a",
+    "used": true
   }
 };
 
@@ -13065,7 +14977,8 @@ const variant_FD_68: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are loaded into IYL.",
-    "instruction": "ld iyl,b"
+    "instruction": "ld iyl,b",
+    "used": true
   }
 };
 
@@ -13095,7 +15008,8 @@ const variant_FD_69: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are loaded into IYL.",
-    "instruction": "ld iyl,c"
+    "instruction": "ld iyl,c",
+    "used": true
   }
 };
 
@@ -13125,7 +15039,8 @@ const variant_FD_6A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are loaded into IYL.",
-    "instruction": "ld iyl,d"
+    "instruction": "ld iyl,d",
+    "used": true
   }
 };
 
@@ -13155,7 +15070,8 @@ const variant_FD_6B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are loaded into IYL.",
-    "instruction": "ld iyl,e"
+    "instruction": "ld iyl,e",
+    "used": true
   }
 };
 
@@ -13185,7 +15101,8 @@ const variant_FD_6C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYH are loaded into IYL.",
-    "instruction": "ld iyl,iyh"
+    "instruction": "ld iyl,iyh",
+    "used": true
   }
 };
 
@@ -13215,7 +15132,8 @@ const variant_FD_6D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYL are loaded into IYL.",
-    "instruction": "ld iyl,iyl"
+    "instruction": "ld iyl,iyl",
+    "used": true
   }
 };
 
@@ -13249,8 +15167,9 @@ const variant_FD_6E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IY plus * into L.",
-    "instruction": "ld l,(iy+*)"
+    "description": "Loads the value pointed to by IY plus <var>D</var> into L.",
+    "instruction": "ld l,(iy+d)",
+    "used": true
   }
 };
 
@@ -13280,7 +15199,8 @@ const variant_FD_6F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are loaded into IYL.",
-    "instruction": "ld iyl,a"
+    "instruction": "ld iyl,a",
+    "used": true
   }
 };
 
@@ -13314,8 +15234,9 @@ const variant_FD_70_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores B to the memory location pointed to by IY plus *.",
-    "instruction": "ld (iy+*),b"
+    "description": "Stores B to the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "ld (iy+d),b",
+    "used": true
   }
 };
 
@@ -13349,8 +15270,9 @@ const variant_FD_71_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores C to the memory location pointed to by IY plus *.",
-    "instruction": "ld (iy+*),c"
+    "description": "Stores C to the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "ld (iy+d),c",
+    "used": true
   }
 };
 
@@ -13384,8 +15306,9 @@ const variant_FD_72_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores D to the memory location pointed to by IY plus *.",
-    "instruction": "ld (iy+*),d"
+    "description": "Stores D to the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "ld (iy+d),d",
+    "used": true
   }
 };
 
@@ -13419,8 +15342,9 @@ const variant_FD_73_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores E to the memory location pointed to by IY plus *.",
-    "instruction": "ld (iy+*),e"
+    "description": "Stores E to the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "ld (iy+d),e",
+    "used": true
   }
 };
 
@@ -13454,8 +15378,9 @@ const variant_FD_74_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores H to the memory location pointed to by IY plus *.",
-    "instruction": "ld (iy+*),h"
+    "description": "Stores H to the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "ld (iy+d),h",
+    "used": true
   }
 };
 
@@ -13489,8 +15414,9 @@ const variant_FD_75_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores L to the memory location pointed to by IY plus *.",
-    "instruction": "ld (iy+*),l"
+    "description": "Stores L to the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "ld (iy+d),l",
+    "used": true
   }
 };
 
@@ -13524,8 +15450,245 @@ const variant_FD_77_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Stores A to the memory location pointed to by IY plus *.",
-    "instruction": "ld (iy+*),a"
+    "description": "Stores A to the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "ld (iy+d),a",
+    "used": true
+  }
+};
+
+// ld a,b
+const variant_FD_78: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "b"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "b"
+  ],
+  "opcodes": [
+    253,
+    120
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD78",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into A.",
+    "instruction": "ld a,b",
+    "used": true
+  }
+};
+
+// ld b
+const variant_FD_78_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "b"
+  ],
+  "tokens": [
+    "b"
+  ],
+  "opcodes": [
+    253,
+    120
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD78",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of B are loaded into A.",
+    "instruction": "ld a,b",
+    "used": true
+  }
+};
+
+// ld a,c
+const variant_FD_79: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "c"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "c"
+  ],
+  "opcodes": [
+    253,
+    121
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD79",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into A.",
+    "instruction": "ld a,c",
+    "used": true
+  }
+};
+
+// ld c
+const variant_FD_79_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "c"
+  ],
+  "tokens": [
+    "c"
+  ],
+  "opcodes": [
+    253,
+    121
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD79",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of C are loaded into A.",
+    "instruction": "ld a,c",
+    "used": true
+  }
+};
+
+// ld a,d
+const variant_FD_7A: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "d"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "d"
+  ],
+  "opcodes": [
+    253,
+    122
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD7A",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into A.",
+    "instruction": "ld a,d",
+    "used": true
+  }
+};
+
+// ld d
+const variant_FD_7A_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "d"
+  ],
+  "tokens": [
+    "d"
+  ],
+  "opcodes": [
+    253,
+    122
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD7A",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of D are loaded into A.",
+    "instruction": "ld a,d",
+    "used": true
+  }
+};
+
+// ld a,e
+const variant_FD_7B: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "e"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "e"
+  ],
+  "opcodes": [
+    253,
+    123
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD7B",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into A.",
+    "instruction": "ld a,e",
+    "used": true
+  }
+};
+
+// ld e
+const variant_FD_7B_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "e"
+  ],
+  "tokens": [
+    "e"
+  ],
+  "opcodes": [
+    253,
+    123
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD7B",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of E are loaded into A.",
+    "instruction": "ld a,e",
+    "used": true
   }
 };
 
@@ -13555,7 +15718,8 @@ const variant_FD_7C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYH are loaded into A.",
-    "instruction": "ld a,iyh"
+    "instruction": "ld a,iyh",
+    "used": true
   }
 };
 
@@ -13582,7 +15746,8 @@ const variant_FD_7C_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYH are loaded into A.",
-    "instruction": "ld a,iyh"
+    "instruction": "ld a,iyh",
+    "used": true
   }
 };
 
@@ -13612,7 +15777,8 @@ const variant_FD_7D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYL are loaded into A.",
-    "instruction": "ld a,iyl"
+    "instruction": "ld a,iyl",
+    "used": true
   }
 };
 
@@ -13639,7 +15805,8 @@ const variant_FD_7D_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of IYL are loaded into A.",
-    "instruction": "ld a,iyl"
+    "instruction": "ld a,iyl",
+    "used": true
   }
 };
 
@@ -13673,8 +15840,9 @@ const variant_FD_7E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IY plus * into A.",
-    "instruction": "ld a,(iy+*)"
+    "description": "Loads the value pointed to by IY plus <var>D</var> into A.",
+    "instruction": "ld a,(iy+d)",
+    "used": true
   }
 };
 
@@ -13705,8 +15873,68 @@ const variant_FD_7E_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Loads the value pointed to by IY plus * into A.",
-    "instruction": "ld a,(iy+*)"
+    "description": "Loads the value pointed to by IY plus <var>D</var> into A.",
+    "instruction": "ld a,(iy+d)",
+    "used": true
+  }
+};
+
+// ld a,a
+const variant_FD_7F: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a",
+    "a"
+  ],
+  "tokens": [
+    "a",
+    ",",
+    "a"
+  ],
+  "opcodes": [
+    253,
+    127
+  ],
+  "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD7F",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into A.",
+    "instruction": "ld a,a",
+    "used": true
+  }
+};
+
+// ld a
+const variant_FD_7F_pseudo: OpcodeVariant = {
+  "mnemonic": "ld",
+  "params": [
+    "a"
+  ],
+  "tokens": [
+    "a"
+  ],
+  "opcodes": [
+    253,
+    127
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FD7F",
+    "undocumented": true,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are loaded into A.",
+    "instruction": "ld a,a",
+    "used": true
   }
 };
 
@@ -13736,14 +15964,15 @@ const variant_FD_CB_dd_00: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**00",
+    "opcodes": "FDCB00",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in B.",
-    "instruction": "rlc (iy+*),b"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in B.",
+    "instruction": "rlc (iy+d),b",
+    "used": true
   }
 };
 
@@ -13773,14 +16002,15 @@ const variant_FD_CB_dd_01: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**01",
+    "opcodes": "FDCB01",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in C.",
-    "instruction": "rlc (iy+*),c"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in C.",
+    "instruction": "rlc (iy+d),c",
+    "used": true
   }
 };
 
@@ -13810,14 +16040,15 @@ const variant_FD_CB_dd_02: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**02",
+    "opcodes": "FDCB02",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in D.",
-    "instruction": "rlc (iy+*),d"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in D.",
+    "instruction": "rlc (iy+d),d",
+    "used": true
   }
 };
 
@@ -13847,14 +16078,15 @@ const variant_FD_CB_dd_03: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**03",
+    "opcodes": "FDCB03",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in E.",
-    "instruction": "rlc (iy+*),e"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in E.",
+    "instruction": "rlc (iy+d),e",
+    "used": true
   }
 };
 
@@ -13884,14 +16116,15 @@ const variant_FD_CB_dd_04: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**04",
+    "opcodes": "FDCB04",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in H.",
-    "instruction": "rlc (iy+*),h"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in H.",
+    "instruction": "rlc (iy+d),h",
+    "used": true
   }
 };
 
@@ -13921,14 +16154,15 @@ const variant_FD_CB_dd_05: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**05",
+    "opcodes": "FDCB05",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in L.",
-    "instruction": "rlc (iy+*),l"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in L.",
+    "instruction": "rlc (iy+d),l",
+    "used": true
   }
 };
 
@@ -13958,14 +16192,15 @@ const variant_FD_CB_dd_07: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**07",
+    "opcodes": "FDCB07",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
-    "instruction": "rlc (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
+    "instruction": "rlc (iy+d),a",
+    "used": true
   }
 };
 
@@ -13992,14 +16227,15 @@ const variant_FD_CB_dd_07_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**07",
+    "opcodes": "FDCB07",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
-    "instruction": "rlc (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0. The result is then stored in A.",
+    "instruction": "rlc (iy+d),a",
+    "used": true
   }
 };
 
@@ -14029,14 +16265,15 @@ const variant_FD_CB_dd_08: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**08",
+    "opcodes": "FDCB08",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in B.",
-    "instruction": "rrc (iy+*),b"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in B.",
+    "instruction": "rrc (iy+d),b",
+    "used": true
   }
 };
 
@@ -14066,14 +16303,15 @@ const variant_FD_CB_dd_09: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**09",
+    "opcodes": "FDCB09",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in C.",
-    "instruction": "rrc (iy+*),c"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in C.",
+    "instruction": "rrc (iy+d),c",
+    "used": true
   }
 };
 
@@ -14103,14 +16341,15 @@ const variant_FD_CB_dd_0A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**0A",
+    "opcodes": "FDCB0A",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in D.",
-    "instruction": "rrc (iy+*),d"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in D.",
+    "instruction": "rrc (iy+d),d",
+    "used": true
   }
 };
 
@@ -14140,14 +16379,15 @@ const variant_FD_CB_dd_0B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**0B",
+    "opcodes": "FDCB0B",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in E.",
-    "instruction": "rrc (iy+*),e"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in E.",
+    "instruction": "rrc (iy+d),e",
+    "used": true
   }
 };
 
@@ -14177,14 +16417,15 @@ const variant_FD_CB_dd_0C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**0C",
+    "opcodes": "FDCB0C",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in H.",
-    "instruction": "rrc (iy+*),h"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in H.",
+    "instruction": "rrc (iy+d),h",
+    "used": true
   }
 };
 
@@ -14214,14 +16455,15 @@ const variant_FD_CB_dd_0D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**0D",
+    "opcodes": "FDCB0D",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in L.",
-    "instruction": "rrc (iy+*),l"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in L.",
+    "instruction": "rrc (iy+d),l",
+    "used": true
   }
 };
 
@@ -14251,14 +16493,15 @@ const variant_FD_CB_dd_0F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**0F",
+    "opcodes": "FDCB0F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
-    "instruction": "rrc (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
+    "instruction": "rrc (iy+d),a",
+    "used": true
   }
 };
 
@@ -14285,14 +16528,15 @@ const variant_FD_CB_dd_0F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**0F",
+    "opcodes": "FDCB0F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
-    "instruction": "rrc (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7. The result is then stored in A.",
+    "instruction": "rrc (iy+d),a",
+    "used": true
   }
 };
 
@@ -14322,14 +16566,15 @@ const variant_FD_CB_dd_10: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**10",
+    "opcodes": "FDCB10",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in B.",
-    "instruction": "rl (iy+*),b"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in B.",
+    "instruction": "rl (iy+d),b",
+    "used": true
   }
 };
 
@@ -14359,14 +16604,15 @@ const variant_FD_CB_dd_11: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**11",
+    "opcodes": "FDCB11",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in C.",
-    "instruction": "rl (iy+*),c"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in C.",
+    "instruction": "rl (iy+d),c",
+    "used": true
   }
 };
 
@@ -14396,14 +16642,15 @@ const variant_FD_CB_dd_12: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**12",
+    "opcodes": "FDCB12",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in D.",
-    "instruction": "rl (iy+*),d"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in D.",
+    "instruction": "rl (iy+d),d",
+    "used": true
   }
 };
 
@@ -14433,14 +16680,15 @@ const variant_FD_CB_dd_13: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**13",
+    "opcodes": "FDCB13",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in E.",
-    "instruction": "rl (iy+*),e"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in E.",
+    "instruction": "rl (iy+d),e",
+    "used": true
   }
 };
 
@@ -14470,14 +16718,15 @@ const variant_FD_CB_dd_14: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**14",
+    "opcodes": "FDCB14",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in H.",
-    "instruction": "rl (iy+*),h"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in H.",
+    "instruction": "rl (iy+d),h",
+    "used": true
   }
 };
 
@@ -14507,14 +16756,15 @@ const variant_FD_CB_dd_15: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**15",
+    "opcodes": "FDCB15",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in L.",
-    "instruction": "rl (iy+*),l"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in L.",
+    "instruction": "rl (iy+d),l",
+    "used": true
   }
 };
 
@@ -14544,14 +16794,15 @@ const variant_FD_CB_dd_17: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**17",
+    "opcodes": "FDCB17",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
-    "instruction": "rl (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
+    "instruction": "rl (iy+d),a",
+    "used": true
   }
 };
 
@@ -14578,14 +16829,15 @@ const variant_FD_CB_dd_17_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**17",
+    "opcodes": "FDCB17",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
-    "instruction": "rl (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0. The result is then stored in A.",
+    "instruction": "rl (iy+d),a",
+    "used": true
   }
 };
 
@@ -14615,14 +16867,15 @@ const variant_FD_CB_dd_18: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**18",
+    "opcodes": "FDCB18",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in B.",
-    "instruction": "rr (iy+*),b"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in B.",
+    "instruction": "rr (iy+d),b",
+    "used": true
   }
 };
 
@@ -14652,14 +16905,15 @@ const variant_FD_CB_dd_19: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**19",
+    "opcodes": "FDCB19",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in C.",
-    "instruction": "rr (iy+*),c"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in C.",
+    "instruction": "rr (iy+d),c",
+    "used": true
   }
 };
 
@@ -14689,14 +16943,15 @@ const variant_FD_CB_dd_1A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**1A",
+    "opcodes": "FDCB1A",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in D.",
-    "instruction": "rr (iy+*),d"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in D.",
+    "instruction": "rr (iy+d),d",
+    "used": true
   }
 };
 
@@ -14726,14 +16981,15 @@ const variant_FD_CB_dd_1B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**1B",
+    "opcodes": "FDCB1B",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in E.",
-    "instruction": "rr (iy+*),e"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in E.",
+    "instruction": "rr (iy+d),e",
+    "used": true
   }
 };
 
@@ -14763,14 +17019,15 @@ const variant_FD_CB_dd_1C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**1C",
+    "opcodes": "FDCB1C",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in H.",
-    "instruction": "rr (iy+*),h"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in H.",
+    "instruction": "rr (iy+d),h",
+    "used": true
   }
 };
 
@@ -14800,14 +17057,15 @@ const variant_FD_CB_dd_1D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**1D",
+    "opcodes": "FDCB1D",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in L.",
-    "instruction": "rr (iy+*),l"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in L.",
+    "instruction": "rr (iy+d),l",
+    "used": true
   }
 };
 
@@ -14837,14 +17095,15 @@ const variant_FD_CB_dd_1F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**1F",
+    "opcodes": "FDCB1F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
-    "instruction": "rr (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
+    "instruction": "rr (iy+d),a",
+    "used": true
   }
 };
 
@@ -14871,14 +17130,15 @@ const variant_FD_CB_dd_1F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**1F",
+    "opcodes": "FDCB1F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
-    "instruction": "rr (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7. The result is then stored in A.",
+    "instruction": "rr (iy+d),a",
+    "used": true
   }
 };
 
@@ -14908,14 +17168,15 @@ const variant_FD_CB_dd_20: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**20",
+    "opcodes": "FDCB20",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in B.",
-    "instruction": "sla (iy+*),b"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in B.",
+    "instruction": "sla (iy+d),b",
+    "used": true
   }
 };
 
@@ -14945,14 +17206,15 @@ const variant_FD_CB_dd_21: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**21",
+    "opcodes": "FDCB21",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in C.",
-    "instruction": "sla (iy+*),c"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in C.",
+    "instruction": "sla (iy+d),c",
+    "used": true
   }
 };
 
@@ -14982,14 +17244,15 @@ const variant_FD_CB_dd_22: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**22",
+    "opcodes": "FDCB22",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in D.",
-    "instruction": "sla (iy+*),d"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in D.",
+    "instruction": "sla (iy+d),d",
+    "used": true
   }
 };
 
@@ -15019,14 +17282,15 @@ const variant_FD_CB_dd_23: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**23",
+    "opcodes": "FDCB23",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in E.",
-    "instruction": "sla (iy+*),e"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in E.",
+    "instruction": "sla (iy+d),e",
+    "used": true
   }
 };
 
@@ -15056,14 +17320,15 @@ const variant_FD_CB_dd_24: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**24",
+    "opcodes": "FDCB24",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in H.",
-    "instruction": "sla (iy+*),h"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in H.",
+    "instruction": "sla (iy+d),h",
+    "used": true
   }
 };
 
@@ -15093,14 +17358,15 @@ const variant_FD_CB_dd_25: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**25",
+    "opcodes": "FDCB25",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in L.",
-    "instruction": "sla (iy+*),l"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in L.",
+    "instruction": "sla (iy+d),l",
+    "used": true
   }
 };
 
@@ -15130,14 +17396,15 @@ const variant_FD_CB_dd_27: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**27",
+    "opcodes": "FDCB27",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
-    "instruction": "sla (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
+    "instruction": "sla (iy+d),a",
+    "used": true
   }
 };
 
@@ -15164,14 +17431,15 @@ const variant_FD_CB_dd_27_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**27",
+    "opcodes": "FDCB27",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
-    "instruction": "sla (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0. The result is then stored in A.",
+    "instruction": "sla (iy+d),a",
+    "used": true
   }
 };
 
@@ -15201,14 +17469,15 @@ const variant_FD_CB_dd_28: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**28",
+    "opcodes": "FDCB28",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in B.",
-    "instruction": "sra (iy+*),b"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in B.",
+    "instruction": "sra (iy+d),b",
+    "used": true
   }
 };
 
@@ -15238,14 +17507,15 @@ const variant_FD_CB_dd_29: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**29",
+    "opcodes": "FDCB29",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in C.",
-    "instruction": "sra (iy+*),c"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in C.",
+    "instruction": "sra (iy+d),c",
+    "used": true
   }
 };
 
@@ -15275,14 +17545,15 @@ const variant_FD_CB_dd_2A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**2A",
+    "opcodes": "FDCB2A",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in D.",
-    "instruction": "sra (iy+*),d"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in D.",
+    "instruction": "sra (iy+d),d",
+    "used": true
   }
 };
 
@@ -15312,14 +17583,15 @@ const variant_FD_CB_dd_2B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**2B",
+    "opcodes": "FDCB2B",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in E.",
-    "instruction": "sra (iy+*),e"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in E.",
+    "instruction": "sra (iy+d),e",
+    "used": true
   }
 };
 
@@ -15349,14 +17621,15 @@ const variant_FD_CB_dd_2C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**2C",
+    "opcodes": "FDCB2C",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in H.",
-    "instruction": "sra (iy+*),h"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in H.",
+    "instruction": "sra (iy+d),h",
+    "used": true
   }
 };
 
@@ -15386,14 +17659,15 @@ const variant_FD_CB_dd_2D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**2D",
+    "opcodes": "FDCB2D",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in L.",
-    "instruction": "sra (iy+*),l"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in L.",
+    "instruction": "sra (iy+d),l",
+    "used": true
   }
 };
 
@@ -15423,14 +17697,15 @@ const variant_FD_CB_dd_2F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**2F",
+    "opcodes": "FDCB2F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
-    "instruction": "sra (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
+    "instruction": "sra (iy+d),a",
+    "used": true
   }
 };
 
@@ -15457,14 +17732,15 @@ const variant_FD_CB_dd_2F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**2F",
+    "opcodes": "FDCB2F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
-    "instruction": "sra (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged. The result is then stored in A.",
+    "instruction": "sra (iy+d),a",
+    "used": true
   }
 };
 
@@ -15494,14 +17770,15 @@ const variant_FD_CB_dd_30: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**30",
+    "opcodes": "FDCB30",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in B.",
-    "instruction": "sll (iy+*),b"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in B.",
+    "instruction": "sll (iy+d),b",
+    "used": true
   }
 };
 
@@ -15531,14 +17808,15 @@ const variant_FD_CB_dd_31: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**31",
+    "opcodes": "FDCB31",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in C.",
-    "instruction": "sll (iy+*),c"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in C.",
+    "instruction": "sll (iy+d),c",
+    "used": true
   }
 };
 
@@ -15568,14 +17846,15 @@ const variant_FD_CB_dd_32: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**32",
+    "opcodes": "FDCB32",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in D.",
-    "instruction": "sll (iy+*),d"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in D.",
+    "instruction": "sll (iy+d),d",
+    "used": true
   }
 };
 
@@ -15605,14 +17884,15 @@ const variant_FD_CB_dd_33: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**33",
+    "opcodes": "FDCB33",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in E.",
-    "instruction": "sll (iy+*),e"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in E.",
+    "instruction": "sll (iy+d),e",
+    "used": true
   }
 };
 
@@ -15642,14 +17922,15 @@ const variant_FD_CB_dd_34: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**34",
+    "opcodes": "FDCB34",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in H.",
-    "instruction": "sll (iy+*),h"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in H.",
+    "instruction": "sll (iy+d),h",
+    "used": true
   }
 };
 
@@ -15679,14 +17960,15 @@ const variant_FD_CB_dd_35: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**35",
+    "opcodes": "FDCB35",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in L.",
-    "instruction": "sll (iy+*),l"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in L.",
+    "instruction": "sll (iy+d),l",
+    "used": true
   }
 };
 
@@ -15716,14 +17998,15 @@ const variant_FD_CB_dd_37: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**37",
+    "opcodes": "FDCB37",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
-    "instruction": "sll (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
+    "instruction": "sll (iy+d),a",
+    "used": true
   }
 };
 
@@ -15750,14 +18033,15 @@ const variant_FD_CB_dd_37_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**37",
+    "opcodes": "FDCB37",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
-    "instruction": "sll (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0. The result is then stored in A.",
+    "instruction": "sll (iy+d),a",
+    "used": true
   }
 };
 
@@ -15787,14 +18071,15 @@ const variant_FD_CB_dd_38: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**38",
+    "opcodes": "FDCB38",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in B.",
-    "instruction": "srl (iy+*),b"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in B.",
+    "instruction": "srl (iy+d),b",
+    "used": true
   }
 };
 
@@ -15824,14 +18109,15 @@ const variant_FD_CB_dd_39: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**39",
+    "opcodes": "FDCB39",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in C.",
-    "instruction": "srl (iy+*),c"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in C.",
+    "instruction": "srl (iy+d),c",
+    "used": true
   }
 };
 
@@ -15861,14 +18147,15 @@ const variant_FD_CB_dd_3A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**3A",
+    "opcodes": "FDCB3A",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in D.",
-    "instruction": "srl (iy+*),d"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in D.",
+    "instruction": "srl (iy+d),d",
+    "used": true
   }
 };
 
@@ -15898,14 +18185,15 @@ const variant_FD_CB_dd_3B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**3B",
+    "opcodes": "FDCB3B",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in E.",
-    "instruction": "srl (iy+*),e"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in E.",
+    "instruction": "srl (iy+d),e",
+    "used": true
   }
 };
 
@@ -15935,14 +18223,15 @@ const variant_FD_CB_dd_3C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**3C",
+    "opcodes": "FDCB3C",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in H.",
-    "instruction": "srl (iy+*),h"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in H.",
+    "instruction": "srl (iy+d),h",
+    "used": true
   }
 };
 
@@ -15972,14 +18261,15 @@ const variant_FD_CB_dd_3D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**3D",
+    "opcodes": "FDCB3D",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in L.",
-    "instruction": "srl (iy+*),l"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in L.",
+    "instruction": "srl (iy+d),l",
+    "used": true
   }
 };
 
@@ -16009,14 +18299,15 @@ const variant_FD_CB_dd_3F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**3F",
+    "opcodes": "FDCB3F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
-    "instruction": "srl (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
+    "instruction": "srl (iy+d),a",
+    "used": true
   }
 };
 
@@ -16043,14 +18334,15 @@ const variant_FD_CB_dd_3F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**3F",
+    "opcodes": "FDCB3F",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
-    "instruction": "srl (iy+*),a"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7. The result is then stored in A.",
+    "instruction": "srl (iy+d),a",
+    "used": true
   }
 };
 
@@ -16083,14 +18375,15 @@ const variant_FD_CB_dd_80: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**80",
+    "opcodes": "FDCB80",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "res 0,(iy+*),b"
+    "description": "Resets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 0,(iy+d),b",
+    "used": true
   }
 };
 
@@ -16123,14 +18416,15 @@ const variant_FD_CB_dd_81: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**81",
+    "opcodes": "FDCB81",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "res 0,(iy+*),c"
+    "description": "Resets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 0,(iy+d),c",
+    "used": true
   }
 };
 
@@ -16163,14 +18457,15 @@ const variant_FD_CB_dd_82: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**82",
+    "opcodes": "FDCB82",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "res 0,(iy+*),d"
+    "description": "Resets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 0,(iy+d),d",
+    "used": true
   }
 };
 
@@ -16203,14 +18498,15 @@ const variant_FD_CB_dd_83: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**83",
+    "opcodes": "FDCB83",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "res 0,(iy+*),e"
+    "description": "Resets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 0,(iy+d),e",
+    "used": true
   }
 };
 
@@ -16243,14 +18539,15 @@ const variant_FD_CB_dd_84: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**84",
+    "opcodes": "FDCB84",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "res 0,(iy+*),h"
+    "description": "Resets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 0,(iy+d),h",
+    "used": true
   }
 };
 
@@ -16283,14 +18580,15 @@ const variant_FD_CB_dd_85: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**85",
+    "opcodes": "FDCB85",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "res 0,(iy+*),l"
+    "description": "Resets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 0,(iy+d),l",
+    "used": true
   }
 };
 
@@ -16323,14 +18621,15 @@ const variant_FD_CB_dd_87: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**87",
+    "opcodes": "FDCB87",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "res 0,(iy+*),a"
+    "description": "Resets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 0,(iy+d),a",
+    "used": true
   }
 };
 
@@ -16360,14 +18659,15 @@ const variant_FD_CB_dd_87_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**87",
+    "opcodes": "FDCB87",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "res 0,(iy+*),a"
+    "description": "Resets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 0,(iy+d),a",
+    "used": true
   }
 };
 
@@ -16400,14 +18700,15 @@ const variant_FD_CB_dd_88: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**88",
+    "opcodes": "FDCB88",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "res 1,(iy+*),b"
+    "description": "Resets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 1,(iy+d),b",
+    "used": true
   }
 };
 
@@ -16440,14 +18741,15 @@ const variant_FD_CB_dd_89: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**89",
+    "opcodes": "FDCB89",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "res 1,(iy+*),c"
+    "description": "Resets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 1,(iy+d),c",
+    "used": true
   }
 };
 
@@ -16480,14 +18782,15 @@ const variant_FD_CB_dd_8A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**8A",
+    "opcodes": "FDCB8A",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "res 1,(iy+*),d"
+    "description": "Resets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 1,(iy+d),d",
+    "used": true
   }
 };
 
@@ -16520,14 +18823,15 @@ const variant_FD_CB_dd_8B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**8B",
+    "opcodes": "FDCB8B",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "res 1,(iy+*),e"
+    "description": "Resets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 1,(iy+d),e",
+    "used": true
   }
 };
 
@@ -16560,14 +18864,15 @@ const variant_FD_CB_dd_8C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**8C",
+    "opcodes": "FDCB8C",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "res 1,(iy+*),h"
+    "description": "Resets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 1,(iy+d),h",
+    "used": true
   }
 };
 
@@ -16600,14 +18905,15 @@ const variant_FD_CB_dd_8D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**8D",
+    "opcodes": "FDCB8D",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "res 1,(iy+*),l"
+    "description": "Resets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 1,(iy+d),l",
+    "used": true
   }
 };
 
@@ -16640,14 +18946,15 @@ const variant_FD_CB_dd_8F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**8F",
+    "opcodes": "FDCB8F",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "res 1,(iy+*),a"
+    "description": "Resets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 1,(iy+d),a",
+    "used": true
   }
 };
 
@@ -16677,14 +18984,15 @@ const variant_FD_CB_dd_8F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**8F",
+    "opcodes": "FDCB8F",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "res 1,(iy+*),a"
+    "description": "Resets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 1,(iy+d),a",
+    "used": true
   }
 };
 
@@ -16717,14 +19025,15 @@ const variant_FD_CB_dd_90: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**90",
+    "opcodes": "FDCB90",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "res 2,(iy+*),b"
+    "description": "Resets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 2,(iy+d),b",
+    "used": true
   }
 };
 
@@ -16757,14 +19066,15 @@ const variant_FD_CB_dd_91: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**91",
+    "opcodes": "FDCB91",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "res 2,(iy+*),c"
+    "description": "Resets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 2,(iy+d),c",
+    "used": true
   }
 };
 
@@ -16797,14 +19107,15 @@ const variant_FD_CB_dd_92: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**92",
+    "opcodes": "FDCB92",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "res 2,(iy+*),d"
+    "description": "Resets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 2,(iy+d),d",
+    "used": true
   }
 };
 
@@ -16837,14 +19148,15 @@ const variant_FD_CB_dd_93: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**93",
+    "opcodes": "FDCB93",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "res 2,(iy+*),e"
+    "description": "Resets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 2,(iy+d),e",
+    "used": true
   }
 };
 
@@ -16877,14 +19189,15 @@ const variant_FD_CB_dd_94: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**94",
+    "opcodes": "FDCB94",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "res 2,(iy+*),h"
+    "description": "Resets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 2,(iy+d),h",
+    "used": true
   }
 };
 
@@ -16917,14 +19230,15 @@ const variant_FD_CB_dd_95: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**95",
+    "opcodes": "FDCB95",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "res 2,(iy+*),l"
+    "description": "Resets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 2,(iy+d),l",
+    "used": true
   }
 };
 
@@ -16957,14 +19271,15 @@ const variant_FD_CB_dd_97: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**97",
+    "opcodes": "FDCB97",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "res 2,(iy+*),a"
+    "description": "Resets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 2,(iy+d),a",
+    "used": true
   }
 };
 
@@ -16994,14 +19309,15 @@ const variant_FD_CB_dd_97_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**97",
+    "opcodes": "FDCB97",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "res 2,(iy+*),a"
+    "description": "Resets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 2,(iy+d),a",
+    "used": true
   }
 };
 
@@ -17034,14 +19350,15 @@ const variant_FD_CB_dd_98: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**98",
+    "opcodes": "FDCB98",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "res 3,(iy+*),b"
+    "description": "Resets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 3,(iy+d),b",
+    "used": true
   }
 };
 
@@ -17074,14 +19391,15 @@ const variant_FD_CB_dd_99: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**99",
+    "opcodes": "FDCB99",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "res 3,(iy+*),c"
+    "description": "Resets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 3,(iy+d),c",
+    "used": true
   }
 };
 
@@ -17114,14 +19432,15 @@ const variant_FD_CB_dd_9A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**9A",
+    "opcodes": "FDCB9A",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "res 3,(iy+*),d"
+    "description": "Resets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 3,(iy+d),d",
+    "used": true
   }
 };
 
@@ -17154,14 +19473,15 @@ const variant_FD_CB_dd_9B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**9B",
+    "opcodes": "FDCB9B",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "res 3,(iy+*),e"
+    "description": "Resets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 3,(iy+d),e",
+    "used": true
   }
 };
 
@@ -17194,14 +19514,15 @@ const variant_FD_CB_dd_9C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**9C",
+    "opcodes": "FDCB9C",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "res 3,(iy+*),h"
+    "description": "Resets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 3,(iy+d),h",
+    "used": true
   }
 };
 
@@ -17234,14 +19555,15 @@ const variant_FD_CB_dd_9D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**9D",
+    "opcodes": "FDCB9D",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "res 3,(iy+*),l"
+    "description": "Resets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 3,(iy+d),l",
+    "used": true
   }
 };
 
@@ -17274,14 +19596,15 @@ const variant_FD_CB_dd_9F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**9F",
+    "opcodes": "FDCB9F",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "res 3,(iy+*),a"
+    "description": "Resets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 3,(iy+d),a",
+    "used": true
   }
 };
 
@@ -17311,14 +19634,15 @@ const variant_FD_CB_dd_9F_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**9F",
+    "opcodes": "FDCB9F",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "res 3,(iy+*),a"
+    "description": "Resets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 3,(iy+d),a",
+    "used": true
   }
 };
 
@@ -17351,14 +19675,15 @@ const variant_FD_CB_dd_A0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A0",
+    "opcodes": "FDCBA0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "res 4,(iy+*),b"
+    "description": "Resets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 4,(iy+d),b",
+    "used": true
   }
 };
 
@@ -17391,14 +19716,15 @@ const variant_FD_CB_dd_A1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A1",
+    "opcodes": "FDCBA1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "res 4,(iy+*),c"
+    "description": "Resets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 4,(iy+d),c",
+    "used": true
   }
 };
 
@@ -17431,14 +19757,15 @@ const variant_FD_CB_dd_A2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A2",
+    "opcodes": "FDCBA2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "res 4,(iy+*),d"
+    "description": "Resets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 4,(iy+d),d",
+    "used": true
   }
 };
 
@@ -17471,14 +19798,15 @@ const variant_FD_CB_dd_A3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A3",
+    "opcodes": "FDCBA3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "res 4,(iy+*),e"
+    "description": "Resets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 4,(iy+d),e",
+    "used": true
   }
 };
 
@@ -17511,14 +19839,15 @@ const variant_FD_CB_dd_A4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A4",
+    "opcodes": "FDCBA4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "res 4,(iy+*),h"
+    "description": "Resets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 4,(iy+d),h",
+    "used": true
   }
 };
 
@@ -17551,14 +19880,15 @@ const variant_FD_CB_dd_A5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A5",
+    "opcodes": "FDCBA5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "res 4,(iy+*),l"
+    "description": "Resets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 4,(iy+d),l",
+    "used": true
   }
 };
 
@@ -17591,14 +19921,15 @@ const variant_FD_CB_dd_A7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A7",
+    "opcodes": "FDCBA7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "res 4,(iy+*),a"
+    "description": "Resets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 4,(iy+d),a",
+    "used": true
   }
 };
 
@@ -17628,14 +19959,15 @@ const variant_FD_CB_dd_A7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A7",
+    "opcodes": "FDCBA7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "res 4,(iy+*),a"
+    "description": "Resets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 4,(iy+d),a",
+    "used": true
   }
 };
 
@@ -17668,14 +20000,15 @@ const variant_FD_CB_dd_A8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A8",
+    "opcodes": "FDCBA8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "res 5,(iy+*),b"
+    "description": "Resets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 5,(iy+d),b",
+    "used": true
   }
 };
 
@@ -17708,14 +20041,15 @@ const variant_FD_CB_dd_A9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A9",
+    "opcodes": "FDCBA9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "res 5,(iy+*),c"
+    "description": "Resets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 5,(iy+d),c",
+    "used": true
   }
 };
 
@@ -17748,14 +20082,15 @@ const variant_FD_CB_dd_AA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**AA",
+    "opcodes": "FDCBAA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "res 5,(iy+*),d"
+    "description": "Resets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 5,(iy+d),d",
+    "used": true
   }
 };
 
@@ -17788,14 +20123,15 @@ const variant_FD_CB_dd_AB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**AB",
+    "opcodes": "FDCBAB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "res 5,(iy+*),e"
+    "description": "Resets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 5,(iy+d),e",
+    "used": true
   }
 };
 
@@ -17828,14 +20164,15 @@ const variant_FD_CB_dd_AC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**AC",
+    "opcodes": "FDCBAC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "res 5,(iy+*),h"
+    "description": "Resets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 5,(iy+d),h",
+    "used": true
   }
 };
 
@@ -17868,14 +20205,15 @@ const variant_FD_CB_dd_AD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**AD",
+    "opcodes": "FDCBAD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "res 5,(iy+*),l"
+    "description": "Resets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 5,(iy+d),l",
+    "used": true
   }
 };
 
@@ -17908,14 +20246,15 @@ const variant_FD_CB_dd_AF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**AF",
+    "opcodes": "FDCBAF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "res 5,(iy+*),a"
+    "description": "Resets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 5,(iy+d),a",
+    "used": true
   }
 };
 
@@ -17945,14 +20284,15 @@ const variant_FD_CB_dd_AF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**AF",
+    "opcodes": "FDCBAF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "res 5,(iy+*),a"
+    "description": "Resets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 5,(iy+d),a",
+    "used": true
   }
 };
 
@@ -17985,14 +20325,15 @@ const variant_FD_CB_dd_B0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B0",
+    "opcodes": "FDCBB0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "res 6,(iy+*),b"
+    "description": "Resets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 6,(iy+d),b",
+    "used": true
   }
 };
 
@@ -18025,14 +20366,15 @@ const variant_FD_CB_dd_B1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B1",
+    "opcodes": "FDCBB1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "res 6,(iy+*),c"
+    "description": "Resets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 6,(iy+d),c",
+    "used": true
   }
 };
 
@@ -18065,14 +20407,15 @@ const variant_FD_CB_dd_B2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B2",
+    "opcodes": "FDCBB2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "res 6,(iy+*),d"
+    "description": "Resets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 6,(iy+d),d",
+    "used": true
   }
 };
 
@@ -18105,14 +20448,15 @@ const variant_FD_CB_dd_B3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B3",
+    "opcodes": "FDCBB3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "res 6,(iy+*),e"
+    "description": "Resets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 6,(iy+d),e",
+    "used": true
   }
 };
 
@@ -18145,14 +20489,15 @@ const variant_FD_CB_dd_B4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B4",
+    "opcodes": "FDCBB4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "res 6,(iy+*),h"
+    "description": "Resets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 6,(iy+d),h",
+    "used": true
   }
 };
 
@@ -18185,14 +20530,15 @@ const variant_FD_CB_dd_B5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B5",
+    "opcodes": "FDCBB5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "res 6,(iy+*),l"
+    "description": "Resets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 6,(iy+d),l",
+    "used": true
   }
 };
 
@@ -18225,14 +20571,15 @@ const variant_FD_CB_dd_B7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B7",
+    "opcodes": "FDCBB7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "res 6,(iy+*),a"
+    "description": "Resets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 6,(iy+d),a",
+    "used": true
   }
 };
 
@@ -18262,14 +20609,15 @@ const variant_FD_CB_dd_B7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B7",
+    "opcodes": "FDCBB7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "res 6,(iy+*),a"
+    "description": "Resets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 6,(iy+d),a",
+    "used": true
   }
 };
 
@@ -18302,14 +20650,15 @@ const variant_FD_CB_dd_B8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B8",
+    "opcodes": "FDCBB8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "res 7,(iy+*),b"
+    "description": "Resets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "res 7,(iy+d),b",
+    "used": true
   }
 };
 
@@ -18342,14 +20691,15 @@ const variant_FD_CB_dd_B9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B9",
+    "opcodes": "FDCBB9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "res 7,(iy+*),c"
+    "description": "Resets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "res 7,(iy+d),c",
+    "used": true
   }
 };
 
@@ -18382,14 +20732,15 @@ const variant_FD_CB_dd_BA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**BA",
+    "opcodes": "FDCBBA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "res 7,(iy+*),d"
+    "description": "Resets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "res 7,(iy+d),d",
+    "used": true
   }
 };
 
@@ -18422,14 +20773,15 @@ const variant_FD_CB_dd_BB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**BB",
+    "opcodes": "FDCBBB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "res 7,(iy+*),e"
+    "description": "Resets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "res 7,(iy+d),e",
+    "used": true
   }
 };
 
@@ -18462,14 +20814,15 @@ const variant_FD_CB_dd_BC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**BC",
+    "opcodes": "FDCBBC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "res 7,(iy+*),h"
+    "description": "Resets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "res 7,(iy+d),h",
+    "used": true
   }
 };
 
@@ -18502,14 +20855,15 @@ const variant_FD_CB_dd_BD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**BD",
+    "opcodes": "FDCBBD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "res 7,(iy+*),l"
+    "description": "Resets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "res 7,(iy+d),l",
+    "used": true
   }
 };
 
@@ -18542,14 +20896,15 @@ const variant_FD_CB_dd_BF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**BF",
+    "opcodes": "FDCBBF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "res 7,(iy+*),a"
+    "description": "Resets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 7,(iy+d),a",
+    "used": true
   }
 };
 
@@ -18579,14 +20934,15 @@ const variant_FD_CB_dd_BF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**BF",
+    "opcodes": "FDCBBF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "res 7,(iy+*),a"
+    "description": "Resets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "res 7,(iy+d),a",
+    "used": true
   }
 };
 
@@ -18619,14 +20975,15 @@ const variant_FD_CB_dd_C0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C0",
+    "opcodes": "FDCBC0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "set 0,(iy+*),b"
+    "description": "Sets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 0,(iy+d),b",
+    "used": true
   }
 };
 
@@ -18659,14 +21016,15 @@ const variant_FD_CB_dd_C1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C1",
+    "opcodes": "FDCBC1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "set 0,(iy+*),c"
+    "description": "Sets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 0,(iy+d),c",
+    "used": true
   }
 };
 
@@ -18699,14 +21057,15 @@ const variant_FD_CB_dd_C2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C2",
+    "opcodes": "FDCBC2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "set 0,(iy+*),d"
+    "description": "Sets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 0,(iy+d),d",
+    "used": true
   }
 };
 
@@ -18739,14 +21098,15 @@ const variant_FD_CB_dd_C3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C3",
+    "opcodes": "FDCBC3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "set 0,(iy+*),e"
+    "description": "Sets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 0,(iy+d),e",
+    "used": true
   }
 };
 
@@ -18779,14 +21139,15 @@ const variant_FD_CB_dd_C4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C4",
+    "opcodes": "FDCBC4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "set 0,(iy+*),h"
+    "description": "Sets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 0,(iy+d),h",
+    "used": true
   }
 };
 
@@ -18819,14 +21180,15 @@ const variant_FD_CB_dd_C5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C5",
+    "opcodes": "FDCBC5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "set 0,(iy+*),l"
+    "description": "Sets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 0,(iy+d),l",
+    "used": true
   }
 };
 
@@ -18859,14 +21221,15 @@ const variant_FD_CB_dd_C7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C7",
+    "opcodes": "FDCBC7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "set 0,(iy+*),a"
+    "description": "Sets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 0,(iy+d),a",
+    "used": true
   }
 };
 
@@ -18896,14 +21259,15 @@ const variant_FD_CB_dd_C7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C7",
+    "opcodes": "FDCBC7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "set 0,(iy+*),a"
+    "description": "Sets bit 0 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 0,(iy+d),a",
+    "used": true
   }
 };
 
@@ -18936,14 +21300,15 @@ const variant_FD_CB_dd_C8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C8",
+    "opcodes": "FDCBC8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "set 1,(iy+*),b"
+    "description": "Sets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 1,(iy+d),b",
+    "used": true
   }
 };
 
@@ -18976,14 +21341,15 @@ const variant_FD_CB_dd_C9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C9",
+    "opcodes": "FDCBC9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "set 1,(iy+*),c"
+    "description": "Sets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 1,(iy+d),c",
+    "used": true
   }
 };
 
@@ -19016,14 +21382,15 @@ const variant_FD_CB_dd_CA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**CA",
+    "opcodes": "FDCBCA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "set 1,(iy+*),d"
+    "description": "Sets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 1,(iy+d),d",
+    "used": true
   }
 };
 
@@ -19056,14 +21423,15 @@ const variant_FD_CB_dd_CB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**CB",
+    "opcodes": "FDCBCB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "set 1,(iy+*),e"
+    "description": "Sets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 1,(iy+d),e",
+    "used": true
   }
 };
 
@@ -19096,14 +21464,15 @@ const variant_FD_CB_dd_CC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**CC",
+    "opcodes": "FDCBCC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "set 1,(iy+*),h"
+    "description": "Sets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 1,(iy+d),h",
+    "used": true
   }
 };
 
@@ -19136,14 +21505,15 @@ const variant_FD_CB_dd_CD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**CD",
+    "opcodes": "FDCBCD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "set 1,(iy+*),l"
+    "description": "Sets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 1,(iy+d),l",
+    "used": true
   }
 };
 
@@ -19176,14 +21546,15 @@ const variant_FD_CB_dd_CF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**CF",
+    "opcodes": "FDCBCF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "set 1,(iy+*),a"
+    "description": "Sets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 1,(iy+d),a",
+    "used": true
   }
 };
 
@@ -19213,14 +21584,15 @@ const variant_FD_CB_dd_CF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**CF",
+    "opcodes": "FDCBCF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "set 1,(iy+*),a"
+    "description": "Sets bit 1 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 1,(iy+d),a",
+    "used": true
   }
 };
 
@@ -19253,14 +21625,15 @@ const variant_FD_CB_dd_D0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D0",
+    "opcodes": "FDCBD0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "set 2,(iy+*),b"
+    "description": "Sets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 2,(iy+d),b",
+    "used": true
   }
 };
 
@@ -19293,14 +21666,15 @@ const variant_FD_CB_dd_D1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D1",
+    "opcodes": "FDCBD1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "set 2,(iy+*),c"
+    "description": "Sets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 2,(iy+d),c",
+    "used": true
   }
 };
 
@@ -19333,14 +21707,15 @@ const variant_FD_CB_dd_D2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D2",
+    "opcodes": "FDCBD2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "set 2,(iy+*),d"
+    "description": "Sets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 2,(iy+d),d",
+    "used": true
   }
 };
 
@@ -19373,14 +21748,15 @@ const variant_FD_CB_dd_D3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D3",
+    "opcodes": "FDCBD3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "set 2,(iy+*),e"
+    "description": "Sets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 2,(iy+d),e",
+    "used": true
   }
 };
 
@@ -19413,14 +21789,15 @@ const variant_FD_CB_dd_D4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D4",
+    "opcodes": "FDCBD4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "set 2,(iy+*),h"
+    "description": "Sets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 2,(iy+d),h",
+    "used": true
   }
 };
 
@@ -19453,14 +21830,15 @@ const variant_FD_CB_dd_D5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D5",
+    "opcodes": "FDCBD5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "set 2,(iy+*),l"
+    "description": "Sets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 2,(iy+d),l",
+    "used": true
   }
 };
 
@@ -19493,14 +21871,15 @@ const variant_FD_CB_dd_D7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D7",
+    "opcodes": "FDCBD7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "set 2,(iy+*),a"
+    "description": "Sets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 2,(iy+d),a",
+    "used": true
   }
 };
 
@@ -19530,14 +21909,15 @@ const variant_FD_CB_dd_D7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D7",
+    "opcodes": "FDCBD7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "set 2,(iy+*),a"
+    "description": "Sets bit 2 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 2,(iy+d),a",
+    "used": true
   }
 };
 
@@ -19570,14 +21950,15 @@ const variant_FD_CB_dd_D8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D8",
+    "opcodes": "FDCBD8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "set 3,(iy+*),b"
+    "description": "Sets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 3,(iy+d),b",
+    "used": true
   }
 };
 
@@ -19610,14 +21991,15 @@ const variant_FD_CB_dd_D9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D9",
+    "opcodes": "FDCBD9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "set 3,(iy+*),c"
+    "description": "Sets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 3,(iy+d),c",
+    "used": true
   }
 };
 
@@ -19650,14 +22032,15 @@ const variant_FD_CB_dd_DA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**DA",
+    "opcodes": "FDCBDA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "set 3,(iy+*),d"
+    "description": "Sets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 3,(iy+d),d",
+    "used": true
   }
 };
 
@@ -19690,14 +22073,15 @@ const variant_FD_CB_dd_DB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**DB",
+    "opcodes": "FDCBDB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "set 3,(iy+*),e"
+    "description": "Sets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 3,(iy+d),e",
+    "used": true
   }
 };
 
@@ -19730,14 +22114,15 @@ const variant_FD_CB_dd_DC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**DC",
+    "opcodes": "FDCBDC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "set 3,(iy+*),h"
+    "description": "Sets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 3,(iy+d),h",
+    "used": true
   }
 };
 
@@ -19770,14 +22155,15 @@ const variant_FD_CB_dd_DD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**DD",
+    "opcodes": "FDCBDD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "set 3,(iy+*),l"
+    "description": "Sets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 3,(iy+d),l",
+    "used": true
   }
 };
 
@@ -19810,14 +22196,15 @@ const variant_FD_CB_dd_DF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**DF",
+    "opcodes": "FDCBDF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "set 3,(iy+*),a"
+    "description": "Sets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 3,(iy+d),a",
+    "used": true
   }
 };
 
@@ -19847,14 +22234,15 @@ const variant_FD_CB_dd_DF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**DF",
+    "opcodes": "FDCBDF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "set 3,(iy+*),a"
+    "description": "Sets bit 3 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 3,(iy+d),a",
+    "used": true
   }
 };
 
@@ -19887,14 +22275,15 @@ const variant_FD_CB_dd_E0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E0",
+    "opcodes": "FDCBE0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "set 4,(iy+*),b"
+    "description": "Sets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 4,(iy+d),b",
+    "used": true
   }
 };
 
@@ -19927,14 +22316,15 @@ const variant_FD_CB_dd_E1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E1",
+    "opcodes": "FDCBE1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "set 4,(iy+*),c"
+    "description": "Sets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 4,(iy+d),c",
+    "used": true
   }
 };
 
@@ -19967,14 +22357,15 @@ const variant_FD_CB_dd_E2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E2",
+    "opcodes": "FDCBE2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "set 4,(iy+*),d"
+    "description": "Sets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 4,(iy+d),d",
+    "used": true
   }
 };
 
@@ -20007,14 +22398,15 @@ const variant_FD_CB_dd_E3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E3",
+    "opcodes": "FDCBE3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "set 4,(iy+*),e"
+    "description": "Sets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 4,(iy+d),e",
+    "used": true
   }
 };
 
@@ -20047,14 +22439,15 @@ const variant_FD_CB_dd_E4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E4",
+    "opcodes": "FDCBE4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "set 4,(iy+*),h"
+    "description": "Sets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 4,(iy+d),h",
+    "used": true
   }
 };
 
@@ -20087,14 +22480,15 @@ const variant_FD_CB_dd_E5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E5",
+    "opcodes": "FDCBE5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "set 4,(iy+*),l"
+    "description": "Sets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 4,(iy+d),l",
+    "used": true
   }
 };
 
@@ -20127,14 +22521,15 @@ const variant_FD_CB_dd_E7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E7",
+    "opcodes": "FDCBE7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "set 4,(iy+*),a"
+    "description": "Sets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 4,(iy+d),a",
+    "used": true
   }
 };
 
@@ -20164,14 +22559,15 @@ const variant_FD_CB_dd_E7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E7",
+    "opcodes": "FDCBE7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "set 4,(iy+*),a"
+    "description": "Sets bit 4 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 4,(iy+d),a",
+    "used": true
   }
 };
 
@@ -20204,14 +22600,15 @@ const variant_FD_CB_dd_E8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E8",
+    "opcodes": "FDCBE8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "set 5,(iy+*),b"
+    "description": "Sets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 5,(iy+d),b",
+    "used": true
   }
 };
 
@@ -20244,14 +22641,15 @@ const variant_FD_CB_dd_E9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E9",
+    "opcodes": "FDCBE9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "set 5,(iy+*),c"
+    "description": "Sets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 5,(iy+d),c",
+    "used": true
   }
 };
 
@@ -20284,14 +22682,15 @@ const variant_FD_CB_dd_EA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**EA",
+    "opcodes": "FDCBEA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "set 5,(iy+*),d"
+    "description": "Sets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 5,(iy+d),d",
+    "used": true
   }
 };
 
@@ -20324,14 +22723,15 @@ const variant_FD_CB_dd_EB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**EB",
+    "opcodes": "FDCBEB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "set 5,(iy+*),e"
+    "description": "Sets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 5,(iy+d),e",
+    "used": true
   }
 };
 
@@ -20364,14 +22764,15 @@ const variant_FD_CB_dd_EC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**EC",
+    "opcodes": "FDCBEC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "set 5,(iy+*),h"
+    "description": "Sets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 5,(iy+d),h",
+    "used": true
   }
 };
 
@@ -20404,14 +22805,15 @@ const variant_FD_CB_dd_ED: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**ED",
+    "opcodes": "FDCBED",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "set 5,(iy+*),l"
+    "description": "Sets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 5,(iy+d),l",
+    "used": true
   }
 };
 
@@ -20444,14 +22846,15 @@ const variant_FD_CB_dd_EF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**EF",
+    "opcodes": "FDCBEF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "set 5,(iy+*),a"
+    "description": "Sets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 5,(iy+d),a",
+    "used": true
   }
 };
 
@@ -20481,14 +22884,15 @@ const variant_FD_CB_dd_EF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**EF",
+    "opcodes": "FDCBEF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "set 5,(iy+*),a"
+    "description": "Sets bit 5 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 5,(iy+d),a",
+    "used": true
   }
 };
 
@@ -20521,14 +22925,15 @@ const variant_FD_CB_dd_F0: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F0",
+    "opcodes": "FDCBF0",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "set 6,(iy+*),b"
+    "description": "Sets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 6,(iy+d),b",
+    "used": true
   }
 };
 
@@ -20561,14 +22966,15 @@ const variant_FD_CB_dd_F1: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F1",
+    "opcodes": "FDCBF1",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "set 6,(iy+*),c"
+    "description": "Sets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 6,(iy+d),c",
+    "used": true
   }
 };
 
@@ -20601,14 +23007,15 @@ const variant_FD_CB_dd_F2: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F2",
+    "opcodes": "FDCBF2",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "set 6,(iy+*),d"
+    "description": "Sets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 6,(iy+d),d",
+    "used": true
   }
 };
 
@@ -20641,14 +23048,15 @@ const variant_FD_CB_dd_F3: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F3",
+    "opcodes": "FDCBF3",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "set 6,(iy+*),e"
+    "description": "Sets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 6,(iy+d),e",
+    "used": true
   }
 };
 
@@ -20681,14 +23089,15 @@ const variant_FD_CB_dd_F4: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F4",
+    "opcodes": "FDCBF4",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "set 6,(iy+*),h"
+    "description": "Sets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 6,(iy+d),h",
+    "used": true
   }
 };
 
@@ -20721,14 +23130,15 @@ const variant_FD_CB_dd_F5: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F5",
+    "opcodes": "FDCBF5",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "set 6,(iy+*),l"
+    "description": "Sets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 6,(iy+d),l",
+    "used": true
   }
 };
 
@@ -20761,14 +23171,15 @@ const variant_FD_CB_dd_F7: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F7",
+    "opcodes": "FDCBF7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "set 6,(iy+*),a"
+    "description": "Sets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 6,(iy+d),a",
+    "used": true
   }
 };
 
@@ -20798,14 +23209,15 @@ const variant_FD_CB_dd_F7_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F7",
+    "opcodes": "FDCBF7",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "set 6,(iy+*),a"
+    "description": "Sets bit 6 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 6,(iy+d),a",
+    "used": true
   }
 };
 
@@ -20838,14 +23250,15 @@ const variant_FD_CB_dd_F8: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F8",
+    "opcodes": "FDCBF8",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "set 7,(iy+*),b"
+    "description": "Sets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in B.",
+    "instruction": "set 7,(iy+d),b",
+    "used": true
   }
 };
 
@@ -20878,14 +23291,15 @@ const variant_FD_CB_dd_F9: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F9",
+    "opcodes": "FDCBF9",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "set 7,(iy+*),c"
+    "description": "Sets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in C.",
+    "instruction": "set 7,(iy+d),c",
+    "used": true
   }
 };
 
@@ -20918,14 +23332,15 @@ const variant_FD_CB_dd_FA: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**FA",
+    "opcodes": "FDCBFA",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "set 7,(iy+*),d"
+    "description": "Sets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in D.",
+    "instruction": "set 7,(iy+d),d",
+    "used": true
   }
 };
 
@@ -20958,14 +23373,15 @@ const variant_FD_CB_dd_FB: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**FB",
+    "opcodes": "FDCBFB",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "set 7,(iy+*),e"
+    "description": "Sets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in E.",
+    "instruction": "set 7,(iy+d),e",
+    "used": true
   }
 };
 
@@ -20998,14 +23414,15 @@ const variant_FD_CB_dd_FC: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**FC",
+    "opcodes": "FDCBFC",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "set 7,(iy+*),h"
+    "description": "Sets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in H.",
+    "instruction": "set 7,(iy+d),h",
+    "used": true
   }
 };
 
@@ -21038,14 +23455,15 @@ const variant_FD_CB_dd_FD: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**FD",
+    "opcodes": "FDCBFD",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "set 7,(iy+*),l"
+    "description": "Sets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in L.",
+    "instruction": "set 7,(iy+d),l",
+    "used": true
   }
 };
 
@@ -21078,14 +23496,15 @@ const variant_FD_CB_dd_FF: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**FF",
+    "opcodes": "FDCBFF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "set 7,(iy+*),a"
+    "description": "Sets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 7,(iy+d),a",
+    "used": true
   }
 };
 
@@ -21115,14 +23534,15 @@ const variant_FD_CB_dd_FF_pseudo: OpcodeVariant = {
   "isPseudo": true,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**FF",
+    "opcodes": "FDCBFF",
     "undocumented": true,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "set 7,(iy+*),a"
+    "description": "Sets bit 7 of the memory location pointed to by IY plus <var>D</var>. The result is then stored in A.",
+    "instruction": "set 7,(iy+d),a",
+    "used": true
   }
 };
 
@@ -21152,7 +23572,8 @@ const variant_FD_F9: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "Loads the value of IY into SP.",
-    "instruction": "ld sp,iy"
+    "instruction": "ld sp,iy",
+    "used": true
   }
 };
 
@@ -21350,7 +23771,8 @@ const variant_03: OpcodeVariant = {
     "with_jump_clock_count": 6,
     "without_jump_clock_count": 6,
     "description": "Adds one to BC.",
-    "instruction": "inc bc"
+    "instruction": "inc bc",
+    "used": true
   }
 };
 
@@ -21376,7 +23798,8 @@ const variant_04: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds one to B.",
-    "instruction": "inc b"
+    "instruction": "inc b",
+    "used": true
   }
 };
 
@@ -21402,7 +23825,8 @@ const variant_0C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds one to C.",
-    "instruction": "inc c"
+    "instruction": "inc c",
+    "used": true
   }
 };
 
@@ -21428,7 +23852,8 @@ const variant_13: OpcodeVariant = {
     "with_jump_clock_count": 6,
     "without_jump_clock_count": 6,
     "description": "Adds one to DE.",
-    "instruction": "inc de"
+    "instruction": "inc de",
+    "used": true
   }
 };
 
@@ -21454,7 +23879,8 @@ const variant_14: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds one to D.",
-    "instruction": "inc d"
+    "instruction": "inc d",
+    "used": true
   }
 };
 
@@ -21480,7 +23906,8 @@ const variant_1C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds one to E.",
-    "instruction": "inc e"
+    "instruction": "inc e",
+    "used": true
   }
 };
 
@@ -21506,7 +23933,8 @@ const variant_23: OpcodeVariant = {
     "with_jump_clock_count": 6,
     "without_jump_clock_count": 6,
     "description": "Adds one to HL.",
-    "instruction": "inc hl"
+    "instruction": "inc hl",
+    "used": true
   }
 };
 
@@ -21532,7 +23960,8 @@ const variant_24: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds one to H.",
-    "instruction": "inc h"
+    "instruction": "inc h",
+    "used": true
   }
 };
 
@@ -21558,7 +23987,8 @@ const variant_2C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds one to L.",
-    "instruction": "inc l"
+    "instruction": "inc l",
+    "used": true
   }
 };
 
@@ -21584,7 +24014,8 @@ const variant_33: OpcodeVariant = {
     "with_jump_clock_count": 6,
     "without_jump_clock_count": 6,
     "description": "Adds one to SP.",
-    "instruction": "inc sp"
+    "instruction": "inc sp",
+    "used": true
   }
 };
 
@@ -21612,7 +24043,8 @@ const variant_34: OpcodeVariant = {
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
     "description": "Adds one to (HL).",
-    "instruction": "inc (hl)"
+    "instruction": "inc (hl)",
+    "used": true
   }
 };
 
@@ -21638,7 +24070,8 @@ const variant_3C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds one to A.",
-    "instruction": "inc a"
+    "instruction": "inc a",
+    "used": true
   }
 };
 
@@ -21665,7 +24098,8 @@ const variant_DD_23: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "Adds one to IX.",
-    "instruction": "inc ix"
+    "instruction": "inc ix",
+    "used": true
   }
 };
 
@@ -21691,8 +24125,9 @@ const variant_DD_24: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Adds one to IXH.",
-    "instruction": "inc ixh"
+    "description": "Adds one to r.",
+    "instruction": "inc ixh",
+    "used": true
   }
 };
 
@@ -21718,8 +24153,9 @@ const variant_DD_2C: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Adds one to IXL.",
-    "instruction": "inc ixl"
+    "description": "Adds one to r.",
+    "instruction": "inc ixl",
+    "used": true
   }
 };
 
@@ -21750,8 +24186,9 @@ const variant_DD_34_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Adds one to the memory location pointed to by IX plus *.",
-    "instruction": "inc (ix+*)"
+    "description": "Adds one to the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "inc (ix+d)",
+    "used": true
   }
 };
 
@@ -21778,7 +24215,8 @@ const variant_FD_23: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "Adds one to IY.",
-    "instruction": "inc iy"
+    "instruction": "inc iy",
+    "used": true
   }
 };
 
@@ -21804,8 +24242,9 @@ const variant_FD_24: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Adds one to IYH.",
-    "instruction": "inc iyh"
+    "description": "Adds one to r.",
+    "instruction": "inc iyh",
+    "used": true
   }
 };
 
@@ -21831,8 +24270,9 @@ const variant_FD_2C: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Adds one to IYL.",
-    "instruction": "inc iyl"
+    "description": "Adds one to r.",
+    "instruction": "inc iyl",
+    "used": true
   }
 };
 
@@ -21863,8 +24303,9 @@ const variant_FD_34_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Adds one to the memory location pointed to by IY plus *.",
-    "instruction": "inc (iy+*)"
+    "description": "Adds one to the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "inc (iy+d)",
+    "used": true
   }
 };
 
@@ -21890,7 +24331,8 @@ const variant_05: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts one from B.",
-    "instruction": "dec b"
+    "instruction": "dec b",
+    "used": true
   }
 };
 
@@ -21916,7 +24358,8 @@ const variant_0B: OpcodeVariant = {
     "with_jump_clock_count": 6,
     "without_jump_clock_count": 6,
     "description": "Subtracts one from BC.",
-    "instruction": "dec bc"
+    "instruction": "dec bc",
+    "used": true
   }
 };
 
@@ -21942,7 +24385,8 @@ const variant_0D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts one from C.",
-    "instruction": "dec c"
+    "instruction": "dec c",
+    "used": true
   }
 };
 
@@ -21968,7 +24412,8 @@ const variant_15: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts one from D.",
-    "instruction": "dec d"
+    "instruction": "dec d",
+    "used": true
   }
 };
 
@@ -21994,7 +24439,8 @@ const variant_1B: OpcodeVariant = {
     "with_jump_clock_count": 6,
     "without_jump_clock_count": 6,
     "description": "Subtracts one from DE.",
-    "instruction": "dec de"
+    "instruction": "dec de",
+    "used": true
   }
 };
 
@@ -22020,7 +24466,8 @@ const variant_1D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts one from E.",
-    "instruction": "dec e"
+    "instruction": "dec e",
+    "used": true
   }
 };
 
@@ -22046,7 +24493,8 @@ const variant_25: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts one from H.",
-    "instruction": "dec h"
+    "instruction": "dec h",
+    "used": true
   }
 };
 
@@ -22072,7 +24520,8 @@ const variant_2B: OpcodeVariant = {
     "with_jump_clock_count": 6,
     "without_jump_clock_count": 6,
     "description": "Subtracts one from HL.",
-    "instruction": "dec hl"
+    "instruction": "dec hl",
+    "used": true
   }
 };
 
@@ -22098,7 +24547,8 @@ const variant_2D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts one from L.",
-    "instruction": "dec l"
+    "instruction": "dec l",
+    "used": true
   }
 };
 
@@ -22126,7 +24576,8 @@ const variant_35: OpcodeVariant = {
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
     "description": "Subtracts one from (HL).",
-    "instruction": "dec (hl)"
+    "instruction": "dec (hl)",
+    "used": true
   }
 };
 
@@ -22152,7 +24603,8 @@ const variant_3B: OpcodeVariant = {
     "with_jump_clock_count": 6,
     "without_jump_clock_count": 6,
     "description": "Subtracts one from SP.",
-    "instruction": "dec sp"
+    "instruction": "dec sp",
+    "used": true
   }
 };
 
@@ -22178,7 +24630,8 @@ const variant_3D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts one from A.",
-    "instruction": "dec a"
+    "instruction": "dec a",
+    "used": true
   }
 };
 
@@ -22205,7 +24658,8 @@ const variant_DD_25: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts one from IXH.",
-    "instruction": "dec ixh"
+    "instruction": "dec ixh",
+    "used": true
   }
 };
 
@@ -22232,7 +24686,8 @@ const variant_DD_2B: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "Subtracts one from IX.",
-    "instruction": "dec ix"
+    "instruction": "dec ix",
+    "used": true
   }
 };
 
@@ -22259,7 +24714,8 @@ const variant_DD_2D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts one from IXL.",
-    "instruction": "dec ixl"
+    "instruction": "dec ixl",
+    "used": true
   }
 };
 
@@ -22290,8 +24746,9 @@ const variant_DD_35_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Subtracts one from the memory location pointed to by IX plus *.",
-    "instruction": "dec (ix+*)"
+    "description": "Subtracts one from the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "dec (ix+d)",
+    "used": true
   }
 };
 
@@ -22318,7 +24775,8 @@ const variant_FD_25: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts one from IYH.",
-    "instruction": "dec iyh"
+    "instruction": "dec iyh",
+    "used": true
   }
 };
 
@@ -22345,7 +24803,8 @@ const variant_FD_2B: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "Subtracts one from IY.",
-    "instruction": "dec iy"
+    "instruction": "dec iy",
+    "used": true
   }
 };
 
@@ -22372,7 +24831,8 @@ const variant_FD_2D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts one from IYL.",
-    "instruction": "dec iyl"
+    "instruction": "dec iyl",
+    "used": true
   }
 };
 
@@ -22403,8 +24863,9 @@ const variant_FD_35_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Subtracts one from the memory location pointed to by IY plus *.",
-    "instruction": "dec (iy+*)"
+    "description": "Subtracts one from the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "dec (iy+d)",
+    "used": true
   }
 };
 
@@ -22426,7 +24887,8 @@ const variant_07: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlca"
+    "instruction": "rlca",
+    "used": true
   }
 };
 
@@ -22455,7 +24917,8 @@ const variant_08: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Exchanges the 16-bit contents of AF and AF'.",
-    "instruction": "ex af,af'"
+    "instruction": "ex af,af'",
+    "used": true
   }
 };
 
@@ -22486,8 +24949,9 @@ const variant_DD_E3: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Exchanges (SP) with the IXL, and (SP+1) with the IXH.",
-    "instruction": "ex (sp),ix"
+    "description": "Exchanges (SP) with IXL, and (SP+1) with IXH.",
+    "instruction": "ex (sp),ix",
+    "used": true
   }
 };
 
@@ -22518,7 +24982,8 @@ const variant_E3: OpcodeVariant = {
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
     "description": "Exchanges (SP) with L, and (SP+1) with H.",
-    "instruction": "ex (sp),hl"
+    "instruction": "ex (sp),hl",
+    "used": true
   }
 };
 
@@ -22547,7 +25012,8 @@ const variant_EB: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Exchanges the 16-bit contents of DE and HL.",
-    "instruction": "ex de,hl"
+    "instruction": "ex de,hl",
+    "used": true
   }
 };
 
@@ -22578,8 +25044,9 @@ const variant_FD_E3: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Exchanges (SP) with the IYL, and (SP+1) with the IYH.",
-    "instruction": "ex (sp),iy"
+    "description": "Exchanges (SP) with IYL, and (SP+1) with IYH.",
+    "instruction": "ex (sp),iy",
+    "used": true
   }
 };
 
@@ -22608,7 +25075,8 @@ const variant_09: OpcodeVariant = {
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
     "description": "The value of BC is added to HL.",
-    "instruction": "add hl,bc"
+    "instruction": "add hl,bc",
+    "used": true
   }
 };
 
@@ -22637,7 +25105,8 @@ const variant_19: OpcodeVariant = {
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
     "description": "The value of DE is added to HL.",
-    "instruction": "add hl,de"
+    "instruction": "add hl,de",
+    "used": true
   }
 };
 
@@ -22666,7 +25135,8 @@ const variant_29: OpcodeVariant = {
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
     "description": "The value of HL is added to HL.",
-    "instruction": "add hl,hl"
+    "instruction": "add hl,hl",
+    "used": true
   }
 };
 
@@ -22694,8 +25164,9 @@ const variant_39: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The value of HL is added to HL.",
-    "instruction": "add hl,sp"
+    "description": "The value of SP is added to HL.",
+    "instruction": "add hl,sp",
+    "used": true
   }
 };
 
@@ -22724,7 +25195,8 @@ const variant_80: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds B to A.",
-    "instruction": "add a,b"
+    "instruction": "add a,b",
+    "used": true
   }
 };
 
@@ -22750,7 +25222,8 @@ const variant_80_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds B to A.",
-    "instruction": "add a,b"
+    "instruction": "add a,b",
+    "used": true
   }
 };
 
@@ -22779,7 +25252,8 @@ const variant_81: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds C to A.",
-    "instruction": "add a,c"
+    "instruction": "add a,c",
+    "used": true
   }
 };
 
@@ -22805,7 +25279,8 @@ const variant_81_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds C to A.",
-    "instruction": "add a,c"
+    "instruction": "add a,c",
+    "used": true
   }
 };
 
@@ -22834,7 +25309,8 @@ const variant_82: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds D to A.",
-    "instruction": "add a,d"
+    "instruction": "add a,d",
+    "used": true
   }
 };
 
@@ -22860,7 +25336,8 @@ const variant_82_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds D to A.",
-    "instruction": "add a,d"
+    "instruction": "add a,d",
+    "used": true
   }
 };
 
@@ -22889,7 +25366,8 @@ const variant_83: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds E to A.",
-    "instruction": "add a,e"
+    "instruction": "add a,e",
+    "used": true
   }
 };
 
@@ -22915,7 +25393,8 @@ const variant_83_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds E to A.",
-    "instruction": "add a,e"
+    "instruction": "add a,e",
+    "used": true
   }
 };
 
@@ -22944,7 +25423,8 @@ const variant_84: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds H to A.",
-    "instruction": "add a,h"
+    "instruction": "add a,h",
+    "used": true
   }
 };
 
@@ -22970,7 +25450,8 @@ const variant_84_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds H to A.",
-    "instruction": "add a,h"
+    "instruction": "add a,h",
+    "used": true
   }
 };
 
@@ -22999,7 +25480,8 @@ const variant_85: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds L to A.",
-    "instruction": "add a,l"
+    "instruction": "add a,l",
+    "used": true
   }
 };
 
@@ -23025,7 +25507,8 @@ const variant_85_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds L to A.",
-    "instruction": "add a,l"
+    "instruction": "add a,l",
+    "used": true
   }
 };
 
@@ -23056,7 +25539,8 @@ const variant_86: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Adds (HL) to A.",
-    "instruction": "add a,(hl)"
+    "instruction": "add a,(hl)",
+    "used": true
   }
 };
 
@@ -23084,7 +25568,8 @@ const variant_86_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Adds (HL) to A.",
-    "instruction": "add a,(hl)"
+    "instruction": "add a,(hl)",
+    "used": true
   }
 };
 
@@ -23113,7 +25598,8 @@ const variant_87: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds A to A.",
-    "instruction": "add a,a"
+    "instruction": "add a,a",
+    "used": true
   }
 };
 
@@ -23139,7 +25625,8 @@ const variant_87_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds A to A.",
-    "instruction": "add a,a"
+    "instruction": "add a,a",
+    "used": true
   }
 };
 
@@ -23168,8 +25655,9 @@ const variant_C6_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Adds * to A.",
-    "instruction": "add a,*"
+    "description": "Adds <var>n</var> to A.",
+    "instruction": "add a,n",
+    "used": true
   }
 };
 
@@ -23195,8 +25683,9 @@ const variant_C6_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Adds * to A.",
-    "instruction": "add a,*"
+    "description": "Adds <var>n</var> to A.",
+    "instruction": "add a,n",
+    "used": true
   }
 };
 
@@ -23226,7 +25715,8 @@ const variant_DD_09: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The value of BC is added to IX.",
-    "instruction": "add ix,bc"
+    "instruction": "add ix,bc",
+    "used": true
   }
 };
 
@@ -23256,7 +25746,8 @@ const variant_DD_19: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The value of DE is added to IX.",
-    "instruction": "add ix,de"
+    "instruction": "add ix,de",
+    "used": true
   }
 };
 
@@ -23286,7 +25777,8 @@ const variant_DD_29: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The value of IX is added to IX.",
-    "instruction": "add ix,ix"
+    "instruction": "add ix,ix",
+    "used": true
   }
 };
 
@@ -23316,7 +25808,8 @@ const variant_DD_39: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The value of SP is added to IX.",
-    "instruction": "add ix,sp"
+    "instruction": "add ix,sp",
+    "used": true
   }
 };
 
@@ -23346,7 +25839,8 @@ const variant_DD_84: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IXH to A.",
-    "instruction": "add a,ixh"
+    "instruction": "add a,ixh",
+    "used": true
   }
 };
 
@@ -23373,7 +25867,8 @@ const variant_DD_84_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IXH to A.",
-    "instruction": "add a,ixh"
+    "instruction": "add a,ixh",
+    "used": true
   }
 };
 
@@ -23403,7 +25898,8 @@ const variant_DD_85: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IXL to A.",
-    "instruction": "add a,ixl"
+    "instruction": "add a,ixl",
+    "used": true
   }
 };
 
@@ -23430,7 +25926,8 @@ const variant_DD_85_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IXL to A.",
-    "instruction": "add a,ixl"
+    "instruction": "add a,ixl",
+    "used": true
   }
 };
 
@@ -23464,8 +25961,9 @@ const variant_DD_86_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Adds the value pointed to by IX plus * to A.",
-    "instruction": "add a,(ix+*)"
+    "description": "Adds the value pointed to by IX plus <var>D</var> to A.",
+    "instruction": "add a,(ix+d)",
+    "used": true
   }
 };
 
@@ -23496,8 +25994,9 @@ const variant_DD_86_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Adds the value pointed to by IX plus * to A.",
-    "instruction": "add a,(ix+*)"
+    "description": "Adds the value pointed to by IX plus <var>D</var> to A.",
+    "instruction": "add a,(ix+d)",
+    "used": true
   }
 };
 
@@ -23527,7 +26026,8 @@ const variant_FD_09: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The value of BC is added to IY.",
-    "instruction": "add iy,bc"
+    "instruction": "add iy,bc",
+    "used": true
   }
 };
 
@@ -23557,7 +26057,8 @@ const variant_FD_19: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The value of DE is added to IY.",
-    "instruction": "add iy,de"
+    "instruction": "add iy,de",
+    "used": true
   }
 };
 
@@ -23586,8 +26087,9 @@ const variant_FD_29: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
-    "description": "The value of IX is added to IY.",
-    "instruction": "add iy,iy"
+    "description": "The value of IY is added to IY.",
+    "instruction": "add iy,iy",
+    "used": true
   }
 };
 
@@ -23617,7 +26119,8 @@ const variant_FD_39: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The value of SP is added to IY.",
-    "instruction": "add iy,sp"
+    "instruction": "add iy,sp",
+    "used": true
   }
 };
 
@@ -23647,7 +26150,8 @@ const variant_FD_84: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IYH to A.",
-    "instruction": "add a,iyh"
+    "instruction": "add a,iyh",
+    "used": true
   }
 };
 
@@ -23674,7 +26178,8 @@ const variant_FD_84_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IYH to A.",
-    "instruction": "add a,iyh"
+    "instruction": "add a,iyh",
+    "used": true
   }
 };
 
@@ -23704,7 +26209,8 @@ const variant_FD_85: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IYL to A.",
-    "instruction": "add a,iyl"
+    "instruction": "add a,iyl",
+    "used": true
   }
 };
 
@@ -23731,7 +26237,8 @@ const variant_FD_85_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IYL to A.",
-    "instruction": "add a,iyl"
+    "instruction": "add a,iyl",
+    "used": true
   }
 };
 
@@ -23765,8 +26272,9 @@ const variant_FD_86_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Adds the value pointed to by IY plus * to A.",
-    "instruction": "add a,(iy+*)"
+    "description": "Adds the value pointed to by IY plus <var>D</var> to A.",
+    "instruction": "add a,(iy+d)",
+    "used": true
   }
 };
 
@@ -23797,8 +26305,9 @@ const variant_FD_86_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Adds the value pointed to by IY plus * to A.",
-    "instruction": "add a,(iy+*)"
+    "description": "Adds the value pointed to by IY plus <var>D</var> to A.",
+    "instruction": "add a,(iy+d)",
+    "used": true
   }
 };
 
@@ -23820,7 +26329,8 @@ const variant_0F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrca"
+    "instruction": "rrca",
+    "used": true
   }
 };
 
@@ -23846,8 +26356,9 @@ const variant_10_offset: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 13,
     "without_jump_clock_count": 8,
-    "description": "The B register is decremented, and if not zero, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
-    "instruction": "djnz *"
+    "description": "The B register is decremented, and if not zero, the signed value <var>D</var> is added to PC. The jump is measured from the start of the instruction opcode.",
+    "instruction": "djnz d",
+    "used": true
   }
 };
 
@@ -23869,7 +26380,8 @@ const variant_17: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rla"
+    "instruction": "rla",
+    "used": true
   }
 };
 
@@ -23895,8 +26407,9 @@ const variant_18_offset: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
-    "description": "The signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
-    "instruction": "jr *"
+    "description": "The signed value <var>D</var> is added to PC. The jump is measured from the start of the instruction opcode.",
+    "instruction": "jr d",
+    "used": true
   }
 };
 
@@ -23925,8 +26438,9 @@ const variant_20_offset: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 7,
-    "description": "If condition CC is true, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
-    "instruction": "jr nz,*"
+    "description": "If the zero flag is unset, the signed value <var>D</var> is added to PC. The jump is measured from the start of the instruction opcode.",
+    "instruction": "jr nz,d",
+    "used": true
   }
 };
 
@@ -23955,8 +26469,9 @@ const variant_28_offset: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 7,
-    "description": "If condition CC is true, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
-    "instruction": "jr z,*"
+    "description": "If the zero flag is set, the signed value <var>D</var> is added to PC. The jump is measured from the start of the instruction opcode.",
+    "instruction": "jr z,d",
+    "used": true
   }
 };
 
@@ -23985,8 +26500,9 @@ const variant_30_offset: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 7,
-    "description": "If condition CC is true, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
-    "instruction": "jr nc,*"
+    "description": "If the carry flag is unset, the signed value <var>D</var> is added to PC. The jump is measured from the start of the instruction opcode.",
+    "instruction": "jr nc,d",
+    "used": true
   }
 };
 
@@ -24015,8 +26531,9 @@ const variant_38_offset: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 7,
-    "description": "If condition CC is true, the signed value * is added to PC. The jump is measured from the start of the instruction opcode.",
-    "instruction": "jr c,*"
+    "description": "If the carry flag is set, the signed value <var>D</var> is added to PC. The jump is measured from the start of the instruction opcode.",
+    "instruction": "jr c,d",
+    "used": true
   }
 };
 
@@ -24038,7 +26555,8 @@ const variant_1F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rra"
+    "instruction": "rra",
+    "used": true
   }
 };
 
@@ -24060,7 +26578,8 @@ const variant_27: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adjusts A for BCD addition and subtraction operations.",
-    "instruction": "daa"
+    "instruction": "daa",
+    "used": true
   }
 };
 
@@ -24082,7 +26601,8 @@ const variant_2F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "The contents of A are inverted (one's complement).",
-    "instruction": "cpl"
+    "instruction": "cpl",
+    "used": true
   }
 };
 
@@ -24104,7 +26624,8 @@ const variant_37: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Sets the carry flag.",
-    "instruction": "scf"
+    "instruction": "scf",
+    "used": true
   }
 };
 
@@ -24126,7 +26647,8 @@ const variant_3F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Inverts the carry flag.",
-    "instruction": "ccf"
+    "instruction": "ccf",
+    "used": true
   }
 };
 
@@ -24148,7 +26670,8 @@ const variant_76: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Suspends CPU operation until an interrupt or reset occurs.",
-    "instruction": "halt"
+    "instruction": "halt",
+    "used": true
   }
 };
 
@@ -24177,7 +26700,8 @@ const variant_88: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds B and the carry flag to A.",
-    "instruction": "adc a,b"
+    "instruction": "adc a,b",
+    "used": true
   }
 };
 
@@ -24203,7 +26727,8 @@ const variant_88_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds B and the carry flag to A.",
-    "instruction": "adc a,b"
+    "instruction": "adc a,b",
+    "used": true
   }
 };
 
@@ -24232,7 +26757,8 @@ const variant_89: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds C and the carry flag to A.",
-    "instruction": "adc a,c"
+    "instruction": "adc a,c",
+    "used": true
   }
 };
 
@@ -24258,7 +26784,8 @@ const variant_89_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds C and the carry flag to A.",
-    "instruction": "adc a,c"
+    "instruction": "adc a,c",
+    "used": true
   }
 };
 
@@ -24287,7 +26814,8 @@ const variant_8A: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds D and the carry flag to A.",
-    "instruction": "adc a,d"
+    "instruction": "adc a,d",
+    "used": true
   }
 };
 
@@ -24313,7 +26841,8 @@ const variant_8A_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds D and the carry flag to A.",
-    "instruction": "adc a,d"
+    "instruction": "adc a,d",
+    "used": true
   }
 };
 
@@ -24342,7 +26871,8 @@ const variant_8B: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds E and the carry flag to A.",
-    "instruction": "adc a,e"
+    "instruction": "adc a,e",
+    "used": true
   }
 };
 
@@ -24368,7 +26898,8 @@ const variant_8B_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds E and the carry flag to A.",
-    "instruction": "adc a,e"
+    "instruction": "adc a,e",
+    "used": true
   }
 };
 
@@ -24397,7 +26928,8 @@ const variant_8C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds H and the carry flag to A.",
-    "instruction": "adc a,h"
+    "instruction": "adc a,h",
+    "used": true
   }
 };
 
@@ -24423,7 +26955,8 @@ const variant_8C_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds H and the carry flag to A.",
-    "instruction": "adc a,h"
+    "instruction": "adc a,h",
+    "used": true
   }
 };
 
@@ -24452,7 +26985,8 @@ const variant_8D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds L and the carry flag to A.",
-    "instruction": "adc a,l"
+    "instruction": "adc a,l",
+    "used": true
   }
 };
 
@@ -24478,7 +27012,8 @@ const variant_8D_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds L and the carry flag to A.",
-    "instruction": "adc a,l"
+    "instruction": "adc a,l",
+    "used": true
   }
 };
 
@@ -24509,7 +27044,8 @@ const variant_8E: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Adds (HL) and the carry flag to A.",
-    "instruction": "adc a,(hl)"
+    "instruction": "adc a,(hl)",
+    "used": true
   }
 };
 
@@ -24537,7 +27073,8 @@ const variant_8E_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Adds (HL) and the carry flag to A.",
-    "instruction": "adc a,(hl)"
+    "instruction": "adc a,(hl)",
+    "used": true
   }
 };
 
@@ -24566,7 +27103,8 @@ const variant_8F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds A and the carry flag to A.",
-    "instruction": "adc a,a"
+    "instruction": "adc a,a",
+    "used": true
   }
 };
 
@@ -24592,7 +27130,8 @@ const variant_8F_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Adds A and the carry flag to A.",
-    "instruction": "adc a,a"
+    "instruction": "adc a,a",
+    "used": true
   }
 };
 
@@ -24621,8 +27160,9 @@ const variant_CE_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Adds * and the carry flag to A.",
-    "instruction": "adc a,*"
+    "description": "Adds <var>n</var> and the carry flag to A.",
+    "instruction": "adc a,n",
+    "used": true
   }
 };
 
@@ -24648,8 +27188,9 @@ const variant_CE_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Adds * and the carry flag to A.",
-    "instruction": "adc a,*"
+    "description": "Adds <var>n</var> and the carry flag to A.",
+    "instruction": "adc a,n",
+    "used": true
   }
 };
 
@@ -24679,7 +27220,8 @@ const variant_DD_8C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IXH and the carry flag to A.",
-    "instruction": "adc a,ixh"
+    "instruction": "adc a,ixh",
+    "used": true
   }
 };
 
@@ -24706,7 +27248,8 @@ const variant_DD_8C_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IXH and the carry flag to A.",
-    "instruction": "adc a,ixh"
+    "instruction": "adc a,ixh",
+    "used": true
   }
 };
 
@@ -24736,7 +27279,8 @@ const variant_DD_8D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IXL and the carry flag to A.",
-    "instruction": "adc a,ixl"
+    "instruction": "adc a,ixl",
+    "used": true
   }
 };
 
@@ -24763,7 +27307,8 @@ const variant_DD_8D_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IXL and the carry flag to A.",
-    "instruction": "adc a,ixl"
+    "instruction": "adc a,ixl",
+    "used": true
   }
 };
 
@@ -24797,8 +27342,9 @@ const variant_DD_8E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Adds the value pointed to by IX plus * and the carry flag to A.",
-    "instruction": "adc a,(ix+*)"
+    "description": "Adds the value pointed to by IX plus <var>D</var> and the carry flag to A.",
+    "instruction": "adc a,(ix+d)",
+    "used": true
   }
 };
 
@@ -24829,8 +27375,9 @@ const variant_DD_8E_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Adds the value pointed to by IX plus * and the carry flag to A.",
-    "instruction": "adc a,(ix+*)"
+    "description": "Adds the value pointed to by IX plus <var>D</var> and the carry flag to A.",
+    "instruction": "adc a,(ix+d)",
+    "used": true
   }
 };
 
@@ -24860,7 +27407,8 @@ const variant_ED_4A: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Adds BC and the carry flag to HL.",
-    "instruction": "adc hl,bc"
+    "instruction": "adc hl,bc",
+    "used": true
   }
 };
 
@@ -24890,7 +27438,8 @@ const variant_ED_5A: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Adds DE and the carry flag to HL.",
-    "instruction": "adc hl,de"
+    "instruction": "adc hl,de",
+    "used": true
   }
 };
 
@@ -24920,7 +27469,8 @@ const variant_ED_6A: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Adds HL and the carry flag to HL.",
-    "instruction": "adc hl,hl"
+    "instruction": "adc hl,hl",
+    "used": true
   }
 };
 
@@ -24949,8 +27499,9 @@ const variant_ED_7A: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
-    "description": "Adds HL and the carry flag to HL.",
-    "instruction": "adc hl,sp"
+    "description": "Adds SP and the carry flag to HL.",
+    "instruction": "adc hl,sp",
+    "used": true
   }
 };
 
@@ -24980,7 +27531,8 @@ const variant_FD_8C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IYH and the carry flag to A.",
-    "instruction": "adc a,iyh"
+    "instruction": "adc a,iyh",
+    "used": true
   }
 };
 
@@ -25007,7 +27559,8 @@ const variant_FD_8C_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IYH and the carry flag to A.",
-    "instruction": "adc a,iyh"
+    "instruction": "adc a,iyh",
+    "used": true
   }
 };
 
@@ -25037,7 +27590,8 @@ const variant_FD_8D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IYL and the carry flag to A.",
-    "instruction": "adc a,iyl"
+    "instruction": "adc a,iyl",
+    "used": true
   }
 };
 
@@ -25064,7 +27618,8 @@ const variant_FD_8D_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Adds IYL and the carry flag to A.",
-    "instruction": "adc a,iyl"
+    "instruction": "adc a,iyl",
+    "used": true
   }
 };
 
@@ -25098,8 +27653,9 @@ const variant_FD_8E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Adds the value pointed to by IY plus * and the carry flag to A.",
-    "instruction": "adc a,(iy+*)"
+    "description": "Adds the value pointed to by IY plus <var>D</var> and the carry flag to A.",
+    "instruction": "adc a,(iy+d)",
+    "used": true
   }
 };
 
@@ -25130,8 +27686,9 @@ const variant_FD_8E_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Adds the value pointed to by IY plus * and the carry flag to A.",
-    "instruction": "adc a,(iy+*)"
+    "description": "Adds the value pointed to by IY plus <var>D</var> and the carry flag to A.",
+    "instruction": "adc a,(iy+d)",
+    "used": true
   }
 };
 
@@ -25160,7 +27717,8 @@ const variant_90: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts B from A.",
-    "instruction": "sub b"
+    "instruction": "sub b",
+    "used": true
   }
 };
 
@@ -25186,7 +27744,8 @@ const variant_90_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts B from A.",
-    "instruction": "sub b"
+    "instruction": "sub b",
+    "used": true
   }
 };
 
@@ -25215,7 +27774,8 @@ const variant_91: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts C from A.",
-    "instruction": "sub c"
+    "instruction": "sub c",
+    "used": true
   }
 };
 
@@ -25241,7 +27801,8 @@ const variant_91_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts C from A.",
-    "instruction": "sub c"
+    "instruction": "sub c",
+    "used": true
   }
 };
 
@@ -25270,7 +27831,8 @@ const variant_92: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts D from A.",
-    "instruction": "sub d"
+    "instruction": "sub d",
+    "used": true
   }
 };
 
@@ -25296,7 +27858,8 @@ const variant_92_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts D from A.",
-    "instruction": "sub d"
+    "instruction": "sub d",
+    "used": true
   }
 };
 
@@ -25325,7 +27888,8 @@ const variant_93: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts E from A.",
-    "instruction": "sub e"
+    "instruction": "sub e",
+    "used": true
   }
 };
 
@@ -25351,7 +27915,8 @@ const variant_93_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts E from A.",
-    "instruction": "sub e"
+    "instruction": "sub e",
+    "used": true
   }
 };
 
@@ -25380,7 +27945,8 @@ const variant_94: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts H from A.",
-    "instruction": "sub h"
+    "instruction": "sub h",
+    "used": true
   }
 };
 
@@ -25406,7 +27972,8 @@ const variant_94_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts H from A.",
-    "instruction": "sub h"
+    "instruction": "sub h",
+    "used": true
   }
 };
 
@@ -25435,7 +28002,8 @@ const variant_95: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts L from A.",
-    "instruction": "sub l"
+    "instruction": "sub l",
+    "used": true
   }
 };
 
@@ -25461,7 +28029,8 @@ const variant_95_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts L from A.",
-    "instruction": "sub l"
+    "instruction": "sub l",
+    "used": true
   }
 };
 
@@ -25492,7 +28061,8 @@ const variant_96: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Subtracts (HL) from A.",
-    "instruction": "sub (hl)"
+    "instruction": "sub (hl)",
+    "used": true
   }
 };
 
@@ -25520,7 +28090,8 @@ const variant_96_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Subtracts (HL) from A.",
-    "instruction": "sub (hl)"
+    "instruction": "sub (hl)",
+    "used": true
   }
 };
 
@@ -25549,7 +28120,8 @@ const variant_97: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts A from A.",
-    "instruction": "sub a"
+    "instruction": "sub a",
+    "used": true
   }
 };
 
@@ -25575,7 +28147,8 @@ const variant_97_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts A from A.",
-    "instruction": "sub a"
+    "instruction": "sub a",
+    "used": true
   }
 };
 
@@ -25604,8 +28177,9 @@ const variant_D6_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Subtracts * from A.",
-    "instruction": "sub *"
+    "description": "Subtracts <var>n</var> from A.",
+    "instruction": "sub n",
+    "used": true
   }
 };
 
@@ -25631,8 +28205,9 @@ const variant_D6_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Subtracts * from A.",
-    "instruction": "sub *"
+    "description": "Subtracts <var>n</var> from A.",
+    "instruction": "sub n",
+    "used": true
   }
 };
 
@@ -25662,7 +28237,8 @@ const variant_DD_94: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXH from A.",
-    "instruction": "sub ixh"
+    "instruction": "sub ixh",
+    "used": true
   }
 };
 
@@ -25689,7 +28265,8 @@ const variant_DD_94_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXH from A.",
-    "instruction": "sub ixh"
+    "instruction": "sub ixh",
+    "used": true
   }
 };
 
@@ -25719,7 +28296,8 @@ const variant_DD_95: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXL from A.",
-    "instruction": "sub ixl"
+    "instruction": "sub ixl",
+    "used": true
   }
 };
 
@@ -25746,7 +28324,8 @@ const variant_DD_95_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXL from A.",
-    "instruction": "sub ixl"
+    "instruction": "sub ixl",
+    "used": true
   }
 };
 
@@ -25780,8 +28359,9 @@ const variant_DD_96_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IX plus * from A.",
-    "instruction": "sub (ix+*)"
+    "description": "Subtracts the value pointed to by IX plus <var>D</var> from A.",
+    "instruction": "sub (ix+d)",
+    "used": true
   }
 };
 
@@ -25812,8 +28392,9 @@ const variant_DD_96_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IX plus * from A.",
-    "instruction": "sub (ix+*)"
+    "description": "Subtracts the value pointed to by IX plus <var>D</var> from A.",
+    "instruction": "sub (ix+d)",
+    "used": true
   }
 };
 
@@ -25843,7 +28424,8 @@ const variant_FD_94: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYH from A.",
-    "instruction": "sub iyh"
+    "instruction": "sub iyh",
+    "used": true
   }
 };
 
@@ -25870,7 +28452,8 @@ const variant_FD_94_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYH from A.",
-    "instruction": "sub iyh"
+    "instruction": "sub iyh",
+    "used": true
   }
 };
 
@@ -25900,7 +28483,8 @@ const variant_FD_95: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYL from A.",
-    "instruction": "sub iyl"
+    "instruction": "sub iyl",
+    "used": true
   }
 };
 
@@ -25927,7 +28511,8 @@ const variant_FD_95_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYL from A.",
-    "instruction": "sub iyl"
+    "instruction": "sub iyl",
+    "used": true
   }
 };
 
@@ -25961,8 +28546,9 @@ const variant_FD_96_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IY plus * from A.",
-    "instruction": "sub (iy+*)"
+    "description": "Subtracts the value pointed to by IY plus <var>D</var> from A.",
+    "instruction": "sub (iy+d)",
+    "used": true
   }
 };
 
@@ -25993,8 +28579,9 @@ const variant_FD_96_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IY plus * from A.",
-    "instruction": "sub (iy+*)"
+    "description": "Subtracts the value pointed to by IY plus <var>D</var> from A.",
+    "instruction": "sub (iy+d)",
+    "used": true
   }
 };
 
@@ -26023,7 +28610,8 @@ const variant_98: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts B and the carry flag from A.",
-    "instruction": "sbc a,b"
+    "instruction": "sbc a,b",
+    "used": true
   }
 };
 
@@ -26049,7 +28637,8 @@ const variant_98_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts B and the carry flag from A.",
-    "instruction": "sbc a,b"
+    "instruction": "sbc a,b",
+    "used": true
   }
 };
 
@@ -26078,7 +28667,8 @@ const variant_99: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts C and the carry flag from A.",
-    "instruction": "sbc a,c"
+    "instruction": "sbc a,c",
+    "used": true
   }
 };
 
@@ -26104,7 +28694,8 @@ const variant_99_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts C and the carry flag from A.",
-    "instruction": "sbc a,c"
+    "instruction": "sbc a,c",
+    "used": true
   }
 };
 
@@ -26133,7 +28724,8 @@ const variant_9A: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts D and the carry flag from A.",
-    "instruction": "sbc a,d"
+    "instruction": "sbc a,d",
+    "used": true
   }
 };
 
@@ -26159,7 +28751,8 @@ const variant_9A_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts D and the carry flag from A.",
-    "instruction": "sbc a,d"
+    "instruction": "sbc a,d",
+    "used": true
   }
 };
 
@@ -26188,7 +28781,8 @@ const variant_9B: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts E and the carry flag from A.",
-    "instruction": "sbc a,e"
+    "instruction": "sbc a,e",
+    "used": true
   }
 };
 
@@ -26214,7 +28808,8 @@ const variant_9B_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts E and the carry flag from A.",
-    "instruction": "sbc a,e"
+    "instruction": "sbc a,e",
+    "used": true
   }
 };
 
@@ -26243,7 +28838,8 @@ const variant_9C: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts H and the carry flag from A.",
-    "instruction": "sbc a,h"
+    "instruction": "sbc a,h",
+    "used": true
   }
 };
 
@@ -26269,7 +28865,8 @@ const variant_9C_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts H and the carry flag from A.",
-    "instruction": "sbc a,h"
+    "instruction": "sbc a,h",
+    "used": true
   }
 };
 
@@ -26298,7 +28895,8 @@ const variant_9D: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts L and the carry flag from A.",
-    "instruction": "sbc a,l"
+    "instruction": "sbc a,l",
+    "used": true
   }
 };
 
@@ -26324,7 +28922,8 @@ const variant_9D_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts L and the carry flag from A.",
-    "instruction": "sbc a,l"
+    "instruction": "sbc a,l",
+    "used": true
   }
 };
 
@@ -26355,7 +28954,8 @@ const variant_9E: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Subtracts (HL) and the carry flag from A.",
-    "instruction": "sbc a,(hl)"
+    "instruction": "sbc a,(hl)",
+    "used": true
   }
 };
 
@@ -26383,7 +28983,8 @@ const variant_9E_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Subtracts (HL) and the carry flag from A.",
-    "instruction": "sbc a,(hl)"
+    "instruction": "sbc a,(hl)",
+    "used": true
   }
 };
 
@@ -26412,7 +29013,8 @@ const variant_9F: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts A and the carry flag from A.",
-    "instruction": "sbc a,a"
+    "instruction": "sbc a,a",
+    "used": true
   }
 };
 
@@ -26438,7 +29040,8 @@ const variant_9F_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts A and the carry flag from A.",
-    "instruction": "sbc a,a"
+    "instruction": "sbc a,a",
+    "used": true
   }
 };
 
@@ -26468,7 +29071,8 @@ const variant_DD_9C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXH and the carry flag from A.",
-    "instruction": "sbc a,ixh"
+    "instruction": "sbc a,ixh",
+    "used": true
   }
 };
 
@@ -26495,7 +29099,8 @@ const variant_DD_9C_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXH and the carry flag from A.",
-    "instruction": "sbc a,ixh"
+    "instruction": "sbc a,ixh",
+    "used": true
   }
 };
 
@@ -26525,7 +29130,8 @@ const variant_DD_9D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXL and the carry flag from A.",
-    "instruction": "sbc a,ixl"
+    "instruction": "sbc a,ixl",
+    "used": true
   }
 };
 
@@ -26552,7 +29158,8 @@ const variant_DD_9D_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXL and the carry flag from A.",
-    "instruction": "sbc a,ixl"
+    "instruction": "sbc a,ixl",
+    "used": true
   }
 };
 
@@ -26586,8 +29193,9 @@ const variant_DD_9E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IX plus * and the carry flag from A.",
-    "instruction": "sbc a,(ix+*)"
+    "description": "Subtracts the value pointed to by IX plus <var>D</var> and the carry flag from A.",
+    "instruction": "sbc a,(ix+d)",
+    "used": true
   }
 };
 
@@ -26618,8 +29226,9 @@ const variant_DD_9E_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IX plus * and the carry flag from A.",
-    "instruction": "sbc a,(ix+*)"
+    "description": "Subtracts the value pointed to by IX plus <var>D</var> and the carry flag from A.",
+    "instruction": "sbc a,(ix+d)",
+    "used": true
   }
 };
 
@@ -26648,8 +29257,9 @@ const variant_DE_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Subtracts * and the carry flag from A.",
-    "instruction": "sbc a,*"
+    "description": "Subtracts <var>n</var> and the carry flag from A.",
+    "instruction": "sbc a,n",
+    "used": true
   }
 };
 
@@ -26675,8 +29285,9 @@ const variant_DE_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Subtracts * and the carry flag from A.",
-    "instruction": "sbc a,*"
+    "description": "Subtracts <var>n</var> and the carry flag from A.",
+    "instruction": "sbc a,n",
+    "used": true
   }
 };
 
@@ -26706,7 +29317,8 @@ const variant_ED_42: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Subtracts BC and the carry flag from HL.",
-    "instruction": "sbc hl,bc"
+    "instruction": "sbc hl,bc",
+    "used": true
   }
 };
 
@@ -26736,7 +29348,8 @@ const variant_ED_52: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Subtracts DE and the carry flag from HL.",
-    "instruction": "sbc hl,de"
+    "instruction": "sbc hl,de",
+    "used": true
   }
 };
 
@@ -26766,7 +29379,8 @@ const variant_ED_62: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Subtracts HL and the carry flag from HL.",
-    "instruction": "sbc hl,hl"
+    "instruction": "sbc hl,hl",
+    "used": true
   }
 };
 
@@ -26795,8 +29409,9 @@ const variant_ED_72: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
-    "description": "Subtracts HL and the carry flag from HL.",
-    "instruction": "sbc hl,sp"
+    "description": "Subtracts SP and the carry flag from HL.",
+    "instruction": "sbc hl,sp",
+    "used": true
   }
 };
 
@@ -26826,7 +29441,8 @@ const variant_FD_9C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYH and the carry flag from A.",
-    "instruction": "sbc a,iyh"
+    "instruction": "sbc a,iyh",
+    "used": true
   }
 };
 
@@ -26853,7 +29469,8 @@ const variant_FD_9C_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYH and the carry flag from A.",
-    "instruction": "sbc a,iyh"
+    "instruction": "sbc a,iyh",
+    "used": true
   }
 };
 
@@ -26883,7 +29500,8 @@ const variant_FD_9D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYL and the carry flag from A.",
-    "instruction": "sbc a,iyl"
+    "instruction": "sbc a,iyl",
+    "used": true
   }
 };
 
@@ -26910,7 +29528,8 @@ const variant_FD_9D_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYL and the carry flag from A.",
-    "instruction": "sbc a,iyl"
+    "instruction": "sbc a,iyl",
+    "used": true
   }
 };
 
@@ -26944,8 +29563,9 @@ const variant_FD_9E_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IY plus * and the carry flag from A.",
-    "instruction": "sbc a,(iy+*)"
+    "description": "Subtracts the value pointed to by IY plus <var>D</var> and the carry flag from A.",
+    "instruction": "sbc a,(iy+d)",
+    "used": true
   }
 };
 
@@ -26976,8 +29596,9 @@ const variant_FD_9E_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IY plus * and the carry flag from A.",
-    "instruction": "sbc a,(iy+*)"
+    "description": "Subtracts the value pointed to by IY plus <var>D</var> and the carry flag from A.",
+    "instruction": "sbc a,(iy+d)",
+    "used": true
   }
 };
 
@@ -27006,7 +29627,8 @@ const variant_A0: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with B.",
-    "instruction": "and b"
+    "instruction": "and b",
+    "used": true
   }
 };
 
@@ -27032,7 +29654,8 @@ const variant_A0_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with B.",
-    "instruction": "and b"
+    "instruction": "and b",
+    "used": true
   }
 };
 
@@ -27061,7 +29684,8 @@ const variant_A1: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with C.",
-    "instruction": "and c"
+    "instruction": "and c",
+    "used": true
   }
 };
 
@@ -27087,7 +29711,8 @@ const variant_A1_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with C.",
-    "instruction": "and c"
+    "instruction": "and c",
+    "used": true
   }
 };
 
@@ -27116,7 +29741,8 @@ const variant_A2: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with D.",
-    "instruction": "and d"
+    "instruction": "and d",
+    "used": true
   }
 };
 
@@ -27142,7 +29768,8 @@ const variant_A2_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with D.",
-    "instruction": "and d"
+    "instruction": "and d",
+    "used": true
   }
 };
 
@@ -27171,7 +29798,8 @@ const variant_A3: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with E.",
-    "instruction": "and e"
+    "instruction": "and e",
+    "used": true
   }
 };
 
@@ -27197,7 +29825,8 @@ const variant_A3_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with E.",
-    "instruction": "and e"
+    "instruction": "and e",
+    "used": true
   }
 };
 
@@ -27226,7 +29855,8 @@ const variant_A4: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with H.",
-    "instruction": "and h"
+    "instruction": "and h",
+    "used": true
   }
 };
 
@@ -27252,7 +29882,8 @@ const variant_A4_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with H.",
-    "instruction": "and h"
+    "instruction": "and h",
+    "used": true
   }
 };
 
@@ -27281,7 +29912,8 @@ const variant_A5: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with L.",
-    "instruction": "and l"
+    "instruction": "and l",
+    "used": true
   }
 };
 
@@ -27307,7 +29939,8 @@ const variant_A5_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with L.",
-    "instruction": "and l"
+    "instruction": "and l",
+    "used": true
   }
 };
 
@@ -27338,7 +29971,8 @@ const variant_A6: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Bitwise AND on A with (HL).",
-    "instruction": "and (hl)"
+    "instruction": "and (hl)",
+    "used": true
   }
 };
 
@@ -27366,7 +30000,8 @@ const variant_A6_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Bitwise AND on A with (HL).",
-    "instruction": "and (hl)"
+    "instruction": "and (hl)",
+    "used": true
   }
 };
 
@@ -27395,7 +30030,8 @@ const variant_A7: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with A.",
-    "instruction": "and a"
+    "instruction": "and a",
+    "used": true
   }
 };
 
@@ -27421,7 +30057,8 @@ const variant_A7_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise AND on A with A.",
-    "instruction": "and a"
+    "instruction": "and a",
+    "used": true
   }
 };
 
@@ -27451,7 +30088,8 @@ const variant_DD_A4: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise AND on A with IXH.",
-    "instruction": "and ixh"
+    "instruction": "and ixh",
+    "used": true
   }
 };
 
@@ -27478,7 +30116,8 @@ const variant_DD_A4_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise AND on A with IXH.",
-    "instruction": "and ixh"
+    "instruction": "and ixh",
+    "used": true
   }
 };
 
@@ -27508,7 +30147,8 @@ const variant_DD_A5: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise AND on A with IXL.",
-    "instruction": "and ixl"
+    "instruction": "and ixl",
+    "used": true
   }
 };
 
@@ -27535,7 +30175,8 @@ const variant_DD_A5_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise AND on A with IXL.",
-    "instruction": "and ixl"
+    "instruction": "and ixl",
+    "used": true
   }
 };
 
@@ -27569,8 +30210,9 @@ const variant_DD_A6_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise AND on A with the value pointed to by IX plus *.",
-    "instruction": "and (ix+*)"
+    "description": "Bitwise AND on A with the value pointed to by IX plus <var>D</var>.",
+    "instruction": "and (ix+d)",
+    "used": true
   }
 };
 
@@ -27601,8 +30243,9 @@ const variant_DD_A6_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise AND on A with the value pointed to by IX plus *.",
-    "instruction": "and (ix+*)"
+    "description": "Bitwise AND on A with the value pointed to by IX plus <var>D</var>.",
+    "instruction": "and (ix+d)",
+    "used": true
   }
 };
 
@@ -27631,8 +30274,9 @@ const variant_E6_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Bitwise AND on A with *.",
-    "instruction": "and *"
+    "description": "Bitwise AND on A with <var>n</var>.",
+    "instruction": "and n",
+    "used": true
   }
 };
 
@@ -27658,8 +30302,9 @@ const variant_E6_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Bitwise AND on A with *.",
-    "instruction": "and *"
+    "description": "Bitwise AND on A with <var>n</var>.",
+    "instruction": "and n",
+    "used": true
   }
 };
 
@@ -27689,7 +30334,8 @@ const variant_FD_A4: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise AND on A with IYH.",
-    "instruction": "and iyh"
+    "instruction": "and iyh",
+    "used": true
   }
 };
 
@@ -27716,7 +30362,8 @@ const variant_FD_A4_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise AND on A with IYH.",
-    "instruction": "and iyh"
+    "instruction": "and iyh",
+    "used": true
   }
 };
 
@@ -27746,7 +30393,8 @@ const variant_FD_A5: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise AND on A with IYL.",
-    "instruction": "and iyl"
+    "instruction": "and iyl",
+    "used": true
   }
 };
 
@@ -27773,7 +30421,8 @@ const variant_FD_A5_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise AND on A with IYL.",
-    "instruction": "and iyl"
+    "instruction": "and iyl",
+    "used": true
   }
 };
 
@@ -27807,8 +30456,9 @@ const variant_FD_A6_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise AND on A with the value pointed to by IY plus *.",
-    "instruction": "and (iy+*)"
+    "description": "Bitwise AND on A with the value pointed to by IY plus <var>D</var>.",
+    "instruction": "and (iy+d)",
+    "used": true
   }
 };
 
@@ -27839,8 +30489,9 @@ const variant_FD_A6_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise AND on A with the value pointed to by IY plus *.",
-    "instruction": "and (iy+*)"
+    "description": "Bitwise AND on A with the value pointed to by IY plus <var>D</var>.",
+    "instruction": "and (iy+d)",
+    "used": true
   }
 };
 
@@ -27869,7 +30520,8 @@ const variant_A8: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with B.",
-    "instruction": "xor b"
+    "instruction": "xor b",
+    "used": true
   }
 };
 
@@ -27895,7 +30547,8 @@ const variant_A8_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with B.",
-    "instruction": "xor b"
+    "instruction": "xor b",
+    "used": true
   }
 };
 
@@ -27924,7 +30577,8 @@ const variant_A9: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with C.",
-    "instruction": "xor c"
+    "instruction": "xor c",
+    "used": true
   }
 };
 
@@ -27950,7 +30604,8 @@ const variant_A9_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with C.",
-    "instruction": "xor c"
+    "instruction": "xor c",
+    "used": true
   }
 };
 
@@ -27979,7 +30634,8 @@ const variant_AA: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with D.",
-    "instruction": "xor d"
+    "instruction": "xor d",
+    "used": true
   }
 };
 
@@ -28005,7 +30661,8 @@ const variant_AA_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with D.",
-    "instruction": "xor d"
+    "instruction": "xor d",
+    "used": true
   }
 };
 
@@ -28034,7 +30691,8 @@ const variant_AB: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with E.",
-    "instruction": "xor e"
+    "instruction": "xor e",
+    "used": true
   }
 };
 
@@ -28060,7 +30718,8 @@ const variant_AB_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with E.",
-    "instruction": "xor e"
+    "instruction": "xor e",
+    "used": true
   }
 };
 
@@ -28089,7 +30748,8 @@ const variant_AC: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with H.",
-    "instruction": "xor h"
+    "instruction": "xor h",
+    "used": true
   }
 };
 
@@ -28115,7 +30775,8 @@ const variant_AC_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with H.",
-    "instruction": "xor h"
+    "instruction": "xor h",
+    "used": true
   }
 };
 
@@ -28144,7 +30805,8 @@ const variant_AD: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with L.",
-    "instruction": "xor l"
+    "instruction": "xor l",
+    "used": true
   }
 };
 
@@ -28170,7 +30832,8 @@ const variant_AD_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with L.",
-    "instruction": "xor l"
+    "instruction": "xor l",
+    "used": true
   }
 };
 
@@ -28201,7 +30864,8 @@ const variant_AE: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Bitwise XOR on A with (HL).",
-    "instruction": "xor (hl)"
+    "instruction": "xor (hl)",
+    "used": true
   }
 };
 
@@ -28229,7 +30893,8 @@ const variant_AE_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Bitwise XOR on A with (HL).",
-    "instruction": "xor (hl)"
+    "instruction": "xor (hl)",
+    "used": true
   }
 };
 
@@ -28258,7 +30923,8 @@ const variant_AF: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with A.",
-    "instruction": "xor a"
+    "instruction": "xor a",
+    "used": true
   }
 };
 
@@ -28284,7 +30950,8 @@ const variant_AF_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise XOR on A with A.",
-    "instruction": "xor a"
+    "instruction": "xor a",
+    "used": true
   }
 };
 
@@ -28314,7 +30981,8 @@ const variant_DD_AC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise XOR on A with IXH.",
-    "instruction": "xor ixh"
+    "instruction": "xor ixh",
+    "used": true
   }
 };
 
@@ -28341,7 +31009,8 @@ const variant_DD_AC_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise XOR on A with IXH.",
-    "instruction": "xor ixh"
+    "instruction": "xor ixh",
+    "used": true
   }
 };
 
@@ -28371,7 +31040,8 @@ const variant_DD_AD: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise XOR on A with IXL.",
-    "instruction": "xor ixl"
+    "instruction": "xor ixl",
+    "used": true
   }
 };
 
@@ -28398,7 +31068,8 @@ const variant_DD_AD_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise XOR on A with IXL.",
-    "instruction": "xor ixl"
+    "instruction": "xor ixl",
+    "used": true
   }
 };
 
@@ -28432,8 +31103,9 @@ const variant_DD_AE_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise XOR on A with the value pointed to by IX plus *.",
-    "instruction": "xor (ix+*)"
+    "description": "Bitwise XOR on A with the value pointed to by IX plus <var>D</var>.",
+    "instruction": "xor (ix+d)",
+    "used": true
   }
 };
 
@@ -28464,8 +31136,9 @@ const variant_DD_AE_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise XOR on A with the value pointed to by IX plus *.",
-    "instruction": "xor (ix+*)"
+    "description": "Bitwise XOR on A with the value pointed to by IX plus <var>D</var>.",
+    "instruction": "xor (ix+d)",
+    "used": true
   }
 };
 
@@ -28494,8 +31167,9 @@ const variant_EE_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Bitwise XOR on A with *.",
-    "instruction": "xor *"
+    "description": "Bitwise XOR on A with <var>n</var>.",
+    "instruction": "xor n",
+    "used": true
   }
 };
 
@@ -28521,8 +31195,9 @@ const variant_EE_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Bitwise XOR on A with *.",
-    "instruction": "xor *"
+    "description": "Bitwise XOR on A with <var>n</var>.",
+    "instruction": "xor n",
+    "used": true
   }
 };
 
@@ -28552,7 +31227,8 @@ const variant_FD_AC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise XOR on A with IYH.",
-    "instruction": "xor iyh"
+    "instruction": "xor iyh",
+    "used": true
   }
 };
 
@@ -28579,7 +31255,8 @@ const variant_FD_AC_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise XOR on A with IYH.",
-    "instruction": "xor iyh"
+    "instruction": "xor iyh",
+    "used": true
   }
 };
 
@@ -28609,7 +31286,8 @@ const variant_FD_AD: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise XOR on A with IYL.",
-    "instruction": "xor iyl"
+    "instruction": "xor iyl",
+    "used": true
   }
 };
 
@@ -28636,7 +31314,8 @@ const variant_FD_AD_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Bitwise XOR on A with IYL.",
-    "instruction": "xor iyl"
+    "instruction": "xor iyl",
+    "used": true
   }
 };
 
@@ -28670,8 +31349,9 @@ const variant_FD_AE_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise XOR on A with the value pointed to by IY plus *.",
-    "instruction": "xor (iy+*)"
+    "description": "Bitwise XOR on A with the value pointed to by IY plus <var>D</var>.",
+    "instruction": "xor (iy+d)",
+    "used": true
   }
 };
 
@@ -28702,8 +31382,9 @@ const variant_FD_AE_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise XOR on A with the value pointed to by IY plus *.",
-    "instruction": "xor (iy+*)"
+    "description": "Bitwise XOR on A with the value pointed to by IY plus <var>D</var>.",
+    "instruction": "xor (iy+d)",
+    "used": true
   }
 };
 
@@ -28732,7 +31413,8 @@ const variant_B0: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with B.",
-    "instruction": "or b"
+    "instruction": "or b",
+    "used": true
   }
 };
 
@@ -28758,7 +31440,8 @@ const variant_B0_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with B.",
-    "instruction": "or b"
+    "instruction": "or b",
+    "used": true
   }
 };
 
@@ -28787,7 +31470,8 @@ const variant_B1: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with C.",
-    "instruction": "or c"
+    "instruction": "or c",
+    "used": true
   }
 };
 
@@ -28813,7 +31497,8 @@ const variant_B1_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with C.",
-    "instruction": "or c"
+    "instruction": "or c",
+    "used": true
   }
 };
 
@@ -28842,7 +31527,8 @@ const variant_B2: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with D.",
-    "instruction": "or d"
+    "instruction": "or d",
+    "used": true
   }
 };
 
@@ -28868,7 +31554,8 @@ const variant_B2_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with D.",
-    "instruction": "or d"
+    "instruction": "or d",
+    "used": true
   }
 };
 
@@ -28897,7 +31584,8 @@ const variant_B3: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with E.",
-    "instruction": "or e"
+    "instruction": "or e",
+    "used": true
   }
 };
 
@@ -28923,7 +31611,8 @@ const variant_B3_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with E.",
-    "instruction": "or e"
+    "instruction": "or e",
+    "used": true
   }
 };
 
@@ -28952,7 +31641,8 @@ const variant_B4: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with H.",
-    "instruction": "or h"
+    "instruction": "or h",
+    "used": true
   }
 };
 
@@ -28978,7 +31668,8 @@ const variant_B4_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with H.",
-    "instruction": "or h"
+    "instruction": "or h",
+    "used": true
   }
 };
 
@@ -29007,7 +31698,8 @@ const variant_B5: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with L.",
-    "instruction": "or l"
+    "instruction": "or l",
+    "used": true
   }
 };
 
@@ -29033,7 +31725,8 @@ const variant_B5_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with L.",
-    "instruction": "or l"
+    "instruction": "or l",
+    "used": true
   }
 };
 
@@ -29064,7 +31757,8 @@ const variant_B6: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Bitwise OR on A with (HL).",
-    "instruction": "or (hl)"
+    "instruction": "or (hl)",
+    "used": true
   }
 };
 
@@ -29092,7 +31786,8 @@ const variant_B6_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Bitwise OR on A with (HL).",
-    "instruction": "or (hl)"
+    "instruction": "or (hl)",
+    "used": true
   }
 };
 
@@ -29121,7 +31816,8 @@ const variant_B7: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with A.",
-    "instruction": "or a"
+    "instruction": "or a",
+    "used": true
   }
 };
 
@@ -29147,7 +31843,8 @@ const variant_B7_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Bitwise OR on A with A.",
-    "instruction": "or a"
+    "instruction": "or a",
+    "used": true
   }
 };
 
@@ -29176,8 +31873,9 @@ const variant_DD_B4: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with IXH.",
-    "instruction": "or ixh"
+    "description": "Bitwise OR on A with r.",
+    "instruction": "or ixh",
+    "used": true
   }
 };
 
@@ -29203,8 +31901,9 @@ const variant_DD_B4_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with IXH.",
-    "instruction": "or ixh"
+    "description": "Bitwise OR on A with r.",
+    "instruction": "or ixh",
+    "used": true
   }
 };
 
@@ -29233,8 +31932,9 @@ const variant_DD_B5: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with IXL.",
-    "instruction": "or ixl"
+    "description": "Bitwise OR on A with r.",
+    "instruction": "or ixl",
+    "used": true
   }
 };
 
@@ -29260,8 +31960,9 @@ const variant_DD_B5_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with IXL.",
-    "instruction": "or ixl"
+    "description": "Bitwise OR on A with r.",
+    "instruction": "or ixl",
+    "used": true
   }
 };
 
@@ -29295,8 +31996,9 @@ const variant_DD_B6_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise OR on A with the value pointed to by IX plus *.",
-    "instruction": "or (ix+*)"
+    "description": "Bitwise OR on A with the value pointed to by IX plus <var>D</var>.",
+    "instruction": "or (ix+d)",
+    "used": true
   }
 };
 
@@ -29327,8 +32029,9 @@ const variant_DD_B6_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise OR on A with the value pointed to by IX plus *.",
-    "instruction": "or (ix+*)"
+    "description": "Bitwise OR on A with the value pointed to by IX plus <var>D</var>.",
+    "instruction": "or (ix+d)",
+    "used": true
   }
 };
 
@@ -29357,8 +32060,9 @@ const variant_F6_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Bitwise OR on A with *.",
-    "instruction": "or *"
+    "description": "Bitwise OR on A with <var>n</var>.",
+    "instruction": "or n",
+    "used": true
   }
 };
 
@@ -29384,8 +32088,9 @@ const variant_F6_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Bitwise OR on A with *.",
-    "instruction": "or *"
+    "description": "Bitwise OR on A with <var>n</var>.",
+    "instruction": "or n",
+    "used": true
   }
 };
 
@@ -29414,8 +32119,9 @@ const variant_FD_B4: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with IYH.",
-    "instruction": "or iyh"
+    "description": "Bitwise OR on A with r.",
+    "instruction": "or iyh",
+    "used": true
   }
 };
 
@@ -29441,8 +32147,9 @@ const variant_FD_B4_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with IYH.",
-    "instruction": "or iyh"
+    "description": "Bitwise OR on A with r.",
+    "instruction": "or iyh",
+    "used": true
   }
 };
 
@@ -29471,8 +32178,9 @@ const variant_FD_B5: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with IYL.",
-    "instruction": "or iyl"
+    "description": "Bitwise OR on A with r.",
+    "instruction": "or iyl",
+    "used": true
   }
 };
 
@@ -29498,8 +32206,9 @@ const variant_FD_B5_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with IYL.",
-    "instruction": "or iyl"
+    "description": "Bitwise OR on A with r.",
+    "instruction": "or iyl",
+    "used": true
   }
 };
 
@@ -29533,8 +32242,9 @@ const variant_FD_B6_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise OR on A with the value pointed to by IY plus *.",
-    "instruction": "or (iy+*)"
+    "description": "Bitwise OR on A with the value pointed to by IY plus <var>D</var>.",
+    "instruction": "or (iy+d)",
+    "used": true
   }
 };
 
@@ -29565,8 +32275,9 @@ const variant_FD_B6_dd_pseudo: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Bitwise OR on A with the value pointed to by IY plus *.",
-    "instruction": "or (iy+*)"
+    "description": "Bitwise OR on A with the value pointed to by IY plus <var>D</var>.",
+    "instruction": "or (iy+d)",
+    "used": true
   }
 };
 
@@ -29595,7 +32306,8 @@ const variant_B8: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts B from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp b"
+    "instruction": "cp b",
+    "used": true
   }
 };
 
@@ -29621,7 +32333,8 @@ const variant_B8_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts B from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp b"
+    "instruction": "cp b",
+    "used": true
   }
 };
 
@@ -29650,7 +32363,8 @@ const variant_B9: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts C from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp c"
+    "instruction": "cp c",
+    "used": true
   }
 };
 
@@ -29676,7 +32390,8 @@ const variant_B9_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts C from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp c"
+    "instruction": "cp c",
+    "used": true
   }
 };
 
@@ -29705,7 +32420,8 @@ const variant_BA: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts D from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp d"
+    "instruction": "cp d",
+    "used": true
   }
 };
 
@@ -29731,7 +32447,8 @@ const variant_BA_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts D from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp d"
+    "instruction": "cp d",
+    "used": true
   }
 };
 
@@ -29760,7 +32477,8 @@ const variant_BB: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts E from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp e"
+    "instruction": "cp e",
+    "used": true
   }
 };
 
@@ -29786,7 +32504,8 @@ const variant_BB_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts E from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp e"
+    "instruction": "cp e",
+    "used": true
   }
 };
 
@@ -29815,7 +32534,8 @@ const variant_BC: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts H from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp h"
+    "instruction": "cp h",
+    "used": true
   }
 };
 
@@ -29841,7 +32561,8 @@ const variant_BC_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts H from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp h"
+    "instruction": "cp h",
+    "used": true
   }
 };
 
@@ -29870,7 +32591,8 @@ const variant_BD: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts L from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp l"
+    "instruction": "cp l",
+    "used": true
   }
 };
 
@@ -29896,7 +32618,8 @@ const variant_BD_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts L from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp l"
+    "instruction": "cp l",
+    "used": true
   }
 };
 
@@ -29927,7 +32650,8 @@ const variant_BE: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Subtracts (HL) from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp (hl)"
+    "instruction": "cp (hl)",
+    "used": true
   }
 };
 
@@ -29955,7 +32679,8 @@ const variant_BE_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
     "description": "Subtracts (HL) from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp (hl)"
+    "instruction": "cp (hl)",
+    "used": true
   }
 };
 
@@ -29984,7 +32709,8 @@ const variant_BF: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts A from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp a"
+    "instruction": "cp a",
+    "used": true
   }
 };
 
@@ -30010,17 +32736,21 @@ const variant_BF_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Subtracts A from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp a"
+    "instruction": "cp a",
+    "used": true
   }
 };
 
-// cp ixh
+// cp a,ixh
 const variant_DD_BC: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "ixh"
   ],
   "tokens": [
+    "a",
+    ",",
     "ixh"
   ],
   "opcodes": [
@@ -30037,17 +32767,49 @@ const variant_DD_BC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXH from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp ixh"
+    "instruction": "cp ixh",
+    "used": true
   }
 };
 
-// cp ixl
+// cp ixh
+const variant_DD_BC_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "ixh"
+  ],
+  "tokens": [
+    "ixh"
+  ],
+  "opcodes": [
+    221,
+    188
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DDBC",
+    "undocumented": true,
+    "flags": "++V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Subtracts IXH from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp ixh",
+    "used": true
+  }
+};
+
+// cp a,ixl
 const variant_DD_BD: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "ixl"
   ],
   "tokens": [
+    "a",
+    ",",
     "ixl"
   ],
   "opcodes": [
@@ -30064,17 +32826,49 @@ const variant_DD_BD: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IXL from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp ixl"
+    "instruction": "cp ixl",
+    "used": true
   }
 };
 
-// cp (ix+dd)
+// cp ixl
+const variant_DD_BD_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "ixl"
+  ],
+  "tokens": [
+    "ixl"
+  ],
+  "opcodes": [
+    221,
+    189
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DDBD",
+    "undocumented": true,
+    "flags": "++V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Subtracts IXL from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp ixl",
+    "used": true
+  }
+};
+
+// cp a,(ix+dd)
 const variant_DD_BE_dd: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "(ix+dd)"
   ],
   "tokens": [
+    "a",
+    ",",
     "(",
     "ix",
     "+",
@@ -30095,18 +32889,55 @@ const variant_DD_BE_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IX plus * from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp (ix+*)"
+    "description": "Subtracts the value pointed to by IX plus <var>D</var> from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp (ix+d)",
+    "used": true
   }
 };
 
-// cp iyh
+// cp (ix+dd)
+const variant_DD_BE_dd_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "(ix+dd)"
+  ],
+  "tokens": [
+    "(",
+    "ix",
+    "+",
+    "dd",
+    ")"
+  ],
+  "opcodes": [
+    221,
+    190,
+    "dd"
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DDBE",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 3,
+    "with_jump_clock_count": 19,
+    "without_jump_clock_count": 19,
+    "description": "Subtracts the value pointed to by IX plus <var>D</var> from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp (ix+d)",
+    "used": true
+  }
+};
+
+// cp a,iyh
 const variant_FD_BC: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "iyh"
   ],
   "tokens": [
+    "a",
+    ",",
     "iyh"
   ],
   "opcodes": [
@@ -30123,17 +32954,49 @@ const variant_FD_BC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYH from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp iyh"
+    "instruction": "cp iyh",
+    "used": true
   }
 };
 
-// cp iyl
+// cp iyh
+const variant_FD_BC_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "iyh"
+  ],
+  "tokens": [
+    "iyh"
+  ],
+  "opcodes": [
+    253,
+    188
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FDBC",
+    "undocumented": true,
+    "flags": "++V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Subtracts IYH from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp iyh",
+    "used": true
+  }
+};
+
+// cp a,iyl
 const variant_FD_BD: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "iyl"
   ],
   "tokens": [
+    "a",
+    ",",
     "iyl"
   ],
   "opcodes": [
@@ -30150,17 +33013,49 @@ const variant_FD_BD: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Subtracts IYL from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp iyl"
+    "instruction": "cp iyl",
+    "used": true
   }
 };
 
-// cp (iy+dd)
+// cp iyl
+const variant_FD_BD_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "iyl"
+  ],
+  "tokens": [
+    "iyl"
+  ],
+  "opcodes": [
+    253,
+    189
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FDBD",
+    "undocumented": true,
+    "flags": "++V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Subtracts IYL from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp iyl",
+    "used": true
+  }
+};
+
+// cp a,(iy+dd)
 const variant_FD_BE_dd: OpcodeVariant = {
   "mnemonic": "cp",
   "params": [
+    "a",
     "(iy+dd)"
   ],
   "tokens": [
+    "a",
+    ",",
     "(",
     "iy",
     "+",
@@ -30181,8 +33076,42 @@ const variant_FD_BE_dd: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 19,
     "without_jump_clock_count": 19,
-    "description": "Subtracts the value pointed to by IY plus * from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp (iy+*)"
+    "description": "Subtracts the value pointed to by IY plus <var>D</var> from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp (iy+d)",
+    "used": true
+  }
+};
+
+// cp (iy+dd)
+const variant_FD_BE_dd_pseudo: OpcodeVariant = {
+  "mnemonic": "cp",
+  "params": [
+    "(iy+dd)"
+  ],
+  "tokens": [
+    "(",
+    "iy",
+    "+",
+    "dd",
+    ")"
+  ],
+  "opcodes": [
+    253,
+    190,
+    "dd"
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FDBE",
+    "undocumented": false,
+    "flags": "++V+++",
+    "byte_count": 3,
+    "with_jump_clock_count": 19,
+    "without_jump_clock_count": 19,
+    "description": "Subtracts the value pointed to by IY plus <var>D</var> from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp (iy+d)",
+    "used": true
   }
 };
 
@@ -30211,8 +33140,9 @@ const variant_FE_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Subtracts * from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp *"
+    "description": "Subtracts <var>n</var> from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp n",
+    "used": true
   }
 };
 
@@ -30238,8 +33168,9 @@ const variant_FE_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 7,
     "without_jump_clock_count": 7,
-    "description": "Subtracts * from A and affects flags according to the result. A is not modified.",
-    "instruction": "cp *"
+    "description": "Subtracts <var>n</var> from A and affects flags according to the result. A is not modified.",
+    "instruction": "cp n",
+    "used": true
   }
 };
 
@@ -30264,8 +33195,9 @@ const variant_C0: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 5,
-    "description": "If condition CC is true, the top stack entry is popped into PC.",
-    "instruction": "ret nz"
+    "description": "If the zero flag is unset, the top stack entry is popped into PC.",
+    "instruction": "ret nz",
+    "used": true
   }
 };
 
@@ -30290,8 +33222,9 @@ const variant_C8: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 5,
-    "description": "If condition CC is true, the top stack entry is popped into PC.",
-    "instruction": "ret z"
+    "description": "If the zero flag is set, the top stack entry is popped into PC.",
+    "instruction": "ret z",
+    "used": true
   }
 };
 
@@ -30313,7 +33246,8 @@ const variant_C9: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "The top stack entry is popped into PC.",
-    "instruction": "ret"
+    "instruction": "ret",
+    "used": true
   }
 };
 
@@ -30338,8 +33272,9 @@ const variant_D0: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 5,
-    "description": "If condition CC is true, the top stack entry is popped into PC.",
-    "instruction": "ret nc"
+    "description": "If the carry flag is unset, the top stack entry is popped into PC.",
+    "instruction": "ret nc",
+    "used": true
   }
 };
 
@@ -30364,8 +33299,9 @@ const variant_D8: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 5,
-    "description": "If condition CC is true, the top stack entry is popped into PC.",
-    "instruction": "ret c"
+    "description": "If the carry flag is set, the top stack entry is popped into PC.",
+    "instruction": "ret c",
+    "used": true
   }
 };
 
@@ -30390,8 +33326,9 @@ const variant_E0: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 5,
-    "description": "If condition CC is true, the top stack entry is popped into PC.",
-    "instruction": "ret po"
+    "description": "If the parity/overflow flag is unset, the top stack entry is popped into PC.",
+    "instruction": "ret po",
+    "used": true
   }
 };
 
@@ -30416,8 +33353,9 @@ const variant_E8: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 5,
-    "description": "If condition CC is true, the top stack entry is popped into PC.",
-    "instruction": "ret pe"
+    "description": "If the parity/overflow flag is set, the top stack entry is popped into PC.",
+    "instruction": "ret pe",
+    "used": true
   }
 };
 
@@ -30442,8 +33380,9 @@ const variant_F0: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 5,
-    "description": "If condition CC is true, the top stack entry is popped into PC.",
-    "instruction": "ret p"
+    "description": "If the sign flag is unset, the top stack entry is popped into PC.",
+    "instruction": "ret p",
+    "used": true
   }
 };
 
@@ -30468,8 +33407,9 @@ const variant_F8: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 5,
-    "description": "If condition CC is true, the top stack entry is popped into PC.",
-    "instruction": "ret m"
+    "description": "If the sign flag is set, the top stack entry is popped into PC.",
+    "instruction": "ret m",
+    "used": true
   }
 };
 
@@ -30495,7 +33435,8 @@ const variant_C1: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "The memory location pointed to by SP is stored into C and SP is incremented. The memory location pointed to by SP is stored into B and SP is incremented again.",
-    "instruction": "pop bc"
+    "instruction": "pop bc",
+    "used": true
   }
 };
 
@@ -30521,7 +33462,8 @@ const variant_D1: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "The memory location pointed to by SP is stored into E and SP is incremented. The memory location pointed to by SP is stored into D and SP is incremented again.",
-    "instruction": "pop de"
+    "instruction": "pop de",
+    "used": true
   }
 };
 
@@ -30548,7 +33490,8 @@ const variant_DD_E1: OpcodeVariant = {
     "with_jump_clock_count": 14,
     "without_jump_clock_count": 14,
     "description": "The memory location pointed to by SP is stored into IXL and SP is incremented. The memory location pointed to by SP is stored into IXH and SP is incremented again.",
-    "instruction": "pop ix"
+    "instruction": "pop ix",
+    "used": true
   }
 };
 
@@ -30574,7 +33517,8 @@ const variant_E1: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "The memory location pointed to by SP is stored into L and SP is incremented. The memory location pointed to by SP is stored into H and SP is incremented again.",
-    "instruction": "pop hl"
+    "instruction": "pop hl",
+    "used": true
   }
 };
 
@@ -30600,7 +33544,8 @@ const variant_F1: OpcodeVariant = {
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
     "description": "The memory location pointed to by SP is stored into F and SP is incremented. The memory location pointed to by SP is stored into A and SP is incremented again.",
-    "instruction": "pop af"
+    "instruction": "pop af",
+    "used": true
   }
 };
 
@@ -30627,7 +33572,8 @@ const variant_FD_E1: OpcodeVariant = {
     "with_jump_clock_count": 14,
     "without_jump_clock_count": 14,
     "description": "The memory location pointed to by SP is stored into IYL and SP is incremented. The memory location pointed to by SP is stored into IYH and SP is incremented again.",
-    "instruction": "pop iy"
+    "instruction": "pop iy",
+    "used": true
   }
 };
 
@@ -30656,8 +33602,9 @@ const variant_C2_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, ** is copied to PC.",
-    "instruction": "jp nz,**"
+    "description": "If the zero flag is unset, <var>nn</var> is copied to PC.",
+    "instruction": "jp nz,nn",
+    "used": true
   }
 };
 
@@ -30683,8 +33630,9 @@ const variant_C3_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "** is copied to PC.",
-    "instruction": "jp **"
+    "description": "<var>nn</var> is copied to PC.",
+    "instruction": "jp nn",
+    "used": true
   }
 };
 
@@ -30713,8 +33661,9 @@ const variant_CA_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, ** is copied to PC.",
-    "instruction": "jp z,**"
+    "description": "If the zero flag is set, <var>nn</var> is copied to PC.",
+    "instruction": "jp z,nn",
+    "used": true
   }
 };
 
@@ -30743,8 +33692,9 @@ const variant_D2_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, ** is copied to PC.",
-    "instruction": "jp nc,**"
+    "description": "If the carry flag is unset, <var>nn</var> is copied to PC.",
+    "instruction": "jp nc,nn",
+    "used": true
   }
 };
 
@@ -30773,8 +33723,9 @@ const variant_DA_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, ** is copied to PC.",
-    "instruction": "jp c,**"
+    "description": "If the carry flag is set, <var>nn</var> is copied to PC.",
+    "instruction": "jp c,nn",
+    "used": true
   }
 };
 
@@ -30801,7 +33752,8 @@ const variant_DD_E9: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Loads the value of IX into PC.",
-    "instruction": "jp (ix)"
+    "instruction": "jp (ix)",
+    "used": true
   }
 };
 
@@ -30830,8 +33782,9 @@ const variant_E2_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, ** is copied to PC.",
-    "instruction": "jp po,**"
+    "description": "If the parity/overflow flag is unset, <var>nn</var> is copied to PC.",
+    "instruction": "jp po,nn",
+    "used": true
   }
 };
 
@@ -30857,7 +33810,8 @@ const variant_E9: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Loads the value of HL into PC.",
-    "instruction": "jp (hl)"
+    "instruction": "jp (hl)",
+    "used": true
   }
 };
 
@@ -30885,7 +33839,8 @@ const variant_E9_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Loads the value of HL into PC.",
-    "instruction": "jp (hl)"
+    "instruction": "jp (hl)",
+    "used": true
   }
 };
 
@@ -30914,8 +33869,9 @@ const variant_EA_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, ** is copied to PC.",
-    "instruction": "jp pe,**"
+    "description": "If the parity/overflow flag is set, <var>nn</var> is copied to PC.",
+    "instruction": "jp pe,nn",
+    "used": true
   }
 };
 
@@ -30944,8 +33900,9 @@ const variant_F2_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, ** is copied to PC.",
-    "instruction": "jp p,**"
+    "description": "If the sign flag is unset, <var>nn</var> is copied to PC.",
+    "instruction": "jp p,nn",
+    "used": true
   }
 };
 
@@ -30974,8 +33931,9 @@ const variant_FA_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 10,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, ** is copied to PC.",
-    "instruction": "jp m,**"
+    "description": "If the sign flag is set, <var>nn</var> is copied to PC.",
+    "instruction": "jp m,nn",
+    "used": true
   }
 };
 
@@ -31002,7 +33960,8 @@ const variant_FD_E9: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Loads the value of IY into PC.",
-    "instruction": "jp (iy)"
+    "instruction": "jp (iy)",
+    "used": true
   }
 };
 
@@ -31031,8 +33990,9 @@ const variant_C4_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 17,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
-    "instruction": "call nz,**"
+    "description": "If the zero flag is unset, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call nz,nn",
+    "used": true
   }
 };
 
@@ -31061,8 +34021,9 @@ const variant_CC_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 17,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
-    "instruction": "call z,**"
+    "description": "If the zero flag is set, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call z,nn",
+    "used": true
   }
 };
 
@@ -31088,8 +34049,9 @@ const variant_CD_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 17,
     "without_jump_clock_count": 17,
-    "description": "The current PC value plus three is pushed onto the stack, then is loaded with **.",
-    "instruction": "call **"
+    "description": "The current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call nn",
+    "used": true
   }
 };
 
@@ -31118,8 +34080,9 @@ const variant_D4_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 17,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
-    "instruction": "call nc,**"
+    "description": "If the carry flag is unset, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call nc,nn",
+    "used": true
   }
 };
 
@@ -31148,8 +34111,9 @@ const variant_DC_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 17,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
-    "instruction": "call c,**"
+    "description": "If the carry flag is set, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call c,nn",
+    "used": true
   }
 };
 
@@ -31178,8 +34142,9 @@ const variant_E4_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 17,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
-    "instruction": "call po,**"
+    "description": "If the parity/overflow flag is unset, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call po,nn",
+    "used": true
   }
 };
 
@@ -31208,8 +34173,9 @@ const variant_EC_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 17,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
-    "instruction": "call pe,**"
+    "description": "If the parity/overflow flag is set, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call pe,nn",
+    "used": true
   }
 };
 
@@ -31238,8 +34204,9 @@ const variant_F4_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 17,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
-    "instruction": "call p,**"
+    "description": "If the sign flag is unset, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call p,nn",
+    "used": true
   }
 };
 
@@ -31268,8 +34235,9 @@ const variant_FC_nnnn: OpcodeVariant = {
     "byte_count": 3,
     "with_jump_clock_count": 17,
     "without_jump_clock_count": 10,
-    "description": "If condition CC is true, the current PC value plus three is pushed onto the stack, then is loaded with **.",
-    "instruction": "call m,**"
+    "description": "If the sign flag is set, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call m,nn",
+    "used": true
   }
 };
 
@@ -31295,7 +34263,8 @@ const variant_C5: OpcodeVariant = {
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
     "description": "SP is decremented and B is stored into the memory location pointed to by SP. SP is decremented again and C is stored into the memory location pointed to by SP.",
-    "instruction": "push bc"
+    "instruction": "push bc",
+    "used": true
   }
 };
 
@@ -31321,7 +34290,8 @@ const variant_D5: OpcodeVariant = {
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
     "description": "SP is decremented and D is stored into the memory location pointed to by SP. SP is decremented again and E is stored into the memory location pointed to by SP.",
-    "instruction": "push de"
+    "instruction": "push de",
+    "used": true
   }
 };
 
@@ -31348,7 +34318,8 @@ const variant_DD_E5: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "SP is decremented and IXH is stored into the memory location pointed to by SP. SP is decremented again and IXL is stored into the memory location pointed to by SP.",
-    "instruction": "push ix"
+    "instruction": "push ix",
+    "used": true
   }
 };
 
@@ -31374,7 +34345,8 @@ const variant_E5: OpcodeVariant = {
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
     "description": "SP is decremented and H is stored into the memory location pointed to by SP. SP is decremented again and L is stored into the memory location pointed to by SP.",
-    "instruction": "push hl"
+    "instruction": "push hl",
+    "used": true
   }
 };
 
@@ -31400,7 +34372,8 @@ const variant_F5: OpcodeVariant = {
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
     "description": "SP is decremented and A is stored into the memory location pointed to by SP. SP is decremented again and F is stored into the memory location pointed to by SP.",
-    "instruction": "push af"
+    "instruction": "push af",
+    "used": true
   }
 };
 
@@ -31427,7 +34400,8 @@ const variant_FD_E5: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "SP is decremented and IYH is stored into the memory location pointed to by SP. SP is decremented again and IYL is stored into the memory location pointed to by SP.",
-    "instruction": "push iy"
+    "instruction": "push iy",
+    "used": true
   }
 };
 
@@ -31452,8 +34426,9 @@ const variant_C7: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 00h.",
-    "instruction": "rst 00h"
+    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 0.",
+    "instruction": "rst 00h",
+    "used": true
   }
 };
 
@@ -31478,8 +34453,9 @@ const variant_CF: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 08h.",
-    "instruction": "rst 08h"
+    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 8.",
+    "instruction": "rst 08h",
+    "used": true
   }
 };
 
@@ -31504,8 +34480,9 @@ const variant_D7: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 10h.",
-    "instruction": "rst 10h"
+    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 16.",
+    "instruction": "rst 10h",
+    "used": true
   }
 };
 
@@ -31530,8 +34507,9 @@ const variant_DF: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 18h.",
-    "instruction": "rst 18h"
+    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 24.",
+    "instruction": "rst 18h",
+    "used": true
   }
 };
 
@@ -31556,8 +34534,9 @@ const variant_E7: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 20h.",
-    "instruction": "rst 20h"
+    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 32.",
+    "instruction": "rst 20h",
+    "used": true
   }
 };
 
@@ -31582,8 +34561,9 @@ const variant_EF: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 28h.",
-    "instruction": "rst 28h"
+    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 40.",
+    "instruction": "rst 28h",
+    "used": true
   }
 };
 
@@ -31608,8 +34588,9 @@ const variant_F7: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 30h.",
-    "instruction": "rst 30h"
+    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 48.",
+    "instruction": "rst 30h",
+    "used": true
   }
 };
 
@@ -31634,8 +34615,9 @@ const variant_FF: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 38h.",
-    "instruction": "rst 38h"
+    "description": "The current PC value plus one is pushed onto the stack, then is loaded with 56.",
+    "instruction": "rst 38h",
+    "used": true
   }
 };
 
@@ -31662,7 +34644,8 @@ const variant_CB_00: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc b"
+    "instruction": "rlc b",
+    "used": true
   }
 };
 
@@ -31689,7 +34672,8 @@ const variant_CB_01: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc c"
+    "instruction": "rlc c",
+    "used": true
   }
 };
 
@@ -31716,7 +34700,8 @@ const variant_CB_02: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc d"
+    "instruction": "rlc d",
+    "used": true
   }
 };
 
@@ -31743,7 +34728,8 @@ const variant_CB_03: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc e"
+    "instruction": "rlc e",
+    "used": true
   }
 };
 
@@ -31770,7 +34756,8 @@ const variant_CB_04: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of H are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc h"
+    "instruction": "rlc h",
+    "used": true
   }
 };
 
@@ -31797,7 +34784,8 @@ const variant_CB_05: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of L are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc l"
+    "instruction": "rlc l",
+    "used": true
   }
 };
 
@@ -31826,7 +34814,8 @@ const variant_CB_06: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The contents of (HL) are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc (hl)"
+    "instruction": "rlc (hl)",
+    "used": true
   }
 };
 
@@ -31853,7 +34842,8 @@ const variant_CB_07: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc a"
+    "instruction": "rlc a",
+    "used": true
   }
 };
 
@@ -31879,14 +34869,15 @@ const variant_DD_CB_dd_06: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**06",
+    "opcodes": "DDCB06",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc (ix+*)"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+    "instruction": "rlc (ix+d)",
+    "used": true
   }
 };
 
@@ -31912,14 +34903,15 @@ const variant_FD_CB_dd_06: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**06",
+    "opcodes": "FDCB06",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
-    "instruction": "rlc (iy+*)"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and bit 0.",
+    "instruction": "rlc (iy+d)",
+    "used": true
   }
 };
 
@@ -31946,7 +34938,8 @@ const variant_CB_08: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc b"
+    "instruction": "rrc b",
+    "used": true
   }
 };
 
@@ -31973,7 +34966,8 @@ const variant_CB_09: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc c"
+    "instruction": "rrc c",
+    "used": true
   }
 };
 
@@ -32000,7 +34994,8 @@ const variant_CB_0A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc d"
+    "instruction": "rrc d",
+    "used": true
   }
 };
 
@@ -32027,7 +35022,8 @@ const variant_CB_0B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc e"
+    "instruction": "rrc e",
+    "used": true
   }
 };
 
@@ -32054,7 +35050,8 @@ const variant_CB_0C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of H are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc h"
+    "instruction": "rrc h",
+    "used": true
   }
 };
 
@@ -32081,7 +35078,8 @@ const variant_CB_0D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of L are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc l"
+    "instruction": "rrc l",
+    "used": true
   }
 };
 
@@ -32110,7 +35108,8 @@ const variant_CB_0E: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The contents of (HL) are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc (hl)"
+    "instruction": "rrc (hl)",
+    "used": true
   }
 };
 
@@ -32137,7 +35136,8 @@ const variant_CB_0F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc a"
+    "instruction": "rrc a",
+    "used": true
   }
 };
 
@@ -32163,14 +35163,15 @@ const variant_DD_CB_dd_0E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**0E",
+    "opcodes": "DDCB0E",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc (ix+*)"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+    "instruction": "rrc (ix+d)",
+    "used": true
   }
 };
 
@@ -32196,14 +35197,15 @@ const variant_FD_CB_dd_0E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**0E",
+    "opcodes": "FDCB0E",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
-    "instruction": "rrc (iy+*)"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and bit 7.",
+    "instruction": "rrc (iy+d)",
+    "used": true
   }
 };
 
@@ -32230,7 +35232,8 @@ const variant_CB_10: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl b"
+    "instruction": "rl b",
+    "used": true
   }
 };
 
@@ -32257,7 +35260,8 @@ const variant_CB_11: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl c"
+    "instruction": "rl c",
+    "used": true
   }
 };
 
@@ -32284,7 +35288,8 @@ const variant_CB_12: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl d"
+    "instruction": "rl d",
+    "used": true
   }
 };
 
@@ -32311,7 +35316,8 @@ const variant_CB_13: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl e"
+    "instruction": "rl e",
+    "used": true
   }
 };
 
@@ -32338,7 +35344,8 @@ const variant_CB_14: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of H are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl h"
+    "instruction": "rl h",
+    "used": true
   }
 };
 
@@ -32365,7 +35372,8 @@ const variant_CB_15: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of L are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl l"
+    "instruction": "rl l",
+    "used": true
   }
 };
 
@@ -32394,7 +35402,8 @@ const variant_CB_16: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The contents of (HL) are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl (hl)"
+    "instruction": "rl (hl)",
+    "used": true
   }
 };
 
@@ -32421,7 +35430,8 @@ const variant_CB_17: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl a"
+    "instruction": "rl a",
+    "used": true
   }
 };
 
@@ -32447,14 +35457,15 @@ const variant_DD_CB_dd_16: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**16",
+    "opcodes": "DDCB16",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl (ix+*)"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+    "instruction": "rl (ix+d)",
+    "used": true
   }
 };
 
@@ -32480,14 +35491,15 @@ const variant_FD_CB_dd_16: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**16",
+    "opcodes": "FDCB16",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
-    "instruction": "rl (iy+*)"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated left one bit position. The contents of bit 7 are copied to the carry flag and the previous contents of the carry flag are copied to bit 0.",
+    "instruction": "rl (iy+d)",
+    "used": true
   }
 };
 
@@ -32514,7 +35526,8 @@ const variant_CB_18: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr b"
+    "instruction": "rr b",
+    "used": true
   }
 };
 
@@ -32541,7 +35554,8 @@ const variant_CB_19: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr c"
+    "instruction": "rr c",
+    "used": true
   }
 };
 
@@ -32568,7 +35582,8 @@ const variant_CB_1A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr d"
+    "instruction": "rr d",
+    "used": true
   }
 };
 
@@ -32595,7 +35610,8 @@ const variant_CB_1B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr e"
+    "instruction": "rr e",
+    "used": true
   }
 };
 
@@ -32622,7 +35638,8 @@ const variant_CB_1C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of H are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr h"
+    "instruction": "rr h",
+    "used": true
   }
 };
 
@@ -32649,7 +35666,8 @@ const variant_CB_1D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of L are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr l"
+    "instruction": "rr l",
+    "used": true
   }
 };
 
@@ -32678,7 +35696,8 @@ const variant_CB_1E: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The contents of (HL) are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr (hl)"
+    "instruction": "rr (hl)",
+    "used": true
   }
 };
 
@@ -32705,7 +35724,8 @@ const variant_CB_1F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr a"
+    "instruction": "rr a",
+    "used": true
   }
 };
 
@@ -32731,14 +35751,15 @@ const variant_DD_CB_dd_1E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**1E",
+    "opcodes": "DDCB1E",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr (ix+*)"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+    "instruction": "rr (ix+d)",
+    "used": true
   }
 };
 
@@ -32764,14 +35785,15 @@ const variant_FD_CB_dd_1E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**1E",
+    "opcodes": "FDCB1E",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
-    "instruction": "rr (iy+*)"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are rotated right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of the carry flag are copied to bit 7.",
+    "instruction": "rr (iy+d)",
+    "used": true
   }
 };
 
@@ -32798,7 +35820,8 @@ const variant_CB_20: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla b"
+    "instruction": "sla b",
+    "used": true
   }
 };
 
@@ -32825,7 +35848,8 @@ const variant_CB_21: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla c"
+    "instruction": "sla c",
+    "used": true
   }
 };
 
@@ -32852,7 +35876,8 @@ const variant_CB_22: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla d"
+    "instruction": "sla d",
+    "used": true
   }
 };
 
@@ -32879,7 +35904,8 @@ const variant_CB_23: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla e"
+    "instruction": "sla e",
+    "used": true
   }
 };
 
@@ -32906,7 +35932,8 @@ const variant_CB_24: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of H are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla h"
+    "instruction": "sla h",
+    "used": true
   }
 };
 
@@ -32933,7 +35960,8 @@ const variant_CB_25: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of L are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla l"
+    "instruction": "sla l",
+    "used": true
   }
 };
 
@@ -32962,7 +35990,8 @@ const variant_CB_26: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The contents of (HL) are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla (hl)"
+    "instruction": "sla (hl)",
+    "used": true
   }
 };
 
@@ -32989,7 +36018,8 @@ const variant_CB_27: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla a"
+    "instruction": "sla a",
+    "used": true
   }
 };
 
@@ -33015,14 +36045,15 @@ const variant_DD_CB_dd_26: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**26",
+    "opcodes": "DDCB26",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla (ix+*)"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+    "instruction": "sla (ix+d)",
+    "used": true
   }
 };
 
@@ -33048,14 +36079,15 @@ const variant_FD_CB_dd_26: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**26",
+    "opcodes": "FDCB26",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
-    "instruction": "sla (iy+*)"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are copied to the carry flag and a zero is put into bit 0.",
+    "instruction": "sla (iy+d)",
+    "used": true
   }
 };
 
@@ -33082,7 +36114,8 @@ const variant_CB_28: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra b"
+    "instruction": "sra b",
+    "used": true
   }
 };
 
@@ -33109,7 +36142,8 @@ const variant_CB_29: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra c"
+    "instruction": "sra c",
+    "used": true
   }
 };
 
@@ -33136,7 +36170,8 @@ const variant_CB_2A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra d"
+    "instruction": "sra d",
+    "used": true
   }
 };
 
@@ -33163,7 +36198,8 @@ const variant_CB_2B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra e"
+    "instruction": "sra e",
+    "used": true
   }
 };
 
@@ -33190,7 +36226,8 @@ const variant_CB_2C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of H are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra h"
+    "instruction": "sra h",
+    "used": true
   }
 };
 
@@ -33217,7 +36254,8 @@ const variant_CB_2D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of L are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra l"
+    "instruction": "sra l",
+    "used": true
   }
 };
 
@@ -33246,7 +36284,8 @@ const variant_CB_2E: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The contents of (HL) are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra (hl)"
+    "instruction": "sra (hl)",
+    "used": true
   }
 };
 
@@ -33273,7 +36312,8 @@ const variant_CB_2F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra a"
+    "instruction": "sra a",
+    "used": true
   }
 };
 
@@ -33299,14 +36339,15 @@ const variant_DD_CB_dd_2E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**2E",
+    "opcodes": "DDCB2E",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra (ix+*)"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+    "instruction": "sra (ix+d)",
+    "used": true
   }
 };
 
@@ -33332,14 +36373,15 @@ const variant_FD_CB_dd_2E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**2E",
+    "opcodes": "FDCB2E",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
-    "instruction": "sra (iy+*)"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and the previous contents of bit 7 are unchanged.",
+    "instruction": "sra (iy+d)",
+    "used": true
   }
 };
 
@@ -33366,7 +36408,8 @@ const variant_CB_30: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll b"
+    "instruction": "sll b",
+    "used": true
   }
 };
 
@@ -33393,7 +36436,8 @@ const variant_CB_31: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll c"
+    "instruction": "sll c",
+    "used": true
   }
 };
 
@@ -33420,7 +36464,8 @@ const variant_CB_32: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll d"
+    "instruction": "sll d",
+    "used": true
   }
 };
 
@@ -33447,7 +36492,8 @@ const variant_CB_33: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll e"
+    "instruction": "sll e",
+    "used": true
   }
 };
 
@@ -33474,7 +36520,8 @@ const variant_CB_34: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of H are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll h"
+    "instruction": "sll h",
+    "used": true
   }
 };
 
@@ -33501,7 +36548,8 @@ const variant_CB_35: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of L are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll l"
+    "instruction": "sll l",
+    "used": true
   }
 };
 
@@ -33530,7 +36578,8 @@ const variant_CB_36: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The contents of (HL) are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll (hl)"
+    "instruction": "sll (hl)",
+    "used": true
   }
 };
 
@@ -33557,7 +36606,8 @@ const variant_CB_37: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll a"
+    "instruction": "sll a",
+    "used": true
   }
 };
 
@@ -33583,14 +36633,15 @@ const variant_DD_CB_dd_36: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**36",
+    "opcodes": "DDCB36",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll (ix+*)"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+    "instruction": "sll (ix+d)",
+    "used": true
   }
 };
 
@@ -33616,14 +36667,15 @@ const variant_FD_CB_dd_36: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**36",
+    "opcodes": "FDCB36",
     "undocumented": true,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
-    "instruction": "sll (iy+*)"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted left one bit position. The contents of bit 7 are put into the carry flag and a one is put into bit 0.",
+    "instruction": "sll (iy+d)",
+    "used": true
   }
 };
 
@@ -33650,7 +36702,8 @@ const variant_CB_38: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of B are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl b"
+    "instruction": "srl b",
+    "used": true
   }
 };
 
@@ -33677,7 +36730,8 @@ const variant_CB_39: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of C are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl c"
+    "instruction": "srl c",
+    "used": true
   }
 };
 
@@ -33704,7 +36758,8 @@ const variant_CB_3A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of D are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl d"
+    "instruction": "srl d",
+    "used": true
   }
 };
 
@@ -33731,7 +36786,8 @@ const variant_CB_3B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of E are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl e"
+    "instruction": "srl e",
+    "used": true
   }
 };
 
@@ -33758,7 +36814,8 @@ const variant_CB_3C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of H are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl h"
+    "instruction": "srl h",
+    "used": true
   }
 };
 
@@ -33785,7 +36842,8 @@ const variant_CB_3D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of L are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl l"
+    "instruction": "srl l",
+    "used": true
   }
 };
 
@@ -33814,7 +36872,8 @@ const variant_CB_3E: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "The contents of (HL) are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl (hl)"
+    "instruction": "srl (hl)",
+    "used": true
   }
 };
 
@@ -33841,7 +36900,8 @@ const variant_CB_3F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "The contents of A are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl a"
+    "instruction": "srl a",
+    "used": true
   }
 };
 
@@ -33867,14 +36927,15 @@ const variant_DD_CB_dd_3E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**3E",
+    "opcodes": "DDCB3E",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IX plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl (ix+*)"
+    "description": "The contents of the memory location pointed to by IX plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+    "instruction": "srl (ix+d)",
+    "used": true
   }
 };
 
@@ -33900,14 +36961,15 @@ const variant_FD_CB_dd_3E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**3E",
+    "opcodes": "FDCB3E",
     "undocumented": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "The contents of the memory location pointed to by IY plus * are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
-    "instruction": "srl (iy+*)"
+    "description": "The contents of the memory location pointed to by IY plus <var>D</var> are shifted right one bit position. The contents of bit 0 are copied to the carry flag and a zero is put into bit 7.",
+    "instruction": "srl (iy+d)",
+    "used": true
   }
 };
 
@@ -33937,7 +36999,8 @@ const variant_CB_40: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 0 of B.",
-    "instruction": "bit 0,b"
+    "instruction": "bit 0,b",
+    "used": true
   }
 };
 
@@ -33967,7 +37030,8 @@ const variant_CB_41: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 0 of C.",
-    "instruction": "bit 0,c"
+    "instruction": "bit 0,c",
+    "used": true
   }
 };
 
@@ -33997,7 +37061,8 @@ const variant_CB_42: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 0 of D.",
-    "instruction": "bit 0,d"
+    "instruction": "bit 0,d",
+    "used": true
   }
 };
 
@@ -34027,7 +37092,8 @@ const variant_CB_43: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 0 of E.",
-    "instruction": "bit 0,e"
+    "instruction": "bit 0,e",
+    "used": true
   }
 };
 
@@ -34057,7 +37123,8 @@ const variant_CB_44: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 0 of H.",
-    "instruction": "bit 0,h"
+    "instruction": "bit 0,h",
+    "used": true
   }
 };
 
@@ -34087,7 +37154,8 @@ const variant_CB_45: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 0 of L.",
-    "instruction": "bit 0,l"
+    "instruction": "bit 0,l",
+    "used": true
   }
 };
 
@@ -34119,7 +37187,8 @@ const variant_CB_46: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Tests bit 0 of (HL).",
-    "instruction": "bit 0,(hl)"
+    "instruction": "bit 0,(hl)",
+    "used": true
   }
 };
 
@@ -34149,7 +37218,8 @@ const variant_CB_47: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 0 of A.",
-    "instruction": "bit 0,a"
+    "instruction": "bit 0,a",
+    "used": true
   }
 };
 
@@ -34179,7 +37249,8 @@ const variant_CB_48: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 1 of B.",
-    "instruction": "bit 1,b"
+    "instruction": "bit 1,b",
+    "used": true
   }
 };
 
@@ -34209,7 +37280,8 @@ const variant_CB_49: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 1 of C.",
-    "instruction": "bit 1,c"
+    "instruction": "bit 1,c",
+    "used": true
   }
 };
 
@@ -34239,7 +37311,8 @@ const variant_CB_4A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 1 of D.",
-    "instruction": "bit 1,d"
+    "instruction": "bit 1,d",
+    "used": true
   }
 };
 
@@ -34269,7 +37342,8 @@ const variant_CB_4B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 1 of E.",
-    "instruction": "bit 1,e"
+    "instruction": "bit 1,e",
+    "used": true
   }
 };
 
@@ -34299,7 +37373,8 @@ const variant_CB_4C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 1 of H.",
-    "instruction": "bit 1,h"
+    "instruction": "bit 1,h",
+    "used": true
   }
 };
 
@@ -34329,7 +37404,8 @@ const variant_CB_4D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 1 of L.",
-    "instruction": "bit 1,l"
+    "instruction": "bit 1,l",
+    "used": true
   }
 };
 
@@ -34361,7 +37437,8 @@ const variant_CB_4E: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Tests bit 1 of (HL).",
-    "instruction": "bit 1,(hl)"
+    "instruction": "bit 1,(hl)",
+    "used": true
   }
 };
 
@@ -34391,7 +37468,8 @@ const variant_CB_4F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 1 of A.",
-    "instruction": "bit 1,a"
+    "instruction": "bit 1,a",
+    "used": true
   }
 };
 
@@ -34421,7 +37499,8 @@ const variant_CB_50: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 2 of B.",
-    "instruction": "bit 2,b"
+    "instruction": "bit 2,b",
+    "used": true
   }
 };
 
@@ -34451,7 +37530,8 @@ const variant_CB_51: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 2 of C.",
-    "instruction": "bit 2,c"
+    "instruction": "bit 2,c",
+    "used": true
   }
 };
 
@@ -34481,7 +37561,8 @@ const variant_CB_52: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 2 of D.",
-    "instruction": "bit 2,d"
+    "instruction": "bit 2,d",
+    "used": true
   }
 };
 
@@ -34511,7 +37592,8 @@ const variant_CB_53: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 2 of E.",
-    "instruction": "bit 2,e"
+    "instruction": "bit 2,e",
+    "used": true
   }
 };
 
@@ -34541,7 +37623,8 @@ const variant_CB_54: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 2 of H.",
-    "instruction": "bit 2,h"
+    "instruction": "bit 2,h",
+    "used": true
   }
 };
 
@@ -34571,7 +37654,8 @@ const variant_CB_55: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 2 of L.",
-    "instruction": "bit 2,l"
+    "instruction": "bit 2,l",
+    "used": true
   }
 };
 
@@ -34603,7 +37687,8 @@ const variant_CB_56: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Tests bit 2 of (HL).",
-    "instruction": "bit 2,(hl)"
+    "instruction": "bit 2,(hl)",
+    "used": true
   }
 };
 
@@ -34633,7 +37718,8 @@ const variant_CB_57: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 2 of A.",
-    "instruction": "bit 2,a"
+    "instruction": "bit 2,a",
+    "used": true
   }
 };
 
@@ -34663,7 +37749,8 @@ const variant_CB_58: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 3 of B.",
-    "instruction": "bit 3,b"
+    "instruction": "bit 3,b",
+    "used": true
   }
 };
 
@@ -34693,7 +37780,8 @@ const variant_CB_59: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 3 of C.",
-    "instruction": "bit 3,c"
+    "instruction": "bit 3,c",
+    "used": true
   }
 };
 
@@ -34723,7 +37811,8 @@ const variant_CB_5A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 3 of D.",
-    "instruction": "bit 3,d"
+    "instruction": "bit 3,d",
+    "used": true
   }
 };
 
@@ -34753,7 +37842,8 @@ const variant_CB_5B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 3 of E.",
-    "instruction": "bit 3,e"
+    "instruction": "bit 3,e",
+    "used": true
   }
 };
 
@@ -34783,7 +37873,8 @@ const variant_CB_5C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 3 of H.",
-    "instruction": "bit 3,h"
+    "instruction": "bit 3,h",
+    "used": true
   }
 };
 
@@ -34813,7 +37904,8 @@ const variant_CB_5D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 3 of L.",
-    "instruction": "bit 3,l"
+    "instruction": "bit 3,l",
+    "used": true
   }
 };
 
@@ -34845,7 +37937,8 @@ const variant_CB_5E: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Tests bit 3 of (HL).",
-    "instruction": "bit 3,(hl)"
+    "instruction": "bit 3,(hl)",
+    "used": true
   }
 };
 
@@ -34875,7 +37968,8 @@ const variant_CB_5F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 3 of A.",
-    "instruction": "bit 3,a"
+    "instruction": "bit 3,a",
+    "used": true
   }
 };
 
@@ -34905,7 +37999,8 @@ const variant_CB_60: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 4 of B.",
-    "instruction": "bit 4,b"
+    "instruction": "bit 4,b",
+    "used": true
   }
 };
 
@@ -34935,7 +38030,8 @@ const variant_CB_61: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 4 of C.",
-    "instruction": "bit 4,c"
+    "instruction": "bit 4,c",
+    "used": true
   }
 };
 
@@ -34965,7 +38061,8 @@ const variant_CB_62: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 4 of D.",
-    "instruction": "bit 4,d"
+    "instruction": "bit 4,d",
+    "used": true
   }
 };
 
@@ -34995,7 +38092,8 @@ const variant_CB_63: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 4 of E.",
-    "instruction": "bit 4,e"
+    "instruction": "bit 4,e",
+    "used": true
   }
 };
 
@@ -35025,7 +38123,8 @@ const variant_CB_64: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 4 of H.",
-    "instruction": "bit 4,h"
+    "instruction": "bit 4,h",
+    "used": true
   }
 };
 
@@ -35055,7 +38154,8 @@ const variant_CB_65: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 4 of L.",
-    "instruction": "bit 4,l"
+    "instruction": "bit 4,l",
+    "used": true
   }
 };
 
@@ -35087,7 +38187,8 @@ const variant_CB_66: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Tests bit 4 of (HL).",
-    "instruction": "bit 4,(hl)"
+    "instruction": "bit 4,(hl)",
+    "used": true
   }
 };
 
@@ -35117,7 +38218,8 @@ const variant_CB_67: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 4 of A.",
-    "instruction": "bit 4,a"
+    "instruction": "bit 4,a",
+    "used": true
   }
 };
 
@@ -35147,7 +38249,8 @@ const variant_CB_68: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 5 of B.",
-    "instruction": "bit 5,b"
+    "instruction": "bit 5,b",
+    "used": true
   }
 };
 
@@ -35177,7 +38280,8 @@ const variant_CB_69: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 5 of C.",
-    "instruction": "bit 5,c"
+    "instruction": "bit 5,c",
+    "used": true
   }
 };
 
@@ -35207,7 +38311,8 @@ const variant_CB_6A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 5 of D.",
-    "instruction": "bit 5,d"
+    "instruction": "bit 5,d",
+    "used": true
   }
 };
 
@@ -35237,7 +38342,8 @@ const variant_CB_6B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 5 of E.",
-    "instruction": "bit 5,e"
+    "instruction": "bit 5,e",
+    "used": true
   }
 };
 
@@ -35267,7 +38373,8 @@ const variant_CB_6C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 5 of H.",
-    "instruction": "bit 5,h"
+    "instruction": "bit 5,h",
+    "used": true
   }
 };
 
@@ -35297,7 +38404,8 @@ const variant_CB_6D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 5 of L.",
-    "instruction": "bit 5,l"
+    "instruction": "bit 5,l",
+    "used": true
   }
 };
 
@@ -35329,7 +38437,8 @@ const variant_CB_6E: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Tests bit 5 of (HL).",
-    "instruction": "bit 5,(hl)"
+    "instruction": "bit 5,(hl)",
+    "used": true
   }
 };
 
@@ -35359,7 +38468,8 @@ const variant_CB_6F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 5 of A.",
-    "instruction": "bit 5,a"
+    "instruction": "bit 5,a",
+    "used": true
   }
 };
 
@@ -35389,7 +38499,8 @@ const variant_CB_70: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 6 of B.",
-    "instruction": "bit 6,b"
+    "instruction": "bit 6,b",
+    "used": true
   }
 };
 
@@ -35419,7 +38530,8 @@ const variant_CB_71: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 6 of C.",
-    "instruction": "bit 6,c"
+    "instruction": "bit 6,c",
+    "used": true
   }
 };
 
@@ -35449,7 +38561,8 @@ const variant_CB_72: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 6 of D.",
-    "instruction": "bit 6,d"
+    "instruction": "bit 6,d",
+    "used": true
   }
 };
 
@@ -35479,7 +38592,8 @@ const variant_CB_73: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 6 of E.",
-    "instruction": "bit 6,e"
+    "instruction": "bit 6,e",
+    "used": true
   }
 };
 
@@ -35509,7 +38623,8 @@ const variant_CB_74: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 6 of H.",
-    "instruction": "bit 6,h"
+    "instruction": "bit 6,h",
+    "used": true
   }
 };
 
@@ -35539,7 +38654,8 @@ const variant_CB_75: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 6 of L.",
-    "instruction": "bit 6,l"
+    "instruction": "bit 6,l",
+    "used": true
   }
 };
 
@@ -35571,7 +38687,8 @@ const variant_CB_76: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Tests bit 6 of (HL).",
-    "instruction": "bit 6,(hl)"
+    "instruction": "bit 6,(hl)",
+    "used": true
   }
 };
 
@@ -35601,7 +38718,8 @@ const variant_CB_77: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 6 of A.",
-    "instruction": "bit 6,a"
+    "instruction": "bit 6,a",
+    "used": true
   }
 };
 
@@ -35631,7 +38749,8 @@ const variant_CB_78: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 7 of B.",
-    "instruction": "bit 7,b"
+    "instruction": "bit 7,b",
+    "used": true
   }
 };
 
@@ -35661,7 +38780,8 @@ const variant_CB_79: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 7 of C.",
-    "instruction": "bit 7,c"
+    "instruction": "bit 7,c",
+    "used": true
   }
 };
 
@@ -35691,7 +38811,8 @@ const variant_CB_7A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 7 of D.",
-    "instruction": "bit 7,d"
+    "instruction": "bit 7,d",
+    "used": true
   }
 };
 
@@ -35721,7 +38842,8 @@ const variant_CB_7B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 7 of E.",
-    "instruction": "bit 7,e"
+    "instruction": "bit 7,e",
+    "used": true
   }
 };
 
@@ -35751,7 +38873,8 @@ const variant_CB_7C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 7 of H.",
-    "instruction": "bit 7,h"
+    "instruction": "bit 7,h",
+    "used": true
   }
 };
 
@@ -35781,7 +38904,8 @@ const variant_CB_7D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 7 of L.",
-    "instruction": "bit 7,l"
+    "instruction": "bit 7,l",
+    "used": true
   }
 };
 
@@ -35813,7 +38937,8 @@ const variant_CB_7E: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Tests bit 7 of (HL).",
-    "instruction": "bit 7,(hl)"
+    "instruction": "bit 7,(hl)",
+    "used": true
   }
 };
 
@@ -35843,7 +38968,8 @@ const variant_CB_7F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Tests bit 7 of A.",
-    "instruction": "bit 7,a"
+    "instruction": "bit 7,a",
+    "used": true
   }
 };
 
@@ -35872,14 +38998,15 @@ const variant_DD_CB_dd_47: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**47",
+    "opcodes": "DDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 0,(ix+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -35908,14 +39035,15 @@ const variant_DD_CB_dd_40: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**47",
+    "opcodes": "DDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 0,(ix+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -35944,14 +39072,15 @@ const variant_DD_CB_dd_41: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**47",
+    "opcodes": "DDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 0,(ix+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -35980,14 +39109,15 @@ const variant_DD_CB_dd_42: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**47",
+    "opcodes": "DDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 0,(ix+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -36016,14 +39146,15 @@ const variant_DD_CB_dd_43: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**47",
+    "opcodes": "DDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 0,(ix+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -36052,14 +39183,15 @@ const variant_DD_CB_dd_44: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**47",
+    "opcodes": "DDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 0,(ix+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -36088,14 +39220,15 @@ const variant_DD_CB_dd_45: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**47",
+    "opcodes": "DDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 0,(ix+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -36124,14 +39257,15 @@ const variant_DD_CB_dd_46: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**47",
+    "opcodes": "DDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 0,(ix+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -36160,14 +39294,15 @@ const variant_DD_CB_dd_4F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**4F",
+    "opcodes": "DDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 1,(ix+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -36196,14 +39331,15 @@ const variant_DD_CB_dd_48: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**4F",
+    "opcodes": "DDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 1,(ix+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -36232,14 +39368,15 @@ const variant_DD_CB_dd_49: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**4F",
+    "opcodes": "DDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 1,(ix+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -36268,14 +39405,15 @@ const variant_DD_CB_dd_4A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**4F",
+    "opcodes": "DDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 1,(ix+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -36304,14 +39442,15 @@ const variant_DD_CB_dd_4B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**4F",
+    "opcodes": "DDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 1,(ix+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -36340,14 +39479,15 @@ const variant_DD_CB_dd_4C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**4F",
+    "opcodes": "DDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 1,(ix+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -36376,14 +39516,15 @@ const variant_DD_CB_dd_4D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**4F",
+    "opcodes": "DDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 1,(ix+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -36412,14 +39553,15 @@ const variant_DD_CB_dd_4E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**4F",
+    "opcodes": "DDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 1,(ix+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -36448,14 +39590,15 @@ const variant_DD_CB_dd_57: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**57",
+    "opcodes": "DDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 2,(ix+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -36484,14 +39627,15 @@ const variant_DD_CB_dd_50: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**57",
+    "opcodes": "DDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 2,(ix+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -36520,14 +39664,15 @@ const variant_DD_CB_dd_51: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**57",
+    "opcodes": "DDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 2,(ix+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -36556,14 +39701,15 @@ const variant_DD_CB_dd_52: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**57",
+    "opcodes": "DDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 2,(ix+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -36592,14 +39738,15 @@ const variant_DD_CB_dd_53: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**57",
+    "opcodes": "DDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 2,(ix+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -36628,14 +39775,15 @@ const variant_DD_CB_dd_54: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**57",
+    "opcodes": "DDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 2,(ix+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -36664,14 +39812,15 @@ const variant_DD_CB_dd_55: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**57",
+    "opcodes": "DDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 2,(ix+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -36700,14 +39849,15 @@ const variant_DD_CB_dd_56: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**57",
+    "opcodes": "DDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 2,(ix+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -36736,14 +39886,15 @@ const variant_DD_CB_dd_5F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**5F",
+    "opcodes": "DDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 3,(ix+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -36772,14 +39923,15 @@ const variant_DD_CB_dd_58: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**5F",
+    "opcodes": "DDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 3,(ix+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -36808,14 +39960,15 @@ const variant_DD_CB_dd_59: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**5F",
+    "opcodes": "DDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 3,(ix+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -36844,14 +39997,15 @@ const variant_DD_CB_dd_5A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**5F",
+    "opcodes": "DDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 3,(ix+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -36880,14 +40034,15 @@ const variant_DD_CB_dd_5B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**5F",
+    "opcodes": "DDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 3,(ix+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -36916,14 +40071,15 @@ const variant_DD_CB_dd_5C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**5F",
+    "opcodes": "DDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 3,(ix+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -36952,14 +40108,15 @@ const variant_DD_CB_dd_5D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**5F",
+    "opcodes": "DDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 3,(ix+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -36988,14 +40145,15 @@ const variant_DD_CB_dd_5E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**5F",
+    "opcodes": "DDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 3,(ix+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -37024,14 +40182,15 @@ const variant_DD_CB_dd_67: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**67",
+    "opcodes": "DDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 4,(ix+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -37060,14 +40219,15 @@ const variant_DD_CB_dd_60: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**67",
+    "opcodes": "DDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 4,(ix+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -37096,14 +40256,15 @@ const variant_DD_CB_dd_61: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**67",
+    "opcodes": "DDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 4,(ix+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -37132,14 +40293,15 @@ const variant_DD_CB_dd_62: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**67",
+    "opcodes": "DDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 4,(ix+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -37168,14 +40330,15 @@ const variant_DD_CB_dd_63: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**67",
+    "opcodes": "DDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 4,(ix+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -37204,14 +40367,15 @@ const variant_DD_CB_dd_64: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**67",
+    "opcodes": "DDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 4,(ix+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -37240,14 +40404,15 @@ const variant_DD_CB_dd_65: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**67",
+    "opcodes": "DDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 4,(ix+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -37276,14 +40441,15 @@ const variant_DD_CB_dd_66: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**67",
+    "opcodes": "DDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 4,(ix+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -37312,14 +40478,15 @@ const variant_DD_CB_dd_6F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**6F",
+    "opcodes": "DDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 5,(ix+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -37348,14 +40515,15 @@ const variant_DD_CB_dd_68: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**6F",
+    "opcodes": "DDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 5,(ix+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -37384,14 +40552,15 @@ const variant_DD_CB_dd_69: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**6F",
+    "opcodes": "DDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 5,(ix+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -37420,14 +40589,15 @@ const variant_DD_CB_dd_6A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**6F",
+    "opcodes": "DDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 5,(ix+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -37456,14 +40626,15 @@ const variant_DD_CB_dd_6B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**6F",
+    "opcodes": "DDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 5,(ix+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -37492,14 +40663,15 @@ const variant_DD_CB_dd_6C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**6F",
+    "opcodes": "DDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 5,(ix+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -37528,14 +40700,15 @@ const variant_DD_CB_dd_6D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**6F",
+    "opcodes": "DDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 5,(ix+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -37564,14 +40737,15 @@ const variant_DD_CB_dd_6E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**6F",
+    "opcodes": "DDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 5,(ix+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -37600,14 +40774,15 @@ const variant_DD_CB_dd_77: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**77",
+    "opcodes": "DDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 6,(ix+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -37636,14 +40811,15 @@ const variant_DD_CB_dd_70: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**77",
+    "opcodes": "DDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 6,(ix+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -37672,14 +40848,15 @@ const variant_DD_CB_dd_71: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**77",
+    "opcodes": "DDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 6,(ix+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -37708,14 +40885,15 @@ const variant_DD_CB_dd_72: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**77",
+    "opcodes": "DDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 6,(ix+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -37744,14 +40922,15 @@ const variant_DD_CB_dd_73: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**77",
+    "opcodes": "DDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 6,(ix+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -37780,14 +40959,15 @@ const variant_DD_CB_dd_74: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**77",
+    "opcodes": "DDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 6,(ix+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -37816,14 +40996,15 @@ const variant_DD_CB_dd_75: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**77",
+    "opcodes": "DDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 6,(ix+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -37852,14 +41033,15 @@ const variant_DD_CB_dd_76: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**77",
+    "opcodes": "DDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 6,(ix+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -37888,14 +41070,15 @@ const variant_DD_CB_dd_7F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**7F",
+    "opcodes": "DDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 7,(ix+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -37924,14 +41107,15 @@ const variant_DD_CB_dd_78: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**7F",
+    "opcodes": "DDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 7,(ix+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -37960,14 +41144,15 @@ const variant_DD_CB_dd_79: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**7F",
+    "opcodes": "DDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 7,(ix+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -37996,14 +41181,15 @@ const variant_DD_CB_dd_7A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**7F",
+    "opcodes": "DDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 7,(ix+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -38032,14 +41218,15 @@ const variant_DD_CB_dd_7B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**7F",
+    "opcodes": "DDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 7,(ix+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -38068,14 +41255,15 @@ const variant_DD_CB_dd_7C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**7F",
+    "opcodes": "DDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 7,(ix+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -38104,14 +41292,15 @@ const variant_DD_CB_dd_7D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**7F",
+    "opcodes": "DDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 7,(ix+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -38140,14 +41329,15 @@ const variant_DD_CB_dd_7E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "DDCB**7F",
+    "opcodes": "DDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "bit 7,(ix+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "bit 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -38176,14 +41366,15 @@ const variant_FD_CB_dd_47: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**47",
+    "opcodes": "FDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 0,(iy+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -38212,14 +41403,15 @@ const variant_FD_CB_dd_40: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**47",
+    "opcodes": "FDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 0,(iy+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -38248,14 +41440,15 @@ const variant_FD_CB_dd_41: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**47",
+    "opcodes": "FDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 0,(iy+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -38284,14 +41477,15 @@ const variant_FD_CB_dd_42: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**47",
+    "opcodes": "FDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 0,(iy+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -38320,14 +41514,15 @@ const variant_FD_CB_dd_43: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**47",
+    "opcodes": "FDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 0,(iy+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -38356,14 +41551,15 @@ const variant_FD_CB_dd_44: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**47",
+    "opcodes": "FDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 0,(iy+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -38392,14 +41588,15 @@ const variant_FD_CB_dd_45: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**47",
+    "opcodes": "FDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 0,(iy+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -38428,14 +41625,15 @@ const variant_FD_CB_dd_46: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**47",
+    "opcodes": "FDCB47",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 0,(iy+*)"
+    "description": "Tests bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -38464,14 +41662,15 @@ const variant_FD_CB_dd_4F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**4F",
+    "opcodes": "FDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 1,(iy+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -38500,14 +41699,15 @@ const variant_FD_CB_dd_48: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**4F",
+    "opcodes": "FDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 1,(iy+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -38536,14 +41736,15 @@ const variant_FD_CB_dd_49: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**4F",
+    "opcodes": "FDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 1,(iy+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -38572,14 +41773,15 @@ const variant_FD_CB_dd_4A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**4F",
+    "opcodes": "FDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 1,(iy+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -38608,14 +41810,15 @@ const variant_FD_CB_dd_4B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**4F",
+    "opcodes": "FDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 1,(iy+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -38644,14 +41847,15 @@ const variant_FD_CB_dd_4C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**4F",
+    "opcodes": "FDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 1,(iy+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -38680,14 +41884,15 @@ const variant_FD_CB_dd_4D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**4F",
+    "opcodes": "FDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 1,(iy+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -38716,14 +41921,15 @@ const variant_FD_CB_dd_4E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**4F",
+    "opcodes": "FDCB4F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 1,(iy+*)"
+    "description": "Tests bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -38752,14 +41958,15 @@ const variant_FD_CB_dd_57: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**57",
+    "opcodes": "FDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 2,(iy+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -38788,14 +41995,15 @@ const variant_FD_CB_dd_50: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**57",
+    "opcodes": "FDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 2,(iy+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -38824,14 +42032,15 @@ const variant_FD_CB_dd_51: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**57",
+    "opcodes": "FDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 2,(iy+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -38860,14 +42069,15 @@ const variant_FD_CB_dd_52: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**57",
+    "opcodes": "FDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 2,(iy+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -38896,14 +42106,15 @@ const variant_FD_CB_dd_53: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**57",
+    "opcodes": "FDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 2,(iy+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -38932,14 +42143,15 @@ const variant_FD_CB_dd_54: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**57",
+    "opcodes": "FDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 2,(iy+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -38968,14 +42180,15 @@ const variant_FD_CB_dd_55: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**57",
+    "opcodes": "FDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 2,(iy+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -39004,14 +42217,15 @@ const variant_FD_CB_dd_56: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**57",
+    "opcodes": "FDCB57",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 2,(iy+*)"
+    "description": "Tests bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -39040,14 +42254,15 @@ const variant_FD_CB_dd_5F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**5F",
+    "opcodes": "FDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 3,(iy+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -39076,14 +42291,15 @@ const variant_FD_CB_dd_58: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**5F",
+    "opcodes": "FDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 3,(iy+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -39112,14 +42328,15 @@ const variant_FD_CB_dd_59: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**5F",
+    "opcodes": "FDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 3,(iy+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -39148,14 +42365,15 @@ const variant_FD_CB_dd_5A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**5F",
+    "opcodes": "FDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 3,(iy+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -39184,14 +42402,15 @@ const variant_FD_CB_dd_5B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**5F",
+    "opcodes": "FDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 3,(iy+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -39220,14 +42439,15 @@ const variant_FD_CB_dd_5C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**5F",
+    "opcodes": "FDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 3,(iy+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -39256,14 +42476,15 @@ const variant_FD_CB_dd_5D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**5F",
+    "opcodes": "FDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 3,(iy+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -39292,14 +42513,15 @@ const variant_FD_CB_dd_5E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**5F",
+    "opcodes": "FDCB5F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 3,(iy+*)"
+    "description": "Tests bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -39328,14 +42550,15 @@ const variant_FD_CB_dd_67: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**67",
+    "opcodes": "FDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 4,(iy+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -39364,14 +42587,15 @@ const variant_FD_CB_dd_60: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**67",
+    "opcodes": "FDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 4,(iy+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -39400,14 +42624,15 @@ const variant_FD_CB_dd_61: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**67",
+    "opcodes": "FDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 4,(iy+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -39436,14 +42661,15 @@ const variant_FD_CB_dd_62: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**67",
+    "opcodes": "FDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 4,(iy+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -39472,14 +42698,15 @@ const variant_FD_CB_dd_63: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**67",
+    "opcodes": "FDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 4,(iy+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -39508,14 +42735,15 @@ const variant_FD_CB_dd_64: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**67",
+    "opcodes": "FDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 4,(iy+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -39544,14 +42772,15 @@ const variant_FD_CB_dd_65: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**67",
+    "opcodes": "FDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 4,(iy+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -39580,14 +42809,15 @@ const variant_FD_CB_dd_66: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**67",
+    "opcodes": "FDCB67",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 4,(iy+*)"
+    "description": "Tests bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -39616,14 +42846,15 @@ const variant_FD_CB_dd_6F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**6F",
+    "opcodes": "FDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 5,(iy+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -39652,14 +42883,15 @@ const variant_FD_CB_dd_68: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**6F",
+    "opcodes": "FDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 5,(iy+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -39688,14 +42920,15 @@ const variant_FD_CB_dd_69: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**6F",
+    "opcodes": "FDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 5,(iy+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -39724,14 +42957,15 @@ const variant_FD_CB_dd_6A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**6F",
+    "opcodes": "FDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 5,(iy+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -39760,14 +42994,15 @@ const variant_FD_CB_dd_6B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**6F",
+    "opcodes": "FDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 5,(iy+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -39796,14 +43031,15 @@ const variant_FD_CB_dd_6C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**6F",
+    "opcodes": "FDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 5,(iy+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -39832,14 +43068,15 @@ const variant_FD_CB_dd_6D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**6F",
+    "opcodes": "FDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 5,(iy+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -39868,14 +43105,15 @@ const variant_FD_CB_dd_6E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**6F",
+    "opcodes": "FDCB6F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 5,(iy+*)"
+    "description": "Tests bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -39904,14 +43142,15 @@ const variant_FD_CB_dd_77: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**77",
+    "opcodes": "FDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 6,(iy+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -39940,14 +43179,15 @@ const variant_FD_CB_dd_70: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**77",
+    "opcodes": "FDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 6,(iy+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -39976,14 +43216,15 @@ const variant_FD_CB_dd_71: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**77",
+    "opcodes": "FDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 6,(iy+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -40012,14 +43253,15 @@ const variant_FD_CB_dd_72: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**77",
+    "opcodes": "FDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 6,(iy+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -40048,14 +43290,15 @@ const variant_FD_CB_dd_73: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**77",
+    "opcodes": "FDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 6,(iy+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -40084,14 +43327,15 @@ const variant_FD_CB_dd_74: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**77",
+    "opcodes": "FDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 6,(iy+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -40120,14 +43364,15 @@ const variant_FD_CB_dd_75: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**77",
+    "opcodes": "FDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 6,(iy+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -40156,14 +43401,15 @@ const variant_FD_CB_dd_76: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**77",
+    "opcodes": "FDCB77",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 6,(iy+*)"
+    "description": "Tests bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -40192,14 +43438,15 @@ const variant_FD_CB_dd_7F: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**7F",
+    "opcodes": "FDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 7,(iy+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -40228,14 +43475,15 @@ const variant_FD_CB_dd_78: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**7F",
+    "opcodes": "FDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 7,(iy+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -40264,14 +43512,15 @@ const variant_FD_CB_dd_79: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**7F",
+    "opcodes": "FDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 7,(iy+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -40300,14 +43549,15 @@ const variant_FD_CB_dd_7A: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**7F",
+    "opcodes": "FDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 7,(iy+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -40336,14 +43586,15 @@ const variant_FD_CB_dd_7B: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**7F",
+    "opcodes": "FDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 7,(iy+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -40372,14 +43623,15 @@ const variant_FD_CB_dd_7C: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**7F",
+    "opcodes": "FDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 7,(iy+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -40408,14 +43660,15 @@ const variant_FD_CB_dd_7D: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**7F",
+    "opcodes": "FDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 7,(iy+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -40444,14 +43697,15 @@ const variant_FD_CB_dd_7E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": true,
   "clr": {
-    "opcodes": "FDCB**7F",
+    "opcodes": "FDCB7F",
     "undocumented": true,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
     "without_jump_clock_count": 20,
-    "description": "Tests bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "bit 7,(iy+*)"
+    "description": "Tests bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "bit 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -40481,7 +43735,8 @@ const variant_CB_80: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 0 of B.",
-    "instruction": "res 0,b"
+    "instruction": "res 0,b",
+    "used": true
   }
 };
 
@@ -40511,7 +43766,8 @@ const variant_CB_81: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 0 of C.",
-    "instruction": "res 0,c"
+    "instruction": "res 0,c",
+    "used": true
   }
 };
 
@@ -40541,7 +43797,8 @@ const variant_CB_82: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 0 of D.",
-    "instruction": "res 0,d"
+    "instruction": "res 0,d",
+    "used": true
   }
 };
 
@@ -40571,7 +43828,8 @@ const variant_CB_83: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 0 of E.",
-    "instruction": "res 0,e"
+    "instruction": "res 0,e",
+    "used": true
   }
 };
 
@@ -40601,7 +43859,8 @@ const variant_CB_84: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 0 of H.",
-    "instruction": "res 0,h"
+    "instruction": "res 0,h",
+    "used": true
   }
 };
 
@@ -40631,7 +43890,8 @@ const variant_CB_85: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 0 of L.",
-    "instruction": "res 0,l"
+    "instruction": "res 0,l",
+    "used": true
   }
 };
 
@@ -40663,7 +43923,8 @@ const variant_CB_86: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Resets bit 0 of (HL).",
-    "instruction": "res 0,(hl)"
+    "instruction": "res 0,(hl)",
+    "used": true
   }
 };
 
@@ -40693,7 +43954,8 @@ const variant_CB_87: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 0 of A.",
-    "instruction": "res 0,a"
+    "instruction": "res 0,a",
+    "used": true
   }
 };
 
@@ -40723,7 +43985,8 @@ const variant_CB_88: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 1 of B.",
-    "instruction": "res 1,b"
+    "instruction": "res 1,b",
+    "used": true
   }
 };
 
@@ -40753,7 +44016,8 @@ const variant_CB_89: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 1 of C.",
-    "instruction": "res 1,c"
+    "instruction": "res 1,c",
+    "used": true
   }
 };
 
@@ -40783,7 +44047,8 @@ const variant_CB_8A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 1 of D.",
-    "instruction": "res 1,d"
+    "instruction": "res 1,d",
+    "used": true
   }
 };
 
@@ -40813,7 +44078,8 @@ const variant_CB_8B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 1 of E.",
-    "instruction": "res 1,e"
+    "instruction": "res 1,e",
+    "used": true
   }
 };
 
@@ -40843,7 +44109,8 @@ const variant_CB_8C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 1 of H.",
-    "instruction": "res 1,h"
+    "instruction": "res 1,h",
+    "used": true
   }
 };
 
@@ -40873,7 +44140,8 @@ const variant_CB_8D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 1 of L.",
-    "instruction": "res 1,l"
+    "instruction": "res 1,l",
+    "used": true
   }
 };
 
@@ -40905,7 +44173,8 @@ const variant_CB_8E: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Resets bit 1 of (HL).",
-    "instruction": "res 1,(hl)"
+    "instruction": "res 1,(hl)",
+    "used": true
   }
 };
 
@@ -40935,7 +44204,8 @@ const variant_CB_8F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 1 of A.",
-    "instruction": "res 1,a"
+    "instruction": "res 1,a",
+    "used": true
   }
 };
 
@@ -40965,7 +44235,8 @@ const variant_CB_90: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 2 of B.",
-    "instruction": "res 2,b"
+    "instruction": "res 2,b",
+    "used": true
   }
 };
 
@@ -40995,7 +44266,8 @@ const variant_CB_91: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 2 of C.",
-    "instruction": "res 2,c"
+    "instruction": "res 2,c",
+    "used": true
   }
 };
 
@@ -41025,7 +44297,8 @@ const variant_CB_92: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 2 of D.",
-    "instruction": "res 2,d"
+    "instruction": "res 2,d",
+    "used": true
   }
 };
 
@@ -41055,7 +44328,8 @@ const variant_CB_93: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 2 of E.",
-    "instruction": "res 2,e"
+    "instruction": "res 2,e",
+    "used": true
   }
 };
 
@@ -41085,7 +44359,8 @@ const variant_CB_94: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 2 of H.",
-    "instruction": "res 2,h"
+    "instruction": "res 2,h",
+    "used": true
   }
 };
 
@@ -41115,7 +44390,8 @@ const variant_CB_95: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 2 of L.",
-    "instruction": "res 2,l"
+    "instruction": "res 2,l",
+    "used": true
   }
 };
 
@@ -41147,7 +44423,8 @@ const variant_CB_96: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Resets bit 2 of (HL).",
-    "instruction": "res 2,(hl)"
+    "instruction": "res 2,(hl)",
+    "used": true
   }
 };
 
@@ -41177,7 +44454,8 @@ const variant_CB_97: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 2 of A.",
-    "instruction": "res 2,a"
+    "instruction": "res 2,a",
+    "used": true
   }
 };
 
@@ -41207,7 +44485,8 @@ const variant_CB_98: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 3 of B.",
-    "instruction": "res 3,b"
+    "instruction": "res 3,b",
+    "used": true
   }
 };
 
@@ -41237,7 +44516,8 @@ const variant_CB_99: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 3 of C.",
-    "instruction": "res 3,c"
+    "instruction": "res 3,c",
+    "used": true
   }
 };
 
@@ -41267,7 +44547,8 @@ const variant_CB_9A: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 3 of D.",
-    "instruction": "res 3,d"
+    "instruction": "res 3,d",
+    "used": true
   }
 };
 
@@ -41297,7 +44578,8 @@ const variant_CB_9B: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 3 of E.",
-    "instruction": "res 3,e"
+    "instruction": "res 3,e",
+    "used": true
   }
 };
 
@@ -41327,7 +44609,8 @@ const variant_CB_9C: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 3 of H.",
-    "instruction": "res 3,h"
+    "instruction": "res 3,h",
+    "used": true
   }
 };
 
@@ -41357,7 +44640,8 @@ const variant_CB_9D: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 3 of L.",
-    "instruction": "res 3,l"
+    "instruction": "res 3,l",
+    "used": true
   }
 };
 
@@ -41389,7 +44673,8 @@ const variant_CB_9E: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Resets bit 3 of (HL).",
-    "instruction": "res 3,(hl)"
+    "instruction": "res 3,(hl)",
+    "used": true
   }
 };
 
@@ -41419,7 +44704,8 @@ const variant_CB_9F: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 3 of A.",
-    "instruction": "res 3,a"
+    "instruction": "res 3,a",
+    "used": true
   }
 };
 
@@ -41449,7 +44735,8 @@ const variant_CB_A0: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 4 of B.",
-    "instruction": "res 4,b"
+    "instruction": "res 4,b",
+    "used": true
   }
 };
 
@@ -41479,7 +44766,8 @@ const variant_CB_A1: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 4 of C.",
-    "instruction": "res 4,c"
+    "instruction": "res 4,c",
+    "used": true
   }
 };
 
@@ -41509,7 +44797,8 @@ const variant_CB_A2: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 4 of D.",
-    "instruction": "res 4,d"
+    "instruction": "res 4,d",
+    "used": true
   }
 };
 
@@ -41539,7 +44828,8 @@ const variant_CB_A3: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 4 of E.",
-    "instruction": "res 4,e"
+    "instruction": "res 4,e",
+    "used": true
   }
 };
 
@@ -41569,7 +44859,8 @@ const variant_CB_A4: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 4 of H.",
-    "instruction": "res 4,h"
+    "instruction": "res 4,h",
+    "used": true
   }
 };
 
@@ -41599,7 +44890,8 @@ const variant_CB_A5: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 4 of L.",
-    "instruction": "res 4,l"
+    "instruction": "res 4,l",
+    "used": true
   }
 };
 
@@ -41631,7 +44923,8 @@ const variant_CB_A6: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Resets bit 4 of (HL).",
-    "instruction": "res 4,(hl)"
+    "instruction": "res 4,(hl)",
+    "used": true
   }
 };
 
@@ -41661,7 +44954,8 @@ const variant_CB_A7: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 4 of A.",
-    "instruction": "res 4,a"
+    "instruction": "res 4,a",
+    "used": true
   }
 };
 
@@ -41691,7 +44985,8 @@ const variant_CB_A8: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 5 of B.",
-    "instruction": "res 5,b"
+    "instruction": "res 5,b",
+    "used": true
   }
 };
 
@@ -41721,7 +45016,8 @@ const variant_CB_A9: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 5 of C.",
-    "instruction": "res 5,c"
+    "instruction": "res 5,c",
+    "used": true
   }
 };
 
@@ -41751,7 +45047,8 @@ const variant_CB_AA: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 5 of D.",
-    "instruction": "res 5,d"
+    "instruction": "res 5,d",
+    "used": true
   }
 };
 
@@ -41781,7 +45078,8 @@ const variant_CB_AB: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 5 of E.",
-    "instruction": "res 5,e"
+    "instruction": "res 5,e",
+    "used": true
   }
 };
 
@@ -41811,7 +45109,8 @@ const variant_CB_AC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 5 of H.",
-    "instruction": "res 5,h"
+    "instruction": "res 5,h",
+    "used": true
   }
 };
 
@@ -41841,7 +45140,8 @@ const variant_CB_AD: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 5 of L.",
-    "instruction": "res 5,l"
+    "instruction": "res 5,l",
+    "used": true
   }
 };
 
@@ -41873,7 +45173,8 @@ const variant_CB_AE: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Resets bit 5 of (HL).",
-    "instruction": "res 5,(hl)"
+    "instruction": "res 5,(hl)",
+    "used": true
   }
 };
 
@@ -41903,7 +45204,8 @@ const variant_CB_AF: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 5 of A.",
-    "instruction": "res 5,a"
+    "instruction": "res 5,a",
+    "used": true
   }
 };
 
@@ -41933,7 +45235,8 @@ const variant_CB_B0: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 6 of B.",
-    "instruction": "res 6,b"
+    "instruction": "res 6,b",
+    "used": true
   }
 };
 
@@ -41963,7 +45266,8 @@ const variant_CB_B1: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 6 of C.",
-    "instruction": "res 6,c"
+    "instruction": "res 6,c",
+    "used": true
   }
 };
 
@@ -41993,7 +45297,8 @@ const variant_CB_B2: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 6 of D.",
-    "instruction": "res 6,d"
+    "instruction": "res 6,d",
+    "used": true
   }
 };
 
@@ -42023,7 +45328,8 @@ const variant_CB_B3: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 6 of E.",
-    "instruction": "res 6,e"
+    "instruction": "res 6,e",
+    "used": true
   }
 };
 
@@ -42053,7 +45359,8 @@ const variant_CB_B4: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 6 of H.",
-    "instruction": "res 6,h"
+    "instruction": "res 6,h",
+    "used": true
   }
 };
 
@@ -42083,7 +45390,8 @@ const variant_CB_B5: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 6 of L.",
-    "instruction": "res 6,l"
+    "instruction": "res 6,l",
+    "used": true
   }
 };
 
@@ -42115,7 +45423,8 @@ const variant_CB_B6: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Resets bit 6 of (HL).",
-    "instruction": "res 6,(hl)"
+    "instruction": "res 6,(hl)",
+    "used": true
   }
 };
 
@@ -42145,7 +45454,8 @@ const variant_CB_B7: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 6 of A.",
-    "instruction": "res 6,a"
+    "instruction": "res 6,a",
+    "used": true
   }
 };
 
@@ -42175,7 +45485,8 @@ const variant_CB_B8: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 7 of B.",
-    "instruction": "res 7,b"
+    "instruction": "res 7,b",
+    "used": true
   }
 };
 
@@ -42205,7 +45516,8 @@ const variant_CB_B9: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 7 of C.",
-    "instruction": "res 7,c"
+    "instruction": "res 7,c",
+    "used": true
   }
 };
 
@@ -42235,7 +45547,8 @@ const variant_CB_BA: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 7 of D.",
-    "instruction": "res 7,d"
+    "instruction": "res 7,d",
+    "used": true
   }
 };
 
@@ -42265,7 +45578,8 @@ const variant_CB_BB: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 7 of E.",
-    "instruction": "res 7,e"
+    "instruction": "res 7,e",
+    "used": true
   }
 };
 
@@ -42295,7 +45609,8 @@ const variant_CB_BC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 7 of H.",
-    "instruction": "res 7,h"
+    "instruction": "res 7,h",
+    "used": true
   }
 };
 
@@ -42325,7 +45640,8 @@ const variant_CB_BD: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 7 of L.",
-    "instruction": "res 7,l"
+    "instruction": "res 7,l",
+    "used": true
   }
 };
 
@@ -42357,7 +45673,8 @@ const variant_CB_BE: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Resets bit 7 of (HL).",
-    "instruction": "res 7,(hl)"
+    "instruction": "res 7,(hl)",
+    "used": true
   }
 };
 
@@ -42387,7 +45704,8 @@ const variant_CB_BF: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Resets bit 7 of A.",
-    "instruction": "res 7,a"
+    "instruction": "res 7,a",
+    "used": true
   }
 };
 
@@ -42416,14 +45734,15 @@ const variant_DD_CB_dd_86: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**86",
+    "opcodes": "DDCB86",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "res 0,(ix+*)"
+    "description": "Resets bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "res 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -42452,14 +45771,15 @@ const variant_DD_CB_dd_8E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**8E",
+    "opcodes": "DDCB8E",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "res 1,(ix+*)"
+    "description": "Resets bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "res 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -42488,14 +45808,15 @@ const variant_DD_CB_dd_96: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**96",
+    "opcodes": "DDCB96",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "res 2,(ix+*)"
+    "description": "Resets bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "res 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -42524,14 +45845,15 @@ const variant_DD_CB_dd_9E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**9E",
+    "opcodes": "DDCB9E",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "res 3,(ix+*)"
+    "description": "Resets bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "res 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -42560,14 +45882,15 @@ const variant_DD_CB_dd_A6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**A6",
+    "opcodes": "DDCBA6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "res 4,(ix+*)"
+    "description": "Resets bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "res 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -42596,14 +45919,15 @@ const variant_DD_CB_dd_AE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**AE",
+    "opcodes": "DDCBAE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "res 5,(ix+*)"
+    "description": "Resets bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "res 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -42632,14 +45956,15 @@ const variant_DD_CB_dd_B6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**B6",
+    "opcodes": "DDCBB6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "res 6,(ix+*)"
+    "description": "Resets bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "res 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -42668,14 +45993,15 @@ const variant_DD_CB_dd_BE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**BE",
+    "opcodes": "DDCBBE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "res 7,(ix+*)"
+    "description": "Resets bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "res 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -42704,14 +46030,15 @@ const variant_FD_CB_dd_86: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**86",
+    "opcodes": "FDCB86",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "res 0,(iy+*)"
+    "description": "Resets bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "res 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -42740,14 +46067,15 @@ const variant_FD_CB_dd_8E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**8E",
+    "opcodes": "FDCB8E",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "res 1,(iy+*)"
+    "description": "Resets bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "res 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -42776,14 +46104,15 @@ const variant_FD_CB_dd_96: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**96",
+    "opcodes": "FDCB96",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "res 2,(iy+*)"
+    "description": "Resets bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "res 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -42812,14 +46141,15 @@ const variant_FD_CB_dd_9E: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**9E",
+    "opcodes": "FDCB9E",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "res 3,(iy+*)"
+    "description": "Resets bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "res 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -42848,14 +46178,15 @@ const variant_FD_CB_dd_A6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**A6",
+    "opcodes": "FDCBA6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "res 4,(iy+*)"
+    "description": "Resets bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "res 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -42884,14 +46215,15 @@ const variant_FD_CB_dd_AE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**AE",
+    "opcodes": "FDCBAE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "res 5,(iy+*)"
+    "description": "Resets bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "res 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -42920,14 +46252,15 @@ const variant_FD_CB_dd_B6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**B6",
+    "opcodes": "FDCBB6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "res 6,(iy+*)"
+    "description": "Resets bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "res 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -42956,14 +46289,15 @@ const variant_FD_CB_dd_BE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**BE",
+    "opcodes": "FDCBBE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Resets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "res 7,(iy+*)"
+    "description": "Resets bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "res 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -42993,7 +46327,8 @@ const variant_CB_C0: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 0 of B.",
-    "instruction": "set 0,b"
+    "instruction": "set 0,b",
+    "used": true
   }
 };
 
@@ -43023,7 +46358,8 @@ const variant_CB_C1: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 0 of C.",
-    "instruction": "set 0,c"
+    "instruction": "set 0,c",
+    "used": true
   }
 };
 
@@ -43053,7 +46389,8 @@ const variant_CB_C2: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 0 of D.",
-    "instruction": "set 0,d"
+    "instruction": "set 0,d",
+    "used": true
   }
 };
 
@@ -43083,7 +46420,8 @@ const variant_CB_C3: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 0 of E.",
-    "instruction": "set 0,e"
+    "instruction": "set 0,e",
+    "used": true
   }
 };
 
@@ -43113,7 +46451,8 @@ const variant_CB_C4: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 0 of H.",
-    "instruction": "set 0,h"
+    "instruction": "set 0,h",
+    "used": true
   }
 };
 
@@ -43143,7 +46482,8 @@ const variant_CB_C5: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 0 of L.",
-    "instruction": "set 0,l"
+    "instruction": "set 0,l",
+    "used": true
   }
 };
 
@@ -43175,7 +46515,8 @@ const variant_CB_C6: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Sets bit 0 of (HL).",
-    "instruction": "set 0,(hl)"
+    "instruction": "set 0,(hl)",
+    "used": true
   }
 };
 
@@ -43205,7 +46546,8 @@ const variant_CB_C7: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 0 of A.",
-    "instruction": "set 0,a"
+    "instruction": "set 0,a",
+    "used": true
   }
 };
 
@@ -43235,7 +46577,8 @@ const variant_CB_C8: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 1 of B.",
-    "instruction": "set 1,b"
+    "instruction": "set 1,b",
+    "used": true
   }
 };
 
@@ -43265,7 +46608,8 @@ const variant_CB_C9: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 1 of C.",
-    "instruction": "set 1,c"
+    "instruction": "set 1,c",
+    "used": true
   }
 };
 
@@ -43295,7 +46639,8 @@ const variant_CB_CA: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 1 of D.",
-    "instruction": "set 1,d"
+    "instruction": "set 1,d",
+    "used": true
   }
 };
 
@@ -43325,7 +46670,8 @@ const variant_CB_CB: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 1 of E.",
-    "instruction": "set 1,e"
+    "instruction": "set 1,e",
+    "used": true
   }
 };
 
@@ -43355,7 +46701,8 @@ const variant_CB_CC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 1 of H.",
-    "instruction": "set 1,h"
+    "instruction": "set 1,h",
+    "used": true
   }
 };
 
@@ -43385,7 +46732,8 @@ const variant_CB_CD: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 1 of L.",
-    "instruction": "set 1,l"
+    "instruction": "set 1,l",
+    "used": true
   }
 };
 
@@ -43417,7 +46765,8 @@ const variant_CB_CE: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Sets bit 1 of (HL).",
-    "instruction": "set 1,(hl)"
+    "instruction": "set 1,(hl)",
+    "used": true
   }
 };
 
@@ -43447,7 +46796,8 @@ const variant_CB_CF: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 1 of A.",
-    "instruction": "set 1,a"
+    "instruction": "set 1,a",
+    "used": true
   }
 };
 
@@ -43477,7 +46827,8 @@ const variant_CB_D0: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 2 of B.",
-    "instruction": "set 2,b"
+    "instruction": "set 2,b",
+    "used": true
   }
 };
 
@@ -43507,7 +46858,8 @@ const variant_CB_D1: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 2 of C.",
-    "instruction": "set 2,c"
+    "instruction": "set 2,c",
+    "used": true
   }
 };
 
@@ -43537,7 +46889,8 @@ const variant_CB_D2: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 2 of D.",
-    "instruction": "set 2,d"
+    "instruction": "set 2,d",
+    "used": true
   }
 };
 
@@ -43567,7 +46920,8 @@ const variant_CB_D3: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 2 of E.",
-    "instruction": "set 2,e"
+    "instruction": "set 2,e",
+    "used": true
   }
 };
 
@@ -43597,7 +46951,8 @@ const variant_CB_D4: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 2 of H.",
-    "instruction": "set 2,h"
+    "instruction": "set 2,h",
+    "used": true
   }
 };
 
@@ -43627,7 +46982,8 @@ const variant_CB_D5: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 2 of L.",
-    "instruction": "set 2,l"
+    "instruction": "set 2,l",
+    "used": true
   }
 };
 
@@ -43659,7 +47015,8 @@ const variant_CB_D6: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Sets bit 2 of (HL).",
-    "instruction": "set 2,(hl)"
+    "instruction": "set 2,(hl)",
+    "used": true
   }
 };
 
@@ -43689,7 +47046,8 @@ const variant_CB_D7: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 2 of A.",
-    "instruction": "set 2,a"
+    "instruction": "set 2,a",
+    "used": true
   }
 };
 
@@ -43719,7 +47077,8 @@ const variant_CB_D8: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 3 of B.",
-    "instruction": "set 3,b"
+    "instruction": "set 3,b",
+    "used": true
   }
 };
 
@@ -43749,7 +47108,8 @@ const variant_CB_D9: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 3 of C.",
-    "instruction": "set 3,c"
+    "instruction": "set 3,c",
+    "used": true
   }
 };
 
@@ -43779,7 +47139,8 @@ const variant_CB_DA: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 3 of D.",
-    "instruction": "set 3,d"
+    "instruction": "set 3,d",
+    "used": true
   }
 };
 
@@ -43809,7 +47170,8 @@ const variant_CB_DB: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 3 of E.",
-    "instruction": "set 3,e"
+    "instruction": "set 3,e",
+    "used": true
   }
 };
 
@@ -43839,7 +47201,8 @@ const variant_CB_DC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 3 of H.",
-    "instruction": "set 3,h"
+    "instruction": "set 3,h",
+    "used": true
   }
 };
 
@@ -43869,7 +47232,8 @@ const variant_CB_DD: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 3 of L.",
-    "instruction": "set 3,l"
+    "instruction": "set 3,l",
+    "used": true
   }
 };
 
@@ -43901,7 +47265,8 @@ const variant_CB_DE: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Sets bit 3 of (HL).",
-    "instruction": "set 3,(hl)"
+    "instruction": "set 3,(hl)",
+    "used": true
   }
 };
 
@@ -43931,7 +47296,8 @@ const variant_CB_DF: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 3 of A.",
-    "instruction": "set 3,a"
+    "instruction": "set 3,a",
+    "used": true
   }
 };
 
@@ -43961,7 +47327,8 @@ const variant_CB_E0: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 4 of B.",
-    "instruction": "set 4,b"
+    "instruction": "set 4,b",
+    "used": true
   }
 };
 
@@ -43991,7 +47358,8 @@ const variant_CB_E1: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 4 of C.",
-    "instruction": "set 4,c"
+    "instruction": "set 4,c",
+    "used": true
   }
 };
 
@@ -44021,7 +47389,8 @@ const variant_CB_E2: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 4 of D.",
-    "instruction": "set 4,d"
+    "instruction": "set 4,d",
+    "used": true
   }
 };
 
@@ -44051,7 +47420,8 @@ const variant_CB_E3: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 4 of E.",
-    "instruction": "set 4,e"
+    "instruction": "set 4,e",
+    "used": true
   }
 };
 
@@ -44081,7 +47451,8 @@ const variant_CB_E4: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 4 of H.",
-    "instruction": "set 4,h"
+    "instruction": "set 4,h",
+    "used": true
   }
 };
 
@@ -44111,7 +47482,8 @@ const variant_CB_E5: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 4 of L.",
-    "instruction": "set 4,l"
+    "instruction": "set 4,l",
+    "used": true
   }
 };
 
@@ -44143,7 +47515,8 @@ const variant_CB_E6: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Sets bit 4 of (HL).",
-    "instruction": "set 4,(hl)"
+    "instruction": "set 4,(hl)",
+    "used": true
   }
 };
 
@@ -44173,7 +47546,8 @@ const variant_CB_E7: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 4 of A.",
-    "instruction": "set 4,a"
+    "instruction": "set 4,a",
+    "used": true
   }
 };
 
@@ -44203,7 +47577,8 @@ const variant_CB_E8: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 5 of B.",
-    "instruction": "set 5,b"
+    "instruction": "set 5,b",
+    "used": true
   }
 };
 
@@ -44233,7 +47608,8 @@ const variant_CB_E9: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 5 of C.",
-    "instruction": "set 5,c"
+    "instruction": "set 5,c",
+    "used": true
   }
 };
 
@@ -44263,7 +47639,8 @@ const variant_CB_EA: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 5 of D.",
-    "instruction": "set 5,d"
+    "instruction": "set 5,d",
+    "used": true
   }
 };
 
@@ -44293,7 +47670,8 @@ const variant_CB_EB: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 5 of E.",
-    "instruction": "set 5,e"
+    "instruction": "set 5,e",
+    "used": true
   }
 };
 
@@ -44323,7 +47701,8 @@ const variant_CB_EC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 5 of H.",
-    "instruction": "set 5,h"
+    "instruction": "set 5,h",
+    "used": true
   }
 };
 
@@ -44353,7 +47732,8 @@ const variant_CB_ED: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 5 of L.",
-    "instruction": "set 5,l"
+    "instruction": "set 5,l",
+    "used": true
   }
 };
 
@@ -44385,7 +47765,8 @@ const variant_CB_EE: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Sets bit 5 of (HL).",
-    "instruction": "set 5,(hl)"
+    "instruction": "set 5,(hl)",
+    "used": true
   }
 };
 
@@ -44415,7 +47796,8 @@ const variant_CB_EF: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 5 of A.",
-    "instruction": "set 5,a"
+    "instruction": "set 5,a",
+    "used": true
   }
 };
 
@@ -44445,7 +47827,8 @@ const variant_CB_F0: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 6 of B.",
-    "instruction": "set 6,b"
+    "instruction": "set 6,b",
+    "used": true
   }
 };
 
@@ -44475,7 +47858,8 @@ const variant_CB_F1: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 6 of C.",
-    "instruction": "set 6,c"
+    "instruction": "set 6,c",
+    "used": true
   }
 };
 
@@ -44505,7 +47889,8 @@ const variant_CB_F2: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 6 of D.",
-    "instruction": "set 6,d"
+    "instruction": "set 6,d",
+    "used": true
   }
 };
 
@@ -44535,7 +47920,8 @@ const variant_CB_F3: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 6 of E.",
-    "instruction": "set 6,e"
+    "instruction": "set 6,e",
+    "used": true
   }
 };
 
@@ -44565,7 +47951,8 @@ const variant_CB_F4: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 6 of H.",
-    "instruction": "set 6,h"
+    "instruction": "set 6,h",
+    "used": true
   }
 };
 
@@ -44595,7 +47982,8 @@ const variant_CB_F5: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 6 of L.",
-    "instruction": "set 6,l"
+    "instruction": "set 6,l",
+    "used": true
   }
 };
 
@@ -44627,7 +48015,8 @@ const variant_CB_F6: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Sets bit 6 of (HL).",
-    "instruction": "set 6,(hl)"
+    "instruction": "set 6,(hl)",
+    "used": true
   }
 };
 
@@ -44657,7 +48046,8 @@ const variant_CB_F7: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 6 of A.",
-    "instruction": "set 6,a"
+    "instruction": "set 6,a",
+    "used": true
   }
 };
 
@@ -44687,7 +48077,8 @@ const variant_CB_F8: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 7 of B.",
-    "instruction": "set 7,b"
+    "instruction": "set 7,b",
+    "used": true
   }
 };
 
@@ -44717,7 +48108,8 @@ const variant_CB_F9: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 7 of C.",
-    "instruction": "set 7,c"
+    "instruction": "set 7,c",
+    "used": true
   }
 };
 
@@ -44747,7 +48139,8 @@ const variant_CB_FA: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 7 of D.",
-    "instruction": "set 7,d"
+    "instruction": "set 7,d",
+    "used": true
   }
 };
 
@@ -44777,7 +48170,8 @@ const variant_CB_FB: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 7 of E.",
-    "instruction": "set 7,e"
+    "instruction": "set 7,e",
+    "used": true
   }
 };
 
@@ -44807,7 +48201,8 @@ const variant_CB_FC: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 7 of H.",
-    "instruction": "set 7,h"
+    "instruction": "set 7,h",
+    "used": true
   }
 };
 
@@ -44837,7 +48232,8 @@ const variant_CB_FD: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 7 of L.",
-    "instruction": "set 7,l"
+    "instruction": "set 7,l",
+    "used": true
   }
 };
 
@@ -44869,7 +48265,8 @@ const variant_CB_FE: OpcodeVariant = {
     "with_jump_clock_count": 15,
     "without_jump_clock_count": 15,
     "description": "Sets bit 7 of (HL).",
-    "instruction": "set 7,(hl)"
+    "instruction": "set 7,(hl)",
+    "used": true
   }
 };
 
@@ -44899,7 +48296,8 @@ const variant_CB_FF: OpcodeVariant = {
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
     "description": "Sets bit 7 of A.",
-    "instruction": "set 7,a"
+    "instruction": "set 7,a",
+    "used": true
   }
 };
 
@@ -44928,14 +48326,15 @@ const variant_DD_CB_dd_C6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**C6",
+    "opcodes": "DDCBC6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IX plus *.",
-    "instruction": "set 0,(ix+*)"
+    "description": "Sets bit 0 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "set 0,(ix+d)",
+    "used": true
   }
 };
 
@@ -44964,14 +48363,15 @@ const variant_DD_CB_dd_CE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**CE",
+    "opcodes": "DDCBCE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IX plus *.",
-    "instruction": "set 1,(ix+*)"
+    "description": "Sets bit 1 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "set 1,(ix+d)",
+    "used": true
   }
 };
 
@@ -45000,14 +48400,15 @@ const variant_DD_CB_dd_D6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**D6",
+    "opcodes": "DDCBD6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IX plus *.",
-    "instruction": "set 2,(ix+*)"
+    "description": "Sets bit 2 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "set 2,(ix+d)",
+    "used": true
   }
 };
 
@@ -45036,14 +48437,15 @@ const variant_DD_CB_dd_DE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**DE",
+    "opcodes": "DDCBDE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IX plus *.",
-    "instruction": "set 3,(ix+*)"
+    "description": "Sets bit 3 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "set 3,(ix+d)",
+    "used": true
   }
 };
 
@@ -45072,14 +48474,15 @@ const variant_DD_CB_dd_E6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**E6",
+    "opcodes": "DDCBE6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IX plus *.",
-    "instruction": "set 4,(ix+*)"
+    "description": "Sets bit 4 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "set 4,(ix+d)",
+    "used": true
   }
 };
 
@@ -45108,14 +48511,15 @@ const variant_DD_CB_dd_EE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**EE",
+    "opcodes": "DDCBEE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IX plus *.",
-    "instruction": "set 5,(ix+*)"
+    "description": "Sets bit 5 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "set 5,(ix+d)",
+    "used": true
   }
 };
 
@@ -45144,14 +48548,15 @@ const variant_DD_CB_dd_F6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**F6",
+    "opcodes": "DDCBF6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IX plus *.",
-    "instruction": "set 6,(ix+*)"
+    "description": "Sets bit 6 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "set 6,(ix+d)",
+    "used": true
   }
 };
 
@@ -45180,14 +48585,15 @@ const variant_DD_CB_dd_FE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "DDCB**FE",
+    "opcodes": "DDCBFE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IX plus *.",
-    "instruction": "set 7,(ix+*)"
+    "description": "Sets bit 7 of the memory location pointed to by IX plus <var>D</var>.",
+    "instruction": "set 7,(ix+d)",
+    "used": true
   }
 };
 
@@ -45216,14 +48622,15 @@ const variant_FD_CB_dd_C6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**C6",
+    "opcodes": "FDCBC6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 0 of the memory location pointed to by IY plus *.",
-    "instruction": "set 0,(iy+*)"
+    "description": "Sets bit 0 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "set 0,(iy+d)",
+    "used": true
   }
 };
 
@@ -45252,14 +48659,15 @@ const variant_FD_CB_dd_CE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**CE",
+    "opcodes": "FDCBCE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 1 of the memory location pointed to by IY plus *.",
-    "instruction": "set 1,(iy+*)"
+    "description": "Sets bit 1 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "set 1,(iy+d)",
+    "used": true
   }
 };
 
@@ -45288,14 +48696,15 @@ const variant_FD_CB_dd_D6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**D6",
+    "opcodes": "FDCBD6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 2 of the memory location pointed to by IY plus *.",
-    "instruction": "set 2,(iy+*)"
+    "description": "Sets bit 2 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "set 2,(iy+d)",
+    "used": true
   }
 };
 
@@ -45324,14 +48733,15 @@ const variant_FD_CB_dd_DE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**DE",
+    "opcodes": "FDCBDE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 3 of the memory location pointed to by IY plus *.",
-    "instruction": "set 3,(iy+*)"
+    "description": "Sets bit 3 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "set 3,(iy+d)",
+    "used": true
   }
 };
 
@@ -45360,14 +48770,15 @@ const variant_FD_CB_dd_E6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**E6",
+    "opcodes": "FDCBE6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 4 of the memory location pointed to by IY plus *.",
-    "instruction": "set 4,(iy+*)"
+    "description": "Sets bit 4 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "set 4,(iy+d)",
+    "used": true
   }
 };
 
@@ -45396,14 +48807,15 @@ const variant_FD_CB_dd_EE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**EE",
+    "opcodes": "FDCBEE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 5 of the memory location pointed to by IY plus *.",
-    "instruction": "set 5,(iy+*)"
+    "description": "Sets bit 5 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "set 5,(iy+d)",
+    "used": true
   }
 };
 
@@ -45432,14 +48844,15 @@ const variant_FD_CB_dd_F6: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**F6",
+    "opcodes": "FDCBF6",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 6 of the memory location pointed to by IY plus *.",
-    "instruction": "set 6,(iy+*)"
+    "description": "Sets bit 6 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "set 6,(iy+d)",
+    "used": true
   }
 };
 
@@ -45468,14 +48881,15 @@ const variant_FD_CB_dd_FE: OpcodeVariant = {
   "isPseudo": false,
   "isAlias": false,
   "clr": {
-    "opcodes": "FDCB**FE",
+    "opcodes": "FDCBFE",
     "undocumented": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
     "without_jump_clock_count": 23,
-    "description": "Sets bit 7 of the memory location pointed to by IY plus *.",
-    "instruction": "set 7,(iy+*)"
+    "description": "Sets bit 7 of the memory location pointed to by IY plus <var>D</var>.",
+    "instruction": "set 7,(iy+d)",
+    "used": true
   }
 };
 
@@ -45506,8 +48920,9 @@ const variant_D3_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "The value of A is written to port *.",
-    "instruction": "out (*),a"
+    "description": "The value of A is written to port <var>n</var>.",
+    "instruction": "out (n),a",
+    "used": true
   }
 };
 
@@ -45539,7 +48954,8 @@ const variant_ED_41: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "The value of B is written to port C.",
-    "instruction": "out (c),b"
+    "instruction": "out (c),b",
+    "used": true
   }
 };
 
@@ -45571,7 +48987,8 @@ const variant_ED_49: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "The value of C is written to port C.",
-    "instruction": "out (c),c"
+    "instruction": "out (c),c",
+    "used": true
   }
 };
 
@@ -45602,8 +49019,9 @@ const variant_ED_51: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
-    "description": "The value of C is written to port C.",
-    "instruction": "out (c),d"
+    "description": "The value of D is written to port C.",
+    "instruction": "out (c),d",
+    "used": true
   }
 };
 
@@ -45635,7 +49053,8 @@ const variant_ED_59: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "The value of E is written to port C.",
-    "instruction": "out (c),e"
+    "instruction": "out (c),e",
+    "used": true
   }
 };
 
@@ -45667,7 +49086,8 @@ const variant_ED_61: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "The value of H is written to port C.",
-    "instruction": "out (c),h"
+    "instruction": "out (c),h",
+    "used": true
   }
 };
 
@@ -45699,7 +49119,8 @@ const variant_ED_69: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "The value of L is written to port C.",
-    "instruction": "out (c),l"
+    "instruction": "out (c),l",
+    "used": true
   }
 };
 
@@ -45731,7 +49152,8 @@ const variant_ED_71: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Outputs a zero to port C.",
-    "instruction": "out (c),0"
+    "instruction": "out (c),0",
+    "used": true
   }
 };
 
@@ -45763,7 +49185,8 @@ const variant_ED_79: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "The value of A is written to port C.",
-    "instruction": "out (c),a"
+    "instruction": "out (c),a",
+    "used": true
   }
 };
 
@@ -45785,7 +49208,8 @@ const variant_D9: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Exchanges the 16-bit contents of BC, DE, and HL with BC', DE', and HL'.",
-    "instruction": "exx"
+    "instruction": "exx",
+    "used": true
   }
 };
 
@@ -45816,8 +49240,9 @@ const variant_DB_nn: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "a byte from port * is written to A.",
-    "instruction": "in a,(*)"
+    "description": "a byte from port <var>n</var> is written to A.",
+    "instruction": "in a,(n)",
+    "used": true
   }
 };
 
@@ -45845,8 +49270,9 @@ const variant_DB_nn_pseudo: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 11,
     "without_jump_clock_count": 11,
-    "description": "a byte from port * is written to A.",
-    "instruction": "in a,(*)"
+    "description": "a byte from port <var>n</var> is written to A.",
+    "instruction": "in a,(n)",
+    "used": true
   }
 };
 
@@ -45878,7 +49304,8 @@ const variant_ED_40: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "a byte from port C is written to B.",
-    "instruction": "in b,(c)"
+    "instruction": "in b,(c)",
+    "used": true
   }
 };
 
@@ -45910,7 +49337,8 @@ const variant_ED_48: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "a byte from port C is written to C.",
-    "instruction": "in c,(c)"
+    "instruction": "in c,(c)",
+    "used": true
   }
 };
 
@@ -45941,8 +49369,9 @@ const variant_ED_50: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
-    "description": "a byte from port C is written to C.",
-    "instruction": "in d,(c)"
+    "description": "a byte from port C is written to D.",
+    "instruction": "in d,(c)",
+    "used": true
   }
 };
 
@@ -45974,7 +49403,8 @@ const variant_ED_58: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "a byte from port C is written to E.",
-    "instruction": "in e,(c)"
+    "instruction": "in e,(c)",
+    "used": true
   }
 };
 
@@ -46006,7 +49436,8 @@ const variant_ED_60: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "a byte from port C is written to H.",
-    "instruction": "in h,(c)"
+    "instruction": "in h,(c)",
+    "used": true
   }
 };
 
@@ -46038,7 +49469,8 @@ const variant_ED_68: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "a byte from port C is written to L.",
-    "instruction": "in l,(c)"
+    "instruction": "in l,(c)",
+    "used": true
   }
 };
 
@@ -46070,7 +49502,8 @@ const variant_ED_70: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "Inputs a byte from port C and affects flags only.",
-    "instruction": "in (c)"
+    "instruction": "in (c)",
+    "used": true
   }
 };
 
@@ -46102,7 +49535,8 @@ const variant_ED_78: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "a byte from port C is written to A.",
-    "instruction": "in a,(c)"
+    "instruction": "in a,(c)",
+    "used": true
   }
 };
 
@@ -46131,7 +49565,8 @@ const variant_ED_78_pseudo: OpcodeVariant = {
     "with_jump_clock_count": 12,
     "without_jump_clock_count": 12,
     "description": "a byte from port C is written to A.",
-    "instruction": "in a,(c)"
+    "instruction": "in a,(c)",
+    "used": true
   }
 };
 
@@ -46148,13 +49583,14 @@ const variant_ED_7C: OpcodeVariant = {
   "isAlias": false,
   "clr": {
     "opcodes": "ED7C",
-    "undocumented": true,
-    "flags": "++V+++",
+    "undocumented": false,
+    "flags": "------",
     "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
-    "instruction": "neg"
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 17,
+    "description": "The contents of SPH and SPL are multiplied and stored in SP.",
+    "instruction": "mlt sp",
+    "used": true
   }
 };
 
@@ -46171,13 +49607,14 @@ const variant_ED_44: OpcodeVariant = {
   "isAlias": true,
   "clr": {
     "opcodes": "ED7C",
-    "undocumented": true,
-    "flags": "++V+++",
+    "undocumented": false,
+    "flags": "------",
     "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
-    "instruction": "neg"
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 17,
+    "description": "The contents of SPH and SPL are multiplied and stored in SP.",
+    "instruction": "mlt sp",
+    "used": true
   }
 };
 
@@ -46194,13 +49631,14 @@ const variant_ED_4C: OpcodeVariant = {
   "isAlias": true,
   "clr": {
     "opcodes": "ED7C",
-    "undocumented": true,
-    "flags": "++V+++",
+    "undocumented": false,
+    "flags": "------",
     "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
-    "instruction": "neg"
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 17,
+    "description": "The contents of SPH and SPL are multiplied and stored in SP.",
+    "instruction": "mlt sp",
+    "used": true
   }
 };
 
@@ -46217,13 +49655,14 @@ const variant_ED_54: OpcodeVariant = {
   "isAlias": true,
   "clr": {
     "opcodes": "ED7C",
-    "undocumented": true,
-    "flags": "++V+++",
+    "undocumented": false,
+    "flags": "------",
     "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
-    "instruction": "neg"
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 17,
+    "description": "The contents of SPH and SPL are multiplied and stored in SP.",
+    "instruction": "mlt sp",
+    "used": true
   }
 };
 
@@ -46240,13 +49679,14 @@ const variant_ED_5C: OpcodeVariant = {
   "isAlias": true,
   "clr": {
     "opcodes": "ED7C",
-    "undocumented": true,
-    "flags": "++V+++",
+    "undocumented": false,
+    "flags": "------",
     "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
-    "instruction": "neg"
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 17,
+    "description": "The contents of SPH and SPL are multiplied and stored in SP.",
+    "instruction": "mlt sp",
+    "used": true
   }
 };
 
@@ -46263,13 +49703,14 @@ const variant_ED_64: OpcodeVariant = {
   "isAlias": true,
   "clr": {
     "opcodes": "ED7C",
-    "undocumented": true,
-    "flags": "++V+++",
+    "undocumented": false,
+    "flags": "------",
     "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
-    "instruction": "neg"
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 17,
+    "description": "The contents of SPH and SPL are multiplied and stored in SP.",
+    "instruction": "mlt sp",
+    "used": true
   }
 };
 
@@ -46286,13 +49727,14 @@ const variant_ED_6C: OpcodeVariant = {
   "isAlias": true,
   "clr": {
     "opcodes": "ED7C",
-    "undocumented": true,
-    "flags": "++V+++",
+    "undocumented": false,
+    "flags": "------",
     "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
-    "instruction": "neg"
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 17,
+    "description": "The contents of SPH and SPL are multiplied and stored in SP.",
+    "instruction": "mlt sp",
+    "used": true
   }
 };
 
@@ -46309,13 +49751,14 @@ const variant_ED_74: OpcodeVariant = {
   "isAlias": true,
   "clr": {
     "opcodes": "ED7C",
-    "undocumented": true,
-    "flags": "++V+++",
+    "undocumented": false,
+    "flags": "------",
     "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
-    "instruction": "neg"
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 17,
+    "description": "The contents of SPH and SPL are multiplied and stored in SP.",
+    "instruction": "mlt sp",
+    "used": true
   }
 };
 
@@ -46329,17 +49772,7 @@ const variant_ED_7D: OpcodeVariant = {
     125
   ],
   "isPseudo": false,
-  "isAlias": false,
-  "clr": {
-    "opcodes": "ED7D",
-    "undocumented": false,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 14,
-    "without_jump_clock_count": 14,
-    "description": "Used at the end of a non-maskable interrupt service routine (located at $0066) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
-    "instruction": "retn"
-  }
+  "isAlias": false
 };
 
 // retn
@@ -46352,17 +49785,7 @@ const variant_ED_45: OpcodeVariant = {
     69
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED7D",
-    "undocumented": false,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 14,
-    "without_jump_clock_count": 14,
-    "description": "Used at the end of a non-maskable interrupt service routine (located at $0066) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
-    "instruction": "retn"
-  }
+  "isAlias": true
 };
 
 // retn
@@ -46375,17 +49798,7 @@ const variant_ED_55: OpcodeVariant = {
     85
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED7D",
-    "undocumented": false,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 14,
-    "without_jump_clock_count": 14,
-    "description": "Used at the end of a non-maskable interrupt service routine (located at $0066) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
-    "instruction": "retn"
-  }
+  "isAlias": true
 };
 
 // retn
@@ -46398,17 +49811,7 @@ const variant_ED_5D: OpcodeVariant = {
     93
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED7D",
-    "undocumented": false,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 14,
-    "without_jump_clock_count": 14,
-    "description": "Used at the end of a non-maskable interrupt service routine (located at $0066) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
-    "instruction": "retn"
-  }
+  "isAlias": true
 };
 
 // retn
@@ -46421,17 +49824,7 @@ const variant_ED_65: OpcodeVariant = {
     101
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED7D",
-    "undocumented": false,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 14,
-    "without_jump_clock_count": 14,
-    "description": "Used at the end of a non-maskable interrupt service routine (located at $0066) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
-    "instruction": "retn"
-  }
+  "isAlias": true
 };
 
 // retn
@@ -46444,17 +49837,7 @@ const variant_ED_6D: OpcodeVariant = {
     109
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED7D",
-    "undocumented": false,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 14,
-    "without_jump_clock_count": 14,
-    "description": "Used at the end of a non-maskable interrupt service routine (located at $0066) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
-    "instruction": "retn"
-  }
+  "isAlias": true
 };
 
 // retn
@@ -46467,17 +49850,7 @@ const variant_ED_75: OpcodeVariant = {
     117
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED7D",
-    "undocumented": false,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 14,
-    "without_jump_clock_count": 14,
-    "description": "Used at the end of a non-maskable interrupt service routine (located at $0066) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
-    "instruction": "retn"
-  }
+  "isAlias": true
 };
 
 // im 0
@@ -46494,17 +49867,7 @@ const variant_ED_6E: OpcodeVariant = {
     110
   ],
   "isPseudo": false,
-  "isAlias": false,
-  "clr": {
-    "opcodes": "ED6E",
-    "undocumented": true,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "Sets undefined interrupt mode 0/1.",
-    "instruction": "im 0/1"
-  }
+  "isAlias": false
 };
 
 // im 0
@@ -46521,17 +49884,7 @@ const variant_ED_46: OpcodeVariant = {
     70
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED6E",
-    "undocumented": true,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "Sets undefined interrupt mode 0/1.",
-    "instruction": "im 0/1"
-  }
+  "isAlias": true
 };
 
 // im 0
@@ -46548,17 +49901,7 @@ const variant_ED_4E: OpcodeVariant = {
     78
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED6E",
-    "undocumented": true,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "Sets undefined interrupt mode 0/1.",
-    "instruction": "im 0/1"
-  }
+  "isAlias": true
 };
 
 // im 0
@@ -46575,17 +49918,7 @@ const variant_ED_66: OpcodeVariant = {
     102
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED6E",
-    "undocumented": true,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "Sets undefined interrupt mode 0/1.",
-    "instruction": "im 0/1"
-  }
+  "isAlias": true
 };
 
 // im 1
@@ -46610,8 +49943,9 @@ const variant_ED_76: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Sets interrupt mode 1.",
-    "instruction": "im 1"
+    "description": "The CPU enters SLEEP mode.",
+    "instruction": "slp",
+    "used": true
   }
 };
 
@@ -46637,8 +49971,9 @@ const variant_ED_56: OpcodeVariant = {
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Sets interrupt mode 1.",
-    "instruction": "im 1"
+    "description": "The CPU enters SLEEP mode.",
+    "instruction": "slp",
+    "used": true
   }
 };
 
@@ -46656,17 +49991,7 @@ const variant_ED_7E: OpcodeVariant = {
     126
   ],
   "isPseudo": false,
-  "isAlias": false,
-  "clr": {
-    "opcodes": "ED7E",
-    "undocumented": false,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "Sets interrupt mode 2.",
-    "instruction": "im 2"
-  }
+  "isAlias": false
 };
 
 // im 2
@@ -46683,17 +50008,7 @@ const variant_ED_5E: OpcodeVariant = {
     94
   ],
   "isPseudo": false,
-  "isAlias": true,
-  "clr": {
-    "opcodes": "ED7E",
-    "undocumented": false,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "Sets interrupt mode 2.",
-    "instruction": "im 2"
-  }
+  "isAlias": true
 };
 
 // reti
@@ -46715,7 +50030,8 @@ const variant_ED_4D: OpcodeVariant = {
     "with_jump_clock_count": 14,
     "without_jump_clock_count": 14,
     "description": "Used at the end of A maskable interrupt service routine. The top stack entry is popped into PC, and signals an I/O device that the interrupt has finished, allowing nested interrupts (not A consideration on the TI).",
-    "instruction": "reti"
+    "instruction": "reti",
+    "used": true
   }
 };
 
@@ -46738,7 +50054,8 @@ const variant_ED_67: OpcodeVariant = {
     "with_jump_clock_count": 18,
     "without_jump_clock_count": 18,
     "description": "The contents of the low-order nibble of (HL) are copied to the low-order nibble of A. The previous contents are copied to the high-order nibble of (HL). The previous contents are copied to the low-order nibble of (HL).",
-    "instruction": "rrd"
+    "instruction": "rrd",
+    "used": true
   }
 };
 
@@ -46761,7 +50078,8 @@ const variant_ED_6F: OpcodeVariant = {
     "with_jump_clock_count": 18,
     "without_jump_clock_count": 18,
     "description": "The contents of the low-order nibble of (HL) are copied to the high-order nibble of (HL). The previous contents are copied to the low-order nibble of A. The previous contents are copied to the low-order nibble of (HL).",
-    "instruction": "rld"
+    "instruction": "rld",
+    "used": true
   }
 };
 
@@ -46784,7 +50102,8 @@ const variant_ED_A0: OpcodeVariant = {
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
     "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL and DE are incremented and BC is decremented.",
-    "instruction": "ldi"
+    "instruction": "ldi",
+    "used": true
   }
 };
 
@@ -46807,7 +50126,8 @@ const variant_ED_A1: OpcodeVariant = {
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
     "description": "Compares the value of the memory location pointed to by HL with A. Then HL is incremented and BC is decremented.",
-    "instruction": "cpi"
+    "instruction": "cpi",
+    "used": true
   }
 };
 
@@ -46830,7 +50150,8 @@ const variant_ED_A2: OpcodeVariant = {
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
     "description": "a byte from port C is written to the memory location pointed to by HL. Then HL is incremented and B is decremented.",
-    "instruction": "ini"
+    "instruction": "ini",
+    "used": true
   }
 };
 
@@ -46853,7 +50174,8 @@ const variant_ED_A3: OpcodeVariant = {
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
     "description": "a byte from the memory location pointed to by HL is written to port C. Then HL is incremented and B is decremented.",
-    "instruction": "outi"
+    "instruction": "outi",
+    "used": true
   }
 };
 
@@ -46876,7 +50198,8 @@ const variant_ED_A8: OpcodeVariant = {
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
     "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL, DE, and BC are decremented.",
-    "instruction": "ldd"
+    "instruction": "ldd",
+    "used": true
   }
 };
 
@@ -46899,7 +50222,8 @@ const variant_ED_A9: OpcodeVariant = {
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
     "description": "Compares the value of the memory location pointed to by HL with A. Then HL and BC are decremented.",
-    "instruction": "cpd"
+    "instruction": "cpd",
+    "used": true
   }
 };
 
@@ -46922,7 +50246,8 @@ const variant_ED_AA: OpcodeVariant = {
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
     "description": "a byte from port C is written to the memory location pointed to by HL. Then HL and B are decremented.",
-    "instruction": "ind"
+    "instruction": "ind",
+    "used": true
   }
 };
 
@@ -46945,7 +50270,8 @@ const variant_ED_AB: OpcodeVariant = {
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
     "description": "a byte from the memory location pointed to by HL is written to port C. Then HL and B are decremented.",
-    "instruction": "outd"
+    "instruction": "outd",
+    "used": true
   }
 };
 
@@ -46968,7 +50294,8 @@ const variant_ED_B0: OpcodeVariant = {
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
     "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL and DE are incremented and BC is decremented. If BC is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "ldir"
+    "instruction": "ldir",
+    "used": true
   }
 };
 
@@ -46991,7 +50318,8 @@ const variant_ED_B1: OpcodeVariant = {
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
     "description": "Compares the value of the memory location pointed to by HL with A. Then HL is incremented and BC is decremented. If BC is not zero and Z is not set, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "cpir"
+    "instruction": "cpir",
+    "used": true
   }
 };
 
@@ -47014,7 +50342,8 @@ const variant_ED_B2: OpcodeVariant = {
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
     "description": "a byte from port C is written to the memory location pointed to by HL. Then HL is incremented and B is decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "inir"
+    "instruction": "inir",
+    "used": true
   }
 };
 
@@ -47037,7 +50366,8 @@ const variant_ED_B3: OpcodeVariant = {
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
     "description": "a byte from the memory location pointed to by HL is written to port C. Then HL is incremented and B is decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "otir"
+    "instruction": "otir",
+    "used": true
   }
 };
 
@@ -47060,7 +50390,8 @@ const variant_ED_B8: OpcodeVariant = {
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
     "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL, DE, and BC are decremented. If BC is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "lddr"
+    "instruction": "lddr",
+    "used": true
   }
 };
 
@@ -47083,7 +50414,8 @@ const variant_ED_B9: OpcodeVariant = {
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
     "description": "Compares the value of the memory location pointed to by HL with A. Then HL and BC are decremented. If BC is not zero and Z is not set, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "cpdr"
+    "instruction": "cpdr",
+    "used": true
   }
 };
 
@@ -47106,7 +50438,8 @@ const variant_ED_BA: OpcodeVariant = {
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
     "description": "a byte from port C is written to the memory location pointed to by HL. Then HL and B are decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "indr"
+    "instruction": "indr",
+    "used": true
   }
 };
 
@@ -47129,7 +50462,8 @@ const variant_ED_BB: OpcodeVariant = {
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
     "description": "a byte from the memory location pointed to by HL is written to port C. Then HL and B are decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "otdr"
+    "instruction": "otdr",
+    "used": true
   }
 };
 
@@ -47151,7 +50485,8 @@ const variant_F3: OpcodeVariant = {
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
     "description": "Resets both interrupt flip-flops, thus prenting maskable interrupts from triggering.",
-    "instruction": "di"
+    "instruction": "di",
+    "used": true
   }
 };
 
@@ -47172,8 +50507,9 @@ const variant_FB: OpcodeVariant = {
     "byte_count": 1,
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
-    "description": "Sets both interrupt flip-flops, thus allowing maskable interrupts to occur. An interrupt will not occur until after the immediatedly following instruction.",
-    "instruction": "ei"
+    "description": "Sets both interrupt flip-flops, thus allowing maskable interrupts to occur. An interrupt will not occur until after the immediatediyl following instruction.",
+    "instruction": "ei",
+    "used": true
   }
 };
 
@@ -47289,18 +50625,38 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_DD_2A_nnnn, // ld ix,(nnnn)
       variant_DD_2E_nn, // ld ixl,nn
       variant_DD_36_dd_nn, // ld (ix+dd),nn
+      variant_DD_40, // ld b,b
+      variant_DD_41, // ld b,c
+      variant_DD_42, // ld b,d
+      variant_DD_43, // ld b,e
       variant_DD_44, // ld b,ixh
       variant_DD_45, // ld b,ixl
       variant_DD_46_dd, // ld b,(ix+dd)
+      variant_DD_47, // ld b,a
+      variant_DD_48, // ld c,b
+      variant_DD_49, // ld c,c
+      variant_DD_4A, // ld c,d
+      variant_DD_4B, // ld c,e
       variant_DD_4C, // ld c,ixh
       variant_DD_4D, // ld c,ixl
       variant_DD_4E_dd, // ld c,(ix+dd)
+      variant_DD_4F, // ld c,a
+      variant_DD_50, // ld d,b
+      variant_DD_51, // ld d,c
+      variant_DD_52, // ld d,d
+      variant_DD_53, // ld d,e
       variant_DD_54, // ld d,ixh
       variant_DD_55, // ld d,ixl
       variant_DD_56_dd, // ld d,(ix+dd)
+      variant_DD_57, // ld d,a
+      variant_DD_58, // ld e,b
+      variant_DD_59, // ld e,c
+      variant_DD_5A, // ld e,d
+      variant_DD_5B, // ld e,e
       variant_DD_5C, // ld e,ixh
       variant_DD_5D, // ld e,ixl
       variant_DD_5E_dd, // ld e,(ix+dd)
+      variant_DD_5F, // ld e,a
       variant_DD_60, // ld ixh,b
       variant_DD_61, // ld ixh,c
       variant_DD_62, // ld ixh,d
@@ -47324,12 +50680,22 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_DD_74_dd, // ld (ix+dd),h
       variant_DD_75_dd, // ld (ix+dd),l
       variant_DD_77_dd, // ld (ix+dd),a
+      variant_DD_78, // ld a,b
+      variant_DD_78_pseudo, // ld b
+      variant_DD_79, // ld a,c
+      variant_DD_79_pseudo, // ld c
+      variant_DD_7A, // ld a,d
+      variant_DD_7A_pseudo, // ld d
+      variant_DD_7B, // ld a,e
+      variant_DD_7B_pseudo, // ld e
       variant_DD_7C, // ld a,ixh
       variant_DD_7C_pseudo, // ld ixh
       variant_DD_7D, // ld a,ixl
       variant_DD_7D_pseudo, // ld ixl
       variant_DD_7E_dd, // ld a,(ix+dd)
       variant_DD_7E_dd_pseudo, // ld (ix+dd)
+      variant_DD_7F, // ld a,a
+      variant_DD_7F_pseudo, // ld a
       variant_DD_CB_dd_00, // ld b,rlc (ix+dd)
       variant_DD_CB_dd_01, // ld c,rlc (ix+dd)
       variant_DD_CB_dd_02, // ld d,rlc (ix+dd)
@@ -47544,18 +50910,38 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_FD_2A_nnnn, // ld iy,(nnnn)
       variant_FD_2E_nn, // ld iyl,nn
       variant_FD_36_dd_nn, // ld (iy+dd),nn
+      variant_FD_40, // ld b,b
+      variant_FD_41, // ld b,c
+      variant_FD_42, // ld b,d
+      variant_FD_43, // ld b,e
       variant_FD_44, // ld b,iyh
       variant_FD_45, // ld b,iyl
       variant_FD_46_dd, // ld b,(iy+dd)
+      variant_FD_47, // ld b,a
+      variant_FD_48, // ld c,b
+      variant_FD_49, // ld c,c
+      variant_FD_4A, // ld c,d
+      variant_FD_4B, // ld c,e
       variant_FD_4C, // ld c,iyh
       variant_FD_4D, // ld c,iyl
       variant_FD_4E_dd, // ld c,(iy+dd)
+      variant_FD_4F, // ld c,a
+      variant_FD_50, // ld d,b
+      variant_FD_51, // ld d,c
+      variant_FD_52, // ld d,d
+      variant_FD_53, // ld d,e
       variant_FD_54, // ld d,iyh
       variant_FD_55, // ld d,iyl
       variant_FD_56_dd, // ld d,(iy+dd)
+      variant_FD_57, // ld d,a
+      variant_FD_58, // ld e,b
+      variant_FD_59, // ld e,c
+      variant_FD_5A, // ld e,d
+      variant_FD_5B, // ld e,e
       variant_FD_5C, // ld e,iyh
       variant_FD_5D, // ld e,iyl
       variant_FD_5E_dd, // ld e,(iy+dd)
+      variant_FD_5F, // ld e,a
       variant_FD_60, // ld iyh,b
       variant_FD_61, // ld iyh,c
       variant_FD_62, // ld iyh,d
@@ -47579,12 +50965,22 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_FD_74_dd, // ld (iy+dd),h
       variant_FD_75_dd, // ld (iy+dd),l
       variant_FD_77_dd, // ld (iy+dd),a
+      variant_FD_78, // ld a,b
+      variant_FD_78_pseudo, // ld b
+      variant_FD_79, // ld a,c
+      variant_FD_79_pseudo, // ld c
+      variant_FD_7A, // ld a,d
+      variant_FD_7A_pseudo, // ld d
+      variant_FD_7B, // ld a,e
+      variant_FD_7B_pseudo, // ld e
       variant_FD_7C, // ld a,iyh
       variant_FD_7C_pseudo, // ld iyh
       variant_FD_7D, // ld a,iyl
       variant_FD_7D_pseudo, // ld iyl
       variant_FD_7E_dd, // ld a,(iy+dd)
       variant_FD_7E_dd_pseudo, // ld (iy+dd)
+      variant_FD_7F, // ld a,a
+      variant_FD_7F_pseudo, // ld a
       variant_FD_CB_dd_00, // ld b,rlc (iy+dd)
       variant_FD_CB_dd_01, // ld c,rlc (iy+dd)
       variant_FD_CB_dd_02, // ld d,rlc (iy+dd)
@@ -48202,12 +51598,18 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_BE_pseudo, // cp (hl)
       variant_BF, // cp a,a
       variant_BF_pseudo, // cp a
-      variant_DD_BC, // cp ixh
-      variant_DD_BD, // cp ixl
-      variant_DD_BE_dd, // cp (ix+dd)
-      variant_FD_BC, // cp iyh
-      variant_FD_BD, // cp iyl
-      variant_FD_BE_dd, // cp (iy+dd)
+      variant_DD_BC, // cp a,ixh
+      variant_DD_BC_pseudo, // cp ixh
+      variant_DD_BD, // cp a,ixl
+      variant_DD_BD_pseudo, // cp ixl
+      variant_DD_BE_dd, // cp a,(ix+dd)
+      variant_DD_BE_dd_pseudo, // cp (ix+dd)
+      variant_FD_BC, // cp a,iyh
+      variant_FD_BC_pseudo, // cp iyh
+      variant_FD_BD, // cp a,iyl
+      variant_FD_BD_pseudo, // cp iyl
+      variant_FD_BE_dd, // cp a,(iy+dd)
+      variant_FD_BE_dd_pseudo, // cp (iy+dd)
       variant_FE_nn, // cp a,nn
       variant_FE_nn_pseudo, // cp nn
     ],
@@ -49351,18 +52753,38 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x35, variant_DD_35_dd ], // dec (ix+dd)
     [ 0x36, variant_DD_36_dd_nn ], // ld (ix+dd),nn
     [ 0x39, variant_DD_39 ], // add ix,sp
+    [ 0x40, variant_DD_40 ], // ld b,b
+    [ 0x41, variant_DD_41 ], // ld b,c
+    [ 0x42, variant_DD_42 ], // ld b,d
+    [ 0x43, variant_DD_43 ], // ld b,e
     [ 0x44, variant_DD_44 ], // ld b,ixh
     [ 0x45, variant_DD_45 ], // ld b,ixl
     [ 0x46, variant_DD_46_dd ], // ld b,(ix+dd)
+    [ 0x47, variant_DD_47 ], // ld b,a
+    [ 0x48, variant_DD_48 ], // ld c,b
+    [ 0x49, variant_DD_49 ], // ld c,c
+    [ 0x4A, variant_DD_4A ], // ld c,d
+    [ 0x4B, variant_DD_4B ], // ld c,e
     [ 0x4C, variant_DD_4C ], // ld c,ixh
     [ 0x4D, variant_DD_4D ], // ld c,ixl
     [ 0x4E, variant_DD_4E_dd ], // ld c,(ix+dd)
+    [ 0x4F, variant_DD_4F ], // ld c,a
+    [ 0x50, variant_DD_50 ], // ld d,b
+    [ 0x51, variant_DD_51 ], // ld d,c
+    [ 0x52, variant_DD_52 ], // ld d,d
+    [ 0x53, variant_DD_53 ], // ld d,e
     [ 0x54, variant_DD_54 ], // ld d,ixh
     [ 0x55, variant_DD_55 ], // ld d,ixl
     [ 0x56, variant_DD_56_dd ], // ld d,(ix+dd)
+    [ 0x57, variant_DD_57 ], // ld d,a
+    [ 0x58, variant_DD_58 ], // ld e,b
+    [ 0x59, variant_DD_59 ], // ld e,c
+    [ 0x5A, variant_DD_5A ], // ld e,d
+    [ 0x5B, variant_DD_5B ], // ld e,e
     [ 0x5C, variant_DD_5C ], // ld e,ixh
     [ 0x5D, variant_DD_5D ], // ld e,ixl
     [ 0x5E, variant_DD_5E_dd ], // ld e,(ix+dd)
+    [ 0x5F, variant_DD_5F ], // ld e,a
     [ 0x60, variant_DD_60 ], // ld ixh,b
     [ 0x61, variant_DD_61 ], // ld ixh,c
     [ 0x62, variant_DD_62 ], // ld ixh,d
@@ -49386,9 +52808,14 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x74, variant_DD_74_dd ], // ld (ix+dd),h
     [ 0x75, variant_DD_75_dd ], // ld (ix+dd),l
     [ 0x77, variant_DD_77_dd ], // ld (ix+dd),a
+    [ 0x78, variant_DD_78 ], // ld a,b
+    [ 0x79, variant_DD_79 ], // ld a,c
+    [ 0x7A, variant_DD_7A ], // ld a,d
+    [ 0x7B, variant_DD_7B ], // ld a,e
     [ 0x7C, variant_DD_7C ], // ld a,ixh
     [ 0x7D, variant_DD_7D ], // ld a,ixl
     [ 0x7E, variant_DD_7E_dd ], // ld a,(ix+dd)
+    [ 0x7F, variant_DD_7F ], // ld a,a
     [ 0x84, variant_DD_84 ], // add a,ixh
     [ 0x85, variant_DD_85 ], // add a,ixl
     [ 0x86, variant_DD_86_dd ], // add a,(ix+dd)
@@ -49410,9 +52837,9 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0xB4, variant_DD_B4 ], // or a,ixh
     [ 0xB5, variant_DD_B5 ], // or a,ixl
     [ 0xB6, variant_DD_B6_dd ], // or a,(ix+dd)
-    [ 0xBC, variant_DD_BC ], // cp ixh
-    [ 0xBD, variant_DD_BD ], // cp ixl
-    [ 0xBE, variant_DD_BE_dd ], // cp (ix+dd)
+    [ 0xBC, variant_DD_BC ], // cp a,ixh
+    [ 0xBD, variant_DD_BD ], // cp a,ixl
+    [ 0xBE, variant_DD_BE_dd ], // cp a,(ix+dd)
     [ 0xCB, new Map<number,OpcodeVariant | OpcodeMap>([
       [ 0x00, variant_DD_CB_dd_00 ], // ld b,rlc (ix+dd)
       [ 0x01, variant_DD_CB_dd_01 ], // ld c,rlc (ix+dd)
@@ -49806,18 +53233,38 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x35, variant_FD_35_dd ], // dec (iy+dd)
     [ 0x36, variant_FD_36_dd_nn ], // ld (iy+dd),nn
     [ 0x39, variant_FD_39 ], // add iy,sp
+    [ 0x40, variant_FD_40 ], // ld b,b
+    [ 0x41, variant_FD_41 ], // ld b,c
+    [ 0x42, variant_FD_42 ], // ld b,d
+    [ 0x43, variant_FD_43 ], // ld b,e
     [ 0x44, variant_FD_44 ], // ld b,iyh
     [ 0x45, variant_FD_45 ], // ld b,iyl
     [ 0x46, variant_FD_46_dd ], // ld b,(iy+dd)
+    [ 0x47, variant_FD_47 ], // ld b,a
+    [ 0x48, variant_FD_48 ], // ld c,b
+    [ 0x49, variant_FD_49 ], // ld c,c
+    [ 0x4A, variant_FD_4A ], // ld c,d
+    [ 0x4B, variant_FD_4B ], // ld c,e
     [ 0x4C, variant_FD_4C ], // ld c,iyh
     [ 0x4D, variant_FD_4D ], // ld c,iyl
     [ 0x4E, variant_FD_4E_dd ], // ld c,(iy+dd)
+    [ 0x4F, variant_FD_4F ], // ld c,a
+    [ 0x50, variant_FD_50 ], // ld d,b
+    [ 0x51, variant_FD_51 ], // ld d,c
+    [ 0x52, variant_FD_52 ], // ld d,d
+    [ 0x53, variant_FD_53 ], // ld d,e
     [ 0x54, variant_FD_54 ], // ld d,iyh
     [ 0x55, variant_FD_55 ], // ld d,iyl
     [ 0x56, variant_FD_56_dd ], // ld d,(iy+dd)
+    [ 0x57, variant_FD_57 ], // ld d,a
+    [ 0x58, variant_FD_58 ], // ld e,b
+    [ 0x59, variant_FD_59 ], // ld e,c
+    [ 0x5A, variant_FD_5A ], // ld e,d
+    [ 0x5B, variant_FD_5B ], // ld e,e
     [ 0x5C, variant_FD_5C ], // ld e,iyh
     [ 0x5D, variant_FD_5D ], // ld e,iyl
     [ 0x5E, variant_FD_5E_dd ], // ld e,(iy+dd)
+    [ 0x5F, variant_FD_5F ], // ld e,a
     [ 0x60, variant_FD_60 ], // ld iyh,b
     [ 0x61, variant_FD_61 ], // ld iyh,c
     [ 0x62, variant_FD_62 ], // ld iyh,d
@@ -49841,9 +53288,14 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x74, variant_FD_74_dd ], // ld (iy+dd),h
     [ 0x75, variant_FD_75_dd ], // ld (iy+dd),l
     [ 0x77, variant_FD_77_dd ], // ld (iy+dd),a
+    [ 0x78, variant_FD_78 ], // ld a,b
+    [ 0x79, variant_FD_79 ], // ld a,c
+    [ 0x7A, variant_FD_7A ], // ld a,d
+    [ 0x7B, variant_FD_7B ], // ld a,e
     [ 0x7C, variant_FD_7C ], // ld a,iyh
     [ 0x7D, variant_FD_7D ], // ld a,iyl
     [ 0x7E, variant_FD_7E_dd ], // ld a,(iy+dd)
+    [ 0x7F, variant_FD_7F ], // ld a,a
     [ 0x84, variant_FD_84 ], // add a,iyh
     [ 0x85, variant_FD_85 ], // add a,iyl
     [ 0x86, variant_FD_86_dd ], // add a,(iy+dd)
@@ -49865,9 +53317,9 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0xB4, variant_FD_B4 ], // or a,iyh
     [ 0xB5, variant_FD_B5 ], // or a,iyl
     [ 0xB6, variant_FD_B6_dd ], // or a,(iy+dd)
-    [ 0xBC, variant_FD_BC ], // cp iyh
-    [ 0xBD, variant_FD_BD ], // cp iyl
-    [ 0xBE, variant_FD_BE_dd ], // cp (iy+dd)
+    [ 0xBC, variant_FD_BC ], // cp a,iyh
+    [ 0xBD, variant_FD_BD ], // cp a,iyl
+    [ 0xBE, variant_FD_BE_dd ], // cp a,(iy+dd)
     [ 0xCB, new Map<number,OpcodeVariant | OpcodeMap>([
       [ 0x00, variant_FD_CB_dd_00 ], // ld b,rlc (iy+dd)
       [ 0x01, variant_FD_CB_dd_01 ], // ld c,rlc (iy+dd)
