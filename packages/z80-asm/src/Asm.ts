@@ -190,23 +190,23 @@ function fillForTarget(target: Target): number {
 // An appearance of a symbol somewhere in the code.
 export class SymbolAppearance {
     public readonly symbol: SymbolInfo;
-    // Line number in listing.
-    public readonly lineNumber: number;
+    // Undefined if pre-defined (outside of source files).
+    public readonly assembledLine: AssembledLine | undefined;
+    // 0-based.
     public readonly column: number;
     // Index in the SymbolInfo's definitions/references array.
     public readonly index: number;
 
-    constructor(symbol: SymbolInfo, lineNumber: number, column: number, index: number) {
+    constructor(symbol: SymbolInfo, assembledLine: AssembledLine | undefined, column: number, index: number) {
         this.symbol = symbol;
-        this.lineNumber = lineNumber;
+        this.assembledLine = assembledLine;
         this.column = column;
         this.index = index;
     }
 
-    // Whether the specified point is in this appearance.
-    public matches(lineNumber: number, column: number) {
-        return lineNumber === this.lineNumber &&
-            column >= this.column && column <= this.column + this.symbol.name.length;
+    // Whether the specified point is in this appearance, assuming the line matches.
+    public matches(column: number) {
+        return column >= this.column && column <= this.column + this.symbol.name.length;
     }
 
     /**
@@ -215,7 +215,7 @@ export class SymbolAppearance {
     public equals(other: SymbolAppearance | undefined): boolean {
         return other !== undefined &&
             this.symbol === other.symbol &&
-            this.lineNumber === other.lineNumber &&
+            this.assembledLine === other.assembledLine &&
             this.column === other.column;
     }
 }
@@ -497,9 +497,8 @@ export class Asm {
      */
     public addKnownLabel({ name, address }: KnownLabel): void {
         const symbolInfo = new SymbolInfo(name, address);
-        // TODO find a better way to represent "not in our source file":
         symbolInfo.definitions.push(new SymbolAppearance(
-            symbolInfo, 0, 0, symbolInfo.definitions.length));
+            symbolInfo, undefined, 0, symbolInfo.definitions.length));
         this.scopes[0].set(symbolInfo);
     }
 
@@ -557,10 +556,14 @@ export class Asm {
             for (const symbol of scope.symbols.values()) {
                 this.symbols.push(symbol);
                 for (const reference of symbol.definitions) {
-                    this.assembledLines[reference.lineNumber].symbolsDefined.push(reference);
+                    if (reference.assembledLine !== undefined) {
+                        reference.assembledLine.symbolsDefined.push(reference);
+                    }
                 }
                 for (const reference of symbol.references) {
-                    this.assembledLines[reference.lineNumber].symbolsReferenced.push(reference);
+                    if (reference.assembledLine !== undefined) {
+                        reference.assembledLine.symbolsReferenced.push(reference);
+                    }
                 }
             }
         }
@@ -1349,7 +1352,7 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 symbolInfo.definitions.push(new SymbolAppearance(
-                    symbolInfo, this.assembledLine.listingLineNumber, symbolColumn, symbolInfo.definitions.length));
+                    symbolInfo, this.assembledLine, symbolColumn, symbolInfo.definitions.length));
             }
         }
     }
@@ -1545,18 +1548,20 @@ class LineParser {
                 } else {
                     for (const [identifier, symbol] of scope.symbols) {
                         if (symbol.references.length > 0 && symbol.definitions.length === 0) {
+                            // TODO are we permitted to do this while iterating through it?
                             scope.remove(identifier);
 
                             // Merge with this symbol in the parent, if any.
                             const parentSymbol = scope.parent.get(identifier);
                             if (parentSymbol === undefined) {
+                                // Doesn't exist in parent.
                                 scope.parent.set(symbol);
                             } else {
-                                // Move references to other symbols.
+                                // Already exists in parent, move references there.
                                 for (let i = 0; i < symbol.references.length; i++) {
                                     const ref = symbol.references[i];
-                                    parentSymbol.references.push(new SymbolAppearance(
-                                        parentSymbol, ref.lineNumber, ref.column, parentSymbol.references.length));
+                                    parentSymbol.references.push(new SymbolAppearance(parentSymbol,
+                                        ref.assembledLine, ref.column, parentSymbol.references.length));
                                 }
                             }
                         }
@@ -2083,7 +2088,8 @@ class LineParser {
         // Try identifier.
         const identifier = this.readIdentifier(false, false);
         if (identifier !== undefined) {
-            // See if it's a built-in function.
+            // See if it's a built-in function. TODO we could probably replace these with operators,
+            // like we have for low and high.
             if (this.foundChar("(")) {
                 const value = this.readExpression(true);
                 if (value === undefined) {
@@ -2129,7 +2135,7 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 const symbolAppearance = new SymbolAppearance(symbolInfo,
-                    this.assembledLine.listingLineNumber, startIndex, symbolInfo.references.length);
+                    this.assembledLine, startIndex, symbolInfo.references.length);
                 // This is a terrible hack, but we might push this multiple times if we
                 // try multiple variants. Really we should roll this back if we decide
                 // against the variant. Instead, just check to see if we just pushed it.
@@ -2141,7 +2147,8 @@ class LineParser {
                 return 0;
             } else if (symbolInfo.definitions.length > 1 &&
                 symbolInfo.changesValue &&
-                symbolInfo.definitions[0].lineNumber >= this.assembledLine.listingLineNumber) {
+                symbolInfo.definitions[0].assembledLine !== undefined &&
+                symbolInfo.definitions[0].assembledLine.listingLineNumber >= this.assembledLine.listingLineNumber) {
 
                 this.assembledLine.error = "label \"" + identifier + "\" not yet defined here";
                 return 0;

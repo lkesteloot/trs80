@@ -1074,7 +1074,10 @@ export class Editor {
     }
 
     private setCursorToReference(appearance: SymbolAppearance): void {
-        this.moveCursorToLineNumber(appearance.lineNumber + 1, appearance.column);
+        const assembledLine = appearance.assembledLine;
+        if (assembledLine !== undefined && assembledLine.lineNumber !== undefined) {
+            this.moveCursorToLineNumber(assembledLine.lineNumber + 1, appearance.column);
+        }
     }
 
     // Toggle the breakpoint at the specified location.

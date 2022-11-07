@@ -91,14 +91,14 @@ export class AssemblyResults {
 
         // See if we're at a definition.
         for (const appearance of assembledLine.symbolsDefined) {
-            if (appearance.matches(lineNumber, column)) {
+            if (appearance.matches(column)) {
                 return new SymbolHit(appearance.symbol, true, appearance.index);
             }
         }
 
         // See if we're at a use.
         for (const appearance of assembledLine.symbolsReferenced) {
-            if (appearance.matches(lineNumber, column)) {
+            if (appearance.matches(column)) {
                 return new SymbolHit(appearance.symbol, false, appearance.index);
             }
         }
