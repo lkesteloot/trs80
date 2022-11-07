@@ -124,8 +124,8 @@ export class AssemblyResults {
         while (true) {
             // It's nice to ignore blank lines, so that we can add comments without
             // restarting everything.
-            while (i1 < lines1.length && lines1[i1].rolledUpBinary.length === 0) i1 += 1;
-            while (i2 < lines2.length && lines2[i2].rolledUpBinary.length === 0) i2 += 1;
+            while (i1 < lines1.length && lines1[i1].binary.length === 0) i1 += 1;
+            while (i2 < lines2.length && lines2[i2].binary.length === 0) i2 += 1;
 
             if (i1 === lines1.length && i2 === lines2.length) {
                 // Reached end on both.
