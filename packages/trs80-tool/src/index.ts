@@ -1224,7 +1224,7 @@ function disasm(filename: string, makeListing: boolean, org: number | undefined,
     // Create and configure the disassembler.
     let disasm: Disasm;
     const ext = path.extname(filename).toUpperCase();
-    if (ext === ".CMD" || ext === ".3BN") {
+    if (ext === ".CMD" || ext === ".3BN" || ext === ".SYS") {
         const trs80File = decodeTrs80File(buffer, filename);
         if (trs80File.className !== "CmdProgram" && trs80File.className !== "SystemProgram") {
             console.log("Can't parse program in " + filename);
