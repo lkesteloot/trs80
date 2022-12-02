@@ -249,6 +249,16 @@ export class Emulator {
             { value: Flag.C, label: "c", tooltip: "Carry" },
         ];
 
+        // Make an array of conditions (used with JP, etc.).
+        function makeConditions(flags: number): string[] {
+            return [
+                (flags & Flag.Z) !== 0 ? "Z" : "NZ",
+                (flags & Flag.C) !== 0 ? "C" : "NC",
+                (flags & Flag.P) !== 0 ? "PE" : "PO",
+                (flags & Flag.S) !== 0 ? "M" : "P",
+            ];
+        }
+
         const extraForAf = (value: number, oldValue: number): Node => {
             const a = hi(value);
             const oldA = hi(oldValue);
@@ -284,6 +294,24 @@ export class Emulator {
                 }
                 lineNode.append(labelNode);
             }
+
+            // Phrase these as conditions (for JP, CALL, RET).
+            const conditions = makeConditions(flags);
+            const oldConditions = makeConditions(oldFlags);
+
+            lineNode.append(" (");
+            for (let i = 0; i < conditions.length; i++) {
+                if (i > 0) {
+                    lineNode.append(" ");
+                }
+                const labelNode = document.createElement("span");
+                labelNode.textContent = conditions[i];
+                if (conditions[i] !== oldConditions[i]) {
+                    labelNode.classList.add("z80-inspector-changed");
+                }
+                lineNode.append(labelNode);
+            }
+            lineNode.append(")");
 
             return lineNode;
         };
