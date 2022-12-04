@@ -129,6 +129,12 @@ export class Emulator {
             this.trs80.z80.regs.iff1 = 0;
             this.trs80.z80.regs.iff2 = 0;
 
+            // Blank out screen to get rid of "Cass?".
+            for (let addr = TRS80_SCREEN_BEGIN; addr < TRS80_SCREEN_END; addr++) {
+                // Use a space. Maybe 0x80 would be better?
+                this.trs80.writeMemory(addr, 0x20);
+            }
+
             this.trs80State = this.trs80.save();
         } else {
             this.trs80.restore(this.trs80State);
