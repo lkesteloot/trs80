@@ -54,7 +54,6 @@ function decorationsForVariablePills(view: EditorView, config: Config): Decorati
 
     const assemblyResults = view.state.field(config.assemblyResultsStateField);
     const memory = view.state.field(config.memoryStateField);
-
     if (memory !== undefined) {
         for (const ref of assemblyResults.variableReferences) {
             const symbol = ref.symbol;
@@ -84,9 +83,12 @@ function decorationsForVariablePills(view: EditorView, config: Config): Decorati
                     widget: new VariableValueWidget(value, size),
                     side: 1,
                 });
-                const line = view.state.doc.line(ref.lineNumber + 1);
-                const end = line.from + ref.column + ref.symbol.name.length;
-                builder.add(end, end, widgetDeco);
+                const lineNumber = ref.assembledLine?.lineNumber;
+                if (lineNumber !== undefined) {
+                    const line = view.state.doc.line(lineNumber + 1);
+                    const end = line.from + ref.column + ref.symbol.name.length;
+                    builder.add(end, end, widgetDeco);
+                }
             }
         }
     }
