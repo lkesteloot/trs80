@@ -195,7 +195,13 @@ export class UserInterface {
                         text: "Save",
                         hotkey: "Cmd-S",
                         action: async () => {
-                            await this.saveFile(editor);
+                            await this.saveFile(editor, false);
+                        },
+                    },
+                    {
+                        text: "Save As...",
+                        action: async () => {
+                            await this.saveFile(editor, true);
                         },
                     },
                     {
@@ -655,7 +661,7 @@ export class UserInterface {
                     const action = dialog.returnValue;
                     if (action === "save") {
                         // Save.
-                        this.saveFile(editor)
+                        this.saveFile(editor, false)
                             .then(saved => {
                                 // Continue if we saved.
                                 resolve(saved);
@@ -704,16 +710,19 @@ export class UserInterface {
     /**
      * Prompt the user to save the current asm file.
      *
+     * @param editor editor that has the file to save.
+     * @param saveAs whether to always show the filename prompt.
+     *
      * @return whether the file was saved.
      */
-    private async saveFile(editor: Editor): Promise<boolean> {
+    private async saveFile(editor: Editor, saveAs: boolean): Promise<boolean> {
         const name = editor.getName();
         const fileName = name + ".asm";
         const text = editor.getCode();
         const blob = new Blob([text], {
             type: "text/plain",
         });
-        const handle = editor.getFileHandle();
+        const handle = saveAs ? null : editor.getFileHandle();
         const newHandle = await fileSave(blob, {
             id: ASSEMBLY_LANGUAGE_FILES_DIR_ID,
             fileName: fileName,
