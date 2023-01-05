@@ -19,6 +19,8 @@ in TypeScript. The subprojects are:
 * [my-trs-80](packages/my-trs-80): Web app for hosting a virtual TRS-80 and its library of cassettes and floppy disks.
 * [trs80-tool](packages/trs80-tool): Command-line tool for manipulating TRS-80 files.
 * [trs80-ide](packages/trs80-ide): Web app for developing assembly language TRS-80 programs.
+* [forth](apps/forth): Interpreter for the Forth programming language.
+* [wolf](apps/wolf): A demo inspired by Wolfenstein 3D.
 
 # License
 
