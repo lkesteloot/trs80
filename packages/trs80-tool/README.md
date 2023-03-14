@@ -161,6 +161,11 @@ The address `auto` can be used to guess an appropriate start address:
     % trs80-tool convert --start auto in.cas out.cas
     Wrote out.cas: System program (VCEPRN) in low speed CAS file
 
+When converting `.BIN` or `.ROM` files, the `--start` flag specifies
+both the load address and the start address:
+
+    % trs80-tool convert --start 0x1024 in.rom out.cmd
+
 An assembly language listing disassembly file can be generated from `.CMD`,
 `.SYS`, and `.3BN` files:
 
@@ -288,6 +293,11 @@ The `help` command shows more specific information about other commands:
 * The tool can only read TRSDOS and LDOS floppy disks.
 
 # Change log
+
+## 2.4.1
+
+* The `convert` command can go from `.ROM` and `.BIN` files to `.CMD` and
+  `.3BN` files. The `--start` flag specifies the load and start address.
 
 ## 2.4.0
 

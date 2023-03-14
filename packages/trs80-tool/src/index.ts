@@ -741,10 +741,32 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
             let description: string;
 
             switch (infile.trs80File.className) {
-                case "RawBinaryFile":
-                    console.log("Cannot convert unknown file type of " + infile.filename);
-                    process.exit(1);
+                case "RawBinaryFile": {
+                    const org = start === "auto" ? 0 : start ?? 0;
+                    switch (outExt) {
+                        case ".3bn": {
+                            // Convert to system program.
+                            const cmdProgram = infile.trs80File.toSystemProgram(inName.toUpperCase(), org);
+                            outBinary = cmdProgram.binary;
+                            description = cmdProgram.getDescription();
+                            break;
+                        }
+
+                        case ".cmd": {
+                            // Convert to CMD program.
+                            const cmdProgram = infile.trs80File.toCmdProgram(inName.toUpperCase(), org);
+                            outBinary = cmdProgram.binary;
+                            description = cmdProgram.getDescription();
+                            break;
+                        }
+
+                        default:
+                            console.log("Can't convert a raw binary program to " + outExt.toUpperCase());
+                            process.exit(1);
+                            break;
+                    }
                     break;
+                }
 
                 case "BasicProgram":
                     switch (outExt) {
