@@ -821,13 +821,13 @@ export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): T
                     }
                 }
                 for (let i = 0; i < dirEntriesPerSector; i++) {
-                    if (!isModel3(version) && side === 0 && sectorIndex < 2 + 8 && i < 2) {
-                        // Skip system files, the first two files in the first 8 sectors of the first side.
-                        continue;
-                    }
                     const dirEntryBinary = dirSector.data.subarray(i * dirEntryLength, (i + 1) * dirEntryLength);
                     const dirEntry = decodeDirEntry(dirEntryBinary, geometry, version);
                     if (dirEntry !== undefined) {
+                        if (!dirEntry.isExtendedEntry() && dirEntry.isSystemFile() && dirEntry.isActive()) {
+                            // Skip system files.
+                            continue;
+                        }
                         dirEntries.set(new DirEntryPosition(sectorIndex, i).asKey(), dirEntry);
                     }
                 }
