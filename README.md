@@ -22,6 +22,15 @@ in TypeScript. The subprojects are:
 * [forth](apps/forth): Interpreter for the Forth programming language.
 * [wolf](apps/wolf): A demo inspired by Wolfenstein 3D.
 
+# Build
+
+To build all packages:
+
+```sh
+% npm install
+% npx lerna run build
+```
+
 # License
 
 Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).
