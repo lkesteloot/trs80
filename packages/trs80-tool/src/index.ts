@@ -34,6 +34,7 @@ import {
 } from "trs80-base";
 import {concatByteArrays, withCommas} from "teamten-ts-utils";
 import {
+    AudioFile,
     binaryAsCasFile,
     BitType,
     casAsAudio,
@@ -43,6 +44,7 @@ import {
     Program,
     readWavFile,
     Tape,
+    WAV_INFO_TAGS,
     writeWavFile
 } from "trs80-cassette";
 import {version} from "./version.js";
@@ -77,6 +79,20 @@ See this page for full documentation:
 
 https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/README.md
 `
+
+/**
+ * Return a list of strings for the metata from the audio file.
+ */
+function getWavFileMetadata(wavFile: AudioFile): string[] {
+    const info: string[] = [];
+
+    for (const [key, value] of wavFile.metadata.entries()) {
+        const niceKey = WAV_INFO_TAGS.get(key);
+        info.push(`${niceKey ?? key}: ${value}`);
+    }
+
+    return info;
+}
 
 /**
  * Set the chalk color level based on its name. See the --color option.
@@ -345,6 +361,9 @@ function printInfoForFile(filename: string, verbose: boolean): void {
     if (ext.toLowerCase() == ".wav") {
         // Parse a cassette WAV file.
         const wavFile = readWavFile(buffer.buffer);
+        if (verbose) {
+            verboseLines.push(...getWavFileMetadata(wavFile));
+        }
         const tape = new Tape(base, wavFile);
         const decoder = new Decoder(tape);
         decoder.decode();

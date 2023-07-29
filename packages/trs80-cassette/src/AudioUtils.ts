@@ -2,14 +2,21 @@
 import {pad} from "./Utils.js";
 import {withCommas} from "teamten-ts-utils";
 
+/**
+ * Stores a 16-bit audio file.
+ */
 export class AudioFile {
     // In samples per second.
     rate: number;
     samples: Int16Array;
 
-    constructor(rate: number, samples: Int16Array) {
+    // Generic metadata from the file.
+    metadata: Map<string,string>;
+
+    constructor(rate: number, samples: Int16Array, metadata = new Map<string,string>()) {
         this.rate = rate;
         this.samples = samples;
+        this.metadata = metadata;
     }
 }
 

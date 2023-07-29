@@ -1,5 +1,4 @@
 import {AudioFile} from "./AudioUtils.js";
-import {toHexByte} from "z80-base";
 
 /**
  * Rate used for writing files. We used to have 44.1 kHz here, but 22.05 kHz works just fine
@@ -21,17 +20,112 @@ const WAVE_FORMAT_MULAW = 0x0007; // 8-bit ITU-T G.711 µ-law
 const WAVE_FORMAT_EXTENSIBLE = 0xFFFE; // Determined by SubFormat
 
 /**
+ * Possible keys stored in the "metadata" field of the {@link AudioFile} object.
+ *
+ * https://exiftool.org/TagNames/RIFF.html#Info
+ */
+export const WAV_INFO_TAGS = new Map<string,string>([
+    [ "AGES", "Rated" ],
+    [ "CMNT", "Comment" ],
+    [ "CODE", "Encoded By" ],
+    [ "COMM", "Comments" ],
+    [ "DIRC", "Directory" ],
+    [ "DISP", "Sound Scheme Title" ],
+    [ "DTIM", "Date Time Original" ],
+    [ "GENR", "Genre" ],
+    [ "IARL", "Archival Location" ],
+    [ "IART", "Artist" ],
+    [ "IAS1", "First Language" ],
+    [ "IAS2", "Second Language" ],
+    [ "IAS3", "Third Language" ],
+    [ "IAS4", "Fourth Language" ],
+    [ "IAS5", "Fifth Language" ],
+    [ "IAS6", "Sixth Language" ],
+    [ "IAS7", "Seventh Language" ],
+    [ "IAS8", "Eighth Language" ],
+    [ "IAS9", "Ninth Language" ],
+    [ "IBSU", "Base URL" ],
+    [ "ICAS", "Default Audio Stream" ],
+    [ "ICDS", "Costume Designer" ],
+    [ "ICMS", "Commissioned" ],
+    [ "ICMT", "Comment" ],
+    [ "ICNM", "Cinematographer" ],
+    [ "ICNT", "Country" ],
+    [ "ICOP", "Copyright" ],
+    [ "ICRD", "Date Created" ],
+    [ "ICRP", "Cropped" ],
+    [ "IDIM", "Dimensions" ],
+    [ "IDIT", "Date Time Original" ],
+    [ "IDPI", "Dots Per Inch" ],
+    [ "IDST", "Distributed By" ],
+    [ "IEDT", "Edited By" ],
+    [ "IENC", "Encoded By" ],
+    [ "IENG", "Engineer" ],
+    [ "IGNR", "Genre" ],
+    [ "IKEY", "Keywords" ],
+    [ "ILGT", "Lightness" ],
+    [ "ILGU", "Logo URL" ],
+    [ "ILIU", "Logo Icon URL" ],
+    [ "ILNG", "Language" ],
+    [ "IMBI", "More Info Banner Image" ],
+    [ "IMBU", "More Info Banner URL" ],
+    [ "IMED", "Medium" ],
+    [ "IMIT", "More Info Text" ],
+    [ "IMIU", "More Info URL" ],
+    [ "IMUS", "Music By" ],
+    [ "INAM", "Title" ],
+    [ "IPDS", "Production Designer" ],
+    [ "IPLT", "Num Colors" ],
+    [ "IPRD", "Product" ],
+    [ "IPRO", "Produced By" ],
+    [ "IRIP", "Ripped By" ],
+    [ "IRTD", "Rating" ],
+    [ "ISBJ", "Subject" ],
+    [ "ISFT", "Software" ],
+    [ "ISGN", "Secondary Genre" ],
+    [ "ISHP", "Sharpness" ],
+    [ "ISMP", "Time Code" ],
+    [ "ISRC", "Source" ],
+    [ "ISRF", "Source Form" ],
+    [ "ISTD", "Production Studio" ],
+    [ "ISTR", "Starring" ],
+    [ "ITCH", "Technician" ],
+    [ "ITRK", "Track Number" ],
+    [ "IWMU", "Watermark URL" ],
+    [ "IWRI", "Written By" ],
+    [ "LANG", "Language" ],
+    [ "LOCA", "Location" ],
+    [ "PRT1", "Part" ],
+    [ "PRT2", "Number Of Parts" ],
+    [ "RATE", "Rate" ],
+    [ "STAR", "Starring" ],
+    [ "STAT", "Statistics" ],
+    [ "TAPE", "Tape Name" ],
+    [ "TCDO", "End Timecode" ],
+    [ "TCOD", "Start Timecode" ],
+    [ "TITL", "Title" ],
+    [ "TLEN", "Length" ],
+    [ "TORG", "Organization" ],
+    [ "TRCK", "Track Number" ],
+    [ "TURL", "URL" ],
+    [ "TVER", "Version" ],
+    [ "VMAJ", "Vegas Version Major" ],
+    [ "VMIN", "Vegas Version Minor" ],
+    [ "YEAR", "Year" ],
+]);
+
+/**
  * Reads strings, numbers, and arrays from a buffer.
  */
 class ArrayBufferReader {
-    private readonly arrayBuffer: ArrayBuffer;
     private readonly dataView: DataView;
-    private index: number;
+    public index: number; // Relative to start of data view.
     public littleEndian = false;
 
-    constructor(arrayBuffer: ArrayBuffer) {
-        this.arrayBuffer = arrayBuffer;
-        this.dataView = new DataView(arrayBuffer);
+    constructor(data: ArrayBuffer | Uint8Array) {
+        this.dataView = data instanceof Uint8Array
+            ? new DataView(data.buffer, data.byteOffset, data.length)
+            : new DataView(data);
         this.index = 0;
     }
 
@@ -39,20 +133,33 @@ class ArrayBufferReader {
      * Whether we've reached the end of the buffer.
      */
     public eof(): boolean {
-        return this.index >= this.arrayBuffer.byteLength;
+        return this.index >= this.dataView.byteLength;
+    }
+
+    /**
+     * Skip this many bytes in the file.
+     */
+    public skip(bytes: number): void {
+        this.index += bytes;
     }
 
     /**
      * Read an ASCII string of length "length" from the input file.
+     *
+     * @param length number of bytes to read
+     * @param absorbNul if false, nuls stop parsing; if true, are ignored but parsing continues
      */
-    public readString(length: number): string {
+    public readString(length: number, absorbNul = false): string {
         let s = "";
-        for (let i = 0; i < length && this.index < this.arrayBuffer.byteLength; i++) {
+        for (let i = 0; i < length && this.index < this.dataView.byteLength; i++) {
             const byte = this.dataView.getInt8(this.index++);
             if (byte === 0x00) {
-                break;
+                if (!absorbNul) {
+                    break;
+                }
+            } else {
+                s += String.fromCharCode(byte);
             }
-            s += String.fromCharCode(byte);
         }
 
         return s;
@@ -92,7 +199,8 @@ class ArrayBufferReader {
      * Read a buffer of Uint8 numbers.
      */
     public readUint8Array(byteLength: number): Uint8Array {
-        const array = new Uint8Array(this.arrayBuffer, this.index, byteLength);
+        const array = new Uint8Array(this.dataView.buffer,
+            this.dataView.byteOffset + this.index, byteLength);
         this.index += byteLength;
         return array;
     }
@@ -101,7 +209,8 @@ class ArrayBufferReader {
      * Read a buffer of Int16 numbers.
      */
     public readInt16Array(byteLength: number): Int16Array {
-        const array = new Int16Array(this.arrayBuffer, this.index, byteLength/2);
+        const array = new Int16Array(this.dataView.buffer,
+            this.dataView.byteOffset + this.index, byteLength/2);
         this.index += byteLength;
         return array;
     }
@@ -112,6 +221,8 @@ class ArrayBufferReader {
 */
 export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
     const reader = new ArrayBufferReader(arrayBuffer);
+
+    const metadata = new Map<string,string>();
 
     let rate: number | undefined = undefined;
     let samples: Int16Array | undefined = undefined;
@@ -143,7 +254,8 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
         const chunkId = reader.readString(4);
         if (chunkId.length < 4) {
             // Premature end of file.
-            console.log("End of file part-way through chunk ID in WAV file: " + chunkId);
+            console.log("End of file part-way through chunk ID in WAV file: \"" + chunkId + "\" length "
+                + chunkId.length + " char " + chunkId.charCodeAt(0) + " index " + reader.index);
             break;
         }
         const chunkSize = reader.readUint32();
@@ -224,6 +336,40 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
                 }
                 break;
             }
+
+            case "LIST": {
+                // Name-value pairs.
+                const listChunk = reader.readUint8Array(chunkSize);
+                const listReader = new ArrayBufferReader(listChunk);
+                listReader.littleEndian = reader.littleEndian;
+                const listId = listReader.readString(4);
+                if (listId === "INFO") {
+                    // Standard INFO chunk, read name/value pairs.
+                    while (!listReader.eof()) {
+                        // Chunk ID.
+                        const listChunkId = listReader.readString(4);
+                        if (listChunkId.length < 4) {
+                            // Premature end of file.
+                            console.log("End of file part-way through list chunk ID in WAV file: \"" + listChunkId + "\" length "
+                                + listChunkId.length + " char " + listChunkId.charCodeAt(0) + " index " + listReader.index);
+                            break;
+                        }
+                        const listChunkSize = listReader.readUint32();
+                        const listChunkData = listReader.readString(listChunkSize, true);
+                        metadata.set(listChunkId, listChunkData);
+                    }
+                } else {
+                    // Non-standard LIST chunk, ignore it.
+                    console.log("Ignoring LIST chunk of sub-type " + listId);
+                }
+
+                break;
+            }
+
+            default:
+                // console.log("Skipping unknown WAV chunk " + chunkId + " of " + chunkSize + " bytes");
+                reader.skip(chunkSize);
+                break;
         }
     }
 
@@ -231,7 +377,7 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
         throw new Error("didn't get all the fields we need from WAV file");
     }
 
-    return new AudioFile(rate, samples);
+    return new AudioFile(rate, samples, metadata);
 }
 
 /**
