@@ -7,6 +7,7 @@ import {decodeJv3FloppyDisk, Jv3FloppyDisk} from "./Jv3FloppyDisk.js";
 import {decodeDmkFloppyDisk, DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {decodeSystemProgram, SystemProgram} from "./SystemProgram.js";
 import {decodeScpFloppyDisk, ScpFloppyDisk} from "./ScpFloppyDisk.js";
+import {decodeLevel1Program, Level1Program} from "./Level1Program.js";
 
 /**
  * All the possible programs we can decode.
@@ -19,7 +20,8 @@ export type Trs80File = BasicProgram |
     Cassette |
     SystemProgram |
     CmdProgram |
-    RawBinaryFile;
+    RawBinaryFile |
+    Level1Program;
 
 const CLASS_NAME_TO_EXTENSION = {
     BasicProgram: ".BAS",
@@ -31,6 +33,7 @@ const CLASS_NAME_TO_EXTENSION = {
     Jv3FloppyDisk: ".JV3",
     RawBinaryFile: ".BIN",
     SystemProgram: ".3BN",
+    Level1Program: ".L1",
 };
 
 /**
@@ -153,6 +156,11 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
         return trs80File;
     }
 
+    trs80File = decodeLevel1Program(binary);
+    if (trs80File !== undefined) {
+        return trs80File;
+    }
+
     const basicBinary = parseBasicText(binary);
     if (basicBinary instanceof Uint8Array) {
         trs80File = decodeBasicProgram(basicBinary);
@@ -176,6 +184,11 @@ export function decodeTrs80CassetteFile(binary: Uint8Array): Trs80File {
     }
 
     trs80File = decodeBasicProgram(binary);
+    if (trs80File !== undefined) {
+        return trs80File;
+    }
+
+    trs80File = decodeLevel1Program(binary);
     if (trs80File !== undefined) {
         return trs80File;
     }

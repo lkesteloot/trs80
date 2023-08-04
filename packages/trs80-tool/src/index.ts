@@ -30,7 +30,8 @@ import {
     Trs80File,
     Trsdos,
     TrsdosDirEntry,
-    trsdosProtectionLevelToString
+    trsdosProtectionLevelToString,
+    decodeLevel1Program
 } from "trs80-base";
 import {concatByteArrays, withCommas} from "teamten-ts-utils";
 import {
@@ -184,6 +185,8 @@ class WavFile extends ArchiveFile {
             extension = ".BAS";
         } else if (decodeSystemProgram(program.binary) !== undefined) {
             extension = ".3BN";
+        } else if (decodeLevel1Program(program.binary) !== undefined) {
+            extension = ".L1";
         }
         return program.getPseudoFilename() + extension;
     }
@@ -371,11 +374,10 @@ function printInfoForFile(filename: string, verbose: boolean): void {
     } else {
         try {
             const trs80File = decodeTrs80File(buffer, filename);
+            description = trs80File.getDescription();
             if (trs80File.error !== undefined) {
-                description = trs80File.error;
+                description += " (" + trs80File.error + ")";
             } else {
-                description = trs80File.getDescription();
-
                 const GENERATE_BITCELLS_JS = false;
                 if (GENERATE_BITCELLS_JS && trs80File.className === "ScpFloppyDisk") {
                     const bitcells = trs80File.tracks[1].revs[0].bitcells;
@@ -831,7 +833,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                 case "DmkFloppyDisk":
                 case "ScpFloppyDisk":
                 case "Cassette":
-                    console.log("Files of type \"" + infile.trs80File.getDescription + "\" are not yet supported");
+                    console.log("Files of type \"" + infile.trs80File.getDescription() + "\" are not yet supported");
                     process.exit(1);
                     break;
 
@@ -938,6 +940,34 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                             break;
                     }
                     break;
+
+                case "Level1Program":
+                    switch (outExt) {
+                        case ".cas": {
+                            // Encode in CAS file.
+                            const outBaud = (baud ?? infile.baud) ?? 250;
+                            outBinary = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            description = infile.trs80File.getDescription() + " in " +
+                                (outBaud >= 1500 ? "high" : "low") + " speed CAS file";
+                            break;
+                        }
+
+                        case ".wav": {
+                            // Encode in WAV file.
+                            const outBaud = (baud ?? infile.baud) ?? 250;
+                            const cas = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
+                            outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
+                            description = infile.trs80File.getDescription() + " in " + outBaud + " baud WAV file";
+                            break;
+                        }
+
+                        default:
+                            console.log("Can't convert an L1 program to " + outExt.toUpperCase());
+                            process.exit(1);
+                            break;
+                    }
+                    break;
             }
 
             fs.writeFileSync(outFilename, outBinary);
@@ -951,6 +981,7 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                     // Convert to cassette format if necessary.
                     let outBinary: Uint8Array;
                     let description: string;
+                    let preferredBaud = 500;
                     switch (inFile.trs80File.className) {
                         case "RawBinaryFile":
                         case "SystemProgram":
@@ -979,9 +1010,14 @@ function convert(inFilenames: string[], outFilename: string, baud: number | unde
                             description = systemProgram.getDescription();
                             break;
                         }
+                        case "Level1Program":
+                            preferredBaud = 250;
+                            outBinary = inFile.trs80File.binary;
+                            description = inFile.trs80File.getDescription()
+                            break;
                     }
 
-                    const outBaud = (baud ?? inFile.baud) ?? 500;
+                    const outBaud = (baud ?? inFile.baud) ?? preferredBaud;
                     outCasFiles.push({cas: binaryAsCasFile(outBinary, outBaud), baud: outBaud});
                     console.log("In output file: " + description);
                 }
@@ -1265,9 +1301,11 @@ function disasm(filename: string, makeListing: boolean, org: number | undefined,
     // Create and configure the disassembler.
     let disasm: Disasm;
     const ext = path.extname(filename).toUpperCase();
-    if (ext === ".CMD" || ext === ".3BN" || ext === ".SYS") {
+    if (ext === ".CMD" || ext === ".3BN" || ext === ".SYS" || ext === ".L1") {
         const trs80File = decodeTrs80File(buffer, filename);
-        if (trs80File.className !== "CmdProgram" && trs80File.className !== "SystemProgram") {
+        if (trs80File.className !== "CmdProgram"
+            && trs80File.className !== "SystemProgram"
+            && trs80File.className !== "Level1Program") {
             console.log("Can't parse program in " + filename);
             return;
         }

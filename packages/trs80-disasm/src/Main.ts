@@ -2,7 +2,9 @@
 import {
     CmdLoadBlockChunk,
     CmdProgram,
-    CmdTransferAddressChunk, SystemChunk,
+    CmdTransferAddressChunk,
+    Level1Program,
+    SystemChunk,
     SystemProgram,
     TRS80_MODEL_III_BASIC_TOKENS,
     TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS,
@@ -131,7 +133,7 @@ export function disasmForTrs80(): Disasm {
 /**
  * Create and configure a disassembler for the specified program.
  */
-export function disasmForTrs80Program(program: SystemProgram | CmdProgram): Disasm {
+export function disasmForTrs80Program(program: SystemProgram | CmdProgram | Level1Program): Disasm {
     const disasm = disasmForTrs80();
 
     if (program.entryPointAddress !== undefined) {
@@ -156,8 +158,10 @@ export function disasmForTrs80Program(program: SystemProgram | CmdProgram): Disa
                 disasm.addChunk(chunk.data, chunk.loadAddress);
             }
         }
+    } else if (program.className === "Level1Program") {
+        disasm.addChunk(program.getData(), program.startAddress);
     } else {
-        throw new Error("program is neither SystemProgram nor CmdProgram");
+        throw new Error("program is not SystemProgram, CmdProgram, or Level1Program");
     }
     if (program.entryPointAddress !== undefined) {
         disasm.addEntryPoint(program.entryPointAddress);

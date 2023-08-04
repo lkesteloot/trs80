@@ -17,7 +17,8 @@ import {
     SystemProgram,
     TRS80_SCREEN_BEGIN,
     TRS80_SCREEN_END,
-    Trs80File
+    Trs80File,
+    Level1Program
 } from "trs80-base";
 import {FloppyDisk} from "trs80-base";
 import {FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
@@ -1198,6 +1199,9 @@ export class Trs80 implements Hal, Machine {
                 case "BasicProgram":
                     this.runBasicProgram(trs80File);
                     break;
+                case "Level1Program":
+                    this.runLevel1Program(trs80File);
+                    break;
                 default:
                     console.error("Don't know how to run", trs80File);
                     break;
@@ -1250,6 +1254,22 @@ export class Trs80 implements Hal, Machine {
                     entryPointAddress = guessAddress;
                 }
             }
+            this.startExecutable(entryPointAddress);
+        });
+    }
+
+    public runLevel1Program(level1Program: Level1Program): void {
+        this.reset();
+        this.eventScheduler.add(undefined, this.tStateCount + this.clockHz*0.1, () => {
+            this.cls();
+
+            this.writeMemoryBlock(level1Program.startAddress, level1Program.getData());
+
+            // Do what the SYSTEM command does.
+            this.setStackPointer(0x4288);
+
+            // Handle programs that don't define an entry point address.
+            const entryPointAddress = level1Program.entryPointAddress ?? (level1Program.startAddress + 4);
             this.startExecutable(entryPointAddress);
         });
     }

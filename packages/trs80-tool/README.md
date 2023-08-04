@@ -41,6 +41,8 @@ The `trs80-tool` program supports these file formats:
 * **`.3BN`**: This is a machine language program as stored on a cassette. The name comes
   from "Model 3 BiNary". This is typically not used, and instead these files are
   stored within `.CAS` files.
+* **`.L1`**: This is a 250-baud file written by a Level 1 machine (Model 1 or 3). It can
+  contain a system file or a Basic program.
 * **`.JV1`**: This is a floppy disk format for the Model I. It's very simple, capturing
   the basic sector data. It does not capture enough information for copy-protected
   floppies. It's named after Jeff Vavasour.
