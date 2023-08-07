@@ -220,6 +220,12 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
         if (header === undefined) {
             break;
         }
+        if (header.position === binary.length) {
+            // The header is at the end of the file, it's not followed by a program. This can happen
+            // when a CAS file is extracted to a regular file, because the next file's header is included
+            // at the end.
+            break;
+        }
 
         headers.push(header);
         start = header.position;
