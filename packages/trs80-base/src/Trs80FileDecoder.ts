@@ -141,7 +141,8 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
         return decodeCmdProgram(binary) ?? new RawBinaryFile(binary);
     }
 
-    trs80File = decodeCassette(binary);
+    // Cassette decoding can be a bit too eager, so be more strict if we don't have the right extension.
+    trs80File = decodeCassette(binary, extension !== ".CAS");
     if (trs80File !== undefined) {
         return trs80File;
     }

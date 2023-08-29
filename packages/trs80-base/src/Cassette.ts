@@ -20,6 +20,9 @@ const HIGH_SPEED_DETECT =
     (HIGH_SPEED_HEADER_BYTE << 8) |
     (HIGH_SPEED_SYNC_BYTE << 0);
 
+// Minimum number of header bytes required in strict mode.
+const MIN_STRICT_HEADER_LENGTH = 200;
+
 export enum CassetteSpeed {
     LOW_SPEED,
     HIGH_SPEED,
@@ -144,9 +147,13 @@ function shiftLeft(inBytes: Uint8Array, shift: number): Uint8Array {
  */
 class Header {
     /**
+     * The index into the binary where the header starts.
+     */
+    public readonly headerPosition: number;
+    /**
      * The index into the binary where the program starts (after the sync byte).
      */
-    public readonly position: number;
+    public readonly programPosition: number;
     /**
      * How many bits to shift the bytes left.
      */
@@ -159,10 +166,12 @@ class Header {
      * Any annotations for this header.
      */
     public readonly annotations: ProgramAnnotation[];
-    // TODO include where header started so that previous file can be stopped there.
 
-    constructor(position: number, shift: number, speed: CassetteSpeed, annotations: ProgramAnnotation[]) {
-        this.position = position;
+    constructor(headerPosition: number, programPosition: number,
+                shift: number, speed: CassetteSpeed, annotations: ProgramAnnotation[]) {
+
+        this.headerPosition = headerPosition;
+        this.programPosition = programPosition;
         this.shift = shift;
         this.speed = speed;
         this.annotations = annotations;
@@ -170,9 +179,23 @@ class Header {
 }
 
 /**
+ * Works backwards to find the start of the header.
+ * @param binary the binary to search.
+ * @param start index of any byte in the header.
+ */
+function findStartOfHeader(binary: Uint8Array, start: number): number {
+    const headerByte = binary[start];
+    while (start > 0 && binary[start - 1] === headerByte) {
+        start -= 1;
+    }
+
+    return start;
+}
+
+/**
  * Find a header starting at "start".
  */
-function findHeader(binary: Uint8Array, start: number): Header | undefined {
+function findHeader(binary: Uint8Array, start: number, strict: boolean): Header | undefined {
     // Start with a pattern that doesn't match any header.
     let recentBits = 0xFFFFFFFF;
 
@@ -180,26 +203,32 @@ function findHeader(binary: Uint8Array, start: number): Header | undefined {
         recentBits = (recentBits << 8) | binary[i];
 
         const lowSpeedBitOffset = checkMatch(recentBits, LOW_SPEED_DETECT);
-        if (lowSpeedBitOffset !== undefined) {
-            if (lowSpeedBitOffset !== 0) {
-                // TODO
-                throw new Error("We don't yet handle low-speed cassettes with bit offsets of " + lowSpeedBitOffset);
-            }
+        if (lowSpeedBitOffset !== undefined && (lowSpeedBitOffset === 0 || !strict)) {
+            const headerStartIndex = findStartOfHeader(binary, i - 2);
+            if (!strict || i - headerStartIndex >= MIN_STRICT_HEADER_LENGTH) {
+                if (lowSpeedBitOffset !== 0) {
+                    // TODO
+                    throw new Error("We don't yet handle low-speed cassettes with bit offsets of " + lowSpeedBitOffset);
+                }
 
-            return new Header(i + 1, 0, CassetteSpeed.LOW_SPEED, [
-                new ProgramAnnotation("Low speed header", 0, i), // TODO wrong start.
-                new ProgramAnnotation("Low speed sync byte", i, i + 1),
-            ]);
+                return new Header(headerStartIndex, i + 1, 0, CassetteSpeed.LOW_SPEED, [
+                    new ProgramAnnotation("Low speed header", headerStartIndex, i),
+                    new ProgramAnnotation("Low speed sync byte", i, i + 1),
+                ]);
+            }
         }
 
         const highSpeedBitOffset = checkMatch(recentBits, HIGH_SPEED_DETECT);
-        if (highSpeedBitOffset !== undefined) {
+        if (highSpeedBitOffset !== undefined && (highSpeedBitOffset === 0 || !strict)) {
             const shift = highSpeedBitOffset === 0 ? 0 : 8 - highSpeedBitOffset;
+            const headerStartIndex = findStartOfHeader(binary, i - 2);
             const programStartIndex = i + (highSpeedBitOffset === 0 ? 1 : 0);
-            return new Header(programStartIndex, shift, CassetteSpeed.HIGH_SPEED, [
-                new ProgramAnnotation("High speed header", 0, i), // TODO wrong start.
-                new ProgramAnnotation("High speed sync byte", i, i + 1),
-            ]);
+            if (!strict || i - headerStartIndex >= MIN_STRICT_HEADER_LENGTH) {
+                return new Header(headerStartIndex, programStartIndex, shift, CassetteSpeed.HIGH_SPEED, [
+                    new ProgramAnnotation("High speed header", headerStartIndex, i),
+                    new ProgramAnnotation("High speed sync byte", i, i + 1),
+                ]);
+            }
         }
     }
 
@@ -210,25 +239,33 @@ function findHeader(binary: Uint8Array, start: number): Header | undefined {
  * Decodes a CAS from the binary. If the binary is not at all a cassette,
  * returns undefined. If it's a cassette with decoding errors, returns
  * partially-decoded object and sets the "error" field.
+ *
+ * @param binary the binary to decode
+ * @param strict whether to be more strict in our decoding. This is typically used if we don't
+ * have a file extension to be sure the kind of file we have.
  */
-export function decodeCassette(binary: Uint8Array): Cassette | undefined {
+export function decodeCassette(binary: Uint8Array, strict: boolean): Cassette | undefined {
     // Detect all the headers in the file.
     const headers: Header[] = [];
     let start = 0;
     while (true) {
-        const header = findHeader(binary, start);
+        const header = findHeader(binary, start, strict);
         if (header === undefined) {
             break;
         }
-        if (header.position === binary.length) {
+        if (header.programPosition === binary.length) {
             // The header is at the end of the file, it's not followed by a program. This can happen
             // when a CAS file is extracted to a regular file, because the next file's header is included
             // at the end.
             break;
         }
+        if (strict && headers.length === 0 && header.headerPosition !== 0) {
+            // When strict, the first header must at the start of the file.
+            return undefined;
+        }
 
         headers.push(header);
-        start = header.position;
+        start = header.programPosition;
     }
 
     if (headers.length === 0) {
@@ -243,15 +280,15 @@ export function decodeCassette(binary: Uint8Array): Cassette | undefined {
         const header = headers[i];
 
         // Pull out binary.
-        const end = i === headers.length - 1 ? binary.length : headers[i + 1].position;
-        let fileBinary = shiftLeft(binary.subarray(header.position, end), header.shift);
+        const end = i === headers.length - 1 ? binary.length : headers[i + 1].programPosition;
+        let fileBinary = shiftLeft(binary.subarray(header.programPosition, end), header.shift);
         if (header.speed === CassetteSpeed.HIGH_SPEED) {
             fileBinary = stripStartBits(fileBinary);
         }
 
         // See what kind of file it is.
         const file = decodeTrs80CassetteFile(fileBinary);
-        const cassetteFile = new CassetteFile(header.position, header.speed, file);
+        const cassetteFile = new CassetteFile(header.programPosition, header.speed, file);
         cassetteFiles.push(cassetteFile);
 
         // Merge annotations.
