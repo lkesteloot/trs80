@@ -74,12 +74,47 @@ import {Asm, FileSystem} from "z80-asm";
 import {isRegisterSetField, RegisterSet, toHex, toHexByte, toHexWord} from "z80-base";
 import { Hal, Z80 } from "z80-emulator";
 import { asmToCmdBinary, asmToSystemBinary } from "trs80-asm";
+import { AudioFileCassettePlayer } from "trs80-cassette-player";
 
 const HELP_TEXT = `
 See this page for full documentation:
 
 https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/README.md
 `
+
+/**
+ * Synchronously read a TRS-80 file, or return an error string.
+ *
+ * TODO: This pattern appears several times in this file.
+ */
+function readTrs80File(filename: string): Trs80File | AudioFile | string {
+    let buffer;
+    try {
+        buffer = fs.readFileSync(filename);
+    } catch (e: any) {
+        return filename + ": Can't open file: " + e.message;
+    }
+
+    const extension = path.parse(filename).ext.toUpperCase();
+    if (extension === ".WAV") {
+        try {
+            return readWavFile(buffer.buffer);
+        } catch (e: any) {
+            if (e.message) {
+                return filename + ": " + e.message;
+            } else {
+                return "Can't read " + filename;
+            }
+        }
+    }
+
+    const trs80File = decodeTrs80File(buffer, filename);
+    if (trs80File.error !== undefined) {
+        return filename + ": " + trs80File.error;
+    }
+
+    return trs80File;
+}
 
 /**
  * Return a list of strings for the metata from the audio file.
@@ -1534,8 +1569,13 @@ function connectXray(trs80: Trs80, keyboard: Keyboard): void {
 
 /**
  * Handle the "run" command.
+ *
+ * @param programFilename optional file to run
+ * @param mountedFilenames optional cassette or floppy files to mount
+ * @param xray whether to run the xray server
+ * @param config machine configuration
  */
-function run(programFiles: string[], xray: boolean, config: Config) {
+function run(programFilename: string | undefined, mountedFilenames: string[], xray: boolean, config: Config) {
     // Size of screen.
     const WIDTH = 64;
     const HEIGHT = 16;
@@ -1832,26 +1872,6 @@ function run(programFiles: string[], xray: boolean, config: Config) {
         }
     }
 
-    // Load file if specified.
-    const trs80Files: Trs80File[] = [];
-    for (const programFile of programFiles) {
-        let buffer;
-        try {
-            buffer = fs.readFileSync(programFile);
-        } catch (e: any) {
-            console.log(programFile + ": Can't open file: " + e.message);
-            return;
-        }
-
-        const trs80File = decodeTrs80File(buffer, programFile);
-        if (trs80File.error !== undefined) {
-            console.log(programFile + ": " + trs80File.error);
-            return;
-        }
-
-        trs80Files.push(trs80File);
-    }
-
     let screen;
     let keyboard;
     if (xray) {
@@ -1862,24 +1882,57 @@ function run(programFiles: string[], xray: boolean, config: Config) {
         keyboard = new TtyKeyboard(screen);
     }
 
-    const cassette = new CassettePlayer();
+    const cassette = new AudioFileCassettePlayer();
     const soundPlayer = new SilentSoundPlayer();
     const trs80 = new Trs80(config, screen, keyboard, cassette, soundPlayer);
     trs80.reset();
     trs80.setRunningState(RunningState.STARTED);
 
-    if (trs80Files.length > 0) {
-        trs80.runTrs80File(trs80Files[0]);
-    }
-
-    // Mount floppies.
-    for (let i = 1; i < trs80Files.length; i++) {
-        const trs80File = trs80Files[i];
-        if (!isFloppy(trs80File)) {
-            console.log("Additional files must be floppies");
+    // Run the program if specified.
+    if (programFilename !== undefined) {
+        const program = readTrs80File(programFilename);
+        if (typeof(program) === "string") {
+            console.log(program);
+            return;
+        } else if (program instanceof AudioFile) {
+            // TODO I don't see why not.
+            console.log("Can't run WAV files directly");
             return;
         }
-        trs80.loadFloppyDisk(trs80File, i);
+        trs80.runTrs80File(program);
+    }
+
+    // Mount floppies or cassettes.
+    let driveNumber = 0;
+    let mountedCassette = false;
+    for (const mountedFilename of mountedFilenames) {
+        const program = readTrs80File(mountedFilename);
+        if (typeof (program) === "string") {
+            console.log(program);
+            return;
+        }
+
+        if (program instanceof AudioFile) {
+            if (mountedCassette) {
+                console.log("Can only mount a single cassette");
+                return;
+            }
+            cassette.setAudioFile(program, 0);
+            mountedCassette = true;
+        } else if (isFloppy(program)) {
+            trs80.loadFloppyDisk(program, driveNumber++);
+        } else if (program.className === "Cassette") {
+            // Cassette.
+            if (mountedCassette) {
+                console.log("Can only mount a single cassette");
+                return;
+            }
+            cassette.setCasFile(program, 0);
+            mountedCassette = true;
+        } else {
+            console.log("Can only mount cassettes or floppies: " + mountedFilename);
+            return;
+        }
     }
 
     if (xray) {
@@ -2375,14 +2428,15 @@ function main() {
             disasm(infile, options.listing, org, entryPoints, options.labels, options.known, options.binary, hexFormat);
         });
     program
-        .command("run [program...]")
+        .command("run [program]")
         .description("run a TRS-80 emulator", {
             program: "optional program file to run"
         })
         .option("--xray", "run an xray debug server")
         .option("--model <model>", "which model (1, 3, 4), defaults to 3")
         .option("--level <level>", "which level (1 or 2), defaults to 2")
-        .action((programs, options) => {
+        .option("--mount <files...>", "cassettes or floppies to mount")
+        .action((program, options) => {
             const modelName = options.model ?? "3";
             const levelName = options.level ?? "2";
 
@@ -2411,7 +2465,7 @@ function main() {
                 process.exit(1);
             }
 
-            run(programs, options.xray, config);
+            run(program, options.mount ?? [], options.xray, config);
         });
     program
         .command("repl")

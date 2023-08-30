@@ -1,5 +1,5 @@
 import {
-    CassettePlayer, Config,
+    Config,
     RunningState,
     Trs80
 } from "trs80-emulator";
@@ -7,7 +7,7 @@ import {
     CanvasScreen,
     ControlPanel,
     DriveIndicators, flashNode,
-    PanelType, ProgressBar,
+    PanelType, WebProgressBar,
     SettingsPanel, WebKeyboard
 } from "trs80-emulator-web";
 import firebase from 'firebase/app';
@@ -39,121 +39,7 @@ import {
     wrapLowSpeed
 } from "trs80-cassette";
 import {WebSoundPlayer} from "trs80-emulator-web";
-
-/**
- * A cassette player based on a CAS file.
- */
-export class CasFileCassettePlayer extends CassettePlayer {
-    private samples: Int16Array = new Int16Array(0);
-    private frame: number = 0;
-    private progressBar: ProgressBar | undefined;
-    private motorOn = false;
-    private rewinding = false;
-
-    /**
-     * Create the audio for the cassette file.
-     *
-     * @param casFile cassette file to convert to audio.
-     * @param skip position the tape after the first "skip" files.
-     */
-    public setCasFile(casFile: Cassette, skip: number): void {
-        // Make audio for each file at the appropriate speed.
-        const samplesList: Int16Array[] = [];
-        this.frame = 0;
-        for (const cassetteFile of casFile.files) {
-            let samples: Int16Array;
-
-            switch (cassetteFile.speed) {
-                case CassetteSpeed.LOW_SPEED:
-                    samples = encodeLowSpeed(wrapLowSpeed(cassetteFile.file.binary), this.samplesPerSecond, 500);
-                    break;
-
-                case CassetteSpeed.HIGH_SPEED:
-                    samples = encodeHighSpeed(wrapHighSpeed(cassetteFile.file.binary), this.samplesPerSecond);
-                    break;
-            }
-
-            // Skip to this file.
-            if (skip === 0) {
-                this.frame = totalAudioSamples(samplesList);
-            }
-            skip -= 1;
-
-            samplesList.push(samples);
-
-            // Silence between files.
-            samplesList.push(new Int16Array(this.samplesPerSecond));
-        }
-
-        this.samples = concatAudio(samplesList);
-        this.progressBar?.setMaxValue(this.samples.length);
-    }
-
-    public rewind(): void {
-        if (this.progressBar === undefined) {
-            this.frame = 0;
-        } else {
-            this.rewinding = true;
-            this.updateProgressBarVisibility();
-            const updateRewind = () => {
-                if (this.frame > 0) {
-                    this.frame = Math.max(0, Math.round(this.frame - this.samples.length/30));
-                    this.progressBar?.setValue(this.frame);
-                    window.requestAnimationFrame(updateRewind);
-                } else {
-                    this.rewinding = false;
-                    this.updateProgressBarVisibility();
-                }
-            };
-            // Wait for progress bar to become visible.
-            setTimeout(updateRewind, 150);
-        }
-    }
-
-    public setProgressBar(progressBar: ProgressBar): void {
-        this.progressBar = progressBar;
-        this.progressBar.setMaxValue(this.samples.length);
-    }
-
-    public onMotorStart(): void {
-        this.motorOn = true;
-        this.updateProgressBarVisibility();
-    }
-
-    public readSample(): number {
-        if (this.rewinding) {
-            // Can't read while rewinding.
-            return 0;
-        } else {
-            if (this.frame % this.samplesPerSecond === 0) {
-                console.log("Reading tape at " + frameToTimestamp(this.frame, this.samplesPerSecond));
-            }
-            if (this.progressBar !== undefined &&
-                (this.frame % Math.floor(this.samplesPerSecond / 10) === 0 ||
-                    this.frame == this.samples.length - 1)) {
-
-                this.progressBar.setValue(this.frame);
-            }
-
-            return this.frame < this.samples.length ? this.samples[this.frame++] / 32768 : 0;
-        }
-    }
-
-    public onMotorStop(): void {
-        this.motorOn = false;
-        this.updateProgressBarVisibility();
-    }
-
-    private updateProgressBarVisibility() {
-        if (this.progressBar !== undefined) {
-            if (this.motorOn || this.rewinding) {
-                this.progressBar.show();
-            } else {
-                this.progressBar.hide();
-            }
-        }
-    }
-}
+import { AudioFileCassettePlayer } from "trs80-cassette-player";
 
 function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () => void): HTMLElement {
     const body = document.querySelector("body") as HTMLElement;
@@ -303,9 +189,9 @@ export function main() {
 
     const screen = new CanvasScreen(1.5);
     const keyboard = new WebKeyboard();
-    const cassettePlayer = new CasFileCassettePlayer();
+    const cassettePlayer = new AudioFileCassettePlayer();
     const soundPlayer = new WebSoundPlayer();
-    const progressBar = new ProgressBar(screen.getNode());
+    const progressBar = new WebProgressBar(screen.getNode());
     cassettePlayer.setProgressBar(progressBar);
     const trs80 = new Trs80(Config.makeDefault(), screen, keyboard, cassettePlayer, soundPlayer);
     keyboard.configureKeyboard();

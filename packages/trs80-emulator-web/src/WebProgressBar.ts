@@ -1,4 +1,5 @@
 
+import {ProgressBar} from "trs80-cassette-player";
 import {CSS_PREFIX} from "./Utils.js";
 
 const gCssPrefix = CSS_PREFIX + "-progress-bar";
@@ -35,7 +36,7 @@ const GLOBAL_CSS = "." + gBarCssClass + ` {
 /**
  * Overlay on top of a screen to show progress, for instance the position of a cassette tape.
  */
-export class ProgressBar {
+export class WebProgressBar implements ProgressBar {
     private readonly barNode: HTMLElement;
     private readonly subbarNode: HTMLElement;
     private maxValue: number = 100;
@@ -45,7 +46,7 @@ export class ProgressBar {
      */
     constructor(screenNode: HTMLElement) {
         // Make global CSS if necessary.
-        ProgressBar.configureStyle();
+        WebProgressBar.configureStyle();
 
         screenNode.classList.add(gScreenNodeCssClass);
 
@@ -66,12 +67,12 @@ export class ProgressBar {
         this.subbarNode.style.width = "" + (value*100/this.maxValue) + "%";
     }
 
-    public show() {
-        this.barNode.style.opacity = "1";
+    public rewind(): void {
+        this.setValue(0);
     }
 
-    public hide() {
-        this.barNode.style.opacity = "0";
+    public setShown(shown: boolean) {
+        this.barNode.style.opacity = shown ? "1" : "0";
     }
 
     /**

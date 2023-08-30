@@ -18,6 +18,13 @@ export class AudioFile {
         this.samples = samples;
         this.metadata = metadata;
     }
+
+    /**
+     * Create an empty audio file.
+     */
+    public static makeEmpty(): AudioFile {
+        return new AudioFile(44100, new Int16Array());
+    }
 }
 
 /**

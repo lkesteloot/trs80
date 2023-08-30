@@ -1,7 +1,7 @@
 {
-  "name": "trs80-emulator-web",
-  "version": "2.3.1",
-  "description": "Web components for the TRS-80 Model III emulator",
+  "name": "trs80-cassette-player",
+  "version": "2.4.1",
+  "description": "Implementations of the CassettePlayer interface",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,21 +9,22 @@
   "homepage": "https://github.com/lkesteloot/trs80#readme",
   "license": "MIT",
   "keywords": [
-    "trs-80",
-    "trs80",
-    "emulator"
+    "trs-80"
   ],
   "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
+    "watch": "tsc -p tsconfig.json --watch",
     "prepublishOnly": "npm run build"
   },
+  "devDependencies": {
+    "@types/node": "^16.0.0",
+    "typedoc": "^0.22.13",
+    "typescript": "^4.0.0"
+  },
   "dependencies": {
-    "trs80-base": "^2.3.1",
-    "trs80-cassette-player": "^2.4.1",
-    "trs80-emulator": "^2.3.1",
-    "typescript": "^4.0.0",
+    "teamten-ts-utils": "^1.0.3",
     "z80-base": "^2.0.1"
   }
 }

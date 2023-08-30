@@ -16,7 +16,10 @@ To install a new package:
 New Lerna:
 
 % npx lerna@latest init  (did this once, delete lerna.json first)
+% npx lerna create trs80-cassette-player packages  (also add to package.json)
+% npx lerna add trs80-child packages/trs80-parent
 % npx lerna run build
+% npx nx graph
 
 ---------------------
 

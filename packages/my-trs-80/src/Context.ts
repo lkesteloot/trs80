@@ -7,7 +7,7 @@ import {User} from "./User";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Database} from "./Database";
 import {FilePanel} from "./FilePanel";
-import {CasFileCassettePlayer} from "./Main";
+import { AudioFileCassettePlayer } from "trs80-cassette-player";
 
 // Exclamation marks are not allowed in DOM IDs, so this guarantees that it won't jump anywhere.
 const FRAGMENT_PREFIX = "#!";
@@ -18,7 +18,7 @@ const FRAGMENT_PREFIX = "#!";
 export class Context {
     public readonly library: Library;
     public readonly trs80: Trs80;
-    public readonly cassettePlayer: CasFileCassettePlayer;
+    public readonly cassettePlayer: AudioFileCassettePlayer;
     public readonly db: Database;
     public readonly panelManager: PanelManager;
     private _runningFile: File | undefined = undefined;
@@ -29,7 +29,7 @@ export class Context {
     // Dispatched when we initially figure out if we're signed in or not.
     public readonly onUserResolved = new SimpleEventDispatcher<void>();
 
-    constructor(library: Library, trs80: Trs80, cassettePlayer: CasFileCassettePlayer,
+    constructor(library: Library, trs80: Trs80, cassettePlayer: AudioFileCassettePlayer,
                 db: Database, panelManager: PanelManager) {
 
         this.library = library;

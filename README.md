@@ -15,6 +15,7 @@ in TypeScript. The subprojects are:
 * [trs80-emulator](packages/trs80-emulator): TRS-80 hardware emulator. Can emulate a Model I and Model III, read-only cassette, and read-only floppy disk.
 * [trs80-emulator-web](packages/trs80-emulator-web): Classes for embedding the emulator in a web page.
 * [trs80-cassette](packages/trs80-cassette): Library for reading and writing cassette WAV files. Does a good job with cassettes that have been partially damaged and can't be read by other converter tools.
+* [trs80-cassette-player](packages/trs80-cassette-player): Tiny library for letting the TRS-80 emulator mount WAV and CAS files.
 * [trs80-cassette-webapp](packages/trs80-cassette-webapp): Web utility for reading cassette WAV files and converting them to CAS files.
 * [my-trs-80](packages/my-trs-80): Web app for hosting a virtual TRS-80 and its library of cassettes and floppy disks.
 * [trs80-tool](packages/trs80-tool): Command-line tool for manipulating TRS-80 files.

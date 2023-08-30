@@ -28,6 +28,7 @@
     "packages/trs80-emulator",
     "packages/trs80-emulator-web",
     "packages/trs80-cassette",
+    "packages/trs80-cassette-player",
     "packages/trs80-cassette-webapp",
     "packages/trs80-ide",
     "packages/trs80-tool",
