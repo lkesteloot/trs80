@@ -261,48 +261,84 @@ class NopScreen extends Trs80Screen {
  * Keyboard implementation for a TTY. Puts the TTY into raw mode.
  */
 class TtyKeyboard extends Keyboard {
+    private readonly screen: TtyScreen;
+
     constructor(screen: TtyScreen) {
         super();
+        this.screen = screen;
 
         process.stdin.setRawMode(true);
-        process.stdin.on("data", (buffer) => {
-            if (buffer.length > 0) {
-                const key = buffer[0];
-                if (key === 0x03) {
+        process.stdin.on("data", buffer => this.processBuffer(buffer));
+    }
+
+    /**
+     * Process all keys in a buffer.
+     */
+    private processBuffer(buffer: Buffer): void {
+        for (let i = 0; i < buffer.length; i++) {
+            const key = buffer[i];
+
+            let keyName: string | undefined = undefined;
+
+            switch (key) {
+                case 0x03:
                     // Ctrl-C.
-                    screen.exit();
+                    this.screen.exit();
                     process.exit();
-                } else if (key === 0x0C) {
+                    break;
+
+                case 0x0C:
                     // Ctrl-L.
-                    screen.redraw();
-                } else {
-                    let keyName: string;
+                    this.screen.redraw();
+                    break;
 
-                    switch (key) {
-                        case 8:
-                        case 127:
-                            keyName = "Backspace";
-                            break;
+                case 0x08:
+                case 0x7F:
+                    keyName = "Backspace";
+                    break;
 
-                        case 10:
-                        case 13:
-                            keyName = "Enter";
-                            break;
+                case 0x0A:
+                case 0x0D:
+                    keyName = "Enter";
+                    break;
 
-                        case 27:
-                            keyName = "Escape";
-                            break;
+                case 0x1B:
+                    // Escape.
+                    if (i + 2 < buffer.length && buffer[i + 1] === 0x5B) {
+                        // Arrow keys.
+                        switch (buffer[i + 2]) {
+                            case 0x41:
+                                keyName = "ArrowUp";
+                                break;
 
-                        default:
-                            keyName = String.fromCodePoint(key);
-                            break;
+                            case 0x42:
+                                keyName = "ArrowDown";
+                                break;
+
+                            case 0x43:
+                                keyName = "ArrowRight";
+                                break;
+
+                            case 0x44:
+                                keyName = "ArrowLeft";
+                                break;
+                        }
+                        i += 2;
+                    } else {
+                        keyName = "Escape";
                     }
+                    break;
 
-                    this.keyEvent(keyName, true);
-                    this.keyEvent(keyName, false);
-                }
+                default:
+                    keyName = String.fromCodePoint(key);
+                    break;
             }
-        });
+
+            if (keyName !== undefined) {
+                this.keyEvent(keyName, true);
+                this.keyEvent(keyName, false);
+            }
+        }
     }
 }
 
