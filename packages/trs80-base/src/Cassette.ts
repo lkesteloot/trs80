@@ -20,8 +20,9 @@ const HIGH_SPEED_DETECT =
     (HIGH_SPEED_HEADER_BYTE << 8) |
     (HIGH_SPEED_SYNC_BYTE << 0);
 
-// Minimum number of header bytes required in strict mode.
+// Minimum number of header bytes required in strict mode or lax mode.
 const MIN_STRICT_HEADER_LENGTH = 200;
+const MIN_LAX_HEADER_LENGTH = 100;
 
 export enum CassetteSpeed {
     LOW_SPEED,
@@ -199,13 +200,16 @@ function findHeader(binary: Uint8Array, start: number, strict: boolean): Header 
     // Start with a pattern that doesn't match any header.
     let recentBits = 0xFFFFFFFF;
 
+    // Compute minimum header length.
+    const minHeaderLength = strict ? MIN_STRICT_HEADER_LENGTH : MIN_LAX_HEADER_LENGTH;
+
     for (let i = start; i < binary.length; i++) {
         recentBits = (recentBits << 8) | binary[i];
 
         const lowSpeedBitOffset = checkMatch(recentBits, LOW_SPEED_DETECT);
         if (lowSpeedBitOffset !== undefined && (lowSpeedBitOffset === 0 || !strict)) {
             const headerStartIndex = findStartOfHeader(binary, i - 2);
-            if (!strict || i - headerStartIndex >= MIN_STRICT_HEADER_LENGTH) {
+            if (i - headerStartIndex >= minHeaderLength) {
                 if (lowSpeedBitOffset !== 0) {
                     // TODO
                     throw new Error("We don't yet handle low-speed cassettes with bit offsets of " + lowSpeedBitOffset);
@@ -223,7 +227,7 @@ function findHeader(binary: Uint8Array, start: number, strict: boolean): Header 
             const shift = highSpeedBitOffset === 0 ? 0 : 8 - highSpeedBitOffset;
             const headerStartIndex = findStartOfHeader(binary, i - 2);
             const programStartIndex = i + (highSpeedBitOffset === 0 ? 1 : 0);
-            if (!strict || i - headerStartIndex >= MIN_STRICT_HEADER_LENGTH) {
+            if (i - headerStartIndex >= minHeaderLength) {
                 return new Header(headerStartIndex, programStartIndex, shift, CassetteSpeed.HIGH_SPEED, [
                     new ProgramAnnotation("High speed header", headerStartIndex, i),
                     new ProgramAnnotation("High speed sync byte", i, i + 1),

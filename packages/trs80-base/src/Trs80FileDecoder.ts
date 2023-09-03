@@ -142,7 +142,8 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
     }
 
     // Cassette decoding can be a bit too eager, so be more strict if we don't have the right extension.
-    trs80File = decodeCassette(binary, extension !== ".CAS");
+    const strictCassetteDecoding = extension !== ".CAS";
+    trs80File = decodeCassette(binary, strictCassetteDecoding);
     if (trs80File !== undefined) {
         return trs80File;
     }
