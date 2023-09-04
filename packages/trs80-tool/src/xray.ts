@@ -2,9 +2,9 @@ import * as fs from "fs";
 import http from "http";
 import * as url from "url";
 import * as ws from "ws";
-import {Keyboard, RunningState, Trs80 } from "trs80-emulator";
+import {Config, Keyboard, ModelType, RamSize, RunningState, Trs80 } from "trs80-emulator";
 
-export function connectXray(trs80: Trs80, keyboard: Keyboard): void {
+export function connectXray(trs80: Trs80, keyboard: Keyboard, config: Config): void {
     const host = "0.0.0.0";
     const port = 8080;
 
@@ -33,7 +33,7 @@ export function connectXray(trs80: Trs80, keyboard: Keyboard): void {
             return;
         }
 
-        const { pathname } = url.parse(req.url); // TODO deprecated
+        const { pathname } = url.parse(req.url);
 
         switch (pathname) {
             case "/":
@@ -63,10 +63,29 @@ export function connectXray(trs80: Trs80, keyboard: Keyboard): void {
 
     function sendUpdate(ws: ws.WebSocket) {
         const regs = trs80.z80.regs;
+
+        let modelNumber: number;
+        switch (config.modelType) {
+            case ModelType.MODEL1:
+                modelNumber = 1;
+                break;
+
+            case ModelType.MODEL3:
+                modelNumber = 3;
+                break;
+
+            case ModelType.MODEL4:
+                modelNumber = 4;
+                break;
+
+            default:
+                throw new Error("unknown model type " + config.modelType);
+        }
+
         const info = {
             context: {
                 system_name: "trs80-tool",
-                model: 3, // TODO get from config.
+                model: modelNumber,
                 running: trs80.runningState === RunningState.STARTED,
                 alt_single_step_mode: false,
             },
@@ -100,9 +119,9 @@ export function connectXray(trs80: Trs80, keyboard: Keyboard): void {
 
     function sendMemory(ws: ws.WebSocket): void {
         // TODO parse non-force version.
-        const MEM_SIZE = 0x10000; // TODO auto-detect.
-        const memory = Buffer.alloc(MEM_SIZE + 2);
-        for (let i = 0; i < MEM_SIZE; i++) {
+        const memorySize = 16*1024 + config.getRamSize();
+        const memory = Buffer.alloc(memorySize + 2);
+        for (let i = 0; i < memorySize; i++) {
             memory[i + 2] = trs80.readMemory(i);
         }
         // TODO first two bytes are start address in big-endian.
@@ -180,7 +199,7 @@ export function connectXray(trs80: Trs80, keyboard: Keyboard): void {
             console.log("upgrade URL is undefined");
             return;
         }
-        const { pathname } = url.parse(request.url); // TODO deprecated
+        const { pathname } = url.parse(request.url);
         console.log("upgrade", request.url, pathname, head.toString());
 
         if (pathname === '/channel') {

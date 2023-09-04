@@ -424,6 +424,6 @@ export function run(programFilename: string | undefined, mountedFilenames: strin
     }
 
     if (xray) {
-        connectXray(trs80, keyboard);
+        connectXray(trs80, keyboard, config);
     }
 }

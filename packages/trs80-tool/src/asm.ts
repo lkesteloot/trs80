@@ -9,7 +9,6 @@ import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio, writeWavFile } from "t
 
 /**
  * Node fs implementation of FileSystem.
- * TODO move this into a common library.
  */
 class FileSystemImpl implements FileSystem {
     readBinaryFile(pathname: string): Uint8Array | undefined {
