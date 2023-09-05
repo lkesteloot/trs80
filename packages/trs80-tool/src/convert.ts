@@ -1,11 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import { InputFile } from "./InputFile.js";
+import { expandFile } from "./InputFile.js";
 import {pluralizeWithCount} from "./utils.js";
-import {DEFAULT_SAMPLE_RATE, Decoder, Tape, binaryAsCasFile, casAsAudio,
-    concatAudio, readWavFile, writeWavFile } from "trs80-cassette";
-import {CassetteSpeed, RawBinaryFile,
-    Trs80File, decodeTrs80CassetteFile, decodeTrs80File, decodeTrsdos, getTrs80FileExtension, isFloppy } from "trs80-base";
+import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio,
+    concatAudio, writeWavFile } from "trs80-cassette";
+import {Trs80File} from "trs80-base";
 import { concatByteArrays } from "teamten-ts-utils";
 import {disassemble} from "./disasm.js";
 
@@ -21,71 +20,10 @@ import {disassemble} from "./disasm.js";
 export function convert(inFilenames: string[], outFilename: string, baud: number | undefined,
                  start: number | "auto" | undefined, entryPoints: number[]): void {
 
-    const inFiles: InputFile[] = [];
     const outputIsDirectory = fs.existsSync(outFilename) && fs.statSync(outFilename).isDirectory();
 
     // Read all input files into an internal data structure, expanding archives like cassettes and floppies.
-    for (const inFilename of inFilenames) {
-        const { base, name, ext } = path.parse(inFilename);
-
-        let buffer;
-        try {
-            buffer = fs.readFileSync(inFilename);
-        } catch (e: any) {
-            console.log("Can't open \"" + inFilename + "\": " + e.message);
-            process.exit(1);
-        }
-
-        if (ext.toLowerCase() == ".wav") {
-            // Parse a cassette WAV file.
-            const wavFile = readWavFile(buffer.buffer);
-            const tape = new Tape(base, wavFile);
-            const decoder = new Decoder(tape);
-            decoder.decode();
-            for (const program of tape.programs) {
-                const trs80File = decodeTrs80CassetteFile(program.binary);
-                const filename = name + "-" + program.getPseudoFilename() + getTrs80FileExtension(trs80File);
-                inFiles.push(new InputFile(filename, trs80File, program.baud));
-            }
-        } else {
-            const trs80File = decodeTrs80File(buffer, inFilename);
-            if (trs80File.error !== undefined) {
-                console.log("Can't open \"" + inFilename + "\": " + trs80File.error);
-                process.exit(1);
-            }
-
-            if (isFloppy(trs80File)) {
-                const trsdos = decodeTrsdos(trs80File);
-                if (trsdos === undefined) {
-                    // Should probably fail here. Having the floppy disk itself is probably not
-                    // what the user wants.
-                    inFiles.push(new InputFile(base, trs80File));
-                } else {
-                    // Expand floppy.
-                    for (const dirEntry of trsdos.dirEntries) {
-                        const trsdosFilename = dirEntry.getFilename(".");
-                        const trsdosBinary = trsdos.readFile(dirEntry);
-                        // Don't decode if we're going to just write files to disk anyway.
-                        const trsdosTrs80File = outputIsDirectory
-                            ? new RawBinaryFile(trsdosBinary)
-                            : decodeTrs80File(trsdosBinary, trsdosFilename);
-                        inFiles.push(new InputFile(trsdosFilename, trsdosTrs80File, undefined, dirEntry.getDate()));
-                    }
-                }
-            } else if (trs80File.className === "Cassette") {
-                // Expand .CAS file.
-                let counter = 1;
-                for (const cassetteFile of trs80File.files) {
-                    const filename = name + "-T" + counter + getTrs80FileExtension(cassetteFile.file);
-                    const baud = cassetteFile.speed === CassetteSpeed.LOW_SPEED ? 500 : 1500;
-                    inFiles.push(new InputFile(filename, cassetteFile.file, baud));
-                    counter++;
-                }
-            } else {
-                inFiles.push(new InputFile(base, trs80File));
-            }
-        }
-    }
+    const inFiles = inFilenames.flatMap(expandFile);
 
     // Update start address if requested.
     if (start !== undefined) {
@@ -107,7 +45,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
             }
 
             if (newTrs80File !== undefined) {
-                inFiles[i] = inFiles[i].withFile(newTrs80File);
+                inFiles[i].setFile(newTrs80File);
             }
         }
     }
@@ -116,12 +54,14 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
     if (outputIsDirectory) {
         for (const infile of inFiles) {
             const outpath = path.join(outFilename, infile.filename);
-            fs.writeFileSync(outpath, infile.trs80File.binary);
-            if (infile.date !== undefined) {
-                fs.utimesSync(outpath, infile.date, infile.date);
+            const binary = infile.binary;
+            fs.writeFileSync(outpath, binary);
+            const date = infile.getDate();
+            if (date !== undefined) {
+                fs.utimesSync(outpath, date, date);
             }
             console.log("Wrote " + outpath + " (" +
-                pluralizeWithCount(infile.trs80File.binary.length, "byte") + ")");
+                pluralizeWithCount(binary.length, "byte") + ")");
         }
     } else {
         // Output is a file. Its extension will help us determine how to convert the input files.
@@ -183,7 +123,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
 
                         case ".cas": {
                             // Encode in CAS file.
-                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const outBaud = baud ?? infile.getBaud() ?? 500;
                             outBinary = binaryAsCasFile(infile.trs80File.asCassetteBinary(), outBaud);
                             description = "Basic file in " + (outBaud >= 1500 ? "high" : "low") + " speed CAS file";
                             break;
@@ -191,7 +131,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
 
                         case ".wav": {
                             // Encode in WAV file.
-                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const outBaud = baud ?? infile.getBaud() ?? 500;
                             const cas = binaryAsCasFile(infile.trs80File.asCassetteBinary(), outBaud);
                             const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
                             outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
@@ -233,7 +173,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
 
                         case ".cas": {
                             // Encode in CAS file.
-                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const outBaud = baud ?? infile.getBaud() ?? 500;
                             outBinary = binaryAsCasFile(infile.trs80File.binary, outBaud);
                             description = infile.trs80File.getDescription() + " in " +
                                 (outBaud >= 1500 ? "high" : "low") + " speed CAS file";
@@ -242,7 +182,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
 
                         case ".wav": {
                             // Encode in WAV file.
-                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const outBaud = baud ?? infile.getBaud() ?? 500;
                             const cas = binaryAsCasFile(infile.trs80File.binary, outBaud);
                             const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
                             outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
@@ -283,7 +223,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
 
                         case ".cas": {
                             // Encode in CAS file.
-                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const outBaud = baud ?? infile.getBaud() ?? 500;
                             const systemProgram = infile.trs80File.toSystemProgram(inName.toUpperCase());
                             const sysBinary = systemProgram.binary;
                             outBinary = binaryAsCasFile(sysBinary, outBaud);
@@ -294,7 +234,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
 
                         case ".wav": {
                             // Encode in WAV file.
-                            const outBaud = (baud ?? infile.baud) ?? 500;
+                            const outBaud = baud ?? infile.getBaud() ?? 500;
                             const systemProgram = infile.trs80File.toSystemProgram(inName.toUpperCase());
                             const sysBinary = systemProgram.binary;
                             const cas = binaryAsCasFile(sysBinary, outBaud);
@@ -323,7 +263,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
                     switch (outExt) {
                         case ".cas": {
                             // Encode in CAS file.
-                            const outBaud = (baud ?? infile.baud) ?? 250;
+                            const outBaud = baud ?? infile.getBaud() ?? 250;
                             outBinary = binaryAsCasFile(infile.trs80File.binary, outBaud);
                             description = infile.trs80File.getDescription() + " in " +
                                 (outBaud >= 1500 ? "high" : "low") + " speed CAS file";
@@ -332,7 +272,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
 
                         case ".wav": {
                             // Encode in WAV file.
-                            const outBaud = (baud ?? infile.baud) ?? 250;
+                            const outBaud = baud ?? infile.getBaud() ?? 250;
                             const cas = binaryAsCasFile(infile.trs80File.binary, outBaud);
                             const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
                             outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
@@ -395,7 +335,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
                             break;
                     }
 
-                    const outBaud = (baud ?? inFile.baud) ?? preferredBaud;
+                    const outBaud = baud ?? inFile.getBaud() ?? preferredBaud;
                     outCasFiles.push({cas: binaryAsCasFile(outBinary, outBaud), baud: outBaud});
                     console.log("In output file: " + description);
                 }

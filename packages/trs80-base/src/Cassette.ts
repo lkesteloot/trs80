@@ -51,12 +51,14 @@ function checkMatch(actual: number, reference: number): number | undefined {
  * Represents a file on a cassette. (Not the CAS file itself.)
  */
 export class CassetteFile {
+    public readonly binary: Uint8Array;
     // Offset into the cassette's binary.
     public readonly offset: number;
     public readonly speed: CassetteSpeed;
     public readonly file: Trs80File;
 
-    constructor(offset: number, speed: CassetteSpeed, file: Trs80File) {
+    constructor(binary: Uint8Array, offset: number, speed: CassetteSpeed, file: Trs80File) {
+        this.binary = binary;
         this.offset = offset;
         this.speed = speed;
         this.file = file;
@@ -67,6 +69,22 @@ export class CassetteFile {
      */
     public adjustedAnnotations(): ProgramAnnotation[] {
         return this.file.annotations.map(annotation => annotation.adjusted(this.offset));
+    }
+
+    /**
+     * Get the (guessed) baud rate.
+     */
+    public getBaud(): number {
+        switch (this.speed) {
+            case CassetteSpeed.LOW_SPEED:
+                return this.file.className === "Level1Program" ? 250 : 500;
+
+            case CassetteSpeed.HIGH_SPEED:
+                return 1500;
+
+            default:
+                throw new Error("unknown speed " + this.speed);
+        }
     }
 }
 
@@ -292,7 +310,7 @@ export function decodeCassette(binary: Uint8Array, strict: boolean): Cassette | 
 
         // See what kind of file it is.
         const file = decodeTrs80CassetteFile(fileBinary);
-        const cassetteFile = new CassetteFile(header.programPosition, header.speed, file);
+        const cassetteFile = new CassetteFile(fileBinary, header.programPosition, header.speed, file);
         cassetteFiles.push(cassetteFile);
 
         // Merge annotations.

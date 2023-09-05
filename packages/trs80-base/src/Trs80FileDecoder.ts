@@ -37,7 +37,7 @@ const CLASS_NAME_TO_EXTENSION = {
 };
 
 /**
- * Get the upper-case extension for the given file.
+ * Get the upper-case extension for the given file, including the period.
  */
 export function getTrs80FileExtension(trs80File: Trs80File): string {
     return CLASS_NAME_TO_EXTENSION[trs80File.className] ?? ".BIN";

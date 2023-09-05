@@ -66,12 +66,12 @@ function main() {
             .choices(["off", "16", "256", "16m", "auto"])
             .default("auto"));
     program
-        .command("dir <infile>")
-        .description("list files in the infile", {
-            infile: "WAV, CAS, JV1, JV3, or DMK file (TRSDOS floppies only)",
+        .command("dir <infiles...>")
+        .description("list files in the infiles", {
+            infiles: "WAV, CAS, JV1, JV3, or DMK file (TRSDOS floppies only)",
         })
-        .action(infile => {
-            dir(infile);
+        .action(infiles => {
+            dir(infiles);
         });
     program
         .command("info <infiles...>")

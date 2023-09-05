@@ -5,7 +5,6 @@ import {CassetteFile, CassetteSpeed, Trsdos, TrsdosDirEntry, decodeLevel1Program
     decodeTrs80File, decodeTrsdos, getTrs80FileExtension, isFloppy, trsdosProtectionLevelToString } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
 
-
 /**
  * Super class for files that are nested in another file, such as a floppy or cassette.
  */

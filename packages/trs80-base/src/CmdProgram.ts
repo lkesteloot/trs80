@@ -1,7 +1,7 @@
 /**
  * Tools for dealing with CMD (machine language) programs.
  *
- * http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/tape-and-file-formats-structures/#cmdfile
+ * https://www.trs-80.com/wordpress/tips/formats/#cmdfile
  */
 
 import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
