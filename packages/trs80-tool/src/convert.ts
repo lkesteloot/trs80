@@ -286,6 +286,39 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
                             break;
                     }
                     break;
+
+                case "EdtasmFile":
+                    switch (outExt) {
+                        case ".asc":
+                            outBinary = Buffer.from(infile.trs80File.asAscii());
+                            description = "EDTASM file (plain text)";
+                            break;
+
+                        case ".cas": {
+                            // Encode in CAS file.
+                            const outBaud = baud ?? infile.getBaud() ?? 500;
+                            outBinary = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            description = infile.trs80File.getDescription() + " in " +
+                                (outBaud >= 1500 ? "high" : "low") + " speed CAS file";
+                            break;
+                        }
+
+                        case ".wav": {
+                            // Encode in WAV file.
+                            const outBaud = baud ?? infile.getBaud() ?? 500;
+                            const cas = binaryAsCasFile(infile.trs80File.binary, outBaud);
+                            const audio = casAsAudio(cas, outBaud, DEFAULT_SAMPLE_RATE);
+                            outBinary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
+                            description = infile.trs80File.getDescription() + " in " + outBaud + " baud WAV file";
+                            break;
+                        }
+
+                        default:
+                            console.log("Can't convert an ASM program to " + outExt.toUpperCase());
+                            process.exit(1);
+                            break;
+                    }
+                    break;
             }
 
             fs.writeFileSync(outFilename, outBinary);
@@ -303,6 +336,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
                     switch (inFile.trs80File.className) {
                         case "RawBinaryFile":
                         case "SystemProgram":
+                        case "EdtasmFile":
                             // Keep as-is.
                             outBinary = inFile.trs80File.binary;
                             description = inFile.trs80File.getDescription();

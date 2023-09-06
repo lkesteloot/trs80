@@ -8,6 +8,7 @@ import {decodeDmkFloppyDisk, DmkFloppyDisk} from "./DmkFloppyDisk.js";
 import {decodeSystemProgram, SystemProgram} from "./SystemProgram.js";
 import {decodeScpFloppyDisk, ScpFloppyDisk} from "./ScpFloppyDisk.js";
 import {decodeLevel1Program, Level1Program} from "./Level1Program.js";
+import {decodeEdtasmFile, EdtasmFile} from "./EdtasmFile.js";
 
 /**
  * All the possible programs we can decode.
@@ -21,7 +22,8 @@ export type Trs80File = BasicProgram |
     SystemProgram |
     CmdProgram |
     RawBinaryFile |
-    Level1Program;
+    Level1Program |
+    EdtasmFile;
 
 const CLASS_NAME_TO_EXTENSION = {
     BasicProgram: ".BAS",
@@ -34,6 +36,7 @@ const CLASS_NAME_TO_EXTENSION = {
     RawBinaryFile: ".BIN",
     SystemProgram: ".3BN",
     Level1Program: ".L1",
+    EdtasmFile: ".ASM",
 };
 
 /**
@@ -52,14 +55,14 @@ function getFilenameExtension(filename: string): string {
     // Not sure if we need to support backslash here.
     const slash = filename.lastIndexOf("/");
     if (slash >= 0) {
-        filename = filename.substr(slash + 1);
+        filename = filename.substring(slash + 1);
     }
 
     // Look for extension.
     const dot = filename.lastIndexOf(".");
 
     // If the dot is at position 0, then it's just a hidden file, not an extension.
-    return dot > 0 ? filename.substr(dot).toUpperCase() : "";
+    return dot > 0 ? filename.substring(dot).toUpperCase() : "";
 }
 
 /**
@@ -163,6 +166,11 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
         return trs80File;
     }
 
+    trs80File = decodeEdtasmFile(binary);
+    if (trs80File !== undefined) {
+        return trs80File;
+    }
+
     const basicBinary = parseBasicText(binary);
     if (basicBinary instanceof Uint8Array) {
         trs80File = decodeBasicProgram(basicBinary);
@@ -191,6 +199,11 @@ export function decodeTrs80CassetteFile(binary: Uint8Array): Trs80File {
     }
 
     trs80File = decodeLevel1Program(binary);
+    if (trs80File !== undefined) {
+        return trs80File;
+    }
+
+    trs80File = decodeEdtasmFile(binary);
     if (trs80File !== undefined) {
         return trs80File;
     }

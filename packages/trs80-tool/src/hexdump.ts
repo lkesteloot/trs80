@@ -79,7 +79,7 @@ export function hexdump(filename: string, collapse: boolean): void {
         return;
     }
 
-    // Decode the floppy or cassette.
+    // Decode the file.
     const file = decodeTrs80File(buffer, filename);
     if (file.error !== undefined) {
         console.log(filename + ": " + file.error);

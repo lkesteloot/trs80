@@ -258,7 +258,8 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
             const halfWay = subAddr == addr + STRIDE/2 - 1;
             addText(toHexByte(binary[subAddr]) + (halfWay ? "  " : " "), ...cssClass);
         }
-        addText("".padStart((addr + STRIDE - subAddr) * 3 + 2, " "), "hex");
+        const numBytesSkipped = addr + STRIDE - subAddr;
+        addText("".padStart(numBytesSkipped*3 + (numBytesSkipped > STRIDE/2 ? 1 : 0) + 2, " "), "hex");
 
         // ASCII.
         for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {

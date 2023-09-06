@@ -1,7 +1,7 @@
 
 // Tools for decoding EDTASM programs.
 //
-// http://www.trs-80.com/wordpress/zaps-patches-pokes-tips/edtasm-file-format/
+// https://www.trs-80.com/wordpress/tips/formats/#edasfile
 
 import jss from './Jss';
 import {Highlightable} from "./Highlighter";
@@ -66,6 +66,8 @@ function add(out: HTMLElement, text: string, className: string): HTMLElement {
 
 /**
  * Decoded the program into the DIV, returning the program name and array of created elements.
+ *
+ * TODO: Just decode the binary into an EdtasmFile object.
  */
 export function decodeEdtasm(bytes: Uint8Array, out: HTMLElement): [string, Highlightable[]] {
     sheet.attach();

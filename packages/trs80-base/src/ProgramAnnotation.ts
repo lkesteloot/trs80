@@ -5,7 +5,7 @@
  */
 export class ProgramAnnotation {
     /**
-     * Text to display.
+     * Text to display, in "Sentence case".
      */
     public readonly text: string;
     /**
