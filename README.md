@@ -25,11 +25,26 @@ in TypeScript. The subprojects are:
 
 # Build
 
-To build all packages:
+This has been tested with `node` version 20 and `npm` version 10. You can
+get the latest version from [the node.js website](https://nodejs.org/).
+
+To cleanly install dependencies (recommended if you get a build error):
 
 ```sh
-% npm install
-% npx lerna run build
+rm -rf node_modules packages/*/node_modules package-lock.json
+npm install
+```
+
+To do a sequential build:
+
+```sh
+npm run build --workspaces
+```
+
+To do a parallel build:
+
+```sh
+npx lerna run build
 ```
 
 # License

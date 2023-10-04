@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "teamten-ts-utils": "^1.0.3",
+    "trs80-cassette": "^2.3.1",
+    "trs80-emulator": "^2.3.1",
     "z80-base": "^2.0.1"
   }
 }

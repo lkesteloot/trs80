@@ -1,45 +1,21 @@
 
-NPM workspaces:
+(Internal notes for developers.)
 
-To do a clean install:
+To add a dependency:
 
-    % rm -rf node_modules packages/*/node_modules
-    % rm **/package-lock.json
-    % npm install
+    npm -w packages/OUR_PACKAGE_NAME install --save THEIR_PACKAGE_NAME
 
-To install a new package:
-
-    % npm -w packages/OUR_PACKAGE_NAME install --save THEIR_PACKAGE_NAME
-
----------------------
-
-New Lerna:
-
-% npx lerna@latest init  (did this once, delete lerna.json first)
-% npx lerna create trs80-cassette-player packages  (also add to package.json)
-% npx lerna add trs80-child packages/trs80-parent
-% npx lerna run build
-% npx nx graph
-
----------------------
-
-To update installed packages:
-
-% rm -r packages/*/node_modules packages/*/package-lock.json
-% npm install
-
-To rebuild all packages in order:
-
-- Run "lerna run build" in top-level directory.
+No need to add dependencies between our own modules, they're all available
+to each other.
 
 To publish new version:
 
-- Update README.md, especially in trs80-tool. Commit.
-- Run "lerna publish patch" in top-level directory. (or "minor")
+- Update and commit README.md and trs80-tool/site/index.html.
+- Run "lerna publish patch" (or "minor") in top-level directory.
 - Check in new "version.ts" file.
 - In "trs80-tool" directory:
     % npm run buildBinaries
-    % make rsync
+    % make rsync rsync-site
 - In "my-trs-80" directory:
     % npm run publish
 - In "trs80-cassette-web" directory:
