@@ -54,7 +54,7 @@ export function connectXray(trs80: Trs80, keyboard: Keyboard, config: Config): v
                 break;
 
             default:
-                console.log("URL unknown: " + req.url);
+                console.log("URL unknown: " + req.url + " from " + req.socket.remoteAddress);
                 res.writeHead(404);
                 res.end("File not found");
                 break;

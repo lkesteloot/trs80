@@ -13,6 +13,10 @@ dist: $(DIST)/windows/trs80-tool.exe
 rsync: dist
 	rsync -aP $(DIST) lk@hitch.headcode.com:my-trs-80-website
 
+.PHONY: rsync-site
+rsync-site:
+	rsync -aP --delete site/ lk@hitch.headcode.com:my-trs-80-website/tool/
+
 .PHONY: clean
 clean:
 	rm -rf $(DIST)

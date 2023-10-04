@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>TRS-80 Tool</title>
+        <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300|Roboto+Mono|Roboto:100,400,700&display=block" rel="stylesheet">
+        <link href="style.css" rel="stylesheet">
+    </head>
+    <body class="light-mode">
+        <section>
+            <h1>TRS-80 Tool</h1>
+
+            <p><code>trs80-tool</code> is a command-line tool for manipulating TRS-80 files.
+            Its source code is <a href="https://github.com/lkesteloot/trs80/tree/master/packages/trs80-tool">available on Github</a>.</p>
+
+            <h2>Table of contents</h2>
+
+            <ul>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#file-formats">File formats</a></li>
+                <li><a href="#usage">Usage</a>
+                    <ul>
+                        <li><a href="#dir"><code>dir</code></a></li>
+                        <li><a href="#info"><code>info</code></a></li>
+                        <li><a href="#convert"><code>convert</code></a></li>
+                        <li><a href="#hexdump"><code>hexdump</code></a></li>
+                        <li><a href="#sectors"><code>sectors</code></a></li>
+                        <li><a href="#asm"><code>asm</code></a></li>
+                        <li><a href="#disasm"><code>disasm</code></a></li>
+                        <li><a href="#run"><code>run</code></a></li>
+                        <li><a href="#repl"><code>repl</code></a></li>
+                        <li><a href="#help"><code>help</code></a></li>
+                    </ul>
+                </li>
+                <li><a href="#limitations">Limitations</a></li>
+                <li><a href="#change-log">Change log</a></li>
+            </ul>
+
+            <h2 id="installation">Installation</h2>
+
+            <p>You can download stand-alone binaries of the latest version:</p>
+            <ul>
+                <li><a href="https://www.my-trs-80.com/trs80-tool/linux/trs80-tool" rel="nofollow">trs80-tool for Linux</a></li>
+                <li><a href="https://www.my-trs-80.com/trs80-tool/macos/trs80-tool" rel="nofollow">trs80-tool for macOS</a></li>
+                <li><a href="https://www.my-trs-80.com/trs80-tool/windows/trs80-tool.exe" rel="nofollow">trs80-tool for Windows 8.1+</a></li>
+            </ul>
+
+            <h2 id="file-formats">File formats</h2>
+
+            <p>The <code>trs80-tool</code> program supports these file formats:</p>
+
+            <dl>
+                <dt><strong><code>.BAS</code></strong></dt>
+                <dd>Basic program. It's typically tokenized (token words like
+                    <code>PRINT</code> are stored as a single byte), but the tool supports reading Basic programs
+                    that are in text (non-tokenized) format. When writing a file with a <code>.BAS</code> extension,
+                    the file is always tokenized.</dd>
+
+                <dt><strong><code>.ASC</code></strong></dt>
+                <dd>Basic program, but always in text (non-tokenized) format. The
+                    extension is mostly useful when writing a Basic file, because it tells the converter
+                    to use the non-tokenized format.</dd>
+
+                <dt><strong><code>.WAV</code></strong></dt>
+                <dd>A cassette's audio stream. It can be at any sampling rate, either
+                    8 or 16 bits per sample, and either mono or stereo.</dd>
+
+                <dt><strong><code>.CAS</code></strong></dt>
+                <dd>A cassette stored in a compact form where each bit on the cassette
+                    is stored as a bit in the file. It includes synchronization headers and bytes, as well
+                    as start bits (for high-speed cassettes). This is a decent archival format for
+                    cassettes.</dd>
+
+                <dt><strong><code>.CMD</code></strong></dt>
+                <dd>A machine language program as stored on a floppy disk.</dd>
+
+                <dt><strong><code>.SYS</code></strong></dt>
+                <dd>The same format as <code>.CMD</code>, but is meant to store system code
+                    in an disk operating system.</dd>
+
+                <dt><strong><code>.3BN</code></strong></dt>
+                <dd>A machine language program as stored on a cassette. The name comes
+                    from "Model 3 BiNary". This is typically not used, and instead these files are
+                    stored within <code>.CAS</code> files.</dd>
+
+                <dt><strong><code>.L1</code></strong></dt>
+                <dd>A 250-baud file written by a Level 1 machine (Model 1 or 3). It can
+                    contain a system file or a Basic program.</dd>
+
+                <dt><strong><code>.JV1</code></strong></dt>
+                <dd>A floppy disk format for the Model I. It's very simple, capturing
+                    the basic sector data. It does not capture enough information for copy-protected
+                    floppies. It's named after Jeff Vavasour.</dd>
+
+                <dt><strong><code>.JV3</code></strong></dt>
+                <dd>A floppy disk format for the Model III. It's very simple, capturing
+                    the basic sector data and IDAM structure. It does not capture enough
+                    information for copy-protected floppies. It's slightly more capable than
+                    <code>.JV1</code> because it can encode a mix of FM and MFM signals on the same track.</dd>
+
+                <dt><strong><code>.DMK</code></strong></dt>
+                <dd>Another floppy disk format, capturing more information from the floppy,
+                    such as some bits between sectors. Named after David M. Keil.</dd>
+
+                <dt><strong><code>.DSK</code></strong></dt>
+                <dd>Generic file extension for floppy disk&mdash;could be a <code>.JV1</code>,
+                    <code>.JV3</code>, or <code>.DMK</code> file. Use the
+                    <code>info</code> command to find out.</dd>
+
+                <dt><strong><code>.SCP</code></strong></dt>
+                <dd>SuperCard Pro raw flux floppy disk format.</dd>
+
+                <dt><strong><code>.ASM</code></strong></dt>
+                <dd>An assembly language file, generated by
+                    disassembling a <code>.CMD</code>, <code>.SYS</code>, or
+                    <code>.3BN</code> file using the <code>disasm</code> command.</dd>
+
+                <dt><strong><code>.LST</code></strong></dt>
+                <dd>An assembly language listing file, generated by
+                    the <code>asm</code> or <code>disasm</code> commands’
+                    <code>--listing</code> flag.</dd>
+
+                <dt><strong><code>.ROM</code></strong></dt>
+                <dd>A raw machine language file, often used as the contents of ROM.</dd>
+
+                <dt><strong><code>.BIN</code></strong></dt>
+                <dd>A file of unknown type, but sometimes synonymous with
+                    <code>.ROM</code>.</dd>
+
+            </dl>
+
+            <h2 id="usage">Usage</h2>
+            <p>The tool takes a command as its first argument:</p>
+            <div><pre><code>% trs80-tool COMMAND args ...</code></pre>
+            </div>
+            <p>Global flags are:</p>
+            <div><pre><code>--version         Show the tool's version number.
+--help            Show the usage message.
+--color=COLOR     Force color mode (off, 16, 256, 16m, or auto).</code></pre>
+            </div>
+            <p>By default <code>trs80-tool</code> detects the color capabilities of the terminal
+            and sets the <code>--color</code> flag automatically. You can override this, either
+            to turn off color (if it bothers you) or to force it on (when piping into
+            a pager). For example:</p>
+            <div><pre><code>% trs80-tool --color=16 hexdump in.cmd | less</code></pre>
+            </div>
+
+            <h3 id="dir"><code>dir</code></h3>
+            <p>The <code>dir</code> command shows the contents of an archive file. Archives
+            files are those that can contain other files. These are cassette files
+            (in WAV or CAS format) and floppy disks (in JV1, JV3, DMK, or SCP format).</p>
+            <div><pre><code>% trs80-tool dir FILE</code></pre>
+            </div>
+            <p>The output format depends on the type of archive. Cassette files show
+            baud rates, whereas floppy disks show creation date and type of file.</p>
+
+            <h3 id="info"><code>info</code></h3>
+            <p>The <code>info</code> command takes a list of filenames and displays a one-line
+            description of the contents of the file, such as its type (system
+            program, Basic program) and, if known, the embedded filename.</p>
+            <div><pre><code>% trs80-tool info in1.cmd in2.bas in3.cas in4.wav</code></pre>
+            </div>
+            <p>The <code>--verbose</code> flag displays some information (like floppy geometry) for
+            some file types:</p>
+            <div><pre><code>% trs80-tool info --verbose in1.dmk in2.dsk</code></pre>
+            </div>
+
+            <h3 id="convert"><code>convert</code></h3>
+            <p>The <code>convert</code> command converts a list of input files to an output file or
+            directory. There are several different ways to use this command.</p>
+            <p>A single file can be converted to another format:</p>
+            <div><pre><code>% trs80-tool convert in.cmd out.3bn    (diskette to cassette format)
+% trs80-tool convert in.bas out.asc    (de-tokenize Basic program)</code></pre>
+            </div>
+            <p>Several files can be put into an archive:</p>
+            <div><pre><code>% trs80-tool convert in1.bas in2.3bn in3.cmd out.wav</code></pre>
+            </div>
+            <p>This creates a cassette audio file containing the three files. Note that the
+            <code>.CMD</code> file will be converted to <code>.3BN</code> format.</p>
+            <p>Archive files can be extracted if the destination is a directory:</p>
+            <div><pre><code>% mkdir out
+% trs80-tool convert in.wav out    (decode cassette and extract files)
+% trs80-tool convert in.cas out
+% trs80-tool convert in.dmk out</code></pre>
+            </div>
+            <p>Archive files can be converted to other archive formats:</p>
+            <div><pre><code>% trs80-tool convert in.dmk out.wav
+% trs80-tool convert in.wav out.cas</code></pre>
+            </div>
+            <p>When writing a cassette format, the baud rate of the input file will
+            be used, if it's known:</p>
+            <div><pre><code>% trs80-tool convert in1.cas in2.cas in3.cas out.wav</code></pre>
+            </div>
+            <p>(The baud rate can be guessed from the <code>.CAS</code> file contents.) If the
+            baud rate can't be guessed, 500 baud (low-speed) will be used:</p>
+            <div><pre><code>% trs80-tool convert in1.bas in2.3bn out.wav</code></pre>
+            </div>
+            <p>This can be overwritten using the <code>--baud</code> command-line flag:</p>
+            <div><pre><code>% trs80-tool convert --baud 1500 in1.cas in2.cas in3.cas out.wav
+% trs80-tool convert --baud 1500 in1.bas in2.3bn out.wav</code></pre>
+            </div>
+            <p>If a system program doesn't have a built-in start address, one
+            will be guessed by the <code>info</code> command:</p>
+            <div><pre><code>% trs80-tool info in.cas
+in.cas: System program (VCEPRN, /17408) on a low speed cassette</code></pre>
+            </div>
+            <p>The start address can be set with the <code>--start</code> flag:</p>
+            <div><pre><code>% trs80-tool convert --start 17408 in.cas out.cas
+Wrote out.cas: System program (VCEPRN) in low speed CAS file
+% trs80-tool info out.cas
+out.cas: System program (VCEPRN) on a low speed cassette</code></pre>
+            </div>
+            <p>The address <code>auto</code> can be used to guess an appropriate start address:</p>
+            <div><pre><code>% trs80-tool convert --start auto in.cas out.cas
+Wrote out.cas: System program (VCEPRN) in low speed CAS file</code></pre>
+            </div>
+            <p>When converting <code>.BIN</code> or <code>.ROM</code> files, the <code>--start</code> flag specifies
+            both the load address and the start address:</p>
+            <div><pre><code>% trs80-tool convert --start 0x1024 in.rom out.cmd</code></pre>
+            </div>
+            <p>An assembly language listing disassembly file can be generated from <code>.CMD</code>,
+            <code>.SYS</code>, and <code>.3BN</code> files:</p>
+            <div><pre><code>% trs80-tool convert in.cmd out.asm
+% trs80-tool convert in.3bn out.lst</code></pre>
+            </div>
+            <p>The disassembler attempts to guess what is code and what is data. If the
+            input program relocates itself, some entry points will be missing and code
+            will instead be disassembled as data. You can explicitly list entry points:</p>
+            <div><pre><code>% trs80-tool convert --entry 0x7059,0x7064,0x71B9,0x7263 in.cas out.lst</code></pre>
+            </div>
+            <p>See also the <code>disasm</code> command.</p>
+
+            <h3 id="hexdump"><code>hexdump</code></h3>
+            <p>The <code>hexdump</code> command displays a hex dump of the input file, with annotations.
+            See the <code>--color</code> flag for how to force coloring on or off.
+            By default the command will collapse consecutive identical lines:</p>
+            <div><pre><code>% trs80-tool hexdump in.cmd</code></pre>
+            </div>
+            <p>Use the <code>--no-collapse</code> flag to turn off this collapsing:</p>
+            <div><pre><code>% trs80-tool hexdump --no-collapse in.cmd</code></pre>
+            </div>
+
+            <h3 id="sectors"><code>sectors</code></h3>
+            <p>The <code>sectors</code> command displays a table of the sectors in a floppy disk. The columns
+            are the sectors and the rows are the tracks. For each sector a character is displayed:</p>
+            <div><pre><code>- No sector.
+S Single-density sector.
+D Double-density sector.
+X Deleted sector.
+C CRC error (ID or data).</code></pre>
+            </div>
+            <p>Use the <code>--contents</code> flag to also show the contents of the sectors.</p>
+
+            <h3 id="asm"><code>asm</code></h3>
+            <p>The <code>asm</code> command assembles the specified assembly language source code:</p>
+            <div><pre><code>% trs80-tool asm program.asm program.cmd</code></pre>
+            </div>
+            <p>It can generate <code>.CMD</code>, <code>.3BN</code>, <code>.CAS</code>, or <code>.WAV</code> files. For <code>.CAS</code> or
+            <code>.WAV</code> files the default baud rate is 500, but can be set with the <code>--baud</code>
+            flag:</p>
+            <div><pre><code>% trs80-tool asm --baud 1500 program.asm program.cas</code></pre>
+            </div>
+            <p>A listing file can be generated with the <code>--listing</code> flag:</p>
+            <div><pre><code>% trs80-tool asm --listing program.lst program.asm program.cmd</code></pre>
+            </div>
+
+            <h3 id="disasm"><code>disasm</code></h3>
+            <p>The <code>disasm</code> command disassembles the specified program:</p>
+            <div><pre><code>% trs80-tool disasm saucer.cmd</code></pre>
+            </div>
+            <p>If the program is a <code>.CMD</code>, <code>.SYS</code>, or <code>.3BN</code> file, it is loaded into the correct place
+            in memory. If it's a <code>.ROM</code> or <code>.BIN</code> file, it is loaded at 0x0000, but this
+            can be change with the <code>--org</code> flag:</p>
+            <div><pre><code>% trs80-tool disasm --org 0x8000 file.bin</code></pre>
+            </div>
+            <p>The disassembler tries to guess which bytes are code and which are data by
+            following the path of the program, starting with its main entry point. Additional
+            entry points can be specified with the <code>--entry</code> flag:</p>
+            <div><pre><code>% trs80-tool disasm --entry 0x0000,0x3799,0x377B model3.rom</code></pre>
+            </div>
+            <p>Note that if any entry point is listed, then 0x0000 must be specified again if
+            applicable. The output can be controlled with <code>--no-labels</code> to not create labels
+            for jump targets and <code>--no-known</code> to not reference known ROM addresses. The
+            <code>--hex-format</code> flag controls the format of hex numbers, which can be <code>c</code>
+            for <code>0x12</code> (the default), <code>dollar</code> for <code>$12</code>, or <code>h</code> for <code>12h</code>.</p>
+            <p>A listing file can instead be generated with the <code>--listing</code> flag:</p>
+            <div><pre><code>% trs80-tool disasm --listing program.cmd</code></pre>
+            </div>
+            <p>The <code>--no-binary</code> flag will suppress opcode binary in the listing.</p>
+
+            <h3 id="run"><code>run</code></h3>
+            <p>Run a TRS-80 emulator in the shell:</p>
+            <div><pre><code>% trs80-tool run</code></pre>
+            </div>
+            <p>This is experimental and does not currently work well with games, and may not
+            work at all in a Microsoft Windows shell.</p>
+            <p>Use the <code>--model</code> flag to specify the model (1, 3, or 4, defaults to 3) and
+            the <code>--level</code> flag to specify the Basic level (1 or 2, defaults to 2).</p>
+            <div><pre><code>% trs80-tool run --model 1 --level 1</code></pre>
+            </div>
+
+            <p>Specify a program or floppy to load and run directly:</p>
+
+            <div><pre><code>% trs80-tool run tdos13a.dsk
+% trs80-tool run frogger.cmd</code></pre>
+            </div>
+
+            <p>Use the <code>--mount</code> flag to specify a cassette
+            or floppy to mount:</p>
+            <div><pre><code>% trs80-tool run --mount in.cas</code></pre>
+            </div>
+
+            <p>Only one cassette may be mounted, but several floppies can be specified
+            and will be assigned to consecutive drives, starting at 0:</p>
+
+            <div><pre><code>% trs80-tool run --mount in.cas in1.dmk in2.dmk in3.dmk</code></pre>
+            </div>
+
+            <p>The <code>--xray</code> flag shows nothing in the shell but starts a web server
+            for the X-ray debugger. This is experimental and not yet documented.</p>
+
+            <h3 id="repl"><code>repl</code></h3>
+            <p>Starts an interactive session for exploring the Z80. Type <code>help</code> to get
+            a list of commands. Type an assembly language instruction (such as <code>ld a,5</code>)
+            to assemble it, write it to memory, explain it, execute it, and show
+            its effects on flags and registers. This virtual machine is not in
+            a TRS-80 context (it has no ROM or peripherals).</p>
+
+            <h3 id="help"><code>help</code></h3>
+            <p>The <code>help</code> command shows more specific information about other commands:</p>
+            <div><pre><code>% trs80-tool help dir
+% trs80-tool help convert</code></pre>
+            </div>
+
+            <h2 id="limitations">Limitations</h2>
+            <ul>
+                <li>The tool cannot write floppy disk files.</li>
+                <li>The tool can only read TRSDOS and LDOS floppy disks.</li>
+            </ul>
+
+            <h2 id="change-log">Change log</h2>
+
+            <h3>2.4.1</h3>
+            <ul>
+                <li>The <code>convert</code> command can go from <code>.ROM</code> and <code>.BIN</code> files to <code>.CMD</code> and
+                    <code>.3BN</code> files. The <code>--start</code> flag specifies the load and start address.</li>
+            </ul>
+
+            <h3>2.4.0</h3>
+            <ul>
+                <li>Add <code>repl</code> command.</li>
+                <li>Add <code>--no-labels</code>, <code>--no-known</code>, <code>--hex-format</code>, and <code>--no-binary</code> flags
+                    to the <code>disasm</code> command.</li>
+            </ul>
+
+            <h3>2.3.1</h3>
+            <ul>
+                <li>Use braille for graphics characters.</li>
+            </ul>
+
+            <h3>2.3.0</h3>
+            <ul>
+                <li>Add support for TRSDOS for Model I and 4, and for LDOS.</li>
+                <li>Add <code>run</code> command.</li>
+                <li>Add <code>asm</code> command.</li>
+                <li>Add support for SCP SuperCard Pro raw flux floppy format.</li>
+            </ul>
+
+            <h3>2.2.0</h3>
+            <ul>
+                <li>Add <code>sectors</code> command.</li>
+                <li>Add <code>--verbose</code> flag to <code>info</code> command to display floppy geometry.</li>
+                <li>Add <code>disasm</code> command.</li>
+            </ul>
+
+            <h3>2.1.0</h3>
+            <ul>
+                <li>Add <code>hexdump</code> command.</li>
+            </ul>
+
+            <h3>2.0.10</h3>
+            <ul>
+                <li>Add <code>--entry</code> flag to help with disassembling programs that relocate themselves.</li>
+            </ul>
+
+            <h3>2.0.8</h3>
+            <ul>
+                <li>Can read, dir, and extract CAS files with multiple files.</li>
+                <li>The <code>info</code> command will display a guessed start address for system programs
+                    with no specified start address.</li>
+                <li>Added <code>--start</code> flag to set the start address of system files.</li>
+            </ul>
+
+            <h3>2.0.7</h3>
+            <ul>
+                <li>Can read high-speed CAS files with non-aligned bytes.</li>
+            </ul>
+
+            <h3>2.0.6</h3>
+            <ul>
+                <li>Add <code>info</code> command.</li>
+                <li>Show more detailed information of output files in <code>convert</code> command.</li>
+            </ul>
+
+            <h3>2.0.5</h3>
+            <ul>
+                <li>Can write multi-file CAS files.</li>
+            </ul>
+
+            <h3>2.0.4</h3>
+            <ul>
+                <li>Can read and write text (non-tokenized) Basic files.</li>
+                <li>Can convert Basic programs from disk format to cassette format.</li>
+                <li>When extracting files from a TRSDOS floppy, retain original dates.</li>
+                <li>Can generate disassembly listing files from CMD and 3BN files.</li>
+            </ul>
+
+            <h3>2.0.3</h3>
+            <ul>
+                <li>Initial release.</li>
+            </ul>
+        </section>
+    </body>
+</html>
