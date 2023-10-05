@@ -9,7 +9,7 @@
     "start": "npx snowpack dev",
     "build": "npx snowpack build",
     "clean": "rm -rf build",
-    "publish": "npm run build && rsync -a build/ lk@hitch.headcode.com:my-trs-80-website/"
+    "publish": "npm run build && rsync -aP build/ lk@hitch.headcode.com:my-trs-80-website/"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": "https://github.com/lkesteloot/trs80.git",

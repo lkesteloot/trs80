@@ -2,16 +2,17 @@ import * as BasicRender from "./BasicRender";
 import * as SystemProgramRender from "./SystemProgramRender";
 import * as CmdProgramRender from "./CmdProgramRender";
 import * as Hexdump from "./Hexdump";
-import {CassettePlayer, Config, Trs80} from "trs80-emulator";
+import {CassettePlayer, Config, RunningState, Trs80} from "trs80-emulator";
 import {
     ControlPanel,
     CanvasScreen,
-    ProgressBar,
     SettingsPanel,
     PanelType,
     WebKeyboard,
-    flashNode
+    flashNode,
+    WebProgressBar
 } from "trs80-emulator-web";
+import {ProgressBar} from "trs80-cassette-player";
 import {WaveformDisplay} from "./WaveformDisplay";
 import * as Edtasm from "./Edtasm";
 import {Highlight} from "./Highlight";
@@ -100,13 +101,7 @@ class Int16Cassette extends CassettePlayer {
     }
 
     private updateProgressBarVisibility() {
-        if (this.progressBar !== undefined) {
-            if (this.motorOn || this.rewinding) {
-                this.progressBar.show();
-            } else {
-                this.progressBar.hide();
-            }
-        }
+        this.progressBar?.setShown(this.motorOn || this.rewinding);
     }
 }
 
@@ -769,14 +764,14 @@ export class TapeBrowser {
         controlPanel.addSettingsButton(hardwareSettingsPanel);
         controlPanel.addSettingsButton(viewPanel);
         if (cassette !== undefined) {
-            const progressBar = new ProgressBar(screen.getNode());
+            const progressBar = new WebProgressBar(screen.getNode());
             cassette.setProgressBar(progressBar);
         }
         reboot();
 
         const pane = new Pane(div);
-        pane.didShow = () => trs80.start();
-        pane.didHide = () => trs80.stop();
+        pane.didShow = () => trs80.setRunningState(RunningState.STARTED);
+        pane.didHide = () => trs80.setRunningState(RunningState.STOPPED);
         return pane;
     }
 
@@ -868,7 +863,7 @@ export class TapeBrowser {
 
             // Header for program.
             const row = addRow(program.name || program.getLabel());
-            program.onName.subscribe(name => row.innerText = program.name || program.getLabel());
+            program.onName.subscribe(() => row.innerText = program.name || program.getLabel());
             row.classList.add("program_title");
 
             // Dividing line for new tracks.
