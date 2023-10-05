@@ -20,9 +20,7 @@ import { run } from "./run.js";
 import { repl } from "./repl.js";
 
 const HELP_TEXT = `
-See this page for full documentation:
-
-https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/README.md
+See this page for full documentation: https://my-trs-80.com/tool
 `
 
 /**
