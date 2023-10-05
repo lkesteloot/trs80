@@ -10,14 +10,15 @@ to each other.
 
 To publish new version:
 
-- Update and commit README.md and trs80-tool/site/index.html.
-- Run "lerna publish patch" (or "minor") in top-level directory.
-- Check in new "version.ts" file.
-- In "trs80-tool" directory:
-    % npm run buildBinaries
-    % make rsync rsync-site
 - In "my-trs-80" directory:
     % npm run publish
 - In "trs80-cassette-webapp" directory:
     % npm run publish
+- In "trs80-tool" directory:
+    Edit package.json and bump version.
+    Update site/index.html
+    % npm run buildBinaries
+    % make rsync rsync-site
+    % git commit -am "trs80-tool: Step to X.Y.Z."
+    % git tag vX.Y.Z
 
