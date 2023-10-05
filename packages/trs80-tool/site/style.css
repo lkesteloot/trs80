@@ -86,10 +86,16 @@ dd {
 
 pre {
     font-size: 14pt;
-    padding: 2em;
+    padding: 1.3em 2em;
     color: var(--foreground-emphasized);
     background-color: var(--background-highlights);
     border-radius: 1em;
+    overflow-x: auto;
+}
+
+code {
+    font-family: "Roboto Mono", monospace;
+    font-size: 90%;
 }
 
 :not(pre) > code {

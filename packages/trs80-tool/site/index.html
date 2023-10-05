@@ -3,15 +3,16 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>TRS-80 Tool</title>
-        <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300|Roboto+Mono|Roboto:100,400,700&display=block" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css?family=Roboto+Mono|Roboto:100,400,700&display=block" rel="stylesheet">
         <link href="style.css" rel="stylesheet">
     </head>
     <body class="light-mode">
         <section>
             <h1>TRS-80 Tool</h1>
 
-            <p><code>trs80-tool</code> is a command-line tool for manipulating TRS-80 files.
-            Its source code is <a href="https://github.com/lkesteloot/trs80/tree/master/packages/trs80-tool">available on Github</a>.</p>
+            <p><code>trs80-tool</code> is a command-line tool for inspecting and
+            manipulating TRS-80 files, cassettes, and floppies. Its source code is
+            <a href="https://github.com/lkesteloot/trs80/tree/master/packages/trs80-tool">available on Github</a>.</p>
 
             <h2>Table of contents</h2>
 
@@ -339,6 +340,18 @@ C CRC error (ID or data).</code></pre>
             </ul>
 
             <h2 id="change-log">Change log</h2>
+
+            <h3>2.5.0</h3>
+
+            <ul>
+                <li>Display WAV metadata for <code>info --version</code>.</li>
+                <li>Handle Level 1 cassette files.</li>
+                <li>Can mount cassettes and floppies in <code>run</code> command.</li>
+                <li>Handle arrow keys and paste in <code>run</code> command.</li>
+                <li>Support EDTASM files (can convert to <code>.ASC</code> file).</li>
+                <li>Stricter parsing of <code>.CAS</code> files to avoid misdetection
+                    of cassette headers.</li>
+            </ul>
 
             <h3>2.4.1</h3>
             <ul>
