@@ -28,10 +28,9 @@ in TypeScript. The subprojects are:
 This has been tested with `node` version 20 and `npm` version 10. You can
 get the latest version from [the node.js website](https://nodejs.org/).
 
-To cleanly install dependencies (recommended if you get a build error):
+To install dependencies (do this once):
 
 ```sh
-rm -rf node_modules packages/*/node_modules package-lock.json
 npm install
 ```
 
@@ -45,6 +44,15 @@ To do a parallel build:
 
 ```sh
 npx lerna run build
+```
+
+If you're getting build errors, try getting a fresh clone, or clean
+up your local installations with:
+
+```sh
+rm -rf node_modules packages/*/node_modules
+npm install
+npm run clean --workspaces
 ```
 
 # License
