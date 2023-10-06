@@ -61,7 +61,8 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
                 fs.utimesSync(outpath, date, date);
             }
             console.log("Wrote " + outpath + " (" +
-                pluralizeWithCount(binary.length, "byte") + ")");
+                pluralizeWithCount(binary.length, "byte") +
+                (infile.trs80File.error !== undefined ? ", " + infile.trs80File.error : "") + ")");
         }
     } else {
         // Output is a file. Its extension will help us determine how to convert the input files.

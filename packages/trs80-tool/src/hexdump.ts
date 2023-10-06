@@ -83,7 +83,7 @@ export function hexdump(filename: string, collapse: boolean): void {
     const file = decodeTrs80File(buffer, filename);
     if (file.error !== undefined) {
         console.log(filename + ": " + file.error);
-        return;
+        // Continue anyway, might have interesting information.
     }
 
     hexdumpBinary(file.binary, collapse, file.annotations);

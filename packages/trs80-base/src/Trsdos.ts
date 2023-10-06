@@ -68,6 +68,17 @@ function supportsDoubleSidedDisks(trsdosVersion: TrsdosVersion): boolean {
 }
 
 /**
+ * The number of sides on this disk.
+ */
+function getSideCount(geometry: FloppyDiskGeometry, trsdosVersion: TrsdosVersion): number {
+    // If the version of TRSDOS we're trying to decode only supports single-sided disks, pretend that the
+    // floppy only has one side. This might lead us to mis-diagnose a floppy as TRSDOS that we should reject,
+    // but it's also important to handle disks that were formatted double-sided, then re-formatted single-sided,
+    // and the back side should be ignored.
+    return supportsDoubleSidedDisks(trsdosVersion) ? geometry.lastTrack.numSides() : 1;
+}
+
+/**
  * Represents the position of a directory entry.
  */
 class DirEntryPosition {
@@ -653,7 +664,7 @@ export class Trsdos {
     public readFile(firstDirEntry: TrsdosDirEntry): Uint8Array {
         const sectors: Uint8Array[] = [];
         const geometry = this.disk.getGeometry();
-        const sectorsPerTrack = geometry.lastTrack.numSectors();
+        const sideCount = getSideCount(geometry, this.version);
 
         // Number of sectors left to read.
         const fileSize = firstDirEntry.getSize();
@@ -667,17 +678,21 @@ export class Trsdos {
                 let trackGeometry = geometry.getTrackGeometry(trackNumber);
                 const extentSectorCount = extent.granuleCount * this.sectorsPerGranule;
                 let sectorNumber = trackGeometry.firstSector + extent.granuleOffset * this.sectorsPerGranule;
+                let side = Side.FRONT;
                 for (let i = 0; i < extentSectorCount && sectorCount > 0; i++, sectorNumber++, sectorCount--) {
                     if (sectorNumber > trackGeometry.lastSector) {
-                        // Move to the next track.
-                        trackNumber += 1;
-                        trackGeometry = geometry.getTrackGeometry(trackNumber);
-                        sectorNumber = trackGeometry.firstSector;
+                        // Move to the next side or track.
+                        if (side === Side.FRONT && sideCount === 2) {
+                            side = Side.BACK;
+                            sectorNumber = trackGeometry.firstSector + (sectorNumber - trackGeometry.lastSector - 1);
+                        } else {
+                            side = Side.FRONT;
+                            trackNumber += 1;
+                            trackGeometry = geometry.getTrackGeometry(trackNumber);
+                            sectorNumber = trackGeometry.firstSector;
+                        }
                     }
-                    // TODO not sure how to handle side here. I think sectors just continue off the end, so
-                    // we should really be doing everything with cylinders in this routine, and have twice
-                    // as many max sectors if double-sided.
-                    const sector = this.disk.readSector(trackNumber, Side.FRONT, sectorNumber);
+                    const sector = this.disk.readSector(trackNumber, side, sectorNumber);
                     if (sector === undefined) {
                         console.log(`Sector couldn't be read ${trackNumber}, ${sectorNumber}`);
                         // TODO
@@ -764,11 +779,7 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
         return "Can't decode GAT (" + gatInfo + ")";
     }
 
-    // If the version of TRSDOS we're trying to decode only supports single-sided disks, pretend that the
-    // floppy only has one side. This might lead us to mis-diagnose a floppy as TRSDOS that we should reject,
-    // but it's also important to handle disks that were formatted double-sided, then re-formatted single-sided,
-    // and the back side should be ignored.
-    const sideCount = supportsDoubleSidedDisks(version) ? geometry.lastTrack.numSides() : 1;
+    const sideCount = getSideCount(geometry, version);
     const sectorsPerTrack = geometry.lastTrack.numSectors();
 
     let dirEntryLength: number;
