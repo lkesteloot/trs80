@@ -54,24 +54,41 @@ function trsdosVersionToString(trsdosVersion: TrsdosVersion): string {
 }
 
 /**
+ * Whether the specified version of TRSDOS supports double-sided disks.
+ */
+function supportsDoubleSidedDisks(trsdosVersion: TrsdosVersion): boolean {
+    switch (trsdosVersion) {
+        case TrsdosVersion.MODEL_1:
+        case TrsdosVersion.MODEL_3:
+            return false;
+
+        case TrsdosVersion.MODEL_4:
+            return true;
+    }
+}
+
+/**
  * Represents the position of a directory entry.
  */
 class DirEntryPosition {
+    // Zero-based side of the directory track.
+    public readonly side: number;
     // Zero-based sector index into the directory track. Sector 0 is GAT, 1 is HIT.
     public readonly sectorIndex: number;
     // Zero-based index of the directory entry into the sector.
     public readonly dirEntryIndex: number;
 
-    constructor(sectorIndex: number, dirEntryIndex: number) {
+    constructor(side: number, sectorIndex: number, dirEntryIndex: number) {
+        this.side = side;
         this.sectorIndex = sectorIndex;
         this.dirEntryIndex = dirEntryIndex;
     }
 
     /**
-     * Make a string that represents this object, to us as a key in a Map.
+     * Make a string that represents this object, to use as a key in a Map.
      */
     public asKey(): string {
-        return this.sectorIndex + "," + this.dirEntryIndex;
+        return this.side + "," + this.sectorIndex + "," + this.dirEntryIndex;
     }
 }
 
@@ -692,28 +709,40 @@ export class Trsdos {
 /**
  * Maps an index into the HIT (zero-based) to its sector index and dir entry index.
  */
-function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion, dirEntriesPerSector: number): DirEntryPosition {
+function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion,
+                             sectorsPerTrack: number, dirEntriesPerSector: number): DirEntryPosition {
+
+    let side: number;
     let sectorIndex: number;
     let dirEntryIndex: number;
 
     if (isModel3(version)) {
+        // Model 3 TRSDOS is always single-sided.
+        side = 0;
         // These are laid out continuously.
         sectorIndex = hitIndex / dirEntriesPerSector + 2;
         dirEntryIndex = hitIndex % dirEntriesPerSector;
     } else {
         // These are laid out in chunks of 32 to make decoding easier.
         sectorIndex = (hitIndex & 0x1F) + 2;
+        // Mystery: the sectorIndex variable is in the range [2,33], but
+        // disks can have 18 sectors per side, for a highest value of
+        // 35. How are the last two sectors reached?
+        // Also, this whole "mod sectorsPerTrack" thing is made up,
+        // I don't actually know how to get to the second side.
+        side = Math.floor(sectorIndex / sectorsPerTrack);
+        sectorIndex %= sectorsPerTrack;
         dirEntryIndex = hitIndex >> 5;
     }
 
-    return new DirEntryPosition(sectorIndex, dirEntryIndex);
+    return new DirEntryPosition(side, sectorIndex, dirEntryIndex);
 }
 
 /**
  * Decode a TRSDOS diskette for a particular version, or return an error string if this does
  * not look like such a diskette.
  */
-export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos | string {
+function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos | string {
     const geometry = disk.getGeometry();
     const bootSector = disk.readSector(geometry.firstTrack.trackNumber,
         geometry.firstTrack.firstSide, geometry.firstTrack.firstSector);
@@ -735,7 +764,11 @@ export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): T
         return "Can't decode GAT (" + gatInfo + ")";
     }
 
-    const sideCount = geometry.lastTrack.numSides();
+    // If the version of TRSDOS we're trying to decode only supports single-sided disks, pretend that the
+    // floppy only has one side. This might lead us to mis-diagnose a floppy as TRSDOS that we should reject,
+    // but it's also important to handle disks that were formatted double-sided, then re-formatted single-sided,
+    // and the back side should be ignored.
+    const sideCount = supportsDoubleSidedDisks(version) ? geometry.lastTrack.numSides() : 1;
     const sectorsPerTrack = geometry.lastTrack.numSectors();
 
     let dirEntryLength: number;
@@ -803,7 +836,7 @@ export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): T
     const dirEntries = new Map<string, TrsdosDirEntry>();
 
     // Decode directory entries.
-    for (let side = 0; side < geometry.lastTrack.numSides(); side++) {
+    for (let side = 0; side < sideCount; side++) {
         for (let sectorIndex = 0; sectorIndex < geometry.lastTrack.numSectors(); sectorIndex++) {
             const sectorNumber = geometry.firstTrack.firstSector + sectorIndex;
             if (side === 0 && sectorIndex < 2) {
@@ -828,7 +861,7 @@ export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): T
                             // Skip system files.
                             continue;
                         }
-                        dirEntries.set(new DirEntryPosition(sectorIndex, i).asKey(), dirEntry);
+                        dirEntries.set(new DirEntryPosition(side, sectorIndex, i).asKey(), dirEntry);
                     }
                 }
             }
@@ -841,7 +874,7 @@ export function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): T
     // Look up continuations by sector/index and update original entries.
     for (const dirEntry of dirEntries.values()) {
         if (dirEntry.nextHit !== undefined) {
-            const position = hitNumberToDirEntry(dirEntry.nextHit, version, dirEntriesPerSector);
+            const position = hitNumberToDirEntry(dirEntry.nextHit, version, sectorsPerTrack, dirEntriesPerSector);
             const nextDirEntry = dirEntries.get(position.asKey());
             if (nextDirEntry !== undefined) {
                 dirEntry.nextDirEntry = nextDirEntry;
@@ -864,7 +897,7 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
             return trsdos;
         }
         if (DEBUG) {
-            console.log("Can't decode as " + trsdosVersionToString(trsdosVersion) + " operating system: " + trsdos);
+            console.log(`Can't decode as ${trsdosVersionToString(trsdosVersion)} operating system: ${trsdos}`);
         }
     }
 

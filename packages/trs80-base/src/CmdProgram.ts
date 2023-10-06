@@ -321,7 +321,7 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
         const dataAddr = b.addr();
         const data = b.readBytes(length);
         if (data.length < length) {
-            error = "File is truncated at data";
+            error = "File is truncated";
             // We continue so we can create a partial chunk. The loop will stop at the top of the next
             // iteration. Not sure this is the right thing to do.
         }

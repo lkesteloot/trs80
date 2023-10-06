@@ -108,7 +108,7 @@ export function sectors(filename: string, showContents: boolean): void {
             const trackGeometry = geometry.getTrackGeometry(trackNumber);
             for (const side of trackGeometry.sides()) {
                 for (let sectorNumber = trackGeometry.firstSector; sectorNumber <= trackGeometry.lastSector; sectorNumber++) {
-                    let header = `Track ${trackNumber}, side ${side}, sector ${sectorNumber}: `;
+                    let header = `Side ${side}, track ${trackNumber}, sector ${sectorNumber}: `;
 
                     const sector = file.readSector(trackNumber, side, sectorNumber);
                     if (sector === undefined) {
