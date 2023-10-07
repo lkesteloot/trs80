@@ -28,7 +28,7 @@ in TypeScript. The subprojects are:
 This has been tested with `node` version 20 and `npm` version 10. You can
 get the latest version from [the node.js website](https://nodejs.org/).
 
-To install dependencies (do this once):
+To install dependencies (do this once per clone or pull):
 
 ```sh
 npm install
@@ -40,7 +40,7 @@ To do a sequential build:
 npm run build --workspaces
 ```
 
-To do a parallel build:
+Or to do a parallel build:
 
 ```sh
 npx lerna run build
