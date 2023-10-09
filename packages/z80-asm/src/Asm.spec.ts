@@ -164,6 +164,20 @@ describe("assemble", () => {
             { line: " jp $", opcodes: [0xC3, 0x00, 0x40] },
         ]);
     });
+
+    // Positive index offset.
+    it("inc (ix+5)", () => {
+        runTest([
+            { line: " inc (ix+5)", opcodes: [0xDD, 0x34, 0x05] },
+        ]);
+    });
+
+    // Negative index offset.
+    it("inc (ix-5)", () => {
+        runTest([
+            { line: " inc (ix-5)", opcodes: [0xDD, 0x34, 0xFB] },
+        ]);
+    });
 });
 
 describe("expressions", () => {

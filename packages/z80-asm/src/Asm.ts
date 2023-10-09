@@ -1719,7 +1719,12 @@ class LineParser {
                         continue;
                     }
 
-                    if (token === "," || token === "(" || token === ")" || token === "+") {
+                    if (token === "+" && this.isChar("-")) {
+                        // This is something like (IX+DD), but DD is signed and we allow the
+                        // user to simply write (IX-5), so pretend we got the + and move on
+                        // to parsing the number as-is.
+                        match = true;
+                    } else if (token === "," || token === "(" || token === ")" || token === "+") {
                         if (!this.foundChar(token)) {
                             match = false;
                         }
