@@ -59,6 +59,14 @@ describe("disassemble", () => {
         const result = disasmToText([0xC3, 0x15, 0x30]);
         expect(result).to.eql(["jp 0x3015"]);
     });
+    it("positive index offset", () => {
+        const result = disasmToText([0xDD, 0x34, 0x05]);
+        expect(result).to.eql(["inc (ix+0x05)"]);
+    });
+    it("negative index offset", () => {
+        const result = disasmToText([0xDD, 0x34, 0xFB]);
+        expect(result).to.eql(["inc (ix-0x05)"]);
+    });
 });
 
 describe("label", () => {

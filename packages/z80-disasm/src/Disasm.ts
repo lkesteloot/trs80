@@ -213,7 +213,7 @@ export class Disasm {
                                     this.referencedAddresses.add(nnnn);
                                 }
                             }
-                            arg = arg.substr(0, pos) + target + arg.substr(pos + 4);
+                            arg = arg.substring(0, pos) + target + arg.substr(pos + 4);
                             changed = true;
                         }
 
@@ -225,7 +225,13 @@ export class Disasm {
                         if (pos >= 0) {
                             const nn = thirdDataByte !== undefined ? thirdDataByte : next();
                             thirdDataByte = undefined;
-                            arg = arg.substr(0, pos) + this.toHexByte(nn) + arg.substring(pos + 2);
+                            if (pos > 0 && arg[pos - 1] === "+" && (nn & 0x80) !== 0) {
+                                // It's an offset like (IX+DD) and the value is negative, so replace
+                                // the plus sign with a negative.
+                                arg = arg.substring(0, pos - 1) + "-" + this.toHexByte(-nn & 0xFF) + arg.substring(pos + 2);
+                            } else {
+                                arg = arg.substring(0, pos) + this.toHexByte(nn) + arg.substring(pos + 2);
+                            }
                             changed = true;
                         }
 
