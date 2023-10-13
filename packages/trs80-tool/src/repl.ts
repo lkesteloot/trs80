@@ -6,6 +6,19 @@ import {RegisterSet, isRegisterSetField, toHexByte, toHexWord } from "z80-base";
 import { Asm } from "z80-asm";
 
 /**
+ * Regular expression to find <var>nn</var> markup in opcode descriptions.
+ */
+const VAR_RE = /<var>([^<]*)<\/var>/g;
+
+/**
+ * Takes a string like "Loads <var>nn</var> into HL." and returns a version
+ * with the "nn" highlighted and tags removed.
+ */
+function highlightVar(description: string): string {
+    return description.replace(VAR_RE, (match, p1) => chalk.underline(p1));
+}
+
+/**
  * Handle the "repl" command.
  */
 export function repl() {
@@ -192,7 +205,7 @@ export function repl() {
                     if (line.variant !== undefined && line.variant.clr !== undefined) {
                         const clr = line.variant.clr;
                         console.log("Instruction information:");
-                        let output = "    " + clr.instruction + ": " + clr.description;
+                        let output = "    " + clr.instruction + ": " + highlightVar(clr.description);
                         if (clr.undocumented) {
                             output += " (undocumented)";
                         }
