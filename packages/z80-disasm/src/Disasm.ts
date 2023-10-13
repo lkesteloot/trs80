@@ -109,7 +109,7 @@ export class Disasm {
     }
 
     /**
-     * Set the format used for hex numbers.
+     * Set the format used for hex numbers. Defaults to C.
      */
     public setHexFormat(hexFormat: HexFormat): void {
         this.hexFormat = hexFormat;
@@ -170,6 +170,7 @@ export class Disasm {
         while (instruction === undefined) {
             let value = map.get(byte);
             if (value === undefined) {
+                // Unknown instruction, just provide the raw bytes.
                 const stringParams = bytes.map((n) => this.toHexByte(n));
                 instruction = new Instruction(startAddress, bytes, ".byte", stringParams, stringParams, false);
             } else if (value instanceof Map) {
@@ -184,7 +185,6 @@ export class Disasm {
             } else {
                 // Found instruction. Parse arguments.
                 const args = (value.params ?? []).slice();
-
                 for (let i = 0; i < args.length; i++) {
                     let arg = args[i];
 
@@ -213,7 +213,7 @@ export class Disasm {
                                     this.referencedAddresses.add(nnnn);
                                 }
                             }
-                            arg = arg.substring(0, pos) + target + arg.substr(pos + 4);
+                            arg = arg.substring(0, pos) + target + arg.substring(pos + 4);
                             changed = true;
                         }
 
@@ -223,7 +223,7 @@ export class Disasm {
                             pos = arg.indexOf("dd");
                         }
                         if (pos >= 0) {
-                            const nn = thirdDataByte !== undefined ? thirdDataByte : next();
+                            const nn = thirdDataByte ?? next();
                             thirdDataByte = undefined;
                             if (pos > 0 && arg[pos - 1] === "+" && (nn & 0x80) !== 0) {
                                 // It's an offset like (IX+DD) and the value is negative, so replace
@@ -303,6 +303,7 @@ export class Disasm {
                 address++;
                 break;
             } else {
+                // Back to non-text.
                 if (startOfText !== undefined) {
                     if (startOfTextChunk !== undefined) {
                         // Found large text.
@@ -335,9 +336,11 @@ export class Disasm {
                         char = "\\\"";
                     }
                     if (parts.length > 0 && parts[parts.length - 1].startsWith("\"")) {
+                        // Insert into existing string arg.
                         const s = parts[parts.length - 1];
                         parts[parts.length - 1] = s.substring(0, s.length - 1) + char + "\"";
                     } else {
+                        // Create new string arg.
                         parts.push("\"" + char + "\"");
                     }
                 } else {
@@ -499,6 +502,8 @@ export class Disasm {
             if (this.hasContent[address]) {
                 let instruction = this.instructions[address];
                 if (instruction === undefined) {
+                    // We never reached this location, but we were provided a binary there,
+                    // so decoded it as data.
                     instruction = this.makeDataInstruction(address);
                 }
                 instructions.push(instruction);

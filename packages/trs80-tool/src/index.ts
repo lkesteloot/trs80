@@ -151,6 +151,7 @@ function main() {
         .option("--no-labels", "do not generate labels for jump targets")
         .option("--no-known", "do not use labels for known ROM locations")
         .option("--no-binary", "do not show program binary in listing")
+        .option("--upper", "generate upper case output")
         .option("--hex-format <format>", "format for hex numbers: c for 0x12, dollar for $12, and h for 12h",
             "c")
         .action((infile, options) => {
@@ -163,7 +164,8 @@ function main() {
                 process.exit(1);
             }
             const hexFormat = hexFormatString === "c" ? HexFormat.C : hexFormatString === "dollar" ? HexFormat.DOLLAR : HexFormat.H;
-            disasm(infile, options.listing, org, entryPoints, options.labels, options.known, options.binary, hexFormat);
+            disasm(infile, options.listing, org, entryPoints, options.labels, options.known, options.binary, hexFormat,
+                options.upper);
         });
     program
         .command("run [program]")

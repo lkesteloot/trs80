@@ -26,8 +26,8 @@ function disasm(bin: ArrayLike<number>, org: number = 0): Instruction[] {
     return d.disassemble();
 }
 
-function disasmToText(bin: ArrayLike<number>, org?: number): string[] {
-    return disasm(bin, org).map(i => i.toText());
+function disasmToText(bin: ArrayLike<number>, org?: number, upperCase?: boolean): string[] {
+    return disasm(bin, org).map(i => i.toText(upperCase ?? false));
 }
 
 describe("disassemble", () => {
@@ -67,6 +67,14 @@ describe("disassemble", () => {
         const result = disasmToText([0xDD, 0x34, 0xFB]);
         expect(result).to.eql(["inc (ix-0x05)"]);
     });
+    it("text", () => {
+       const result = disasmToText([0xC3, 0x00, 0x00, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x21]);
+       expect(result).to.eql(["jp rst00", ".text \"Hello!\""]);
+    });
+    it("upper case", () => {
+        const result = disasmToText([0xC3, 0x00, 0x00, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x21], 0, true);
+        expect(result).to.eql(["JP RST00", ".TEXT \"Hello!\""]);
+    });
 });
 
 describe("label", () => {
@@ -79,17 +87,20 @@ describe("label", () => {
     it("jp", () => {
         const result = disasm([0xC3, 0x03, 0x00, 0x00]);
         expect(result.map((i) => i.label)).to.eql(["rst00", "label1"]);
-        expect(result.map((i) => i.toText())).to.eql(["jp label1", "nop"]);
+        expect(result.map((i) => i.toText(false))).to.eql(["jp label1", "nop"]);
+        expect(result.map((i) => i.toText(true))).to.eql(["JP LABEL1", "NOP"]);
     });
     it("call", () => {
         const result = disasm([0xCD, 0x03, 0x00, 0x00]);
         expect(result.map((i) => i.label)).to.eql(["rst00", "label1"]);
-        expect(result.map((i) => i.toText())).to.eql(["call label1", "nop"]);
+        expect(result.map((i) => i.toText(false))).to.eql(["call label1", "nop"]);
+        expect(result.map((i) => i.toText(true))).to.eql(["CALL LABEL1", "NOP"]);
     });
     it("jr", () => {
         const result = disasm([0x18, 0x01, 0x00, 0x00]);
         expect(result.map((i) => i.label)).to.eql(["rst00", undefined, "label1"]);
-        expect(result.map((i) => i.toText())).to.eql(["jr label1", ".byte 0x00", "nop"]);
+        expect(result.map((i) => i.toText(false))).to.eql(["jr label1", ".byte 0x00", "nop"]);
+        expect(result.map((i) => i.toText(true))).to.eql(["JR LABEL1", ".BYTE 0X00", "NOP"]);
     });
 });
 

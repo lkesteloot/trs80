@@ -30,7 +30,8 @@ export function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: 
  * Handle the "disasm" command.
  */
 export function disasm(filename: string, makeListing: boolean, org: number | undefined, entryPoints: number[],
-                       createLabels: boolean, useKnownLabels: boolean, showBinary: boolean, hexFormat: HexFormat) {
+                       createLabels: boolean, useKnownLabels: boolean, showBinary: boolean, hexFormat: HexFormat,
+                       upperCase: boolean) {
     // Read the file.
     let buffer;
     try {
@@ -74,6 +75,6 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     }
 
     const instructions = disasm.disassemble()
-    const text = instructionsToText(instructions, { makeListing, showBinary, hexFormat }).join("\n");
+    const text = instructionsToText(instructions, { makeListing, showBinary, hexFormat, upperCase }).join("\n");
     console.log(text);
 }

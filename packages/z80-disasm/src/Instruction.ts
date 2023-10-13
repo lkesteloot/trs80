@@ -1,6 +1,9 @@
 
 import {toHexByte} from "z80-base";
 
+/**
+ * All known information about a disassembled instruction.
+ */
 export class Instruction {
     /**
      * Address of instruction.
@@ -60,8 +63,14 @@ export class Instruction {
     /**
      * Text of the instruction (e.g., "ld hl,0x1234").
      */
-    public toText(): string {
-        return (this.mnemonic + " " + this.args.join(",")).trim();
+    public toText(upperCase: boolean): string {
+        const mnemonic = upperCase ? this.mnemonic.toUpperCase() : this.mnemonic;
+        // Convert args to upper case, unless it's a string.
+        const args = this.args.map(arg =>
+            !upperCase || (arg.length > 0 && arg[0] === "\"") ? arg : arg.toUpperCase());
+
+        // Trim space when there are no args.
+        return (mnemonic + " " + args.join(",")).trim();
     }
 
     /**
@@ -77,7 +86,7 @@ export class Instruction {
                 changed = false;
                 const pos = arg.indexOf(varName);
                 if (pos >= 0) {
-                    arg = arg.substr(0, pos) + replacement + arg.substr(pos + varName.length);
+                    arg = arg.substring(0, pos) + replacement + arg.substring(pos + varName.length);
                     changed = true;
                 }
             } while (changed);

@@ -9,10 +9,12 @@ const LISTING_INDENT = ADDRESS_INDENT + " ".repeat(3*4);
 export interface InstructionsToTextConfig {
     // Make a listing (vs. disassembly), default false.
     makeListing?: boolean;
-    // Show opcode binary in listing, default true,
+    // Show opcode binary in listing, default true.
     showBinary?: boolean;
     // Function hex format, default c.
     hexFormat?: HexFormat;
+    // Generate upper case disassembly (except for string literals), default false.
+    upperCase?: boolean;
 }
 
 /**
@@ -29,7 +31,13 @@ export function instructionsToText(instructions: Instruction[], config: Instruct
         makeListing = false,
         showBinary = true,
         hexFormat = HexFormat.C,
+        upperCase = false,
     } = config;
+
+    // Convenience function to transform text.
+    function xform(value: string) {
+        return upperCase ? value.toUpperCase() : value;
+    }
 
     const lines: string[] = [];
 
@@ -41,30 +49,32 @@ export function instructionsToText(instructions: Instruction[], config: Instruct
         const bytes = instruction.bin;
 
         if (address !== expectedAddress) {
-            lines.push(listingIndent + INSTRUCTION_INDENT + ".org " + toFormattedHex(address, 4, hexFormat));
+            lines.push(listingIndent + INSTRUCTION_INDENT + xform(".org " + toFormattedHex(address, 4, hexFormat)));
             expectedAddress = address;
         }
         expectedAddress += bytes.length;
 
         if (instruction.label !== undefined) {
-            lines.push(listingIndent + instruction.label + ":");
+            lines.push(listingIndent + xform(instruction.label) + ":");
         }
 
+        const instructionText = instruction.toText(upperCase);
         if (makeListing) {
             if (showBinary) {
-                while (bytes.length > 0) {
-                    const subbytes = bytes.slice(0, Math.min(3, bytes.length));
+                let i = 0;
+                while (i < bytes.length) {
+                    const subbytes = bytes.slice(i, Math.min(i + 3, bytes.length));
                     lines.push(toHexWord(address) + " " +
                         subbytes.map(toHexByte).join(" ").padEnd(12) +
-                        (address === instruction.address ? INSTRUCTION_INDENT + instruction.toText() : ""));
+                        (address === instruction.address ? INSTRUCTION_INDENT + instructionText : ""));
                     address += subbytes.length;
-                    bytes.splice(0, subbytes.length);
+                    i += subbytes.length;
                 }
             } else {
-                lines.push(toHexWord(address) + " " + INSTRUCTION_INDENT + instruction.toText());
+                lines.push(toHexWord(address) + " " + INSTRUCTION_INDENT + instructionText);
             }
         } else {
-            lines.push(INSTRUCTION_INDENT + instruction.toText());
+            lines.push(INSTRUCTION_INDENT + instructionText);
         }
     }
 
