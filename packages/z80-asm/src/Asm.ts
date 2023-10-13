@@ -1691,7 +1691,12 @@ class LineParser {
 
         // See if it's a Z80 mnemonic.
         const mnemonicInfo = mnemonicMap.get(mnemonic);
-        if (mnemonicInfo !== undefined) {
+        if (mnemonicInfo === undefined) {
+            this.assembledLine.error = "unknown mnemonic \"" + mnemonic + "\"";
+            if (this.isChar(":")) {
+                this.assembledLine.error += " (if it's a label, unindent it)";
+            }
+        } else {
             const argStart = this.column;
             let match = false;
 
@@ -1776,7 +1781,7 @@ class LineParser {
                 if (match) {
                     this.assembledLine.binary = [];
                     for (const op of variant.opcodes) {
-                        if (typeof(op) === "string") {
+                        if (typeof op === "string") {
                             const value = args.get(op);
                             if (value === undefined) {
                                 throw new Error("arg " + op + " not found for " + this.line);
@@ -1814,8 +1819,6 @@ class LineParser {
             if (!match && this.assembledLine.error === undefined) {
                 this.assembledLine.error = "no variant found for " + mnemonic;
             }
-        } else {
-            this.assembledLine.error = "unknown mnemonic: " + mnemonic;
         }
     }
 
