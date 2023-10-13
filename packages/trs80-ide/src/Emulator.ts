@@ -344,7 +344,7 @@ export class Emulator {
         };
 
         const extraForPc = (value: number): string => {
-            return disasm.disassembleTrace(value, address => this.trs80.readMemory(address)).toText();
+            return disasm.disassembleTrace(value, address => this.trs80.readMemory(address)).toText(false);
         };
 
         const extraForPointer = (value: number, oldValue: number): Node | string => {

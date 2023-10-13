@@ -206,14 +206,14 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
             add(line, subbytesText, classes.hex);
             if (address === instruction.address) {
                 add(line, "".padEnd(12 - subbytesText.length + 8), classes.space);
-                add(line, instruction.toText(), classes.opcodes);
+                add(line, instruction.toText(false), classes.opcodes);
             }
 
             const byteOffset = systemProgram.addressToByteOffset(address);
             if (byteOffset !== undefined) {
                 const endIndex = byteOffset + subbytes.length;
                 elements.push(new Highlightable(byteOffset, endIndex - 1, line));
-                annotations.push(new ProgramAnnotation(instruction.toText() + "\n" + instruction.binText(), byteOffset, endIndex));
+                annotations.push(new ProgramAnnotation(instruction.toText(false) + "\n" + instruction.binText(), byteOffset, endIndex));
             }
 
             address += subbytes.length;

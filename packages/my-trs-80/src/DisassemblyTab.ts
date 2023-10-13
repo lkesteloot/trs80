@@ -74,7 +74,7 @@ export class DisassemblyTab extends PageTab {
                 add(line, subbytesText, "disassembly-hex");
                 if (address === instruction.address) {
                     add(line, "".padEnd(12 - subbytesText.length + 8), "disassembly-space");
-                    add(line, instruction.toText(), "disassembly-opcodes");
+                    add(line, instruction.toText(false), "disassembly-opcodes");
                 }
 
                 address += subbytes.length;

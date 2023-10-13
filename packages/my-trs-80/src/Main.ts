@@ -287,7 +287,7 @@ export function main() {
             }
             const line = toHexWord(stepPc) + "  " +
                 instruction.binText().padEnd(11) + "  " +
-                instruction.toText().padEnd(20) + "  " +
+                instruction.toText(false).padEnd(20) + "  " +
                 makeFlagString(trs80.z80.regs.f) + "  " +
                 values.join(", ");
             logs.push(line.trimEnd());
