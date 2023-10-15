@@ -1,7 +1,9 @@
 import { getAsmDirectiveDocs } from "z80-asm";
 import {mnemonicMap, OpcodeVariant } from "z80-inst";
 import {CompletionContext, Completion, CompletionResult, snippetCompletion} from "@codemirror/autocomplete";
+import {StateField} from "@codemirror/state";
 import {getInitialSpaceCount} from "./utils";
+import {AssemblyResults} from "./AssemblyResults";
 
 // Get the full label (such as "ld a,b") for the variant.
 function getVariantLabel(variant: OpcodeVariant): string {
@@ -15,9 +17,9 @@ const ASM_DIRECTIVE_DOCS = getAsmDirectiveDocs();
 interface Snippet {
     // See https://codemirror.net/docs/ref/#autocomplete.snippet
     template: string;
-    // Short description in pop-up list. Gets matches to what they typed.
+    // Short description in pop-up list. Gets matched to what they typed.
     value: string;
-    // Shows in overflow panel when highlighting the item. Gets matches to what they typed.
+    // Shows in overflow panel when highlighting the item. Gets matched to what they typed.
     description: string;
 }
 const SNIPPETS: Snippet[] = [
@@ -108,30 +110,68 @@ function matchesDescription(words: string[], description: string): boolean {
     return true;
 }
 
-// Custom auto-completions from the Z80 instruction set.
-export function customCompletions(context: CompletionContext): CompletionResult | null {
+/**
+ * Custom auto-completions from the Z80 instruction set.
+ *
+ * If we're defining a new label, look for symbols that have been used but not yet defined.
+ *
+ * Otherwise, if the first word matches a mnemonic, then figure out which parameter we're on and
+ * complete only that (e.g., registers, identifiers).
+ *
+ * Otherwise, tokenize the line and look for its words in snippets, mnemonics, and directives.
+ */
+export function customCompletions(context: CompletionContext, assemblyResultsStateField: StateField<AssemblyResults>): CompletionResult | null {
+    // Assembly results are useful for symbol completion.
+    const assemblyResults = context.state.field(assemblyResultsStateField);
+
     // Grab entire line.
     const word = context.matchBefore(/.*/);
     if (word === null) {
         return null;
     }
 
-    // Skip initial space.
+    // Count space at the front of the line.
     let spaceCount = getInitialSpaceCount(word.text);
-    if (spaceCount === 0) {
-        // Don't autocomplete at start of line, that's for labels.
-        return null;
-    }
+
     // Skip leading spaces, normalize to lower case, and collapse spaces.
     const search = word.text.substring(spaceCount).toLowerCase().replace(/[ \t]+/g, " ");
     if (search === "" && !context.explicit) {
         return null;
     }
-    // Remove words that start with a period, only want those in "search".
-    const searchWords = search.split(" ").filter(word => word !== "" && !word.startsWith("."));
 
     // All the options we'll show, in order.
     const options: Completion[] = [];
+
+    // See if we're completing a new label.
+    if (spaceCount === 0) {
+        // Auto-complete labels that are used but not yet defined.
+        for (const symbolInfo of assemblyResults.asm.symbols) {
+            // Show the symbol if our typed text is a prefix and the symbol has been used but not
+            // defined. There's an extra special case to handle: the user is typing a new symbol,
+            // and as they reach the last letter, it immediately becomes defined, and therefore
+            // disappears from the list! We want to keep it in the list, so if the definition is
+            // on the line we're typing, then include it.
+            if (symbolInfo.name.toLowerCase().startsWith(search) &&
+                symbolInfo.references.length > 0 &&
+                (symbolInfo.definitions.length === 0 ||
+                    symbolInfo.definitions[0].assembledLine?.lineNumber === context.state.doc.lineAt(context.pos).number - 1)) {
+
+                options.push({
+                    label: symbolInfo.name + ":",
+                });
+            }
+        }
+        // May as well sort them.
+        options.sort((a, b) => a.label.localeCompare(b.label));
+        return {
+            from: word.from + spaceCount,
+            options: options,
+            filter: false,
+        };
+    }
+
+    // Break search string into words. Remove words that start with a period, only want those in "search".
+    const searchWords = search.split(" ").filter(word => word !== "" && !word.startsWith("."));
 
     // Add snippets that match.
     for (const snippet of SNIPPETS) {
@@ -162,7 +202,7 @@ export function customCompletions(context: CompletionContext): CompletionResult 
         }
     }
 
-    // Sort to put most likely on top.
+    // Sort to put most likely on top. Assume those with fewer opcodes are more common/likely.
     matchingVariantsLabel.sort((a, b) => a.opcodes.length - b.opcodes.length);
     matchingVariantsDesc.sort((a, b) => a.opcodes.length - b.opcodes.length);
 

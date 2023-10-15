@@ -47,7 +47,7 @@ import {
     Transaction
 } from "@codemirror/state"
 import {bracketMatching, indentUnit, StreamLanguage,} from "@codemirror/language"
-import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from "@codemirror/autocomplete"
+import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap, CompletionContext} from "@codemirror/autocomplete"
 import {
     findNext,
     findPrevious,
@@ -417,7 +417,7 @@ export class Editor {
             closeBrackets(),
             autocompletion({
                 override: [
-                    customCompletions,
+                    (context: CompletionContext) => customCompletions(context, this.assemblyResultsStateField)
                 ],
             }),
             rectangularSelection(),
