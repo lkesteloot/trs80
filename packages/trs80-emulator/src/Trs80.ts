@@ -48,7 +48,6 @@ const M1_TIMER_HZ = 40;
 const M3_TIMER_HZ = 30;
 const M4_TIMER_HZ = 60;
 
-const ROM_SIZE = 14*1024;
 const RAM_START = 16*1024;
 
 // CPU clock speeds.
@@ -234,6 +233,7 @@ export class Trs80 implements Hal, Machine {
      */
     public setConfig(config: Config): void {
         const needsReboot = config.needsReboot(this.config);
+        const hasNewRom = config.customRom !== this.config.customRom;
         this.config = config;
 
         this.screen.setConfig(this.config);
@@ -241,6 +241,8 @@ export class Trs80 implements Hal, Machine {
         if (needsReboot) {
             this.updateFromConfig();
             this.reset();
+        } else if (hasNewRom) {
+            this.loadRom();
         }
     }
 
@@ -287,7 +289,7 @@ export class Trs80 implements Hal, Machine {
         this.z80.restore(state.z80State);
 
         // Restore ROM.
-        this.memory.set(state.memory.subarray(0, ROM_SIZE));
+        this.memory.set(state.memory.subarray(0, this.config.romSize));
         // Restore screen.
         for (let addr = TRS80_SCREEN_BEGIN; addr < TRS80_SCREEN_END; addr++) {
             this.writeMemory(addr, state.memory[addr]);
@@ -301,30 +303,41 @@ export class Trs80 implements Hal, Machine {
      */
     private loadRom(): void {
         let rom: string;
-        switch (this.config.modelType) {
-            case ModelType.MODEL1:
-                switch (this.config.basicLevel) {
-                    case BasicLevel.LEVEL1:
-                        rom = model1Level1Rom;
-                        break;
+        if (this.config.customRom !== undefined) {
+            rom = this.config.customRom;
+        } else {
+            switch (this.config.modelType) {
+                case ModelType.MODEL1:
+                    switch (this.config.basicLevel) {
+                        case BasicLevel.LEVEL1:
+                            rom = model1Level1Rom;
+                            break;
 
-                    case BasicLevel.LEVEL2:
-                    default:
-                        rom = model1Level2Rom;
-                        break;
-                }
-                break;
+                        case BasicLevel.LEVEL2:
+                        default:
+                            rom = model1Level2Rom;
+                            break;
+                    }
+                    break;
 
-            case ModelType.MODEL3:
-            default:
-                rom = model3Rom;
-                break;
+                case ModelType.MODEL3:
+                default:
+                    rom = model3Rom;
+                    break;
 
-            case ModelType.MODEL4:
-                rom = model4Rom;
-                break;
+                case ModelType.MODEL4:
+                    rom = model4Rom;
+                    break;
+            }
         }
 
+        // Sanity check.
+        if (rom.length > this.config.romSize) {
+            throw new Error("ROM is too large (" + rom.length + " > " + this.config.romSize + ")");
+        }
+
+        // Load into memory.
+        this.memory.fill(0, 0, this.config.romSize);
         for (let i = 0; i < rom.length; i++) {
             this.memory[i] = rom.charCodeAt(i);
         }
@@ -523,7 +536,7 @@ export class Trs80 implements Hal, Machine {
     }
 
     public readMemory(address: number): number {
-        if (address < ROM_SIZE || address >= RAM_START || isScreenAddress(address)) {
+        if (address < this.config.romSize || address >= RAM_START || isScreenAddress(address)) {
             return address < this.memory.length ? this.memory[address] : 0xFF;
         } else if (address === 0x37E8) {
             // Printer. 0x30 = Printer selected, ready, with paper, not busy.
@@ -760,7 +773,7 @@ export class Trs80 implements Hal, Machine {
     }
 
     public writeMemory(address: number, value: number): void {
-        if (address < ROM_SIZE) {
+        if (address < this.config.romSize) {
             warnOnce("Warning: Writing to ROM location 0x" + toHex(address, 4));
         } else {
             if (address >= TRS80_SCREEN_BEGIN && address < TRS80_SCREEN_END) {

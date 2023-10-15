@@ -139,11 +139,33 @@ export class Emulator {
         } else {
             this.trs80.restore(this.trs80State);
         }
+        // Create the ROM on demand.
+        let rom: number[] | undefined = undefined;
+        const config = this.trs80.getConfig();
         for (const line of results.asm.assembledLines) {
             const binary = line.binary;
-            for (let i = 0; i < binary.length; i++) {
-                this.trs80.writeMemory(line.address + i, binary[i]);
+            // Check if we're assembling ROM code.
+            if (line.address < config.romSize) {
+                // Assume no instruction spans the end of ROM and beginning of RAM.
+                if (rom === undefined) {
+                    rom = new Array(config.romSize).fill(0);
+                }
+                for (let i = 0; i < binary.length; i++) {
+                    rom[line.address + i] = binary[i];
+                }
+            } else {
+                for (let i = 0; i < binary.length; i++) {
+                    this.trs80.writeMemory(line.address + i, binary[i]);
+                }
             }
+        }
+        // Configure the ROM, if that's what we're developing.
+        if (rom !== undefined) {
+            // Use the custom ROM.
+            const romString = String.fromCharCode(...rom);
+            this.trs80.setConfig(config.withCustomRom(romString));
+        } else {
+            this.trs80.setConfig(config.withCustomRom(undefined));
         }
         const { entryPoint } = results.asm.getEntryPoint();
         if (entryPoint !== undefined) {

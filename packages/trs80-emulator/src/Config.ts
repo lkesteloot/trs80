@@ -97,6 +97,37 @@ export enum ScanLines {
 }
 
 /**
+ * Return the ROM size in bytes. This is not affected by any custom ROM, only by
+ * the model and level numbers.
+ */
+function computeRomSize(modelType: ModelType, basicLevel: BasicLevel): number {
+    let kb: number;
+
+    switch (modelType) {
+        case ModelType.MODEL1:
+            switch (basicLevel) {
+                case BasicLevel.LEVEL1:
+                    kb = 4;
+                    break;
+
+                case BasicLevel.LEVEL2:
+                default:
+                    kb = 12;
+                    break;
+            }
+            break;
+
+        case ModelType.MODEL3:
+        case ModelType.MODEL4:
+        default:
+            kb = 14;
+            break;
+    }
+
+    return kb*1024;
+}
+
+/**
  * A specific configuration of model and RAM.
  */
 export class Config {
@@ -107,9 +138,12 @@ export class Config {
     public readonly phosphor: Phosphor;
     public readonly background: Background;
     public readonly scanLines: ScanLines;
+    public readonly customRom: string | undefined;
+    public readonly romSize: number;
 
     constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize,
-                phosphor: Phosphor, background: Background, scanLines: ScanLines) {
+                phosphor: Phosphor, background: Background, scanLines: ScanLines,
+                customRom: string | undefined) {
 
         this.modelType = modelType;
         this.basicLevel = basicLevel;
@@ -118,34 +152,42 @@ export class Config {
         this.phosphor = phosphor;
         this.background = background;
         this.scanLines = scanLines;
+        this.customRom = customRom;
+
+        // Compute this once, it's used a lot.
+        this.romSize = computeRomSize(modelType, basicLevel);
     }
 
     public withModelType(modelType: ModelType): Config {
-        return new Config(modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines);
+        return new Config(modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines, this.customRom);
     }
 
     public withBasicLevel(basicLevel: BasicLevel): Config {
-        return new Config(this.modelType, basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines);
+        return new Config(this.modelType, basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines, this.customRom);
     }
 
     public withCGChip(cgChip: CGChip): Config {
-        return new Config(this.modelType, this.basicLevel, cgChip, this.ramSize, this.phosphor, this.background, this.scanLines);
+        return new Config(this.modelType, this.basicLevel, cgChip, this.ramSize, this.phosphor, this.background, this.scanLines, this.customRom);
     }
 
     public withRamSize(ramSize: RamSize): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, ramSize, this.phosphor, this.background, this.scanLines);
+        return new Config(this.modelType, this.basicLevel, this.cgChip, ramSize, this.phosphor, this.background, this.scanLines, this.customRom);
     }
 
     public withPhosphor(phosphor: Phosphor): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, phosphor, this.background, this.scanLines);
+        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, phosphor, this.background, this.scanLines, this.customRom);
     }
 
     public withBackground(background: Background): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, background, this.scanLines);
+        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, background, this.scanLines, this.customRom);
     }
 
     public withScanLines(scanLines: ScanLines): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, scanLines);
+        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, scanLines, this.customRom);
+    }
+
+    public withCustomRom(customRom: string | undefined): Config {
+        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines, customRom);
     }
 
     /**
@@ -153,7 +195,7 @@ export class Config {
      */
     public static makeDefault(): Config {
         return new Config(ModelType.MODEL3, BasicLevel.LEVEL2, CGChip.LOWER_CASE, RamSize.RAM_48_KB,
-            Phosphor.WHITE, Background.AUTHENTIC, ScanLines.OFF);
+            Phosphor.WHITE, Background.AUTHENTIC, ScanLines.OFF, undefined);
     }
 
     /**
