@@ -201,6 +201,14 @@ export class Emulator {
         }
     }
 
+    // Stop the program, enter the debugger.
+    public breakProgram(): void {
+        if (this.trs80.runningState === RunningState.STARTED) {
+            this.trs80.setRunningState(RunningState.PAUSED);
+            this.debugPc.dispatch(this.trs80.z80.regs.pc);
+        }
+    }
+
     // Resume the emulator (if it's stopped). Don't call this to start a program
     // from scratch, only to resume it after a breakpoint. Will skip any breakpoint
     // that we're currently stopped on.

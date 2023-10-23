@@ -478,6 +478,10 @@ export class UserInterface {
                         separator: true,
                     },
                     {
+                        text: "Break",
+                        action: () => emulator.breakProgram(),
+                    },
+                    {
                         text: "Step",
                         hotkey: "Meta-Shift-S",
                         action: () => emulator.step(),
