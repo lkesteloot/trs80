@@ -2,10 +2,11 @@ import * as fs from "fs";
 import * as path from "path";
 import chalk from "chalk";
 import {pluralizeWithCount} from "./utils.js";
-import { toHex, toHexWord } from "z80-base";
+import {Z80_KNOWN_LABELS, toHex, toHexWord } from "z80-base";
 import { asmToCmdBinary, asmToSystemBinary } from "trs80-asm";
 import {Asm, FileSystem} from "z80-asm";
 import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio, writeWavFile } from "trs80-cassette";
+import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base";
 
 /**
  * Node fs implementation of FileSystem.
@@ -44,6 +45,9 @@ export function asm(srcPathname: string, outPathname: string, baud: number, lstP
 
     // Assemble program.
     const asm = new Asm(new FileSystemImpl());
+    asm.addKnownLabels(Z80_KNOWN_LABELS);
+    asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
+    asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
     const sourceFile = asm.assembleFile(srcPathname);
     if (sourceFile === undefined) {
         console.log("Cannot read file " + srcPathname);
