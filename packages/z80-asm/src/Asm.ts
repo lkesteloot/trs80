@@ -1,11 +1,7 @@
-import {hi, isByteReg, isWordReg, KnownLabel, lo, toHexWord} from "z80-base";
+import {hi, KnownLabel, lo, toHexWord} from "z80-base";
 import {dirname, parse, resolve} from "./path.js";
 import {isOpcodeTemplateOperand, mnemonicMap, OpcodeTemplateOperand, OpcodeVariant} from "z80-inst";
-
-/**
- * List of all flags that can be specified in an instruction.
- */
-const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
+import {isLegalIdentifierCharacter, parseDigit, Tokenizer} from "./Tokenizer.js";
 
 // Title-definition pseudo instructions.
 const PSEUDO_TITLE = new Set([".title"]);
@@ -145,33 +141,6 @@ export function getAsmDirectiveDocs(): AsmDirectiveDoc[] {
             description: "End of file, optionally followed by entry address or label.",
         },
     ];
-}
-
-/**
- * Parse a single digit in the given base, or undefined if the digit does not
- * belong to that base.
- */
-function parseDigit(ch: string, base: number): number | undefined {
-    let value = ch >= '0' && ch <= '9' ? ch.charCodeAt(0) - 0x30
-        : ch >= 'A' && ch <= 'F' ? ch.charCodeAt(0) - 0x41 + 10
-            : ch >= 'a' && ch <= 'f' ? ch.charCodeAt(0) - 0x61 + 10
-                : undefined;
-
-    return value === undefined || value >= base ? undefined : value;
-}
-
-function isFlag(s: string): boolean {
-    return FLAGS.has(s.toLowerCase());
-}
-
-function isLegalIdentifierCharacter(ch: string, isFirst: boolean) {
-    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '.' || ch == '_' ||
-        (!isFirst && (ch >= '0' && ch <= '9'));
-}
-
-// Whether the specified character counts as horizontal whitespace.
-function isWhitespace(c: string): boolean {
-    return c === " " || c === "\t";
 }
 
 /**
@@ -874,17 +843,12 @@ class Pass {
 class LineParser {
     private readonly pass: Pass;
     private readonly assembledLine: AssembledLine;
-    // Full text of line being parsed.
-    private readonly line: string;
-    // Parsing index into the line.
-    private column: number = 0;
-    // Pointer to the token we just parsed.
-    private previousToken = 0;
+    private readonly tokenizer: Tokenizer;
 
     constructor(pass: Pass, assembledLine: AssembledLine) {
         this.pass = pass;
         this.assembledLine = assembledLine;
-        this.line = assembledLine.line;
+        this.tokenizer = new Tokenizer(assembledLine.line);
     }
 
     public assemble(): void {
@@ -906,18 +870,18 @@ class LineParser {
         let labelValue: number | undefined;
 
         // Look for compiler directive.
-        if (enabledLine && this.line.trim().startsWith("#")) {
+        if (enabledLine && this.tokenizer.line.trim().startsWith("#")) {
             this.parseDirective();
             return;
         }
 
         // Look for label in column 1.
         let symbolColumn = 0;
-        let label = this.readIdentifier(false, false);
+        let label = this.tokenizer.readIdentifier(false, false);
         let labelIsGlobal = false;
         if (label !== undefined) {
-            if (this.foundChar(':')) {
-                if (this.foundChar(':')) {
+            if (this.tokenizer.found(':')) {
+                if (this.tokenizer.found(':')) {
                     // Double colons indicate global symbols (not local to #local).
                     labelIsGlobal = true;
                 }
@@ -926,7 +890,7 @@ class LineParser {
             // By default assign it to current address, but can be overwritten
             // by .equ below.
             labelValue = thisAddress;
-            symbolColumn = this.previousToken;
+            symbolColumn = this.tokenizer.identifierColumn;
         }
 
         // Ignore labels on disabled lines. (We have to parse them above though.)
@@ -935,17 +899,18 @@ class LineParser {
             labelValue = undefined;
         }
 
-        this.skipWhitespace();
-        let mnemonic = this.readIdentifier(false, true);
+        this.tokenizer.skipWhitespace();
+        let mnemonic = this.tokenizer.readIdentifier(false, true);
+        let mnemonicColumn = this.tokenizer.identifierColumn;
         if (mnemonic === undefined) {
             // Special check for "=", which is the same as "defl".
-            const column = this.column;
-            if (this.foundChar("=")) {
+            const column = this.tokenizer.column;
+            if (this.tokenizer.found("=")) {
                 mnemonic = "=";
-                this.previousToken = column;
+                mnemonicColumn = column;
             }
         }
-        if (mnemonic !== undefined && this.previousToken > 0) {
+        if (mnemonic !== undefined && mnemonicColumn > 0) {
             // We must parse the if/else/endif ones specially since they're only partially
             // affected by whether this line is enabled.
             if (PSEUDO_IF.has(mnemonic)) {
@@ -963,7 +928,7 @@ class LineParser {
                     // We're disabled, don't parse the expression, it might refer
                     // to a symbol we skipped over. But keep track of this if in
                     // the stack so we can properly deal with it at its else/endif.
-                    this.skipToEndOfLine();
+                    this.tokenizer.skipToEndOfLine();
                     // Value doesn't matter:
                     this.pass.conditionals.push(new Conditional(this.assembledLine, false));
                 }
@@ -998,13 +963,13 @@ class LineParser {
                 this.readString();
             } else if (PSEUDO_ERROR.has(mnemonic)) {
                 // Rest of the line is not a string, just read it as-is.
-                this.assembledLine.error = this.readToEndOfLine();
+                this.assembledLine.error = this.tokenizer.readToEndOfLine();
                 return;
             } else if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
                     const s = this.readString();
                     if (s !== undefined) {
-                        const adjustOperator = this.foundOneOfChar(["+", "-", "&", "|", "^"]);
+                        const adjustOperator = this.tokenizer.foundAnyOf(["+", "-", "&", "|", "^"]);
                         let adjustValue: number | undefined;
 
                         if (adjustOperator !== undefined) {
@@ -1068,7 +1033,7 @@ class LineParser {
                             this.assembledLine.binary.push(lo(value));
                         }
                     }
-                    if (!this.foundChar(',')) {
+                    if (!this.tokenizer.found(',')) {
                         break;
                     }
                 }
@@ -1088,7 +1053,7 @@ class LineParser {
                     }
                     this.assembledLine.binary.push(lo(value));
                     this.assembledLine.binary.push(hi(value));
-                    if (!this.foundChar(',')) {
+                    if (!this.tokenizer.found(',')) {
                         break;
                     }
                 }
@@ -1105,7 +1070,7 @@ class LineParser {
                     this.assembledLine.binary.push(hi(value));
                     this.assembledLine.binary.push(lo(value >> 16));
                     this.assembledLine.binary.push(hi(value >> 16));
-                    if (!this.foundChar(',')) {
+                    if (!this.tokenizer.found(',')) {
                         break;
                     }
                 }
@@ -1132,7 +1097,7 @@ class LineParser {
                     this.assembledLine.error = "alignment value expected";
                 } else {
                     let fillChar: number | undefined;
-                    if (this.foundChar(",")) {
+                    if (this.tokenizer.found(",")) {
                         const expr = this.readExpression(true);
                         if (expr === undefined) {
                             if (this.assembledLine.error === undefined) {
@@ -1163,7 +1128,7 @@ class LineParser {
                     this.assembledLine.error = "length cannot be negative";
                 } else {
                     let fillChar: number | undefined;
-                    if (this.foundChar(",")) {
+                    if (this.tokenizer.found(",")) {
                         const expr = this.readExpression(true);
                         if (expr === undefined) {
                             if (this.assembledLine.error === undefined) {
@@ -1194,7 +1159,7 @@ class LineParser {
                     label = undefined;
                     tag = "&";
                 } else {
-                    name = this.readIdentifier(true, false);
+                    name = this.tokenizer.readIdentifier(true, false);
                     if (name === undefined) {
                         this.assembledLine.error = "must specify name of macro";
                         return;
@@ -1231,22 +1196,22 @@ class LineParser {
                     // Parse parameters.
                     const params: string[] = [];
                     const labels: string[] = [];
-                    if (!this.isEndOfLine()) {
+                    if (!this.tokenizer.isEndOfLine()) {
                         // See if the first parameter specifies a tag. It's okay to not have one.
-                        let thisTag = this.foundOneOfChar(MACRO_TAGS) ?? tag;
+                        let thisTag = this.tokenizer.foundAnyOf(MACRO_TAGS) ?? tag;
                         if (thisTag !== "?") {
                             // We reserve ? for labels.
                             tag = thisTag;
                         }
 
                         do {
-                            thisTag = this.foundOneOfChar(MACRO_TAGS) ?? tag;
+                            thisTag = this.tokenizer.foundAnyOf(MACRO_TAGS) ?? tag;
                             if (thisTag !== "?" && thisTag !== tag) {
                                 this.assembledLine.error = "Inconsistent tags in macro: " + tag + " and " + thisTag;
                                 return;
                             }
 
-                            const param = this.readIdentifier(true, false);
+                            const param = this.tokenizer.readIdentifier(true, false);
                             if (param === undefined) {
                                 this.assembledLine.error = "expected macro parameter name";
                                 return;
@@ -1257,7 +1222,7 @@ class LineParser {
                             } else {
                                 params.push(param);
                             }
-                        } while (this.foundChar(","));
+                        } while (this.tokenizer.found(","));
 
                         // Make sure there's no extra junk.
                         this.ensureEndOfLine();
@@ -1278,8 +1243,8 @@ class LineParser {
                         const lineParser = new LineParser(this.pass, assembledLine);
                         // TODO check to make sure macro doesn't contain a # directive, unless the tag is
                         // # and the directive is one of the param names.
-                        lineParser.skipWhitespace();
-                        const token = lineParser.readIdentifier(false, true);
+                        lineParser.tokenizer.skipWhitespace();
+                        const token = lineParser.tokenizer.readIdentifier(false, true);
                         if (token !== undefined && PSEUDO_ENDM.has(token)) {
                             endmListingLineNumber = assembledLine.listingLineNumber;
                             break;
@@ -1304,8 +1269,8 @@ class LineParser {
                 return;
             } else if (PSEUDO_END.has(mnemonic)) {
                 // End of source file. See if there's an optional entry address or label.
-                this.skipWhitespace();
-                if (!this.isEndOfLine()) {
+                this.tokenizer.skipWhitespace();
+                if (!this.tokenizer.isEndOfLine()) {
                     const value = this.readExpression(true);
                     if (value === undefined) {
                         if (this.assembledLine.error === undefined) {
@@ -1359,12 +1324,13 @@ class LineParser {
 
     // Parse a pre-defined name, returning its value.
     private parsePredefinedName(): string | undefined {
-        const name = this.readIdentifier(false, true);
+        const name = this.tokenizer.readIdentifier(false, true);
         if (name === undefined) {
             return undefined;
         }
+        const identifierColumn = this.tokenizer.identifierColumn;
 
-        let value;
+        let value: string | undefined = undefined;
 
         // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z54.htm
         switch (name) {
@@ -1396,48 +1362,27 @@ class LineParser {
 
         if (value === undefined) {
             // Back up, it wasn't for us.
-            this.column = this.previousToken;
+            this.tokenizer.column = identifierColumn;
         }
 
         return value;
     }
 
-    // Advance the parser to the end of the line.
-    private skipToEndOfLine(): void {
-        this.column = this.line.length;
-    }
-
-    // Return all the text on the rest of the line.
-    private readToEndOfLine(): string {
-        const s = this.line.substring(this.column);
-        this.skipToEndOfLine();
-        return s;
-    }
-
-    // Whether we're at the end of the line. Assumes we've already skipped whitespace.
-    private isEndOfLine(): boolean {
-        return this.isChar(";") || this.column === this.line.length;
-    }
-
     // Make sure there's no junk at the end of the line.
     private ensureEndOfLine(): void {
-        // Check for comment.
-        if (this.isChar(';')) {
-            // Skip rest of line.
-            this.column = this.line.length;
-        }
-        if (this.column != this.line.length && this.assembledLine.error === undefined) {
+        const endOfLine = this.tokenizer.ensureEndOfLine();
+        if (!endOfLine && this.assembledLine.error === undefined) {
             this.assembledLine.error = "syntax error";
         }
     }
 
     private parseDirective(): void {
-        this.skipWhitespace();
-        if (!this.foundChar('#')) {
+        this.tokenizer.skipWhitespace();
+        if (!this.tokenizer.found('#')) {
             // Logic error.
             throw new Error("did not find # for directive");
         }
-        const directive = this.readIdentifier(true, true);
+        const directive = this.tokenizer.readIdentifier(true, true);
         if (directive === undefined || directive === "") {
             this.assembledLine.error = "must specify directive after #";
             return;
@@ -1445,7 +1390,7 @@ class LineParser {
 
         switch (directive) {
             case "target":
-                const target = this.readIdentifier(false, true);
+                const target = this.tokenizer.readIdentifier(false, true);
                 if (target === "bin" || target === "rom") {
                     this.pass.target = target;
                 } else {
@@ -1459,11 +1404,11 @@ class LineParser {
                 break;
 
             case "code":
-                const segmentName = this.readIdentifier(true, false);
+                const segmentName = this.tokenizer.readIdentifier(true, false);
                 if (segmentName === undefined) {
                     this.assembledLine.error = "segment name expected";
-                } else if (this.foundChar(',')) {
-                    if (this.foundChar("*")) {
+                } else if (this.tokenizer.found(',')) {
+                    if (this.tokenizer.found("*")) {
                         // Keep start address unchanged.
                     } else {
                         const startAddress = this.readExpression(true);
@@ -1474,7 +1419,7 @@ class LineParser {
                         }
                     }
 
-                    if (this.foundChar(',')) {
+                    if (this.tokenizer.found(',')) {
                         const length = this.readExpression(true);
                         if (length === undefined) {
                             this.assembledLine.error = "length expected";
@@ -1484,8 +1429,7 @@ class LineParser {
                 break;
 
             case "include": {
-                const previousColumn = this.column;
-                const token = this.readIdentifier(false, true);
+                const token = this.tokenizer.readIdentifier(false, true);
                 if (token === "library") {
                     const dir = this.readString();
                     if (dir === undefined) {
@@ -1517,7 +1461,7 @@ class LineParser {
                 } else if (token !== undefined) {
                     this.assembledLine.error = "unknown identifier " + token;
                 } else {
-                    this.column = previousColumn;
+                    // Try to parse it as a string.
                     const filename = this.readString();
                     if (filename === undefined) {
                         this.assembledLine.error = "missing included filename";
@@ -1611,7 +1555,7 @@ class LineParser {
                 // We expand on pass 1, so just check for error here.
                 if (this.assembledLine.listingLineNumber > macro.endmListingLineNumber) {
                     // Valid, used after definition. Skip macro call.
-                    this.skipToEndOfLine();
+                    this.tokenizer.skipToEndOfLine();
                     return;
                 } else {
                     // Ignore, will probably be an error below.
@@ -1621,42 +1565,15 @@ class LineParser {
 
                 // Parse arguments.
                 const args: string[] = [];
-                if (!this.isEndOfLine()) {
+                if (!this.tokenizer.isEndOfLine()) {
                     do {
-                        let arg: string | undefined;
-                        if (this.isChar("\"") || this.isChar("'")) {
-                            const begin = this.column;
-                            const str = this.readString();
-                            if (str === undefined) {
-                                // Error is already set.
-                                return;
-                            }
-                            arg = this.line.substring(begin, this.column).trim();
-                        } else if (this.isChar("<")) {
-                            this.column++;
-                            const begin = this.column;
-                            while (this.column < this.line.length && this.line[this.column] !== ">") {
-                                this.column++;
-                            }
-                            if (this.column === this.line.length) {
-                                this.assembledLine.error = "Missing > after < in macro argument";
-                                return;
-                            }
-                            arg = this.line.substring(begin, this.column);
-                            this.column++;
-                            this.skipWhitespace();
-                        } else {
-                            // Read to next comma.
-                            const begin = this.column;
-                            while (this.column < this.line.length && !this.isChar(",") && !this.isChar(";")) {
-                                this.column++;
-                            }
-                            arg = this.line.substring(begin, this.column).trim();
-                            this.skipWhitespace();
+                        try {
+                            args.push(this.tokenizer.readMacroArg());
+                        } catch (e: any) {
+                            this.assembledLine.error = e.message;
+                            return;
                         }
-
-                        args.push(arg);
-                    } while (this.foundChar(","));
+                    } while (this.tokenizer.found(","));
                 }
 
                 // Make sure we got the right number.
@@ -1693,11 +1610,11 @@ class LineParser {
         const mnemonicInfo = mnemonicMap.get(mnemonic);
         if (mnemonicInfo === undefined) {
             this.assembledLine.error = "unknown mnemonic \"" + mnemonic + "\"";
-            if (this.isChar(":")) {
+            if (this.tokenizer.matches(":")) {
                 this.assembledLine.error += " (if it's a label, unindent it)";
             }
         } else {
-            const argStart = this.column;
+            const argStart = this.tokenizer.column;
             let match = false;
 
             for (const variant of mnemonicInfo) {
@@ -1716,7 +1633,7 @@ class LineParser {
                     if (token === "+" &&
                         isOpcodeTemplateOperand(nextToken) &&
                         variant.tokens[i + 2] === ")" &&
-                        this.foundChar(")")) {
+                        this.tokenizer.found(")")) {
 
                         // Pretend missing arg is zero
                         args.set(nextToken, 0);
@@ -1724,13 +1641,13 @@ class LineParser {
                         continue;
                     }
 
-                    if (token === "+" && this.isChar("-")) {
+                    if (token === "+" && this.tokenizer.matches("-")) {
                         // This is something like (IX+DD), but DD is signed and we allow the
                         // user to simply write (IX-5), so pretend we got the + and move on
                         // to parsing the number as-is.
                         match = true;
                     } else if (token === "," || token === "(" || token === ")" || token === "+") {
-                        if (!this.foundChar(token)) {
+                        if (!this.tokenizer.found(token)) {
                             match = false;
                         }
                     } else if (isOpcodeTemplateOperand(token)) {
@@ -1745,7 +1662,8 @@ class LineParser {
                         } else {
                             // Add value to binary.
                             if (args.has(token)) {
-                                throw new Error("duplicate arg: " + this.line);
+                                // I believe this is internal error, can't have duplicate token.
+                                throw new Error("duplicate arg: " + this.tokenizer.line);
                             }
                             args.set(token, value);
                         }
@@ -1760,7 +1678,7 @@ class LineParser {
                         }
                     } else {
                         // Register or flag.
-                        const identifier = this.readIdentifier(true, true);
+                        const identifier = this.tokenizer.readIdentifier(true, true);
                         if (identifier !== token) {
                             match = false;
                         }
@@ -1773,7 +1691,7 @@ class LineParser {
 
                 if (match) {
                     // Make sure they're no extra garbage.
-                    if (!this.isEndOfLine()) {
+                    if (!this.tokenizer.isEndOfLine()) {
                         match = false;
                     }
                 }
@@ -1784,7 +1702,8 @@ class LineParser {
                         if (typeof op === "string") {
                             const value = args.get(op);
                             if (value === undefined) {
-                                throw new Error("arg " + op + " not found for " + this.line);
+                                // I believe this is internal error.
+                                throw new Error("arg " + op + " not found for " + this.tokenizer.line);
                             }
                             switch (op) {
                                 case "nnnn":
@@ -1811,8 +1730,8 @@ class LineParser {
                     this.assembledLine.variant = variant;
                     break;
                 } else {
-                    // Reset reader.
-                    this.column = argStart;
+                    // Reset reader and try another variant.
+                    this.tokenizer.column = argStart;
                 }
             }
 
@@ -1864,31 +1783,12 @@ class LineParser {
      * and returns undefined.
      */
     private readString(): string | undefined {
-        // Find beginning of string.
-        if (this.column === this.line.length || (this.line[this.column] !== '"' && this.line[this.column] !== "'")) {
+        try {
+            return this.tokenizer.readString();
+        } catch (e: any) {
+            this.assembledLine.error = e.message;
             return undefined;
         }
-        const quoteChar = this.line[this.column];
-        this.column++;
-
-        // Find end of string.
-        const startIndex = this.column;
-        while (this.column < this.line.length && this.line[this.column] !== quoteChar) {
-            this.column++;
-        }
-
-        if (this.column === this.line.length) {
-            // No end quote.
-            this.assembledLine.error = "no end quote in string";
-            return undefined;
-        }
-
-        // Clip out string contents.
-        const value = this.line.substring(startIndex, this.column);
-        this.column++;
-        this.skipWhitespace();
-
-        return value;
     }
 
     /**
@@ -1899,7 +1799,7 @@ class LineParser {
      * @return the value of the expression, or undefined if there was an error reading it.
      */
     private readExpression(canStartWithOpenParens: boolean): number | undefined {
-        if (!canStartWithOpenParens && this.line[this.column] === '(') {
+        if (!canStartWithOpenParens && this.tokenizer.matches('(')) {
             // Expressions can't start with an open parenthesis because that's ambiguous
             // with dereferencing.
             return undefined;
@@ -1922,9 +1822,9 @@ class LineParser {
             }
             value += sign * subValue;
 
-            if (this.foundChar('+')) {
+            if (this.tokenizer.found('+')) {
                 sign = 1;
-            } else if (this.foundChar('-')) {
+            } else if (this.tokenizer.found('-')) {
                 sign = -1;
             } else {
                 break;
@@ -1952,9 +1852,9 @@ class LineParser {
                 value /= subValue;
             }
 
-            if (this.foundChar('*')) {
+            if (this.tokenizer.found('*')) {
                 isMultiply = true;
-            } else if (this.foundChar('/')) {
+            } else if (this.tokenizer.found('/')) {
                 isMultiply = false;
             } else {
                 break;
@@ -1987,7 +1887,7 @@ class LineParser {
                 value = subValue;
             }
 
-            const ch = this.foundOneOfChar(["&", "|", "^"]);
+            const ch = this.tokenizer.foundAnyOf(["&", "|", "^"]);
             if (ch !== undefined) {
                 op = ch;
             } else {
@@ -2003,7 +1903,7 @@ class LineParser {
      */
     private readShift(): number | undefined {
         let value = 0;
-        let op = "";
+        let op: string | undefined = undefined;
 
         while (true) {
             const subValue = this.readMonadic();
@@ -2019,16 +1919,13 @@ class LineParser {
                 value = subValue;
             }
 
-            if (this.foundIdentifier("shl", true)) {
+            if (this.tokenizer.foundIdentifier("shl", true)) {
                 op = "<<";
-            } else if (this.foundIdentifier("shr", true)) {
+            } else if (this.tokenizer.foundIdentifier("shr", true)) {
                 op = ">>";
             } else {
-                op = this.line.substring(this.column, this.column + 2);
-                if (op === "<<" || op === ">>") {
-                    this.column += 2;
-                    this.skipWhitespace();
-                } else {
+                op = this.tokenizer.foundAnyOf(["<<", ">>"]);
+                if (op === undefined) {
                     break;
                 }
             }
@@ -2041,11 +1938,11 @@ class LineParser {
      * Read a monadic (unary prefix operator) expression, or undefined if there was an error reading it.
      */
     private readMonadic(): number | undefined {
-        let ch = this.foundOneOfChar(["+", "-", "~", "!"]);
-        if (ch === undefined && this.foundIdentifier("low", true)) {
+        let ch = this.tokenizer.foundAnyOf(["+", "-", "~", "!"]);
+        if (ch === undefined && this.tokenizer.foundIdentifier("low", true)) {
             ch = "low";
         }
-        if (ch === undefined && this.foundIdentifier("high", true)) {
+        if (ch === undefined && this.tokenizer.foundIdentifier("high", true)) {
             ch = "high";
         }
         if (ch !== undefined) {
@@ -2082,23 +1979,23 @@ class LineParser {
      * Read an atom (number constant, identifier) expression, or undefined if there was an error reading it.
      */
     private readAtom(): number | undefined {
-        const startIndex = this.column;
+        const startIndex = this.tokenizer.column;
 
         // Parenthesized expression.
-        if (this.foundChar('(')) {
+        if (this.tokenizer.found('(')) {
             const value = this.readExpression(true);
-            if (value === undefined || !this.foundChar(')')) {
+            if (value === undefined || !this.tokenizer.found(')')) {
                 return undefined;
             }
             return value;
         }
 
         // Try identifier.
-        const identifier = this.readIdentifier(false, false);
+        const identifier = this.tokenizer.readIdentifier(false, false);
         if (identifier !== undefined) {
             // See if it's a built-in function. TODO we could probably replace these with operators,
             // like we have for low and high.
-            if (this.foundChar("(")) {
+            if (this.tokenizer.found("(")) {
                 const value = this.readExpression(true);
                 if (value === undefined) {
                     if (this.assembledLine.error === undefined) {
@@ -2106,7 +2003,7 @@ class LineParser {
                     }
                     return undefined;
                 }
-                if (!this.foundChar(")")) {
+                if (!this.tokenizer.found(")")) {
                     if (this.assembledLine.error === undefined) {
                         this.assembledLine.error = "missing end parenthesis for function call";
                     }
@@ -2165,240 +2062,28 @@ class LineParser {
         }
 
         // Try literal character, like 'a'.
-        if (this.isChar("'")) {
-            if (this.column > this.line.length - 3 || this.line[this.column + 2] !== "'") {
-                // TODO invalid character constant, show error.
-                return undefined;
+        try {
+            const ch = this.tokenizer.readCharConstant();
+            if (ch !== undefined) {
+                return ch;
             }
-            const value = this.line.charCodeAt(this.column + 1);
-            this.column += 3;
-            this.skipWhitespace();
-            return value;
+        } catch (e: any) {
+            this.assembledLine.error = e.message;
+            return undefined;
         }
 
         // Try numeric literal.
-        let base = 10;
-        let sign = 1;
-        let gotDigit = false;
-
-        if (this.foundChar('-')) {
-            sign = -1;
-        }
-
-        // Hex numbers can start with $, like $FF.
-        if (this.foundChar('$')) {
-            if (this.column === this.line.length || parseDigit(this.line[this.column], 16) === undefined) {
-                // It's a reference to the current address, not a hex prefix.
-                return sign*this.assembledLine.address;
+        try {
+            const value = this.tokenizer.readNumericConstant(this.assembledLine.address);
+            if (value !== undefined) {
+                return value;
             }
-
-            base = 16;
-        } else if (this.foundChar('%')) {
-            base = 2;
-        }
-
-        // Before we parse the number, we need to look ahead to see
-        // if it ends with H, like 0FFH.
-        if (base === 10) {
-            const beforeIndex = this.column;
-            while (this.column < this.line.length && parseDigit(this.line[this.column], 16) !== undefined) {
-                this.column++;
-            }
-            if (this.column < this.line.length && this.line[this.column].toUpperCase() === "H") {
-                base = 16;
-            }
-            this.column = beforeIndex;
-        }
-        // Before we parse the number, we need to look ahead to see
-        // if it ends with O, like 123O.
-        if (base === 10) {
-            const beforeIndex = this.column;
-            while (this.column < this.line.length && parseDigit(this.line[this.column], 8) !== undefined) {
-                this.column++;
-            }
-            if (this.column < this.line.length && this.line[this.column].toUpperCase() === "O" &&
-                // "O" can't be followed by octal digit, or it's not the final character.
-                (this.column === this.line.length || parseDigit(this.line[this.column + 1], 8) === undefined)) {
-
-                base = 8;
-            }
-            this.column = beforeIndex;
-        }
-        // And again we need to look for B, like 010010101B. We can't fold this into the
-        // above look since a "B" is a legal hex number!
-        if (base === 10) {
-            const beforeIndex = this.column;
-            while (this.column < this.line.length && parseDigit(this.line[this.column], 2) !== undefined) {
-                this.column++;
-            }
-            if (this.column < this.line.length && this.line[this.column].toUpperCase() === "B" &&
-                // "B" can't be followed by hex digit, or it's not the final character.
-                (this.column === this.line.length || parseDigit(this.line[this.column + 1], 16) === undefined)) {
-
-                base = 2;
-            }
-            this.column = beforeIndex;
-        }
-
-        // Look for 0x or 0b prefix. Must do this after above checks so that we correctly
-        // mark "0B1H" as hex and not binary.
-        if (base === 10 && this.column + 2 < this.line.length && this.line[this.column] === '0') {
-            if (this.line[this.column + 1].toLowerCase() == 'x') {
-                base = 16;
-                this.column += 2;
-            } else if (this.line[this.column + 1].toLowerCase() == 'o') {
-                base = 8;
-                this.column += 2;
-            } else if (this.line[this.column + 1].toLowerCase() == 'b' &&
-                // Must check next digit to distinguish from just "0B".
-                parseDigit(this.line[this.column + 2], 2) !== undefined) {
-
-                base = 2;
-                this.column += 2;
-            }
-        }
-
-        // Parse number.
-        let value = 0;
-        while (true) {
-            if (this.column == this.line.length) {
-                break;
-            }
-
-            const ch = this.line[this.column];
-            let chValue = parseDigit(ch, base);
-            if (chValue === undefined) {
-                break;
-            }
-            value = value * base + chValue;
-            gotDigit = true;
-            this.column++;
-        }
-
-        if (!gotDigit) {
-            // Didn't parse anything.
+        } catch (e: any) {
+            this.assembledLine.error = e.message;
             return undefined;
         }
 
-        // Check for base suffix.
-        if (this.column < this.line.length) {
-            const baseChar = this.line[this.column].toUpperCase();
-            if (baseChar === "H") {
-                // Check for programmer errors.
-                if (base !== 16) {
-                    if (this.assembledLine.error === undefined) {
-                        this.assembledLine.error = "found H at end of non-hex number: " + this.line.substring(startIndex, this.column + 1);
-                    }
-                    return undefined;
-                }
-                this.column++;
-            } else if (baseChar === "O") {
-                // Check for programmer errors.
-                if (base !== 8) {
-                    if (this.assembledLine.error === undefined) {
-                        this.assembledLine.error = "found O at end of non-octal number: " + this.line.substring(startIndex, this.column + 1);
-                    }
-                    return undefined;
-                }
-                this.column++;
-            } else if (baseChar === "B") {
-                // Check for programmer errors.
-                if (base !== 2) {
-                    if (this.assembledLine.error === undefined) {
-                        this.assembledLine.error = "found B at end of non-binary number: " + this.line.substring(startIndex, this.column + 1);
-                    }
-                    return undefined;
-                }
-                this.column++;
-            }
-        }
-
-        this.skipWhitespace();
-
-        return sign * value;
-    }
-
-    private skipWhitespace(): void {
-        while (this.column < this.line.length && isWhitespace(this.line[this.column])) {
-            this.column++;
-        }
-    }
-
-    private readIdentifier(allowRegister: boolean, toLowerCase: boolean): string | undefined {
-        const startIndex = this.column;
-
-        // Skip through the identifier.
-        while (this.column < this.line.length && isLegalIdentifierCharacter(this.line[this.column], this.column == startIndex)) {
-            this.column++;
-        }
-
-        if (this.column > startIndex) {
-            let identifier = this.line.substring(startIndex, this.column);
-            if (toLowerCase) {
-                identifier = identifier.toLowerCase();
-            }
-            // Special case to parse AF'.
-            if (allowRegister && identifier.toLowerCase() === "af" && this.foundChar("'")) {
-                identifier += "'";
-            }
-            if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || isFlag(identifier))) {
-                // Register names can't be identifiers.
-                this.column = startIndex;
-                return undefined;
-            }
-            this.skipWhitespace();
-            this.previousToken = startIndex;
-            return identifier;
-        } else {
-            return undefined;
-        }
-    }
-
-    /**
-     * If the next identifier matches the given one, return it.
-     */
-    private foundIdentifier(identifier: string, toLowerCase: boolean): boolean {
-        const beforeColumn = this.column;
-        const foundIdentifier = this.readIdentifier(false, toLowerCase);
-        if (foundIdentifier === identifier) {
-            return true;
-        }
-
-        // Back up.
-        this.column = beforeColumn;
-        return false;
-    }
-
-    /**
-     * If the next character matches the parameter, skips it and subsequent whitespace and return true.
-     * Else returns false.
-     */
-    private foundChar(ch: string): boolean {
-        if (this.isChar(ch)) {
-            this.column++;
-            this.skipWhitespace();
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * If any of the specified characters is next, it is skipped (and subsequent whitespace) and returned.
-     * Else undefined is returned.
-     */
-    private foundOneOfChar(chars: string[]): string | undefined {
-        for (const ch of chars) {
-            if (this.foundChar(ch)) {
-                return ch;
-            }
-        }
-
+        // Couldn't parse anything.
         return undefined;
-    }
-
-    // Whether the next character matches the parameter. Does not advance.
-    private isChar(ch: string): boolean {
-        return this.column < this.line.length && this.line[this.column] === ch;
     }
 }
