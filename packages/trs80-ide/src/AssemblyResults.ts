@@ -7,6 +7,15 @@ import {SymbolHit} from "./SymbolHit";
 export type ErrorAssembledLine = AssembledLine & { rolledUpError: string };
 
 /**
+ * Wrap various statistics about the assembled program.
+ */
+export interface AssemblyStats {
+    codeSize: number;
+    dataSize: number;
+    totalSize: number;
+}
+
+/**
  * Everything we know about the assembled code.
  */
 export class AssemblyResults {
@@ -104,6 +113,29 @@ export class AssemblyResults {
         }
 
         return undefined;
+    }
+
+    /**
+     * Compute various statistics about the assembled program.
+     */
+    public getStats(): AssemblyStats {
+        const stats: AssemblyStats = {
+            codeSize: 0,
+            dataSize: 0,
+            totalSize: 0,
+        };
+
+        for (const line of this.asm.assembledLines) {
+            const size = line.binary.length;
+            if (line.isData()) {
+                stats.dataSize += size;
+            } else {
+                stats.codeSize += size;
+            }
+            stats.totalSize += size;
+        }
+
+        return stats;
     }
 
     // Whether these two assembly results are the same.

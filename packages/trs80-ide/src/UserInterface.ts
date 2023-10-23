@@ -384,6 +384,18 @@ export class UserInterface {
                             menuCommand.setChecked?.(show);
                         },
                     },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Show Statistics",
+                        checked: false,
+                        action: (menuCommand: MenuCommand) => {
+                            const show = !(menuCommand.checked ?? false);
+                            editor.setShowStats(show);
+                            menuCommand.setChecked?.(show);
+                        },
+                    },
                 ],
             },
             {

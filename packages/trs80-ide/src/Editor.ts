@@ -29,6 +29,7 @@ import {
     keymap,
     lineNumbers,
     rectangularSelection,
+    showPanel,
     Tooltip,
     TooltipView,
     ViewPlugin,
@@ -206,12 +207,11 @@ function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] 
 class OptionalExtension {
     private enabled: boolean;
     private readonly extension: Extension;
-    private readonly compartment: Compartment;
+    private readonly compartment = new Compartment();
 
     public constructor(enabled: boolean, extension: Extension) {
         this.enabled = enabled;
         this.extension = extension;
-        this.compartment = new Compartment();
     }
 
     // The initial extension to put into the editor's config.
@@ -320,6 +320,7 @@ export class Editor {
     private addressesGutter: OptionalExtension;
     private bytecodeGutter: OptionalExtension;
     private timingGutter: OptionalExtension;
+    private statsPanel: OptionalExtension;
     public autoRun = true;
     private currentLineNumber = 0; // 1-based.
     private currentLineHasError = false;
@@ -399,12 +400,14 @@ export class Editor {
         this.addressesGutter = new OptionalExtension(true, this.makeAddressesGutter());
         this.bytecodeGutter = new OptionalExtension(true, this.makeBytecodeGutter());
         this.timingGutter = new OptionalExtension(false, this.makeTimingGutter());
+        this.statsPanel = new OptionalExtension(false, this.makeStatsPanel());
 
         const extensions: Extension = [
             this.lineNumbersGutter.getInitialExtension(),
             this.addressesGutter.getInitialExtension(),
             this.bytecodeGutter.getInitialExtension(),
             this.timingGutter.getInitialExtension(),
+            this.statsPanel.getInitialExtension(),
             highlightActiveLineGutter(),
             highlightSpecialChars(),
             history(),
@@ -511,6 +514,13 @@ export class Editor {
                     color: "white",
                     // Get rid of italic for comments, the text sticks out of the box.
                     fontStyle: "normal",
+                },
+                ".cm-stats-panel": {
+                    padding: "5px 10px",
+                },
+                ".cm-stats-panel .cm-stats-panel-number": {
+                    fontWeight: "bold",
+                    color: "var(--blue)",
                 },
             }),
             solarizedDark,
@@ -670,6 +680,11 @@ export class Editor {
     // Specify whether to show timing.
     public setShowTiming(showTiming: boolean): void {
         this.timingGutter.setEnabled(this.view, showTiming);
+    }
+
+    // Specify whether to show various stats.
+    public setShowStats(showStats: boolean): void {
+        this.statsPanel.setEnabled(this.view, showStats);
     }
 
     // Load the code of an example into the editor.
@@ -1358,6 +1373,54 @@ export class Editor {
                 return null;
             },
             lineMarkerChange: (update: ViewUpdate) => true, // TODO remove?
+        });
+    }
+
+    /**
+     * Create the panel that shows various statistics about the assembled program.
+     */
+    private makeStatsPanel() {
+        return showPanel.of(v => {
+            const dom = document.createElement("div");
+            dom.classList.add("cm-stats-panel");
+            const codeSizeNode = document.createElement("span");
+            codeSizeNode.classList.add("cm-stats-panel-number");
+            const codeSizeLabelNode = document.createElement("span");
+            const dataSizeNode = document.createElement("span");
+            dataSizeNode.classList.add("cm-stats-panel-number");
+            const dataSizeLabelNode = document.createElement("span");
+            const totalSizeNode = document.createElement("span");
+            totalSizeNode.classList.add("cm-stats-panel-number");
+            const totalSizeLabelNode = document.createElement("span");
+            dom.append(codeSizeNode, codeSizeLabelNode,
+                dataSizeNode, dataSizeLabelNode,
+                totalSizeNode, totalSizeLabelNode);
+
+            function pluralize(count: number, s: string) {
+                return s + (count === 1 ? "" : "s");
+            }
+
+            const updateStats = (state?: EditorState) => {
+                const assemblyResults = this.getAssemblyResults(state);
+                const stats = assemblyResults.getStats();
+                codeSizeNode.textContent = stats.codeSize.toString();
+                codeSizeLabelNode.textContent = " code " + pluralize(stats.codeSize, "byte") + ", ";
+                dataSizeNode.textContent = stats.dataSize.toString();
+                dataSizeLabelNode.textContent = " data " + pluralize(stats.dataSize, "byte") + ", ";
+                totalSizeNode.textContent = stats.totalSize.toString();
+                totalSizeLabelNode.textContent = " total " + pluralize(stats.totalSize, "byte");
+            };
+            updateStats();
+
+            return {
+                top: false,
+                dom: dom,
+                update: viewUpdate => {
+                    if (viewUpdate.docChanged) {
+                        updateStats(viewUpdate.state);
+                    }
+                },
+            };
         });
     }
 
