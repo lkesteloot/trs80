@@ -14,6 +14,8 @@ To publish new version:
     % npm run publish
 - In "trs80-cassette-webapp" directory:
     % npm run publish
+- In "trs80-ide" directory:
+    % npm run publish
 - In "trs80-tool" directory:
     Edit package.json and bump version.
     Update site/index.html

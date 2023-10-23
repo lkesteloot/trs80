@@ -145,7 +145,7 @@ export class Emulator {
         for (const line of results.asm.assembledLines) {
             const binary = line.binary;
             // Check if we're assembling ROM code.
-            if (line.address < config.romSize) {
+            if (line.binary.length > 0 && line.address < config.romSize) {
                 // Assume no instruction spans the end of ROM and beginning of RAM.
                 if (rom === undefined) {
                     rom = new Array(config.romSize).fill(0);
