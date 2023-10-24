@@ -3,6 +3,7 @@
   "version": "2.4.1",
   "description": "Implementations of the CassettePlayer interface",
   "type": "module",
+  "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",

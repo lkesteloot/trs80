@@ -3,6 +3,7 @@
   "version": "2.3.1",
   "description": "Web components for the TRS-80 Model III emulator",
   "type": "module",
+  "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",

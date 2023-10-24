@@ -5,6 +5,7 @@
     "main": "dist/index.js",
     "repository": "https://github.com/lkesteloot/trs80.git",
     "type": "module",
+    "private": true,
     "scripts": {
         "build": "tsc",
         "clean": "rm -rf dist",

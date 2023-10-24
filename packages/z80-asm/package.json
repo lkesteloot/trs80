@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateJson.js",
