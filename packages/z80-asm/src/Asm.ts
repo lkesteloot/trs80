@@ -1717,7 +1717,19 @@ class LineParser {
                                     break;
 
                                 case "offset":
-                                    this.assembledLine.binary.push(lo(value - this.assembledLine.address - this.assembledLine.binary.length - 1));
+                                    const offset = value - this.assembledLine.address - this.assembledLine.binary.length - 1;
+                                    if (this.pass.passNumber > 1 && (offset < -128 || offset > 127)) {
+                                        // Too far for relative jump.
+                                        const excess = offset < -128 ? -128 - offset : offset - 127;
+                                        this.assembledLine.error = "destination is too far by " + excess + " byte" +
+                                            (excess === 1 ? "" : "s") + " for relative jump";
+                                        if (variant.mnemonic === "jr") {
+                                            this.assembledLine.error += "; use jp";
+                                        }
+                                        this.assembledLine.binary = [];
+                                        return;
+                                    }
+                                    this.assembledLine.binary.push(lo(offset));
                                     break;
 
                                 default:
