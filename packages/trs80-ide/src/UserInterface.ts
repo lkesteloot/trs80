@@ -208,7 +208,7 @@ export class UserInterface {
                         text: "Export",
                         menu: [
                             {
-                                text: "Diskette program (.cmd)",
+                                text: "Diskette Program (.cmd)",
                                 action: () => {
                                     const binary = editor.makeCmdFile();
                                     if (binary !== undefined) {
@@ -217,7 +217,7 @@ export class UserInterface {
                                 },
                             },
                             {
-                                text: "Cassette program (.cas)",
+                                text: "Cassette Program (.cas)",
                                 action: () => {
                                     let binary = editor.makeSystemFile();
                                     if (binary !== undefined) {
@@ -228,15 +228,32 @@ export class UserInterface {
                                 },
                             },
                             {
-                                text: "Cassette audio (.wav, low speed)",
+                                text: "Cassette Audio (.wav, low speed)",
                                 action: () => {
                                     this.exportWav(editor, 500);
                                 },
                             },
                             {
-                                text: "Cassette audio (.wav, high speed)",
+                                text: "Cassette Audio (.wav, high speed)",
                                 action: () => {
                                     this.exportWav(editor, 1500);
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        text: "Play Cassette Audio",
+                        menu: [
+                            {
+                                text: "Low Speed",
+                                action: () => {
+                                    this.playWav(editor, 500);
+                                },
+                            },
+                            {
+                                text: "High Speed",
+                                action: () => {
+                                    this.playWav(editor, 1500);
                                 },
                             },
                         ],
@@ -772,6 +789,20 @@ export class UserInterface {
     }
 
     /**
+     * Convert an array of bytes to a blob: URL that can be used in src or href attributes.
+     *
+     * @param contents the data to encode.
+     * @param extension the file extension, not including the period.
+     */
+    private arrayToBlobUrl(contents: ArrayBuffer, extension: string): string {
+        const type =
+            extension.toLowerCase() === "wav" ? "audio/wav" : "application/octet-stream";
+        const blob = new Blob([contents], {type: type});
+
+        return window.URL.createObjectURL(blob);
+    }
+
+    /**
      * Trigger a download for the file.
      *
      * @param contents the contents of the file to download.
@@ -779,13 +810,55 @@ export class UserInterface {
      * @param extension the file extension, not including the period.
      */
     private exportFile(contents: ArrayBuffer, name: string, extension: string) {
-        extension = extension.toLowerCase();
-        const type = extension === "wav" ? "audio/wav" : "application/octet-stream";
-        const blob = new Blob([contents], {type: type});
-
         const a = document.createElement("a");
-        a.href = window.URL.createObjectURL(blob);
-        a.download = name + "." + extension;
+        a.href = this.arrayToBlobUrl(contents, extension);
+        a.download = name + "." + extension.toLowerCase();
         a.click();
+    }
+
+    /**
+     * Show dialog box for playing the WAV file at the specified baud rate.
+     */
+    private playWav(editor: Editor, baud: number) {
+        let binary = editor.makeSystemFile();
+        if (binary === undefined) {
+            return;
+        }
+
+        // Convert to CAS.
+        binary = binaryAsCasFile(binary, baud);
+
+        // Convert to WAV.
+        const audio = casAsAudio(binary, baud, DEFAULT_SAMPLE_RATE);
+        binary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
+
+        // Dialog box contents.
+        const cass = baud <= 1000 ? "L" : "H";
+        const nameLetter = (editor.getName()[0] ?? "A").toUpperCase();
+        const src = this.arrayToBlobUrl(binary, "wav");
+
+        // Get the DOM nodes.
+        const dialogBox = document.querySelector(".audio-playback-dialog-box") as HTMLDialogElement;
+        const closeButton = document.querySelector(".audio-playback-close") as HTMLElement;
+        const audioNode = document.querySelector(".audio-playback-player") as HTMLAudioElement;
+        const cassNode = document.querySelector(".audio-playback-cass") as HTMLElement;
+        const nameLetterNode = document.querySelector(".audio-playback-name-letter") as HTMLElement;
+        if (dialogBox === null || closeButton === null || audioNode === null || cassNode === null || nameLetterNode === null) {
+            return;
+        }
+
+        // Configure events once.
+        if (dialogBox.dataset.configured !== "true") {
+            dialogBox.dataset.configured = "true";
+            dialogBox.addEventListener("close", () => audioNode.pause());
+            closeButton.addEventListener("click", () => dialogBox.close());
+        }
+
+        cassNode.textContent = cass;
+        nameLetterNode.textContent = nameLetter;
+        audioNode.src = src;
+        audioNode.volume = 0.5;
+
+        dialogBox.showModal();
     }
 }

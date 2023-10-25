@@ -6,5 +6,44 @@
     <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300|Roboto+Mono|Roboto:100,400,700&display=block" rel="stylesheet">
   </head>
   <body>
+      <dialog class="audio-playback-dialog-box">
+          <div class="audio-playback-title-bar">
+              <div class="audio-playback-title">Cassette Audio Player</div>
+              <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="audio-playback-close"
+                      x="0px"
+                      y="0px"
+                      width="32px"
+                      height="32px"
+                      viewBox="0 0 32 32">
+
+                  <g stroke="none">
+                      <circle class="audio-playback-close-background" cx="16" cy="16" r="15"/>
+                      <g class="audio-playback-close-foreground" transform="rotate(45 16 16)">
+                          <rect x="5" y="15" width="22" height="2"/>
+                          <rect x="15" y="5" width="2" height="22"/>
+                      </g>
+                  </g>
+              </svg>
+          </div>
+          <div class="audio-playback-contents">
+              <div class="audio-playback-instructions">
+                  <p>Use an audio cable to connect the headphone jack of this computer to
+                      the cassette jack of a TRS-80 machine.</p>
+
+                  <p>Boot into Basic (answering <code class="audio-playback-cass"></code> to the “Cass?” question),
+                      run the <code>SYSTEM</code> command, type
+                      <code class="audio-playback-name-letter"></code>, press Enter,
+                      then start audio playback below. When playback ends, type
+                      <code>/</code> then press Enter.</p>
+
+                  <p>You may have to adjust the volume below or on your computer to get the TRS-80 to properly
+                      load the program.</p>
+              </div>
+
+              <audio class="audio-playback-player" controls></audio>
+          </div>
+      </dialog>
   </body>
 </html>

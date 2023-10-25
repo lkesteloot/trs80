@@ -553,3 +553,79 @@ body.presentation-mode {
 .presentation-mode .screen-editor-status-panel {
     font-size: 12.5pt;
 }
+
+/* -------------------------------------------------------------------------------------------- */
+
+.audio-playback-dialog-box {
+    border: none;
+    padding: 0;
+    color: var(--foreground);
+    background-color: var(--background);
+    max-width: 550px;
+}
+
+.audio-playback-dialog-box::backdrop {
+    background: rgb(0 0 0 / 70%);
+}
+
+.audio-playback-title-bar {
+    background: var(--background-highlights);
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.audio-playback-title {
+    color: var(--accent-color);
+    font-size: 30px;
+    font-weight: 100;
+}
+
+.audio-playback-close {
+    cursor: pointer;
+}
+
+.audio-playback-close-background {
+    fill: var(--background);
+}
+
+.audio-playback-close-foreground {
+    fill: var(--foreground);
+}
+
+.audio-playback-close:hover .audio-playback-close-foreground {
+    fill: var(--foreground-emphasized);
+}
+
+.audio-playback-contents {
+    padding: 15px 15px 30px 15px;
+}
+
+.audio-playback-instructions {
+    margin-bottom: 25px;
+    line-height: 1.3;
+}
+
+.audio-playback-instructions p {
+    margin: 0;
+}
+
+.audio-playback-instructions p + p {
+    margin-top: 1em;
+}
+
+.audio-playback-instructions code {
+    font-weight: bold;
+    color: var(--foreground-emphasized);
+    background-color: var(--background-highlights);
+    padding: 3px 5px;
+    border-radius: 5px;
+}
+
+.audio-playback-player {
+    display: block;
+    outline: none;
+    width: 100%;
+    filter: opacity(0.8);
+}
