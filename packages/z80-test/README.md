@@ -5,7 +5,6 @@ emulator through 1356 tests from the Fuse project. To test your emulator,
 implement the `Delegate` interface and call the `Runner`. See the `Test.ts`
 file for an example.
 
-    % npm install
     % npm run test
 
 See the [z80-emulator](../z80-emulator)

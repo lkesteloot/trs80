@@ -1,7 +1,7 @@
 import {Register, toHex} from "z80-base";
-import {CpuEvent} from "../src/CpuEvent";
-import {Delegate} from "../src/Delegate";
-import {Runner} from "../src/Runner";
+import {CpuEvent} from "../src/CpuEvent.js";
+import {Delegate} from "../src/Delegate.js";
+import {Runner} from "../src/Runner.js";
 
 // Dummy delegate that does nothing.
 class DelegateImpl implements Delegate {

@@ -1265,11 +1265,15 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     }
 
                     case "ccf": {
+                        // Various docs (like "Undocumented Z80 Documented") claim that flag bits 3 and 5
+                        // are taken from A, but both trs80gp and the Fuse project use the OR of A and F.
                         addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | ((z80.regs.f & Flag.C) !== 0 ? Flag.H : Flag.C) | ((z80.regs.f | z80.regs.a) & (Flag.X3 | Flag.X5));");
                         break;
                     }
 
                     case "scf": {
+                        // Various docs (like "Undocumented Z80 Documented") claim that flag bits 3 and 5
+                        // are taken from A, but both trs80gp and the Fuse project use the OR of A and F.
                         addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | Flag.C | ((z80.regs.f | z80.regs.a) & (Flag.X3 | Flag.X5));");
                         break;
                     }
