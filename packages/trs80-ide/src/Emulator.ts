@@ -295,6 +295,36 @@ export class Emulator {
             ];
         }
 
+        // Generate a node for the given new and old value of a byte.
+        function getNodeForByte(value: number, oldValue: number, includeHex: boolean, includeNegative: boolean): Node {
+            let s = "";
+
+            // Hex value.
+            if (includeHex) {
+                s += "0x" + toHexByte(value) + " ";
+            }
+
+            // Decimal value.
+            s += value.toString(10);
+
+            // Two's complement.
+            if (value >= 128 && includeNegative) {
+                s += " (" + (value - 256).toString(10) + ")";
+            }
+
+            // ASCII value.
+            if (value >= 32 && value < 127) {
+                s += " '" + String.fromCodePoint(value) + "'";
+            }
+
+            const node = document.createElement("span");
+            node.textContent = s;
+            if (value !== oldValue) {
+                node.classList.add("z80-inspector-changed");
+            }
+            return node;
+        }
+
         const extraForAf = (value: number, oldValue: number): Node => {
             const a = hi(value);
             const oldA = hi(oldValue);
@@ -303,20 +333,8 @@ export class Emulator {
 
             const lineNode = document.createElement("span");
 
-            // Info about A.
-            let aExtra = a.toString(10);
-            if (a >= 128) {
-                aExtra += " (" + (a - 256).toString(10) + ")";
-            }
-            if (a >= 32 && a < 127) {
-                aExtra += ' "' + String.fromCodePoint(a) + '"';
-            }
-            const aNode = document.createElement("span");
-            aNode.textContent = aExtra;
-            if (a !== oldA) {
-                aNode.classList.add("z80-inspector-changed");
-            }
-            lineNode.append(aNode, " ");
+            // Info about value of A.
+            lineNode.append(getNodeForByte(a, oldA, false, true), " ");
 
             // Info about flags.
             for (const flag of FLAGS) {
@@ -413,8 +431,14 @@ export class Emulator {
                     }
                 }
 
-                lineNode.append(", row ", rowNode, ", col ", colNode);
+                lineNode.append(" (", rowNode, ",", colNode, ")");
             }
+
+            // Show value pointed to. Might not make sense if it's not a pointer. We don't keep
+            // track of the old value pointed to if the pointer itself doesn't change.
+            const memoryValue = this.trs80.readMemory(value);
+            const oldMemoryValue = this.trs80.readMemory(oldValue);
+            lineNode.append(" \u2192 ", getNodeForByte(memoryValue, oldMemoryValue, true, false));
 
             return lineNode;
         };
