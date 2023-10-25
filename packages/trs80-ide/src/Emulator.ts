@@ -182,22 +182,26 @@ export class Emulator {
 
     // Step one instruction.
     public step(): void {
-        this.trs80.step();
-        this.debugPc.dispatch(this.trs80.z80.regs.pc);
+        if (this.trs80.runningState === RunningState.PAUSED) {
+            this.trs80.step();
+            this.debugPc.dispatch(this.trs80.z80.regs.pc);
+        }
     }
 
     // Step one instruction, unless it's a CALL or instructions like LDIR that might take a while,
     // in which case go to the instruction after that.
     public stepOver(): void {
-        const pc = this.trs80.z80.regs.pc;
-        const b1 = this.trs80.readMemory(pc);
-        const b2 = this.trs80.readMemory(inc16(pc));
-        const skipLength = getSkipLength(b1, b2);
-        if (skipLength !== undefined) {
-            this.trs80.setOneShotBreakpoint(pc + skipLength);
-            this.continue();
-        } else {
-            this.step();
+        if (this.trs80.runningState === RunningState.PAUSED) {
+            const pc = this.trs80.z80.regs.pc;
+            const b1 = this.trs80.readMemory(pc);
+            const b2 = this.trs80.readMemory(inc16(pc));
+            const skipLength = getSkipLength(b1, b2);
+            if (skipLength !== undefined) {
+                this.trs80.setOneShotBreakpoint(pc + skipLength);
+                this.continue();
+            } else {
+                this.step();
+            }
         }
     }
 
@@ -213,9 +217,11 @@ export class Emulator {
     // from scratch, only to resume it after a breakpoint. Will skip any breakpoint
     // that we're currently stopped on.
     public continue(): void {
-        this.debugPc.dispatch(undefined);
-        this.trs80.setIgnoreInitialInstructionBreakpoint(true);
-        this.trs80.setRunningState(RunningState.STARTED);
+        if (this.trs80.runningState === RunningState.PAUSED) {
+            this.debugPc.dispatch(undefined);
+            this.trs80.setIgnoreInitialInstructionBreakpoint(true);
+            this.trs80.setRunningState(RunningState.STARTED);
+        }
     }
 
     // Called by Trs80 when it starts or stops.
