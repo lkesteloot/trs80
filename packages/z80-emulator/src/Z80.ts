@@ -187,14 +187,25 @@ export class Z80 {
         this.incTStateCount(7);
         this.regs.r += 1;
         this.regs.iff1 = 0;
-        this.regs.iff2 = 0;
+        if (maskable) {
+            // Officially an NMI will copy iff1 to iff2, but "Undocumented Z80 Documented" says
+            // that iff2 is just not affected by NMI. (This is effectively the same in any
+            // program that doesn't nest NMIs.)
+            this.regs.iff2 = 0;
+        }
 
         this.pushWord(this.regs.pc);
 
         if (maskable) {
             switch (this.regs.im) {
                 case 0:
+                    // Should take a one-byte instruction from the data bus (usually some RST).
+                    // We don't have a data bus, so always pick RST 38h.
+                    this.regs.pc = 0x0038;
+                    break;
+
                 case 1:
+                    // Always RST 38h.
                     this.regs.pc = 0x0038;
                     break;
 
