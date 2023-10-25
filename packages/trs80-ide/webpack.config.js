@@ -51,6 +51,7 @@ const exports = {
             title: "TRS-80 IDE",
             template: "src/index-template.ejs",
             hash: true,
+            favicon: "./src/48k.png",
         }),
         new MiniCssExtractPlugin(),
     ],
