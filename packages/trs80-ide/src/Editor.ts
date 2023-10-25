@@ -387,7 +387,7 @@ export class Editor {
                     }
                 }
 
-                this.updateBreakpoints(set);
+                this.updateBreakpoints(set, transaction.newDoc);
 
                 return set;
             }
@@ -1139,7 +1139,7 @@ export class Editor {
     }
 
     // Update the emulator's breakpoints from our editor breakpoints.
-    private updateBreakpoints(set: RangeSet<GutterMarker>): void {
+    private updateBreakpoints(set: RangeSet<GutterMarker>, doc: Text): void {
         let breakpoints: Uint8Array | undefined;
         if (set.size === 0) {
             breakpoints = undefined;
@@ -1151,7 +1151,7 @@ export class Editor {
             let count = 0;
             const itr = set.iter();
             while (itr.value !== null) {
-                const lineNumber = this.view.state.doc.lineAt(itr.from).number;
+                const lineNumber = doc.lineAt(itr.from).number;
                 const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
                 if (assembledLine !== undefined && assembledLine.rolledUpBinary.length > 0) {
                     breakpoints[assembledLine.address] = 1;
