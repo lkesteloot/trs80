@@ -130,12 +130,14 @@ export class Trs80State {
     public readonly config: Config;
     public readonly z80State: Z80State;
     public readonly memory: Uint8Array;
+    public readonly printerBuffer: string;
     // TODO so much more here.
 
-    constructor(config: Config, z80State: Z80State, memory: Uint8Array) {
+    constructor(config: Config, z80State: Z80State, memory: Uint8Array, printerBuffer: string) {
         this.config = config;
         this.z80State = z80State;
         this.memory = memory;
+        this.printerBuffer = printerBuffer;
     }
 }
 
@@ -278,7 +280,8 @@ export class Trs80 implements Hal, Machine {
         return new Trs80State(
             this.config,  // Immutable, safe to pass in.
             this.z80.save(),
-            new Uint8Array(this.memory));
+            new Uint8Array(this.memory),
+            this.printerBuffer);
     }
 
     /**
@@ -296,6 +299,7 @@ export class Trs80 implements Hal, Machine {
         }
         // Restore RAM.
         this.memory.set(state.memory.subarray(RAM_START), RAM_START);
+        this.printerBuffer = state.printerBuffer;
     }
 
     /**
