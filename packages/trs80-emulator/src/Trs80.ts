@@ -614,6 +614,9 @@ export class Trs80 implements Hal, Machine {
                 break;
 
             case 0xF8:
+            case 0xF9:
+            case 0xFA:
+            case 0xFB:
                 // Printer status. Printer selected, ready, with paper, not busy.
                 value = 0x30;
                 break;
@@ -728,11 +731,11 @@ export class Trs80 implements Hal, Machine {
             case 0xFB:
                 // Printer write.
                 if (value === 10) {
-                    // Linefeed.
+                    // Linefeed, ignore.
+                } else if (value === 13) {
+                    // Carriage return.
                     console.log("Printer: " + this.printerBuffer);
                     this.printerBuffer = "";
-                } else if (value === 13) {
-                    // Carriage return, ignore.
                 } else {
                     this.printerBuffer += String.fromCodePoint(value);
                 }
