@@ -1,4 +1,4 @@
-import {hi, lo, toHex, toHexWord} from "z80-base";
+import {hi, lo, toHex, toHexByte, toHexWord} from "z80-base";
 import {Hal, Z80, Z80State} from "z80-emulator";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Keyboard} from "./Keyboard.js";
@@ -26,6 +26,7 @@ import {Machine} from "./Machine.js";
 import {EventScheduler} from "./EventScheduler.js";
 import {SoundPlayer} from "./SoundPlayer.js";
 import {SignalDispatcher,SimpleEventDispatcher} from "strongly-typed-events";
+import {ConsolePrinter, Printer} from "./Printer";
 
 // IRQs
 const M1_TIMER_IRQ_MASK = 0x80;
@@ -130,14 +131,14 @@ export class Trs80State {
     public readonly config: Config;
     public readonly z80State: Z80State;
     public readonly memory: Uint8Array;
-    public readonly printerBuffer: string;
+    public readonly printerState: any;
     // TODO so much more here.
 
-    constructor(config: Config, z80State: Z80State, memory: Uint8Array, printerBuffer: string) {
+    constructor(config: Config, z80State: Z80State, memory: Uint8Array, printerState: any) {
         this.config = config;
         this.z80State = z80State;
         this.memory = memory;
-        this.printerBuffer = printerBuffer;
+        this.printerState = printerState;
     }
 }
 
@@ -160,6 +161,7 @@ export class Trs80 implements Hal, Machine {
     private readonly cassettePlayer: CassettePlayer;
     private memory = new Uint8Array(0);
     private readonly keyboard: Keyboard;
+    private printer: Printer = new ConsolePrinter();
     private modeImage = 0x80;
     // Which IRQs should be handled.
     private irqMask = 0;
@@ -207,7 +209,6 @@ export class Trs80 implements Hal, Machine {
     // So that we can "continue" past a breakpoint.
     private ignoreInitialInstructionBreakpoint = false;
     private speedMultiplier = 1;
-    private printerBuffer = "";
 
     constructor(config: Config, screen: Trs80Screen, keyboard: Keyboard, cassette: CassettePlayer, soundPlayer: SoundPlayer) {
         this.screen = screen;
@@ -249,6 +250,17 @@ export class Trs80 implements Hal, Machine {
     }
 
     /**
+     * Set the printer, and return the old printer. The {@link save()} and {@link restore()}
+     * methods should only be used with the same printer class. The default printer
+     * is {@link ConsolePrinter}.
+     */
+    public setPrinter(printer: Printer): Printer {
+        const oldPrinter = this.printer;
+        this.printer = printer;
+        return oldPrinter;
+    }
+
+    /**
      * Update our settings based on the config. Wipes memory.
      */
     private updateFromConfig(): void {
@@ -281,7 +293,7 @@ export class Trs80 implements Hal, Machine {
             this.config,  // Immutable, safe to pass in.
             this.z80.save(),
             new Uint8Array(this.memory),
-            this.printerBuffer);
+            this.printer.save());
     }
 
     /**
@@ -299,7 +311,7 @@ export class Trs80 implements Hal, Machine {
         }
         // Restore RAM.
         this.memory.set(state.memory.subarray(RAM_START), RAM_START);
-        this.printerBuffer = state.printerBuffer;
+        this.printer.restore(state.printerState);
     }
 
     /**
@@ -619,6 +631,7 @@ export class Trs80 implements Hal, Machine {
             case 0xFB:
                 // Printer status. Printer selected, ready, with paper, not busy.
                 value = 0x30;
+                // console.log("Reading from printer", toHexByte(value));
                 break;
 
             case 0xFF:
@@ -730,16 +743,7 @@ export class Trs80 implements Hal, Machine {
             case 0xFA:
             case 0xFB:
                 // Printer write.
-                if (value === 10) {
-                    // Linefeed, ignore.
-                } else if (value === 13) {
-                    // Carriage return.
-                    console.log("Printer: " + this.printerBuffer);
-                    this.printerBuffer = "";
-                } else {
-                    this.printerBuffer += String.fromCodePoint(value);
-                }
-                // console.log("Writing \"" + String.fromCodePoint(value) + "\" (" + value + ") to printer");
+                this.printer.printChar(value);
                 break;
 
             case 0xFC:
