@@ -176,9 +176,11 @@ function main() {
         .option("--model <model>", "which model (1, 3, 4), defaults to 3")
         .option("--level <level>", "which level (1 or 2), defaults to 2")
         .option("--mount <files...>", "cassettes or floppies to mount")
+        .option("--printer <file>", "send printer output to the specified file")
         .action((program, options) => {
             const modelName = options.model ?? "3";
             const levelName = options.level ?? "2";
+            const printerPathname = options.printer ?? undefined;
 
             const modelType = modelTypeFromString(modelName);
             if (modelType === undefined) {
@@ -205,7 +207,7 @@ function main() {
                 process.exit(1);
             }
 
-            run(program, options.mount ?? [], options.xray, config);
+            run(program, options.mount ?? [], options.xray, config, printerPathname);
         });
     program
         .command("repl")

@@ -1,5 +1,7 @@
+import fs from "fs";
 import chalk from "chalk";
-import {BasicLevel, CGChip, Config, Keyboard, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen } from "trs80-emulator";
+import {BasicLevel, CGChip, Config, Keyboard,
+    LinePrinter, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen } from "trs80-emulator";
 import {connectXray} from "./xray.js";
 import {TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from "trs80-base";
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
@@ -343,27 +345,67 @@ class TtyKeyboard extends Keyboard {
 }
 
 /**
+ * Printer implementation that writes to a file.
+ */
+class FilePrinter extends LinePrinter {
+    private readonly file: fs.WriteStream;
+
+    constructor(pathname: string, onError: (msg: string) => void) {
+        super();
+
+        this.file = fs.createWriteStream(pathname, {
+            flags: "a", // Append to any existing file.
+        });
+        this.file.on("error", (err) => {
+            this.file.end();
+            onError("Can't write to \"" + pathname + "\" (" + err.message + ")");
+        });
+    }
+
+    override printLine(line: string): void {
+        this.file.write(line + "\n");
+    }
+}
+
+/**
  * Handle the "run" command.
  *
  * @param programFilename optional file to run
  * @param mountedFilenames optional cassette or floppy files to mount
  * @param xray whether to run the xray server
  * @param config machine configuration
+ * @param printerPathname file to write printer output to, or undefined to write to the console.
  */
-export function run(programFilename: string | undefined, mountedFilenames: string[], xray: boolean, config: Config) {
-    let screen;
-    let keyboard;
+export function run(programFilename: string | undefined,
+                    mountedFilenames: string[],
+                    xray: boolean,
+                    config: Config,
+                    printerPathname: string | undefined) {
+
+    let screen: Trs80Screen;
+    let keyboard: Keyboard;
+    let exitScreen: () => void;
     if (xray) {
         screen = new NopScreen();
+        exitScreen = () => {};
         keyboard = new Keyboard();
     } else {
-        screen = new TtyScreen(readMemory, config);
-        keyboard = new TtyKeyboard(screen);
+        const ttyScreen = new TtyScreen(readMemory, config);
+        exitScreen = () => ttyScreen.exit();
+        keyboard = new TtyKeyboard(ttyScreen);
+        screen = ttyScreen;
     }
 
     const cassette = new AudioFileCassettePlayer();
     const soundPlayer = new SilentSoundPlayer();
     const trs80 = new Trs80(config, screen, keyboard, cassette, soundPlayer);
+    if (printerPathname !== undefined) {
+        trs80.setPrinter(new FilePrinter(printerPathname, msg => {
+            exitScreen();
+            console.log(msg);
+            process.exit();
+        }));
+    }
     trs80.reset();
     trs80.setRunningState(RunningState.STARTED);
 

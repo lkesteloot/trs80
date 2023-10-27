@@ -26,7 +26,7 @@ import {Machine} from "./Machine.js";
 import {EventScheduler} from "./EventScheduler.js";
 import {SoundPlayer} from "./SoundPlayer.js";
 import {SignalDispatcher,SimpleEventDispatcher} from "strongly-typed-events";
-import {ConsolePrinter, Printer} from "./Printer";
+import {ConsolePrinter, Printer} from "./Printer.js";
 
 // IRQs
 const M1_TIMER_IRQ_MASK = 0x80;

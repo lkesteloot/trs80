@@ -51,7 +51,10 @@ export abstract class LinePrinter implements Printer {
             this.printLine(this.line);
             this.line = "";
         } else if (ch === 10) {
-            // Linefeed, ignore.
+            // Linefeed, a simple "LPRINT" will generate this by itself (no carriage return).
+            if (this.line.length === 0) {
+                this.printLine("");
+            }
         } else {
             this.line += String.fromCodePoint(ch);
         }
