@@ -10,7 +10,6 @@ import {ControlPanel} from "./ControlPanel.js";
  */
 export class Editor {
     private readonly trs80: Trs80;
-    private readonly screen: CanvasScreen;
     public readonly node: HTMLElement;
     private readonly card: HTMLElement;
     private readonly editorNode: HTMLElement;
@@ -20,7 +19,6 @@ export class Editor {
 
     constructor(trs80: Trs80, screen: CanvasScreen) {
         this.trs80 = trs80;
-        this.screen = screen;
         const width = screen.getWidth();
         const height = screen.getHeight();
 
@@ -62,14 +60,16 @@ export class Editor {
         this.textarea = document.createElement("textarea");
         this.textarea.style.width = width + "px";
         this.textarea.style.height = height + "px";
-        this.textarea.style.padding = this.screen.padding + "px";
+        this.textarea.style.padding = screen.padding + "px";
         this.textarea.style.border = "0";
-        this.textarea.style.borderRadius = this.screen.getBorderRadius() + "px";
+        this.textarea.style.borderRadius = screen.getBorderRadius() + "px";
         this.textarea.style.fontFamily = `"TreasureMIII64C", monospace`;
         this.textarea.style.fontSize = fontSize + "px";
         this.textarea.style.lineHeight = fontSize + "px";
         this.textarea.style.outline = "0";
         this.textarea.style.boxSizing = "border-box";
+        this.textarea.style.color = screen.getForegroundColor();
+        this.textarea.style.backgroundColor = screen.getBackgroundColor();
         this.textarea.placeholder = "Write your Basic program here...";
         this.editorNode.append(this.textarea);
 
@@ -220,8 +220,6 @@ export class Editor {
      */
     private show(): void {
         this.card.style.transform = "rotateY(180deg)";
-        this.textarea.style.color = this.screen.getForegroundColor();
-        this.textarea.style.backgroundColor = this.screen.getBackgroundColor();
         this.textarea.focus();
         this.editing = true;
     }
