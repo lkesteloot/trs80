@@ -5,7 +5,7 @@ export {ControlPanel} from "./ControlPanel.js";
 export {SettingsPanel, PanelType} from "./SettingsPanel.js";
 export {WebProgressBar} from "./WebProgressBar.js";
 export {DriveIndicators} from "./DriveIndicators.js";
-export {Editor} from "./Editor.js";
+export {BasicEditor} from "./BasicEditor";
 export {WebKeyboard} from "./WebKeyboard.js";
 export {flashNode} from "./FlashNode.js";
 export {WebSoundPlayer} from "./WebSoundPlayer.js";

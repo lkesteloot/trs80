@@ -26,18 +26,9 @@ import {DialogBox} from "./DialogBox";
 import {AuthUser} from "./User";
 import {Database} from "./Database";
 import {File} from "./File";
-import {Editor} from "trs80-emulator-web";
+import {BasicEditor} from "trs80-emulator-web";
 import {isRegisterSetField, toHexWord} from "z80-base";
 import {disasmForTrs80} from "trs80-disasm";
-import {Cassette, CassetteSpeed} from "trs80-base";
-import {
-    concatAudio,
-    encodeHighSpeed,
-    encodeLowSpeed,
-    frameToTimestamp, totalAudioSamples,
-    wrapHighSpeed,
-    wrapLowSpeed
-} from "trs80-cassette";
 import {WebSoundPlayer} from "trs80-emulator-web";
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
 
@@ -196,11 +187,11 @@ export function main() {
     const trs80 = new Trs80(Config.makeDefault(), screen, keyboard, cassettePlayer, soundPlayer);
     keyboard.configureKeyboard();
 
-    const editor = new Editor(trs80, screen);
+    const basicEditor = new BasicEditor(trs80, screen);
 
     const flipCard = new FlipCard(screen.getWidth(), screen.getHeight());
     flipCard.setFront(screen);
-    flipCard.setBack(editor);
+    flipCard.setBack(basicEditor);
     screenDiv.append(flipCard.node);
 
     const reboot = () => {
@@ -265,7 +256,7 @@ export function main() {
     // Start hidden, since the user isn't signed in until later.
     screenshotButton.classList.add("hidden");
 
-    controlPanel.addEditorButton(() => editor.startEdit());
+    controlPanel.addEditorButton(() => basicEditor.startEdit());
 
     let logging = false;
     const logs: string[] = [];

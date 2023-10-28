@@ -9,7 +9,7 @@ import {FlipCardSideAdapter} from "./FlipCard";
  * Allows the user to edit the in-memory Basic program directly in an HTML text widget,
  * writing the result back into memory.
  */
-export class Editor extends FlipCardSideAdapter {
+export class BasicEditor extends FlipCardSideAdapter {
     private readonly trs80: Trs80;
     private readonly node: HTMLElement;
     private readonly textarea: HTMLTextAreaElement;
