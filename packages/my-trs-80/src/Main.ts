@@ -8,7 +8,7 @@ import {
     ControlPanel,
     DriveIndicators, flashNode,
     PanelType, WebProgressBar,
-    SettingsPanel, WebKeyboard
+    SettingsPanel, WebKeyboard, FlipCard
 } from "trs80-emulator-web";
 import firebase from 'firebase/app';
 // These imports load individual services into the firebase namespace.
@@ -197,7 +197,11 @@ export function main() {
     keyboard.configureKeyboard();
 
     const editor = new Editor(trs80, screen);
-    screenDiv.append(editor.node);
+
+    const flipCard = new FlipCard(screen.getWidth(), screen.getHeight());
+    flipCard.setFront(screen);
+    flipCard.setBack(editor);
+    screenDiv.append(flipCard.node);
 
     const reboot = () => {
         trs80.reset();

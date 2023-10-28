@@ -6,6 +6,7 @@ import {TRS80_CHAR_HEIGHT, TRS80_CHAR_PIXEL_HEIGHT, TRS80_CHAR_PIXEL_WIDTH, TRS8
     TRS80_PIXEL_HEIGHT,
     TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END, TRS80_SCREEN_SIZE} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
+import { FlipCard, FlipCardSide} from "./FlipCard.js";
 
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
@@ -129,6 +130,7 @@ export class Selection {
             this.height === other.height;
     }
 }
+
 export const FULL_SCREEN_SELECTION = new Selection(0, 0, TRS80_PIXEL_WIDTH, TRS80_PIXEL_HEIGHT);
 export const EMPTY_SELECTION = new Selection(0, 0, 0, 0);
 
@@ -154,6 +156,7 @@ export interface OverlayOptions {
     selection?: Selection;
     selectionAntsOffset?: number;
 }
+
 type FullOverlayOptions = Required<OverlayOptions>;
 
 const DEFAULT_OVERLAY_OPTIONS: FullOverlayOptions = {
@@ -188,7 +191,7 @@ const GRID_HIGHLIGHT_COLOR = "rgba(255, 255, 160, 0.5)";
 /**
  * TRS-80 screen based on an HTML canvas element.
  */
-export class CanvasScreen extends Trs80WebScreen {
+export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     public readonly scale: number = 1;
     public readonly padding: number;
     private readonly node: HTMLElement;
@@ -197,6 +200,7 @@ export class CanvasScreen extends Trs80WebScreen {
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_END - TRS80_SCREEN_BEGIN);
     private readonly glyphs: HTMLCanvasElement[] = [];
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
+    private flipCard: FlipCard | undefined = undefined;
     private lastMouseEvent: MouseEvent | undefined = undefined;
     private config: Config = Config.makeDefault();
     private glyphWidth = 0;
@@ -217,13 +221,13 @@ export class CanvasScreen extends Trs80WebScreen {
         this.node.style.maxWidth = "max-content";
 
         this.scale = scale;
-        this.padding = Math.round(PADDING*this.scale);
+        this.padding = Math.round(PADDING * this.scale);
 
         this.canvas = document.createElement("canvas");
         // Make it block so we don't have any weird text margins on the bottom.
         this.canvas.style.display = "block";
-        this.canvas.width = TRS80_CHAR_WIDTH*8*this.scale + 2*this.padding;
-        this.canvas.height = TRS80_CHAR_HEIGHT*24*this.scale + 2*this.padding;
+        this.canvas.width = TRS80_CHAR_WIDTH * 8 * this.scale + 2 * this.padding;
+        this.canvas.height = TRS80_CHAR_HEIGHT * 24 * this.scale + 2 * this.padding;
         this.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
         this.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
         this.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
@@ -242,6 +246,14 @@ export class CanvasScreen extends Trs80WebScreen {
         this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
         this.updateFromConfig();
+    }
+
+    didAttachToFlipCard(flipCard: FlipCard): void {
+        this.flipCard = flipCard;
+    }
+
+    willDetachFromFlipCard(): void {
+        this.flipCard = undefined;
     }
 
     /**
@@ -368,10 +380,16 @@ export class CanvasScreen extends Trs80WebScreen {
         }
     }
 
+    /**
+     * Width of the entire screen, including margins.
+     */
     public getWidth(): number {
         return this.canvas.width;
     }
 
+    /**
+     * Height of the entire screen, including margins.
+     */
     public getHeight(): number {
         return this.canvas.height;
     }

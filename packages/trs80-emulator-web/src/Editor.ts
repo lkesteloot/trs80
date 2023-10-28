@@ -3,57 +3,30 @@ import {RunningState, Trs80} from "trs80-emulator";
 import {CanvasScreen} from "./CanvasScreen.js";
 import {addCssFontToPage} from "./EditorFont.js";
 import {ControlPanel} from "./ControlPanel.js";
+import {FlipCardSideAdapter} from "./FlipCard";
 
 /**
  * Allows the user to edit the in-memory Basic program directly in an HTML text widget,
  * writing the result back into memory.
  */
-export class Editor {
+export class Editor extends FlipCardSideAdapter {
     private readonly trs80: Trs80;
-    public readonly node: HTMLElement;
-    private readonly card: HTMLElement;
-    private readonly editorNode: HTMLElement;
+    private readonly node: HTMLElement;
     private readonly textarea: HTMLTextAreaElement;
-    private editing = false;
     private oldRunningState: RunningState = RunningState.STARTED;
 
     constructor(trs80: Trs80, screen: CanvasScreen) {
+        super();
+
         this.trs80 = trs80;
         const width = screen.getWidth();
         const height = screen.getHeight();
 
         addCssFontToPage();
 
-        // This is the "stage" node, which provides perspective for its children.
         this.node = document.createElement("div");
-        this.node.style.perspective = "1000px";
-
-        // This is the card that will be flipped around.
-        this.card = document.createElement("div");
-        this.card.style.width = width + "px";
-        this.card.style.height = height + "px";
-        this.card.style.position = "relative";
-        this.card.style.transition = "transform 0.5s ease-in-out";
-        this.card.style.transformStyle = "preserve-3d";
-        this.node.append(this.card);
-
-        // This is the "front" of the card, which is the TRS-80 screen.
-        const screenNode = screen.getNode();
-        screenNode.style.position = "absolute";
-        screenNode.style.backfaceVisibility = "hidden";
-        screenNode.style.webkitBackfaceVisibility = "hidden";
-        screenNode.style.transform = "rotateY(0deg)"; // Need this for backface-visibility to work.
-
-        // This is the "back" of the card, which is the editor.
-        this.editorNode = document.createElement("div");
-        this.editorNode.style.position = "absolute";
-        this.editorNode.style.width = width + "px";
-        this.editorNode.style.height = height + "px";
-        this.editorNode.style.backfaceVisibility = "hidden";
-        this.editorNode.style.webkitBackfaceVisibility = "hidden";
-        this.editorNode.style.transform = "rotateY(180deg)";
-
-        this.card.append(screenNode, this.editorNode);
+        this.node.style.width = width + "px";
+        this.node.style.height = height + "px";
 
         // The text editor sits in the editor node, on the back of the card.
         const fontSize = Math.round(24*screen.scale);
@@ -71,31 +44,35 @@ export class Editor {
         this.textarea.style.color = screen.getForegroundColor();
         this.textarea.style.backgroundColor = screen.getBackgroundColor();
         this.textarea.placeholder = "Write your Basic program here...";
-        this.editorNode.append(this.textarea);
+        this.node.append(this.textarea);
 
         // Control panel for saving/canceling.
-        const controlPanel = new ControlPanel(this.editorNode);
+        const controlPanel = new ControlPanel(this.node);
         controlPanel.addSaveButton(() => this.save());
         controlPanel.addCancelButton(() => this.cancel());
 
-        this.hide();
-
         // For Ctrl-Enter quick edit/save.
         window.addEventListener("keydown", e => this.keyboardListener(e));
+    }
+
+    public getNode() {
+        return this.node;
     }
 
     /**
      * Grab the program from memory and start the editor.
      */
     public startEdit(): void {
-        const basicProgram = this.trs80.getBasicProgramFromMemory();
-        if (typeof basicProgram === "string") {
-            // TODO show error.
-            console.error(basicProgram);
-        } else {
-            this.oldRunningState = this.trs80.setRunningState(RunningState.STOPPED);
-            this.setProgram(basicProgram);
-            this.show();
+        if (this.flipCard !== undefined) {
+            const basicProgram = this.trs80.getBasicProgramFromMemory();
+            if (typeof basicProgram === "string") {
+                // TODO show error.
+                console.error(basicProgram);
+            } else {
+                this.oldRunningState = this.trs80.setRunningState(RunningState.STOPPED);
+                this.setProgram(basicProgram);
+                this.flipCard.show(this);
+            }
         }
     }
 
@@ -105,7 +82,7 @@ export class Editor {
      */
     private keyboardListener(e: KeyboardEvent): void {
         if (e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
-            if (this.editing) {
+            if (this.flipCard !== undefined && this.flipCard.isShowing(this)) {
                 this.save();
                 e.preventDefault();
                 e.stopPropagation();
@@ -154,7 +131,7 @@ export class Editor {
      */
     private close(): void {
         this.trs80.setRunningState(this.oldRunningState);
-        this.hide();
+        this.flipCard?.hide(this);
     }
 
     /**
@@ -177,7 +154,7 @@ export class Editor {
         errorNode.style.opacity = "0";
         errorNode.style.transition = "opacity .20s ease-in-out";
 
-        this.editorNode.append(errorNode);
+        this.node.append(errorNode);
         setTimeout(() => {
             errorNode.style.opacity = "1";
             setTimeout(() => {
@@ -215,20 +192,7 @@ export class Editor {
         }
     }
 
-    /**
-     * Show the editor (back of the card).
-     */
-    private show(): void {
-        this.card.style.transform = "rotateY(180deg)";
+    didShowOnFlipCard() {
         this.textarea.focus();
-        this.editing = true;
-    }
-
-    /**
-     * Hide the editor (show the front).
-     */
-    private hide(): void {
-        this.card.style.transform = "rotateY(0deg)";
-        this.editing = false;
     }
 }
