@@ -115,6 +115,19 @@ const UNMUTED_ICON = `
 </svg>
 `;
 
+// https://thenounproject.com/icon/apple-dot-matrix-3437307/
+const PRINTER_ICON = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 500" x="0px" y="0px">
+    <title>Show printer</title>
+    <g fill="white">
+        <rect x="129" y="332" width="254" height="18" rx="8" ry="8"/>
+        <path d="M145,300H367a16,16,0,0,0,16-16V258a8,8,0,0,0-8-8H137a8,8,0,0,0-8,8v26A16,16,0,0,0,145,300Z"/>
+        <path d="M488,250H423a8,8,0,0,0-8,8V366a16,16,0,0,1-16,16H113a16,16,0,0,1-16-16V258a8,8,0,0,0-8-8H24A16,16,0,0,0,8,266V436a16,16,0,0,0,16,16H488a16,16,0,0,0,16-16V266A16,16,0,0,0,488,250Z"/>
+        <path d="M388,64V210a8,8,0,0,1-8,8H132a8,8,0,0,1-8-8V64a16,16,0,0,1,16-16H372A16,16,0,0,1,388,64Z"/>
+    </g>
+</svg>
+`;
+
 const GLOBAL_CSS = `
 .${gPanelCssClass} {
     background-color: rgba(40, 40, 40, 0.8);
@@ -268,6 +281,13 @@ export class ControlPanel {
      */
     public addEditorButton(callback: () => void): HTMLElement {
         return this.addButton(EDIT_ICON, callback);
+    }
+
+    /**
+     * Add a button to see the printer output.
+     */
+    public addPrinterButton(callback: () => void): HTMLElement {
+        return this.addButton(PRINTER_ICON, callback);
     }
 
     /**

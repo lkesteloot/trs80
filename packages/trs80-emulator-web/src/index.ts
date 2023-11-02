@@ -10,3 +10,4 @@ export {WebKeyboard} from "./WebKeyboard.js";
 export {flashNode} from "./FlashNode.js";
 export {WebSoundPlayer} from "./WebSoundPlayer.js";
 export * from "./FlipCard.js";
+export * from "./WebPrinter.js";

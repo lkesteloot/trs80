@@ -8,7 +8,7 @@ import {
     ControlPanel,
     DriveIndicators, flashNode,
     PanelType, WebProgressBar,
-    SettingsPanel, WebKeyboard, FlipCard
+    SettingsPanel, WebKeyboard, FlipCard, WebPrinter
 } from "trs80-emulator-web";
 import firebase from 'firebase/app';
 // These imports load individual services into the firebase namespace.
@@ -188,10 +188,12 @@ export function main() {
     keyboard.configureKeyboard();
 
     const basicEditor = new BasicEditor(trs80, screen);
+    const webPrinter = new WebPrinter(screen);
+    trs80.setPrinter(webPrinter);
 
     const flipCard = new FlipCard(screen.getWidth(), screen.getHeight());
     flipCard.setFront(screen);
-    flipCard.setBack(basicEditor);
+    flipCard.setBack(webPrinter);
     screenDiv.append(flipCard.node);
 
     const reboot = () => {
@@ -257,6 +259,7 @@ export function main() {
     screenshotButton.classList.add("hidden");
 
     controlPanel.addEditorButton(() => basicEditor.startEdit());
+    controlPanel.addPrinterButton(() => webPrinter.show());
 
     let logging = false;
     const logs: string[] = [];
