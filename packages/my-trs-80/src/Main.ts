@@ -193,7 +193,6 @@ export function main() {
 
     const flipCard = new FlipCard(screen.getWidth(), screen.getHeight());
     flipCard.setFront(screen);
-    flipCard.setBack(webPrinter);
     screenDiv.append(flipCard.node);
 
     const reboot = () => {
@@ -258,8 +257,14 @@ export function main() {
     // Start hidden, since the user isn't signed in until later.
     screenshotButton.classList.add("hidden");
 
-    controlPanel.addEditorButton(() => basicEditor.startEdit());
-    controlPanel.addPrinterButton(() => webPrinter.show());
+    controlPanel.addEditorButton(() => {
+        flipCard.setBack(basicEditor);
+        basicEditor.startEdit();
+    });
+    controlPanel.addPrinterButton(() => {
+        flipCard.setBack(webPrinter);
+        webPrinter.show();
+    });
 
     let logging = false;
     const logs: string[] = [];
