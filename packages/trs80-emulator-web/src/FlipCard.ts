@@ -111,13 +111,15 @@ export class FlipCard {
      * Set the specific side.
      */
     private setSideNumber(sideNumber: SideNumber, side: FlipCardSide) {
-        this.sides[sideNumber]?.willDetachFromFlipCard?.();
-        this.sides[sideNumber] = side;
-        const node = side.getNode();
-        this.configureNode(node);
-        this.setTransform(node, sideNumber);
-        this.card.replaceChild(node, this.card.children[sideNumber]);
-        side.didAttachToFlipCard?.(this);
+        if (side !== this.sides[sideNumber]) {
+            this.sides[sideNumber]?.willDetachFromFlipCard?.();
+            this.sides[sideNumber] = side;
+            const node = side.getNode();
+            this.configureNode(node);
+            this.setTransform(node, sideNumber);
+            this.card.replaceChild(node, this.card.children[sideNumber]);
+            side.didAttachToFlipCard?.(this);
+        }
     }
 
     /**

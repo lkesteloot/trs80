@@ -43,7 +43,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
         this.paper.style.height = "100%";
         this.paper.style.padding = "20px 0";
         this.paper.style.fontFamily = `"${PRINTER_REGULAR_FONT_FAMILY}", monospace`;
-        this.paper.style.fontSize = "12.5px"; // To get 80 chars across.
+        this.paper.style.fontSize = "12px"; // To get 80 chars across.
         this.paper.style.lineHeight = "1.5";
         this.paper.style.boxSizing = "border-box";
         this.paper.style.color = "#222";
@@ -88,11 +88,12 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
     }
 
     save() {
-        throw new Error("Method not implemented.");
+        // Could save printer output.
+        return undefined;
     }
 
     restore(state: any): void {
-        throw new Error("Method not implemented.");
+        // Nothing to do.
     }
 
     getNode(): HTMLElement {
