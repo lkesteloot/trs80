@@ -174,19 +174,26 @@ export class Tokenizer {
         const quoteChar = this.line[this.column];
         this.column++;
 
-        // Find end of string.
-        const startIndex = this.column;
-        while (this.column < this.line.length && this.line[this.column] !== quoteChar) {
+        const parts: string[] = [];
+        while (true) {
+            if (this.column >= this.line.length) {
+                // No end quote.
+                throw new Error("no end quote in string");
+            }
+            if (this.line[this.column] === quoteChar) {
+                // Allow doubled quote char to mean single quote char.
+                if (this.column + 1 < this.line.length && this.line[this.column + 1] === quoteChar) {
+                    // Pick up the second one.
+                    this.column++;
+                } else {
+                    break;
+                }
+            }
+            parts.push(this.line[this.column]);
             this.column++;
         }
 
-        if (this.column === this.line.length) {
-            // No end quote.
-            throw new Error("no end quote in string");
-        }
-
-        // Clip out string contents.
-        const value = this.line.substring(startIndex, this.column);
+        const value = parts.join("");
         this.column++;
         this.skipWhitespace();
 
@@ -194,20 +201,33 @@ export class Tokenizer {
     }
 
     /**
-     * Reads a single-quoted character constant, like 'A', and returns its
+     * Reads a single-quoted character constant, like 'A' or "A", and returns its
      * unicode value, in this case 65. Returns undefined if this is not
      * a character constant. Throws if it's a mis-formatted character constant.
      */
     public readCharConstant(): number | undefined {
-        if (!this.matches("'")) {
+        if (!this.matches("'") && !this.matches('"')) {
             return undefined;
         }
 
-        if (this.column > this.line.length - 3 || this.line[this.column + 2] !== "'") {
+        const quoteChar = this.line[this.column];
+        let value: number;
+        if (this.column + 3 < this.line.length &&
+            this.line[this.column + 1] === quoteChar &&
+            this.line[this.column + 2] === quoteChar &&
+            this.line[this.column + 3] === quoteChar) {
+
+            // Allow doubling quote character to mean just the quote character.
+            value = this.line.charCodeAt(this.column + 1);
+            this.column += 4;
+        } else if (this.column + 2 < this.line.length &&
+            this.line[this.column + 2] === quoteChar) {
+
+            value = this.line.charCodeAt(this.column + 1);
+            this.column += 3;
+        } else {
             throw new Error("invalid character constant");
         }
-        const value = this.line.charCodeAt(this.column + 1);
-        this.column += 3;
         this.skipWhitespace();
         return value;
     }

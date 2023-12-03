@@ -967,61 +967,21 @@ class LineParser {
                 return;
             } else if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
-                    const s = this.readString();
-                    if (s !== undefined) {
-                        const adjustOperator = this.tokenizer.foundAnyOf(["+", "-", "&", "|", "^"]);
-                        let adjustValue: number | undefined;
-
-                        if (adjustOperator !== undefined) {
-                            adjustValue = this.readExpression(true);
-                            if (adjustValue === undefined) {
-                                if (this.assembledLine.error === undefined) {
-                                    this.assembledLine.error = "bad adjustment value";
-                                }
-                                return;
-                            }
+                    const argStart = this.tokenizer.column;
+                    let s = this.readString();
+                    if (s !== undefined && s.length === 1) {
+                        this.tokenizer.column = argStart;
+                        // It's a single byte, might be part of an expression, re-parse it that way.
+                        s = undefined;
+                    }
+                    if (s === undefined) {
+                        if (this.assembledLine.error !== undefined) {
+                            // Error parsing string.
+                            return;
                         }
-
-                        for (let i = 0; i < s.length; i++) {
-                            let value = s.charCodeAt(i);
-                            if (i === s.length - 1 && adjustOperator !== undefined && adjustValue !== undefined) {
-                                switch (adjustOperator) {
-                                    case "+":
-                                        value += adjustValue;
-                                        break;
-
-                                    case "-":
-                                        value -= adjustValue;
-                                        break;
-
-                                    case "&":
-                                        value &= adjustValue;
-                                        break;
-
-                                    case "|":
-                                        value |= adjustValue;
-                                        break;
-
-                                    case "^":
-                                        value ^= adjustValue;
-                                        break;
-                                }
-
-                                value = lo(value);
-                            }
-                            this.assembledLine.binary.push(value);
-                        }
-                    } else if (this.assembledLine.error !== undefined) {
-                        // Error parsing string.
-                        return;
-                    } else {
                         // Try some pre-defined names. These are only valid here.
-                        const s = this.parsePredefinedName();
-                        if (s !== undefined) {
-                            for (let i = 0; i < s.length; i++) {
-                                this.assembledLine.binary.push(s.charCodeAt(i));
-                            }
-                        } else {
+                        s = this.parsePredefinedName();
+                        if (s === undefined) {
                             // Try a normal expression.
                             const value = this.readExpression(true);
                             if (value === undefined) {
@@ -1031,6 +991,11 @@ class LineParser {
                                 return;
                             }
                             this.assembledLine.binary.push(lo(value));
+                        }
+                    }
+                    if (s !== undefined) {
+                        for (let i = 0; i < s.length; i++) {
+                            this.assembledLine.binary.push(s.charCodeAt(i));
                         }
                     }
                     if (!this.tokenizer.found(',')) {

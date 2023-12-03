@@ -819,7 +819,12 @@ export class ScreenEditor {
                 while (i < raster.length && isPrintableAscii(raster[i]) && (i - begin) % 64 !== 0 && !this.labels.has(i)) {
                     i++;
                 }
-                text += ".text '" + raster.slice(begin, i).map(b => String.fromCodePoint(b)).join("") + "'";
+                const asmString = raster
+                    .slice(begin, i)
+                    .map(b => String.fromCodePoint(b))
+                    .join("")
+                    .replace(/'/g, "''");
+                text += ".text '" + asmString + "'";
             } else {
                 // Binary. First look for sequences of the same character.
                 while (i < raster.length && !isPrintableAscii(raster[i]) && raster[i] === raster[begin] && !this.labels.has(i)) {
