@@ -3,7 +3,7 @@ import {RunningState, Trs80} from "trs80-emulator";
 import {CanvasScreen} from "./CanvasScreen.js";
 import {addCssFontToPage} from "./EditorFont.js";
 import {ControlPanel} from "./ControlPanel.js";
-import {FlipCardSideAdapter} from "./FlipCard";
+import {FlipCardSideAdapter} from "./FlipCard.js";
 
 /**
  * Allows the user to edit the in-memory Basic program directly in an HTML text widget,

@@ -261,9 +261,12 @@ export function main() {
         flipCard.setBack(basicEditor);
         basicEditor.startEdit();
     });
-    controlPanel.addPrinterButton(() => {
+    const printerButton = controlPanel.addPrinterButton(() => {
         flipCard.setBack(webPrinter);
         webPrinter.show();
+    });
+    webPrinter.setActivityCallback(() => {
+        controlPanel.flashButton(printerButton);
     });
 
     let logging = false;

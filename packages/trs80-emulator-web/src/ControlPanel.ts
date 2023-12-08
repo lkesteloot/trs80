@@ -6,6 +6,7 @@ import {Mutable} from "trs80-emulator";
 const gCssPrefix = CSS_PREFIX + "-control-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
 const gPanelCssClass = gCssPrefix + "-panel";
+const gPanelForceShowClass = gPanelCssClass + "-show";
 const gButtonCssClass = gCssPrefix + "-button";
 const gButtonHiddenCssClass = gCssPrefix + "-button-hidden";
 const gShowingOtherPanelCssClass = gCssPrefix + "-showing-other-panel";
@@ -144,7 +145,8 @@ const GLOBAL_CSS = `
     position: relative;
 }
 
-.${gScreenNodeCssClass}:hover:not(.panels-disabled) .${gPanelCssClass} {
+.${gScreenNodeCssClass}:hover:not(.panels-disabled) .${gPanelCssClass},
+.${gScreenNodeCssClass}:not(.panels-disabled) .${gPanelCssClass}.${gPanelForceShowClass} {
     opacity: 1;
 }
 
@@ -203,6 +205,37 @@ export class ControlPanel {
         this.panelNode = document.createElement("div");
         this.panelNode.classList.add(gPanelCssClass);
         screenNode.appendChild(this.panelNode);
+    }
+
+    /**
+     * Shows the panel and briefly flashes the button, to get attention to itself.
+     */
+    public async flashButton(button: HTMLElement) {
+        this.panelNode.classList.add(gPanelForceShowClass);
+        const animation = button.animate([
+            {
+                scale: "100%",
+                transformOrigin: "center",
+            },
+            {
+                scale: "130%",
+            },
+            {
+                scale: "100%",
+            },
+            {
+                scale: "130%",
+            },
+            {
+                scale: "100%",
+            },
+        ], {
+            duration: 800,
+            delay: 50,
+            easing: "ease-in-out",
+        });
+        await animation.finished;
+        this.panelNode.classList.remove(gPanelForceShowClass);
     }
 
     /**
