@@ -117,8 +117,10 @@ export class AssemblyResults {
 
     /**
      * Compute various statistics about the assembled program.
+     *
+     * @param lineFilter determine which lines to count, or undefined for all.
      */
-    public getStats(): AssemblyStats {
+    public getStats(lineFilter?: (line: AssembledLine) => boolean): AssemblyStats {
         const stats: AssemblyStats = {
             codeSize: 0,
             dataSize: 0,
@@ -126,13 +128,15 @@ export class AssemblyResults {
         };
 
         for (const line of this.asm.assembledLines) {
-            const size = line.binary.length;
-            if (line.isData()) {
-                stats.dataSize += size;
-            } else {
-                stats.codeSize += size;
+            if (lineFilter === undefined || lineFilter(line)) {
+                const size = line.binary.length;
+                if (line.isData()) {
+                    stats.dataSize += size;
+                } else {
+                    stats.codeSize += size;
+                }
+                stats.totalSize += size;
             }
-            stats.totalSize += size;
         }
 
         return stats;

@@ -47,7 +47,7 @@ import {
     Text,
     Transaction
 } from "@codemirror/state"
-import {bracketMatching, indentUnit, StreamLanguage,} from "@codemirror/language"
+import {indentUnit, StreamLanguage,} from "@codemirror/language"
 import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap, CompletionContext} from "@codemirror/autocomplete"
 import {
     findNext,
@@ -62,7 +62,7 @@ import {Asm, SourceFile, SymbolAppearance} from "z80-asm";
 import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base";
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS} from "trs80-base";
 import {ScreenshotSection} from "./ScreenshotSection";
-import {AssemblyResults, ErrorAssembledLine} from "./AssemblyResults";
+import {AssemblyResults, AssemblyStats, ErrorAssembledLine} from "./AssemblyResults";
 import {screenshotPlugin} from "./ScreenshotPlugin";
 import {customCompletions} from "./AutoComplete";
 import {Emulator} from "./Emulator";
@@ -1383,40 +1383,95 @@ export class Editor {
         return showPanel.of(v => {
             const dom = document.createElement("div");
             dom.classList.add("cm-stats-panel");
-            const codeSizeNode = document.createElement("span");
-            codeSizeNode.classList.add("cm-stats-panel-number");
-            const codeSizeLabelNode = document.createElement("span");
-            const dataSizeNode = document.createElement("span");
-            dataSizeNode.classList.add("cm-stats-panel-number");
-            const dataSizeLabelNode = document.createElement("span");
-            const totalSizeNode = document.createElement("span");
-            totalSizeNode.classList.add("cm-stats-panel-number");
-            const totalSizeLabelNode = document.createElement("span");
-            dom.append(codeSizeNode, codeSizeLabelNode,
-                dataSizeNode, dataSizeLabelNode,
-                totalSizeNode, totalSizeLabelNode);
+
+            // Get the nodes for the size and label for a stat.
+            function getSizeAndLabel(number: number, label: string): Node[] {
+                const sizeNode = document.createElement("span");
+                sizeNode.classList.add("cm-stats-panel-number");
+                sizeNode.textContent = number.toString();
+
+                const labelNode = document.createElement("span");
+                labelNode.textContent = label;
+
+                return [sizeNode, labelNode];
+            }
 
             function pluralize(count: number, s: string) {
                 return s + (count === 1 ? "" : "s");
             }
 
-            const updateStats = (state?: EditorState) => {
+            /**
+             * Takes an array of arrays of nodes, removes the empty top-level arrays,
+             * puts the delimiter between the top-level arrays, and flattens them.
+             */
+            function joinNodes(nodesLists: (Node | string)[][], delimiter: string): (Node | string)[] {
+                // Remove empty top-level arrays.
+                nodesLists = nodesLists.filter(nodesList => nodesList.length > 0);
+
+                const nodes: (Node | string)[] = [];
+                for (const nodesList of nodesLists) {
+                    if (nodes.length > 0) {
+                        nodes.push(delimiter);
+                    }
+                    nodes.push(... nodesList);
+                }
+
+                return nodes;
+            }
+
+            // Get HTML nodes for statistics.
+            function getStats(stats: AssemblyStats): (Node | string)[] {
+                const nodesLists: Node[][] = [];
+
+                if (stats.codeSize > 0) {
+                    nodesLists.push(getSizeAndLabel(
+                        stats.codeSize, " code " + pluralize(stats.codeSize, "byte")));
+                }
+                if (stats.dataSize > 0) {
+                    nodesLists.push(getSizeAndLabel(stats.dataSize, " data " + pluralize(stats.dataSize, "byte")));
+                }
+                if (stats.codeSize > 0 && stats.dataSize > 0) {
+                    nodesLists.push(getSizeAndLabel(stats.totalSize, " total " + pluralize(stats.totalSize, "byte")));
+                }
+
+                return joinNodes(nodesLists, ", ");
+            }
+
+            const updateStats = (state: EditorState) => {
                 const assemblyResults = this.getAssemblyResults(state);
-                const stats = assemblyResults.getStats();
-                codeSizeNode.textContent = stats.codeSize.toString();
-                codeSizeLabelNode.textContent = " code " + pluralize(stats.codeSize, "byte") + ", ";
-                dataSizeNode.textContent = stats.dataSize.toString();
-                dataSizeLabelNode.textContent = " data " + pluralize(stats.dataSize, "byte") + ", ";
-                totalSizeNode.textContent = stats.totalSize.toString();
-                totalSizeLabelNode.textContent = " total " + pluralize(stats.totalSize, "byte");
+                const nodesLists: (Node | string)[][] = [];
+
+                nodesLists.push(getStats(assemblyResults.getStats()));
+
+                let posA = state.selection.main.head;
+                let posB = state.selection.main.anchor;
+                if (posB < posA) {
+                    [posB, posA] = [posA, posB];
+                }
+                const a = state.doc.lineAt(posA).number - 1;
+                const lineB = state.doc.lineAt(posB);
+                let b = lineB.number - 1;
+                let forceShow = false;
+                if (b > a && posB === lineB.from) {
+                    // Don't count the last line if we're at the very start of the line, intuitively
+                    // that doesn't feel like part of the selection, nothing from that line is highlighted.
+                    b -= 1;
+                    forceShow = true;
+                }
+                if (forceShow || a < b) {
+                    nodesLists.push(getStats(assemblyResults.getStats(line =>
+                        line.lineNumber !== undefined && line.lineNumber >= a && line.lineNumber <= b)));
+                }
+
+                dom.replaceChildren(...joinNodes(nodesLists, "; selection: "));
             };
-            updateStats();
+            updateStats(this.view.state);
 
             return {
                 top: false,
                 dom: dom,
                 update: viewUpdate => {
-                    if (viewUpdate.docChanged) {
+                    if (viewUpdate.docChanged || viewUpdate.selectionSet) {
                         updateStats(viewUpdate.state);
                     }
                 },
