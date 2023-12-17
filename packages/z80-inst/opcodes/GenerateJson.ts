@@ -2,12 +2,12 @@
 // all variants of Z80 instructions and indexes from mnemonics and opcodes.
 
 import * as path from "path";
+import {dirname} from "path";
 import * as fs from "fs";
 import {toHexByte} from "z80-base";
-import {OpcodeVariant, OpcodeTemplate, ClrInstruction, Mnemonics, Instructions} from "../src/OpcodesTypes.js";
+import {ClrInstruction, Mnemonics, OpcodeTemplate, OpcodeVariant} from "../src/OpcodesTypes.js";
 import {isDataThirdByte} from "../src/Utils.js";
 import {fileURLToPath} from "url";
-import {dirname} from "path";
 
 // Break args into sequences of letters, digits, or single punctuation.
 const TOKENIZING_REGEXP = /([a-z]+)'?|([,+()])|([0-9]+)|(;.*)/g;
@@ -187,34 +187,51 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                     for (const aliasOpcode of aliasOpcodes) {
                         const newOpcodes = [... variant.opcodes];
                         newOpcodes[opcodeIndex] = aliasOpcode;
-                        const newVariant = {
-                            ... variant,
+                        mnemonicInfo.variants.push({
+                            ...variant,
                             opcodes: newOpcodes,
                             isAlias: true,
-                        };
-                        mnemonicInfo.variants.push(newVariant);
+                        });
                     }
                     aliasOpcodes = [];
                 }
 
                 // For instructions like "ADD A,C", also produce "ADD C" with an implicit "A".
                 if (tokens.length > 2 && tokens[0] === "a" && tokens[1] === ",") {
-                    variant = Object.assign({}, variant, {
+                    mnemonicInfo.variants.push({
+                        ...variant,
                         params: variant.params.slice(1),
                         tokens: variant.tokens.slice(2),
                         isPseudo: true,
                     });
-                    mnemonicInfo.variants.push(variant);
                 }
 
                 // The canonical instruction is "JP HL" but some people write it as "JP (HP)".
                 if (mnemonic === "jp" && variant.params.length === 1 && variant.params[0] === "hl") {
-                    variant = Object.assign({}, variant, {
+                    mnemonicInfo.variants.push({
+                        ...variant,
                         params: ["(hl)"],
                         tokens: ["(", "hl", ")"],
                         isPseudo: true,
                     });
-                    mnemonicInfo.variants.push(variant);
+                }
+
+                // The flags po and pe can also be written nv and v respectively.
+                if (variant.params.length > 0 && variant.params[0] == "po") {
+                    mnemonicInfo.variants.push({
+                        ...variant,
+                        params: ["nv", ...variant.params.slice(1)],
+                        tokens: ["nv", ...variant.tokens.slice(1)],
+                        isPseudo: true,
+                    });
+                }
+                if (variant.params.length > 0 && variant.params[0] == "pe") {
+                    mnemonicInfo.variants.push({
+                        ...variant,
+                        params: ["v", ...variant.params.slice(1)],
+                        tokens: ["v", ...variant.tokens.slice(1)],
+                        isPseudo: true,
+                    });
                 }
             }
         }

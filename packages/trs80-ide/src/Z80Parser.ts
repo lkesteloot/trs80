@@ -5,7 +5,7 @@ import { tags } from "@lezer/highlight";
 const MNEMONICS = /^(exx?|(ld|cp)([di]r?)?|[lp]ea|pop|push|ad[cd]|cpl|daa|dec|inc|neg|sbc|sub|and|bit|[cs]cf|x?or|res|set|r[lr]c?a?|r[lr]d|s[lr]a|srl|djnz|nop|[de]i|halt|im|in([di]mr?|ir?|irx|2r?)|ot(dmr?|[id]rx|imr?)|out(0?|[di]r?|[di]2r?)|tst(io)?|slp)(\.([sl]?i)?[sl])?\b/i;
 const JUMPS = /^(((call|j[pr]|rst|ret[in]?)(\.([sl]?i)?[sl])?)|(rs|st)mix)\b/i;
 const REGISTERS = /^(af?|bc?|c|de?|e|hl?|l|i[xy]?|r|sp)\b/i;
-const FLAGS = /^(n?[zc]|p[oe]?|m)\b/i;
+const FLAGS = /^(n?[zcv]|p[oe]?|m)\b/i;
 const NUMBERS = /^(\$[\da-f]+|%[01]+|0x[\da-f]+|0b[01]+|\d[\da-f]*h|[01]+b|\d+)\b/i;
 const COMMENT = /^;.*/;
 const STRING = /^"[^"]*"|'[^']*'/;

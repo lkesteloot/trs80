@@ -33332,6 +33332,33 @@ const variant_E0: OpcodeVariant = {
   }
 };
 
+// ret nv
+const variant_E0_pseudo: OpcodeVariant = {
+  "mnemonic": "ret",
+  "params": [
+    "nv"
+  ],
+  "tokens": [
+    "nv"
+  ],
+  "opcodes": [
+    224
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "E0",
+    "undocumented": false,
+    "flags": "------",
+    "byte_count": 1,
+    "with_jump_clock_count": 11,
+    "without_jump_clock_count": 5,
+    "description": "If the parity/overflow flag is unset, the top stack entry is popped into PC.",
+    "instruction": "ret po",
+    "used": true
+  }
+};
+
 // ret pe
 const variant_E8: OpcodeVariant = {
   "mnemonic": "ret",
@@ -33345,6 +33372,33 @@ const variant_E8: OpcodeVariant = {
     232
   ],
   "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "E8",
+    "undocumented": false,
+    "flags": "------",
+    "byte_count": 1,
+    "with_jump_clock_count": 11,
+    "without_jump_clock_count": 5,
+    "description": "If the parity/overflow flag is set, the top stack entry is popped into PC.",
+    "instruction": "ret pe",
+    "used": true
+  }
+};
+
+// ret v
+const variant_E8_pseudo: OpcodeVariant = {
+  "mnemonic": "ret",
+  "params": [
+    "v"
+  ],
+  "tokens": [
+    "v"
+  ],
+  "opcodes": [
+    232
+  ],
+  "isPseudo": true,
   "isAlias": false,
   "clr": {
     "opcodes": "E8",
@@ -33788,6 +33842,37 @@ const variant_E2_nnnn: OpcodeVariant = {
   }
 };
 
+// jp nv,nnnn
+const variant_E2_nnnn_pseudo: OpcodeVariant = {
+  "mnemonic": "jp",
+  "params": [
+    "nv",
+    "nnnn"
+  ],
+  "tokens": [
+    "nv",
+    ",",
+    "nnnn"
+  ],
+  "opcodes": [
+    226,
+    "nnnn"
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "E2",
+    "undocumented": false,
+    "flags": "------",
+    "byte_count": 3,
+    "with_jump_clock_count": 10,
+    "without_jump_clock_count": 10,
+    "description": "If the parity/overflow flag is unset, <var>nn</var> is copied to PC.",
+    "instruction": "jp po,nn",
+    "used": true
+  }
+};
+
 // jp hl
 const variant_E9: OpcodeVariant = {
   "mnemonic": "jp",
@@ -33861,6 +33946,37 @@ const variant_EA_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "EA",
+    "undocumented": false,
+    "flags": "------",
+    "byte_count": 3,
+    "with_jump_clock_count": 10,
+    "without_jump_clock_count": 10,
+    "description": "If the parity/overflow flag is set, <var>nn</var> is copied to PC.",
+    "instruction": "jp pe,nn",
+    "used": true
+  }
+};
+
+// jp v,nnnn
+const variant_EA_nnnn_pseudo: OpcodeVariant = {
+  "mnemonic": "jp",
+  "params": [
+    "v",
+    "nnnn"
+  ],
+  "tokens": [
+    "v",
+    ",",
+    "nnnn"
+  ],
+  "opcodes": [
+    234,
+    "nnnn"
+  ],
+  "isPseudo": true,
   "isAlias": false,
   "clr": {
     "opcodes": "EA",
@@ -34148,6 +34264,37 @@ const variant_E4_nnnn: OpcodeVariant = {
   }
 };
 
+// call nv,nnnn
+const variant_E4_nnnn_pseudo: OpcodeVariant = {
+  "mnemonic": "call",
+  "params": [
+    "nv",
+    "nnnn"
+  ],
+  "tokens": [
+    "nv",
+    ",",
+    "nnnn"
+  ],
+  "opcodes": [
+    228,
+    "nnnn"
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "E4",
+    "undocumented": false,
+    "flags": "------",
+    "byte_count": 3,
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 10,
+    "description": "If the parity/overflow flag is unset, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call po,nn",
+    "used": true
+  }
+};
+
 // call pe,nnnn
 const variant_EC_nnnn: OpcodeVariant = {
   "mnemonic": "call",
@@ -34165,6 +34312,37 @@ const variant_EC_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "EC",
+    "undocumented": false,
+    "flags": "------",
+    "byte_count": 3,
+    "with_jump_clock_count": 17,
+    "without_jump_clock_count": 10,
+    "description": "If the parity/overflow flag is set, the current PC value plus three is pushed onto the stack, then is loaded with <var>nn</var>.",
+    "instruction": "call pe,nn",
+    "used": true
+  }
+};
+
+// call v,nnnn
+const variant_EC_nnnn_pseudo: OpcodeVariant = {
+  "mnemonic": "call",
+  "params": [
+    "v",
+    "nnnn"
+  ],
+  "tokens": [
+    "v",
+    ",",
+    "nnnn"
+  ],
+  "opcodes": [
+    236,
+    "nnnn"
+  ],
+  "isPseudo": true,
   "isAlias": false,
   "clr": {
     "opcodes": "EC",
@@ -51623,7 +51801,9 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_D0, // ret nc
       variant_D8, // ret c
       variant_E0, // ret po
+      variant_E0_pseudo, // ret nv
       variant_E8, // ret pe
+      variant_E8_pseudo, // ret v
       variant_F0, // ret p
       variant_F8, // ret m
     ],
@@ -51649,9 +51829,11 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_DA_nnnn, // jp c,nnnn
       variant_DD_E9, // jp ix
       variant_E2_nnnn, // jp po,nnnn
+      variant_E2_nnnn_pseudo, // jp nv,nnnn
       variant_E9, // jp hl
       variant_E9_pseudo, // jp (hl)
       variant_EA_nnnn, // jp pe,nnnn
+      variant_EA_nnnn_pseudo, // jp v,nnnn
       variant_F2_nnnn, // jp p,nnnn
       variant_FA_nnnn, // jp m,nnnn
       variant_FD_E9, // jp iy
@@ -51666,7 +51848,9 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_D4_nnnn, // call nc,nnnn
       variant_DC_nnnn, // call c,nnnn
       variant_E4_nnnn, // call po,nnnn
+      variant_E4_nnnn_pseudo, // call nv,nnnn
       variant_EC_nnnn, // call pe,nnnn
+      variant_EC_nnnn_pseudo, // call v,nnnn
       variant_F4_nnnn, // call p,nnnn
       variant_FC_nnnn, // call m,nnnn
     ],

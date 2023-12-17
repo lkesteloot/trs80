@@ -3,7 +3,10 @@ import {isByteReg, isWordReg } from "z80-base";
 /**
  * List of all flags that can be specified in an instruction.
  */
-const FLAGS = new Set(["z", "nz", "c", "nc", "po", "pe", "p", "m"]);
+const FLAGS = new Set([
+    "z", "nz", "c", "nc", "po", "pe", "p", "m",
+    "v", "nv", // Aliases for pe and po.
+]);
 
 // Whether the specified character counts as horizontal whitespace.
 function isWhitespace(c: string): boolean {
