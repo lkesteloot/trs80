@@ -1686,10 +1686,12 @@ class LineParser {
                                     if (this.pass.passNumber > 1 && (offset < -128 || offset > 127)) {
                                         // Too far for relative jump.
                                         const excess = offset < -128 ? -128 - offset : offset - 127;
-                                        this.assembledLine.error = "destination is too far by " + excess + " byte" +
-                                            (excess === 1 ? "" : "s") + " for relative jump";
-                                        if (variant.mnemonic === "jr") {
-                                            this.assembledLine.error += "; use jp";
+                                        if (this.assembledLine.error === undefined) {
+                                            this.assembledLine.error = "destination is too far by " + excess + " byte" +
+                                                (excess === 1 ? "" : "s") + " for relative jump";
+                                            if (variant.mnemonic === "jr") {
+                                                this.assembledLine.error += "; use jp";
+                                            }
                                         }
                                         this.assembledLine.binary = [];
                                         return;
