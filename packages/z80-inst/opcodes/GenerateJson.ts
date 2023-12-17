@@ -183,6 +183,7 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                 };
                 mnemonicInfo.variants.push(variant);
 
+                // Generate aliases (same mnemonic pattern, different opcodes).
                 if (aliasOpcodes.length > 0) {
                     for (const aliasOpcode of aliasOpcodes) {
                         const newOpcodes = [... variant.opcodes];
@@ -207,11 +208,12 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                 }
 
                 // The canonical instruction is "JP HL" but some people write it as "JP (HP)".
-                if (mnemonic === "jp" && variant.params.length === 1 && variant.params[0] === "hl") {
+                if (mnemonic === "jp" && variant.params.length === 1 && ["hl", "ix", "iy"].indexOf(variant.params[0]) >= 0) {
+                    const register = variant.params[0];
                     mnemonicInfo.variants.push({
                         ...variant,
-                        params: ["(hl)"],
-                        tokens: ["(", "hl", ")"],
+                        params: ["(" + register + ")"],
+                        tokens: ["(", register, ")"],
                         isPseudo: true,
                     });
                 }

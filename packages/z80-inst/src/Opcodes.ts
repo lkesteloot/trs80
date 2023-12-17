@@ -33811,6 +33811,36 @@ const variant_DD_E9: OpcodeVariant = {
   }
 };
 
+// jp (ix)
+const variant_DD_E9_pseudo: OpcodeVariant = {
+  "mnemonic": "jp",
+  "params": [
+    "(ix)"
+  ],
+  "tokens": [
+    "(",
+    "ix",
+    ")"
+  ],
+  "opcodes": [
+    221,
+    233
+  ],
+  "isPseudo": true,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "DDE9",
+    "undocumented": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Loads the value of IX into PC.",
+    "instruction": "jp (ix)",
+    "used": true
+  }
+};
+
 // jp po,nnnn
 const variant_E2_nnnn: OpcodeVariant = {
   "mnemonic": "jp",
@@ -34067,6 +34097,36 @@ const variant_FD_E9: OpcodeVariant = {
     233
   ],
   "isPseudo": false,
+  "isAlias": false,
+  "clr": {
+    "opcodes": "FDE9",
+    "undocumented": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Loads the value of IY into PC.",
+    "instruction": "jp (iy)",
+    "used": true
+  }
+};
+
+// jp (iy)
+const variant_FD_E9_pseudo: OpcodeVariant = {
+  "mnemonic": "jp",
+  "params": [
+    "(iy)"
+  ],
+  "tokens": [
+    "(",
+    "iy",
+    ")"
+  ],
+  "opcodes": [
+    253,
+    233
+  ],
+  "isPseudo": true,
   "isAlias": false,
   "clr": {
     "opcodes": "FDE9",
@@ -51828,6 +51888,7 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_D2_nnnn, // jp nc,nnnn
       variant_DA_nnnn, // jp c,nnnn
       variant_DD_E9, // jp ix
+      variant_DD_E9_pseudo, // jp (ix)
       variant_E2_nnnn, // jp po,nnnn
       variant_E2_nnnn_pseudo, // jp nv,nnnn
       variant_E9, // jp hl
@@ -51837,6 +51898,7 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_F2_nnnn, // jp p,nnnn
       variant_FA_nnnn, // jp m,nnnn
       variant_FD_E9, // jp iy
+      variant_FD_E9_pseudo, // jp (iy)
     ],
   ],
   [
