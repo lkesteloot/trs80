@@ -178,6 +178,13 @@ describe("assemble", () => {
             { line: " inc (ix-5)", opcodes: [0xDD, 0x34, 0xFB] },
         ]);
     });
+
+    // Expression starting with negative sign. (Must not parse as "ix-(5+2)".)
+    it("inc (ix-5+2)", () => {
+        runTest([
+            { line: " inc (ix-5+2)", opcodes: [0xDD, 0x34, 0xFD] },
+        ]);
+    });
 });
 
 describe("expressions", () => {
