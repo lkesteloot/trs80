@@ -8,6 +8,16 @@ const FLAGS = new Set([
     "v", "nv", // Aliases for pe and po.
 ]);
 
+/**
+ * Regular expressions to match various token types.
+ */
+const SYMBOL_RE = /^(?:<<|>>|<>|&&|==|!=|<=|>=|\|\||[-$~+*/^%!()&|?:,;'"=<>#])/;
+const IDENTIFIER_RE = /^[a-zA-Z_][a-zA-Z0-9_]*/;
+const TOKEN_RE_LIST = [
+    { re: SYMBOL_RE, type: "symbol" },
+    { re: IDENTIFIER_RE, type: "identifier" },
+];
+
 // Whether the specified character counts as horizontal whitespace.
 function isWhitespace(c: string): boolean {
     return c === " " || c === "\t";
@@ -33,6 +43,21 @@ export function parseDigit(ch: string, base: number): number | undefined {
                 : undefined;
 
     return value === undefined || value >= base ? undefined : value;
+}
+
+/**
+ * Return the token at the position in the string, or undefined if none is found.
+ */
+function tokenAt(s: string, pos: number): string | undefined {
+    s = s.substring(pos);
+    for (const {re, type} of TOKEN_RE_LIST) {
+        const m = re.exec(s);
+        if (m !== null) {
+            return m[0];
+        }
+    }
+
+    return undefined;
 }
 
 export class Tokenizer {
@@ -107,8 +132,9 @@ export class Tokenizer {
     /**
      * Whether the next part of the line matches the passed-in string. Does not advance.
      */
-    public matches(s: string): boolean {
-        return this.line.startsWith(s, this.column);
+    public matches(expectedToken: string): boolean {
+        const actualToken = tokenAt(this.line, this.column);
+        return actualToken !== undefined && actualToken.toLowerCase() === expectedToken;
     }
 
     /**

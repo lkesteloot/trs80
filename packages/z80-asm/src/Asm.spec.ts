@@ -229,10 +229,6 @@ describe("expressions", () => {
         [ '-$', -0x1234 ],
 
         // Operators.
-        [ '2 << 3', 16 ],
-        [ '16 >> 3', 2 ],
-        [ '2 shl 3', 16 ],
-        [ '16 shr 3', 2 ],
         [ 'lo(0x1234)', 0x34 ],
         [ 'low(0x1234)', 0x34 ],
         [ 'low 0x1234', 0x34 ],
@@ -240,6 +236,74 @@ describe("expressions", () => {
         [ 'high(0x1234)', 0x12 ],
         [ 'high 0x1234', 0x12 ],
         [ '(high 0x1234) shr 3', 0x02 ],
+
+        // Arithmetic operators
+        ['2 + 3', 5],
+        ['5 - 2', 3],
+        ['4 * 6', 24],
+        ['8 / 2', 4],
+        ['-3 / 2', -1], // truncate
+        ['7 % 3', 1],
+        ['7 mod 3', 1], // zmac syntax
+        ['7 Mod 3', 1], // zmac syntax (case-insensitive)
+
+        // Bitwise operators
+        ['2 & 3', 2],
+        ['2 and 3', 2], // zmac syntax
+        ['5 | 3', 7],
+        ['5 or 3', 7], // zmac syntax
+        ['6 ^ 3', 5],
+        ['6 xor 3', 5], // zmac syntax
+        ['~2', -3],
+        ['2 << 3', 16],
+        ['2 shl 3', 16], // zmac syntax
+        ['8 >> 2', 2],
+        ['8 shr 2', 2], // zmac syntax
+
+        // Relational operators
+        ['2 < 3', 1],
+        ['2 lt 3', 1], // zmac syntax
+        ['5 <= 3', 0],
+        ['5 le 3', 0], // zmac syntax
+        ['4 > 6', 0],
+        ['4 gt 6', 0], // zmac syntax
+        ['8 >= 2', 1],
+        ['8 ge 2', 1], // zmac syntax
+
+        // Equality operators
+        ['2 == 3', 0],
+        ['2 = 3', 0], // zmac syntax
+        ['2 eq 3', 0], // zmac syntax
+        ['5 != 3', 1],
+        ['5 <> 3', 1], // zmac syntax
+        ['5 ne 3', 1], // zmac syntax
+
+        // Logical operators
+        ['1 && 0', 0],
+        ['1 || 0', 1],
+
+        // Conditional (Ternary) operator
+        ['2 > 3 ? 4 : 5', 5],
+
+        // Complex expressions with various operators and parentheses
+        ['2 + 3 * 4', 14],
+        ['(2 + 3) * 4', 20],
+        ['2 * 3 + 4', 10],
+        ['2 * (3 + 4)', 14],
+        ['8 / 2 + 3', 7],
+        ['8 / (2 + 3)', 1],
+        ['2 + 3 % 2', 3],
+        ['(2 + 3) % 2', 1],
+        ['2 << 3 + 1', 32],
+        ['(2 << 3) + 1', 17],
+        ['2 & 3 | 1', 3],
+        ['2 ^ 3 & 1', 3],
+        ['1 | 2 & 3', 3],
+        ['~(2 | 3) & 0x0F', 12],
+        ['2 == 3 && 4 != 5', 0],
+        ['(2 == 3) || (4 != 5)', 1],
+        ['2 > 3 ? 4 + 5 : 6 * 7', 42],
+        ['(2 > 3 ? 4 : 5) + 6', 11],
     ];
 
     for (const test of tests) {
@@ -267,7 +331,7 @@ function runMacroTest(testLines: string | string[], expectedOpcodes: number[]): 
     const opcodes: number[] = [];
     for (const assembledLine of asm.assembledLines) {
         if (assembledLine.error !== undefined) {
-            throw new Error(assembledLine.error);
+            throw new Error(assembledLine.error + " in line: " + assembledLine.line);
         }
         opcodes.push(... assembledLine.binary);
     }
@@ -375,6 +439,39 @@ foo     macro #abc
         foo <a,(hl)>`,
             [0x3E, 0x05, 0x7E]);
     });
+    it("if in macro", ()=>{
+        runMacroTest([
+            "foo macro p",
+            "    if &p>0",
+            "     ld hl,0",
+            "    else",
+            "     ld de,0",
+            "    endif",
+            "    endm",
+            "    foo 10",
+            "    foo 0",
+        ], [0x21, 0x00, 0x00, 0x11, 0x00, 0x00]);
+    })
+    /*
+    it("rept in macro", ()=>{
+        runMacroTest([
+            "incs macro &n",
+            "     rept &n",
+            "      inc hl",
+            "     endm",
+            "    endm",
+            "    incs 5",
+        ], [0x23, 0x23, 0x23, 0x23, 0x23]);
+    })
+    it("macro arg concat", ()=>{
+        runMacroTest([
+            "test macro &aa, &bb",
+            "     ld a, &aa.&bb",
+            "    endm",
+            "    foo.bar equ 5",
+            "    test foo, bar",
+        ], [0x3e, 0x05]);
+    })*/
 });
 
 console.log(successCount + " successful out of " + testCount);

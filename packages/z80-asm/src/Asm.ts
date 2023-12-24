@@ -1784,11 +1784,230 @@ class LineParser {
             return undefined;
         }
 
-        return this.readSum();
+        return this.readTernary();
+    }
+
+    private readTernary(): number | undefined {
+        const condition = this.readLogicalOr();
+        if (condition === undefined) {
+            return undefined;
+        }
+        if (this.tokenizer.found("?")) {
+            const thenValue = this.readTernary();
+            if (thenValue === undefined) {
+                return undefined;
+            }
+            if (!this.tokenizer.found(":")) {
+                return undefined;
+            }
+            const elseValue = this.readTernary();
+            if (elseValue === undefined) {
+                return undefined;
+            }
+
+            return condition ? thenValue : elseValue;
+        }
+
+        return condition;
+    }
+
+    private readLogicalOr(): number | undefined {
+        let value = this.readLogicalAnd();
+        if (value !== undefined) {
+            while (this.tokenizer.foundAnyOf(['||'])) {
+                const subValue = this.readLogicalAnd();
+                if (subValue === undefined) {
+                    return undefined;
+                }
+
+                value ||= subValue;
+            }
+        }
+
+        return value;
+    }
+
+    private readLogicalAnd(): number | undefined {
+        let value = this.readBitwiseOr();
+        if (value !== undefined) {
+            while (this.tokenizer.foundAnyOf(['&&'])) {
+                const subValue = this.readBitwiseOr();
+                if (subValue === undefined) {
+                    return undefined;
+                }
+
+                value &&= subValue;
+            }
+        }
+
+        return value;
+    }
+
+    private readBitwiseOr(): number | undefined {
+        let value = this.readBitwiseXor();
+        if (value !== undefined) {
+            while (this.tokenizer.foundAnyOf(['|', "or"])) {
+                const subValue = this.readBitwiseXor();
+                if (subValue === undefined) {
+                    return undefined;
+                }
+
+                value |= subValue;
+            }
+        }
+
+        return value;
+    }
+
+    private readBitwiseXor(): number | undefined {
+        let value = this.readBitwiseAnd();
+        if (value !== undefined) {
+            while (this.tokenizer.foundAnyOf(['^', "xor"])) {
+                const subValue = this.readBitwiseAnd();
+                if (subValue === undefined) {
+                    return undefined;
+                }
+
+                value ^= subValue;
+            }
+        }
+
+        return value;
+    }
+
+    private readBitwiseAnd(): number | undefined {
+        let value = this.readEquality();
+        if (value !== undefined) {
+            while (this.tokenizer.foundAnyOf(['&', "and"])) {
+                const subValue = this.readEquality();
+                if (subValue === undefined) {
+                    return undefined;
+                }
+
+                value &= subValue;
+            }
+        }
+
+        return value;
+    }
+
+    private readEquality(): number | undefined {
+        let value = 0;
+        let op: "==" | "!=" | undefined = undefined;
+
+        while (true) {
+            const subValue = this.readInequality();
+            if (subValue === undefined) {
+                return undefined;
+            }
+            switch (op) {
+                case "==":
+                    value = value == subValue ? 1 : 0;
+                    break;
+
+                case "!=":
+                    value = value != subValue ? 1 : 0;
+                    break;
+
+                case undefined:
+                    value = subValue;
+                    break;
+            }
+
+            if (this.tokenizer.foundAnyOf(["==", "=", "eq"])) {
+                op = "==";
+            } else if (this.tokenizer.foundAnyOf(["!=", "<>", "ne"])) {
+                op = "!=";
+            } else {
+                break;
+            }
+        }
+
+        return value;
+    }
+
+    private readInequality(): number | undefined {
+        let value = 0;
+        let op: "<" | "<=" | ">" | ">=" | undefined = undefined;
+
+        while (true) {
+            const subValue = this.readShift();
+            if (subValue === undefined) {
+                return undefined;
+            }
+            switch (op) {
+                case "<":
+                    value = value < subValue ? 1 : 0;
+                    break;
+
+                case "<=":
+                    value = value <= subValue ? 1 : 0;
+                    break;
+
+                case ">":
+                    value = value > subValue ? 1 : 0;
+                    break;
+
+                case ">=":
+                    value = value >= subValue ? 1 : 0;
+                    break;
+
+                case undefined:
+                    value = subValue;
+                    break;
+            }
+
+            if (this.tokenizer.foundAnyOf(["<", "lt"])) {
+                op = "<";
+            } else if (this.tokenizer.foundAnyOf(["<=", "le"])) {
+                op = "<=";
+            } else if (this.tokenizer.foundAnyOf([">", "gt"])) {
+                op = ">";
+            } else if (this.tokenizer.foundAnyOf([">=", "ge"])) {
+                op = ">=";
+            } else {
+                break;
+            }
+        }
+
+        return value;
     }
 
     /**
-     * Read a sum, or undefined if there was an error reading it.
+     * Read a shift (<< and >>) expression, or undefined if there was an error reading it.
+     */
+    private readShift(): number | undefined {
+        let value = 0;
+        let op: "<<" | ">>" | undefined = undefined;
+
+        while (true) {
+            const subValue = this.readSum();
+            if (subValue === undefined) {
+                return undefined;
+            }
+
+            if (op === "<<") {
+                value <<= subValue;
+            } else if (op === ">>") {
+                value >>= subValue;
+            } else {
+                value = subValue;
+            }
+
+            if (this.tokenizer.foundIdentifier("shl", true) || this.tokenizer.found("<<")) {
+                op = "<<";
+            } else if (this.tokenizer.foundIdentifier("shr", true) || this.tokenizer.found(">>")) {
+                op = ">>";
+            } else {
+                break;
+            }
+        }
+
+        return value;
+    }
+
+    /**
+     * Read a term (+, -), or undefined if there was an error reading it.
      */
     private readSum(): number | undefined {
         let value = 0;
@@ -1814,99 +2033,39 @@ class LineParser {
     }
 
     /**
-     * Read a product, or undefined if there was an error reading it.
+     * Read a factor (*, /, %), or undefined if there was an error reading it.
      */
     private readProduct(): number | undefined {
         let value = 1;
-        let isMultiply = true;
-
-        while (true) {
-            const subValue = this.readLogic();
-            if (subValue === undefined) {
-                return undefined;
-            }
-            if (isMultiply) {
-                value *= subValue;
-            } else {
-                value /= subValue;
-            }
-
-            if (this.tokenizer.found('*')) {
-                isMultiply = true;
-            } else if (this.tokenizer.found('/')) {
-                isMultiply = false;
-            } else {
-                break;
-            }
-        }
-
-        return value;
-    }
-
-    /**
-     * Read a logic (&, |, and ^) expression, or undefined if there was an error reading it.
-     */
-    private readLogic(): number | undefined {
-        let value = 0;
-        let op = "";
-
-        while (true) {
-            const subValue = this.readShift();
-            if (subValue === undefined) {
-                return undefined;
-            }
-
-            if (op === "&") {
-                value &= subValue;
-            } else if (op === "|") {
-                value |= subValue;
-            } else if (op === "^") {
-                value ^= subValue;
-            } else {
-                value = subValue;
-            }
-
-            const ch = this.tokenizer.foundAnyOf(["&", "|", "^"]);
-            if (ch !== undefined) {
-                op = ch;
-            } else {
-                break;
-            }
-        }
-
-        return value;
-    }
-
-    /**
-     * Read a shift (<< and >>) expression, or undefined if there was an error reading it.
-     */
-    private readShift(): number | undefined {
-        let value = 0;
-        let op: string | undefined = undefined;
+        let op: "*" | "/" | "%" = "*";
 
         while (true) {
             const subValue = this.readMonadic();
             if (subValue === undefined) {
                 return undefined;
             }
+            switch (op) {
+                case "*":
+                    value *= subValue;
+                    break;
 
-            if (op === "<<") {
-                value <<= subValue;
-            } else if (op === ">>") {
-                value >>= subValue;
-            } else {
-                value = subValue;
+                case "/":
+                    value = Math.trunc(value / subValue);
+                    break;
+
+                case "%":
+                    value %= subValue;
+                    break;
             }
 
-            if (this.tokenizer.foundIdentifier("shl", true)) {
-                op = "<<";
-            } else if (this.tokenizer.foundIdentifier("shr", true)) {
-                op = ">>";
+            if (this.tokenizer.found('*')) {
+                op = "*";
+            } else if (this.tokenizer.found('/')) {
+                op = "/";
+            } else if (this.tokenizer.foundAnyOf(['%', 'mod'])) {
+                op = "%";
             } else {
-                op = this.tokenizer.foundAnyOf(["<<", ">>"]);
-                if (op === undefined) {
-                    break;
-                }
+                break;
             }
         }
 
