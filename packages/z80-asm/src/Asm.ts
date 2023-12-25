@@ -879,18 +879,27 @@ class LineParser {
         let symbolColumn = 0;
         let label = this.tokenizer.readIdentifier(false, false);
         let labelIsGlobal = false;
+        let mnemonic: string | undefined = undefined;
+        let mnemonicColumn = 0;
         if (label !== undefined) {
-            if (this.tokenizer.found(':')) {
+            if (this.tokenizer.identifierColumn === 0) {
                 if (this.tokenizer.found(':')) {
-                    // Double colons indicate global symbols (not local to #local).
-                    labelIsGlobal = true;
+                    if (this.tokenizer.found(':')) {
+                        // Double colons indicate global symbols (not local to #local).
+                        labelIsGlobal = true;
+                    }
                 }
-            }
 
-            // By default assign it to current address, but can be overwritten
-            // by .equ below.
-            labelValue = thisAddress;
-            symbolColumn = this.tokenizer.identifierColumn;
+                // By default assign it to current address, but can be overwritten
+                // by .equ below.
+                labelValue = thisAddress;
+                symbolColumn = this.tokenizer.identifierColumn;
+            } else {
+                // It's a mnemonic.
+                mnemonic = label;
+                mnemonicColumn = this.tokenizer.identifierColumn;
+                label = undefined;
+            }
         }
 
         // Ignore labels on disabled lines. (We have to parse them above though.)
@@ -899,9 +908,10 @@ class LineParser {
             labelValue = undefined;
         }
 
-        this.tokenizer.skipWhitespace();
-        let mnemonic = this.tokenizer.readIdentifier(false, true);
-        let mnemonicColumn = this.tokenizer.identifierColumn;
+        if (mnemonic === undefined) {
+            mnemonic = this.tokenizer.readIdentifier(false, true);
+            mnemonicColumn = this.tokenizer.identifierColumn;
+        }
         if (mnemonic === undefined) {
             // Special check for "=", which is the same as "defl".
             const column = this.tokenizer.column;
@@ -1294,6 +1304,7 @@ class LineParser {
             return undefined;
         }
         const identifierColumn = this.tokenizer.identifierColumn;
+        const identifierTokenIndex = this.tokenizer.tokenIndex; // TODO wrong, want identifier token column.
 
         let value: string | undefined = undefined;
 
@@ -1328,6 +1339,7 @@ class LineParser {
         if (value === undefined) {
             // Back up, it wasn't for us.
             this.tokenizer.column = identifierColumn;
+            this.tokenizer.tokenIndex = identifierTokenIndex;
         }
 
         return value;
@@ -1337,7 +1349,8 @@ class LineParser {
     private ensureEndOfLine(): void {
         const endOfLine = this.tokenizer.ensureEndOfLine();
         if (!endOfLine && this.assembledLine.error === undefined) {
-            this.assembledLine.error = "syntax error";
+            this.assembledLine.error = "syntax error at column " + this.tokenizer.column +
+                " (\"" + this.tokenizer.line.substring(this.tokenizer.column) + "\")" + this.tokenizer.tokenIndex;
         }
     }
 
@@ -1529,16 +1542,12 @@ class LineParser {
                 // Pass 1, expand macro.
 
                 // Parse arguments.
-                const args: string[] = [];
-                if (!this.tokenizer.isEndOfLine()) {
-                    do {
-                        try {
-                            args.push(this.tokenizer.readMacroArg());
-                        } catch (e: any) {
-                            this.assembledLine.error = e.message;
-                            return;
-                        }
-                    } while (this.tokenizer.found(","));
+                let args: string[];
+                try {
+                    args = this.tokenizer.readMacroArgs();
+                } catch (e: any) {
+                    this.assembledLine.error = e.message;
+                    return;
                 }
 
                 // Make sure we got the right number.
@@ -1580,6 +1589,7 @@ class LineParser {
             }
         } else {
             const argStart = this.tokenizer.column;
+            const argStartIndex = this.tokenizer.tokenIndex;
             let match = false;
 
             for (const variant of mnemonicInfo) {
@@ -1711,6 +1721,7 @@ class LineParser {
                 } else {
                     // Reset reader and try another variant.
                     this.tokenizer.column = argStart;
+                    this.tokenizer.tokenIndex = argStartIndex;
                 }
             }
 
@@ -2062,7 +2073,7 @@ class LineParser {
                 op = "*";
             } else if (this.tokenizer.found('/')) {
                 op = "/";
-            } else if (this.tokenizer.foundAnyOf(['%', 'mod'])) {
+            } else if (this.tokenizer.foundAnyOf(['%', "mod"])) {
                 op = "%";
             } else {
                 break;

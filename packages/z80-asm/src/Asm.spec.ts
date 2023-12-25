@@ -1,6 +1,6 @@
-
-import { expect } from "chai";
-import {Asm, FileSystem, SourceFile} from "./Asm";
+import {expect} from "chai";
+import {Asm, FileSystem} from "./Asm";
+import {Tokenizer} from "./Tokenizer";
 
 // I can't get mocha to work with TypeScript and ESM, so just provide their
 // functions.
@@ -16,6 +16,43 @@ function describe(name: string, f: () => void): void {
     }
 }
 const it = describe;
+
+// Test tokenizer.
+describe("tokenizer", () => {
+   it("simple identifier", () => {
+       const tokenizer = new Tokenizer("a");
+       expect(tokenizer.matches("a")).to.be.true;
+       expect(tokenizer.matches("b")).to.be.false;
+    });
+    it("simple identifiers", () => {
+        const tokenizer = new Tokenizer("a b c");
+        expect(tokenizer.found("a")).to.be.true;
+        expect(tokenizer.found("b")).to.be.true;
+        expect(tokenizer.found("c")).to.be.true;
+        expect(tokenizer.found("d")).to.be.false;
+    });
+    it("all token types", () => {
+        const tokenizer = new Tokenizer("a + 20 <= \"abc\" ; yeah");
+        expect(tokenizer.found("a")).to.be.true;
+        expect(tokenizer.found("+")).to.be.true;
+        expect(tokenizer.found("20")).to.be.true;
+        expect(tokenizer.found("<=")).to.be.true;
+        expect(tokenizer.found("\"abc\"")).to.be.true;
+        expect(tokenizer.isEndOfLine()).to.be.false;
+        expect(tokenizer.found("; yeah")).to.be.true;
+        expect(tokenizer.found("; yeah")).to.be.false;
+        expect(tokenizer.isEndOfLine()).to.be.true;
+    });
+    it("identifiers with dots", () => {
+        const tokenizer = new Tokenizer("abc .abc . ab.cd");
+        expect(tokenizer.found("abc")).to.be.true;
+        expect(tokenizer.found(".abc")).to.be.true;
+        expect(tokenizer.found(".")).to.be.false;
+        tokenizer.tokenIndex += 1;
+        expect(tokenizer.found("ab")).to.be.true;
+        expect(tokenizer.found(".cd")).to.be.true;
+    });
+});
 
 interface TestLine {
     line: string;
@@ -203,7 +240,7 @@ describe("expressions", () => {
         [ '0B1H', 0xB1 ], // Looks like 0x start.
 
         // Binary.
-        [ '%1010', 0b1010 ],
+        // [ '%1010', 0b1010 ], // See SUPPORT_PERCENT_BINARY
         [ '0b1010', 0b1010 ],
         [ '1010B', 0b1010 ],
 
@@ -225,7 +262,7 @@ describe("expressions", () => {
         [ '-0ABH', -0xAB ],
         [ '-1010B', -0b1010 ],
         [ '-$AB', -0xAB ],
-        [ '-%1010', -0b1010 ],
+        // [ '-%1010', -0b1010 ], // See SUPPORT_PERCENT_BINARY
         [ '-$', -0x1234 ],
 
         // Operators.
@@ -311,10 +348,9 @@ describe("expressions", () => {
         const expected = test[1];
 
         it("parsing " + input, () => {
-            const line = "foo .equ " + input;
             const asm = runTest([
                 { line: " .org 0x1234" },
-                { line: line },
+                { line: "foo .equ " + input },
             ]);
 
             expect(asm.scopes[0].get("foo")?.value).to.be.equal(expected);
