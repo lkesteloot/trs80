@@ -413,6 +413,7 @@ export class Tokenizer {
     // Advance the parser to the end of the line.
     public skipToEndOfLine(): void {
         this.column = this.line.length;
+        this.tokenIndex = this.tokens.length;
     }
 
     // Return all the text on the rest of the line.
@@ -424,7 +425,7 @@ export class Tokenizer {
 
     // Whether we're at a comment or the end of the line. Assumes we've already skipped whitespace.
     public isEndOfLine(): boolean {
-        return this.matches(";") || this.column === this.line.length;
+        return this.tokenIndex === this.tokens.length || this.tokens[this.tokenIndex].tag === "comment";
     }
 
     /**
@@ -432,11 +433,10 @@ export class Tokenizer {
      */
     public ensureEndOfLine(): boolean {
         // Check for comment.
-        if (this.matches(';')) {
-            // Skip rest of line.
-            this.column = this.line.length;
+        while (this.tokenIndex < this.tokens.length && this.tokens[this.tokenIndex].tag === "comment") {
+            this.tokenIndex += 1;
         }
-        return this.column == this.line.length;
+        return this.tokenIndex === this.tokens.length;
     }
 
     /**
@@ -571,6 +571,21 @@ export class Tokenizer {
      * If found the beginning of a string but not the end, throws an Error.
      */
     public readString(): string | undefined {
+        if (this.tokenIndex >= this.tokens.length) {
+            return undefined;
+        }
+        const token = this.tokens[this.tokenIndex];
+        if (token.error !== undefined || token.tag !== "string") {
+            return undefined;
+        }
+
+        this.tokenIndex += 1;
+        this.column = token.end;
+        this.skipWhitespace();
+        if (2 < 3) {
+            return token.value;
+        }
+
         // Find beginning of string.
         if (this.column === this.line.length || (this.line[this.column] !== '"' && this.line[this.column] !== "'")) {
             return undefined;

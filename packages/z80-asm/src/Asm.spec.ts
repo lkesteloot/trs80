@@ -38,7 +38,6 @@ describe("tokenizer", () => {
         expect(tokenizer.found("20")).to.be.true;
         expect(tokenizer.found("<=")).to.be.true;
         expect(tokenizer.found("\"abc\"")).to.be.true;
-        expect(tokenizer.isEndOfLine()).to.be.false;
         expect(tokenizer.found("; yeah")).to.be.true;
         expect(tokenizer.found("; yeah")).to.be.false;
         expect(tokenizer.isEndOfLine()).to.be.true;
@@ -92,6 +91,15 @@ function runTest(testLines: TestLine[]): Asm {
 }
 
 describe("assemble", () => {
+    it("comment", () => {
+        runTest([
+            { line: " ; hello!", opcodes: [] },
+        ]);
+        runTest([
+            { line: " nop ; hello!", opcodes: [0] },
+        ]);
+    });
+
     it("nop", () => {
         runTest([
             { line: " nop", opcodes: [0] },
@@ -220,6 +228,13 @@ describe("assemble", () => {
     it("inc (ix-5+2)", () => {
         runTest([
             { line: " inc (ix-5+2)", opcodes: [0xDD, 0x34, 0xFD] },
+        ]);
+    });
+
+    // Data pseudo-mnemonics.
+    it(" .text 'ABC'", () => {
+        runTest([
+            { line: " .text 'ABC'", opcodes: [0x41, 0x42, 0x43] },
         ]);
     });
 });
