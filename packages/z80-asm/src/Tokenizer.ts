@@ -17,7 +17,7 @@ const FLAGS = new Set([
  * Regular expressions to match various token types.
  */
 const SYMBOL_RE = /^(?:<<|>>|<>|&&|==|!=|<=|>=|\|\||[-$~+*/^%!()&|?:,=<>#])/;
-const IDENTIFIER_RE = /^\.?[a-zA-Z_][a-zA-Z0-9_]*/;
+const IDENTIFIER_RE = /^(?:af'|\.?[a-z_][a-z0-9_]*)/i;
 
 // Whether the specified character counts as horizontal whitespace.
 function isWhitespace(c: string): boolean {
@@ -320,7 +320,7 @@ function tokenAt(s: string, pos: number): Token {
         };
     }
 
-    // Identifiers like "main" and "mod".
+    // Identifiers like "main", operators like "mod", and registers like "hl".
     m = IDENTIFIER_RE.exec(s);
     if (m !== null) {
         return {

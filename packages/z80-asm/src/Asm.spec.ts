@@ -57,6 +57,11 @@ describe("tokenizer", () => {
         expect(tokenizer.found("chkx")).to.be.true;
         expect(tokenizer.isEndOfLine()).to.be.true;
     });
+    it("af' register", () => {
+        const tokenizer = new Tokenizer("af'");
+        expect(tokenizer.found("af'")).to.be.true;
+        expect(tokenizer.isEndOfLine()).to.be.true;
+    })
 });
 
 interface TestLine {
@@ -265,6 +270,14 @@ describe("assemble", () => {
             { line: "xyz equ 255", opcodes: [] },
             { line: "abc db 255", opcodes: [0xFF] },
             { line: "def db xyz", opcodes: [0xFF] },
+        ]);
+    });
+
+    it("handling of af'", () => {
+        runTest([
+            { line: " ex af,af'", opcodes: [0x08] },
+            { line: " push af", opcodes: [0xF5] },
+            { line: " push af'", error: true },
         ]);
     });
 });
