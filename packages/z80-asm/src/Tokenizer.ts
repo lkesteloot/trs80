@@ -128,8 +128,8 @@ function readNumericLiteral(s: string): { value: number, end: number, error: str
     }
 
     // Before we parse the number, we need to look ahead to see
-    // if it ends with H, like 0FFH.
-    if (base === 10) {
+    // if it ends with H, like 0FFH. Must start with decimal digit.
+    if (base === 10 && parseDigit(s[pos], 10) !== undefined) {
         const saveColumn = pos;
         while (pos < s.length && parseDigit(s[pos], 16) !== undefined) {
             pos++;

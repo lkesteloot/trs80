@@ -880,7 +880,7 @@ class LineParser {
         let label = this.tokenizer.readIdentifier(false, false);
         let labelIsGlobal = false;
         let mnemonic: string | undefined = undefined;
-        let mnemonicColumn = 0;
+        let mnemonicColumn = 0; // TODO Delete?
         if (label !== undefined) {
             if (this.tokenizer.identifierColumn === 0) {
                 if (this.tokenizer.found(':')) {

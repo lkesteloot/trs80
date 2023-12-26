@@ -51,6 +51,12 @@ describe("tokenizer", () => {
         expect(tokenizer.found("ab")).to.be.true;
         expect(tokenizer.found(".cd")).to.be.true;
     });
+    it("hex number in identifier", () => {
+        // We used to mis-parse "CHKX" as the hex number "CH".
+        const tokenizer = new Tokenizer("CHKX");
+        expect(tokenizer.found("chkx")).to.be.true;
+        expect(tokenizer.isEndOfLine()).to.be.true;
+    });
 });
 
 interface TestLine {
@@ -110,8 +116,22 @@ describe("assemble", () => {
         const asm = runTest([
             { line: " .org 5" },
             { line: "main" },
+            { line: " nop", opcodes: [0x00] },
+            { line: " jp main", opcodes: [0xC3, 0x05, 0x00] }
         ]);
         expect(asm.scopes[0].get("main")?.value).to.equal(5);
+
+    });
+
+    it("uppercase label", () => {
+        const asm = runTest([
+            { line: " .org 5" },
+            { line: " nop", opcodes: [0x00] },
+            { line: "CHKX" },
+            { line: " nop", opcodes: [0x00] },
+            { line: " jp CHKX", opcodes: [0xC3, 0x06, 0x00] }
+        ]);
+        expect(asm.scopes[0].get("CHKX")?.value).to.equal(6);
     });
 
     it("label w/colon", () => {
