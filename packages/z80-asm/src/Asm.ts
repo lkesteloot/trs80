@@ -876,29 +876,32 @@ class LineParser {
         }
 
         // Look for label in column 1.
-        let symbolColumn = 0;
-        let label = this.tokenizer.readIdentifier(false, true);
+        let label: string | undefined;
+        let labelColumn = 0;
         let labelIsGlobal = false;
         let mnemonic: string | undefined = undefined;
-        let mnemonicColumn = 0; // TODO Delete?
-        if (label !== undefined) {
-            if (this.tokenizer.identifierColumn === 0) {
+        let identifierInfo = this.tokenizer.readIdentifier(false, true);
+        if (identifierInfo !== undefined) {
+            const identifierColumn = identifierInfo.column;
+            if (identifierColumn === 0) {
+                // This is a label.
+                label = identifierInfo.name;
+                labelColumn = identifierColumn;
+
+                // By default assign it to current address, but can be overwritten
+                // by .equ below.
+                labelValue = thisAddress;
+
+                // Parse optional colons.
                 if (this.tokenizer.found(':')) {
                     if (this.tokenizer.found(':')) {
                         // Double colons indicate global symbols (not local to #local).
                         labelIsGlobal = true;
                     }
                 }
-
-                // By default assign it to current address, but can be overwritten
-                // by .equ below.
-                labelValue = thisAddress;
-                symbolColumn = this.tokenizer.identifierColumn;
             } else {
                 // It's a mnemonic.
-                mnemonic = label;
-                mnemonicColumn = this.tokenizer.identifierColumn;
-                label = undefined;
+                mnemonic = identifierInfo.name;
             }
         }
 
@@ -909,18 +912,19 @@ class LineParser {
         }
 
         if (mnemonic === undefined) {
-            mnemonic = this.tokenizer.readIdentifier(false, true);
-            mnemonicColumn = this.tokenizer.identifierColumn;
+            identifierInfo = this.tokenizer.readIdentifier(false, true);
+            if (identifierInfo !== undefined && identifierInfo.column > 0) {
+                mnemonic = identifierInfo.name;
+            }
         }
         if (mnemonic === undefined) {
             // Special check for "=", which is the same as "defl".
             const column = this.tokenizer.getCurrentToken()?.begin ?? 0;
-            if (this.tokenizer.found("=")) {
+            if (column > 0 && this.tokenizer.found("=")) {
                 mnemonic = "=";
-                mnemonicColumn = column;
             }
         }
-        if (mnemonic !== undefined && mnemonicColumn > 0) {
+        if (mnemonic !== undefined) {
             // We must parse the if/else/endif ones specially since they're only partially
             // affected by whether this line is enabled.
             if (PSEUDO_IF.has(mnemonic)) {
@@ -1134,7 +1138,7 @@ class LineParser {
                     label = undefined;
                     tag = "&";
                 } else {
-                    name = this.tokenizer.readIdentifier(true, false);
+                    name = this.tokenizer.readIdentifier(true, false)?.name;
                     if (name === undefined) {
                         this.assembledLine.error = "must specify name of macro";
                         return;
@@ -1186,7 +1190,7 @@ class LineParser {
                                 return;
                             }
 
-                            const param = this.tokenizer.readIdentifier(true, false);
+                            const param = this.tokenizer.readIdentifier(true, false)?.name;
                             if (param === undefined) {
                                 this.assembledLine.error = "expected macro parameter name";
                                 return;
@@ -1218,7 +1222,7 @@ class LineParser {
                         const lineParser = new LineParser(this.pass, assembledLine);
                         // TODO check to make sure macro doesn't contain a # directive, unless the tag is
                         // # and the directive is one of the param names.
-                        const token = lineParser.tokenizer.readIdentifier(false, true);
+                        const token = lineParser.tokenizer.readIdentifier(false, true)?.name;
                         if (token !== undefined && PSEUDO_ENDM.has(token)) {
                             endmListingLineNumber = assembledLine.listingLineNumber;
                             break;
@@ -1290,7 +1294,7 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 symbolInfo.definitions.push(new SymbolAppearance(
-                    symbolInfo, this.assembledLine, symbolColumn, symbolInfo.definitions.length));
+                    symbolInfo, this.assembledLine, labelColumn, symbolInfo.definitions.length));
             }
         }
     }
@@ -1352,7 +1356,7 @@ class LineParser {
             // Logic error.
             throw new Error("did not find # for directive");
         }
-        const directive = this.tokenizer.readIdentifier(true, true);
+        const directive = this.tokenizer.readIdentifier(true, true)?.name;
         if (directive === undefined || directive === "") {
             this.assembledLine.error = "must specify directive after #";
             return;
@@ -1360,7 +1364,7 @@ class LineParser {
 
         switch (directive) {
             case "target":
-                const target = this.tokenizer.readIdentifier(false, true);
+                const target = this.tokenizer.readIdentifier(false, true)?.name;
                 if (target === "bin" || target === "rom") {
                     this.pass.target = target;
                 } else {
@@ -1374,7 +1378,7 @@ class LineParser {
                 break;
 
             case "code":
-                const segmentName = this.tokenizer.readIdentifier(true, false);
+                const segmentName = this.tokenizer.readIdentifier(true, false)?.name;
                 if (segmentName === undefined) {
                     this.assembledLine.error = "segment name expected";
                 } else if (this.tokenizer.found(',')) {
@@ -1399,7 +1403,7 @@ class LineParser {
                 break;
 
             case "include": {
-                const token = this.tokenizer.readIdentifier(false, true);
+                const token = this.tokenizer.readIdentifier(false, true)?.name;
                 if (token === "library") {
                     const dir = this.readString();
                     if (dir === undefined) {
@@ -1644,7 +1648,7 @@ class LineParser {
                         }
                     } else {
                         // Register or flag.
-                        const identifier = this.tokenizer.readIdentifier(true, true);
+                        const identifier = this.tokenizer.readIdentifier(true, true)?.name;
                         if (identifier !== token) {
                             match = false;
                         }
@@ -2123,7 +2127,7 @@ class LineParser {
 
         // Try identifier.
         const tokenColumn = this.tokenizer.getCurrentToken()?.begin ?? 0;
-        const identifier = this.tokenizer.readIdentifier(false, true);
+        const identifier = this.tokenizer.readIdentifier(false, true)?.name;
         if (identifier !== undefined) {
             // See if it's a built-in function. TODO we could probably replace these with operators,
             // like we have for low and high.

@@ -399,8 +399,6 @@ export class Tokenizer {
     public readonly tokens: Token[];
     // Parsing index into token list.
     public tokenIndex = 0;
-    // Column of the identifier we just parsed.
-    public identifierColumn = 0;
 
     constructor(line: string) {
         this.line = line;
@@ -485,7 +483,7 @@ export class Tokenizer {
         return token.text.toLowerCase() === expectedToken && token.error === undefined;
     }
 
-    public readIdentifier(allowRegister: boolean, toLowerCase: boolean): string | undefined {
+    public readIdentifier(allowRegister: boolean, toLowerCase: boolean): { name: string, column: number } | undefined {
         // TODO everything in assembly is case-insensitive.
         toLowerCase = true;
         if (this.tokenIndex >= this.tokens.length) {
@@ -507,10 +505,9 @@ export class Tokenizer {
             return undefined;
         }
 
-        this.identifierColumn = token.begin;
         this.tokenIndex += 1;
 
-        return identifier;
+        return { name: identifier, column: token.begin };
     }
 
     /**
