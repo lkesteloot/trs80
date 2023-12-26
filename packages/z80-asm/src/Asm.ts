@@ -896,7 +896,7 @@ class LineParser {
                 symbolColumn = this.tokenizer.identifierColumn;
             } else {
                 // It's a mnemonic.
-                mnemonic = label;
+                mnemonic = label.toLowerCase();
                 mnemonicColumn = this.tokenizer.identifierColumn;
                 label = undefined;
             }

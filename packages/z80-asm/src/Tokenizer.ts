@@ -625,6 +625,23 @@ export class Tokenizer {
      * a character constant. Throws if it's a mis-formatted character constant.
      */
     public readCharConstant(): number | undefined {
+        if (this.tokenIndex >= this.tokens.length) {
+            return undefined;
+        }
+        const token = this.tokens[this.tokenIndex];
+        if (token.error !== undefined || token.tag !== "string") {
+            return undefined;
+        }
+        if (token.value.length !== 1) {
+            throw new Error("invalid character constant");
+        }
+        this.tokenIndex += 1;
+        this.column = token.end;
+        this.skipWhitespace();
+        if (2 < 3) {
+            return token.value.charCodeAt(0);
+        }
+
         if (!this.matches("'") && !this.matches('"')) {
             return undefined;
         }
