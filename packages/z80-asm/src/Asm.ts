@@ -465,7 +465,7 @@ export class Asm {
      * Add a global symbol outside the code, perhaps in the ROM or OS.
      */
     public addKnownLabel({ name, address }: KnownLabel): void {
-        const symbolInfo = new SymbolInfo(name, address);
+        const symbolInfo = new SymbolInfo(name.toLowerCase(), address);
         symbolInfo.definitions.push(new SymbolAppearance(
             symbolInfo, undefined, 0, symbolInfo.definitions.length));
         this.scopes[0].set(symbolInfo);
@@ -877,7 +877,7 @@ class LineParser {
 
         // Look for label in column 1.
         let symbolColumn = 0;
-        let label = this.tokenizer.readIdentifier(false, false);
+        let label = this.tokenizer.readIdentifier(false, true);
         let labelIsGlobal = false;
         let mnemonic: string | undefined = undefined;
         let mnemonicColumn = 0; // TODO Delete?
@@ -896,7 +896,7 @@ class LineParser {
                 symbolColumn = this.tokenizer.identifierColumn;
             } else {
                 // It's a mnemonic.
-                mnemonic = label.toLowerCase();
+                mnemonic = label;
                 mnemonicColumn = this.tokenizer.identifierColumn;
                 label = undefined;
             }
@@ -978,9 +978,11 @@ class LineParser {
             } else if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
                     const argStart = this.tokenizer.column;
+                    const argTokenIndex = this.tokenizer.tokenIndex;
                     let s = this.readString();
                     if (s !== undefined && s.length === 1) {
                         this.tokenizer.column = argStart;
+                        this.tokenizer.tokenIndex = argTokenIndex;
                         // It's a single byte, might be part of an expression, re-parse it that way.
                         s = undefined;
                     }
@@ -1299,12 +1301,13 @@ class LineParser {
 
     // Parse a pre-defined name, returning its value.
     private parsePredefinedName(): string | undefined {
+        const identifierColumn = this.tokenizer.column;
+        const identifierTokenIndex = this.tokenizer.tokenIndex;
+
         const name = this.tokenizer.readIdentifier(false, true);
         if (name === undefined) {
             return undefined;
         }
-        const identifierColumn = this.tokenizer.identifierColumn;
-        const identifierTokenIndex = this.tokenizer.tokenIndex; // TODO wrong, want identifier token column.
 
         let value: string | undefined = undefined;
 
@@ -2140,7 +2143,7 @@ class LineParser {
         }
 
         // Try identifier.
-        const identifier = this.tokenizer.readIdentifier(false, false);
+        const identifier = this.tokenizer.readIdentifier(false, true);
         if (identifier !== undefined) {
             // See if it's a built-in function. TODO we could probably replace these with operators,
             // like we have for low and high.

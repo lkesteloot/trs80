@@ -123,15 +123,17 @@ describe("assemble", () => {
 
     });
 
-    it("uppercase label", () => {
+    it("case-insensitive label", () => {
+        // Identifiers are case-insensitive.
         const asm = runTest([
             { line: " .org 5" },
             { line: " nop", opcodes: [0x00] },
-            { line: "CHKX" },
+            { line: "ChKX" },
             { line: " nop", opcodes: [0x00] },
-            { line: " jp CHKX", opcodes: [0xC3, 0x06, 0x00] }
+            { line: " jp CHKx", opcodes: [0xC3, 0x06, 0x00] },
+            { line: " jp chkx", opcodes: [0xC3, 0x06, 0x00] },
         ]);
-        expect(asm.scopes[0].get("CHKX")?.value).to.equal(6);
+        expect(asm.scopes[0].get("chkx")?.value).to.equal(6);
     });
 
     it("label w/colon", () => {
@@ -255,6 +257,14 @@ describe("assemble", () => {
     it(" .text 'ABC'", () => {
         runTest([
             { line: " .text 'ABC'", opcodes: [0x41, 0x42, 0x43] },
+        ]);
+    });
+
+    it("db of equ", () => {
+        runTest([
+            { line: "xyz equ 255", opcodes: [] },
+            { line: "abc db 255", opcodes: [0xFF] },
+            { line: "def db xyz", opcodes: [0xFF] },
         ]);
     });
 });

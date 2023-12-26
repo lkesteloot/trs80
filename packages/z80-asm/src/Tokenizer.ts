@@ -492,6 +492,8 @@ export class Tokenizer {
     }
 
     public readIdentifier(allowRegister: boolean, toLowerCase: boolean): string | undefined {
+        // TODO everything in assembly is case-insensitive.
+        toLowerCase = true;
         if (this.tokenIndex >= this.tokens.length) {
             return undefined;
         }
