@@ -914,7 +914,7 @@ class LineParser {
         }
         if (mnemonic === undefined) {
             // Special check for "=", which is the same as "defl".
-            const column = this.tokenizer.column;
+            const column = this.tokenizer.getCurrentToken()?.begin ?? 0;
             if (this.tokenizer.found("=")) {
                 mnemonic = "=";
                 mnemonicColumn = column;
@@ -977,11 +977,9 @@ class LineParser {
                 return;
             } else if (PSEUDO_DEF_BYTES.has(mnemonic)) {
                 while (true) {
-                    const argStart = this.tokenizer.column;
                     const argTokenIndex = this.tokenizer.tokenIndex;
                     let s = this.readString();
                     if (s !== undefined && s.length === 1) {
-                        this.tokenizer.column = argStart;
                         this.tokenizer.tokenIndex = argTokenIndex;
                         // It's a single byte, might be part of an expression, re-parse it that way.
                         s = undefined;
@@ -1220,7 +1218,6 @@ class LineParser {
                         const lineParser = new LineParser(this.pass, assembledLine);
                         // TODO check to make sure macro doesn't contain a # directive, unless the tag is
                         // # and the directive is one of the param names.
-                        lineParser.tokenizer.skipWhitespace();
                         const token = lineParser.tokenizer.readIdentifier(false, true);
                         if (token !== undefined && PSEUDO_ENDM.has(token)) {
                             endmListingLineNumber = assembledLine.listingLineNumber;
@@ -1246,7 +1243,6 @@ class LineParser {
                 return;
             } else if (PSEUDO_END.has(mnemonic)) {
                 // End of source file. See if there's an optional entry address or label.
-                this.tokenizer.skipWhitespace();
                 if (!this.tokenizer.isEndOfLine()) {
                     const value = this.readExpression(true);
                     if (value === undefined) {
@@ -1301,10 +1297,7 @@ class LineParser {
 
     // Parse a pre-defined name, returning its value.
     private parsePredefinedName(): string | undefined {
-        const identifierColumn = this.tokenizer.column;
-        const identifierTokenIndex = this.tokenizer.tokenIndex;
-
-        const name = this.tokenizer.readIdentifier(false, true);
+        const name = this.tokenizer.foundAnyOf(["__date__", "__time__", "__file__", "__line__"]);
         if (name === undefined) {
             return undefined;
         }
@@ -1340,9 +1333,7 @@ class LineParser {
         }
 
         if (value === undefined) {
-            // Back up, it wasn't for us.
-            this.tokenizer.column = identifierColumn;
-            this.tokenizer.tokenIndex = identifierTokenIndex;
+            throw new Error("internal error getting predefined name " + name);
         }
 
         return value;
@@ -1350,14 +1341,13 @@ class LineParser {
 
     // Make sure there's no junk at the end of the line.
     private ensureEndOfLine(): void {
-        const endOfLine = this.tokenizer.ensureEndOfLine();
-        if (!endOfLine && this.assembledLine.error === undefined) {
-            this.assembledLine.error = "syntax error: \"" + this.tokenizer.line.substring(this.tokenizer.column) + "\"";
+        const token = this.tokenizer.ensureEndOfLine();
+        if (token !== undefined && this.assembledLine.error === undefined) {
+            this.assembledLine.error = "syntax error: \"" + token.text + "\"";
         }
     }
 
     private parseDirective(): void {
-        this.tokenizer.skipWhitespace();
         if (!this.tokenizer.found('#')) {
             // Logic error.
             throw new Error("did not find # for directive");
@@ -1590,7 +1580,6 @@ class LineParser {
                 this.assembledLine.error += " (if it's a label, unindent it)";
             }
         } else {
-            const argStart = this.tokenizer.column;
             const argStartIndex = this.tokenizer.tokenIndex;
             let match = false;
 
@@ -1722,7 +1711,6 @@ class LineParser {
                     break;
                 } else {
                     // Reset reader and try another variant.
-                    this.tokenizer.column = argStart;
                     this.tokenizer.tokenIndex = argStartIndex;
                 }
             }
@@ -2007,9 +1995,9 @@ class LineParser {
                 value = subValue;
             }
 
-            if (this.tokenizer.foundIdentifier("shl", true) || this.tokenizer.found("<<")) {
+            if (this.tokenizer.foundAnyOf(["<<", "shl"])) {
                 op = "<<";
-            } else if (this.tokenizer.foundIdentifier("shr", true) || this.tokenizer.found(">>")) {
+            } else if (this.tokenizer.foundAnyOf([">>", "shr"])) {
                 op = ">>";
             } else {
                 break;
@@ -2089,13 +2077,7 @@ class LineParser {
      * Read a monadic (unary prefix operator) expression, or undefined if there was an error reading it.
      */
     private readMonadic(): number | undefined {
-        let ch = this.tokenizer.foundAnyOf(["+", "-", "~", "!"]);
-        if (ch === undefined && this.tokenizer.foundIdentifier("low", true)) {
-            ch = "low";
-        }
-        if (ch === undefined && this.tokenizer.foundIdentifier("high", true)) {
-            ch = "high";
-        }
+        let ch = this.tokenizer.foundAnyOf(["+", "-", "~", "!", "low", "high"]);
         if (ch !== undefined) {
             const value = this.readMonadic();
             if (value === undefined) {
@@ -2130,8 +2112,6 @@ class LineParser {
      * Read an atom (number constant, identifier) expression, or undefined if there was an error reading it.
      */
     private readAtom(): number | undefined {
-        const startIndex = this.tokenizer.column;
-
         // Parenthesized expression.
         if (this.tokenizer.found('(')) {
             const value = this.readExpression(true);
@@ -2142,6 +2122,7 @@ class LineParser {
         }
 
         // Try identifier.
+        const tokenColumn = this.tokenizer.getCurrentToken()?.begin ?? 0;
         const identifier = this.tokenizer.readIdentifier(false, true);
         if (identifier !== undefined) {
             // See if it's a built-in function. TODO we could probably replace these with operators,
@@ -2191,7 +2172,7 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 const symbolAppearance = new SymbolAppearance(symbolInfo,
-                    this.assembledLine, startIndex, symbolInfo.references.length);
+                    this.assembledLine, tokenColumn, symbolInfo.references.length);
                 // This is a terrible hack, but we might push this multiple times if we
                 // try multiple variants. Really we should roll this back if we decide
                 // against the variant. Instead, just check to see if we just pushed it.

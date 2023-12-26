@@ -397,8 +397,6 @@ export class Tokenizer {
     public readonly line: string;
     // Parsed tokens.
     public readonly tokens: Token[];
-    // Parsing index into the line.
-    public column: number = 0;
     // Parsing index into token list.
     public tokenIndex = 0;
     // Column of the identifier we just parsed.
@@ -410,15 +408,20 @@ export class Tokenizer {
         //console.log(this.tokens);
     }
 
+    // The current token, or undefined if we've gone past the end.
+    public getCurrentToken(): Token | undefined {
+        return this.tokenIndex < this.tokens.length ? this.tokens[this.tokenIndex] : undefined;
+    }
+
     // Advance the parser to the end of the line.
     public skipToEndOfLine(): void {
-        this.column = this.line.length;
         this.tokenIndex = this.tokens.length;
     }
 
     // Return all the text on the rest of the line.
     public readToEndOfLine(): string {
-        const s = this.line.substring(this.column);
+        const token = this.getCurrentToken();
+        const s = token === undefined ? "" : this.line.substring(token.begin);
         this.skipToEndOfLine();
         return s;
     }
@@ -429,14 +432,14 @@ export class Tokenizer {
     }
 
     /**
-     * Skip comment and return whether we're really at the end of the line.
+     * Skip comment. If at end of line, return undefined, otherwise return the token.
      */
-    public ensureEndOfLine(): boolean {
-        // Check for comment.
+    public ensureEndOfLine(): Token | undefined {
+        // Skip comment.
         while (this.tokenIndex < this.tokens.length && this.tokens[this.tokenIndex].tag === "comment") {
             this.tokenIndex += 1;
         }
-        return this.tokenIndex === this.tokens.length;
+        return this.getCurrentToken();
     }
 
     /**
@@ -445,8 +448,6 @@ export class Tokenizer {
      */
     public found(s: string): boolean {
         if (this.matches(s)) {
-            this.column += s.length;
-            this.skipWhitespace();
             this.tokenIndex += 1;
             return true;
         } else {
@@ -484,13 +485,6 @@ export class Tokenizer {
         return token.text.toLowerCase() === expectedToken && token.error === undefined;
     }
 
-    /**
-     * Advance past any horizontal whitespace.
-     */
-    public skipWhitespace(): void {
-        this.column = skipWhitespace(this.line, this.column);
-    }
-
     public readIdentifier(allowRegister: boolean, toLowerCase: boolean): string | undefined {
         // TODO everything in assembly is case-insensitive.
         toLowerCase = true;
@@ -515,27 +509,8 @@ export class Tokenizer {
 
         this.identifierColumn = token.begin;
         this.tokenIndex += 1;
-        this.column = token.end;
-        this.skipWhitespace();
 
         return identifier;
-    }
-
-    /**
-     * If the next identifier matches the given one, return it.
-     */
-    public foundIdentifier(identifier: string, toLowerCase: boolean): boolean {
-        const beforeColumn = this.column;
-        const beforeTokenIndex = this.tokenIndex;
-        const foundIdentifier = this.readIdentifier(false, toLowerCase);
-        if (foundIdentifier === identifier) {
-            return true;
-        }
-
-        // Back up.
-        this.column = beforeColumn;
-        this.tokenIndex = beforeTokenIndex;
-        return false;
     }
 
     /**
@@ -552,8 +527,6 @@ export class Tokenizer {
         }
 
         this.tokenIndex += 1;
-        this.column = token.end;
-        this.skipWhitespace();
 
         return token.value;
     }
@@ -575,8 +548,6 @@ export class Tokenizer {
             throw new Error("invalid character constant");
         }
         this.tokenIndex += 1;
-        this.column = token.end;
-        this.skipWhitespace();
 
         return token.value.charCodeAt(0);
     }
@@ -648,7 +619,6 @@ export class Tokenizer {
         }
 
         // Update our tokenizer state.
-        this.column = pos;
         while (this.tokenIndex < this.tokens.length && this.tokens[this.tokenIndex].begin < pos) {
             this.tokenIndex += 1;
         }
@@ -679,14 +649,10 @@ export class Tokenizer {
         }
         if (token.tag === "number") {
             this.tokenIndex += 1;
-            this.column = token.end;
-            this.skipWhitespace();
             return token.value;
         }
         if (token.tag === "symbol" && token.text === "$") {
             this.tokenIndex += 1;
-            this.column = token.end;
-            this.skipWhitespace();
             return address;
         }
 
