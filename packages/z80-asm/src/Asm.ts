@@ -1352,8 +1352,7 @@ class LineParser {
     private ensureEndOfLine(): void {
         const endOfLine = this.tokenizer.ensureEndOfLine();
         if (!endOfLine && this.assembledLine.error === undefined) {
-            this.assembledLine.error = "syntax error at column " + this.tokenizer.column +
-                " (\"" + this.tokenizer.line.substring(this.tokenizer.column) + "\")";
+            this.assembledLine.error = "syntax error: \"" + this.tokenizer.line.substring(this.tokenizer.column) + "\"";
         }
     }
 
