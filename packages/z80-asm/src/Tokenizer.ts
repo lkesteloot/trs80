@@ -13,6 +13,11 @@ const FLAGS = new Set([
     "v", "nv", // Aliases for pe and po.
 ]);
 
+// Requirement on where an identifier can be.
+export enum PositionRequirement {
+    ANYWHERE, FIRST_COLUMN, NOT_FIRST_COLUMN,
+}
+
 /**
  * Regular expressions to match various token types.
  */
@@ -418,6 +423,11 @@ export class Tokenizer {
         return this.tokenIndex < this.tokens.length ? this.tokens[this.tokenIndex] : undefined;
     }
 
+    // The column of the next token, or -1 if we're at the end of the line.
+    public getCurrentColumn(): number {
+        return this.getCurrentToken()?.begin ?? -1;
+    }
+
     // Advance the parser to the end of the line.
     public skipToEndOfLine(): void {
         this.tokenIndex = this.tokens.length;
@@ -485,23 +495,46 @@ export class Tokenizer {
     /**
      * Read an identifier, ignoring register names if specified.
      */
-    public readIdentifier(allowRegister: boolean): { name: string; column: number } | undefined {
-        if (this.tokenIndex >= this.tokens.length) {
+    public readIdentifier(allowRegister: boolean,
+                          positionRequirement: PositionRequirement = PositionRequirement.ANYWHERE):
+        { name: string; column: number } | undefined {
+
+        // Get the current token, basic checks.
+        const token = this.getCurrentToken();
+        if (token === undefined || token.error !== undefined || token.tag !== "identifier") {
             return undefined;
         }
-        const token = this.tokens[this.tokenIndex];
-        if (token.error !== undefined) {
-            return undefined;
+
+        // Check if position is acceptable.
+        switch (positionRequirement) {
+            case PositionRequirement.ANYWHERE:
+                // Always okay.
+                break;
+
+            case PositionRequirement.FIRST_COLUMN:
+                if (token.begin !== 0) {
+                    return undefined;
+                }
+                break;
+
+            case PositionRequirement.NOT_FIRST_COLUMN:
+                if (token.begin === 0) {
+                    return undefined;
+                }
+                break;
+
+            default:
+                throw new Error("unknown position requirement " + positionRequirement);
         }
-        if (token.tag !== "identifier") {
-            return undefined;
-        }
+
+        // Check if contents are acceptable.
         let identifier = token.text.toLowerCase();
         if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || isFlag(identifier))) {
             // Register names can't be identifiers.
             return undefined;
         }
 
+        // Passed all the tests, advance past it.
         this.tokenIndex += 1;
 
         return { name: identifier, column: token.begin };

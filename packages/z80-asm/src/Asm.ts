@@ -1,7 +1,7 @@
 import {hi, KnownLabel, lo, toHexWord} from "z80-base";
 import {dirname, parse, resolve} from "./path.js";
 import {isOpcodeTemplateOperand, mnemonicMap, OpcodeTemplateOperand, OpcodeVariant} from "z80-inst";
-import {isLegalIdentifierCharacter, parseDigit, Tokenizer} from "./Tokenizer.js";
+import {isLegalIdentifierCharacter, parseDigit, PositionRequirement, Tokenizer} from "./Tokenizer.js";
 
 // Title-definition pseudo instructions.
 const PSEUDO_TITLE = new Set([".title"]);
@@ -875,52 +875,40 @@ class LineParser {
             return;
         }
 
-        // Look for label in column 1.
+        // Look for label in the first column.
         let label: string | undefined;
-        let labelColumn = 0;
         let labelIsGlobal = false;
-        let mnemonic: string | undefined = undefined;
-        let identifierInfo = this.tokenizer.readIdentifier(false);
-        if (identifierInfo !== undefined) {
-            const identifierColumn = identifierInfo.column;
-            if (identifierColumn === 0) {
-                // This is a label.
-                label = identifierInfo.name;
-                labelColumn = identifierColumn;
+        let labelInfo = this.tokenizer.readIdentifier(false, PositionRequirement.FIRST_COLUMN);
+        if (labelInfo !== undefined) {
+            label = labelInfo.name;
 
-                // By default assign it to current address, but can be overwritten
-                // by .equ below.
-                labelValue = thisAddress;
+            // By default assign it to current address, but can be overwritten
+            // by .equ below.
+            labelValue = thisAddress;
 
-                // Parse optional colons.
+            // Parse optional colons.
+            if (this.tokenizer.found(':')) {
                 if (this.tokenizer.found(':')) {
-                    if (this.tokenizer.found(':')) {
-                        // Double colons indicate global symbols (not local to #local).
-                        labelIsGlobal = true;
-                    }
+                    // Double colons indicate global symbols (not local to #local).
+                    labelIsGlobal = true;
                 }
-            } else {
-                // It's a mnemonic.
-                mnemonic = identifierInfo.name;
+            }
+
+            // Ignore labels on disabled lines. (We have to parse them above though.)
+            if (!enabledLine) {
+                label = undefined;
+                labelValue = undefined;
             }
         }
 
-        // Ignore labels on disabled lines. (We have to parse them above though.)
-        if (!enabledLine) {
-            label = undefined;
-            labelValue = undefined;
-        }
-
-        if (mnemonic === undefined) {
-            identifierInfo = this.tokenizer.readIdentifier(false);
-            if (identifierInfo !== undefined && identifierInfo.column > 0) {
-                mnemonic = identifierInfo.name;
-            }
-        }
-        if (mnemonic === undefined) {
+        // Parse mnemonic.
+        let mnemonic: string | undefined = undefined;
+        const mnemonicInfo = this.tokenizer.readIdentifier(false, PositionRequirement.NOT_FIRST_COLUMN);
+        if (mnemonicInfo !== undefined) {
+            mnemonic = mnemonicInfo.name;
+        } else {
             // Special check for "=", which is the same as "defl".
-            const column = this.tokenizer.getCurrentToken()?.begin ?? 0;
-            if (column > 0 && this.tokenizer.found("=")) {
+            if (this.tokenizer.getCurrentColumn() > 0 && this.tokenizer.found("=")) {
                 mnemonic = "=";
             }
         }
@@ -1294,7 +1282,7 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 symbolInfo.definitions.push(new SymbolAppearance(
-                    symbolInfo, this.assembledLine, labelColumn, symbolInfo.definitions.length));
+                    symbolInfo, this.assembledLine, 0, symbolInfo.definitions.length));
             }
         }
     }
