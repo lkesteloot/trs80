@@ -880,7 +880,7 @@ class LineParser {
         let labelColumn = 0;
         let labelIsGlobal = false;
         let mnemonic: string | undefined = undefined;
-        let identifierInfo = this.tokenizer.readIdentifier(false, true);
+        let identifierInfo = this.tokenizer.readIdentifier(false);
         if (identifierInfo !== undefined) {
             const identifierColumn = identifierInfo.column;
             if (identifierColumn === 0) {
@@ -912,7 +912,7 @@ class LineParser {
         }
 
         if (mnemonic === undefined) {
-            identifierInfo = this.tokenizer.readIdentifier(false, true);
+            identifierInfo = this.tokenizer.readIdentifier(false);
             if (identifierInfo !== undefined && identifierInfo.column > 0) {
                 mnemonic = identifierInfo.name;
             }
@@ -1138,7 +1138,7 @@ class LineParser {
                     label = undefined;
                     tag = "&";
                 } else {
-                    name = this.tokenizer.readIdentifier(true, false)?.name;
+                    name = this.tokenizer.readIdentifier(true)?.name;
                     if (name === undefined) {
                         this.assembledLine.error = "must specify name of macro";
                         return;
@@ -1190,7 +1190,7 @@ class LineParser {
                                 return;
                             }
 
-                            const param = this.tokenizer.readIdentifier(true, false)?.name;
+                            const param = this.tokenizer.readIdentifier(true)?.name;
                             if (param === undefined) {
                                 this.assembledLine.error = "expected macro parameter name";
                                 return;
@@ -1222,7 +1222,7 @@ class LineParser {
                         const lineParser = new LineParser(this.pass, assembledLine);
                         // TODO check to make sure macro doesn't contain a # directive, unless the tag is
                         // # and the directive is one of the param names.
-                        const token = lineParser.tokenizer.readIdentifier(false, true)?.name;
+                        const token = lineParser.tokenizer.readIdentifier(false)?.name;
                         if (token !== undefined && PSEUDO_ENDM.has(token)) {
                             endmListingLineNumber = assembledLine.listingLineNumber;
                             break;
@@ -1356,7 +1356,7 @@ class LineParser {
             // Logic error.
             throw new Error("did not find # for directive");
         }
-        const directive = this.tokenizer.readIdentifier(true, true)?.name;
+        const directive = this.tokenizer.readIdentifier(true)?.name;
         if (directive === undefined || directive === "") {
             this.assembledLine.error = "must specify directive after #";
             return;
@@ -1364,7 +1364,7 @@ class LineParser {
 
         switch (directive) {
             case "target":
-                const target = this.tokenizer.readIdentifier(false, true)?.name;
+                const target = this.tokenizer.readIdentifier(false)?.name;
                 if (target === "bin" || target === "rom") {
                     this.pass.target = target;
                 } else {
@@ -1378,7 +1378,7 @@ class LineParser {
                 break;
 
             case "code":
-                const segmentName = this.tokenizer.readIdentifier(true, false)?.name;
+                const segmentName = this.tokenizer.readIdentifier(true)?.name;
                 if (segmentName === undefined) {
                     this.assembledLine.error = "segment name expected";
                 } else if (this.tokenizer.found(',')) {
@@ -1403,7 +1403,7 @@ class LineParser {
                 break;
 
             case "include": {
-                const token = this.tokenizer.readIdentifier(false, true)?.name;
+                const token = this.tokenizer.readIdentifier(false)?.name;
                 if (token === "library") {
                     const dir = this.readString();
                     if (dir === undefined) {
@@ -1648,7 +1648,7 @@ class LineParser {
                         }
                     } else {
                         // Register or flag.
-                        const identifier = this.tokenizer.readIdentifier(true, true)?.name;
+                        const identifier = this.tokenizer.readIdentifier(true)?.name;
                         if (identifier !== token) {
                             match = false;
                         }
@@ -2128,7 +2128,7 @@ class LineParser {
         }
 
         // Try identifier.
-        const identifierInfo = this.tokenizer.readIdentifier(false, true);
+        const identifierInfo = this.tokenizer.readIdentifier(false);
         if (identifierInfo !== undefined) {
             // Must be symbol reference. Get address of identifier or value of constant.
             const { name: identifier, column: identifierColumn } = identifierInfo;

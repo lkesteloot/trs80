@@ -100,7 +100,7 @@ function readString(s: string, pos: number): { value: string, end: number, error
  * following formats:
  *
  * Decimal: 1234
- * Binary: 0b1010, 1010b, %1010
+ * Binary: 0b1010, 1010b (but no longer %1010)
  * Octal: 0o1234, 1234o
  * Hex: 0x1234, 1234h, $1234
  *
@@ -290,9 +290,9 @@ type Token = {
  */
 function tokenAt(s: string, pos: number): Token {
     s = s.substring(pos);
-
     if (s === "") {
-        // TODO make this an exception.
+        // Programmer error.
+        throw new Error("cannot tokenize empty string");
     }
 
     // Number literals. Do this before symbols because $ could be a reference to the current address.
@@ -368,6 +368,9 @@ function tokenAt(s: string, pos: number): Token {
     };
 }
 
+/**
+ * Make a list of tokens from the string.
+ */
 function tokenizeLine(line: string): Token[] {
     const tokens: Token[] = [];
 
@@ -392,6 +395,10 @@ function tokenizeLine(line: string): Token[] {
     return tokens;
 }
 
+/**
+ * Takes a line of text, breaks it into tokens, and provides some higher level functions to walk
+ * through the sequence of tokens.
+ */
 export class Tokenizer {
     // Full text of line being parsed.
     public readonly line: string;
@@ -424,7 +431,7 @@ export class Tokenizer {
         return s;
     }
 
-    // Whether we're at a comment or the end of the line. Assumes we've already skipped whitespace.
+    // Whether we're at a comment or the end of the line.
     public isEndOfLine(): boolean {
         return this.tokenIndex === this.tokens.length || this.tokens[this.tokenIndex].tag === "comment";
     }
@@ -471,21 +478,14 @@ export class Tokenizer {
      * Whether the next part of the line matches the passed-in string. Does not advance.
      */
     public matches(expectedToken: string): boolean {
-        /*
-        const actualToken = tokenAt(this.line, this.column);
-        return actualToken.text?.toLowerCase() === expectedToken && actualToken.error === undefined;
-
-         */
-        if (this.tokenIndex >= this.tokens.length) {
-            return false;
-        }
-        const token = this.tokens[this.tokenIndex];
-        return token.text.toLowerCase() === expectedToken && token.error === undefined;
+        const token = this.getCurrentToken();
+        return token !== undefined && token.text.toLowerCase() === expectedToken && token.error === undefined;
     }
 
-    public readIdentifier(allowRegister: boolean, toLowerCase: boolean): { name: string, column: number } | undefined {
-        // TODO everything in assembly is case-insensitive.
-        toLowerCase = true;
+    /**
+     * Read an identifier, ignoring register names if specified.
+     */
+    public readIdentifier(allowRegister: boolean): { name: string; column: number } | undefined {
         if (this.tokenIndex >= this.tokens.length) {
             return undefined;
         }
@@ -496,10 +496,7 @@ export class Tokenizer {
         if (token.tag !== "identifier") {
             return undefined;
         }
-        let identifier = token.text;
-        if (toLowerCase) {
-            identifier = identifier.toLowerCase();
-        }
+        let identifier = token.text.toLowerCase();
         if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || isFlag(identifier))) {
             // Register names can't be identifiers.
             return undefined;
@@ -515,11 +512,8 @@ export class Tokenizer {
      * If found the beginning of a string but not the end, throws an Error.
      */
     public readString(): string | undefined {
-        if (this.tokenIndex >= this.tokens.length) {
-            return undefined;
-        }
-        const token = this.tokens[this.tokenIndex];
-        if (token.error !== undefined || token.tag !== "string") {
+        const token = this.getCurrentToken();
+        if (token === undefined || token.error !== undefined || token.tag !== "string") {
             return undefined;
         }
 
@@ -534,11 +528,8 @@ export class Tokenizer {
      * a character constant. Throws if it's a mis-formatted character constant.
      */
     public readCharConstant(): number | undefined {
-        if (this.tokenIndex >= this.tokens.length) {
-            return undefined;
-        }
-        const token = this.tokens[this.tokenIndex];
-        if (token.error !== undefined || token.tag !== "string") {
+        const token = this.getCurrentToken();
+        if (token === undefined || token.error !== undefined || token.tag !== "string") {
             return undefined;
         }
         if (token.value.length !== 1) {
