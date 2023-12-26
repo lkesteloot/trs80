@@ -24,12 +24,17 @@ export enum PositionRequirement {
 const SYMBOL_RE = /^(?:<<|>>|<>|&&|==|!=|<=|>=|\|\||[-$~+*/^%!()&|?:,=<>#])/;
 const IDENTIFIER_RE = /^(?:af'|\.?[a-z_][a-z0-9_]*)/i;
 
+/**
+ * Tokens and token lists are immutable, so we can memoize the tokenized line.
+ */
+const LINE_TO_TOKENS = new Map<string,Token[]>();
+
 // Whether the specified character counts as horizontal whitespace.
 function isWhitespace(c: string): boolean {
     return c === " " || c === "\t";
 }
 
-export function isLegalIdentifierCharacter(ch: string, isFirst: boolean) { // TODO remove
+export function isLegalIdentifierCharacter(ch: string, isFirst: boolean) {
     return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '.' || ch == '_' ||
         (!isFirst && (ch >= '0' && ch <= '9'));
 }
@@ -377,6 +382,11 @@ function tokenAt(s: string, pos: number): Token {
  * Make a list of tokens from the string.
  */
 function tokenizeLine(line: string): Token[] {
+    const cachedTokens = LINE_TO_TOKENS.get(line);
+    if (cachedTokens !== undefined) {
+        return cachedTokens;
+    }
+
     const tokens: Token[] = [];
 
     let pos = 0;
@@ -396,6 +406,8 @@ function tokenizeLine(line: string): Token[] {
             pos = token.end;
         }
     }
+
+    LINE_TO_TOKENS.set(line, tokens);
 
     return tokens;
 }
