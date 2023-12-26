@@ -8,6 +8,8 @@ import {Asm, FileSystem} from "z80-asm";
 import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio, writeWavFile } from "trs80-cassette";
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base";
 
+const TIME_ASM = false;
+
 /**
  * Node fs implementation of FileSystem.
  */
@@ -42,6 +44,22 @@ class FileSystemImpl implements FileSystem {
  */
 export function asm(srcPathname: string, outPathname: string, baud: number, lstPathname: string | undefined): void {
     const { name } = path.parse(srcPathname);
+
+    if (TIME_ASM) {
+        for (let round = 0; round < 3; round++) {
+            const COUNT = 100;
+            const before = Date.now();
+            for (let i = 0; i < COUNT; i++) {
+                const asm = new Asm(new FileSystemImpl());
+                asm.addKnownLabels(Z80_KNOWN_LABELS);
+                asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
+                asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
+                const sourceFile = asm.assembleFile(srcPathname);
+            }
+            const after = Date.now();
+            console.log("Average time for round", round, "is", Math.round((after - before)/COUNT), "ms");
+        }
+    }
 
     // Assemble program.
     const asm = new Asm(new FileSystemImpl());

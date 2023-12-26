@@ -26,6 +26,7 @@ const IDENTIFIER_RE = /^(?:af'|\.?[a-z_][a-z0-9_]*)/i;
 
 /**
  * Tokens and token lists are immutable, so we can memoize the tokenized line.
+ * This speeds up assembly by 10% to 20%.
  */
 const LINE_TO_TOKENS = new Map<string,Token[]>();
 

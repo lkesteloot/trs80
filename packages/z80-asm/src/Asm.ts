@@ -143,19 +143,6 @@ export function getAsmDirectiveDocs(): AsmDirectiveDoc[] {
     ];
 }
 
-/**
- * Get the fill byte for the specified target.
- */
-function fillForTarget(target: Target): number {
-    switch (target) {
-        case "bin":
-            return 0x00;
-
-        case "rom":
-            return 0xFF;
-    }
-}
-
 // An appearance of a symbol somewhere in the code.
 export class SymbolAppearance {
     public readonly symbol: SymbolInfo;
