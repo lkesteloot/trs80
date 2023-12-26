@@ -2081,7 +2081,7 @@ class LineParser {
      * Read a monadic (unary prefix operator) expression, or undefined if there was an error reading it.
      */
     private readMonadic(): number | undefined {
-        let ch = this.tokenizer.foundAnyOf(["+", "-", "~", "!", "low", "high"]);
+        let ch = this.tokenizer.foundAnyOf(["+", "-", "~", "!", "low", "lo", "high", "hi"]);
         if (ch !== undefined) {
             const value = this.readMonadic();
             if (value === undefined) {
@@ -2102,9 +2102,11 @@ class LineParser {
                     return !value ? 1 : 0;
 
                 case "low":
+                case "lo":
                     return lo(value);
 
                 case "high":
+                case "hi":
                     return hi(value);
             }
         } else {
@@ -2126,39 +2128,10 @@ class LineParser {
         }
 
         // Try identifier.
-        const tokenColumn = this.tokenizer.getCurrentToken()?.begin ?? 0;
-        const identifier = this.tokenizer.readIdentifier(false, true)?.name;
-        if (identifier !== undefined) {
-            // See if it's a built-in function. TODO we could probably replace these with operators,
-            // like we have for low and high.
-            if (this.tokenizer.found("(")) {
-                const value = this.readExpression(true);
-                if (value === undefined) {
-                    if (this.assembledLine.error === undefined) {
-                        this.assembledLine.error = "missing expression for function call";
-                    }
-                    return undefined;
-                }
-                if (!this.tokenizer.found(")")) {
-                    if (this.assembledLine.error === undefined) {
-                        this.assembledLine.error = "missing end parenthesis for function call";
-                    }
-                    return undefined;
-                }
-                switch (identifier) {
-                    case "lo":
-                        return lo(value);
-
-                    case "hi":
-                        return hi(value);
-
-                    default:
-                        this.assembledLine.error = "unknown function \"" + identifier + "\"";
-                        return undefined;
-                }
-            }
-
+        const identifierInfo = this.tokenizer.readIdentifier(false, true);
+        if (identifierInfo !== undefined) {
             // Must be symbol reference. Get address of identifier or value of constant.
+            const { name: identifier, column: identifierColumn } = identifierInfo;
 
             // Local symbols can shadow global ones, and might not be defined yet, so only check
             // the local scope in pass 1. In pass 2 the identifier must have been defined somewhere.
@@ -2176,7 +2149,7 @@ class LineParser {
             }
             if (this.pass.passNumber === 1) {
                 const symbolAppearance = new SymbolAppearance(symbolInfo,
-                    this.assembledLine, tokenColumn, symbolInfo.references.length);
+                    this.assembledLine, identifierColumn, symbolInfo.references.length);
                 // This is a terrible hack, but we might push this multiple times if we
                 // try multiple variants. Really we should roll this back if we decide
                 // against the variant. Instead, just check to see if we just pushed it.

@@ -276,7 +276,7 @@ describe("expressions", () => {
         [ '00', 0 ],
         [ '5', 5 ],
         [ '123', 123 ],
-        [ '0123', 123 ],
+        [ '0123', 123 ], // 0 prefix is not octal.
 
         // Hex.
         [ '$AB', 0xAB ],
@@ -300,8 +300,17 @@ describe("expressions", () => {
         [ '$+1', 0x1235 ],
         [ '$-1', 0x1233 ],
 
+        // Characters.
+        [ '"A"', 65 ],
+        [ "'A'", 65 ],
+        [ '"A" + 1', 66 ],
+        [ '1 + "A"', 66 ],
+        [ '"A" | 128', 65 | 128 ],
+
         // Negative numbers.
         [ '-5', -5 ],
+        [ '--5', 5 ],
+        [ '10+---4', 6 ],
         [ '-0xAB', -0xAB ],
         [ '-0b1010', -0b1010 ],
         [ '-0ABH', -0xAB ],
@@ -310,14 +319,18 @@ describe("expressions", () => {
         // [ '-%1010', -0b1010 ], // See SUPPORT_PERCENT_BINARY
         [ '-$', -0x1234 ],
 
-        // Operators.
+        // Function-like operators.
         [ 'lo(0x1234)', 0x34 ],
+        [ 'lo 0x1234', 0x34 ],
         [ 'low(0x1234)', 0x34 ],
         [ 'low 0x1234', 0x34 ],
         [ 'hi(0x1234)', 0x12 ],
+        [ 'hi 0x1234', 0x12 ],
         [ 'high(0x1234)', 0x12 ],
         [ 'high 0x1234', 0x12 ],
-        [ '(high 0x1234) shr 3', 0x02 ],
+        [ '(high 0x1234) + 1', 0x13 ],
+        [ 'high 0x1234 + 1', 0x13 ],
+        [ 'high(0x1234 + 1)', 0x12 ],
 
         // Arithmetic operators
         ['2 + 3', 5],
@@ -555,4 +568,4 @@ foo     macro #abc
     })*/
 });
 
-console.log(successCount + " successful out of " + testCount);
+console.log(successCount + " successful out of " + testCount, successCount === testCount ? "✅" : "❌");
