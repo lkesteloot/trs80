@@ -674,11 +674,8 @@ export class Tokenizer {
      * to that and not a hex prefix.
      */
     public readNumericConstant(address: number): number | undefined {
-        if (this.tokenIndex >= this.tokens.length) {
-            return undefined;
-        }
-        const token = this.tokens[this.tokenIndex];
-        if (token.error !== undefined) {
+        const token = this.getCurrentToken();
+        if (token === undefined || token.error !== undefined) {
             return undefined;
         }
         if (token.tag === "number") {

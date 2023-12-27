@@ -839,6 +839,16 @@ class LineParser {
     }
 
     public assemble(): void {
+        try {
+            this.assembleOrThrow();
+        } catch (e: any) {
+            if (this.assembledLine.error === undefined) {
+                this.assembledLine.error = e.message;
+            }
+        }
+    }
+
+    private assembleOrThrow(): void {
         // Convenience.
         const thisAddress = this.assembledLine.address;
 
@@ -905,13 +915,7 @@ class LineParser {
             if (PSEUDO_IF.has(mnemonic)) {
                 if (enabledLine) {
                     // Parse the if expression normally.
-                    const value = this.readExpression(true);
-                    if (value === undefined) {
-                        if (this.assembledLine.error === undefined) {
-                            this.assembledLine.error = "error in expression";
-                        }
-                        return;
-                    }
+                    const value = this.readExpression();
                     this.pass.conditionals.push(new Conditional(this.assembledLine, value !== 0));
                 } else {
                     // We're disabled, don't parse the expression, it might refer
@@ -972,13 +976,7 @@ class LineParser {
                         s = this.parsePredefinedName();
                         if (s === undefined) {
                             // Try a normal expression.
-                            const value = this.readExpression(true);
-                            if (value === undefined) {
-                                if (this.assembledLine.error === undefined) {
-                                    this.assembledLine.error = "invalid " + mnemonic + " expression";
-                                }
-                                return;
-                            }
+                            const value = this.readExpression();
                             this.assembledLine.binary.push(lo(value));
                         }
                     }
@@ -998,13 +996,7 @@ class LineParser {
                 }
             } else if (PSEUDO_DEF_WORDS.has(mnemonic)) {
                 while (true) {
-                    const value = this.readExpression(true);
-                    if (value === undefined) {
-                        if (this.assembledLine.error === undefined) {
-                            this.assembledLine.error = "invalid " + mnemonic + " expression";
-                        }
-                        return;
-                    }
+                    const value = this.readExpression();
                     this.assembledLine.binary.push(lo(value));
                     this.assembledLine.binary.push(hi(value));
                     if (!this.tokenizer.found(',')) {
@@ -1013,13 +1005,7 @@ class LineParser {
                 }
             } else if (PSEUDO_DEF_LONGS.has(mnemonic)) {
                 while (true) {
-                    const value = this.readExpression(true);
-                    if (value === undefined) {
-                        if (this.assembledLine.error === undefined) {
-                            this.assembledLine.error = "invalid " + mnemonic + " expression";
-                        }
-                        return;
-                    }
+                    const value = this.readExpression();
                     this.assembledLine.binary.push(lo(value));
                     this.assembledLine.binary.push(hi(value));
                     this.assembledLine.binary.push(lo(value >> 16));
@@ -1029,37 +1015,23 @@ class LineParser {
                     }
                 }
             } else if (PSEUDO_EQU.has(mnemonic)) {
-                const value = this.readExpression(true);
-                if (value === undefined) {
-                    this.assembledLine.error = "bad value for constant";
-                } else if (label === undefined) {
+                const value = this.readExpression();
+                if (label === undefined) {
                     this.assembledLine.error = "must have label for constant";
                 } else {
                     // Remember constant.
                     labelValue = value;
                 }
             } else if (PSEUDO_ORG.has(mnemonic)) {
-                const startAddress = this.readExpression(true);
-                if (startAddress === undefined) {
-                    this.assembledLine.error = "start address expected";
-                } else {
-                    this.assembledLine.nextAddress = startAddress;
-                }
+                this.assembledLine.nextAddress = this.readExpression();
             } else if (PSEUDO_ALIGN.has(mnemonic)) {
-                const align = this.readExpression(true);
-                if (align === undefined || align <= 0) {
+                const align = this.readExpression();
+                if (align <= 0) {
                     this.assembledLine.error = "alignment value expected";
                 } else {
                     let fillChar: number | undefined;
                     if (this.tokenizer.found(",")) {
-                        const expr = this.readExpression(true);
-                        if (expr === undefined) {
-                            if (this.assembledLine.error === undefined) {
-                                this.assembledLine.error = "error in fill byte";
-                            }
-                            return;
-                        }
-                        fillChar = expr;
+                        fillChar = this.readExpression();
                     }
 
                     if (fillChar === undefined) {
@@ -1075,7 +1047,7 @@ class LineParser {
                     }
                 }
             } else if (PSEUDO_FILL.has(mnemonic)) {
-                const length = this.readExpression(true);
+                const length = this.readExpression();
                 if (length === undefined) {
                     this.assembledLine.error = "length value expected";
                 } else if (length < 0) {
@@ -1083,7 +1055,7 @@ class LineParser {
                 } else {
                     let fillChar: number | undefined;
                     if (this.tokenizer.found(",")) {
-                        const expr = this.readExpression(true);
+                        const expr = this.readExpression();
                         if (expr === undefined) {
                             if (this.assembledLine.error === undefined) {
                                 this.assembledLine.error = "error in fill byte";
@@ -1223,7 +1195,7 @@ class LineParser {
             } else if (PSEUDO_END.has(mnemonic)) {
                 // End of source file. See if there's an optional entry address or label.
                 if (!this.tokenizer.isEndOfLine()) {
-                    const value = this.readExpression(true);
+                    const value = this.readExpression();
                     if (value === undefined) {
                         if (this.assembledLine.error === undefined) {
                             this.assembledLine.error = "invalid expression for entry point";
@@ -1322,7 +1294,7 @@ class LineParser {
     private ensureEndOfLine(): void {
         const token = this.tokenizer.ensureEndOfLine();
         if (token !== undefined && this.assembledLine.error === undefined) {
-            this.assembledLine.error = "syntax error: \"" + token.text + "\"";
+            this.assembledLine.error = "syntax error (\"" + token.text + "\")";
         }
     }
 
@@ -1360,7 +1332,7 @@ class LineParser {
                     if (this.tokenizer.found("*")) {
                         // Keep start address unchanged.
                     } else {
-                        const startAddress = this.readExpression(true);
+                        const startAddress = this.readExpression();
                         if (startAddress === undefined) {
                             this.assembledLine.error = "start address expected";
                         } else {
@@ -1369,7 +1341,7 @@ class LineParser {
                     }
 
                     if (this.tokenizer.found(',')) {
-                        const length = this.readExpression(true);
+                        const length = this.readExpression();
                         if (length === undefined) {
                             this.assembledLine.error = "length expected";
                         }
@@ -1601,7 +1573,7 @@ class LineParser {
                         // try "ld a,(nnnn)" first, then try "ld a,n" and allow parentheses,
                         // so that "ld a,(1+2)+3" would work. The order of variants is
                         // not currently guaranteed, though.
-                        const value = this.readExpression(false);
+                        const value = this.readUnparenthesizedExpression();
                         if (value === undefined) {
                             match = false;
                         } else {
@@ -1617,7 +1589,7 @@ class LineParser {
                         // compare the values. This is used for BIT, SET, RES, RST, IM, and one
                         // variant of OUT (OUT (C), 0).
                         const expectedValue = parseInt(token, 10);
-                        const actualValue = this.readExpression(false);
+                        const actualValue = this.readUnparenthesizedExpression();
                         if (expectedValue !== actualValue) {
                             match = false;
                         }
@@ -1751,39 +1723,41 @@ class LineParser {
     }
 
     /**
-     * Read an expression.
+     * Read an expression that cannot start with a parenthesis.
      *
-     * @param canStartWithOpenParens whether to allow the expression to start with an open parenthesis.
+     * @return the value of the expression, or undefined if it starts with a parenthesis.
      *
-     * @return the value of the expression, or undefined if there was an error reading it.
+     * @throws Error if a parse error is found.
      */
-    private readExpression(canStartWithOpenParens: boolean): number | undefined {
-        if (!canStartWithOpenParens && this.tokenizer.matches('(')) {
+    private readUnparenthesizedExpression(): number | undefined {
+        if (this.tokenizer.matches('(')) {
             // Expressions can't start with an open parenthesis because that's ambiguous
             // with dereferencing.
             return undefined;
         }
 
+        return this.readExpression();
+    }
+
+    /**
+     * Read an expression.
+     *
+     * @return the value of the expression.
+     *
+     * @throws Error if a parse error is found.
+     */
+    private readExpression(): number {
         return this.readTernary();
     }
 
-    private readTernary(): number | undefined {
+    private readTernary(): number {
         const condition = this.readLogicalOr();
-        if (condition === undefined) {
-            return undefined;
-        }
         if (this.tokenizer.found("?")) {
             const thenValue = this.readTernary();
-            if (thenValue === undefined) {
-                return undefined;
-            }
             if (!this.tokenizer.found(":")) {
-                return undefined;
+                throw new Error("ternary expression is missing colon");
             }
             const elseValue = this.readTernary();
-            if (elseValue === undefined) {
-                return undefined;
-            }
 
             return condition ? thenValue : elseValue;
         }
@@ -1791,95 +1765,67 @@ class LineParser {
         return condition;
     }
 
-    private readLogicalOr(): number | undefined {
+    private readLogicalOr(): number {
         let value = this.readLogicalAnd();
-        if (value !== undefined) {
-            while (this.tokenizer.foundAnyOf(['||'])) {
-                const subValue = this.readLogicalAnd();
-                if (subValue === undefined) {
-                    return undefined;
-                }
 
-                value ||= subValue;
-            }
+        while (this.tokenizer.foundAnyOf(['||'])) {
+            const subValue = this.readLogicalAnd();
+            value ||= subValue;
         }
 
         return value;
     }
 
-    private readLogicalAnd(): number | undefined {
+    private readLogicalAnd(): number {
         let value = this.readBitwiseOr();
-        if (value !== undefined) {
-            while (this.tokenizer.foundAnyOf(['&&'])) {
-                const subValue = this.readBitwiseOr();
-                if (subValue === undefined) {
-                    return undefined;
-                }
 
-                value &&= subValue;
-            }
+        while (this.tokenizer.foundAnyOf(['&&'])) {
+            const subValue = this.readBitwiseOr();
+            value &&= subValue;
         }
 
         return value;
     }
 
-    private readBitwiseOr(): number | undefined {
+    private readBitwiseOr(): number {
         let value = this.readBitwiseXor();
-        if (value !== undefined) {
-            while (this.tokenizer.foundAnyOf(['|', "or"])) {
-                const subValue = this.readBitwiseXor();
-                if (subValue === undefined) {
-                    return undefined;
-                }
 
-                value |= subValue;
-            }
+        while (this.tokenizer.foundAnyOf(['|', "or"])) {
+            const subValue = this.readBitwiseXor();
+            value |= subValue;
         }
 
         return value;
     }
 
-    private readBitwiseXor(): number | undefined {
+    private readBitwiseXor(): number {
         let value = this.readBitwiseAnd();
-        if (value !== undefined) {
-            while (this.tokenizer.foundAnyOf(['^', "xor"])) {
-                const subValue = this.readBitwiseAnd();
-                if (subValue === undefined) {
-                    return undefined;
-                }
 
-                value ^= subValue;
-            }
+        while (this.tokenizer.foundAnyOf(['^', "xor"])) {
+            const subValue = this.readBitwiseAnd();
+            value ^= subValue;
         }
 
         return value;
     }
 
-    private readBitwiseAnd(): number | undefined {
+    private readBitwiseAnd(): number {
         let value = this.readEquality();
-        if (value !== undefined) {
-            while (this.tokenizer.foundAnyOf(['&', "and"])) {
-                const subValue = this.readEquality();
-                if (subValue === undefined) {
-                    return undefined;
-                }
 
-                value &= subValue;
-            }
+        while (this.tokenizer.foundAnyOf(['&', "and"])) {
+            const subValue = this.readEquality();
+            value &= subValue;
         }
 
         return value;
     }
 
-    private readEquality(): number | undefined {
+    private readEquality(): number {
         let value = 0;
         let op: "==" | "!=" | undefined = undefined;
 
         while (true) {
             const subValue = this.readInequality();
-            if (subValue === undefined) {
-                return undefined;
-            }
             switch (op) {
                 case "==":
                     value = value == subValue ? 1 : 0;
@@ -1906,15 +1852,12 @@ class LineParser {
         return value;
     }
 
-    private readInequality(): number | undefined {
+    private readInequality(): number {
         let value = 0;
         let op: "<" | "<=" | ">" | ">=" | undefined = undefined;
 
         while (true) {
             const subValue = this.readShift();
-            if (subValue === undefined) {
-                return undefined;
-            }
             switch (op) {
                 case "<":
                     value = value < subValue ? 1 : 0;
@@ -1954,17 +1897,14 @@ class LineParser {
     }
 
     /**
-     * Read a shift (<< and >>) expression, or undefined if there was an error reading it.
+     * Read a shift (<< and >>) expression.
      */
-    private readShift(): number | undefined {
+    private readShift(): number {
         let value = 0;
         let op: "<<" | ">>" | undefined = undefined;
 
         while (true) {
             const subValue = this.readSum();
-            if (subValue === undefined) {
-                return undefined;
-            }
 
             if (op === "<<") {
                 value <<= subValue;
@@ -1987,17 +1927,14 @@ class LineParser {
     }
 
     /**
-     * Read a term (+, -), or undefined if there was an error reading it.
+     * Read a term (+, -).
      */
-    private readSum(): number | undefined {
+    private readSum(): number {
         let value = 0;
         let sign = 1;
 
         while (true) {
             const subValue = this.readProduct();
-            if (subValue === undefined) {
-                return undefined;
-            }
             value += sign * subValue;
 
             if (this.tokenizer.found('+')) {
@@ -2013,17 +1950,14 @@ class LineParser {
     }
 
     /**
-     * Read a factor (*, /, %), or undefined if there was an error reading it.
+     * Read a factor (*, /, %).
      */
-    private readProduct(): number | undefined {
+    private readProduct(): number {
         let value = 1;
         let op: "*" | "/" | "%" = "*";
 
         while (true) {
             const subValue = this.readMonadic();
-            if (subValue === undefined) {
-                return undefined;
-            }
             switch (op) {
                 case "*":
                     value *= subValue;
@@ -2053,15 +1987,12 @@ class LineParser {
     }
 
     /**
-     * Read a monadic (unary prefix operator) expression, or undefined if there was an error reading it.
+     * Read a monadic (unary prefix operator) expression.
      */
-    private readMonadic(): number | undefined {
+    private readMonadic(): number {
         let ch = this.tokenizer.foundAnyOf(["+", "-", "~", "!", "low", "lo", "high", "hi"]);
         if (ch !== undefined) {
             const value = this.readMonadic();
-            if (value === undefined) {
-                return undefined;
-            }
             switch (ch) {
                 case "+":
                 default:
@@ -2090,14 +2021,14 @@ class LineParser {
     }
 
     /**
-     * Read an atom (number constant, identifier) expression, or undefined if there was an error reading it.
+     * Read an atom (number constant, identifier) expression.
      */
-    private readAtom(): number | undefined {
+    private readAtom(): number {
         // Parenthesized expression.
         if (this.tokenizer.found('(')) {
-            const value = this.readExpression(true);
-            if (value === undefined || !this.tokenizer.found(')')) {
-                return undefined;
+            const value = this.readExpression();
+            if (!this.tokenizer.found(')')) {
+                throw new Error("missing close parenthesis");
             }
             return value;
         }
@@ -2119,6 +2050,7 @@ class LineParser {
                     symbolInfo = new SymbolInfo(identifier, 0);
                     this.pass.locals().set(symbolInfo);
                 } else {
+                    // Programmer error.
                     throw new Error("Identifier " + identifier + " was not defined in pass 1");
                 }
             }
@@ -2132,42 +2064,35 @@ class LineParser {
                     symbolInfo.references.push(symbolAppearance);
                 }
             } else if (symbolInfo.definitions.length === 0) {
-                this.assembledLine.error = "unknown identifier \"" + identifier + "\"";
-                return 0;
+                throw new Error("unknown identifier \"" + identifier + "\"");
             } else if (symbolInfo.definitions.length > 1 &&
                 symbolInfo.changesValue &&
                 symbolInfo.definitions[0].assembledLine !== undefined &&
                 symbolInfo.definitions[0].assembledLine.listingLineNumber >= this.assembledLine.listingLineNumber) {
 
-                this.assembledLine.error = "label \"" + identifier + "\" not yet defined here";
-                return 0;
+                throw new Error("label \"" + identifier + "\" not yet defined here");
             }
             return symbolInfo.value;
         }
 
         // Try literal character, like 'a'.
-        try {
-            const ch = this.tokenizer.readCharConstant();
-            if (ch !== undefined) {
-                return ch;
-            }
-        } catch (e: any) {
-            this.assembledLine.error = e.message;
-            return undefined;
+        const ch = this.tokenizer.readCharConstant();
+        if (ch !== undefined) {
+            return ch;
         }
 
         // Try numeric literal.
-        try {
-            const value = this.tokenizer.readNumericConstant(this.assembledLine.address);
-            if (value !== undefined) {
-                return value;
-            }
-        } catch (e: any) {
-            this.assembledLine.error = e.message;
-            return undefined;
+        const value = this.tokenizer.readNumericConstant(this.assembledLine.address);
+        if (value !== undefined) {
+            return value;
         }
 
         // Couldn't parse anything.
-        return undefined;
+        const token = this.tokenizer.getCurrentToken();
+        if (token !== undefined) {
+            throw new Error("syntax error (\"" + token.text + "\")");
+        } else {
+            throw new Error("syntax error at end of line");
+        }
     }
 }
