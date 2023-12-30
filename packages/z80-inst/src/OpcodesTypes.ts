@@ -35,11 +35,15 @@ export interface OpcodeVariant {
 
     // Pseudo instructions are either combination of other instructions
     // (like "ld hl,bc") or are synonyms (like "add c" for "add a,c").
+    // In the latter case, both variants have the same opcodes but different tokens.
     isPseudo: boolean;
 
-    // Whether this is an alias for another variant (whose "isAlias" field is false).
+    // Whether this is an alias for another variant (whose "isAlias" field is undefined).
     // For example the sequence DDCBdd47 is the same instruction as DDCBdd40.
-    isAlias: boolean;
+    // Both variants have the same tokens but different opcodes. The one whose
+    // isAlias is undefined has the shortest number of opcodes, and if there's a tie,
+    // the highest opcodes.
+    aliasOf?: OpcodeVariant;
 
     // Optional clr information. TODO: Make not optional.
     clr?: ClrInstruction;
@@ -70,4 +74,23 @@ export interface Instructions {
  */
 export function isOpcodeTemplateOperand(operand: string): operand is OpcodeTemplateOperand {
     return operand === "nn" || operand === "nnnn" || operand === "dd" || operand === "offset";
+}
+
+/**
+ * Make a string version of a variant, suitable to be assembled or shown ot the user.
+ */
+export function opcodeVariantToString(variant: OpcodeVariant): string {
+    const parts: string[] = [variant.mnemonic, " "];
+
+    let lastWasAlphanumeric = true;
+    for (const token of variant.tokens) {
+        const thisIsAlphanumeric = token !== "(" && token !== ")" && token !== "," && token !== "+";
+        if (lastWasAlphanumeric && thisIsAlphanumeric) {
+            parts.push(" ");
+        }
+        parts.push(token);
+        lastWasAlphanumeric = thisIsAlphanumeric;
+    }
+
+    return parts.join("");
 }

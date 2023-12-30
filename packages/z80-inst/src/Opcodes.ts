@@ -11,7 +11,6 @@ const variant_00: OpcodeVariant = {
     0
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "00",
     "undocumented": false,
@@ -42,7 +41,6 @@ const variant_01_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "01",
     "undocumented": false,
@@ -74,7 +72,6 @@ const variant_02: OpcodeVariant = {
     2
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "02",
     "undocumented": false,
@@ -105,7 +102,6 @@ const variant_06_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "06",
     "undocumented": false,
@@ -137,7 +133,6 @@ const variant_0A: OpcodeVariant = {
     10
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "0A",
     "undocumented": false,
@@ -166,7 +161,6 @@ const variant_0A_pseudo: OpcodeVariant = {
     10
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "0A",
     "undocumented": false,
@@ -197,7 +191,6 @@ const variant_0E_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "0E",
     "undocumented": false,
@@ -228,7 +221,6 @@ const variant_11_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "11",
     "undocumented": false,
@@ -260,7 +252,6 @@ const variant_12: OpcodeVariant = {
     18
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "12",
     "undocumented": false,
@@ -291,7 +282,6 @@ const variant_16_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "16",
     "undocumented": false,
@@ -323,7 +313,6 @@ const variant_1A: OpcodeVariant = {
     26
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "1A",
     "undocumented": false,
@@ -352,7 +341,6 @@ const variant_1A_pseudo: OpcodeVariant = {
     26
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "1A",
     "undocumented": false,
@@ -383,7 +371,6 @@ const variant_1E_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "1E",
     "undocumented": false,
@@ -414,7 +401,6 @@ const variant_21_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "21",
     "undocumented": false,
@@ -447,7 +433,6 @@ const variant_22_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "22",
     "undocumented": false,
@@ -478,7 +463,6 @@ const variant_26_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "26",
     "undocumented": false,
@@ -511,7 +495,6 @@ const variant_2A_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "2A",
     "undocumented": false,
@@ -542,7 +525,6 @@ const variant_2E_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "2E",
     "undocumented": false,
@@ -573,7 +555,6 @@ const variant_31_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "31",
     "undocumented": false,
@@ -606,7 +587,6 @@ const variant_32_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "32",
     "undocumented": false,
@@ -639,7 +619,6 @@ const variant_36_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "36",
     "undocumented": false,
@@ -672,7 +651,6 @@ const variant_3A_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "3A",
     "undocumented": false,
@@ -702,7 +680,6 @@ const variant_3A_nnnn_pseudo: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "3A",
     "undocumented": false,
@@ -733,7 +710,6 @@ const variant_3E_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "3E",
     "undocumented": false,
@@ -761,7 +737,6 @@ const variant_3E_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "3E",
     "undocumented": false,
@@ -791,7 +766,6 @@ const variant_40: OpcodeVariant = {
     64
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "40",
     "undocumented": false,
@@ -821,7 +795,6 @@ const variant_41: OpcodeVariant = {
     65
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "41",
     "undocumented": false,
@@ -851,7 +824,6 @@ const variant_42: OpcodeVariant = {
     66
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "42",
     "undocumented": false,
@@ -881,7 +853,6 @@ const variant_43: OpcodeVariant = {
     67
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "43",
     "undocumented": false,
@@ -911,7 +882,6 @@ const variant_44: OpcodeVariant = {
     68
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "44",
     "undocumented": false,
@@ -941,7 +911,6 @@ const variant_45: OpcodeVariant = {
     69
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "45",
     "undocumented": false,
@@ -973,7 +942,6 @@ const variant_46: OpcodeVariant = {
     70
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "46",
     "undocumented": false,
@@ -1003,7 +971,6 @@ const variant_47: OpcodeVariant = {
     71
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "47",
     "undocumented": false,
@@ -1033,7 +1000,6 @@ const variant_48: OpcodeVariant = {
     72
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "48",
     "undocumented": false,
@@ -1063,7 +1029,6 @@ const variant_49: OpcodeVariant = {
     73
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "49",
     "undocumented": false,
@@ -1093,7 +1058,6 @@ const variant_4A: OpcodeVariant = {
     74
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "4A",
     "undocumented": false,
@@ -1123,7 +1087,6 @@ const variant_4B: OpcodeVariant = {
     75
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "4B",
     "undocumented": false,
@@ -1153,7 +1116,6 @@ const variant_4C: OpcodeVariant = {
     76
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "4C",
     "undocumented": false,
@@ -1183,7 +1145,6 @@ const variant_4D: OpcodeVariant = {
     77
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "4D",
     "undocumented": false,
@@ -1215,7 +1176,6 @@ const variant_4E: OpcodeVariant = {
     78
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "4E",
     "undocumented": false,
@@ -1245,7 +1205,6 @@ const variant_4F: OpcodeVariant = {
     79
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "4F",
     "undocumented": false,
@@ -1275,7 +1234,6 @@ const variant_50: OpcodeVariant = {
     80
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "50",
     "undocumented": false,
@@ -1305,7 +1263,6 @@ const variant_51: OpcodeVariant = {
     81
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "51",
     "undocumented": false,
@@ -1335,7 +1292,6 @@ const variant_52: OpcodeVariant = {
     82
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "52",
     "undocumented": false,
@@ -1365,7 +1321,6 @@ const variant_53: OpcodeVariant = {
     83
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "53",
     "undocumented": false,
@@ -1395,7 +1350,6 @@ const variant_54: OpcodeVariant = {
     84
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "54",
     "undocumented": false,
@@ -1425,7 +1379,6 @@ const variant_55: OpcodeVariant = {
     85
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "55",
     "undocumented": false,
@@ -1457,7 +1410,6 @@ const variant_56: OpcodeVariant = {
     86
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "56",
     "undocumented": false,
@@ -1487,7 +1439,6 @@ const variant_57: OpcodeVariant = {
     87
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "57",
     "undocumented": false,
@@ -1517,7 +1468,6 @@ const variant_58: OpcodeVariant = {
     88
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "58",
     "undocumented": false,
@@ -1547,7 +1497,6 @@ const variant_59: OpcodeVariant = {
     89
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "59",
     "undocumented": false,
@@ -1577,7 +1526,6 @@ const variant_5A: OpcodeVariant = {
     90
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "5A",
     "undocumented": false,
@@ -1607,7 +1555,6 @@ const variant_5B: OpcodeVariant = {
     91
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "5B",
     "undocumented": false,
@@ -1637,7 +1584,6 @@ const variant_5C: OpcodeVariant = {
     92
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "5C",
     "undocumented": false,
@@ -1667,7 +1613,6 @@ const variant_5D: OpcodeVariant = {
     93
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "5D",
     "undocumented": false,
@@ -1699,7 +1644,6 @@ const variant_5E: OpcodeVariant = {
     94
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "5E",
     "undocumented": false,
@@ -1729,7 +1673,6 @@ const variant_5F: OpcodeVariant = {
     95
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "5F",
     "undocumented": false,
@@ -1759,7 +1702,6 @@ const variant_60: OpcodeVariant = {
     96
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "60",
     "undocumented": false,
@@ -1789,7 +1731,6 @@ const variant_61: OpcodeVariant = {
     97
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "61",
     "undocumented": false,
@@ -1819,7 +1760,6 @@ const variant_62: OpcodeVariant = {
     98
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "62",
     "undocumented": false,
@@ -1849,7 +1789,6 @@ const variant_63: OpcodeVariant = {
     99
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "63",
     "undocumented": false,
@@ -1879,7 +1818,6 @@ const variant_64: OpcodeVariant = {
     100
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "64",
     "undocumented": false,
@@ -1909,7 +1847,6 @@ const variant_65: OpcodeVariant = {
     101
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "65",
     "undocumented": false,
@@ -1941,7 +1878,6 @@ const variant_66: OpcodeVariant = {
     102
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "66",
     "undocumented": false,
@@ -1971,7 +1907,6 @@ const variant_67: OpcodeVariant = {
     103
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "67",
     "undocumented": false,
@@ -2001,7 +1936,6 @@ const variant_68: OpcodeVariant = {
     104
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "68",
     "undocumented": false,
@@ -2031,7 +1965,6 @@ const variant_69: OpcodeVariant = {
     105
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "69",
     "undocumented": false,
@@ -2061,7 +1994,6 @@ const variant_6A: OpcodeVariant = {
     106
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "6A",
     "undocumented": false,
@@ -2091,7 +2023,6 @@ const variant_6B: OpcodeVariant = {
     107
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "6B",
     "undocumented": false,
@@ -2121,7 +2052,6 @@ const variant_6C: OpcodeVariant = {
     108
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "6C",
     "undocumented": false,
@@ -2151,7 +2081,6 @@ const variant_6D: OpcodeVariant = {
     109
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "6D",
     "undocumented": false,
@@ -2183,7 +2112,6 @@ const variant_6E: OpcodeVariant = {
     110
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "6E",
     "undocumented": false,
@@ -2213,7 +2141,6 @@ const variant_6F: OpcodeVariant = {
     111
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "6F",
     "undocumented": false,
@@ -2245,7 +2172,6 @@ const variant_70: OpcodeVariant = {
     112
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "70",
     "undocumented": false,
@@ -2277,7 +2203,6 @@ const variant_71: OpcodeVariant = {
     113
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "71",
     "undocumented": false,
@@ -2309,7 +2234,6 @@ const variant_72: OpcodeVariant = {
     114
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "72",
     "undocumented": false,
@@ -2341,7 +2265,6 @@ const variant_73: OpcodeVariant = {
     115
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "73",
     "undocumented": false,
@@ -2373,7 +2296,6 @@ const variant_74: OpcodeVariant = {
     116
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "74",
     "undocumented": false,
@@ -2405,7 +2327,6 @@ const variant_75: OpcodeVariant = {
     117
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "75",
     "undocumented": false,
@@ -2437,7 +2358,6 @@ const variant_77: OpcodeVariant = {
     119
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "77",
     "undocumented": false,
@@ -2467,7 +2387,6 @@ const variant_78: OpcodeVariant = {
     120
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "78",
     "undocumented": false,
@@ -2494,7 +2413,6 @@ const variant_78_pseudo: OpcodeVariant = {
     120
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "78",
     "undocumented": false,
@@ -2524,7 +2442,6 @@ const variant_79: OpcodeVariant = {
     121
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "79",
     "undocumented": false,
@@ -2551,7 +2468,6 @@ const variant_79_pseudo: OpcodeVariant = {
     121
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "79",
     "undocumented": false,
@@ -2581,7 +2497,6 @@ const variant_7A: OpcodeVariant = {
     122
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "7A",
     "undocumented": false,
@@ -2608,7 +2523,6 @@ const variant_7A_pseudo: OpcodeVariant = {
     122
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "7A",
     "undocumented": false,
@@ -2638,7 +2552,6 @@ const variant_7B: OpcodeVariant = {
     123
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "7B",
     "undocumented": false,
@@ -2665,7 +2578,6 @@ const variant_7B_pseudo: OpcodeVariant = {
     123
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "7B",
     "undocumented": false,
@@ -2695,7 +2607,6 @@ const variant_7C: OpcodeVariant = {
     124
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "7C",
     "undocumented": false,
@@ -2722,7 +2633,6 @@ const variant_7C_pseudo: OpcodeVariant = {
     124
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "7C",
     "undocumented": false,
@@ -2752,7 +2662,6 @@ const variant_7D: OpcodeVariant = {
     125
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "7D",
     "undocumented": false,
@@ -2779,7 +2688,6 @@ const variant_7D_pseudo: OpcodeVariant = {
     125
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "7D",
     "undocumented": false,
@@ -2811,7 +2719,6 @@ const variant_7E: OpcodeVariant = {
     126
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "7E",
     "undocumented": false,
@@ -2840,7 +2747,6 @@ const variant_7E_pseudo: OpcodeVariant = {
     126
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "7E",
     "undocumented": false,
@@ -2870,7 +2776,6 @@ const variant_7F: OpcodeVariant = {
     127
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "7F",
     "undocumented": false,
@@ -2897,7 +2802,6 @@ const variant_7F_pseudo: OpcodeVariant = {
     127
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "7F",
     "undocumented": false,
@@ -2929,7 +2833,6 @@ const variant_DD_21_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD21",
     "undocumented": false,
@@ -2963,7 +2866,6 @@ const variant_DD_22_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD22",
     "undocumented": false,
@@ -2995,7 +2897,6 @@ const variant_DD_26_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD26",
     "undocumented": true,
@@ -3029,7 +2930,6 @@ const variant_DD_2A_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD2A",
     "undocumented": false,
@@ -3061,7 +2961,6 @@ const variant_DD_2E_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD2E",
     "undocumented": true,
@@ -3098,7 +2997,6 @@ const variant_DD_36_dd_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD36",
     "undocumented": false,
@@ -3129,7 +3027,7 @@ const variant_DD_40: OpcodeVariant = {
     64
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_40,
   "clr": {
     "opcodes": "DD40",
     "undocumented": true,
@@ -3160,7 +3058,7 @@ const variant_DD_41: OpcodeVariant = {
     65
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_41,
   "clr": {
     "opcodes": "DD41",
     "undocumented": true,
@@ -3191,7 +3089,7 @@ const variant_DD_42: OpcodeVariant = {
     66
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_42,
   "clr": {
     "opcodes": "DD42",
     "undocumented": true,
@@ -3222,7 +3120,7 @@ const variant_DD_43: OpcodeVariant = {
     67
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_43,
   "clr": {
     "opcodes": "DD43",
     "undocumented": true,
@@ -3253,7 +3151,6 @@ const variant_DD_44: OpcodeVariant = {
     68
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD44",
     "undocumented": true,
@@ -3284,7 +3181,6 @@ const variant_DD_45: OpcodeVariant = {
     69
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD45",
     "undocumented": true,
@@ -3320,7 +3216,6 @@ const variant_DD_46_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD46",
     "undocumented": false,
@@ -3351,7 +3246,7 @@ const variant_DD_47: OpcodeVariant = {
     71
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_47,
   "clr": {
     "opcodes": "DD47",
     "undocumented": true,
@@ -3382,7 +3277,7 @@ const variant_DD_48: OpcodeVariant = {
     72
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_48,
   "clr": {
     "opcodes": "DD48",
     "undocumented": true,
@@ -3413,7 +3308,7 @@ const variant_DD_49: OpcodeVariant = {
     73
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_49,
   "clr": {
     "opcodes": "DD49",
     "undocumented": true,
@@ -3444,7 +3339,7 @@ const variant_DD_4A: OpcodeVariant = {
     74
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_4A,
   "clr": {
     "opcodes": "DD4A",
     "undocumented": true,
@@ -3475,7 +3370,7 @@ const variant_DD_4B: OpcodeVariant = {
     75
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_4B,
   "clr": {
     "opcodes": "DD4B",
     "undocumented": true,
@@ -3506,7 +3401,6 @@ const variant_DD_4C: OpcodeVariant = {
     76
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD4C",
     "undocumented": true,
@@ -3537,7 +3431,6 @@ const variant_DD_4D: OpcodeVariant = {
     77
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD4D",
     "undocumented": true,
@@ -3573,7 +3466,6 @@ const variant_DD_4E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD4E",
     "undocumented": false,
@@ -3604,7 +3496,7 @@ const variant_DD_4F: OpcodeVariant = {
     79
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_4F,
   "clr": {
     "opcodes": "DD4F",
     "undocumented": true,
@@ -3635,7 +3527,7 @@ const variant_DD_50: OpcodeVariant = {
     80
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_50,
   "clr": {
     "opcodes": "DD50",
     "undocumented": true,
@@ -3666,7 +3558,7 @@ const variant_DD_51: OpcodeVariant = {
     81
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_51,
   "clr": {
     "opcodes": "DD51",
     "undocumented": true,
@@ -3697,7 +3589,7 @@ const variant_DD_52: OpcodeVariant = {
     82
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_52,
   "clr": {
     "opcodes": "DD52",
     "undocumented": true,
@@ -3728,7 +3620,7 @@ const variant_DD_53: OpcodeVariant = {
     83
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_53,
   "clr": {
     "opcodes": "DD53",
     "undocumented": true,
@@ -3759,7 +3651,6 @@ const variant_DD_54: OpcodeVariant = {
     84
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD54",
     "undocumented": true,
@@ -3790,7 +3681,6 @@ const variant_DD_55: OpcodeVariant = {
     85
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD55",
     "undocumented": true,
@@ -3826,7 +3716,6 @@ const variant_DD_56_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD56",
     "undocumented": false,
@@ -3857,7 +3746,7 @@ const variant_DD_57: OpcodeVariant = {
     87
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_57,
   "clr": {
     "opcodes": "DD57",
     "undocumented": true,
@@ -3888,7 +3777,7 @@ const variant_DD_58: OpcodeVariant = {
     88
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_58,
   "clr": {
     "opcodes": "DD58",
     "undocumented": true,
@@ -3919,7 +3808,7 @@ const variant_DD_59: OpcodeVariant = {
     89
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_59,
   "clr": {
     "opcodes": "DD59",
     "undocumented": true,
@@ -3950,7 +3839,7 @@ const variant_DD_5A: OpcodeVariant = {
     90
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_5A,
   "clr": {
     "opcodes": "DD5A",
     "undocumented": true,
@@ -3981,7 +3870,7 @@ const variant_DD_5B: OpcodeVariant = {
     91
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_5B,
   "clr": {
     "opcodes": "DD5B",
     "undocumented": true,
@@ -4012,7 +3901,6 @@ const variant_DD_5C: OpcodeVariant = {
     92
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD5C",
     "undocumented": true,
@@ -4043,7 +3931,6 @@ const variant_DD_5D: OpcodeVariant = {
     93
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD5D",
     "undocumented": true,
@@ -4079,7 +3966,6 @@ const variant_DD_5E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD5E",
     "undocumented": false,
@@ -4110,7 +3996,7 @@ const variant_DD_5F: OpcodeVariant = {
     95
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_5F,
   "clr": {
     "opcodes": "DD5F",
     "undocumented": true,
@@ -4141,7 +4027,6 @@ const variant_DD_60: OpcodeVariant = {
     96
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD60",
     "undocumented": true,
@@ -4172,7 +4057,6 @@ const variant_DD_61: OpcodeVariant = {
     97
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD61",
     "undocumented": true,
@@ -4203,7 +4087,6 @@ const variant_DD_62: OpcodeVariant = {
     98
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD62",
     "undocumented": true,
@@ -4234,7 +4117,6 @@ const variant_DD_63: OpcodeVariant = {
     99
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD63",
     "undocumented": true,
@@ -4265,7 +4147,6 @@ const variant_DD_64: OpcodeVariant = {
     100
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD64",
     "undocumented": true,
@@ -4296,7 +4177,6 @@ const variant_DD_65: OpcodeVariant = {
     101
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD65",
     "undocumented": true,
@@ -4332,7 +4212,6 @@ const variant_DD_66_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD66",
     "undocumented": false,
@@ -4363,7 +4242,6 @@ const variant_DD_67: OpcodeVariant = {
     103
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD67",
     "undocumented": true,
@@ -4394,7 +4272,6 @@ const variant_DD_68: OpcodeVariant = {
     104
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD68",
     "undocumented": true,
@@ -4425,7 +4302,6 @@ const variant_DD_69: OpcodeVariant = {
     105
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD69",
     "undocumented": true,
@@ -4456,7 +4332,6 @@ const variant_DD_6A: OpcodeVariant = {
     106
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD6A",
     "undocumented": true,
@@ -4487,7 +4362,6 @@ const variant_DD_6B: OpcodeVariant = {
     107
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD6B",
     "undocumented": true,
@@ -4518,7 +4392,6 @@ const variant_DD_6C: OpcodeVariant = {
     108
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD6C",
     "undocumented": true,
@@ -4549,7 +4422,6 @@ const variant_DD_6D: OpcodeVariant = {
     109
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD6D",
     "undocumented": true,
@@ -4585,7 +4457,6 @@ const variant_DD_6E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD6E",
     "undocumented": false,
@@ -4616,7 +4487,6 @@ const variant_DD_6F: OpcodeVariant = {
     111
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD6F",
     "undocumented": true,
@@ -4652,7 +4522,6 @@ const variant_DD_70_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD70",
     "undocumented": false,
@@ -4688,7 +4557,6 @@ const variant_DD_71_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD71",
     "undocumented": false,
@@ -4724,7 +4592,6 @@ const variant_DD_72_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD72",
     "undocumented": false,
@@ -4760,7 +4627,6 @@ const variant_DD_73_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD73",
     "undocumented": false,
@@ -4796,7 +4662,6 @@ const variant_DD_74_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD74",
     "undocumented": false,
@@ -4832,7 +4697,6 @@ const variant_DD_75_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD75",
     "undocumented": false,
@@ -4868,7 +4732,6 @@ const variant_DD_77_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD77",
     "undocumented": false,
@@ -4899,7 +4762,7 @@ const variant_DD_78: OpcodeVariant = {
     120
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_78,
   "clr": {
     "opcodes": "DD78",
     "undocumented": true,
@@ -4927,7 +4790,7 @@ const variant_DD_78_pseudo: OpcodeVariant = {
     120
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_78_pseudo,
   "clr": {
     "opcodes": "DD78",
     "undocumented": true,
@@ -4958,7 +4821,7 @@ const variant_DD_79: OpcodeVariant = {
     121
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_79,
   "clr": {
     "opcodes": "DD79",
     "undocumented": true,
@@ -4986,7 +4849,7 @@ const variant_DD_79_pseudo: OpcodeVariant = {
     121
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_79_pseudo,
   "clr": {
     "opcodes": "DD79",
     "undocumented": true,
@@ -5017,7 +4880,7 @@ const variant_DD_7A: OpcodeVariant = {
     122
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_7A,
   "clr": {
     "opcodes": "DD7A",
     "undocumented": true,
@@ -5045,7 +4908,7 @@ const variant_DD_7A_pseudo: OpcodeVariant = {
     122
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_7A_pseudo,
   "clr": {
     "opcodes": "DD7A",
     "undocumented": true,
@@ -5076,7 +4939,7 @@ const variant_DD_7B: OpcodeVariant = {
     123
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_7B,
   "clr": {
     "opcodes": "DD7B",
     "undocumented": true,
@@ -5104,7 +4967,7 @@ const variant_DD_7B_pseudo: OpcodeVariant = {
     123
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_7B_pseudo,
   "clr": {
     "opcodes": "DD7B",
     "undocumented": true,
@@ -5135,7 +4998,6 @@ const variant_DD_7C: OpcodeVariant = {
     124
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD7C",
     "undocumented": true,
@@ -5163,7 +5025,6 @@ const variant_DD_7C_pseudo: OpcodeVariant = {
     124
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD7C",
     "undocumented": true,
@@ -5194,7 +5055,6 @@ const variant_DD_7D: OpcodeVariant = {
     125
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD7D",
     "undocumented": true,
@@ -5222,7 +5082,6 @@ const variant_DD_7D_pseudo: OpcodeVariant = {
     125
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD7D",
     "undocumented": true,
@@ -5258,7 +5117,6 @@ const variant_DD_7E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD7E",
     "undocumented": false,
@@ -5291,7 +5149,6 @@ const variant_DD_7E_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD7E",
     "undocumented": false,
@@ -5322,7 +5179,7 @@ const variant_DD_7F: OpcodeVariant = {
     127
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_7F,
   "clr": {
     "opcodes": "DD7F",
     "undocumented": true,
@@ -5350,7 +5207,7 @@ const variant_DD_7F_pseudo: OpcodeVariant = {
     127
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_7F_pseudo,
   "clr": {
     "opcodes": "DD7F",
     "undocumented": true,
@@ -5388,7 +5245,6 @@ const variant_DD_CB_dd_00: OpcodeVariant = {
     0
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB00",
     "undocumented": true,
@@ -5426,7 +5282,6 @@ const variant_DD_CB_dd_01: OpcodeVariant = {
     1
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB01",
     "undocumented": true,
@@ -5464,7 +5319,6 @@ const variant_DD_CB_dd_02: OpcodeVariant = {
     2
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB02",
     "undocumented": true,
@@ -5502,7 +5356,6 @@ const variant_DD_CB_dd_03: OpcodeVariant = {
     3
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB03",
     "undocumented": true,
@@ -5540,7 +5393,6 @@ const variant_DD_CB_dd_04: OpcodeVariant = {
     4
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB04",
     "undocumented": true,
@@ -5578,7 +5430,6 @@ const variant_DD_CB_dd_05: OpcodeVariant = {
     5
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB05",
     "undocumented": true,
@@ -5616,7 +5467,6 @@ const variant_DD_CB_dd_07: OpcodeVariant = {
     7
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB07",
     "undocumented": true,
@@ -5651,7 +5501,6 @@ const variant_DD_CB_dd_07_pseudo: OpcodeVariant = {
     7
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB07",
     "undocumented": true,
@@ -5689,7 +5538,6 @@ const variant_DD_CB_dd_08: OpcodeVariant = {
     8
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB08",
     "undocumented": true,
@@ -5727,7 +5575,6 @@ const variant_DD_CB_dd_09: OpcodeVariant = {
     9
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB09",
     "undocumented": true,
@@ -5765,7 +5612,6 @@ const variant_DD_CB_dd_0A: OpcodeVariant = {
     10
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB0A",
     "undocumented": true,
@@ -5803,7 +5649,6 @@ const variant_DD_CB_dd_0B: OpcodeVariant = {
     11
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB0B",
     "undocumented": true,
@@ -5841,7 +5686,6 @@ const variant_DD_CB_dd_0C: OpcodeVariant = {
     12
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB0C",
     "undocumented": true,
@@ -5879,7 +5723,6 @@ const variant_DD_CB_dd_0D: OpcodeVariant = {
     13
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB0D",
     "undocumented": true,
@@ -5917,7 +5760,6 @@ const variant_DD_CB_dd_0F: OpcodeVariant = {
     15
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB0F",
     "undocumented": true,
@@ -5952,7 +5794,6 @@ const variant_DD_CB_dd_0F_pseudo: OpcodeVariant = {
     15
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB0F",
     "undocumented": true,
@@ -5990,7 +5831,6 @@ const variant_DD_CB_dd_10: OpcodeVariant = {
     16
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB10",
     "undocumented": true,
@@ -6028,7 +5868,6 @@ const variant_DD_CB_dd_11: OpcodeVariant = {
     17
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB11",
     "undocumented": true,
@@ -6066,7 +5905,6 @@ const variant_DD_CB_dd_12: OpcodeVariant = {
     18
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB12",
     "undocumented": true,
@@ -6104,7 +5942,6 @@ const variant_DD_CB_dd_13: OpcodeVariant = {
     19
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB13",
     "undocumented": true,
@@ -6142,7 +5979,6 @@ const variant_DD_CB_dd_14: OpcodeVariant = {
     20
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB14",
     "undocumented": true,
@@ -6180,7 +6016,6 @@ const variant_DD_CB_dd_15: OpcodeVariant = {
     21
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB15",
     "undocumented": true,
@@ -6218,7 +6053,6 @@ const variant_DD_CB_dd_17: OpcodeVariant = {
     23
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB17",
     "undocumented": true,
@@ -6253,7 +6087,6 @@ const variant_DD_CB_dd_17_pseudo: OpcodeVariant = {
     23
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB17",
     "undocumented": true,
@@ -6291,7 +6124,6 @@ const variant_DD_CB_dd_18: OpcodeVariant = {
     24
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB18",
     "undocumented": true,
@@ -6329,7 +6161,6 @@ const variant_DD_CB_dd_19: OpcodeVariant = {
     25
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB19",
     "undocumented": true,
@@ -6367,7 +6198,6 @@ const variant_DD_CB_dd_1A: OpcodeVariant = {
     26
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB1A",
     "undocumented": true,
@@ -6405,7 +6235,6 @@ const variant_DD_CB_dd_1B: OpcodeVariant = {
     27
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB1B",
     "undocumented": true,
@@ -6443,7 +6272,6 @@ const variant_DD_CB_dd_1C: OpcodeVariant = {
     28
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB1C",
     "undocumented": true,
@@ -6481,7 +6309,6 @@ const variant_DD_CB_dd_1D: OpcodeVariant = {
     29
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB1D",
     "undocumented": true,
@@ -6519,7 +6346,6 @@ const variant_DD_CB_dd_1F: OpcodeVariant = {
     31
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB1F",
     "undocumented": true,
@@ -6554,7 +6380,6 @@ const variant_DD_CB_dd_1F_pseudo: OpcodeVariant = {
     31
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB1F",
     "undocumented": true,
@@ -6592,7 +6417,6 @@ const variant_DD_CB_dd_20: OpcodeVariant = {
     32
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB20",
     "undocumented": true,
@@ -6630,7 +6454,6 @@ const variant_DD_CB_dd_21: OpcodeVariant = {
     33
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB21",
     "undocumented": true,
@@ -6668,7 +6491,6 @@ const variant_DD_CB_dd_22: OpcodeVariant = {
     34
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB22",
     "undocumented": true,
@@ -6706,7 +6528,6 @@ const variant_DD_CB_dd_23: OpcodeVariant = {
     35
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB23",
     "undocumented": true,
@@ -6744,7 +6565,6 @@ const variant_DD_CB_dd_24: OpcodeVariant = {
     36
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB24",
     "undocumented": true,
@@ -6782,7 +6602,6 @@ const variant_DD_CB_dd_25: OpcodeVariant = {
     37
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB25",
     "undocumented": true,
@@ -6820,7 +6639,6 @@ const variant_DD_CB_dd_27: OpcodeVariant = {
     39
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB27",
     "undocumented": true,
@@ -6855,7 +6673,6 @@ const variant_DD_CB_dd_27_pseudo: OpcodeVariant = {
     39
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB27",
     "undocumented": true,
@@ -6893,7 +6710,6 @@ const variant_DD_CB_dd_28: OpcodeVariant = {
     40
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB28",
     "undocumented": true,
@@ -6931,7 +6747,6 @@ const variant_DD_CB_dd_29: OpcodeVariant = {
     41
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB29",
     "undocumented": true,
@@ -6969,7 +6784,6 @@ const variant_DD_CB_dd_2A: OpcodeVariant = {
     42
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB2A",
     "undocumented": true,
@@ -7007,7 +6821,6 @@ const variant_DD_CB_dd_2B: OpcodeVariant = {
     43
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB2B",
     "undocumented": true,
@@ -7045,7 +6858,6 @@ const variant_DD_CB_dd_2C: OpcodeVariant = {
     44
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB2C",
     "undocumented": true,
@@ -7083,7 +6895,6 @@ const variant_DD_CB_dd_2D: OpcodeVariant = {
     45
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB2D",
     "undocumented": true,
@@ -7121,7 +6932,6 @@ const variant_DD_CB_dd_2F: OpcodeVariant = {
     47
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB2F",
     "undocumented": true,
@@ -7156,7 +6966,6 @@ const variant_DD_CB_dd_2F_pseudo: OpcodeVariant = {
     47
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB2F",
     "undocumented": true,
@@ -7194,7 +7003,6 @@ const variant_DD_CB_dd_30: OpcodeVariant = {
     48
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB30",
     "undocumented": true,
@@ -7232,7 +7040,6 @@ const variant_DD_CB_dd_31: OpcodeVariant = {
     49
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB31",
     "undocumented": true,
@@ -7270,7 +7077,6 @@ const variant_DD_CB_dd_32: OpcodeVariant = {
     50
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB32",
     "undocumented": true,
@@ -7308,7 +7114,6 @@ const variant_DD_CB_dd_33: OpcodeVariant = {
     51
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB33",
     "undocumented": true,
@@ -7346,7 +7151,6 @@ const variant_DD_CB_dd_34: OpcodeVariant = {
     52
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB34",
     "undocumented": true,
@@ -7384,7 +7188,6 @@ const variant_DD_CB_dd_35: OpcodeVariant = {
     53
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB35",
     "undocumented": true,
@@ -7422,7 +7225,6 @@ const variant_DD_CB_dd_37: OpcodeVariant = {
     55
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB37",
     "undocumented": true,
@@ -7457,7 +7259,6 @@ const variant_DD_CB_dd_37_pseudo: OpcodeVariant = {
     55
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB37",
     "undocumented": true,
@@ -7495,7 +7296,6 @@ const variant_DD_CB_dd_38: OpcodeVariant = {
     56
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB38",
     "undocumented": true,
@@ -7533,7 +7333,6 @@ const variant_DD_CB_dd_39: OpcodeVariant = {
     57
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB39",
     "undocumented": true,
@@ -7571,7 +7370,6 @@ const variant_DD_CB_dd_3A: OpcodeVariant = {
     58
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB3A",
     "undocumented": true,
@@ -7609,7 +7407,6 @@ const variant_DD_CB_dd_3B: OpcodeVariant = {
     59
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB3B",
     "undocumented": true,
@@ -7647,7 +7444,6 @@ const variant_DD_CB_dd_3C: OpcodeVariant = {
     60
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB3C",
     "undocumented": true,
@@ -7685,7 +7481,6 @@ const variant_DD_CB_dd_3D: OpcodeVariant = {
     61
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB3D",
     "undocumented": true,
@@ -7723,7 +7518,6 @@ const variant_DD_CB_dd_3F: OpcodeVariant = {
     63
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB3F",
     "undocumented": true,
@@ -7758,7 +7552,6 @@ const variant_DD_CB_dd_3F_pseudo: OpcodeVariant = {
     63
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB3F",
     "undocumented": true,
@@ -7799,7 +7592,6 @@ const variant_DD_CB_dd_80: OpcodeVariant = {
     128
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB80",
     "undocumented": true,
@@ -7840,7 +7632,6 @@ const variant_DD_CB_dd_81: OpcodeVariant = {
     129
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB81",
     "undocumented": true,
@@ -7881,7 +7672,6 @@ const variant_DD_CB_dd_82: OpcodeVariant = {
     130
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB82",
     "undocumented": true,
@@ -7922,7 +7712,6 @@ const variant_DD_CB_dd_83: OpcodeVariant = {
     131
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB83",
     "undocumented": true,
@@ -7963,7 +7752,6 @@ const variant_DD_CB_dd_84: OpcodeVariant = {
     132
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB84",
     "undocumented": true,
@@ -8004,7 +7792,6 @@ const variant_DD_CB_dd_85: OpcodeVariant = {
     133
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB85",
     "undocumented": true,
@@ -8045,7 +7832,6 @@ const variant_DD_CB_dd_87: OpcodeVariant = {
     135
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB87",
     "undocumented": true,
@@ -8083,7 +7869,6 @@ const variant_DD_CB_dd_87_pseudo: OpcodeVariant = {
     135
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB87",
     "undocumented": true,
@@ -8124,7 +7909,6 @@ const variant_DD_CB_dd_88: OpcodeVariant = {
     136
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB88",
     "undocumented": true,
@@ -8165,7 +7949,6 @@ const variant_DD_CB_dd_89: OpcodeVariant = {
     137
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB89",
     "undocumented": true,
@@ -8206,7 +7989,6 @@ const variant_DD_CB_dd_8A: OpcodeVariant = {
     138
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB8A",
     "undocumented": true,
@@ -8247,7 +8029,6 @@ const variant_DD_CB_dd_8B: OpcodeVariant = {
     139
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB8B",
     "undocumented": true,
@@ -8288,7 +8069,6 @@ const variant_DD_CB_dd_8C: OpcodeVariant = {
     140
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB8C",
     "undocumented": true,
@@ -8329,7 +8109,6 @@ const variant_DD_CB_dd_8D: OpcodeVariant = {
     141
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB8D",
     "undocumented": true,
@@ -8370,7 +8149,6 @@ const variant_DD_CB_dd_8F: OpcodeVariant = {
     143
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB8F",
     "undocumented": true,
@@ -8408,7 +8186,6 @@ const variant_DD_CB_dd_8F_pseudo: OpcodeVariant = {
     143
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB8F",
     "undocumented": true,
@@ -8449,7 +8226,6 @@ const variant_DD_CB_dd_90: OpcodeVariant = {
     144
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB90",
     "undocumented": true,
@@ -8490,7 +8266,6 @@ const variant_DD_CB_dd_91: OpcodeVariant = {
     145
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB91",
     "undocumented": true,
@@ -8531,7 +8306,6 @@ const variant_DD_CB_dd_92: OpcodeVariant = {
     146
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB92",
     "undocumented": true,
@@ -8572,7 +8346,6 @@ const variant_DD_CB_dd_93: OpcodeVariant = {
     147
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB93",
     "undocumented": true,
@@ -8613,7 +8386,6 @@ const variant_DD_CB_dd_94: OpcodeVariant = {
     148
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB94",
     "undocumented": true,
@@ -8654,7 +8426,6 @@ const variant_DD_CB_dd_95: OpcodeVariant = {
     149
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB95",
     "undocumented": true,
@@ -8695,7 +8466,6 @@ const variant_DD_CB_dd_97: OpcodeVariant = {
     151
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB97",
     "undocumented": true,
@@ -8733,7 +8503,6 @@ const variant_DD_CB_dd_97_pseudo: OpcodeVariant = {
     151
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB97",
     "undocumented": true,
@@ -8774,7 +8543,6 @@ const variant_DD_CB_dd_98: OpcodeVariant = {
     152
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB98",
     "undocumented": true,
@@ -8815,7 +8583,6 @@ const variant_DD_CB_dd_99: OpcodeVariant = {
     153
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB99",
     "undocumented": true,
@@ -8856,7 +8623,6 @@ const variant_DD_CB_dd_9A: OpcodeVariant = {
     154
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB9A",
     "undocumented": true,
@@ -8897,7 +8663,6 @@ const variant_DD_CB_dd_9B: OpcodeVariant = {
     155
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB9B",
     "undocumented": true,
@@ -8938,7 +8703,6 @@ const variant_DD_CB_dd_9C: OpcodeVariant = {
     156
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB9C",
     "undocumented": true,
@@ -8979,7 +8743,6 @@ const variant_DD_CB_dd_9D: OpcodeVariant = {
     157
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB9D",
     "undocumented": true,
@@ -9020,7 +8783,6 @@ const variant_DD_CB_dd_9F: OpcodeVariant = {
     159
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB9F",
     "undocumented": true,
@@ -9058,7 +8820,6 @@ const variant_DD_CB_dd_9F_pseudo: OpcodeVariant = {
     159
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB9F",
     "undocumented": true,
@@ -9099,7 +8860,6 @@ const variant_DD_CB_dd_A0: OpcodeVariant = {
     160
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA0",
     "undocumented": true,
@@ -9140,7 +8900,6 @@ const variant_DD_CB_dd_A1: OpcodeVariant = {
     161
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA1",
     "undocumented": true,
@@ -9181,7 +8940,6 @@ const variant_DD_CB_dd_A2: OpcodeVariant = {
     162
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA2",
     "undocumented": true,
@@ -9222,7 +8980,6 @@ const variant_DD_CB_dd_A3: OpcodeVariant = {
     163
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA3",
     "undocumented": true,
@@ -9263,7 +9020,6 @@ const variant_DD_CB_dd_A4: OpcodeVariant = {
     164
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA4",
     "undocumented": true,
@@ -9304,7 +9060,6 @@ const variant_DD_CB_dd_A5: OpcodeVariant = {
     165
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA5",
     "undocumented": true,
@@ -9345,7 +9100,6 @@ const variant_DD_CB_dd_A7: OpcodeVariant = {
     167
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA7",
     "undocumented": true,
@@ -9383,7 +9137,6 @@ const variant_DD_CB_dd_A7_pseudo: OpcodeVariant = {
     167
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA7",
     "undocumented": true,
@@ -9424,7 +9177,6 @@ const variant_DD_CB_dd_A8: OpcodeVariant = {
     168
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA8",
     "undocumented": true,
@@ -9465,7 +9217,6 @@ const variant_DD_CB_dd_A9: OpcodeVariant = {
     169
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA9",
     "undocumented": true,
@@ -9506,7 +9257,6 @@ const variant_DD_CB_dd_AA: OpcodeVariant = {
     170
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBAA",
     "undocumented": true,
@@ -9547,7 +9297,6 @@ const variant_DD_CB_dd_AB: OpcodeVariant = {
     171
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBAB",
     "undocumented": true,
@@ -9588,7 +9337,6 @@ const variant_DD_CB_dd_AC: OpcodeVariant = {
     172
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBAC",
     "undocumented": true,
@@ -9629,7 +9377,6 @@ const variant_DD_CB_dd_AD: OpcodeVariant = {
     173
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBAD",
     "undocumented": true,
@@ -9670,7 +9417,6 @@ const variant_DD_CB_dd_AF: OpcodeVariant = {
     175
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBAF",
     "undocumented": true,
@@ -9708,7 +9454,6 @@ const variant_DD_CB_dd_AF_pseudo: OpcodeVariant = {
     175
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBAF",
     "undocumented": true,
@@ -9749,7 +9494,6 @@ const variant_DD_CB_dd_B0: OpcodeVariant = {
     176
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB0",
     "undocumented": true,
@@ -9790,7 +9534,6 @@ const variant_DD_CB_dd_B1: OpcodeVariant = {
     177
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB1",
     "undocumented": true,
@@ -9831,7 +9574,6 @@ const variant_DD_CB_dd_B2: OpcodeVariant = {
     178
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB2",
     "undocumented": true,
@@ -9872,7 +9614,6 @@ const variant_DD_CB_dd_B3: OpcodeVariant = {
     179
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB3",
     "undocumented": true,
@@ -9913,7 +9654,6 @@ const variant_DD_CB_dd_B4: OpcodeVariant = {
     180
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB4",
     "undocumented": true,
@@ -9954,7 +9694,6 @@ const variant_DD_CB_dd_B5: OpcodeVariant = {
     181
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB5",
     "undocumented": true,
@@ -9995,7 +9734,6 @@ const variant_DD_CB_dd_B7: OpcodeVariant = {
     183
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB7",
     "undocumented": true,
@@ -10033,7 +9771,6 @@ const variant_DD_CB_dd_B7_pseudo: OpcodeVariant = {
     183
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB7",
     "undocumented": true,
@@ -10074,7 +9811,6 @@ const variant_DD_CB_dd_B8: OpcodeVariant = {
     184
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB8",
     "undocumented": true,
@@ -10115,7 +9851,6 @@ const variant_DD_CB_dd_B9: OpcodeVariant = {
     185
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB9",
     "undocumented": true,
@@ -10156,7 +9891,6 @@ const variant_DD_CB_dd_BA: OpcodeVariant = {
     186
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBBA",
     "undocumented": true,
@@ -10197,7 +9931,6 @@ const variant_DD_CB_dd_BB: OpcodeVariant = {
     187
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBBB",
     "undocumented": true,
@@ -10238,7 +9971,6 @@ const variant_DD_CB_dd_BC: OpcodeVariant = {
     188
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBBC",
     "undocumented": true,
@@ -10279,7 +10011,6 @@ const variant_DD_CB_dd_BD: OpcodeVariant = {
     189
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBBD",
     "undocumented": true,
@@ -10320,7 +10051,6 @@ const variant_DD_CB_dd_BF: OpcodeVariant = {
     191
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBBF",
     "undocumented": true,
@@ -10358,7 +10088,6 @@ const variant_DD_CB_dd_BF_pseudo: OpcodeVariant = {
     191
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBBF",
     "undocumented": true,
@@ -10399,7 +10128,6 @@ const variant_DD_CB_dd_C0: OpcodeVariant = {
     192
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC0",
     "undocumented": true,
@@ -10440,7 +10168,6 @@ const variant_DD_CB_dd_C1: OpcodeVariant = {
     193
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC1",
     "undocumented": true,
@@ -10481,7 +10208,6 @@ const variant_DD_CB_dd_C2: OpcodeVariant = {
     194
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC2",
     "undocumented": true,
@@ -10522,7 +10248,6 @@ const variant_DD_CB_dd_C3: OpcodeVariant = {
     195
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC3",
     "undocumented": true,
@@ -10563,7 +10288,6 @@ const variant_DD_CB_dd_C4: OpcodeVariant = {
     196
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC4",
     "undocumented": true,
@@ -10604,7 +10328,6 @@ const variant_DD_CB_dd_C5: OpcodeVariant = {
     197
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC5",
     "undocumented": true,
@@ -10645,7 +10368,6 @@ const variant_DD_CB_dd_C7: OpcodeVariant = {
     199
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC7",
     "undocumented": true,
@@ -10683,7 +10405,6 @@ const variant_DD_CB_dd_C7_pseudo: OpcodeVariant = {
     199
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC7",
     "undocumented": true,
@@ -10724,7 +10445,6 @@ const variant_DD_CB_dd_C8: OpcodeVariant = {
     200
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC8",
     "undocumented": true,
@@ -10765,7 +10485,6 @@ const variant_DD_CB_dd_C9: OpcodeVariant = {
     201
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC9",
     "undocumented": true,
@@ -10806,7 +10525,6 @@ const variant_DD_CB_dd_CA: OpcodeVariant = {
     202
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBCA",
     "undocumented": true,
@@ -10847,7 +10565,6 @@ const variant_DD_CB_dd_CB: OpcodeVariant = {
     203
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBCB",
     "undocumented": true,
@@ -10888,7 +10605,6 @@ const variant_DD_CB_dd_CC: OpcodeVariant = {
     204
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBCC",
     "undocumented": true,
@@ -10929,7 +10645,6 @@ const variant_DD_CB_dd_CD: OpcodeVariant = {
     205
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBCD",
     "undocumented": true,
@@ -10970,7 +10685,6 @@ const variant_DD_CB_dd_CF: OpcodeVariant = {
     207
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBCF",
     "undocumented": true,
@@ -11008,7 +10722,6 @@ const variant_DD_CB_dd_CF_pseudo: OpcodeVariant = {
     207
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBCF",
     "undocumented": true,
@@ -11049,7 +10762,6 @@ const variant_DD_CB_dd_D0: OpcodeVariant = {
     208
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD0",
     "undocumented": true,
@@ -11090,7 +10802,6 @@ const variant_DD_CB_dd_D1: OpcodeVariant = {
     209
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD1",
     "undocumented": true,
@@ -11131,7 +10842,6 @@ const variant_DD_CB_dd_D2: OpcodeVariant = {
     210
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD2",
     "undocumented": true,
@@ -11172,7 +10882,6 @@ const variant_DD_CB_dd_D3: OpcodeVariant = {
     211
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD3",
     "undocumented": true,
@@ -11213,7 +10922,6 @@ const variant_DD_CB_dd_D4: OpcodeVariant = {
     212
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD4",
     "undocumented": true,
@@ -11254,7 +10962,6 @@ const variant_DD_CB_dd_D5: OpcodeVariant = {
     213
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD5",
     "undocumented": true,
@@ -11295,7 +11002,6 @@ const variant_DD_CB_dd_D7: OpcodeVariant = {
     215
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD7",
     "undocumented": true,
@@ -11333,7 +11039,6 @@ const variant_DD_CB_dd_D7_pseudo: OpcodeVariant = {
     215
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD7",
     "undocumented": true,
@@ -11374,7 +11079,6 @@ const variant_DD_CB_dd_D8: OpcodeVariant = {
     216
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD8",
     "undocumented": true,
@@ -11415,7 +11119,6 @@ const variant_DD_CB_dd_D9: OpcodeVariant = {
     217
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD9",
     "undocumented": true,
@@ -11456,7 +11159,6 @@ const variant_DD_CB_dd_DA: OpcodeVariant = {
     218
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBDA",
     "undocumented": true,
@@ -11497,7 +11199,6 @@ const variant_DD_CB_dd_DB: OpcodeVariant = {
     219
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBDB",
     "undocumented": true,
@@ -11538,7 +11239,6 @@ const variant_DD_CB_dd_DC: OpcodeVariant = {
     220
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBDC",
     "undocumented": true,
@@ -11579,7 +11279,6 @@ const variant_DD_CB_dd_DD: OpcodeVariant = {
     221
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBDD",
     "undocumented": true,
@@ -11620,7 +11319,6 @@ const variant_DD_CB_dd_DF: OpcodeVariant = {
     223
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBDF",
     "undocumented": true,
@@ -11658,7 +11356,6 @@ const variant_DD_CB_dd_DF_pseudo: OpcodeVariant = {
     223
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBDF",
     "undocumented": true,
@@ -11699,7 +11396,6 @@ const variant_DD_CB_dd_E0: OpcodeVariant = {
     224
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE0",
     "undocumented": true,
@@ -11740,7 +11436,6 @@ const variant_DD_CB_dd_E1: OpcodeVariant = {
     225
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE1",
     "undocumented": true,
@@ -11781,7 +11476,6 @@ const variant_DD_CB_dd_E2: OpcodeVariant = {
     226
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE2",
     "undocumented": true,
@@ -11822,7 +11516,6 @@ const variant_DD_CB_dd_E3: OpcodeVariant = {
     227
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE3",
     "undocumented": true,
@@ -11863,7 +11556,6 @@ const variant_DD_CB_dd_E4: OpcodeVariant = {
     228
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE4",
     "undocumented": true,
@@ -11904,7 +11596,6 @@ const variant_DD_CB_dd_E5: OpcodeVariant = {
     229
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE5",
     "undocumented": true,
@@ -11945,7 +11636,6 @@ const variant_DD_CB_dd_E7: OpcodeVariant = {
     231
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE7",
     "undocumented": true,
@@ -11983,7 +11673,6 @@ const variant_DD_CB_dd_E7_pseudo: OpcodeVariant = {
     231
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE7",
     "undocumented": true,
@@ -12024,7 +11713,6 @@ const variant_DD_CB_dd_E8: OpcodeVariant = {
     232
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE8",
     "undocumented": true,
@@ -12065,7 +11753,6 @@ const variant_DD_CB_dd_E9: OpcodeVariant = {
     233
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE9",
     "undocumented": true,
@@ -12106,7 +11793,6 @@ const variant_DD_CB_dd_EA: OpcodeVariant = {
     234
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBEA",
     "undocumented": true,
@@ -12147,7 +11833,6 @@ const variant_DD_CB_dd_EB: OpcodeVariant = {
     235
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBEB",
     "undocumented": true,
@@ -12188,7 +11873,6 @@ const variant_DD_CB_dd_EC: OpcodeVariant = {
     236
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBEC",
     "undocumented": true,
@@ -12229,7 +11913,6 @@ const variant_DD_CB_dd_ED: OpcodeVariant = {
     237
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBED",
     "undocumented": true,
@@ -12270,7 +11953,6 @@ const variant_DD_CB_dd_EF: OpcodeVariant = {
     239
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBEF",
     "undocumented": true,
@@ -12308,7 +11990,6 @@ const variant_DD_CB_dd_EF_pseudo: OpcodeVariant = {
     239
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBEF",
     "undocumented": true,
@@ -12349,7 +12030,6 @@ const variant_DD_CB_dd_F0: OpcodeVariant = {
     240
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF0",
     "undocumented": true,
@@ -12390,7 +12070,6 @@ const variant_DD_CB_dd_F1: OpcodeVariant = {
     241
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF1",
     "undocumented": true,
@@ -12431,7 +12110,6 @@ const variant_DD_CB_dd_F2: OpcodeVariant = {
     242
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF2",
     "undocumented": true,
@@ -12472,7 +12150,6 @@ const variant_DD_CB_dd_F3: OpcodeVariant = {
     243
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF3",
     "undocumented": true,
@@ -12513,7 +12190,6 @@ const variant_DD_CB_dd_F4: OpcodeVariant = {
     244
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF4",
     "undocumented": true,
@@ -12554,7 +12230,6 @@ const variant_DD_CB_dd_F5: OpcodeVariant = {
     245
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF5",
     "undocumented": true,
@@ -12595,7 +12270,6 @@ const variant_DD_CB_dd_F7: OpcodeVariant = {
     247
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF7",
     "undocumented": true,
@@ -12633,7 +12307,6 @@ const variant_DD_CB_dd_F7_pseudo: OpcodeVariant = {
     247
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF7",
     "undocumented": true,
@@ -12674,7 +12347,6 @@ const variant_DD_CB_dd_F8: OpcodeVariant = {
     248
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF8",
     "undocumented": true,
@@ -12715,7 +12387,6 @@ const variant_DD_CB_dd_F9: OpcodeVariant = {
     249
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF9",
     "undocumented": true,
@@ -12756,7 +12427,6 @@ const variant_DD_CB_dd_FA: OpcodeVariant = {
     250
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBFA",
     "undocumented": true,
@@ -12797,7 +12467,6 @@ const variant_DD_CB_dd_FB: OpcodeVariant = {
     251
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBFB",
     "undocumented": true,
@@ -12838,7 +12507,6 @@ const variant_DD_CB_dd_FC: OpcodeVariant = {
     252
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBFC",
     "undocumented": true,
@@ -12879,7 +12547,6 @@ const variant_DD_CB_dd_FD: OpcodeVariant = {
     253
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBFD",
     "undocumented": true,
@@ -12920,7 +12587,6 @@ const variant_DD_CB_dd_FF: OpcodeVariant = {
     255
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBFF",
     "undocumented": true,
@@ -12958,7 +12624,6 @@ const variant_DD_CB_dd_FF_pseudo: OpcodeVariant = {
     255
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBFF",
     "undocumented": true,
@@ -12989,7 +12654,6 @@ const variant_DD_F9: OpcodeVariant = {
     249
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDF9",
     "undocumented": false,
@@ -13023,7 +12687,6 @@ const variant_ED_43_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED43",
     "undocumented": false,
@@ -13054,7 +12717,6 @@ const variant_ED_47: OpcodeVariant = {
     71
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED47",
     "undocumented": false,
@@ -13088,7 +12750,6 @@ const variant_ED_4B_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED4B",
     "undocumented": false,
@@ -13119,7 +12780,6 @@ const variant_ED_4F: OpcodeVariant = {
     79
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED4F",
     "undocumented": false,
@@ -13153,7 +12813,6 @@ const variant_ED_53_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED53",
     "undocumented": false,
@@ -13184,7 +12843,6 @@ const variant_ED_57: OpcodeVariant = {
     87
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED57",
     "undocumented": false,
@@ -13212,7 +12870,6 @@ const variant_ED_57_pseudo: OpcodeVariant = {
     87
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED57",
     "undocumented": false,
@@ -13246,7 +12903,6 @@ const variant_ED_5B_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED5B",
     "undocumented": false,
@@ -13277,7 +12933,6 @@ const variant_ED_5F: OpcodeVariant = {
     95
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED5F",
     "undocumented": false,
@@ -13305,7 +12960,6 @@ const variant_ED_5F_pseudo: OpcodeVariant = {
     95
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED5F",
     "undocumented": false,
@@ -13339,7 +12993,7 @@ const variant_ED_63_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_22_nnnn,
   "clr": {
     "opcodes": "ED63",
     "undocumented": true,
@@ -13373,7 +13027,7 @@ const variant_ED_6B_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_2A_nnnn,
   "clr": {
     "opcodes": "ED6B",
     "undocumented": true,
@@ -13407,7 +13061,6 @@ const variant_ED_73_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED73",
     "undocumented": false,
@@ -13441,7 +13094,6 @@ const variant_ED_7B_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED7B",
     "undocumented": false,
@@ -13471,7 +13123,6 @@ const variant_F9: OpcodeVariant = {
     249
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F9",
     "undocumented": false,
@@ -13503,7 +13154,6 @@ const variant_FD_21_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD21",
     "undocumented": false,
@@ -13537,7 +13187,6 @@ const variant_FD_22_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD22",
     "undocumented": false,
@@ -13569,7 +13218,6 @@ const variant_FD_26_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD26",
     "undocumented": true,
@@ -13603,7 +13251,6 @@ const variant_FD_2A_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD2A",
     "undocumented": false,
@@ -13635,7 +13282,6 @@ const variant_FD_2E_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD2E",
     "undocumented": true,
@@ -13672,7 +13318,6 @@ const variant_FD_36_dd_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD36",
     "undocumented": false,
@@ -13703,7 +13348,7 @@ const variant_FD_40: OpcodeVariant = {
     64
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_40,
   "clr": {
     "opcodes": "FD40",
     "undocumented": true,
@@ -13734,7 +13379,7 @@ const variant_FD_41: OpcodeVariant = {
     65
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_41,
   "clr": {
     "opcodes": "FD41",
     "undocumented": true,
@@ -13765,7 +13410,7 @@ const variant_FD_42: OpcodeVariant = {
     66
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_42,
   "clr": {
     "opcodes": "FD42",
     "undocumented": true,
@@ -13796,7 +13441,7 @@ const variant_FD_43: OpcodeVariant = {
     67
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_43,
   "clr": {
     "opcodes": "FD43",
     "undocumented": true,
@@ -13827,7 +13472,6 @@ const variant_FD_44: OpcodeVariant = {
     68
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD44",
     "undocumented": true,
@@ -13858,7 +13502,6 @@ const variant_FD_45: OpcodeVariant = {
     69
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD45",
     "undocumented": true,
@@ -13894,7 +13537,6 @@ const variant_FD_46_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD46",
     "undocumented": false,
@@ -13925,7 +13567,7 @@ const variant_FD_47: OpcodeVariant = {
     71
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_47,
   "clr": {
     "opcodes": "FD47",
     "undocumented": true,
@@ -13956,7 +13598,7 @@ const variant_FD_48: OpcodeVariant = {
     72
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_48,
   "clr": {
     "opcodes": "FD48",
     "undocumented": true,
@@ -13987,7 +13629,7 @@ const variant_FD_49: OpcodeVariant = {
     73
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_49,
   "clr": {
     "opcodes": "FD49",
     "undocumented": true,
@@ -14018,7 +13660,7 @@ const variant_FD_4A: OpcodeVariant = {
     74
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_4A,
   "clr": {
     "opcodes": "FD4A",
     "undocumented": true,
@@ -14049,7 +13691,7 @@ const variant_FD_4B: OpcodeVariant = {
     75
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_4B,
   "clr": {
     "opcodes": "FD4B",
     "undocumented": true,
@@ -14080,7 +13722,6 @@ const variant_FD_4C: OpcodeVariant = {
     76
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD4C",
     "undocumented": true,
@@ -14111,7 +13752,6 @@ const variant_FD_4D: OpcodeVariant = {
     77
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD4D",
     "undocumented": true,
@@ -14147,7 +13787,6 @@ const variant_FD_4E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD4E",
     "undocumented": false,
@@ -14178,7 +13817,7 @@ const variant_FD_4F: OpcodeVariant = {
     79
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_4F,
   "clr": {
     "opcodes": "FD4F",
     "undocumented": true,
@@ -14209,7 +13848,7 @@ const variant_FD_50: OpcodeVariant = {
     80
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_50,
   "clr": {
     "opcodes": "FD50",
     "undocumented": true,
@@ -14240,7 +13879,7 @@ const variant_FD_51: OpcodeVariant = {
     81
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_51,
   "clr": {
     "opcodes": "FD51",
     "undocumented": true,
@@ -14271,7 +13910,7 @@ const variant_FD_52: OpcodeVariant = {
     82
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_52,
   "clr": {
     "opcodes": "FD52",
     "undocumented": true,
@@ -14302,7 +13941,7 @@ const variant_FD_53: OpcodeVariant = {
     83
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_53,
   "clr": {
     "opcodes": "FD53",
     "undocumented": true,
@@ -14333,7 +13972,6 @@ const variant_FD_54: OpcodeVariant = {
     84
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD54",
     "undocumented": true,
@@ -14364,7 +14002,6 @@ const variant_FD_55: OpcodeVariant = {
     85
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD55",
     "undocumented": true,
@@ -14400,7 +14037,6 @@ const variant_FD_56_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD56",
     "undocumented": false,
@@ -14431,7 +14067,7 @@ const variant_FD_57: OpcodeVariant = {
     87
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_57,
   "clr": {
     "opcodes": "FD57",
     "undocumented": true,
@@ -14462,7 +14098,7 @@ const variant_FD_58: OpcodeVariant = {
     88
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_58,
   "clr": {
     "opcodes": "FD58",
     "undocumented": true,
@@ -14493,7 +14129,7 @@ const variant_FD_59: OpcodeVariant = {
     89
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_59,
   "clr": {
     "opcodes": "FD59",
     "undocumented": true,
@@ -14524,7 +14160,7 @@ const variant_FD_5A: OpcodeVariant = {
     90
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_5A,
   "clr": {
     "opcodes": "FD5A",
     "undocumented": true,
@@ -14555,7 +14191,7 @@ const variant_FD_5B: OpcodeVariant = {
     91
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_5B,
   "clr": {
     "opcodes": "FD5B",
     "undocumented": true,
@@ -14586,7 +14222,6 @@ const variant_FD_5C: OpcodeVariant = {
     92
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD5C",
     "undocumented": true,
@@ -14617,7 +14252,6 @@ const variant_FD_5D: OpcodeVariant = {
     93
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD5D",
     "undocumented": true,
@@ -14653,7 +14287,6 @@ const variant_FD_5E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD5E",
     "undocumented": false,
@@ -14684,7 +14317,7 @@ const variant_FD_5F: OpcodeVariant = {
     95
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_5F,
   "clr": {
     "opcodes": "FD5F",
     "undocumented": true,
@@ -14715,7 +14348,6 @@ const variant_FD_60: OpcodeVariant = {
     96
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD60",
     "undocumented": true,
@@ -14746,7 +14378,6 @@ const variant_FD_61: OpcodeVariant = {
     97
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD61",
     "undocumented": true,
@@ -14777,7 +14408,6 @@ const variant_FD_62: OpcodeVariant = {
     98
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD62",
     "undocumented": true,
@@ -14808,7 +14438,6 @@ const variant_FD_63: OpcodeVariant = {
     99
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD63",
     "undocumented": true,
@@ -14839,7 +14468,6 @@ const variant_FD_64: OpcodeVariant = {
     100
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD64",
     "undocumented": true,
@@ -14870,7 +14498,6 @@ const variant_FD_65: OpcodeVariant = {
     101
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD65",
     "undocumented": true,
@@ -14906,7 +14533,6 @@ const variant_FD_66_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD66",
     "undocumented": false,
@@ -14937,7 +14563,6 @@ const variant_FD_67: OpcodeVariant = {
     103
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD67",
     "undocumented": true,
@@ -14968,7 +14593,6 @@ const variant_FD_68: OpcodeVariant = {
     104
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD68",
     "undocumented": true,
@@ -14999,7 +14623,6 @@ const variant_FD_69: OpcodeVariant = {
     105
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD69",
     "undocumented": true,
@@ -15030,7 +14653,6 @@ const variant_FD_6A: OpcodeVariant = {
     106
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD6A",
     "undocumented": true,
@@ -15061,7 +14683,6 @@ const variant_FD_6B: OpcodeVariant = {
     107
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD6B",
     "undocumented": true,
@@ -15092,7 +14713,6 @@ const variant_FD_6C: OpcodeVariant = {
     108
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD6C",
     "undocumented": true,
@@ -15123,7 +14743,6 @@ const variant_FD_6D: OpcodeVariant = {
     109
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD6D",
     "undocumented": true,
@@ -15159,7 +14778,6 @@ const variant_FD_6E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD6E",
     "undocumented": false,
@@ -15190,7 +14808,6 @@ const variant_FD_6F: OpcodeVariant = {
     111
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD6F",
     "undocumented": true,
@@ -15226,7 +14843,6 @@ const variant_FD_70_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD70",
     "undocumented": false,
@@ -15262,7 +14878,6 @@ const variant_FD_71_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD71",
     "undocumented": false,
@@ -15298,7 +14913,6 @@ const variant_FD_72_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD72",
     "undocumented": false,
@@ -15334,7 +14948,6 @@ const variant_FD_73_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD73",
     "undocumented": false,
@@ -15370,7 +14983,6 @@ const variant_FD_74_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD74",
     "undocumented": false,
@@ -15406,7 +15018,6 @@ const variant_FD_75_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD75",
     "undocumented": false,
@@ -15442,7 +15053,6 @@ const variant_FD_77_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD77",
     "undocumented": false,
@@ -15473,7 +15083,7 @@ const variant_FD_78: OpcodeVariant = {
     120
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_78,
   "clr": {
     "opcodes": "FD78",
     "undocumented": true,
@@ -15501,7 +15111,7 @@ const variant_FD_78_pseudo: OpcodeVariant = {
     120
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_78_pseudo,
   "clr": {
     "opcodes": "FD78",
     "undocumented": true,
@@ -15532,7 +15142,7 @@ const variant_FD_79: OpcodeVariant = {
     121
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_79,
   "clr": {
     "opcodes": "FD79",
     "undocumented": true,
@@ -15560,7 +15170,7 @@ const variant_FD_79_pseudo: OpcodeVariant = {
     121
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_79_pseudo,
   "clr": {
     "opcodes": "FD79",
     "undocumented": true,
@@ -15591,7 +15201,7 @@ const variant_FD_7A: OpcodeVariant = {
     122
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_7A,
   "clr": {
     "opcodes": "FD7A",
     "undocumented": true,
@@ -15619,7 +15229,7 @@ const variant_FD_7A_pseudo: OpcodeVariant = {
     122
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_7A_pseudo,
   "clr": {
     "opcodes": "FD7A",
     "undocumented": true,
@@ -15650,7 +15260,7 @@ const variant_FD_7B: OpcodeVariant = {
     123
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_7B,
   "clr": {
     "opcodes": "FD7B",
     "undocumented": true,
@@ -15678,7 +15288,7 @@ const variant_FD_7B_pseudo: OpcodeVariant = {
     123
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_7B_pseudo,
   "clr": {
     "opcodes": "FD7B",
     "undocumented": true,
@@ -15709,7 +15319,6 @@ const variant_FD_7C: OpcodeVariant = {
     124
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD7C",
     "undocumented": true,
@@ -15737,7 +15346,6 @@ const variant_FD_7C_pseudo: OpcodeVariant = {
     124
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD7C",
     "undocumented": true,
@@ -15768,7 +15376,6 @@ const variant_FD_7D: OpcodeVariant = {
     125
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD7D",
     "undocumented": true,
@@ -15796,7 +15403,6 @@ const variant_FD_7D_pseudo: OpcodeVariant = {
     125
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD7D",
     "undocumented": true,
@@ -15832,7 +15438,6 @@ const variant_FD_7E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD7E",
     "undocumented": false,
@@ -15865,7 +15470,6 @@ const variant_FD_7E_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD7E",
     "undocumented": false,
@@ -15896,7 +15500,7 @@ const variant_FD_7F: OpcodeVariant = {
     127
   ],
   "isPseudo": false,
-  "isAlias": false,
+  "aliasOf": variant_7F,
   "clr": {
     "opcodes": "FD7F",
     "undocumented": true,
@@ -15924,7 +15528,7 @@ const variant_FD_7F_pseudo: OpcodeVariant = {
     127
   ],
   "isPseudo": true,
-  "isAlias": false,
+  "aliasOf": variant_7F_pseudo,
   "clr": {
     "opcodes": "FD7F",
     "undocumented": true,
@@ -15962,7 +15566,6 @@ const variant_FD_CB_dd_00: OpcodeVariant = {
     0
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB00",
     "undocumented": true,
@@ -16000,7 +15603,6 @@ const variant_FD_CB_dd_01: OpcodeVariant = {
     1
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB01",
     "undocumented": true,
@@ -16038,7 +15640,6 @@ const variant_FD_CB_dd_02: OpcodeVariant = {
     2
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB02",
     "undocumented": true,
@@ -16076,7 +15677,6 @@ const variant_FD_CB_dd_03: OpcodeVariant = {
     3
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB03",
     "undocumented": true,
@@ -16114,7 +15714,6 @@ const variant_FD_CB_dd_04: OpcodeVariant = {
     4
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB04",
     "undocumented": true,
@@ -16152,7 +15751,6 @@ const variant_FD_CB_dd_05: OpcodeVariant = {
     5
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB05",
     "undocumented": true,
@@ -16190,7 +15788,6 @@ const variant_FD_CB_dd_07: OpcodeVariant = {
     7
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB07",
     "undocumented": true,
@@ -16225,7 +15822,6 @@ const variant_FD_CB_dd_07_pseudo: OpcodeVariant = {
     7
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB07",
     "undocumented": true,
@@ -16263,7 +15859,6 @@ const variant_FD_CB_dd_08: OpcodeVariant = {
     8
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB08",
     "undocumented": true,
@@ -16301,7 +15896,6 @@ const variant_FD_CB_dd_09: OpcodeVariant = {
     9
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB09",
     "undocumented": true,
@@ -16339,7 +15933,6 @@ const variant_FD_CB_dd_0A: OpcodeVariant = {
     10
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB0A",
     "undocumented": true,
@@ -16377,7 +15970,6 @@ const variant_FD_CB_dd_0B: OpcodeVariant = {
     11
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB0B",
     "undocumented": true,
@@ -16415,7 +16007,6 @@ const variant_FD_CB_dd_0C: OpcodeVariant = {
     12
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB0C",
     "undocumented": true,
@@ -16453,7 +16044,6 @@ const variant_FD_CB_dd_0D: OpcodeVariant = {
     13
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB0D",
     "undocumented": true,
@@ -16491,7 +16081,6 @@ const variant_FD_CB_dd_0F: OpcodeVariant = {
     15
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB0F",
     "undocumented": true,
@@ -16526,7 +16115,6 @@ const variant_FD_CB_dd_0F_pseudo: OpcodeVariant = {
     15
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB0F",
     "undocumented": true,
@@ -16564,7 +16152,6 @@ const variant_FD_CB_dd_10: OpcodeVariant = {
     16
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB10",
     "undocumented": true,
@@ -16602,7 +16189,6 @@ const variant_FD_CB_dd_11: OpcodeVariant = {
     17
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB11",
     "undocumented": true,
@@ -16640,7 +16226,6 @@ const variant_FD_CB_dd_12: OpcodeVariant = {
     18
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB12",
     "undocumented": true,
@@ -16678,7 +16263,6 @@ const variant_FD_CB_dd_13: OpcodeVariant = {
     19
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB13",
     "undocumented": true,
@@ -16716,7 +16300,6 @@ const variant_FD_CB_dd_14: OpcodeVariant = {
     20
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB14",
     "undocumented": true,
@@ -16754,7 +16337,6 @@ const variant_FD_CB_dd_15: OpcodeVariant = {
     21
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB15",
     "undocumented": true,
@@ -16792,7 +16374,6 @@ const variant_FD_CB_dd_17: OpcodeVariant = {
     23
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB17",
     "undocumented": true,
@@ -16827,7 +16408,6 @@ const variant_FD_CB_dd_17_pseudo: OpcodeVariant = {
     23
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB17",
     "undocumented": true,
@@ -16865,7 +16445,6 @@ const variant_FD_CB_dd_18: OpcodeVariant = {
     24
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB18",
     "undocumented": true,
@@ -16903,7 +16482,6 @@ const variant_FD_CB_dd_19: OpcodeVariant = {
     25
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB19",
     "undocumented": true,
@@ -16941,7 +16519,6 @@ const variant_FD_CB_dd_1A: OpcodeVariant = {
     26
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB1A",
     "undocumented": true,
@@ -16979,7 +16556,6 @@ const variant_FD_CB_dd_1B: OpcodeVariant = {
     27
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB1B",
     "undocumented": true,
@@ -17017,7 +16593,6 @@ const variant_FD_CB_dd_1C: OpcodeVariant = {
     28
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB1C",
     "undocumented": true,
@@ -17055,7 +16630,6 @@ const variant_FD_CB_dd_1D: OpcodeVariant = {
     29
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB1D",
     "undocumented": true,
@@ -17093,7 +16667,6 @@ const variant_FD_CB_dd_1F: OpcodeVariant = {
     31
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB1F",
     "undocumented": true,
@@ -17128,7 +16701,6 @@ const variant_FD_CB_dd_1F_pseudo: OpcodeVariant = {
     31
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB1F",
     "undocumented": true,
@@ -17166,7 +16738,6 @@ const variant_FD_CB_dd_20: OpcodeVariant = {
     32
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB20",
     "undocumented": true,
@@ -17204,7 +16775,6 @@ const variant_FD_CB_dd_21: OpcodeVariant = {
     33
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB21",
     "undocumented": true,
@@ -17242,7 +16812,6 @@ const variant_FD_CB_dd_22: OpcodeVariant = {
     34
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB22",
     "undocumented": true,
@@ -17280,7 +16849,6 @@ const variant_FD_CB_dd_23: OpcodeVariant = {
     35
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB23",
     "undocumented": true,
@@ -17318,7 +16886,6 @@ const variant_FD_CB_dd_24: OpcodeVariant = {
     36
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB24",
     "undocumented": true,
@@ -17356,7 +16923,6 @@ const variant_FD_CB_dd_25: OpcodeVariant = {
     37
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB25",
     "undocumented": true,
@@ -17394,7 +16960,6 @@ const variant_FD_CB_dd_27: OpcodeVariant = {
     39
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB27",
     "undocumented": true,
@@ -17429,7 +16994,6 @@ const variant_FD_CB_dd_27_pseudo: OpcodeVariant = {
     39
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB27",
     "undocumented": true,
@@ -17467,7 +17031,6 @@ const variant_FD_CB_dd_28: OpcodeVariant = {
     40
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB28",
     "undocumented": true,
@@ -17505,7 +17068,6 @@ const variant_FD_CB_dd_29: OpcodeVariant = {
     41
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB29",
     "undocumented": true,
@@ -17543,7 +17105,6 @@ const variant_FD_CB_dd_2A: OpcodeVariant = {
     42
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB2A",
     "undocumented": true,
@@ -17581,7 +17142,6 @@ const variant_FD_CB_dd_2B: OpcodeVariant = {
     43
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB2B",
     "undocumented": true,
@@ -17619,7 +17179,6 @@ const variant_FD_CB_dd_2C: OpcodeVariant = {
     44
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB2C",
     "undocumented": true,
@@ -17657,7 +17216,6 @@ const variant_FD_CB_dd_2D: OpcodeVariant = {
     45
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB2D",
     "undocumented": true,
@@ -17695,7 +17253,6 @@ const variant_FD_CB_dd_2F: OpcodeVariant = {
     47
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB2F",
     "undocumented": true,
@@ -17730,7 +17287,6 @@ const variant_FD_CB_dd_2F_pseudo: OpcodeVariant = {
     47
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB2F",
     "undocumented": true,
@@ -17768,7 +17324,6 @@ const variant_FD_CB_dd_30: OpcodeVariant = {
     48
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB30",
     "undocumented": true,
@@ -17806,7 +17361,6 @@ const variant_FD_CB_dd_31: OpcodeVariant = {
     49
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB31",
     "undocumented": true,
@@ -17844,7 +17398,6 @@ const variant_FD_CB_dd_32: OpcodeVariant = {
     50
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB32",
     "undocumented": true,
@@ -17882,7 +17435,6 @@ const variant_FD_CB_dd_33: OpcodeVariant = {
     51
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB33",
     "undocumented": true,
@@ -17920,7 +17472,6 @@ const variant_FD_CB_dd_34: OpcodeVariant = {
     52
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB34",
     "undocumented": true,
@@ -17958,7 +17509,6 @@ const variant_FD_CB_dd_35: OpcodeVariant = {
     53
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB35",
     "undocumented": true,
@@ -17996,7 +17546,6 @@ const variant_FD_CB_dd_37: OpcodeVariant = {
     55
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB37",
     "undocumented": true,
@@ -18031,7 +17580,6 @@ const variant_FD_CB_dd_37_pseudo: OpcodeVariant = {
     55
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB37",
     "undocumented": true,
@@ -18069,7 +17617,6 @@ const variant_FD_CB_dd_38: OpcodeVariant = {
     56
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB38",
     "undocumented": true,
@@ -18107,7 +17654,6 @@ const variant_FD_CB_dd_39: OpcodeVariant = {
     57
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB39",
     "undocumented": true,
@@ -18145,7 +17691,6 @@ const variant_FD_CB_dd_3A: OpcodeVariant = {
     58
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB3A",
     "undocumented": true,
@@ -18183,7 +17728,6 @@ const variant_FD_CB_dd_3B: OpcodeVariant = {
     59
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB3B",
     "undocumented": true,
@@ -18221,7 +17765,6 @@ const variant_FD_CB_dd_3C: OpcodeVariant = {
     60
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB3C",
     "undocumented": true,
@@ -18259,7 +17802,6 @@ const variant_FD_CB_dd_3D: OpcodeVariant = {
     61
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB3D",
     "undocumented": true,
@@ -18297,7 +17839,6 @@ const variant_FD_CB_dd_3F: OpcodeVariant = {
     63
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB3F",
     "undocumented": true,
@@ -18332,7 +17873,6 @@ const variant_FD_CB_dd_3F_pseudo: OpcodeVariant = {
     63
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB3F",
     "undocumented": true,
@@ -18373,7 +17913,6 @@ const variant_FD_CB_dd_80: OpcodeVariant = {
     128
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB80",
     "undocumented": true,
@@ -18414,7 +17953,6 @@ const variant_FD_CB_dd_81: OpcodeVariant = {
     129
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB81",
     "undocumented": true,
@@ -18455,7 +17993,6 @@ const variant_FD_CB_dd_82: OpcodeVariant = {
     130
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB82",
     "undocumented": true,
@@ -18496,7 +18033,6 @@ const variant_FD_CB_dd_83: OpcodeVariant = {
     131
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB83",
     "undocumented": true,
@@ -18537,7 +18073,6 @@ const variant_FD_CB_dd_84: OpcodeVariant = {
     132
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB84",
     "undocumented": true,
@@ -18578,7 +18113,6 @@ const variant_FD_CB_dd_85: OpcodeVariant = {
     133
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB85",
     "undocumented": true,
@@ -18619,7 +18153,6 @@ const variant_FD_CB_dd_87: OpcodeVariant = {
     135
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB87",
     "undocumented": true,
@@ -18657,7 +18190,6 @@ const variant_FD_CB_dd_87_pseudo: OpcodeVariant = {
     135
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB87",
     "undocumented": true,
@@ -18698,7 +18230,6 @@ const variant_FD_CB_dd_88: OpcodeVariant = {
     136
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB88",
     "undocumented": true,
@@ -18739,7 +18270,6 @@ const variant_FD_CB_dd_89: OpcodeVariant = {
     137
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB89",
     "undocumented": true,
@@ -18780,7 +18310,6 @@ const variant_FD_CB_dd_8A: OpcodeVariant = {
     138
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB8A",
     "undocumented": true,
@@ -18821,7 +18350,6 @@ const variant_FD_CB_dd_8B: OpcodeVariant = {
     139
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB8B",
     "undocumented": true,
@@ -18862,7 +18390,6 @@ const variant_FD_CB_dd_8C: OpcodeVariant = {
     140
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB8C",
     "undocumented": true,
@@ -18903,7 +18430,6 @@ const variant_FD_CB_dd_8D: OpcodeVariant = {
     141
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB8D",
     "undocumented": true,
@@ -18944,7 +18470,6 @@ const variant_FD_CB_dd_8F: OpcodeVariant = {
     143
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB8F",
     "undocumented": true,
@@ -18982,7 +18507,6 @@ const variant_FD_CB_dd_8F_pseudo: OpcodeVariant = {
     143
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB8F",
     "undocumented": true,
@@ -19023,7 +18547,6 @@ const variant_FD_CB_dd_90: OpcodeVariant = {
     144
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB90",
     "undocumented": true,
@@ -19064,7 +18587,6 @@ const variant_FD_CB_dd_91: OpcodeVariant = {
     145
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB91",
     "undocumented": true,
@@ -19105,7 +18627,6 @@ const variant_FD_CB_dd_92: OpcodeVariant = {
     146
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB92",
     "undocumented": true,
@@ -19146,7 +18667,6 @@ const variant_FD_CB_dd_93: OpcodeVariant = {
     147
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB93",
     "undocumented": true,
@@ -19187,7 +18707,6 @@ const variant_FD_CB_dd_94: OpcodeVariant = {
     148
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB94",
     "undocumented": true,
@@ -19228,7 +18747,6 @@ const variant_FD_CB_dd_95: OpcodeVariant = {
     149
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB95",
     "undocumented": true,
@@ -19269,7 +18787,6 @@ const variant_FD_CB_dd_97: OpcodeVariant = {
     151
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB97",
     "undocumented": true,
@@ -19307,7 +18824,6 @@ const variant_FD_CB_dd_97_pseudo: OpcodeVariant = {
     151
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB97",
     "undocumented": true,
@@ -19348,7 +18864,6 @@ const variant_FD_CB_dd_98: OpcodeVariant = {
     152
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB98",
     "undocumented": true,
@@ -19389,7 +18904,6 @@ const variant_FD_CB_dd_99: OpcodeVariant = {
     153
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB99",
     "undocumented": true,
@@ -19430,7 +18944,6 @@ const variant_FD_CB_dd_9A: OpcodeVariant = {
     154
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB9A",
     "undocumented": true,
@@ -19471,7 +18984,6 @@ const variant_FD_CB_dd_9B: OpcodeVariant = {
     155
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB9B",
     "undocumented": true,
@@ -19512,7 +19024,6 @@ const variant_FD_CB_dd_9C: OpcodeVariant = {
     156
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB9C",
     "undocumented": true,
@@ -19553,7 +19064,6 @@ const variant_FD_CB_dd_9D: OpcodeVariant = {
     157
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB9D",
     "undocumented": true,
@@ -19594,7 +19104,6 @@ const variant_FD_CB_dd_9F: OpcodeVariant = {
     159
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB9F",
     "undocumented": true,
@@ -19632,7 +19141,6 @@ const variant_FD_CB_dd_9F_pseudo: OpcodeVariant = {
     159
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB9F",
     "undocumented": true,
@@ -19673,7 +19181,6 @@ const variant_FD_CB_dd_A0: OpcodeVariant = {
     160
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA0",
     "undocumented": true,
@@ -19714,7 +19221,6 @@ const variant_FD_CB_dd_A1: OpcodeVariant = {
     161
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA1",
     "undocumented": true,
@@ -19755,7 +19261,6 @@ const variant_FD_CB_dd_A2: OpcodeVariant = {
     162
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA2",
     "undocumented": true,
@@ -19796,7 +19301,6 @@ const variant_FD_CB_dd_A3: OpcodeVariant = {
     163
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA3",
     "undocumented": true,
@@ -19837,7 +19341,6 @@ const variant_FD_CB_dd_A4: OpcodeVariant = {
     164
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA4",
     "undocumented": true,
@@ -19878,7 +19381,6 @@ const variant_FD_CB_dd_A5: OpcodeVariant = {
     165
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA5",
     "undocumented": true,
@@ -19919,7 +19421,6 @@ const variant_FD_CB_dd_A7: OpcodeVariant = {
     167
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA7",
     "undocumented": true,
@@ -19957,7 +19458,6 @@ const variant_FD_CB_dd_A7_pseudo: OpcodeVariant = {
     167
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA7",
     "undocumented": true,
@@ -19998,7 +19498,6 @@ const variant_FD_CB_dd_A8: OpcodeVariant = {
     168
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA8",
     "undocumented": true,
@@ -20039,7 +19538,6 @@ const variant_FD_CB_dd_A9: OpcodeVariant = {
     169
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA9",
     "undocumented": true,
@@ -20080,7 +19578,6 @@ const variant_FD_CB_dd_AA: OpcodeVariant = {
     170
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBAA",
     "undocumented": true,
@@ -20121,7 +19618,6 @@ const variant_FD_CB_dd_AB: OpcodeVariant = {
     171
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBAB",
     "undocumented": true,
@@ -20162,7 +19658,6 @@ const variant_FD_CB_dd_AC: OpcodeVariant = {
     172
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBAC",
     "undocumented": true,
@@ -20203,7 +19698,6 @@ const variant_FD_CB_dd_AD: OpcodeVariant = {
     173
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBAD",
     "undocumented": true,
@@ -20244,7 +19738,6 @@ const variant_FD_CB_dd_AF: OpcodeVariant = {
     175
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBAF",
     "undocumented": true,
@@ -20282,7 +19775,6 @@ const variant_FD_CB_dd_AF_pseudo: OpcodeVariant = {
     175
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBAF",
     "undocumented": true,
@@ -20323,7 +19815,6 @@ const variant_FD_CB_dd_B0: OpcodeVariant = {
     176
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB0",
     "undocumented": true,
@@ -20364,7 +19855,6 @@ const variant_FD_CB_dd_B1: OpcodeVariant = {
     177
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB1",
     "undocumented": true,
@@ -20405,7 +19895,6 @@ const variant_FD_CB_dd_B2: OpcodeVariant = {
     178
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB2",
     "undocumented": true,
@@ -20446,7 +19935,6 @@ const variant_FD_CB_dd_B3: OpcodeVariant = {
     179
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB3",
     "undocumented": true,
@@ -20487,7 +19975,6 @@ const variant_FD_CB_dd_B4: OpcodeVariant = {
     180
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB4",
     "undocumented": true,
@@ -20528,7 +20015,6 @@ const variant_FD_CB_dd_B5: OpcodeVariant = {
     181
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB5",
     "undocumented": true,
@@ -20569,7 +20055,6 @@ const variant_FD_CB_dd_B7: OpcodeVariant = {
     183
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB7",
     "undocumented": true,
@@ -20607,7 +20092,6 @@ const variant_FD_CB_dd_B7_pseudo: OpcodeVariant = {
     183
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB7",
     "undocumented": true,
@@ -20648,7 +20132,6 @@ const variant_FD_CB_dd_B8: OpcodeVariant = {
     184
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB8",
     "undocumented": true,
@@ -20689,7 +20172,6 @@ const variant_FD_CB_dd_B9: OpcodeVariant = {
     185
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB9",
     "undocumented": true,
@@ -20730,7 +20212,6 @@ const variant_FD_CB_dd_BA: OpcodeVariant = {
     186
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBBA",
     "undocumented": true,
@@ -20771,7 +20252,6 @@ const variant_FD_CB_dd_BB: OpcodeVariant = {
     187
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBBB",
     "undocumented": true,
@@ -20812,7 +20292,6 @@ const variant_FD_CB_dd_BC: OpcodeVariant = {
     188
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBBC",
     "undocumented": true,
@@ -20853,7 +20332,6 @@ const variant_FD_CB_dd_BD: OpcodeVariant = {
     189
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBBD",
     "undocumented": true,
@@ -20894,7 +20372,6 @@ const variant_FD_CB_dd_BF: OpcodeVariant = {
     191
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBBF",
     "undocumented": true,
@@ -20932,7 +20409,6 @@ const variant_FD_CB_dd_BF_pseudo: OpcodeVariant = {
     191
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBBF",
     "undocumented": true,
@@ -20973,7 +20449,6 @@ const variant_FD_CB_dd_C0: OpcodeVariant = {
     192
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC0",
     "undocumented": true,
@@ -21014,7 +20489,6 @@ const variant_FD_CB_dd_C1: OpcodeVariant = {
     193
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC1",
     "undocumented": true,
@@ -21055,7 +20529,6 @@ const variant_FD_CB_dd_C2: OpcodeVariant = {
     194
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC2",
     "undocumented": true,
@@ -21096,7 +20569,6 @@ const variant_FD_CB_dd_C3: OpcodeVariant = {
     195
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC3",
     "undocumented": true,
@@ -21137,7 +20609,6 @@ const variant_FD_CB_dd_C4: OpcodeVariant = {
     196
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC4",
     "undocumented": true,
@@ -21178,7 +20649,6 @@ const variant_FD_CB_dd_C5: OpcodeVariant = {
     197
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC5",
     "undocumented": true,
@@ -21219,7 +20689,6 @@ const variant_FD_CB_dd_C7: OpcodeVariant = {
     199
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC7",
     "undocumented": true,
@@ -21257,7 +20726,6 @@ const variant_FD_CB_dd_C7_pseudo: OpcodeVariant = {
     199
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC7",
     "undocumented": true,
@@ -21298,7 +20766,6 @@ const variant_FD_CB_dd_C8: OpcodeVariant = {
     200
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC8",
     "undocumented": true,
@@ -21339,7 +20806,6 @@ const variant_FD_CB_dd_C9: OpcodeVariant = {
     201
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC9",
     "undocumented": true,
@@ -21380,7 +20846,6 @@ const variant_FD_CB_dd_CA: OpcodeVariant = {
     202
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBCA",
     "undocumented": true,
@@ -21421,7 +20886,6 @@ const variant_FD_CB_dd_CB: OpcodeVariant = {
     203
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBCB",
     "undocumented": true,
@@ -21462,7 +20926,6 @@ const variant_FD_CB_dd_CC: OpcodeVariant = {
     204
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBCC",
     "undocumented": true,
@@ -21503,7 +20966,6 @@ const variant_FD_CB_dd_CD: OpcodeVariant = {
     205
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBCD",
     "undocumented": true,
@@ -21544,7 +21006,6 @@ const variant_FD_CB_dd_CF: OpcodeVariant = {
     207
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBCF",
     "undocumented": true,
@@ -21582,7 +21043,6 @@ const variant_FD_CB_dd_CF_pseudo: OpcodeVariant = {
     207
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBCF",
     "undocumented": true,
@@ -21623,7 +21083,6 @@ const variant_FD_CB_dd_D0: OpcodeVariant = {
     208
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD0",
     "undocumented": true,
@@ -21664,7 +21123,6 @@ const variant_FD_CB_dd_D1: OpcodeVariant = {
     209
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD1",
     "undocumented": true,
@@ -21705,7 +21163,6 @@ const variant_FD_CB_dd_D2: OpcodeVariant = {
     210
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD2",
     "undocumented": true,
@@ -21746,7 +21203,6 @@ const variant_FD_CB_dd_D3: OpcodeVariant = {
     211
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD3",
     "undocumented": true,
@@ -21787,7 +21243,6 @@ const variant_FD_CB_dd_D4: OpcodeVariant = {
     212
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD4",
     "undocumented": true,
@@ -21828,7 +21283,6 @@ const variant_FD_CB_dd_D5: OpcodeVariant = {
     213
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD5",
     "undocumented": true,
@@ -21869,7 +21323,6 @@ const variant_FD_CB_dd_D7: OpcodeVariant = {
     215
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD7",
     "undocumented": true,
@@ -21907,7 +21360,6 @@ const variant_FD_CB_dd_D7_pseudo: OpcodeVariant = {
     215
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD7",
     "undocumented": true,
@@ -21948,7 +21400,6 @@ const variant_FD_CB_dd_D8: OpcodeVariant = {
     216
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD8",
     "undocumented": true,
@@ -21989,7 +21440,6 @@ const variant_FD_CB_dd_D9: OpcodeVariant = {
     217
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD9",
     "undocumented": true,
@@ -22030,7 +21480,6 @@ const variant_FD_CB_dd_DA: OpcodeVariant = {
     218
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBDA",
     "undocumented": true,
@@ -22071,7 +21520,6 @@ const variant_FD_CB_dd_DB: OpcodeVariant = {
     219
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBDB",
     "undocumented": true,
@@ -22112,7 +21560,6 @@ const variant_FD_CB_dd_DC: OpcodeVariant = {
     220
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBDC",
     "undocumented": true,
@@ -22153,7 +21600,6 @@ const variant_FD_CB_dd_DD: OpcodeVariant = {
     221
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBDD",
     "undocumented": true,
@@ -22194,7 +21640,6 @@ const variant_FD_CB_dd_DF: OpcodeVariant = {
     223
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBDF",
     "undocumented": true,
@@ -22232,7 +21677,6 @@ const variant_FD_CB_dd_DF_pseudo: OpcodeVariant = {
     223
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBDF",
     "undocumented": true,
@@ -22273,7 +21717,6 @@ const variant_FD_CB_dd_E0: OpcodeVariant = {
     224
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE0",
     "undocumented": true,
@@ -22314,7 +21757,6 @@ const variant_FD_CB_dd_E1: OpcodeVariant = {
     225
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE1",
     "undocumented": true,
@@ -22355,7 +21797,6 @@ const variant_FD_CB_dd_E2: OpcodeVariant = {
     226
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE2",
     "undocumented": true,
@@ -22396,7 +21837,6 @@ const variant_FD_CB_dd_E3: OpcodeVariant = {
     227
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE3",
     "undocumented": true,
@@ -22437,7 +21877,6 @@ const variant_FD_CB_dd_E4: OpcodeVariant = {
     228
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE4",
     "undocumented": true,
@@ -22478,7 +21917,6 @@ const variant_FD_CB_dd_E5: OpcodeVariant = {
     229
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE5",
     "undocumented": true,
@@ -22519,7 +21957,6 @@ const variant_FD_CB_dd_E7: OpcodeVariant = {
     231
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE7",
     "undocumented": true,
@@ -22557,7 +21994,6 @@ const variant_FD_CB_dd_E7_pseudo: OpcodeVariant = {
     231
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE7",
     "undocumented": true,
@@ -22598,7 +22034,6 @@ const variant_FD_CB_dd_E8: OpcodeVariant = {
     232
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE8",
     "undocumented": true,
@@ -22639,7 +22074,6 @@ const variant_FD_CB_dd_E9: OpcodeVariant = {
     233
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE9",
     "undocumented": true,
@@ -22680,7 +22114,6 @@ const variant_FD_CB_dd_EA: OpcodeVariant = {
     234
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBEA",
     "undocumented": true,
@@ -22721,7 +22154,6 @@ const variant_FD_CB_dd_EB: OpcodeVariant = {
     235
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBEB",
     "undocumented": true,
@@ -22762,7 +22194,6 @@ const variant_FD_CB_dd_EC: OpcodeVariant = {
     236
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBEC",
     "undocumented": true,
@@ -22803,7 +22234,6 @@ const variant_FD_CB_dd_ED: OpcodeVariant = {
     237
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBED",
     "undocumented": true,
@@ -22844,7 +22274,6 @@ const variant_FD_CB_dd_EF: OpcodeVariant = {
     239
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBEF",
     "undocumented": true,
@@ -22882,7 +22311,6 @@ const variant_FD_CB_dd_EF_pseudo: OpcodeVariant = {
     239
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBEF",
     "undocumented": true,
@@ -22923,7 +22351,6 @@ const variant_FD_CB_dd_F0: OpcodeVariant = {
     240
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF0",
     "undocumented": true,
@@ -22964,7 +22391,6 @@ const variant_FD_CB_dd_F1: OpcodeVariant = {
     241
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF1",
     "undocumented": true,
@@ -23005,7 +22431,6 @@ const variant_FD_CB_dd_F2: OpcodeVariant = {
     242
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF2",
     "undocumented": true,
@@ -23046,7 +22471,6 @@ const variant_FD_CB_dd_F3: OpcodeVariant = {
     243
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF3",
     "undocumented": true,
@@ -23087,7 +22511,6 @@ const variant_FD_CB_dd_F4: OpcodeVariant = {
     244
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF4",
     "undocumented": true,
@@ -23128,7 +22551,6 @@ const variant_FD_CB_dd_F5: OpcodeVariant = {
     245
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF5",
     "undocumented": true,
@@ -23169,7 +22591,6 @@ const variant_FD_CB_dd_F7: OpcodeVariant = {
     247
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF7",
     "undocumented": true,
@@ -23207,7 +22628,6 @@ const variant_FD_CB_dd_F7_pseudo: OpcodeVariant = {
     247
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF7",
     "undocumented": true,
@@ -23248,7 +22668,6 @@ const variant_FD_CB_dd_F8: OpcodeVariant = {
     248
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF8",
     "undocumented": true,
@@ -23289,7 +22708,6 @@ const variant_FD_CB_dd_F9: OpcodeVariant = {
     249
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF9",
     "undocumented": true,
@@ -23330,7 +22748,6 @@ const variant_FD_CB_dd_FA: OpcodeVariant = {
     250
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBFA",
     "undocumented": true,
@@ -23371,7 +22788,6 @@ const variant_FD_CB_dd_FB: OpcodeVariant = {
     251
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBFB",
     "undocumented": true,
@@ -23412,7 +22828,6 @@ const variant_FD_CB_dd_FC: OpcodeVariant = {
     252
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBFC",
     "undocumented": true,
@@ -23453,7 +22868,6 @@ const variant_FD_CB_dd_FD: OpcodeVariant = {
     253
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBFD",
     "undocumented": true,
@@ -23494,7 +22908,6 @@ const variant_FD_CB_dd_FF: OpcodeVariant = {
     255
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBFF",
     "undocumented": true,
@@ -23532,7 +22945,6 @@ const variant_FD_CB_dd_FF_pseudo: OpcodeVariant = {
     255
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBFF",
     "undocumented": true,
@@ -23563,7 +22975,6 @@ const variant_FD_F9: OpcodeVariant = {
     249
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDF9",
     "undocumented": false,
@@ -23593,8 +23004,7 @@ const variant_60_69_pseudo: OpcodeVariant = {
     96,
     105
   ],
-  "isPseudo": true,
-  "isAlias": false
+  "isPseudo": true
 };
 
 // ld bc,hl
@@ -23613,8 +23023,7 @@ const variant_44_4D_pseudo: OpcodeVariant = {
     68,
     77
   ],
-  "isPseudo": true,
-  "isAlias": false
+  "isPseudo": true
 };
 
 // ld de,hl
@@ -23633,8 +23042,7 @@ const variant_54_5D_pseudo: OpcodeVariant = {
     84,
     93
   ],
-  "isPseudo": true,
-  "isAlias": false
+  "isPseudo": true
 };
 
 // ld hl,de
@@ -23653,8 +23061,7 @@ const variant_62_6B_pseudo: OpcodeVariant = {
     98,
     107
   ],
-  "isPseudo": true,
-  "isAlias": false
+  "isPseudo": true
 };
 
 // ld bc,(hl)
@@ -23677,8 +23084,7 @@ const variant_4E_23_46_2B_pseudo: OpcodeVariant = {
     70,
     43
   ],
-  "isPseudo": true,
-  "isAlias": false
+  "isPseudo": true
 };
 
 // ld (hl),bc
@@ -23701,8 +23107,7 @@ const variant_71_23_70_2B_pseudo: OpcodeVariant = {
     112,
     43
   ],
-  "isPseudo": true,
-  "isAlias": false
+  "isPseudo": true
 };
 
 // ld (hl),de
@@ -23725,8 +23130,7 @@ const variant_73_23_72_2B_pseudo: OpcodeVariant = {
     114,
     43
   ],
-  "isPseudo": true,
-  "isAlias": false
+  "isPseudo": true
 };
 
 // ld de,bc
@@ -23745,8 +23149,7 @@ const variant_50_59_pseudo: OpcodeVariant = {
     80,
     89
   ],
-  "isPseudo": true,
-  "isAlias": false
+  "isPseudo": true
 };
 
 // inc bc
@@ -23762,7 +23165,6 @@ const variant_03: OpcodeVariant = {
     3
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "03",
     "undocumented": false,
@@ -23789,7 +23191,6 @@ const variant_04: OpcodeVariant = {
     4
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "04",
     "undocumented": false,
@@ -23816,7 +23217,6 @@ const variant_0C: OpcodeVariant = {
     12
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "0C",
     "undocumented": false,
@@ -23843,7 +23243,6 @@ const variant_13: OpcodeVariant = {
     19
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "13",
     "undocumented": false,
@@ -23870,7 +23269,6 @@ const variant_14: OpcodeVariant = {
     20
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "14",
     "undocumented": false,
@@ -23897,7 +23295,6 @@ const variant_1C: OpcodeVariant = {
     28
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "1C",
     "undocumented": false,
@@ -23924,7 +23321,6 @@ const variant_23: OpcodeVariant = {
     35
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "23",
     "undocumented": false,
@@ -23951,7 +23347,6 @@ const variant_24: OpcodeVariant = {
     36
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "24",
     "undocumented": false,
@@ -23978,7 +23373,6 @@ const variant_2C: OpcodeVariant = {
     44
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "2C",
     "undocumented": false,
@@ -24005,7 +23399,6 @@ const variant_33: OpcodeVariant = {
     51
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "33",
     "undocumented": false,
@@ -24034,7 +23427,6 @@ const variant_34: OpcodeVariant = {
     52
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "34",
     "undocumented": false,
@@ -24061,7 +23453,6 @@ const variant_3C: OpcodeVariant = {
     60
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "3C",
     "undocumented": false,
@@ -24089,7 +23480,6 @@ const variant_DD_23: OpcodeVariant = {
     35
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD23",
     "undocumented": false,
@@ -24117,7 +23507,6 @@ const variant_DD_24: OpcodeVariant = {
     36
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD24",
     "undocumented": true,
@@ -24145,7 +23534,6 @@ const variant_DD_2C: OpcodeVariant = {
     44
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD2C",
     "undocumented": true,
@@ -24178,7 +23566,6 @@ const variant_DD_34_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD34",
     "undocumented": false,
@@ -24206,7 +23593,6 @@ const variant_FD_23: OpcodeVariant = {
     35
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD23",
     "undocumented": false,
@@ -24234,7 +23620,6 @@ const variant_FD_24: OpcodeVariant = {
     36
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD24",
     "undocumented": true,
@@ -24262,7 +23647,6 @@ const variant_FD_2C: OpcodeVariant = {
     44
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD2C",
     "undocumented": true,
@@ -24295,7 +23679,6 @@ const variant_FD_34_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD34",
     "undocumented": false,
@@ -24322,7 +23705,6 @@ const variant_05: OpcodeVariant = {
     5
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "05",
     "undocumented": false,
@@ -24349,7 +23731,6 @@ const variant_0B: OpcodeVariant = {
     11
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "0B",
     "undocumented": false,
@@ -24376,7 +23757,6 @@ const variant_0D: OpcodeVariant = {
     13
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "0D",
     "undocumented": false,
@@ -24403,7 +23783,6 @@ const variant_15: OpcodeVariant = {
     21
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "15",
     "undocumented": false,
@@ -24430,7 +23809,6 @@ const variant_1B: OpcodeVariant = {
     27
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "1B",
     "undocumented": false,
@@ -24457,7 +23835,6 @@ const variant_1D: OpcodeVariant = {
     29
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "1D",
     "undocumented": false,
@@ -24484,7 +23861,6 @@ const variant_25: OpcodeVariant = {
     37
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "25",
     "undocumented": false,
@@ -24511,7 +23887,6 @@ const variant_2B: OpcodeVariant = {
     43
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "2B",
     "undocumented": false,
@@ -24538,7 +23913,6 @@ const variant_2D: OpcodeVariant = {
     45
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "2D",
     "undocumented": false,
@@ -24567,7 +23941,6 @@ const variant_35: OpcodeVariant = {
     53
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "35",
     "undocumented": false,
@@ -24594,7 +23967,6 @@ const variant_3B: OpcodeVariant = {
     59
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "3B",
     "undocumented": false,
@@ -24621,7 +23993,6 @@ const variant_3D: OpcodeVariant = {
     61
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "3D",
     "undocumented": false,
@@ -24649,7 +24020,6 @@ const variant_DD_25: OpcodeVariant = {
     37
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD25",
     "undocumented": true,
@@ -24677,7 +24047,6 @@ const variant_DD_2B: OpcodeVariant = {
     43
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD2B",
     "undocumented": false,
@@ -24705,7 +24074,6 @@ const variant_DD_2D: OpcodeVariant = {
     45
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD2D",
     "undocumented": true,
@@ -24738,7 +24106,6 @@ const variant_DD_35_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD35",
     "undocumented": false,
@@ -24766,7 +24133,6 @@ const variant_FD_25: OpcodeVariant = {
     37
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD25",
     "undocumented": true,
@@ -24794,7 +24160,6 @@ const variant_FD_2B: OpcodeVariant = {
     43
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD2B",
     "undocumented": false,
@@ -24822,7 +24187,6 @@ const variant_FD_2D: OpcodeVariant = {
     45
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD2D",
     "undocumented": true,
@@ -24855,7 +24219,6 @@ const variant_FD_35_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD35",
     "undocumented": false,
@@ -24878,7 +24241,6 @@ const variant_07: OpcodeVariant = {
     7
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "07",
     "undocumented": false,
@@ -24908,7 +24270,6 @@ const variant_08: OpcodeVariant = {
     8
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "08",
     "undocumented": false,
@@ -24941,7 +24302,6 @@ const variant_DD_E3: OpcodeVariant = {
     227
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDE3",
     "undocumented": false,
@@ -24973,7 +24333,6 @@ const variant_E3: OpcodeVariant = {
     227
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E3",
     "undocumented": false,
@@ -25003,7 +24362,6 @@ const variant_EB: OpcodeVariant = {
     235
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EB",
     "undocumented": false,
@@ -25036,7 +24394,6 @@ const variant_FD_E3: OpcodeVariant = {
     227
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDE3",
     "undocumented": false,
@@ -25066,7 +24423,6 @@ const variant_09: OpcodeVariant = {
     9
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "09",
     "undocumented": false,
@@ -25096,7 +24452,6 @@ const variant_19: OpcodeVariant = {
     25
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "19",
     "undocumented": false,
@@ -25126,7 +24481,6 @@ const variant_29: OpcodeVariant = {
     41
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "29",
     "undocumented": false,
@@ -25156,7 +24510,6 @@ const variant_39: OpcodeVariant = {
     57
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "39",
     "undocumented": false,
@@ -25186,7 +24539,6 @@ const variant_80: OpcodeVariant = {
     128
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "80",
     "undocumented": false,
@@ -25213,7 +24565,6 @@ const variant_80_pseudo: OpcodeVariant = {
     128
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "80",
     "undocumented": false,
@@ -25243,7 +24594,6 @@ const variant_81: OpcodeVariant = {
     129
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "81",
     "undocumented": false,
@@ -25270,7 +24620,6 @@ const variant_81_pseudo: OpcodeVariant = {
     129
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "81",
     "undocumented": false,
@@ -25300,7 +24649,6 @@ const variant_82: OpcodeVariant = {
     130
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "82",
     "undocumented": false,
@@ -25327,7 +24675,6 @@ const variant_82_pseudo: OpcodeVariant = {
     130
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "82",
     "undocumented": false,
@@ -25357,7 +24704,6 @@ const variant_83: OpcodeVariant = {
     131
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "83",
     "undocumented": false,
@@ -25384,7 +24730,6 @@ const variant_83_pseudo: OpcodeVariant = {
     131
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "83",
     "undocumented": false,
@@ -25414,7 +24759,6 @@ const variant_84: OpcodeVariant = {
     132
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "84",
     "undocumented": false,
@@ -25441,7 +24785,6 @@ const variant_84_pseudo: OpcodeVariant = {
     132
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "84",
     "undocumented": false,
@@ -25471,7 +24814,6 @@ const variant_85: OpcodeVariant = {
     133
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "85",
     "undocumented": false,
@@ -25498,7 +24840,6 @@ const variant_85_pseudo: OpcodeVariant = {
     133
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "85",
     "undocumented": false,
@@ -25530,7 +24871,6 @@ const variant_86: OpcodeVariant = {
     134
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "86",
     "undocumented": false,
@@ -25559,7 +24899,6 @@ const variant_86_pseudo: OpcodeVariant = {
     134
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "86",
     "undocumented": false,
@@ -25589,7 +24928,6 @@ const variant_87: OpcodeVariant = {
     135
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "87",
     "undocumented": false,
@@ -25616,7 +24954,6 @@ const variant_87_pseudo: OpcodeVariant = {
     135
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "87",
     "undocumented": false,
@@ -25647,7 +24984,6 @@ const variant_C6_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C6",
     "undocumented": false,
@@ -25675,7 +25011,6 @@ const variant_C6_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "C6",
     "undocumented": false,
@@ -25706,7 +25041,6 @@ const variant_DD_09: OpcodeVariant = {
     9
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD09",
     "undocumented": false,
@@ -25737,7 +25071,6 @@ const variant_DD_19: OpcodeVariant = {
     25
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD19",
     "undocumented": false,
@@ -25768,7 +25101,6 @@ const variant_DD_29: OpcodeVariant = {
     41
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD29",
     "undocumented": false,
@@ -25799,7 +25131,6 @@ const variant_DD_39: OpcodeVariant = {
     57
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD39",
     "undocumented": false,
@@ -25830,7 +25161,6 @@ const variant_DD_84: OpcodeVariant = {
     132
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD84",
     "undocumented": true,
@@ -25858,7 +25188,6 @@ const variant_DD_84_pseudo: OpcodeVariant = {
     132
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD84",
     "undocumented": true,
@@ -25889,7 +25218,6 @@ const variant_DD_85: OpcodeVariant = {
     133
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD85",
     "undocumented": true,
@@ -25917,7 +25245,6 @@ const variant_DD_85_pseudo: OpcodeVariant = {
     133
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD85",
     "undocumented": true,
@@ -25953,7 +25280,6 @@ const variant_DD_86_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD86",
     "undocumented": false,
@@ -25986,7 +25312,6 @@ const variant_DD_86_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD86",
     "undocumented": false,
@@ -26017,7 +25342,6 @@ const variant_FD_09: OpcodeVariant = {
     9
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD09",
     "undocumented": false,
@@ -26048,7 +25372,6 @@ const variant_FD_19: OpcodeVariant = {
     25
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD19",
     "undocumented": false,
@@ -26079,7 +25402,6 @@ const variant_FD_29: OpcodeVariant = {
     41
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD29",
     "undocumented": false,
@@ -26110,7 +25432,6 @@ const variant_FD_39: OpcodeVariant = {
     57
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD39",
     "undocumented": false,
@@ -26141,7 +25462,6 @@ const variant_FD_84: OpcodeVariant = {
     132
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD84",
     "undocumented": true,
@@ -26169,7 +25489,6 @@ const variant_FD_84_pseudo: OpcodeVariant = {
     132
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD84",
     "undocumented": true,
@@ -26200,7 +25519,6 @@ const variant_FD_85: OpcodeVariant = {
     133
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD85",
     "undocumented": true,
@@ -26228,7 +25546,6 @@ const variant_FD_85_pseudo: OpcodeVariant = {
     133
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD85",
     "undocumented": true,
@@ -26264,7 +25581,6 @@ const variant_FD_86_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD86",
     "undocumented": false,
@@ -26297,7 +25613,6 @@ const variant_FD_86_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD86",
     "undocumented": false,
@@ -26320,7 +25635,6 @@ const variant_0F: OpcodeVariant = {
     15
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "0F",
     "undocumented": false,
@@ -26348,7 +25662,6 @@ const variant_10_offset: OpcodeVariant = {
     "offset"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "10",
     "undocumented": false,
@@ -26371,7 +25684,6 @@ const variant_17: OpcodeVariant = {
     23
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "17",
     "undocumented": false,
@@ -26399,7 +25711,6 @@ const variant_18_offset: OpcodeVariant = {
     "offset"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "18",
     "undocumented": false,
@@ -26430,7 +25741,6 @@ const variant_20_offset: OpcodeVariant = {
     "offset"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "20",
     "undocumented": false,
@@ -26461,7 +25771,6 @@ const variant_28_offset: OpcodeVariant = {
     "offset"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "28",
     "undocumented": false,
@@ -26492,7 +25801,6 @@ const variant_30_offset: OpcodeVariant = {
     "offset"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "30",
     "undocumented": false,
@@ -26523,7 +25831,6 @@ const variant_38_offset: OpcodeVariant = {
     "offset"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "38",
     "undocumented": false,
@@ -26546,7 +25853,6 @@ const variant_1F: OpcodeVariant = {
     31
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "1F",
     "undocumented": false,
@@ -26569,7 +25875,6 @@ const variant_27: OpcodeVariant = {
     39
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "27",
     "undocumented": false,
@@ -26592,7 +25897,6 @@ const variant_2F: OpcodeVariant = {
     47
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "2F",
     "undocumented": false,
@@ -26615,7 +25919,6 @@ const variant_37: OpcodeVariant = {
     55
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "37",
     "undocumented": false,
@@ -26638,7 +25941,6 @@ const variant_3F: OpcodeVariant = {
     63
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "3F",
     "undocumented": false,
@@ -26661,7 +25963,6 @@ const variant_76: OpcodeVariant = {
     118
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "76",
     "undocumented": false,
@@ -26691,7 +25992,6 @@ const variant_88: OpcodeVariant = {
     136
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "88",
     "undocumented": false,
@@ -26718,7 +26018,6 @@ const variant_88_pseudo: OpcodeVariant = {
     136
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "88",
     "undocumented": false,
@@ -26748,7 +26047,6 @@ const variant_89: OpcodeVariant = {
     137
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "89",
     "undocumented": false,
@@ -26775,7 +26073,6 @@ const variant_89_pseudo: OpcodeVariant = {
     137
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "89",
     "undocumented": false,
@@ -26805,7 +26102,6 @@ const variant_8A: OpcodeVariant = {
     138
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "8A",
     "undocumented": false,
@@ -26832,7 +26128,6 @@ const variant_8A_pseudo: OpcodeVariant = {
     138
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "8A",
     "undocumented": false,
@@ -26862,7 +26157,6 @@ const variant_8B: OpcodeVariant = {
     139
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "8B",
     "undocumented": false,
@@ -26889,7 +26183,6 @@ const variant_8B_pseudo: OpcodeVariant = {
     139
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "8B",
     "undocumented": false,
@@ -26919,7 +26212,6 @@ const variant_8C: OpcodeVariant = {
     140
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "8C",
     "undocumented": false,
@@ -26946,7 +26238,6 @@ const variant_8C_pseudo: OpcodeVariant = {
     140
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "8C",
     "undocumented": false,
@@ -26976,7 +26267,6 @@ const variant_8D: OpcodeVariant = {
     141
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "8D",
     "undocumented": false,
@@ -27003,7 +26293,6 @@ const variant_8D_pseudo: OpcodeVariant = {
     141
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "8D",
     "undocumented": false,
@@ -27035,7 +26324,6 @@ const variant_8E: OpcodeVariant = {
     142
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "8E",
     "undocumented": false,
@@ -27064,7 +26352,6 @@ const variant_8E_pseudo: OpcodeVariant = {
     142
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "8E",
     "undocumented": false,
@@ -27094,7 +26381,6 @@ const variant_8F: OpcodeVariant = {
     143
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "8F",
     "undocumented": false,
@@ -27121,7 +26407,6 @@ const variant_8F_pseudo: OpcodeVariant = {
     143
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "8F",
     "undocumented": false,
@@ -27152,7 +26437,6 @@ const variant_CE_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CE",
     "undocumented": false,
@@ -27180,7 +26464,6 @@ const variant_CE_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "CE",
     "undocumented": false,
@@ -27211,7 +26494,6 @@ const variant_DD_8C: OpcodeVariant = {
     140
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD8C",
     "undocumented": true,
@@ -27239,7 +26521,6 @@ const variant_DD_8C_pseudo: OpcodeVariant = {
     140
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD8C",
     "undocumented": true,
@@ -27270,7 +26551,6 @@ const variant_DD_8D: OpcodeVariant = {
     141
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD8D",
     "undocumented": true,
@@ -27298,7 +26578,6 @@ const variant_DD_8D_pseudo: OpcodeVariant = {
     141
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD8D",
     "undocumented": true,
@@ -27334,7 +26613,6 @@ const variant_DD_8E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD8E",
     "undocumented": false,
@@ -27367,7 +26645,6 @@ const variant_DD_8E_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD8E",
     "undocumented": false,
@@ -27398,7 +26675,6 @@ const variant_ED_4A: OpcodeVariant = {
     74
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED4A",
     "undocumented": false,
@@ -27429,7 +26705,6 @@ const variant_ED_5A: OpcodeVariant = {
     90
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED5A",
     "undocumented": false,
@@ -27460,7 +26735,6 @@ const variant_ED_6A: OpcodeVariant = {
     106
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED6A",
     "undocumented": false,
@@ -27491,7 +26765,6 @@ const variant_ED_7A: OpcodeVariant = {
     122
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED7A",
     "undocumented": false,
@@ -27522,7 +26795,6 @@ const variant_FD_8C: OpcodeVariant = {
     140
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD8C",
     "undocumented": true,
@@ -27550,7 +26822,6 @@ const variant_FD_8C_pseudo: OpcodeVariant = {
     140
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD8C",
     "undocumented": true,
@@ -27581,7 +26852,6 @@ const variant_FD_8D: OpcodeVariant = {
     141
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD8D",
     "undocumented": true,
@@ -27609,7 +26879,6 @@ const variant_FD_8D_pseudo: OpcodeVariant = {
     141
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD8D",
     "undocumented": true,
@@ -27645,7 +26914,6 @@ const variant_FD_8E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD8E",
     "undocumented": false,
@@ -27678,7 +26946,6 @@ const variant_FD_8E_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD8E",
     "undocumented": false,
@@ -27708,7 +26975,6 @@ const variant_90: OpcodeVariant = {
     144
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "90",
     "undocumented": false,
@@ -27735,7 +27001,6 @@ const variant_90_pseudo: OpcodeVariant = {
     144
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "90",
     "undocumented": false,
@@ -27765,7 +27030,6 @@ const variant_91: OpcodeVariant = {
     145
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "91",
     "undocumented": false,
@@ -27792,7 +27056,6 @@ const variant_91_pseudo: OpcodeVariant = {
     145
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "91",
     "undocumented": false,
@@ -27822,7 +27085,6 @@ const variant_92: OpcodeVariant = {
     146
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "92",
     "undocumented": false,
@@ -27849,7 +27111,6 @@ const variant_92_pseudo: OpcodeVariant = {
     146
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "92",
     "undocumented": false,
@@ -27879,7 +27140,6 @@ const variant_93: OpcodeVariant = {
     147
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "93",
     "undocumented": false,
@@ -27906,7 +27166,6 @@ const variant_93_pseudo: OpcodeVariant = {
     147
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "93",
     "undocumented": false,
@@ -27936,7 +27195,6 @@ const variant_94: OpcodeVariant = {
     148
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "94",
     "undocumented": false,
@@ -27963,7 +27221,6 @@ const variant_94_pseudo: OpcodeVariant = {
     148
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "94",
     "undocumented": false,
@@ -27993,7 +27250,6 @@ const variant_95: OpcodeVariant = {
     149
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "95",
     "undocumented": false,
@@ -28020,7 +27276,6 @@ const variant_95_pseudo: OpcodeVariant = {
     149
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "95",
     "undocumented": false,
@@ -28052,7 +27307,6 @@ const variant_96: OpcodeVariant = {
     150
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "96",
     "undocumented": false,
@@ -28081,7 +27335,6 @@ const variant_96_pseudo: OpcodeVariant = {
     150
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "96",
     "undocumented": false,
@@ -28111,7 +27364,6 @@ const variant_97: OpcodeVariant = {
     151
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "97",
     "undocumented": false,
@@ -28138,7 +27390,6 @@ const variant_97_pseudo: OpcodeVariant = {
     151
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "97",
     "undocumented": false,
@@ -28169,7 +27420,6 @@ const variant_D6_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D6",
     "undocumented": false,
@@ -28197,7 +27447,6 @@ const variant_D6_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "D6",
     "undocumented": false,
@@ -28228,7 +27477,6 @@ const variant_DD_94: OpcodeVariant = {
     148
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD94",
     "undocumented": true,
@@ -28256,7 +27504,6 @@ const variant_DD_94_pseudo: OpcodeVariant = {
     148
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD94",
     "undocumented": true,
@@ -28287,7 +27534,6 @@ const variant_DD_95: OpcodeVariant = {
     149
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD95",
     "undocumented": true,
@@ -28315,7 +27561,6 @@ const variant_DD_95_pseudo: OpcodeVariant = {
     149
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD95",
     "undocumented": true,
@@ -28351,7 +27596,6 @@ const variant_DD_96_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD96",
     "undocumented": false,
@@ -28384,7 +27628,6 @@ const variant_DD_96_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD96",
     "undocumented": false,
@@ -28415,7 +27658,6 @@ const variant_FD_94: OpcodeVariant = {
     148
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD94",
     "undocumented": true,
@@ -28443,7 +27685,6 @@ const variant_FD_94_pseudo: OpcodeVariant = {
     148
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD94",
     "undocumented": true,
@@ -28474,7 +27715,6 @@ const variant_FD_95: OpcodeVariant = {
     149
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD95",
     "undocumented": true,
@@ -28502,7 +27742,6 @@ const variant_FD_95_pseudo: OpcodeVariant = {
     149
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD95",
     "undocumented": true,
@@ -28538,7 +27777,6 @@ const variant_FD_96_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD96",
     "undocumented": false,
@@ -28571,7 +27809,6 @@ const variant_FD_96_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD96",
     "undocumented": false,
@@ -28601,7 +27838,6 @@ const variant_98: OpcodeVariant = {
     152
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "98",
     "undocumented": false,
@@ -28628,7 +27864,6 @@ const variant_98_pseudo: OpcodeVariant = {
     152
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "98",
     "undocumented": false,
@@ -28658,7 +27893,6 @@ const variant_99: OpcodeVariant = {
     153
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "99",
     "undocumented": false,
@@ -28685,7 +27919,6 @@ const variant_99_pseudo: OpcodeVariant = {
     153
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "99",
     "undocumented": false,
@@ -28715,7 +27948,6 @@ const variant_9A: OpcodeVariant = {
     154
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "9A",
     "undocumented": false,
@@ -28742,7 +27974,6 @@ const variant_9A_pseudo: OpcodeVariant = {
     154
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "9A",
     "undocumented": false,
@@ -28772,7 +28003,6 @@ const variant_9B: OpcodeVariant = {
     155
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "9B",
     "undocumented": false,
@@ -28799,7 +28029,6 @@ const variant_9B_pseudo: OpcodeVariant = {
     155
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "9B",
     "undocumented": false,
@@ -28829,7 +28058,6 @@ const variant_9C: OpcodeVariant = {
     156
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "9C",
     "undocumented": false,
@@ -28856,7 +28084,6 @@ const variant_9C_pseudo: OpcodeVariant = {
     156
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "9C",
     "undocumented": false,
@@ -28886,7 +28113,6 @@ const variant_9D: OpcodeVariant = {
     157
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "9D",
     "undocumented": false,
@@ -28913,7 +28139,6 @@ const variant_9D_pseudo: OpcodeVariant = {
     157
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "9D",
     "undocumented": false,
@@ -28945,7 +28170,6 @@ const variant_9E: OpcodeVariant = {
     158
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "9E",
     "undocumented": false,
@@ -28974,7 +28198,6 @@ const variant_9E_pseudo: OpcodeVariant = {
     158
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "9E",
     "undocumented": false,
@@ -29004,7 +28227,6 @@ const variant_9F: OpcodeVariant = {
     159
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "9F",
     "undocumented": false,
@@ -29031,7 +28253,6 @@ const variant_9F_pseudo: OpcodeVariant = {
     159
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "9F",
     "undocumented": false,
@@ -29062,7 +28283,6 @@ const variant_DD_9C: OpcodeVariant = {
     156
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD9C",
     "undocumented": true,
@@ -29090,7 +28310,6 @@ const variant_DD_9C_pseudo: OpcodeVariant = {
     156
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD9C",
     "undocumented": true,
@@ -29121,7 +28340,6 @@ const variant_DD_9D: OpcodeVariant = {
     157
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD9D",
     "undocumented": true,
@@ -29149,7 +28367,6 @@ const variant_DD_9D_pseudo: OpcodeVariant = {
     157
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD9D",
     "undocumented": true,
@@ -29185,7 +28402,6 @@ const variant_DD_9E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD9E",
     "undocumented": false,
@@ -29218,7 +28434,6 @@ const variant_DD_9E_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DD9E",
     "undocumented": false,
@@ -29249,7 +28464,6 @@ const variant_DE_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DE",
     "undocumented": false,
@@ -29277,7 +28491,6 @@ const variant_DE_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DE",
     "undocumented": false,
@@ -29308,7 +28521,6 @@ const variant_ED_42: OpcodeVariant = {
     66
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED42",
     "undocumented": false,
@@ -29339,7 +28551,6 @@ const variant_ED_52: OpcodeVariant = {
     82
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED52",
     "undocumented": false,
@@ -29370,7 +28581,6 @@ const variant_ED_62: OpcodeVariant = {
     98
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED62",
     "undocumented": false,
@@ -29401,7 +28611,6 @@ const variant_ED_72: OpcodeVariant = {
     114
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED72",
     "undocumented": false,
@@ -29432,7 +28641,6 @@ const variant_FD_9C: OpcodeVariant = {
     156
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD9C",
     "undocumented": true,
@@ -29460,7 +28668,6 @@ const variant_FD_9C_pseudo: OpcodeVariant = {
     156
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD9C",
     "undocumented": true,
@@ -29491,7 +28698,6 @@ const variant_FD_9D: OpcodeVariant = {
     157
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD9D",
     "undocumented": true,
@@ -29519,7 +28725,6 @@ const variant_FD_9D_pseudo: OpcodeVariant = {
     157
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD9D",
     "undocumented": true,
@@ -29555,7 +28760,6 @@ const variant_FD_9E_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD9E",
     "undocumented": false,
@@ -29588,7 +28792,6 @@ const variant_FD_9E_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FD9E",
     "undocumented": false,
@@ -29618,7 +28821,6 @@ const variant_A0: OpcodeVariant = {
     160
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A0",
     "undocumented": false,
@@ -29645,7 +28847,6 @@ const variant_A0_pseudo: OpcodeVariant = {
     160
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A0",
     "undocumented": false,
@@ -29675,7 +28876,6 @@ const variant_A1: OpcodeVariant = {
     161
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A1",
     "undocumented": false,
@@ -29702,7 +28902,6 @@ const variant_A1_pseudo: OpcodeVariant = {
     161
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A1",
     "undocumented": false,
@@ -29732,7 +28931,6 @@ const variant_A2: OpcodeVariant = {
     162
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A2",
     "undocumented": false,
@@ -29759,7 +28957,6 @@ const variant_A2_pseudo: OpcodeVariant = {
     162
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A2",
     "undocumented": false,
@@ -29789,7 +28986,6 @@ const variant_A3: OpcodeVariant = {
     163
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A3",
     "undocumented": false,
@@ -29816,7 +29012,6 @@ const variant_A3_pseudo: OpcodeVariant = {
     163
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A3",
     "undocumented": false,
@@ -29846,7 +29041,6 @@ const variant_A4: OpcodeVariant = {
     164
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A4",
     "undocumented": false,
@@ -29873,7 +29067,6 @@ const variant_A4_pseudo: OpcodeVariant = {
     164
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A4",
     "undocumented": false,
@@ -29903,7 +29096,6 @@ const variant_A5: OpcodeVariant = {
     165
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A5",
     "undocumented": false,
@@ -29930,7 +29122,6 @@ const variant_A5_pseudo: OpcodeVariant = {
     165
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A5",
     "undocumented": false,
@@ -29962,7 +29153,6 @@ const variant_A6: OpcodeVariant = {
     166
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A6",
     "undocumented": false,
@@ -29991,7 +29181,6 @@ const variant_A6_pseudo: OpcodeVariant = {
     166
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A6",
     "undocumented": false,
@@ -30021,7 +29210,6 @@ const variant_A7: OpcodeVariant = {
     167
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A7",
     "undocumented": false,
@@ -30048,7 +29236,6 @@ const variant_A7_pseudo: OpcodeVariant = {
     167
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A7",
     "undocumented": false,
@@ -30079,7 +29266,6 @@ const variant_DD_A4: OpcodeVariant = {
     164
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDA4",
     "undocumented": true,
@@ -30107,7 +29293,6 @@ const variant_DD_A4_pseudo: OpcodeVariant = {
     164
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDA4",
     "undocumented": true,
@@ -30138,7 +29323,6 @@ const variant_DD_A5: OpcodeVariant = {
     165
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDA5",
     "undocumented": true,
@@ -30166,7 +29350,6 @@ const variant_DD_A5_pseudo: OpcodeVariant = {
     165
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDA5",
     "undocumented": true,
@@ -30202,7 +29385,6 @@ const variant_DD_A6_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDA6",
     "undocumented": false,
@@ -30235,7 +29417,6 @@ const variant_DD_A6_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDA6",
     "undocumented": false,
@@ -30266,7 +29447,6 @@ const variant_E6_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E6",
     "undocumented": false,
@@ -30294,7 +29474,6 @@ const variant_E6_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "E6",
     "undocumented": false,
@@ -30325,7 +29504,6 @@ const variant_FD_A4: OpcodeVariant = {
     164
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDA4",
     "undocumented": true,
@@ -30353,7 +29531,6 @@ const variant_FD_A4_pseudo: OpcodeVariant = {
     164
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDA4",
     "undocumented": true,
@@ -30384,7 +29561,6 @@ const variant_FD_A5: OpcodeVariant = {
     165
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDA5",
     "undocumented": true,
@@ -30412,7 +29588,6 @@ const variant_FD_A5_pseudo: OpcodeVariant = {
     165
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDA5",
     "undocumented": true,
@@ -30448,7 +29623,6 @@ const variant_FD_A6_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDA6",
     "undocumented": false,
@@ -30481,7 +29655,6 @@ const variant_FD_A6_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDA6",
     "undocumented": false,
@@ -30511,7 +29684,6 @@ const variant_A8: OpcodeVariant = {
     168
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A8",
     "undocumented": false,
@@ -30538,7 +29710,6 @@ const variant_A8_pseudo: OpcodeVariant = {
     168
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A8",
     "undocumented": false,
@@ -30568,7 +29739,6 @@ const variant_A9: OpcodeVariant = {
     169
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "A9",
     "undocumented": false,
@@ -30595,7 +29765,6 @@ const variant_A9_pseudo: OpcodeVariant = {
     169
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "A9",
     "undocumented": false,
@@ -30625,7 +29794,6 @@ const variant_AA: OpcodeVariant = {
     170
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "AA",
     "undocumented": false,
@@ -30652,7 +29820,6 @@ const variant_AA_pseudo: OpcodeVariant = {
     170
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "AA",
     "undocumented": false,
@@ -30682,7 +29849,6 @@ const variant_AB: OpcodeVariant = {
     171
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "AB",
     "undocumented": false,
@@ -30709,7 +29875,6 @@ const variant_AB_pseudo: OpcodeVariant = {
     171
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "AB",
     "undocumented": false,
@@ -30739,7 +29904,6 @@ const variant_AC: OpcodeVariant = {
     172
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "AC",
     "undocumented": false,
@@ -30766,7 +29930,6 @@ const variant_AC_pseudo: OpcodeVariant = {
     172
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "AC",
     "undocumented": false,
@@ -30796,7 +29959,6 @@ const variant_AD: OpcodeVariant = {
     173
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "AD",
     "undocumented": false,
@@ -30823,7 +29985,6 @@ const variant_AD_pseudo: OpcodeVariant = {
     173
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "AD",
     "undocumented": false,
@@ -30855,7 +30016,6 @@ const variant_AE: OpcodeVariant = {
     174
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "AE",
     "undocumented": false,
@@ -30884,7 +30044,6 @@ const variant_AE_pseudo: OpcodeVariant = {
     174
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "AE",
     "undocumented": false,
@@ -30914,7 +30073,6 @@ const variant_AF: OpcodeVariant = {
     175
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "AF",
     "undocumented": false,
@@ -30941,7 +30099,6 @@ const variant_AF_pseudo: OpcodeVariant = {
     175
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "AF",
     "undocumented": false,
@@ -30972,7 +30129,6 @@ const variant_DD_AC: OpcodeVariant = {
     172
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDAC",
     "undocumented": true,
@@ -31000,7 +30156,6 @@ const variant_DD_AC_pseudo: OpcodeVariant = {
     172
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDAC",
     "undocumented": true,
@@ -31031,7 +30186,6 @@ const variant_DD_AD: OpcodeVariant = {
     173
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDAD",
     "undocumented": true,
@@ -31059,7 +30213,6 @@ const variant_DD_AD_pseudo: OpcodeVariant = {
     173
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDAD",
     "undocumented": true,
@@ -31095,7 +30248,6 @@ const variant_DD_AE_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDAE",
     "undocumented": false,
@@ -31128,7 +30280,6 @@ const variant_DD_AE_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDAE",
     "undocumented": false,
@@ -31159,7 +30310,6 @@ const variant_EE_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EE",
     "undocumented": false,
@@ -31187,7 +30337,6 @@ const variant_EE_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "EE",
     "undocumented": false,
@@ -31218,7 +30367,6 @@ const variant_FD_AC: OpcodeVariant = {
     172
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDAC",
     "undocumented": true,
@@ -31246,7 +30394,6 @@ const variant_FD_AC_pseudo: OpcodeVariant = {
     172
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDAC",
     "undocumented": true,
@@ -31277,7 +30424,6 @@ const variant_FD_AD: OpcodeVariant = {
     173
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDAD",
     "undocumented": true,
@@ -31305,7 +30451,6 @@ const variant_FD_AD_pseudo: OpcodeVariant = {
     173
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDAD",
     "undocumented": true,
@@ -31341,7 +30486,6 @@ const variant_FD_AE_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDAE",
     "undocumented": false,
@@ -31374,7 +30518,6 @@ const variant_FD_AE_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDAE",
     "undocumented": false,
@@ -31404,7 +30547,6 @@ const variant_B0: OpcodeVariant = {
     176
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B0",
     "undocumented": false,
@@ -31431,7 +30573,6 @@ const variant_B0_pseudo: OpcodeVariant = {
     176
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B0",
     "undocumented": false,
@@ -31461,7 +30602,6 @@ const variant_B1: OpcodeVariant = {
     177
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B1",
     "undocumented": false,
@@ -31488,7 +30628,6 @@ const variant_B1_pseudo: OpcodeVariant = {
     177
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B1",
     "undocumented": false,
@@ -31518,7 +30657,6 @@ const variant_B2: OpcodeVariant = {
     178
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B2",
     "undocumented": false,
@@ -31545,7 +30683,6 @@ const variant_B2_pseudo: OpcodeVariant = {
     178
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B2",
     "undocumented": false,
@@ -31575,7 +30712,6 @@ const variant_B3: OpcodeVariant = {
     179
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B3",
     "undocumented": false,
@@ -31602,7 +30738,6 @@ const variant_B3_pseudo: OpcodeVariant = {
     179
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B3",
     "undocumented": false,
@@ -31632,7 +30767,6 @@ const variant_B4: OpcodeVariant = {
     180
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B4",
     "undocumented": false,
@@ -31659,7 +30793,6 @@ const variant_B4_pseudo: OpcodeVariant = {
     180
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B4",
     "undocumented": false,
@@ -31689,7 +30822,6 @@ const variant_B5: OpcodeVariant = {
     181
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B5",
     "undocumented": false,
@@ -31716,7 +30848,6 @@ const variant_B5_pseudo: OpcodeVariant = {
     181
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B5",
     "undocumented": false,
@@ -31748,7 +30879,6 @@ const variant_B6: OpcodeVariant = {
     182
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B6",
     "undocumented": false,
@@ -31777,7 +30907,6 @@ const variant_B6_pseudo: OpcodeVariant = {
     182
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B6",
     "undocumented": false,
@@ -31807,7 +30936,6 @@ const variant_B7: OpcodeVariant = {
     183
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B7",
     "undocumented": false,
@@ -31834,7 +30962,6 @@ const variant_B7_pseudo: OpcodeVariant = {
     183
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B7",
     "undocumented": false,
@@ -31865,7 +30992,6 @@ const variant_DD_B4: OpcodeVariant = {
     180
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDB4",
     "undocumented": true,
@@ -31893,7 +31019,6 @@ const variant_DD_B4_pseudo: OpcodeVariant = {
     180
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDB4",
     "undocumented": true,
@@ -31924,7 +31049,6 @@ const variant_DD_B5: OpcodeVariant = {
     181
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDB5",
     "undocumented": true,
@@ -31952,7 +31076,6 @@ const variant_DD_B5_pseudo: OpcodeVariant = {
     181
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDB5",
     "undocumented": true,
@@ -31988,7 +31111,6 @@ const variant_DD_B6_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDB6",
     "undocumented": false,
@@ -32021,7 +31143,6 @@ const variant_DD_B6_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDB6",
     "undocumented": false,
@@ -32052,7 +31173,6 @@ const variant_F6_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F6",
     "undocumented": false,
@@ -32080,7 +31200,6 @@ const variant_F6_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "F6",
     "undocumented": false,
@@ -32111,7 +31230,6 @@ const variant_FD_B4: OpcodeVariant = {
     180
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDB4",
     "undocumented": true,
@@ -32139,7 +31257,6 @@ const variant_FD_B4_pseudo: OpcodeVariant = {
     180
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDB4",
     "undocumented": true,
@@ -32170,7 +31287,6 @@ const variant_FD_B5: OpcodeVariant = {
     181
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDB5",
     "undocumented": true,
@@ -32198,7 +31314,6 @@ const variant_FD_B5_pseudo: OpcodeVariant = {
     181
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDB5",
     "undocumented": true,
@@ -32234,7 +31349,6 @@ const variant_FD_B6_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDB6",
     "undocumented": false,
@@ -32267,7 +31381,6 @@ const variant_FD_B6_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDB6",
     "undocumented": false,
@@ -32297,7 +31410,6 @@ const variant_B8: OpcodeVariant = {
     184
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B8",
     "undocumented": false,
@@ -32324,7 +31436,6 @@ const variant_B8_pseudo: OpcodeVariant = {
     184
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B8",
     "undocumented": false,
@@ -32354,7 +31465,6 @@ const variant_B9: OpcodeVariant = {
     185
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "B9",
     "undocumented": false,
@@ -32381,7 +31491,6 @@ const variant_B9_pseudo: OpcodeVariant = {
     185
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "B9",
     "undocumented": false,
@@ -32411,7 +31520,6 @@ const variant_BA: OpcodeVariant = {
     186
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "BA",
     "undocumented": false,
@@ -32438,7 +31546,6 @@ const variant_BA_pseudo: OpcodeVariant = {
     186
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "BA",
     "undocumented": false,
@@ -32468,7 +31575,6 @@ const variant_BB: OpcodeVariant = {
     187
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "BB",
     "undocumented": false,
@@ -32495,7 +31601,6 @@ const variant_BB_pseudo: OpcodeVariant = {
     187
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "BB",
     "undocumented": false,
@@ -32525,7 +31630,6 @@ const variant_BC: OpcodeVariant = {
     188
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "BC",
     "undocumented": false,
@@ -32552,7 +31656,6 @@ const variant_BC_pseudo: OpcodeVariant = {
     188
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "BC",
     "undocumented": false,
@@ -32582,7 +31685,6 @@ const variant_BD: OpcodeVariant = {
     189
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "BD",
     "undocumented": false,
@@ -32609,7 +31711,6 @@ const variant_BD_pseudo: OpcodeVariant = {
     189
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "BD",
     "undocumented": false,
@@ -32641,7 +31742,6 @@ const variant_BE: OpcodeVariant = {
     190
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "BE",
     "undocumented": false,
@@ -32670,7 +31770,6 @@ const variant_BE_pseudo: OpcodeVariant = {
     190
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "BE",
     "undocumented": false,
@@ -32700,7 +31799,6 @@ const variant_BF: OpcodeVariant = {
     191
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "BF",
     "undocumented": false,
@@ -32727,7 +31825,6 @@ const variant_BF_pseudo: OpcodeVariant = {
     191
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "BF",
     "undocumented": false,
@@ -32758,7 +31855,6 @@ const variant_DD_BC: OpcodeVariant = {
     188
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDBC",
     "undocumented": true,
@@ -32786,7 +31882,6 @@ const variant_DD_BC_pseudo: OpcodeVariant = {
     188
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDBC",
     "undocumented": true,
@@ -32817,7 +31912,6 @@ const variant_DD_BD: OpcodeVariant = {
     189
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDBD",
     "undocumented": true,
@@ -32845,7 +31939,6 @@ const variant_DD_BD_pseudo: OpcodeVariant = {
     189
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDBD",
     "undocumented": true,
@@ -32881,7 +31974,6 @@ const variant_DD_BE_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDBE",
     "undocumented": false,
@@ -32914,7 +32006,6 @@ const variant_DD_BE_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDBE",
     "undocumented": false,
@@ -32945,7 +32036,6 @@ const variant_FD_BC: OpcodeVariant = {
     188
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDBC",
     "undocumented": true,
@@ -32973,7 +32063,6 @@ const variant_FD_BC_pseudo: OpcodeVariant = {
     188
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDBC",
     "undocumented": true,
@@ -33004,7 +32093,6 @@ const variant_FD_BD: OpcodeVariant = {
     189
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDBD",
     "undocumented": true,
@@ -33032,7 +32120,6 @@ const variant_FD_BD_pseudo: OpcodeVariant = {
     189
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDBD",
     "undocumented": true,
@@ -33068,7 +32155,6 @@ const variant_FD_BE_dd: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDBE",
     "undocumented": false,
@@ -33101,7 +32187,6 @@ const variant_FD_BE_dd_pseudo: OpcodeVariant = {
     "dd"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDBE",
     "undocumented": false,
@@ -33132,7 +32217,6 @@ const variant_FE_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FE",
     "undocumented": false,
@@ -33160,7 +32244,6 @@ const variant_FE_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FE",
     "undocumented": false,
@@ -33187,7 +32270,6 @@ const variant_C0: OpcodeVariant = {
     192
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C0",
     "undocumented": false,
@@ -33214,7 +32296,6 @@ const variant_C8: OpcodeVariant = {
     200
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C8",
     "undocumented": false,
@@ -33237,7 +32318,6 @@ const variant_C9: OpcodeVariant = {
     201
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C9",
     "undocumented": false,
@@ -33264,7 +32344,6 @@ const variant_D0: OpcodeVariant = {
     208
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D0",
     "undocumented": false,
@@ -33291,7 +32370,6 @@ const variant_D8: OpcodeVariant = {
     216
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D8",
     "undocumented": false,
@@ -33318,7 +32396,6 @@ const variant_E0: OpcodeVariant = {
     224
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E0",
     "undocumented": false,
@@ -33345,7 +32422,6 @@ const variant_E0_pseudo: OpcodeVariant = {
     224
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "E0",
     "undocumented": false,
@@ -33372,7 +32448,6 @@ const variant_E8: OpcodeVariant = {
     232
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E8",
     "undocumented": false,
@@ -33399,7 +32474,6 @@ const variant_E8_pseudo: OpcodeVariant = {
     232
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "E8",
     "undocumented": false,
@@ -33426,7 +32500,6 @@ const variant_F0: OpcodeVariant = {
     240
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F0",
     "undocumented": false,
@@ -33453,7 +32526,6 @@ const variant_F8: OpcodeVariant = {
     248
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F8",
     "undocumented": false,
@@ -33480,7 +32552,6 @@ const variant_C1: OpcodeVariant = {
     193
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C1",
     "undocumented": false,
@@ -33507,7 +32578,6 @@ const variant_D1: OpcodeVariant = {
     209
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D1",
     "undocumented": false,
@@ -33535,7 +32605,6 @@ const variant_DD_E1: OpcodeVariant = {
     225
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDE1",
     "undocumented": false,
@@ -33562,7 +32631,6 @@ const variant_E1: OpcodeVariant = {
     225
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E1",
     "undocumented": false,
@@ -33589,7 +32657,6 @@ const variant_F1: OpcodeVariant = {
     241
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F1",
     "undocumented": false,
@@ -33617,7 +32684,6 @@ const variant_FD_E1: OpcodeVariant = {
     225
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDE1",
     "undocumented": false,
@@ -33648,7 +32714,6 @@ const variant_C2_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C2",
     "undocumented": false,
@@ -33676,7 +32741,6 @@ const variant_C3_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C3",
     "undocumented": false,
@@ -33707,7 +32771,6 @@ const variant_CA_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CA",
     "undocumented": false,
@@ -33738,7 +32801,6 @@ const variant_D2_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D2",
     "undocumented": false,
@@ -33769,7 +32831,6 @@ const variant_DA_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DA",
     "undocumented": false,
@@ -33797,7 +32858,6 @@ const variant_DD_E9: OpcodeVariant = {
     233
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDE9",
     "undocumented": false,
@@ -33827,7 +32887,6 @@ const variant_DD_E9_pseudo: OpcodeVariant = {
     233
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDE9",
     "undocumented": false,
@@ -33858,7 +32917,6 @@ const variant_E2_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E2",
     "undocumented": false,
@@ -33889,7 +32947,6 @@ const variant_E2_nnnn_pseudo: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "E2",
     "undocumented": false,
@@ -33916,7 +32973,6 @@ const variant_E9: OpcodeVariant = {
     233
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E9",
     "undocumented": false,
@@ -33945,7 +33001,6 @@ const variant_E9_pseudo: OpcodeVariant = {
     233
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "E9",
     "undocumented": false,
@@ -33976,7 +33031,6 @@ const variant_EA_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EA",
     "undocumented": false,
@@ -34007,7 +33061,6 @@ const variant_EA_nnnn_pseudo: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "EA",
     "undocumented": false,
@@ -34038,7 +33091,6 @@ const variant_F2_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F2",
     "undocumented": false,
@@ -34069,7 +33121,6 @@ const variant_FA_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FA",
     "undocumented": false,
@@ -34097,7 +33148,6 @@ const variant_FD_E9: OpcodeVariant = {
     233
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDE9",
     "undocumented": false,
@@ -34127,7 +33177,6 @@ const variant_FD_E9_pseudo: OpcodeVariant = {
     233
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDE9",
     "undocumented": false,
@@ -34158,7 +33207,6 @@ const variant_C4_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C4",
     "undocumented": false,
@@ -34189,7 +33237,6 @@ const variant_CC_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CC",
     "undocumented": false,
@@ -34217,7 +33264,6 @@ const variant_CD_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CD",
     "undocumented": false,
@@ -34248,7 +33294,6 @@ const variant_D4_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D4",
     "undocumented": false,
@@ -34279,7 +33324,6 @@ const variant_DC_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DC",
     "undocumented": false,
@@ -34310,7 +33354,6 @@ const variant_E4_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E4",
     "undocumented": false,
@@ -34341,7 +33384,6 @@ const variant_E4_nnnn_pseudo: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "E4",
     "undocumented": false,
@@ -34372,7 +33414,6 @@ const variant_EC_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EC",
     "undocumented": false,
@@ -34403,7 +33444,6 @@ const variant_EC_nnnn_pseudo: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "EC",
     "undocumented": false,
@@ -34434,7 +33474,6 @@ const variant_F4_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F4",
     "undocumented": false,
@@ -34465,7 +33504,6 @@ const variant_FC_nnnn: OpcodeVariant = {
     "nnnn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FC",
     "undocumented": false,
@@ -34492,7 +33530,6 @@ const variant_C5: OpcodeVariant = {
     197
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C5",
     "undocumented": false,
@@ -34519,7 +33556,6 @@ const variant_D5: OpcodeVariant = {
     213
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D5",
     "undocumented": false,
@@ -34547,7 +33583,6 @@ const variant_DD_E5: OpcodeVariant = {
     229
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDE5",
     "undocumented": false,
@@ -34574,7 +33609,6 @@ const variant_E5: OpcodeVariant = {
     229
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E5",
     "undocumented": false,
@@ -34601,7 +33635,6 @@ const variant_F5: OpcodeVariant = {
     245
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F5",
     "undocumented": false,
@@ -34629,7 +33662,6 @@ const variant_FD_E5: OpcodeVariant = {
     229
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDE5",
     "undocumented": false,
@@ -34656,7 +33688,6 @@ const variant_C7: OpcodeVariant = {
     199
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "C7",
     "undocumented": false,
@@ -34683,7 +33714,6 @@ const variant_CF: OpcodeVariant = {
     207
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CF",
     "undocumented": false,
@@ -34710,7 +33740,6 @@ const variant_D7: OpcodeVariant = {
     215
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D7",
     "undocumented": false,
@@ -34737,7 +33766,6 @@ const variant_DF: OpcodeVariant = {
     223
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DF",
     "undocumented": false,
@@ -34764,7 +33792,6 @@ const variant_E7: OpcodeVariant = {
     231
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "E7",
     "undocumented": false,
@@ -34791,7 +33818,6 @@ const variant_EF: OpcodeVariant = {
     239
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EF",
     "undocumented": false,
@@ -34818,7 +33844,6 @@ const variant_F7: OpcodeVariant = {
     247
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F7",
     "undocumented": false,
@@ -34845,7 +33870,6 @@ const variant_FF: OpcodeVariant = {
     255
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FF",
     "undocumented": false,
@@ -34873,7 +33897,6 @@ const variant_CB_00: OpcodeVariant = {
     0
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB00",
     "undocumented": false,
@@ -34901,7 +33924,6 @@ const variant_CB_01: OpcodeVariant = {
     1
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB01",
     "undocumented": false,
@@ -34929,7 +33951,6 @@ const variant_CB_02: OpcodeVariant = {
     2
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB02",
     "undocumented": false,
@@ -34957,7 +33978,6 @@ const variant_CB_03: OpcodeVariant = {
     3
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB03",
     "undocumented": false,
@@ -34985,7 +34005,6 @@ const variant_CB_04: OpcodeVariant = {
     4
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB04",
     "undocumented": false,
@@ -35013,7 +34032,6 @@ const variant_CB_05: OpcodeVariant = {
     5
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB05",
     "undocumented": false,
@@ -35043,7 +34061,6 @@ const variant_CB_06: OpcodeVariant = {
     6
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB06",
     "undocumented": false,
@@ -35071,7 +34088,6 @@ const variant_CB_07: OpcodeVariant = {
     7
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB07",
     "undocumented": false,
@@ -35105,7 +34121,6 @@ const variant_DD_CB_dd_06: OpcodeVariant = {
     6
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB06",
     "undocumented": false,
@@ -35139,7 +34154,6 @@ const variant_FD_CB_dd_06: OpcodeVariant = {
     6
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB06",
     "undocumented": false,
@@ -35167,7 +34181,6 @@ const variant_CB_08: OpcodeVariant = {
     8
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB08",
     "undocumented": false,
@@ -35195,7 +34208,6 @@ const variant_CB_09: OpcodeVariant = {
     9
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB09",
     "undocumented": false,
@@ -35223,7 +34235,6 @@ const variant_CB_0A: OpcodeVariant = {
     10
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB0A",
     "undocumented": false,
@@ -35251,7 +34262,6 @@ const variant_CB_0B: OpcodeVariant = {
     11
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB0B",
     "undocumented": false,
@@ -35279,7 +34289,6 @@ const variant_CB_0C: OpcodeVariant = {
     12
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB0C",
     "undocumented": false,
@@ -35307,7 +34316,6 @@ const variant_CB_0D: OpcodeVariant = {
     13
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB0D",
     "undocumented": false,
@@ -35337,7 +34345,6 @@ const variant_CB_0E: OpcodeVariant = {
     14
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB0E",
     "undocumented": false,
@@ -35365,7 +34372,6 @@ const variant_CB_0F: OpcodeVariant = {
     15
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB0F",
     "undocumented": false,
@@ -35399,7 +34405,6 @@ const variant_DD_CB_dd_0E: OpcodeVariant = {
     14
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB0E",
     "undocumented": false,
@@ -35433,7 +34438,6 @@ const variant_FD_CB_dd_0E: OpcodeVariant = {
     14
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB0E",
     "undocumented": false,
@@ -35461,7 +34465,6 @@ const variant_CB_10: OpcodeVariant = {
     16
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB10",
     "undocumented": false,
@@ -35489,7 +34492,6 @@ const variant_CB_11: OpcodeVariant = {
     17
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB11",
     "undocumented": false,
@@ -35517,7 +34519,6 @@ const variant_CB_12: OpcodeVariant = {
     18
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB12",
     "undocumented": false,
@@ -35545,7 +34546,6 @@ const variant_CB_13: OpcodeVariant = {
     19
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB13",
     "undocumented": false,
@@ -35573,7 +34573,6 @@ const variant_CB_14: OpcodeVariant = {
     20
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB14",
     "undocumented": false,
@@ -35601,7 +34600,6 @@ const variant_CB_15: OpcodeVariant = {
     21
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB15",
     "undocumented": false,
@@ -35631,7 +34629,6 @@ const variant_CB_16: OpcodeVariant = {
     22
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB16",
     "undocumented": false,
@@ -35659,7 +34656,6 @@ const variant_CB_17: OpcodeVariant = {
     23
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB17",
     "undocumented": false,
@@ -35693,7 +34689,6 @@ const variant_DD_CB_dd_16: OpcodeVariant = {
     22
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB16",
     "undocumented": false,
@@ -35727,7 +34722,6 @@ const variant_FD_CB_dd_16: OpcodeVariant = {
     22
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB16",
     "undocumented": false,
@@ -35755,7 +34749,6 @@ const variant_CB_18: OpcodeVariant = {
     24
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB18",
     "undocumented": false,
@@ -35783,7 +34776,6 @@ const variant_CB_19: OpcodeVariant = {
     25
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB19",
     "undocumented": false,
@@ -35811,7 +34803,6 @@ const variant_CB_1A: OpcodeVariant = {
     26
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB1A",
     "undocumented": false,
@@ -35839,7 +34830,6 @@ const variant_CB_1B: OpcodeVariant = {
     27
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB1B",
     "undocumented": false,
@@ -35867,7 +34857,6 @@ const variant_CB_1C: OpcodeVariant = {
     28
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB1C",
     "undocumented": false,
@@ -35895,7 +34884,6 @@ const variant_CB_1D: OpcodeVariant = {
     29
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB1D",
     "undocumented": false,
@@ -35925,7 +34913,6 @@ const variant_CB_1E: OpcodeVariant = {
     30
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB1E",
     "undocumented": false,
@@ -35953,7 +34940,6 @@ const variant_CB_1F: OpcodeVariant = {
     31
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB1F",
     "undocumented": false,
@@ -35987,7 +34973,6 @@ const variant_DD_CB_dd_1E: OpcodeVariant = {
     30
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB1E",
     "undocumented": false,
@@ -36021,7 +35006,6 @@ const variant_FD_CB_dd_1E: OpcodeVariant = {
     30
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB1E",
     "undocumented": false,
@@ -36049,7 +35033,6 @@ const variant_CB_20: OpcodeVariant = {
     32
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB20",
     "undocumented": false,
@@ -36077,7 +35060,6 @@ const variant_CB_21: OpcodeVariant = {
     33
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB21",
     "undocumented": false,
@@ -36105,7 +35087,6 @@ const variant_CB_22: OpcodeVariant = {
     34
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB22",
     "undocumented": false,
@@ -36133,7 +35114,6 @@ const variant_CB_23: OpcodeVariant = {
     35
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB23",
     "undocumented": false,
@@ -36161,7 +35141,6 @@ const variant_CB_24: OpcodeVariant = {
     36
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB24",
     "undocumented": false,
@@ -36189,7 +35168,6 @@ const variant_CB_25: OpcodeVariant = {
     37
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB25",
     "undocumented": false,
@@ -36219,7 +35197,6 @@ const variant_CB_26: OpcodeVariant = {
     38
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB26",
     "undocumented": false,
@@ -36247,7 +35224,6 @@ const variant_CB_27: OpcodeVariant = {
     39
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB27",
     "undocumented": false,
@@ -36281,7 +35257,6 @@ const variant_DD_CB_dd_26: OpcodeVariant = {
     38
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB26",
     "undocumented": false,
@@ -36315,7 +35290,6 @@ const variant_FD_CB_dd_26: OpcodeVariant = {
     38
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB26",
     "undocumented": false,
@@ -36343,7 +35317,6 @@ const variant_CB_28: OpcodeVariant = {
     40
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB28",
     "undocumented": false,
@@ -36371,7 +35344,6 @@ const variant_CB_29: OpcodeVariant = {
     41
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB29",
     "undocumented": false,
@@ -36399,7 +35371,6 @@ const variant_CB_2A: OpcodeVariant = {
     42
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB2A",
     "undocumented": false,
@@ -36427,7 +35398,6 @@ const variant_CB_2B: OpcodeVariant = {
     43
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB2B",
     "undocumented": false,
@@ -36455,7 +35425,6 @@ const variant_CB_2C: OpcodeVariant = {
     44
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB2C",
     "undocumented": false,
@@ -36483,7 +35452,6 @@ const variant_CB_2D: OpcodeVariant = {
     45
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB2D",
     "undocumented": false,
@@ -36513,7 +35481,6 @@ const variant_CB_2E: OpcodeVariant = {
     46
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB2E",
     "undocumented": false,
@@ -36541,7 +35508,6 @@ const variant_CB_2F: OpcodeVariant = {
     47
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB2F",
     "undocumented": false,
@@ -36575,7 +35541,6 @@ const variant_DD_CB_dd_2E: OpcodeVariant = {
     46
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB2E",
     "undocumented": false,
@@ -36609,7 +35574,6 @@ const variant_FD_CB_dd_2E: OpcodeVariant = {
     46
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB2E",
     "undocumented": false,
@@ -36637,7 +35601,6 @@ const variant_CB_30: OpcodeVariant = {
     48
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB30",
     "undocumented": true,
@@ -36665,7 +35628,6 @@ const variant_CB_31: OpcodeVariant = {
     49
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB31",
     "undocumented": true,
@@ -36693,7 +35655,6 @@ const variant_CB_32: OpcodeVariant = {
     50
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB32",
     "undocumented": true,
@@ -36721,7 +35682,6 @@ const variant_CB_33: OpcodeVariant = {
     51
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB33",
     "undocumented": true,
@@ -36749,7 +35709,6 @@ const variant_CB_34: OpcodeVariant = {
     52
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB34",
     "undocumented": true,
@@ -36777,7 +35736,6 @@ const variant_CB_35: OpcodeVariant = {
     53
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB35",
     "undocumented": true,
@@ -36807,7 +35765,6 @@ const variant_CB_36: OpcodeVariant = {
     54
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB36",
     "undocumented": true,
@@ -36835,7 +35792,6 @@ const variant_CB_37: OpcodeVariant = {
     55
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB37",
     "undocumented": true,
@@ -36869,7 +35825,6 @@ const variant_DD_CB_dd_36: OpcodeVariant = {
     54
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB36",
     "undocumented": true,
@@ -36903,7 +35858,6 @@ const variant_FD_CB_dd_36: OpcodeVariant = {
     54
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB36",
     "undocumented": true,
@@ -36931,7 +35885,6 @@ const variant_CB_38: OpcodeVariant = {
     56
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB38",
     "undocumented": false,
@@ -36959,7 +35912,6 @@ const variant_CB_39: OpcodeVariant = {
     57
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB39",
     "undocumented": false,
@@ -36987,7 +35939,6 @@ const variant_CB_3A: OpcodeVariant = {
     58
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB3A",
     "undocumented": false,
@@ -37015,7 +35966,6 @@ const variant_CB_3B: OpcodeVariant = {
     59
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB3B",
     "undocumented": false,
@@ -37043,7 +35993,6 @@ const variant_CB_3C: OpcodeVariant = {
     60
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB3C",
     "undocumented": false,
@@ -37071,7 +36020,6 @@ const variant_CB_3D: OpcodeVariant = {
     61
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB3D",
     "undocumented": false,
@@ -37101,7 +36049,6 @@ const variant_CB_3E: OpcodeVariant = {
     62
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB3E",
     "undocumented": false,
@@ -37129,7 +36076,6 @@ const variant_CB_3F: OpcodeVariant = {
     63
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB3F",
     "undocumented": false,
@@ -37163,7 +36109,6 @@ const variant_DD_CB_dd_3E: OpcodeVariant = {
     62
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB3E",
     "undocumented": false,
@@ -37197,7 +36142,6 @@ const variant_FD_CB_dd_3E: OpcodeVariant = {
     62
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB3E",
     "undocumented": false,
@@ -37228,7 +36172,6 @@ const variant_CB_40: OpcodeVariant = {
     64
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB40",
     "undocumented": false,
@@ -37259,7 +36202,6 @@ const variant_CB_41: OpcodeVariant = {
     65
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB41",
     "undocumented": false,
@@ -37290,7 +36232,6 @@ const variant_CB_42: OpcodeVariant = {
     66
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB42",
     "undocumented": false,
@@ -37321,7 +36262,6 @@ const variant_CB_43: OpcodeVariant = {
     67
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB43",
     "undocumented": false,
@@ -37352,7 +36292,6 @@ const variant_CB_44: OpcodeVariant = {
     68
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB44",
     "undocumented": false,
@@ -37383,7 +36322,6 @@ const variant_CB_45: OpcodeVariant = {
     69
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB45",
     "undocumented": false,
@@ -37416,7 +36354,6 @@ const variant_CB_46: OpcodeVariant = {
     70
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB46",
     "undocumented": false,
@@ -37447,7 +36384,6 @@ const variant_CB_47: OpcodeVariant = {
     71
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB47",
     "undocumented": false,
@@ -37478,7 +36414,6 @@ const variant_CB_48: OpcodeVariant = {
     72
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB48",
     "undocumented": false,
@@ -37509,7 +36444,6 @@ const variant_CB_49: OpcodeVariant = {
     73
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB49",
     "undocumented": false,
@@ -37540,7 +36474,6 @@ const variant_CB_4A: OpcodeVariant = {
     74
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB4A",
     "undocumented": false,
@@ -37571,7 +36504,6 @@ const variant_CB_4B: OpcodeVariant = {
     75
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB4B",
     "undocumented": false,
@@ -37602,7 +36534,6 @@ const variant_CB_4C: OpcodeVariant = {
     76
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB4C",
     "undocumented": false,
@@ -37633,7 +36564,6 @@ const variant_CB_4D: OpcodeVariant = {
     77
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB4D",
     "undocumented": false,
@@ -37666,7 +36596,6 @@ const variant_CB_4E: OpcodeVariant = {
     78
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB4E",
     "undocumented": false,
@@ -37697,7 +36626,6 @@ const variant_CB_4F: OpcodeVariant = {
     79
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB4F",
     "undocumented": false,
@@ -37728,7 +36656,6 @@ const variant_CB_50: OpcodeVariant = {
     80
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB50",
     "undocumented": false,
@@ -37759,7 +36686,6 @@ const variant_CB_51: OpcodeVariant = {
     81
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB51",
     "undocumented": false,
@@ -37790,7 +36716,6 @@ const variant_CB_52: OpcodeVariant = {
     82
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB52",
     "undocumented": false,
@@ -37821,7 +36746,6 @@ const variant_CB_53: OpcodeVariant = {
     83
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB53",
     "undocumented": false,
@@ -37852,7 +36776,6 @@ const variant_CB_54: OpcodeVariant = {
     84
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB54",
     "undocumented": false,
@@ -37883,7 +36806,6 @@ const variant_CB_55: OpcodeVariant = {
     85
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB55",
     "undocumented": false,
@@ -37916,7 +36838,6 @@ const variant_CB_56: OpcodeVariant = {
     86
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB56",
     "undocumented": false,
@@ -37947,7 +36868,6 @@ const variant_CB_57: OpcodeVariant = {
     87
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB57",
     "undocumented": false,
@@ -37978,7 +36898,6 @@ const variant_CB_58: OpcodeVariant = {
     88
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB58",
     "undocumented": false,
@@ -38009,7 +36928,6 @@ const variant_CB_59: OpcodeVariant = {
     89
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB59",
     "undocumented": false,
@@ -38040,7 +36958,6 @@ const variant_CB_5A: OpcodeVariant = {
     90
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB5A",
     "undocumented": false,
@@ -38071,7 +36988,6 @@ const variant_CB_5B: OpcodeVariant = {
     91
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB5B",
     "undocumented": false,
@@ -38102,7 +37018,6 @@ const variant_CB_5C: OpcodeVariant = {
     92
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB5C",
     "undocumented": false,
@@ -38133,7 +37048,6 @@ const variant_CB_5D: OpcodeVariant = {
     93
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB5D",
     "undocumented": false,
@@ -38166,7 +37080,6 @@ const variant_CB_5E: OpcodeVariant = {
     94
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB5E",
     "undocumented": false,
@@ -38197,7 +37110,6 @@ const variant_CB_5F: OpcodeVariant = {
     95
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB5F",
     "undocumented": false,
@@ -38228,7 +37140,6 @@ const variant_CB_60: OpcodeVariant = {
     96
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB60",
     "undocumented": false,
@@ -38259,7 +37170,6 @@ const variant_CB_61: OpcodeVariant = {
     97
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB61",
     "undocumented": false,
@@ -38290,7 +37200,6 @@ const variant_CB_62: OpcodeVariant = {
     98
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB62",
     "undocumented": false,
@@ -38321,7 +37230,6 @@ const variant_CB_63: OpcodeVariant = {
     99
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB63",
     "undocumented": false,
@@ -38352,7 +37260,6 @@ const variant_CB_64: OpcodeVariant = {
     100
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB64",
     "undocumented": false,
@@ -38383,7 +37290,6 @@ const variant_CB_65: OpcodeVariant = {
     101
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB65",
     "undocumented": false,
@@ -38416,7 +37322,6 @@ const variant_CB_66: OpcodeVariant = {
     102
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB66",
     "undocumented": false,
@@ -38447,7 +37352,6 @@ const variant_CB_67: OpcodeVariant = {
     103
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB67",
     "undocumented": false,
@@ -38478,7 +37382,6 @@ const variant_CB_68: OpcodeVariant = {
     104
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB68",
     "undocumented": false,
@@ -38509,7 +37412,6 @@ const variant_CB_69: OpcodeVariant = {
     105
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB69",
     "undocumented": false,
@@ -38540,7 +37442,6 @@ const variant_CB_6A: OpcodeVariant = {
     106
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB6A",
     "undocumented": false,
@@ -38571,7 +37472,6 @@ const variant_CB_6B: OpcodeVariant = {
     107
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB6B",
     "undocumented": false,
@@ -38602,7 +37502,6 @@ const variant_CB_6C: OpcodeVariant = {
     108
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB6C",
     "undocumented": false,
@@ -38633,7 +37532,6 @@ const variant_CB_6D: OpcodeVariant = {
     109
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB6D",
     "undocumented": false,
@@ -38666,7 +37564,6 @@ const variant_CB_6E: OpcodeVariant = {
     110
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB6E",
     "undocumented": false,
@@ -38697,7 +37594,6 @@ const variant_CB_6F: OpcodeVariant = {
     111
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB6F",
     "undocumented": false,
@@ -38728,7 +37624,6 @@ const variant_CB_70: OpcodeVariant = {
     112
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB70",
     "undocumented": false,
@@ -38759,7 +37654,6 @@ const variant_CB_71: OpcodeVariant = {
     113
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB71",
     "undocumented": false,
@@ -38790,7 +37684,6 @@ const variant_CB_72: OpcodeVariant = {
     114
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB72",
     "undocumented": false,
@@ -38821,7 +37714,6 @@ const variant_CB_73: OpcodeVariant = {
     115
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB73",
     "undocumented": false,
@@ -38852,7 +37744,6 @@ const variant_CB_74: OpcodeVariant = {
     116
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB74",
     "undocumented": false,
@@ -38883,7 +37774,6 @@ const variant_CB_75: OpcodeVariant = {
     117
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB75",
     "undocumented": false,
@@ -38916,7 +37806,6 @@ const variant_CB_76: OpcodeVariant = {
     118
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB76",
     "undocumented": false,
@@ -38947,7 +37836,6 @@ const variant_CB_77: OpcodeVariant = {
     119
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB77",
     "undocumented": false,
@@ -38978,7 +37866,6 @@ const variant_CB_78: OpcodeVariant = {
     120
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB78",
     "undocumented": false,
@@ -39009,7 +37896,6 @@ const variant_CB_79: OpcodeVariant = {
     121
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB79",
     "undocumented": false,
@@ -39040,7 +37926,6 @@ const variant_CB_7A: OpcodeVariant = {
     122
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB7A",
     "undocumented": false,
@@ -39071,7 +37956,6 @@ const variant_CB_7B: OpcodeVariant = {
     123
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB7B",
     "undocumented": false,
@@ -39102,7 +37986,6 @@ const variant_CB_7C: OpcodeVariant = {
     124
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB7C",
     "undocumented": false,
@@ -39133,7 +38016,6 @@ const variant_CB_7D: OpcodeVariant = {
     125
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB7D",
     "undocumented": false,
@@ -39166,7 +38048,6 @@ const variant_CB_7E: OpcodeVariant = {
     126
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB7E",
     "undocumented": false,
@@ -39197,7 +38078,6 @@ const variant_CB_7F: OpcodeVariant = {
     127
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB7F",
     "undocumented": false,
@@ -39234,7 +38114,6 @@ const variant_DD_CB_dd_47: OpcodeVariant = {
     71
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB47",
     "undocumented": true,
@@ -39271,7 +38150,7 @@ const variant_DD_CB_dd_40: OpcodeVariant = {
     64
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_47,
   "clr": {
     "opcodes": "DDCB47",
     "undocumented": true,
@@ -39308,7 +38187,7 @@ const variant_DD_CB_dd_41: OpcodeVariant = {
     65
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_47,
   "clr": {
     "opcodes": "DDCB47",
     "undocumented": true,
@@ -39345,7 +38224,7 @@ const variant_DD_CB_dd_42: OpcodeVariant = {
     66
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_47,
   "clr": {
     "opcodes": "DDCB47",
     "undocumented": true,
@@ -39382,7 +38261,7 @@ const variant_DD_CB_dd_43: OpcodeVariant = {
     67
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_47,
   "clr": {
     "opcodes": "DDCB47",
     "undocumented": true,
@@ -39419,7 +38298,7 @@ const variant_DD_CB_dd_44: OpcodeVariant = {
     68
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_47,
   "clr": {
     "opcodes": "DDCB47",
     "undocumented": true,
@@ -39456,7 +38335,7 @@ const variant_DD_CB_dd_45: OpcodeVariant = {
     69
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_47,
   "clr": {
     "opcodes": "DDCB47",
     "undocumented": true,
@@ -39493,7 +38372,7 @@ const variant_DD_CB_dd_46: OpcodeVariant = {
     70
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_47,
   "clr": {
     "opcodes": "DDCB47",
     "undocumented": true,
@@ -39530,7 +38409,6 @@ const variant_DD_CB_dd_4F: OpcodeVariant = {
     79
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB4F",
     "undocumented": true,
@@ -39567,7 +38445,7 @@ const variant_DD_CB_dd_48: OpcodeVariant = {
     72
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_4F,
   "clr": {
     "opcodes": "DDCB4F",
     "undocumented": true,
@@ -39604,7 +38482,7 @@ const variant_DD_CB_dd_49: OpcodeVariant = {
     73
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_4F,
   "clr": {
     "opcodes": "DDCB4F",
     "undocumented": true,
@@ -39641,7 +38519,7 @@ const variant_DD_CB_dd_4A: OpcodeVariant = {
     74
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_4F,
   "clr": {
     "opcodes": "DDCB4F",
     "undocumented": true,
@@ -39678,7 +38556,7 @@ const variant_DD_CB_dd_4B: OpcodeVariant = {
     75
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_4F,
   "clr": {
     "opcodes": "DDCB4F",
     "undocumented": true,
@@ -39715,7 +38593,7 @@ const variant_DD_CB_dd_4C: OpcodeVariant = {
     76
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_4F,
   "clr": {
     "opcodes": "DDCB4F",
     "undocumented": true,
@@ -39752,7 +38630,7 @@ const variant_DD_CB_dd_4D: OpcodeVariant = {
     77
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_4F,
   "clr": {
     "opcodes": "DDCB4F",
     "undocumented": true,
@@ -39789,7 +38667,7 @@ const variant_DD_CB_dd_4E: OpcodeVariant = {
     78
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_4F,
   "clr": {
     "opcodes": "DDCB4F",
     "undocumented": true,
@@ -39826,7 +38704,6 @@ const variant_DD_CB_dd_57: OpcodeVariant = {
     87
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB57",
     "undocumented": true,
@@ -39863,7 +38740,7 @@ const variant_DD_CB_dd_50: OpcodeVariant = {
     80
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_57,
   "clr": {
     "opcodes": "DDCB57",
     "undocumented": true,
@@ -39900,7 +38777,7 @@ const variant_DD_CB_dd_51: OpcodeVariant = {
     81
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_57,
   "clr": {
     "opcodes": "DDCB57",
     "undocumented": true,
@@ -39937,7 +38814,7 @@ const variant_DD_CB_dd_52: OpcodeVariant = {
     82
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_57,
   "clr": {
     "opcodes": "DDCB57",
     "undocumented": true,
@@ -39974,7 +38851,7 @@ const variant_DD_CB_dd_53: OpcodeVariant = {
     83
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_57,
   "clr": {
     "opcodes": "DDCB57",
     "undocumented": true,
@@ -40011,7 +38888,7 @@ const variant_DD_CB_dd_54: OpcodeVariant = {
     84
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_57,
   "clr": {
     "opcodes": "DDCB57",
     "undocumented": true,
@@ -40048,7 +38925,7 @@ const variant_DD_CB_dd_55: OpcodeVariant = {
     85
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_57,
   "clr": {
     "opcodes": "DDCB57",
     "undocumented": true,
@@ -40085,7 +38962,7 @@ const variant_DD_CB_dd_56: OpcodeVariant = {
     86
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_57,
   "clr": {
     "opcodes": "DDCB57",
     "undocumented": true,
@@ -40122,7 +38999,6 @@ const variant_DD_CB_dd_5F: OpcodeVariant = {
     95
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB5F",
     "undocumented": true,
@@ -40159,7 +39035,7 @@ const variant_DD_CB_dd_58: OpcodeVariant = {
     88
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_5F,
   "clr": {
     "opcodes": "DDCB5F",
     "undocumented": true,
@@ -40196,7 +39072,7 @@ const variant_DD_CB_dd_59: OpcodeVariant = {
     89
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_5F,
   "clr": {
     "opcodes": "DDCB5F",
     "undocumented": true,
@@ -40233,7 +39109,7 @@ const variant_DD_CB_dd_5A: OpcodeVariant = {
     90
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_5F,
   "clr": {
     "opcodes": "DDCB5F",
     "undocumented": true,
@@ -40270,7 +39146,7 @@ const variant_DD_CB_dd_5B: OpcodeVariant = {
     91
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_5F,
   "clr": {
     "opcodes": "DDCB5F",
     "undocumented": true,
@@ -40307,7 +39183,7 @@ const variant_DD_CB_dd_5C: OpcodeVariant = {
     92
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_5F,
   "clr": {
     "opcodes": "DDCB5F",
     "undocumented": true,
@@ -40344,7 +39220,7 @@ const variant_DD_CB_dd_5D: OpcodeVariant = {
     93
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_5F,
   "clr": {
     "opcodes": "DDCB5F",
     "undocumented": true,
@@ -40381,7 +39257,7 @@ const variant_DD_CB_dd_5E: OpcodeVariant = {
     94
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_5F,
   "clr": {
     "opcodes": "DDCB5F",
     "undocumented": true,
@@ -40418,7 +39294,6 @@ const variant_DD_CB_dd_67: OpcodeVariant = {
     103
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB67",
     "undocumented": true,
@@ -40455,7 +39330,7 @@ const variant_DD_CB_dd_60: OpcodeVariant = {
     96
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_67,
   "clr": {
     "opcodes": "DDCB67",
     "undocumented": true,
@@ -40492,7 +39367,7 @@ const variant_DD_CB_dd_61: OpcodeVariant = {
     97
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_67,
   "clr": {
     "opcodes": "DDCB67",
     "undocumented": true,
@@ -40529,7 +39404,7 @@ const variant_DD_CB_dd_62: OpcodeVariant = {
     98
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_67,
   "clr": {
     "opcodes": "DDCB67",
     "undocumented": true,
@@ -40566,7 +39441,7 @@ const variant_DD_CB_dd_63: OpcodeVariant = {
     99
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_67,
   "clr": {
     "opcodes": "DDCB67",
     "undocumented": true,
@@ -40603,7 +39478,7 @@ const variant_DD_CB_dd_64: OpcodeVariant = {
     100
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_67,
   "clr": {
     "opcodes": "DDCB67",
     "undocumented": true,
@@ -40640,7 +39515,7 @@ const variant_DD_CB_dd_65: OpcodeVariant = {
     101
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_67,
   "clr": {
     "opcodes": "DDCB67",
     "undocumented": true,
@@ -40677,7 +39552,7 @@ const variant_DD_CB_dd_66: OpcodeVariant = {
     102
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_67,
   "clr": {
     "opcodes": "DDCB67",
     "undocumented": true,
@@ -40714,7 +39589,6 @@ const variant_DD_CB_dd_6F: OpcodeVariant = {
     111
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB6F",
     "undocumented": true,
@@ -40751,7 +39625,7 @@ const variant_DD_CB_dd_68: OpcodeVariant = {
     104
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_6F,
   "clr": {
     "opcodes": "DDCB6F",
     "undocumented": true,
@@ -40788,7 +39662,7 @@ const variant_DD_CB_dd_69: OpcodeVariant = {
     105
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_6F,
   "clr": {
     "opcodes": "DDCB6F",
     "undocumented": true,
@@ -40825,7 +39699,7 @@ const variant_DD_CB_dd_6A: OpcodeVariant = {
     106
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_6F,
   "clr": {
     "opcodes": "DDCB6F",
     "undocumented": true,
@@ -40862,7 +39736,7 @@ const variant_DD_CB_dd_6B: OpcodeVariant = {
     107
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_6F,
   "clr": {
     "opcodes": "DDCB6F",
     "undocumented": true,
@@ -40899,7 +39773,7 @@ const variant_DD_CB_dd_6C: OpcodeVariant = {
     108
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_6F,
   "clr": {
     "opcodes": "DDCB6F",
     "undocumented": true,
@@ -40936,7 +39810,7 @@ const variant_DD_CB_dd_6D: OpcodeVariant = {
     109
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_6F,
   "clr": {
     "opcodes": "DDCB6F",
     "undocumented": true,
@@ -40973,7 +39847,7 @@ const variant_DD_CB_dd_6E: OpcodeVariant = {
     110
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_6F,
   "clr": {
     "opcodes": "DDCB6F",
     "undocumented": true,
@@ -41010,7 +39884,6 @@ const variant_DD_CB_dd_77: OpcodeVariant = {
     119
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB77",
     "undocumented": true,
@@ -41047,7 +39920,7 @@ const variant_DD_CB_dd_70: OpcodeVariant = {
     112
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_77,
   "clr": {
     "opcodes": "DDCB77",
     "undocumented": true,
@@ -41084,7 +39957,7 @@ const variant_DD_CB_dd_71: OpcodeVariant = {
     113
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_77,
   "clr": {
     "opcodes": "DDCB77",
     "undocumented": true,
@@ -41121,7 +39994,7 @@ const variant_DD_CB_dd_72: OpcodeVariant = {
     114
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_77,
   "clr": {
     "opcodes": "DDCB77",
     "undocumented": true,
@@ -41158,7 +40031,7 @@ const variant_DD_CB_dd_73: OpcodeVariant = {
     115
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_77,
   "clr": {
     "opcodes": "DDCB77",
     "undocumented": true,
@@ -41195,7 +40068,7 @@ const variant_DD_CB_dd_74: OpcodeVariant = {
     116
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_77,
   "clr": {
     "opcodes": "DDCB77",
     "undocumented": true,
@@ -41232,7 +40105,7 @@ const variant_DD_CB_dd_75: OpcodeVariant = {
     117
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_77,
   "clr": {
     "opcodes": "DDCB77",
     "undocumented": true,
@@ -41269,7 +40142,7 @@ const variant_DD_CB_dd_76: OpcodeVariant = {
     118
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_77,
   "clr": {
     "opcodes": "DDCB77",
     "undocumented": true,
@@ -41306,7 +40179,6 @@ const variant_DD_CB_dd_7F: OpcodeVariant = {
     127
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB7F",
     "undocumented": true,
@@ -41343,7 +40215,7 @@ const variant_DD_CB_dd_78: OpcodeVariant = {
     120
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_7F,
   "clr": {
     "opcodes": "DDCB7F",
     "undocumented": true,
@@ -41380,7 +40252,7 @@ const variant_DD_CB_dd_79: OpcodeVariant = {
     121
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_7F,
   "clr": {
     "opcodes": "DDCB7F",
     "undocumented": true,
@@ -41417,7 +40289,7 @@ const variant_DD_CB_dd_7A: OpcodeVariant = {
     122
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_7F,
   "clr": {
     "opcodes": "DDCB7F",
     "undocumented": true,
@@ -41454,7 +40326,7 @@ const variant_DD_CB_dd_7B: OpcodeVariant = {
     123
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_7F,
   "clr": {
     "opcodes": "DDCB7F",
     "undocumented": true,
@@ -41491,7 +40363,7 @@ const variant_DD_CB_dd_7C: OpcodeVariant = {
     124
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_7F,
   "clr": {
     "opcodes": "DDCB7F",
     "undocumented": true,
@@ -41528,7 +40400,7 @@ const variant_DD_CB_dd_7D: OpcodeVariant = {
     125
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_7F,
   "clr": {
     "opcodes": "DDCB7F",
     "undocumented": true,
@@ -41565,7 +40437,7 @@ const variant_DD_CB_dd_7E: OpcodeVariant = {
     126
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_DD_CB_dd_7F,
   "clr": {
     "opcodes": "DDCB7F",
     "undocumented": true,
@@ -41602,7 +40474,6 @@ const variant_FD_CB_dd_47: OpcodeVariant = {
     71
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB47",
     "undocumented": true,
@@ -41639,7 +40510,7 @@ const variant_FD_CB_dd_40: OpcodeVariant = {
     64
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_47,
   "clr": {
     "opcodes": "FDCB47",
     "undocumented": true,
@@ -41676,7 +40547,7 @@ const variant_FD_CB_dd_41: OpcodeVariant = {
     65
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_47,
   "clr": {
     "opcodes": "FDCB47",
     "undocumented": true,
@@ -41713,7 +40584,7 @@ const variant_FD_CB_dd_42: OpcodeVariant = {
     66
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_47,
   "clr": {
     "opcodes": "FDCB47",
     "undocumented": true,
@@ -41750,7 +40621,7 @@ const variant_FD_CB_dd_43: OpcodeVariant = {
     67
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_47,
   "clr": {
     "opcodes": "FDCB47",
     "undocumented": true,
@@ -41787,7 +40658,7 @@ const variant_FD_CB_dd_44: OpcodeVariant = {
     68
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_47,
   "clr": {
     "opcodes": "FDCB47",
     "undocumented": true,
@@ -41824,7 +40695,7 @@ const variant_FD_CB_dd_45: OpcodeVariant = {
     69
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_47,
   "clr": {
     "opcodes": "FDCB47",
     "undocumented": true,
@@ -41861,7 +40732,7 @@ const variant_FD_CB_dd_46: OpcodeVariant = {
     70
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_47,
   "clr": {
     "opcodes": "FDCB47",
     "undocumented": true,
@@ -41898,7 +40769,6 @@ const variant_FD_CB_dd_4F: OpcodeVariant = {
     79
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB4F",
     "undocumented": true,
@@ -41935,7 +40805,7 @@ const variant_FD_CB_dd_48: OpcodeVariant = {
     72
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_4F,
   "clr": {
     "opcodes": "FDCB4F",
     "undocumented": true,
@@ -41972,7 +40842,7 @@ const variant_FD_CB_dd_49: OpcodeVariant = {
     73
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_4F,
   "clr": {
     "opcodes": "FDCB4F",
     "undocumented": true,
@@ -42009,7 +40879,7 @@ const variant_FD_CB_dd_4A: OpcodeVariant = {
     74
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_4F,
   "clr": {
     "opcodes": "FDCB4F",
     "undocumented": true,
@@ -42046,7 +40916,7 @@ const variant_FD_CB_dd_4B: OpcodeVariant = {
     75
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_4F,
   "clr": {
     "opcodes": "FDCB4F",
     "undocumented": true,
@@ -42083,7 +40953,7 @@ const variant_FD_CB_dd_4C: OpcodeVariant = {
     76
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_4F,
   "clr": {
     "opcodes": "FDCB4F",
     "undocumented": true,
@@ -42120,7 +40990,7 @@ const variant_FD_CB_dd_4D: OpcodeVariant = {
     77
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_4F,
   "clr": {
     "opcodes": "FDCB4F",
     "undocumented": true,
@@ -42157,7 +41027,7 @@ const variant_FD_CB_dd_4E: OpcodeVariant = {
     78
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_4F,
   "clr": {
     "opcodes": "FDCB4F",
     "undocumented": true,
@@ -42194,7 +41064,6 @@ const variant_FD_CB_dd_57: OpcodeVariant = {
     87
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB57",
     "undocumented": true,
@@ -42231,7 +41100,7 @@ const variant_FD_CB_dd_50: OpcodeVariant = {
     80
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_57,
   "clr": {
     "opcodes": "FDCB57",
     "undocumented": true,
@@ -42268,7 +41137,7 @@ const variant_FD_CB_dd_51: OpcodeVariant = {
     81
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_57,
   "clr": {
     "opcodes": "FDCB57",
     "undocumented": true,
@@ -42305,7 +41174,7 @@ const variant_FD_CB_dd_52: OpcodeVariant = {
     82
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_57,
   "clr": {
     "opcodes": "FDCB57",
     "undocumented": true,
@@ -42342,7 +41211,7 @@ const variant_FD_CB_dd_53: OpcodeVariant = {
     83
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_57,
   "clr": {
     "opcodes": "FDCB57",
     "undocumented": true,
@@ -42379,7 +41248,7 @@ const variant_FD_CB_dd_54: OpcodeVariant = {
     84
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_57,
   "clr": {
     "opcodes": "FDCB57",
     "undocumented": true,
@@ -42416,7 +41285,7 @@ const variant_FD_CB_dd_55: OpcodeVariant = {
     85
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_57,
   "clr": {
     "opcodes": "FDCB57",
     "undocumented": true,
@@ -42453,7 +41322,7 @@ const variant_FD_CB_dd_56: OpcodeVariant = {
     86
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_57,
   "clr": {
     "opcodes": "FDCB57",
     "undocumented": true,
@@ -42490,7 +41359,6 @@ const variant_FD_CB_dd_5F: OpcodeVariant = {
     95
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB5F",
     "undocumented": true,
@@ -42527,7 +41395,7 @@ const variant_FD_CB_dd_58: OpcodeVariant = {
     88
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_5F,
   "clr": {
     "opcodes": "FDCB5F",
     "undocumented": true,
@@ -42564,7 +41432,7 @@ const variant_FD_CB_dd_59: OpcodeVariant = {
     89
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_5F,
   "clr": {
     "opcodes": "FDCB5F",
     "undocumented": true,
@@ -42601,7 +41469,7 @@ const variant_FD_CB_dd_5A: OpcodeVariant = {
     90
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_5F,
   "clr": {
     "opcodes": "FDCB5F",
     "undocumented": true,
@@ -42638,7 +41506,7 @@ const variant_FD_CB_dd_5B: OpcodeVariant = {
     91
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_5F,
   "clr": {
     "opcodes": "FDCB5F",
     "undocumented": true,
@@ -42675,7 +41543,7 @@ const variant_FD_CB_dd_5C: OpcodeVariant = {
     92
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_5F,
   "clr": {
     "opcodes": "FDCB5F",
     "undocumented": true,
@@ -42712,7 +41580,7 @@ const variant_FD_CB_dd_5D: OpcodeVariant = {
     93
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_5F,
   "clr": {
     "opcodes": "FDCB5F",
     "undocumented": true,
@@ -42749,7 +41617,7 @@ const variant_FD_CB_dd_5E: OpcodeVariant = {
     94
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_5F,
   "clr": {
     "opcodes": "FDCB5F",
     "undocumented": true,
@@ -42786,7 +41654,6 @@ const variant_FD_CB_dd_67: OpcodeVariant = {
     103
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB67",
     "undocumented": true,
@@ -42823,7 +41690,7 @@ const variant_FD_CB_dd_60: OpcodeVariant = {
     96
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_67,
   "clr": {
     "opcodes": "FDCB67",
     "undocumented": true,
@@ -42860,7 +41727,7 @@ const variant_FD_CB_dd_61: OpcodeVariant = {
     97
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_67,
   "clr": {
     "opcodes": "FDCB67",
     "undocumented": true,
@@ -42897,7 +41764,7 @@ const variant_FD_CB_dd_62: OpcodeVariant = {
     98
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_67,
   "clr": {
     "opcodes": "FDCB67",
     "undocumented": true,
@@ -42934,7 +41801,7 @@ const variant_FD_CB_dd_63: OpcodeVariant = {
     99
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_67,
   "clr": {
     "opcodes": "FDCB67",
     "undocumented": true,
@@ -42971,7 +41838,7 @@ const variant_FD_CB_dd_64: OpcodeVariant = {
     100
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_67,
   "clr": {
     "opcodes": "FDCB67",
     "undocumented": true,
@@ -43008,7 +41875,7 @@ const variant_FD_CB_dd_65: OpcodeVariant = {
     101
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_67,
   "clr": {
     "opcodes": "FDCB67",
     "undocumented": true,
@@ -43045,7 +41912,7 @@ const variant_FD_CB_dd_66: OpcodeVariant = {
     102
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_67,
   "clr": {
     "opcodes": "FDCB67",
     "undocumented": true,
@@ -43082,7 +41949,6 @@ const variant_FD_CB_dd_6F: OpcodeVariant = {
     111
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB6F",
     "undocumented": true,
@@ -43119,7 +41985,7 @@ const variant_FD_CB_dd_68: OpcodeVariant = {
     104
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_6F,
   "clr": {
     "opcodes": "FDCB6F",
     "undocumented": true,
@@ -43156,7 +42022,7 @@ const variant_FD_CB_dd_69: OpcodeVariant = {
     105
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_6F,
   "clr": {
     "opcodes": "FDCB6F",
     "undocumented": true,
@@ -43193,7 +42059,7 @@ const variant_FD_CB_dd_6A: OpcodeVariant = {
     106
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_6F,
   "clr": {
     "opcodes": "FDCB6F",
     "undocumented": true,
@@ -43230,7 +42096,7 @@ const variant_FD_CB_dd_6B: OpcodeVariant = {
     107
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_6F,
   "clr": {
     "opcodes": "FDCB6F",
     "undocumented": true,
@@ -43267,7 +42133,7 @@ const variant_FD_CB_dd_6C: OpcodeVariant = {
     108
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_6F,
   "clr": {
     "opcodes": "FDCB6F",
     "undocumented": true,
@@ -43304,7 +42170,7 @@ const variant_FD_CB_dd_6D: OpcodeVariant = {
     109
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_6F,
   "clr": {
     "opcodes": "FDCB6F",
     "undocumented": true,
@@ -43341,7 +42207,7 @@ const variant_FD_CB_dd_6E: OpcodeVariant = {
     110
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_6F,
   "clr": {
     "opcodes": "FDCB6F",
     "undocumented": true,
@@ -43378,7 +42244,6 @@ const variant_FD_CB_dd_77: OpcodeVariant = {
     119
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB77",
     "undocumented": true,
@@ -43415,7 +42280,7 @@ const variant_FD_CB_dd_70: OpcodeVariant = {
     112
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_77,
   "clr": {
     "opcodes": "FDCB77",
     "undocumented": true,
@@ -43452,7 +42317,7 @@ const variant_FD_CB_dd_71: OpcodeVariant = {
     113
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_77,
   "clr": {
     "opcodes": "FDCB77",
     "undocumented": true,
@@ -43489,7 +42354,7 @@ const variant_FD_CB_dd_72: OpcodeVariant = {
     114
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_77,
   "clr": {
     "opcodes": "FDCB77",
     "undocumented": true,
@@ -43526,7 +42391,7 @@ const variant_FD_CB_dd_73: OpcodeVariant = {
     115
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_77,
   "clr": {
     "opcodes": "FDCB77",
     "undocumented": true,
@@ -43563,7 +42428,7 @@ const variant_FD_CB_dd_74: OpcodeVariant = {
     116
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_77,
   "clr": {
     "opcodes": "FDCB77",
     "undocumented": true,
@@ -43600,7 +42465,7 @@ const variant_FD_CB_dd_75: OpcodeVariant = {
     117
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_77,
   "clr": {
     "opcodes": "FDCB77",
     "undocumented": true,
@@ -43637,7 +42502,7 @@ const variant_FD_CB_dd_76: OpcodeVariant = {
     118
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_77,
   "clr": {
     "opcodes": "FDCB77",
     "undocumented": true,
@@ -43674,7 +42539,6 @@ const variant_FD_CB_dd_7F: OpcodeVariant = {
     127
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB7F",
     "undocumented": true,
@@ -43711,7 +42575,7 @@ const variant_FD_CB_dd_78: OpcodeVariant = {
     120
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_7F,
   "clr": {
     "opcodes": "FDCB7F",
     "undocumented": true,
@@ -43748,7 +42612,7 @@ const variant_FD_CB_dd_79: OpcodeVariant = {
     121
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_7F,
   "clr": {
     "opcodes": "FDCB7F",
     "undocumented": true,
@@ -43785,7 +42649,7 @@ const variant_FD_CB_dd_7A: OpcodeVariant = {
     122
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_7F,
   "clr": {
     "opcodes": "FDCB7F",
     "undocumented": true,
@@ -43822,7 +42686,7 @@ const variant_FD_CB_dd_7B: OpcodeVariant = {
     123
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_7F,
   "clr": {
     "opcodes": "FDCB7F",
     "undocumented": true,
@@ -43859,7 +42723,7 @@ const variant_FD_CB_dd_7C: OpcodeVariant = {
     124
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_7F,
   "clr": {
     "opcodes": "FDCB7F",
     "undocumented": true,
@@ -43896,7 +42760,7 @@ const variant_FD_CB_dd_7D: OpcodeVariant = {
     125
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_7F,
   "clr": {
     "opcodes": "FDCB7F",
     "undocumented": true,
@@ -43933,7 +42797,7 @@ const variant_FD_CB_dd_7E: OpcodeVariant = {
     126
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_FD_CB_dd_7F,
   "clr": {
     "opcodes": "FDCB7F",
     "undocumented": true,
@@ -43964,7 +42828,6 @@ const variant_CB_80: OpcodeVariant = {
     128
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB80",
     "undocumented": false,
@@ -43995,7 +42858,6 @@ const variant_CB_81: OpcodeVariant = {
     129
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB81",
     "undocumented": false,
@@ -44026,7 +42888,6 @@ const variant_CB_82: OpcodeVariant = {
     130
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB82",
     "undocumented": false,
@@ -44057,7 +42918,6 @@ const variant_CB_83: OpcodeVariant = {
     131
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB83",
     "undocumented": false,
@@ -44088,7 +42948,6 @@ const variant_CB_84: OpcodeVariant = {
     132
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB84",
     "undocumented": false,
@@ -44119,7 +42978,6 @@ const variant_CB_85: OpcodeVariant = {
     133
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB85",
     "undocumented": false,
@@ -44152,7 +43010,6 @@ const variant_CB_86: OpcodeVariant = {
     134
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB86",
     "undocumented": false,
@@ -44183,7 +43040,6 @@ const variant_CB_87: OpcodeVariant = {
     135
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB87",
     "undocumented": false,
@@ -44214,7 +43070,6 @@ const variant_CB_88: OpcodeVariant = {
     136
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB88",
     "undocumented": false,
@@ -44245,7 +43100,6 @@ const variant_CB_89: OpcodeVariant = {
     137
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB89",
     "undocumented": false,
@@ -44276,7 +43130,6 @@ const variant_CB_8A: OpcodeVariant = {
     138
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB8A",
     "undocumented": false,
@@ -44307,7 +43160,6 @@ const variant_CB_8B: OpcodeVariant = {
     139
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB8B",
     "undocumented": false,
@@ -44338,7 +43190,6 @@ const variant_CB_8C: OpcodeVariant = {
     140
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB8C",
     "undocumented": false,
@@ -44369,7 +43220,6 @@ const variant_CB_8D: OpcodeVariant = {
     141
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB8D",
     "undocumented": false,
@@ -44402,7 +43252,6 @@ const variant_CB_8E: OpcodeVariant = {
     142
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB8E",
     "undocumented": false,
@@ -44433,7 +43282,6 @@ const variant_CB_8F: OpcodeVariant = {
     143
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB8F",
     "undocumented": false,
@@ -44464,7 +43312,6 @@ const variant_CB_90: OpcodeVariant = {
     144
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB90",
     "undocumented": false,
@@ -44495,7 +43342,6 @@ const variant_CB_91: OpcodeVariant = {
     145
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB91",
     "undocumented": false,
@@ -44526,7 +43372,6 @@ const variant_CB_92: OpcodeVariant = {
     146
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB92",
     "undocumented": false,
@@ -44557,7 +43402,6 @@ const variant_CB_93: OpcodeVariant = {
     147
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB93",
     "undocumented": false,
@@ -44588,7 +43432,6 @@ const variant_CB_94: OpcodeVariant = {
     148
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB94",
     "undocumented": false,
@@ -44619,7 +43462,6 @@ const variant_CB_95: OpcodeVariant = {
     149
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB95",
     "undocumented": false,
@@ -44652,7 +43494,6 @@ const variant_CB_96: OpcodeVariant = {
     150
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB96",
     "undocumented": false,
@@ -44683,7 +43524,6 @@ const variant_CB_97: OpcodeVariant = {
     151
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB97",
     "undocumented": false,
@@ -44714,7 +43554,6 @@ const variant_CB_98: OpcodeVariant = {
     152
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB98",
     "undocumented": false,
@@ -44745,7 +43584,6 @@ const variant_CB_99: OpcodeVariant = {
     153
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB99",
     "undocumented": false,
@@ -44776,7 +43614,6 @@ const variant_CB_9A: OpcodeVariant = {
     154
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB9A",
     "undocumented": false,
@@ -44807,7 +43644,6 @@ const variant_CB_9B: OpcodeVariant = {
     155
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB9B",
     "undocumented": false,
@@ -44838,7 +43674,6 @@ const variant_CB_9C: OpcodeVariant = {
     156
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB9C",
     "undocumented": false,
@@ -44869,7 +43704,6 @@ const variant_CB_9D: OpcodeVariant = {
     157
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB9D",
     "undocumented": false,
@@ -44902,7 +43736,6 @@ const variant_CB_9E: OpcodeVariant = {
     158
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB9E",
     "undocumented": false,
@@ -44933,7 +43766,6 @@ const variant_CB_9F: OpcodeVariant = {
     159
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CB9F",
     "undocumented": false,
@@ -44964,7 +43796,6 @@ const variant_CB_A0: OpcodeVariant = {
     160
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA0",
     "undocumented": false,
@@ -44995,7 +43826,6 @@ const variant_CB_A1: OpcodeVariant = {
     161
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA1",
     "undocumented": false,
@@ -45026,7 +43856,6 @@ const variant_CB_A2: OpcodeVariant = {
     162
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA2",
     "undocumented": false,
@@ -45057,7 +43886,6 @@ const variant_CB_A3: OpcodeVariant = {
     163
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA3",
     "undocumented": false,
@@ -45088,7 +43916,6 @@ const variant_CB_A4: OpcodeVariant = {
     164
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA4",
     "undocumented": false,
@@ -45119,7 +43946,6 @@ const variant_CB_A5: OpcodeVariant = {
     165
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA5",
     "undocumented": false,
@@ -45152,7 +43978,6 @@ const variant_CB_A6: OpcodeVariant = {
     166
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA6",
     "undocumented": false,
@@ -45183,7 +44008,6 @@ const variant_CB_A7: OpcodeVariant = {
     167
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA7",
     "undocumented": false,
@@ -45214,7 +44038,6 @@ const variant_CB_A8: OpcodeVariant = {
     168
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA8",
     "undocumented": false,
@@ -45245,7 +44068,6 @@ const variant_CB_A9: OpcodeVariant = {
     169
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBA9",
     "undocumented": false,
@@ -45276,7 +44098,6 @@ const variant_CB_AA: OpcodeVariant = {
     170
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBAA",
     "undocumented": false,
@@ -45307,7 +44128,6 @@ const variant_CB_AB: OpcodeVariant = {
     171
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBAB",
     "undocumented": false,
@@ -45338,7 +44158,6 @@ const variant_CB_AC: OpcodeVariant = {
     172
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBAC",
     "undocumented": false,
@@ -45369,7 +44188,6 @@ const variant_CB_AD: OpcodeVariant = {
     173
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBAD",
     "undocumented": false,
@@ -45402,7 +44220,6 @@ const variant_CB_AE: OpcodeVariant = {
     174
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBAE",
     "undocumented": false,
@@ -45433,7 +44250,6 @@ const variant_CB_AF: OpcodeVariant = {
     175
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBAF",
     "undocumented": false,
@@ -45464,7 +44280,6 @@ const variant_CB_B0: OpcodeVariant = {
     176
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB0",
     "undocumented": false,
@@ -45495,7 +44310,6 @@ const variant_CB_B1: OpcodeVariant = {
     177
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB1",
     "undocumented": false,
@@ -45526,7 +44340,6 @@ const variant_CB_B2: OpcodeVariant = {
     178
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB2",
     "undocumented": false,
@@ -45557,7 +44370,6 @@ const variant_CB_B3: OpcodeVariant = {
     179
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB3",
     "undocumented": false,
@@ -45588,7 +44400,6 @@ const variant_CB_B4: OpcodeVariant = {
     180
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB4",
     "undocumented": false,
@@ -45619,7 +44430,6 @@ const variant_CB_B5: OpcodeVariant = {
     181
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB5",
     "undocumented": false,
@@ -45652,7 +44462,6 @@ const variant_CB_B6: OpcodeVariant = {
     182
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB6",
     "undocumented": false,
@@ -45683,7 +44492,6 @@ const variant_CB_B7: OpcodeVariant = {
     183
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB7",
     "undocumented": false,
@@ -45714,7 +44522,6 @@ const variant_CB_B8: OpcodeVariant = {
     184
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB8",
     "undocumented": false,
@@ -45745,7 +44552,6 @@ const variant_CB_B9: OpcodeVariant = {
     185
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBB9",
     "undocumented": false,
@@ -45776,7 +44582,6 @@ const variant_CB_BA: OpcodeVariant = {
     186
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBBA",
     "undocumented": false,
@@ -45807,7 +44612,6 @@ const variant_CB_BB: OpcodeVariant = {
     187
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBBB",
     "undocumented": false,
@@ -45838,7 +44642,6 @@ const variant_CB_BC: OpcodeVariant = {
     188
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBBC",
     "undocumented": false,
@@ -45869,7 +44672,6 @@ const variant_CB_BD: OpcodeVariant = {
     189
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBBD",
     "undocumented": false,
@@ -45902,7 +44704,6 @@ const variant_CB_BE: OpcodeVariant = {
     190
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBBE",
     "undocumented": false,
@@ -45933,7 +44734,6 @@ const variant_CB_BF: OpcodeVariant = {
     191
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBBF",
     "undocumented": false,
@@ -45970,7 +44770,6 @@ const variant_DD_CB_dd_86: OpcodeVariant = {
     134
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB86",
     "undocumented": false,
@@ -46007,7 +44806,6 @@ const variant_DD_CB_dd_8E: OpcodeVariant = {
     142
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB8E",
     "undocumented": false,
@@ -46044,7 +44842,6 @@ const variant_DD_CB_dd_96: OpcodeVariant = {
     150
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB96",
     "undocumented": false,
@@ -46081,7 +44878,6 @@ const variant_DD_CB_dd_9E: OpcodeVariant = {
     158
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCB9E",
     "undocumented": false,
@@ -46118,7 +44914,6 @@ const variant_DD_CB_dd_A6: OpcodeVariant = {
     166
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBA6",
     "undocumented": false,
@@ -46155,7 +44950,6 @@ const variant_DD_CB_dd_AE: OpcodeVariant = {
     174
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBAE",
     "undocumented": false,
@@ -46192,7 +44986,6 @@ const variant_DD_CB_dd_B6: OpcodeVariant = {
     182
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBB6",
     "undocumented": false,
@@ -46229,7 +45022,6 @@ const variant_DD_CB_dd_BE: OpcodeVariant = {
     190
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBBE",
     "undocumented": false,
@@ -46266,7 +45058,6 @@ const variant_FD_CB_dd_86: OpcodeVariant = {
     134
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB86",
     "undocumented": false,
@@ -46303,7 +45094,6 @@ const variant_FD_CB_dd_8E: OpcodeVariant = {
     142
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB8E",
     "undocumented": false,
@@ -46340,7 +45130,6 @@ const variant_FD_CB_dd_96: OpcodeVariant = {
     150
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB96",
     "undocumented": false,
@@ -46377,7 +45166,6 @@ const variant_FD_CB_dd_9E: OpcodeVariant = {
     158
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCB9E",
     "undocumented": false,
@@ -46414,7 +45202,6 @@ const variant_FD_CB_dd_A6: OpcodeVariant = {
     166
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBA6",
     "undocumented": false,
@@ -46451,7 +45238,6 @@ const variant_FD_CB_dd_AE: OpcodeVariant = {
     174
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBAE",
     "undocumented": false,
@@ -46488,7 +45274,6 @@ const variant_FD_CB_dd_B6: OpcodeVariant = {
     182
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBB6",
     "undocumented": false,
@@ -46525,7 +45310,6 @@ const variant_FD_CB_dd_BE: OpcodeVariant = {
     190
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBBE",
     "undocumented": false,
@@ -46556,7 +45340,6 @@ const variant_CB_C0: OpcodeVariant = {
     192
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC0",
     "undocumented": false,
@@ -46587,7 +45370,6 @@ const variant_CB_C1: OpcodeVariant = {
     193
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC1",
     "undocumented": false,
@@ -46618,7 +45400,6 @@ const variant_CB_C2: OpcodeVariant = {
     194
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC2",
     "undocumented": false,
@@ -46649,7 +45430,6 @@ const variant_CB_C3: OpcodeVariant = {
     195
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC3",
     "undocumented": false,
@@ -46680,7 +45460,6 @@ const variant_CB_C4: OpcodeVariant = {
     196
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC4",
     "undocumented": false,
@@ -46711,7 +45490,6 @@ const variant_CB_C5: OpcodeVariant = {
     197
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC5",
     "undocumented": false,
@@ -46744,7 +45522,6 @@ const variant_CB_C6: OpcodeVariant = {
     198
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC6",
     "undocumented": false,
@@ -46775,7 +45552,6 @@ const variant_CB_C7: OpcodeVariant = {
     199
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC7",
     "undocumented": false,
@@ -46806,7 +45582,6 @@ const variant_CB_C8: OpcodeVariant = {
     200
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC8",
     "undocumented": false,
@@ -46837,7 +45612,6 @@ const variant_CB_C9: OpcodeVariant = {
     201
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBC9",
     "undocumented": false,
@@ -46868,7 +45642,6 @@ const variant_CB_CA: OpcodeVariant = {
     202
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBCA",
     "undocumented": false,
@@ -46899,7 +45672,6 @@ const variant_CB_CB: OpcodeVariant = {
     203
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBCB",
     "undocumented": false,
@@ -46930,7 +45702,6 @@ const variant_CB_CC: OpcodeVariant = {
     204
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBCC",
     "undocumented": false,
@@ -46961,7 +45732,6 @@ const variant_CB_CD: OpcodeVariant = {
     205
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBCD",
     "undocumented": false,
@@ -46994,7 +45764,6 @@ const variant_CB_CE: OpcodeVariant = {
     206
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBCE",
     "undocumented": false,
@@ -47025,7 +45794,6 @@ const variant_CB_CF: OpcodeVariant = {
     207
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBCF",
     "undocumented": false,
@@ -47056,7 +45824,6 @@ const variant_CB_D0: OpcodeVariant = {
     208
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD0",
     "undocumented": false,
@@ -47087,7 +45854,6 @@ const variant_CB_D1: OpcodeVariant = {
     209
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD1",
     "undocumented": false,
@@ -47118,7 +45884,6 @@ const variant_CB_D2: OpcodeVariant = {
     210
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD2",
     "undocumented": false,
@@ -47149,7 +45914,6 @@ const variant_CB_D3: OpcodeVariant = {
     211
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD3",
     "undocumented": false,
@@ -47180,7 +45944,6 @@ const variant_CB_D4: OpcodeVariant = {
     212
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD4",
     "undocumented": false,
@@ -47211,7 +45974,6 @@ const variant_CB_D5: OpcodeVariant = {
     213
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD5",
     "undocumented": false,
@@ -47244,7 +46006,6 @@ const variant_CB_D6: OpcodeVariant = {
     214
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD6",
     "undocumented": false,
@@ -47275,7 +46036,6 @@ const variant_CB_D7: OpcodeVariant = {
     215
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD7",
     "undocumented": false,
@@ -47306,7 +46066,6 @@ const variant_CB_D8: OpcodeVariant = {
     216
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD8",
     "undocumented": false,
@@ -47337,7 +46096,6 @@ const variant_CB_D9: OpcodeVariant = {
     217
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBD9",
     "undocumented": false,
@@ -47368,7 +46126,6 @@ const variant_CB_DA: OpcodeVariant = {
     218
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBDA",
     "undocumented": false,
@@ -47399,7 +46156,6 @@ const variant_CB_DB: OpcodeVariant = {
     219
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBDB",
     "undocumented": false,
@@ -47430,7 +46186,6 @@ const variant_CB_DC: OpcodeVariant = {
     220
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBDC",
     "undocumented": false,
@@ -47461,7 +46216,6 @@ const variant_CB_DD: OpcodeVariant = {
     221
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBDD",
     "undocumented": false,
@@ -47494,7 +46248,6 @@ const variant_CB_DE: OpcodeVariant = {
     222
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBDE",
     "undocumented": false,
@@ -47525,7 +46278,6 @@ const variant_CB_DF: OpcodeVariant = {
     223
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBDF",
     "undocumented": false,
@@ -47556,7 +46308,6 @@ const variant_CB_E0: OpcodeVariant = {
     224
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE0",
     "undocumented": false,
@@ -47587,7 +46338,6 @@ const variant_CB_E1: OpcodeVariant = {
     225
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE1",
     "undocumented": false,
@@ -47618,7 +46368,6 @@ const variant_CB_E2: OpcodeVariant = {
     226
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE2",
     "undocumented": false,
@@ -47649,7 +46398,6 @@ const variant_CB_E3: OpcodeVariant = {
     227
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE3",
     "undocumented": false,
@@ -47680,7 +46428,6 @@ const variant_CB_E4: OpcodeVariant = {
     228
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE4",
     "undocumented": false,
@@ -47711,7 +46458,6 @@ const variant_CB_E5: OpcodeVariant = {
     229
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE5",
     "undocumented": false,
@@ -47744,7 +46490,6 @@ const variant_CB_E6: OpcodeVariant = {
     230
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE6",
     "undocumented": false,
@@ -47775,7 +46520,6 @@ const variant_CB_E7: OpcodeVariant = {
     231
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE7",
     "undocumented": false,
@@ -47806,7 +46550,6 @@ const variant_CB_E8: OpcodeVariant = {
     232
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE8",
     "undocumented": false,
@@ -47837,7 +46580,6 @@ const variant_CB_E9: OpcodeVariant = {
     233
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBE9",
     "undocumented": false,
@@ -47868,7 +46610,6 @@ const variant_CB_EA: OpcodeVariant = {
     234
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBEA",
     "undocumented": false,
@@ -47899,7 +46640,6 @@ const variant_CB_EB: OpcodeVariant = {
     235
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBEB",
     "undocumented": false,
@@ -47930,7 +46670,6 @@ const variant_CB_EC: OpcodeVariant = {
     236
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBEC",
     "undocumented": false,
@@ -47961,7 +46700,6 @@ const variant_CB_ED: OpcodeVariant = {
     237
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBED",
     "undocumented": false,
@@ -47994,7 +46732,6 @@ const variant_CB_EE: OpcodeVariant = {
     238
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBEE",
     "undocumented": false,
@@ -48025,7 +46762,6 @@ const variant_CB_EF: OpcodeVariant = {
     239
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBEF",
     "undocumented": false,
@@ -48056,7 +46792,6 @@ const variant_CB_F0: OpcodeVariant = {
     240
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF0",
     "undocumented": false,
@@ -48087,7 +46822,6 @@ const variant_CB_F1: OpcodeVariant = {
     241
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF1",
     "undocumented": false,
@@ -48118,7 +46852,6 @@ const variant_CB_F2: OpcodeVariant = {
     242
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF2",
     "undocumented": false,
@@ -48149,7 +46882,6 @@ const variant_CB_F3: OpcodeVariant = {
     243
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF3",
     "undocumented": false,
@@ -48180,7 +46912,6 @@ const variant_CB_F4: OpcodeVariant = {
     244
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF4",
     "undocumented": false,
@@ -48211,7 +46942,6 @@ const variant_CB_F5: OpcodeVariant = {
     245
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF5",
     "undocumented": false,
@@ -48244,7 +46974,6 @@ const variant_CB_F6: OpcodeVariant = {
     246
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF6",
     "undocumented": false,
@@ -48275,7 +47004,6 @@ const variant_CB_F7: OpcodeVariant = {
     247
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF7",
     "undocumented": false,
@@ -48306,7 +47034,6 @@ const variant_CB_F8: OpcodeVariant = {
     248
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF8",
     "undocumented": false,
@@ -48337,7 +47064,6 @@ const variant_CB_F9: OpcodeVariant = {
     249
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBF9",
     "undocumented": false,
@@ -48368,7 +47094,6 @@ const variant_CB_FA: OpcodeVariant = {
     250
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBFA",
     "undocumented": false,
@@ -48399,7 +47124,6 @@ const variant_CB_FB: OpcodeVariant = {
     251
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBFB",
     "undocumented": false,
@@ -48430,7 +47154,6 @@ const variant_CB_FC: OpcodeVariant = {
     252
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBFC",
     "undocumented": false,
@@ -48461,7 +47184,6 @@ const variant_CB_FD: OpcodeVariant = {
     253
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBFD",
     "undocumented": false,
@@ -48494,7 +47216,6 @@ const variant_CB_FE: OpcodeVariant = {
     254
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBFE",
     "undocumented": false,
@@ -48525,7 +47246,6 @@ const variant_CB_FF: OpcodeVariant = {
     255
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "CBFF",
     "undocumented": false,
@@ -48562,7 +47282,6 @@ const variant_DD_CB_dd_C6: OpcodeVariant = {
     198
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBC6",
     "undocumented": false,
@@ -48599,7 +47318,6 @@ const variant_DD_CB_dd_CE: OpcodeVariant = {
     206
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBCE",
     "undocumented": false,
@@ -48636,7 +47354,6 @@ const variant_DD_CB_dd_D6: OpcodeVariant = {
     214
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBD6",
     "undocumented": false,
@@ -48673,7 +47390,6 @@ const variant_DD_CB_dd_DE: OpcodeVariant = {
     222
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBDE",
     "undocumented": false,
@@ -48710,7 +47426,6 @@ const variant_DD_CB_dd_E6: OpcodeVariant = {
     230
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBE6",
     "undocumented": false,
@@ -48747,7 +47462,6 @@ const variant_DD_CB_dd_EE: OpcodeVariant = {
     238
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBEE",
     "undocumented": false,
@@ -48784,7 +47498,6 @@ const variant_DD_CB_dd_F6: OpcodeVariant = {
     246
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBF6",
     "undocumented": false,
@@ -48821,7 +47534,6 @@ const variant_DD_CB_dd_FE: OpcodeVariant = {
     254
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DDCBFE",
     "undocumented": false,
@@ -48858,7 +47570,6 @@ const variant_FD_CB_dd_C6: OpcodeVariant = {
     198
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBC6",
     "undocumented": false,
@@ -48895,7 +47606,6 @@ const variant_FD_CB_dd_CE: OpcodeVariant = {
     206
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBCE",
     "undocumented": false,
@@ -48932,7 +47642,6 @@ const variant_FD_CB_dd_D6: OpcodeVariant = {
     214
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBD6",
     "undocumented": false,
@@ -48969,7 +47678,6 @@ const variant_FD_CB_dd_DE: OpcodeVariant = {
     222
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBDE",
     "undocumented": false,
@@ -49006,7 +47714,6 @@ const variant_FD_CB_dd_E6: OpcodeVariant = {
     230
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBE6",
     "undocumented": false,
@@ -49043,7 +47750,6 @@ const variant_FD_CB_dd_EE: OpcodeVariant = {
     238
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBEE",
     "undocumented": false,
@@ -49080,7 +47786,6 @@ const variant_FD_CB_dd_F6: OpcodeVariant = {
     246
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBF6",
     "undocumented": false,
@@ -49117,7 +47822,6 @@ const variant_FD_CB_dd_FE: OpcodeVariant = {
     254
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FDCBFE",
     "undocumented": false,
@@ -49150,7 +47854,6 @@ const variant_D3_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D3",
     "undocumented": false,
@@ -49183,7 +47886,6 @@ const variant_ED_41: OpcodeVariant = {
     65
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED41",
     "undocumented": false,
@@ -49216,7 +47918,6 @@ const variant_ED_49: OpcodeVariant = {
     73
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED49",
     "undocumented": false,
@@ -49249,7 +47950,6 @@ const variant_ED_51: OpcodeVariant = {
     81
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED51",
     "undocumented": false,
@@ -49282,7 +47982,6 @@ const variant_ED_59: OpcodeVariant = {
     89
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED59",
     "undocumented": false,
@@ -49315,7 +48014,6 @@ const variant_ED_61: OpcodeVariant = {
     97
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED61",
     "undocumented": false,
@@ -49348,7 +48046,6 @@ const variant_ED_69: OpcodeVariant = {
     105
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED69",
     "undocumented": false,
@@ -49381,7 +48078,6 @@ const variant_ED_71: OpcodeVariant = {
     113
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED71",
     "undocumented": true,
@@ -49414,7 +48110,6 @@ const variant_ED_79: OpcodeVariant = {
     121
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED79",
     "undocumented": false,
@@ -49437,7 +48132,6 @@ const variant_D9: OpcodeVariant = {
     217
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "D9",
     "undocumented": false,
@@ -49470,7 +48164,6 @@ const variant_DB_nn: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "DB",
     "undocumented": false,
@@ -49500,7 +48193,6 @@ const variant_DB_nn_pseudo: OpcodeVariant = {
     "nn"
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "DB",
     "undocumented": false,
@@ -49533,7 +48225,6 @@ const variant_ED_40: OpcodeVariant = {
     64
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED40",
     "undocumented": false,
@@ -49566,7 +48257,6 @@ const variant_ED_48: OpcodeVariant = {
     72
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED48",
     "undocumented": false,
@@ -49599,7 +48289,6 @@ const variant_ED_50: OpcodeVariant = {
     80
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED50",
     "undocumented": false,
@@ -49632,7 +48321,6 @@ const variant_ED_58: OpcodeVariant = {
     88
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED58",
     "undocumented": false,
@@ -49665,7 +48353,6 @@ const variant_ED_60: OpcodeVariant = {
     96
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED60",
     "undocumented": false,
@@ -49698,7 +48385,6 @@ const variant_ED_68: OpcodeVariant = {
     104
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED68",
     "undocumented": false,
@@ -49731,7 +48417,6 @@ const variant_ED_70: OpcodeVariant = {
     112
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED70",
     "undocumented": true,
@@ -49764,7 +48449,6 @@ const variant_ED_78: OpcodeVariant = {
     120
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED78",
     "undocumented": false,
@@ -49794,7 +48478,6 @@ const variant_ED_78_pseudo: OpcodeVariant = {
     120
   ],
   "isPseudo": true,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED78",
     "undocumented": false,
@@ -49818,7 +48501,6 @@ const variant_ED_7C: OpcodeVariant = {
     124
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED7C",
     "undocumented": false,
@@ -49842,7 +48524,7 @@ const variant_ED_44: OpcodeVariant = {
     68
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_ED_7C,
   "clr": {
     "opcodes": "ED7C",
     "undocumented": false,
@@ -49866,7 +48548,7 @@ const variant_ED_4C: OpcodeVariant = {
     76
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_ED_7C,
   "clr": {
     "opcodes": "ED7C",
     "undocumented": false,
@@ -49890,7 +48572,7 @@ const variant_ED_54: OpcodeVariant = {
     84
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_ED_7C,
   "clr": {
     "opcodes": "ED7C",
     "undocumented": false,
@@ -49914,7 +48596,7 @@ const variant_ED_5C: OpcodeVariant = {
     92
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_ED_7C,
   "clr": {
     "opcodes": "ED7C",
     "undocumented": false,
@@ -49938,7 +48620,7 @@ const variant_ED_64: OpcodeVariant = {
     100
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_ED_7C,
   "clr": {
     "opcodes": "ED7C",
     "undocumented": false,
@@ -49962,7 +48644,7 @@ const variant_ED_6C: OpcodeVariant = {
     108
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_ED_7C,
   "clr": {
     "opcodes": "ED7C",
     "undocumented": false,
@@ -49986,7 +48668,7 @@ const variant_ED_74: OpcodeVariant = {
     116
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_ED_7C,
   "clr": {
     "opcodes": "ED7C",
     "undocumented": false,
@@ -50009,8 +48691,7 @@ const variant_ED_7D: OpcodeVariant = {
     237,
     125
   ],
-  "isPseudo": false,
-  "isAlias": false
+  "isPseudo": false
 };
 
 // retn
@@ -50023,7 +48704,7 @@ const variant_ED_45: OpcodeVariant = {
     69
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_7D
 };
 
 // retn
@@ -50036,7 +48717,7 @@ const variant_ED_55: OpcodeVariant = {
     85
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_7D
 };
 
 // retn
@@ -50049,7 +48730,7 @@ const variant_ED_5D: OpcodeVariant = {
     93
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_7D
 };
 
 // retn
@@ -50062,7 +48743,7 @@ const variant_ED_65: OpcodeVariant = {
     101
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_7D
 };
 
 // retn
@@ -50075,7 +48756,7 @@ const variant_ED_6D: OpcodeVariant = {
     109
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_7D
 };
 
 // retn
@@ -50088,7 +48769,7 @@ const variant_ED_75: OpcodeVariant = {
     117
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_7D
 };
 
 // im 0
@@ -50104,8 +48785,7 @@ const variant_ED_6E: OpcodeVariant = {
     237,
     110
   ],
-  "isPseudo": false,
-  "isAlias": false
+  "isPseudo": false
 };
 
 // im 0
@@ -50122,7 +48802,7 @@ const variant_ED_46: OpcodeVariant = {
     70
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_6E
 };
 
 // im 0
@@ -50139,7 +48819,7 @@ const variant_ED_4E: OpcodeVariant = {
     78
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_6E
 };
 
 // im 0
@@ -50156,7 +48836,7 @@ const variant_ED_66: OpcodeVariant = {
     102
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_6E
 };
 
 // im 1
@@ -50173,7 +48853,6 @@ const variant_ED_76: OpcodeVariant = {
     118
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED76",
     "undocumented": false,
@@ -50201,7 +48880,7 @@ const variant_ED_56: OpcodeVariant = {
     86
   ],
   "isPseudo": false,
-  "isAlias": true,
+  "aliasOf": variant_ED_76,
   "clr": {
     "opcodes": "ED76",
     "undocumented": false,
@@ -50228,8 +48907,7 @@ const variant_ED_7E: OpcodeVariant = {
     237,
     126
   ],
-  "isPseudo": false,
-  "isAlias": false
+  "isPseudo": false
 };
 
 // im 2
@@ -50246,7 +48924,7 @@ const variant_ED_5E: OpcodeVariant = {
     94
   ],
   "isPseudo": false,
-  "isAlias": true
+  "aliasOf": variant_ED_7E
 };
 
 // reti
@@ -50259,7 +48937,6 @@ const variant_ED_4D: OpcodeVariant = {
     77
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED4D",
     "undocumented": false,
@@ -50283,7 +48960,6 @@ const variant_ED_67: OpcodeVariant = {
     103
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED67",
     "undocumented": false,
@@ -50307,7 +48983,6 @@ const variant_ED_6F: OpcodeVariant = {
     111
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "ED6F",
     "undocumented": false,
@@ -50331,7 +49006,6 @@ const variant_ED_A0: OpcodeVariant = {
     160
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDA0",
     "undocumented": false,
@@ -50355,7 +49029,6 @@ const variant_ED_A1: OpcodeVariant = {
     161
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDA1",
     "undocumented": false,
@@ -50379,7 +49052,6 @@ const variant_ED_A2: OpcodeVariant = {
     162
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDA2",
     "undocumented": false,
@@ -50403,7 +49075,6 @@ const variant_ED_A3: OpcodeVariant = {
     163
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDA3",
     "undocumented": false,
@@ -50427,7 +49098,6 @@ const variant_ED_A8: OpcodeVariant = {
     168
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDA8",
     "undocumented": false,
@@ -50451,7 +49121,6 @@ const variant_ED_A9: OpcodeVariant = {
     169
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDA9",
     "undocumented": false,
@@ -50475,7 +49144,6 @@ const variant_ED_AA: OpcodeVariant = {
     170
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDAA",
     "undocumented": false,
@@ -50499,7 +49167,6 @@ const variant_ED_AB: OpcodeVariant = {
     171
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDAB",
     "undocumented": false,
@@ -50523,7 +49190,6 @@ const variant_ED_B0: OpcodeVariant = {
     176
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDB0",
     "undocumented": false,
@@ -50547,7 +49213,6 @@ const variant_ED_B1: OpcodeVariant = {
     177
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDB1",
     "undocumented": false,
@@ -50571,7 +49236,6 @@ const variant_ED_B2: OpcodeVariant = {
     178
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDB2",
     "undocumented": false,
@@ -50595,7 +49259,6 @@ const variant_ED_B3: OpcodeVariant = {
     179
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDB3",
     "undocumented": false,
@@ -50619,7 +49282,6 @@ const variant_ED_B8: OpcodeVariant = {
     184
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDB8",
     "undocumented": false,
@@ -50643,7 +49305,6 @@ const variant_ED_B9: OpcodeVariant = {
     185
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDB9",
     "undocumented": false,
@@ -50667,7 +49328,6 @@ const variant_ED_BA: OpcodeVariant = {
     186
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDBA",
     "undocumented": false,
@@ -50691,7 +49351,6 @@ const variant_ED_BB: OpcodeVariant = {
     187
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "EDBB",
     "undocumented": false,
@@ -50714,7 +49373,6 @@ const variant_F3: OpcodeVariant = {
     243
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "F3",
     "undocumented": false,
@@ -50737,7 +49395,6 @@ const variant_FB: OpcodeVariant = {
     251
   ],
   "isPseudo": false,
-  "isAlias": false,
   "clr": {
     "opcodes": "FB",
     "undocumented": false,
@@ -50863,38 +49520,18 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_DD_2A_nnnn, // ld ix,(nnnn)
       variant_DD_2E_nn, // ld ixl,nn
       variant_DD_36_dd_nn, // ld (ix+dd),nn
-      variant_DD_40, // ld b,b
-      variant_DD_41, // ld b,c
-      variant_DD_42, // ld b,d
-      variant_DD_43, // ld b,e
       variant_DD_44, // ld b,ixh
       variant_DD_45, // ld b,ixl
       variant_DD_46_dd, // ld b,(ix+dd)
-      variant_DD_47, // ld b,a
-      variant_DD_48, // ld c,b
-      variant_DD_49, // ld c,c
-      variant_DD_4A, // ld c,d
-      variant_DD_4B, // ld c,e
       variant_DD_4C, // ld c,ixh
       variant_DD_4D, // ld c,ixl
       variant_DD_4E_dd, // ld c,(ix+dd)
-      variant_DD_4F, // ld c,a
-      variant_DD_50, // ld d,b
-      variant_DD_51, // ld d,c
-      variant_DD_52, // ld d,d
-      variant_DD_53, // ld d,e
       variant_DD_54, // ld d,ixh
       variant_DD_55, // ld d,ixl
       variant_DD_56_dd, // ld d,(ix+dd)
-      variant_DD_57, // ld d,a
-      variant_DD_58, // ld e,b
-      variant_DD_59, // ld e,c
-      variant_DD_5A, // ld e,d
-      variant_DD_5B, // ld e,e
       variant_DD_5C, // ld e,ixh
       variant_DD_5D, // ld e,ixl
       variant_DD_5E_dd, // ld e,(ix+dd)
-      variant_DD_5F, // ld e,a
       variant_DD_60, // ld ixh,b
       variant_DD_61, // ld ixh,c
       variant_DD_62, // ld ixh,d
@@ -50918,22 +49555,12 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_DD_74_dd, // ld (ix+dd),h
       variant_DD_75_dd, // ld (ix+dd),l
       variant_DD_77_dd, // ld (ix+dd),a
-      variant_DD_78, // ld a,b
-      variant_DD_78_pseudo, // ld b
-      variant_DD_79, // ld a,c
-      variant_DD_79_pseudo, // ld c
-      variant_DD_7A, // ld a,d
-      variant_DD_7A_pseudo, // ld d
-      variant_DD_7B, // ld a,e
-      variant_DD_7B_pseudo, // ld e
       variant_DD_7C, // ld a,ixh
       variant_DD_7C_pseudo, // ld ixh
       variant_DD_7D, // ld a,ixl
       variant_DD_7D_pseudo, // ld ixl
       variant_DD_7E_dd, // ld a,(ix+dd)
       variant_DD_7E_dd_pseudo, // ld (ix+dd)
-      variant_DD_7F, // ld a,a
-      variant_DD_7F_pseudo, // ld a
       variant_DD_CB_dd_00, // ld b,rlc (ix+dd)
       variant_DD_CB_dd_01, // ld c,rlc (ix+dd)
       variant_DD_CB_dd_02, // ld d,rlc (ix+dd)
@@ -51137,8 +49764,6 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_ED_5B_nnnn, // ld de,(nnnn)
       variant_ED_5F, // ld a,r
       variant_ED_5F_pseudo, // ld r
-      variant_ED_63_nnnn, // ld (nnnn),hl
-      variant_ED_6B_nnnn, // ld hl,(nnnn)
       variant_ED_73_nnnn, // ld (nnnn),sp
       variant_ED_7B_nnnn, // ld sp,(nnnn)
       variant_F9, // ld sp,hl
@@ -51148,38 +49773,18 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_FD_2A_nnnn, // ld iy,(nnnn)
       variant_FD_2E_nn, // ld iyl,nn
       variant_FD_36_dd_nn, // ld (iy+dd),nn
-      variant_FD_40, // ld b,b
-      variant_FD_41, // ld b,c
-      variant_FD_42, // ld b,d
-      variant_FD_43, // ld b,e
       variant_FD_44, // ld b,iyh
       variant_FD_45, // ld b,iyl
       variant_FD_46_dd, // ld b,(iy+dd)
-      variant_FD_47, // ld b,a
-      variant_FD_48, // ld c,b
-      variant_FD_49, // ld c,c
-      variant_FD_4A, // ld c,d
-      variant_FD_4B, // ld c,e
       variant_FD_4C, // ld c,iyh
       variant_FD_4D, // ld c,iyl
       variant_FD_4E_dd, // ld c,(iy+dd)
-      variant_FD_4F, // ld c,a
-      variant_FD_50, // ld d,b
-      variant_FD_51, // ld d,c
-      variant_FD_52, // ld d,d
-      variant_FD_53, // ld d,e
       variant_FD_54, // ld d,iyh
       variant_FD_55, // ld d,iyl
       variant_FD_56_dd, // ld d,(iy+dd)
-      variant_FD_57, // ld d,a
-      variant_FD_58, // ld e,b
-      variant_FD_59, // ld e,c
-      variant_FD_5A, // ld e,d
-      variant_FD_5B, // ld e,e
       variant_FD_5C, // ld e,iyh
       variant_FD_5D, // ld e,iyl
       variant_FD_5E_dd, // ld e,(iy+dd)
-      variant_FD_5F, // ld e,a
       variant_FD_60, // ld iyh,b
       variant_FD_61, // ld iyh,c
       variant_FD_62, // ld iyh,d
@@ -51203,22 +49808,12 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_FD_74_dd, // ld (iy+dd),h
       variant_FD_75_dd, // ld (iy+dd),l
       variant_FD_77_dd, // ld (iy+dd),a
-      variant_FD_78, // ld a,b
-      variant_FD_78_pseudo, // ld b
-      variant_FD_79, // ld a,c
-      variant_FD_79_pseudo, // ld c
-      variant_FD_7A, // ld a,d
-      variant_FD_7A_pseudo, // ld d
-      variant_FD_7B, // ld a,e
-      variant_FD_7B_pseudo, // ld e
       variant_FD_7C, // ld a,iyh
       variant_FD_7C_pseudo, // ld iyh
       variant_FD_7D, // ld a,iyl
       variant_FD_7D_pseudo, // ld iyl
       variant_FD_7E_dd, // ld a,(iy+dd)
       variant_FD_7E_dd_pseudo, // ld (iy+dd)
-      variant_FD_7F, // ld a,a
-      variant_FD_7F_pseudo, // ld a
       variant_FD_CB_dd_00, // ld b,rlc (iy+dd)
       variant_FD_CB_dd_01, // ld c,rlc (iy+dd)
       variant_FD_CB_dd_02, // ld d,rlc (iy+dd)
@@ -52999,38 +51594,38 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x35, variant_DD_35_dd ], // dec (ix+dd)
     [ 0x36, variant_DD_36_dd_nn ], // ld (ix+dd),nn
     [ 0x39, variant_DD_39 ], // add ix,sp
-    [ 0x40, variant_DD_40 ], // ld b,b
-    [ 0x41, variant_DD_41 ], // ld b,c
-    [ 0x42, variant_DD_42 ], // ld b,d
-    [ 0x43, variant_DD_43 ], // ld b,e
+    [ 0x40, variant_DD_40 ], // ld b,b (alias of variant_40)
+    [ 0x41, variant_DD_41 ], // ld b,c (alias of variant_41)
+    [ 0x42, variant_DD_42 ], // ld b,d (alias of variant_42)
+    [ 0x43, variant_DD_43 ], // ld b,e (alias of variant_43)
     [ 0x44, variant_DD_44 ], // ld b,ixh
     [ 0x45, variant_DD_45 ], // ld b,ixl
     [ 0x46, variant_DD_46_dd ], // ld b,(ix+dd)
-    [ 0x47, variant_DD_47 ], // ld b,a
-    [ 0x48, variant_DD_48 ], // ld c,b
-    [ 0x49, variant_DD_49 ], // ld c,c
-    [ 0x4A, variant_DD_4A ], // ld c,d
-    [ 0x4B, variant_DD_4B ], // ld c,e
+    [ 0x47, variant_DD_47 ], // ld b,a (alias of variant_47)
+    [ 0x48, variant_DD_48 ], // ld c,b (alias of variant_48)
+    [ 0x49, variant_DD_49 ], // ld c,c (alias of variant_49)
+    [ 0x4A, variant_DD_4A ], // ld c,d (alias of variant_4A)
+    [ 0x4B, variant_DD_4B ], // ld c,e (alias of variant_4B)
     [ 0x4C, variant_DD_4C ], // ld c,ixh
     [ 0x4D, variant_DD_4D ], // ld c,ixl
     [ 0x4E, variant_DD_4E_dd ], // ld c,(ix+dd)
-    [ 0x4F, variant_DD_4F ], // ld c,a
-    [ 0x50, variant_DD_50 ], // ld d,b
-    [ 0x51, variant_DD_51 ], // ld d,c
-    [ 0x52, variant_DD_52 ], // ld d,d
-    [ 0x53, variant_DD_53 ], // ld d,e
+    [ 0x4F, variant_DD_4F ], // ld c,a (alias of variant_4F)
+    [ 0x50, variant_DD_50 ], // ld d,b (alias of variant_50)
+    [ 0x51, variant_DD_51 ], // ld d,c (alias of variant_51)
+    [ 0x52, variant_DD_52 ], // ld d,d (alias of variant_52)
+    [ 0x53, variant_DD_53 ], // ld d,e (alias of variant_53)
     [ 0x54, variant_DD_54 ], // ld d,ixh
     [ 0x55, variant_DD_55 ], // ld d,ixl
     [ 0x56, variant_DD_56_dd ], // ld d,(ix+dd)
-    [ 0x57, variant_DD_57 ], // ld d,a
-    [ 0x58, variant_DD_58 ], // ld e,b
-    [ 0x59, variant_DD_59 ], // ld e,c
-    [ 0x5A, variant_DD_5A ], // ld e,d
-    [ 0x5B, variant_DD_5B ], // ld e,e
+    [ 0x57, variant_DD_57 ], // ld d,a (alias of variant_57)
+    [ 0x58, variant_DD_58 ], // ld e,b (alias of variant_58)
+    [ 0x59, variant_DD_59 ], // ld e,c (alias of variant_59)
+    [ 0x5A, variant_DD_5A ], // ld e,d (alias of variant_5A)
+    [ 0x5B, variant_DD_5B ], // ld e,e (alias of variant_5B)
     [ 0x5C, variant_DD_5C ], // ld e,ixh
     [ 0x5D, variant_DD_5D ], // ld e,ixl
     [ 0x5E, variant_DD_5E_dd ], // ld e,(ix+dd)
-    [ 0x5F, variant_DD_5F ], // ld e,a
+    [ 0x5F, variant_DD_5F ], // ld e,a (alias of variant_5F)
     [ 0x60, variant_DD_60 ], // ld ixh,b
     [ 0x61, variant_DD_61 ], // ld ixh,c
     [ 0x62, variant_DD_62 ], // ld ixh,d
@@ -53054,14 +51649,14 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x74, variant_DD_74_dd ], // ld (ix+dd),h
     [ 0x75, variant_DD_75_dd ], // ld (ix+dd),l
     [ 0x77, variant_DD_77_dd ], // ld (ix+dd),a
-    [ 0x78, variant_DD_78 ], // ld a,b
-    [ 0x79, variant_DD_79 ], // ld a,c
-    [ 0x7A, variant_DD_7A ], // ld a,d
-    [ 0x7B, variant_DD_7B ], // ld a,e
+    [ 0x78, variant_DD_78 ], // ld a,b (alias of variant_78)
+    [ 0x79, variant_DD_79 ], // ld a,c (alias of variant_79)
+    [ 0x7A, variant_DD_7A ], // ld a,d (alias of variant_7A)
+    [ 0x7B, variant_DD_7B ], // ld a,e (alias of variant_7B)
     [ 0x7C, variant_DD_7C ], // ld a,ixh
     [ 0x7D, variant_DD_7D ], // ld a,ixl
     [ 0x7E, variant_DD_7E_dd ], // ld a,(ix+dd)
-    [ 0x7F, variant_DD_7F ], // ld a,a
+    [ 0x7F, variant_DD_7F ], // ld a,a (alias of variant_7F)
     [ 0x84, variant_DD_84 ], // add a,ixh
     [ 0x85, variant_DD_85 ], // add a,ixl
     [ 0x86, variant_DD_86_dd ], // add a,(ix+dd)
@@ -53151,69 +51746,69 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
       [ 0x3D, variant_DD_CB_dd_3D ], // ld l,srl (ix+dd)
       [ 0x3E, variant_DD_CB_dd_3E ], // srl (ix+dd)
       [ 0x3F, variant_DD_CB_dd_3F ], // ld a,srl (ix+dd)
-      [ 0x40, variant_DD_CB_dd_40 ], // bit 0,(ix+dd) (alias)
-      [ 0x41, variant_DD_CB_dd_41 ], // bit 0,(ix+dd) (alias)
-      [ 0x42, variant_DD_CB_dd_42 ], // bit 0,(ix+dd) (alias)
-      [ 0x43, variant_DD_CB_dd_43 ], // bit 0,(ix+dd) (alias)
-      [ 0x44, variant_DD_CB_dd_44 ], // bit 0,(ix+dd) (alias)
-      [ 0x45, variant_DD_CB_dd_45 ], // bit 0,(ix+dd) (alias)
-      [ 0x46, variant_DD_CB_dd_46 ], // bit 0,(ix+dd) (alias)
+      [ 0x40, variant_DD_CB_dd_40 ], // bit 0,(ix+dd) (alias of variant_DD_CB_dd_47)
+      [ 0x41, variant_DD_CB_dd_41 ], // bit 0,(ix+dd) (alias of variant_DD_CB_dd_47)
+      [ 0x42, variant_DD_CB_dd_42 ], // bit 0,(ix+dd) (alias of variant_DD_CB_dd_47)
+      [ 0x43, variant_DD_CB_dd_43 ], // bit 0,(ix+dd) (alias of variant_DD_CB_dd_47)
+      [ 0x44, variant_DD_CB_dd_44 ], // bit 0,(ix+dd) (alias of variant_DD_CB_dd_47)
+      [ 0x45, variant_DD_CB_dd_45 ], // bit 0,(ix+dd) (alias of variant_DD_CB_dd_47)
+      [ 0x46, variant_DD_CB_dd_46 ], // bit 0,(ix+dd) (alias of variant_DD_CB_dd_47)
       [ 0x47, variant_DD_CB_dd_47 ], // bit 0,(ix+dd)
-      [ 0x48, variant_DD_CB_dd_48 ], // bit 1,(ix+dd) (alias)
-      [ 0x49, variant_DD_CB_dd_49 ], // bit 1,(ix+dd) (alias)
-      [ 0x4A, variant_DD_CB_dd_4A ], // bit 1,(ix+dd) (alias)
-      [ 0x4B, variant_DD_CB_dd_4B ], // bit 1,(ix+dd) (alias)
-      [ 0x4C, variant_DD_CB_dd_4C ], // bit 1,(ix+dd) (alias)
-      [ 0x4D, variant_DD_CB_dd_4D ], // bit 1,(ix+dd) (alias)
-      [ 0x4E, variant_DD_CB_dd_4E ], // bit 1,(ix+dd) (alias)
+      [ 0x48, variant_DD_CB_dd_48 ], // bit 1,(ix+dd) (alias of variant_DD_CB_dd_4F)
+      [ 0x49, variant_DD_CB_dd_49 ], // bit 1,(ix+dd) (alias of variant_DD_CB_dd_4F)
+      [ 0x4A, variant_DD_CB_dd_4A ], // bit 1,(ix+dd) (alias of variant_DD_CB_dd_4F)
+      [ 0x4B, variant_DD_CB_dd_4B ], // bit 1,(ix+dd) (alias of variant_DD_CB_dd_4F)
+      [ 0x4C, variant_DD_CB_dd_4C ], // bit 1,(ix+dd) (alias of variant_DD_CB_dd_4F)
+      [ 0x4D, variant_DD_CB_dd_4D ], // bit 1,(ix+dd) (alias of variant_DD_CB_dd_4F)
+      [ 0x4E, variant_DD_CB_dd_4E ], // bit 1,(ix+dd) (alias of variant_DD_CB_dd_4F)
       [ 0x4F, variant_DD_CB_dd_4F ], // bit 1,(ix+dd)
-      [ 0x50, variant_DD_CB_dd_50 ], // bit 2,(ix+dd) (alias)
-      [ 0x51, variant_DD_CB_dd_51 ], // bit 2,(ix+dd) (alias)
-      [ 0x52, variant_DD_CB_dd_52 ], // bit 2,(ix+dd) (alias)
-      [ 0x53, variant_DD_CB_dd_53 ], // bit 2,(ix+dd) (alias)
-      [ 0x54, variant_DD_CB_dd_54 ], // bit 2,(ix+dd) (alias)
-      [ 0x55, variant_DD_CB_dd_55 ], // bit 2,(ix+dd) (alias)
-      [ 0x56, variant_DD_CB_dd_56 ], // bit 2,(ix+dd) (alias)
+      [ 0x50, variant_DD_CB_dd_50 ], // bit 2,(ix+dd) (alias of variant_DD_CB_dd_57)
+      [ 0x51, variant_DD_CB_dd_51 ], // bit 2,(ix+dd) (alias of variant_DD_CB_dd_57)
+      [ 0x52, variant_DD_CB_dd_52 ], // bit 2,(ix+dd) (alias of variant_DD_CB_dd_57)
+      [ 0x53, variant_DD_CB_dd_53 ], // bit 2,(ix+dd) (alias of variant_DD_CB_dd_57)
+      [ 0x54, variant_DD_CB_dd_54 ], // bit 2,(ix+dd) (alias of variant_DD_CB_dd_57)
+      [ 0x55, variant_DD_CB_dd_55 ], // bit 2,(ix+dd) (alias of variant_DD_CB_dd_57)
+      [ 0x56, variant_DD_CB_dd_56 ], // bit 2,(ix+dd) (alias of variant_DD_CB_dd_57)
       [ 0x57, variant_DD_CB_dd_57 ], // bit 2,(ix+dd)
-      [ 0x58, variant_DD_CB_dd_58 ], // bit 3,(ix+dd) (alias)
-      [ 0x59, variant_DD_CB_dd_59 ], // bit 3,(ix+dd) (alias)
-      [ 0x5A, variant_DD_CB_dd_5A ], // bit 3,(ix+dd) (alias)
-      [ 0x5B, variant_DD_CB_dd_5B ], // bit 3,(ix+dd) (alias)
-      [ 0x5C, variant_DD_CB_dd_5C ], // bit 3,(ix+dd) (alias)
-      [ 0x5D, variant_DD_CB_dd_5D ], // bit 3,(ix+dd) (alias)
-      [ 0x5E, variant_DD_CB_dd_5E ], // bit 3,(ix+dd) (alias)
+      [ 0x58, variant_DD_CB_dd_58 ], // bit 3,(ix+dd) (alias of variant_DD_CB_dd_5F)
+      [ 0x59, variant_DD_CB_dd_59 ], // bit 3,(ix+dd) (alias of variant_DD_CB_dd_5F)
+      [ 0x5A, variant_DD_CB_dd_5A ], // bit 3,(ix+dd) (alias of variant_DD_CB_dd_5F)
+      [ 0x5B, variant_DD_CB_dd_5B ], // bit 3,(ix+dd) (alias of variant_DD_CB_dd_5F)
+      [ 0x5C, variant_DD_CB_dd_5C ], // bit 3,(ix+dd) (alias of variant_DD_CB_dd_5F)
+      [ 0x5D, variant_DD_CB_dd_5D ], // bit 3,(ix+dd) (alias of variant_DD_CB_dd_5F)
+      [ 0x5E, variant_DD_CB_dd_5E ], // bit 3,(ix+dd) (alias of variant_DD_CB_dd_5F)
       [ 0x5F, variant_DD_CB_dd_5F ], // bit 3,(ix+dd)
-      [ 0x60, variant_DD_CB_dd_60 ], // bit 4,(ix+dd) (alias)
-      [ 0x61, variant_DD_CB_dd_61 ], // bit 4,(ix+dd) (alias)
-      [ 0x62, variant_DD_CB_dd_62 ], // bit 4,(ix+dd) (alias)
-      [ 0x63, variant_DD_CB_dd_63 ], // bit 4,(ix+dd) (alias)
-      [ 0x64, variant_DD_CB_dd_64 ], // bit 4,(ix+dd) (alias)
-      [ 0x65, variant_DD_CB_dd_65 ], // bit 4,(ix+dd) (alias)
-      [ 0x66, variant_DD_CB_dd_66 ], // bit 4,(ix+dd) (alias)
+      [ 0x60, variant_DD_CB_dd_60 ], // bit 4,(ix+dd) (alias of variant_DD_CB_dd_67)
+      [ 0x61, variant_DD_CB_dd_61 ], // bit 4,(ix+dd) (alias of variant_DD_CB_dd_67)
+      [ 0x62, variant_DD_CB_dd_62 ], // bit 4,(ix+dd) (alias of variant_DD_CB_dd_67)
+      [ 0x63, variant_DD_CB_dd_63 ], // bit 4,(ix+dd) (alias of variant_DD_CB_dd_67)
+      [ 0x64, variant_DD_CB_dd_64 ], // bit 4,(ix+dd) (alias of variant_DD_CB_dd_67)
+      [ 0x65, variant_DD_CB_dd_65 ], // bit 4,(ix+dd) (alias of variant_DD_CB_dd_67)
+      [ 0x66, variant_DD_CB_dd_66 ], // bit 4,(ix+dd) (alias of variant_DD_CB_dd_67)
       [ 0x67, variant_DD_CB_dd_67 ], // bit 4,(ix+dd)
-      [ 0x68, variant_DD_CB_dd_68 ], // bit 5,(ix+dd) (alias)
-      [ 0x69, variant_DD_CB_dd_69 ], // bit 5,(ix+dd) (alias)
-      [ 0x6A, variant_DD_CB_dd_6A ], // bit 5,(ix+dd) (alias)
-      [ 0x6B, variant_DD_CB_dd_6B ], // bit 5,(ix+dd) (alias)
-      [ 0x6C, variant_DD_CB_dd_6C ], // bit 5,(ix+dd) (alias)
-      [ 0x6D, variant_DD_CB_dd_6D ], // bit 5,(ix+dd) (alias)
-      [ 0x6E, variant_DD_CB_dd_6E ], // bit 5,(ix+dd) (alias)
+      [ 0x68, variant_DD_CB_dd_68 ], // bit 5,(ix+dd) (alias of variant_DD_CB_dd_6F)
+      [ 0x69, variant_DD_CB_dd_69 ], // bit 5,(ix+dd) (alias of variant_DD_CB_dd_6F)
+      [ 0x6A, variant_DD_CB_dd_6A ], // bit 5,(ix+dd) (alias of variant_DD_CB_dd_6F)
+      [ 0x6B, variant_DD_CB_dd_6B ], // bit 5,(ix+dd) (alias of variant_DD_CB_dd_6F)
+      [ 0x6C, variant_DD_CB_dd_6C ], // bit 5,(ix+dd) (alias of variant_DD_CB_dd_6F)
+      [ 0x6D, variant_DD_CB_dd_6D ], // bit 5,(ix+dd) (alias of variant_DD_CB_dd_6F)
+      [ 0x6E, variant_DD_CB_dd_6E ], // bit 5,(ix+dd) (alias of variant_DD_CB_dd_6F)
       [ 0x6F, variant_DD_CB_dd_6F ], // bit 5,(ix+dd)
-      [ 0x70, variant_DD_CB_dd_70 ], // bit 6,(ix+dd) (alias)
-      [ 0x71, variant_DD_CB_dd_71 ], // bit 6,(ix+dd) (alias)
-      [ 0x72, variant_DD_CB_dd_72 ], // bit 6,(ix+dd) (alias)
-      [ 0x73, variant_DD_CB_dd_73 ], // bit 6,(ix+dd) (alias)
-      [ 0x74, variant_DD_CB_dd_74 ], // bit 6,(ix+dd) (alias)
-      [ 0x75, variant_DD_CB_dd_75 ], // bit 6,(ix+dd) (alias)
-      [ 0x76, variant_DD_CB_dd_76 ], // bit 6,(ix+dd) (alias)
+      [ 0x70, variant_DD_CB_dd_70 ], // bit 6,(ix+dd) (alias of variant_DD_CB_dd_77)
+      [ 0x71, variant_DD_CB_dd_71 ], // bit 6,(ix+dd) (alias of variant_DD_CB_dd_77)
+      [ 0x72, variant_DD_CB_dd_72 ], // bit 6,(ix+dd) (alias of variant_DD_CB_dd_77)
+      [ 0x73, variant_DD_CB_dd_73 ], // bit 6,(ix+dd) (alias of variant_DD_CB_dd_77)
+      [ 0x74, variant_DD_CB_dd_74 ], // bit 6,(ix+dd) (alias of variant_DD_CB_dd_77)
+      [ 0x75, variant_DD_CB_dd_75 ], // bit 6,(ix+dd) (alias of variant_DD_CB_dd_77)
+      [ 0x76, variant_DD_CB_dd_76 ], // bit 6,(ix+dd) (alias of variant_DD_CB_dd_77)
       [ 0x77, variant_DD_CB_dd_77 ], // bit 6,(ix+dd)
-      [ 0x78, variant_DD_CB_dd_78 ], // bit 7,(ix+dd) (alias)
-      [ 0x79, variant_DD_CB_dd_79 ], // bit 7,(ix+dd) (alias)
-      [ 0x7A, variant_DD_CB_dd_7A ], // bit 7,(ix+dd) (alias)
-      [ 0x7B, variant_DD_CB_dd_7B ], // bit 7,(ix+dd) (alias)
-      [ 0x7C, variant_DD_CB_dd_7C ], // bit 7,(ix+dd) (alias)
-      [ 0x7D, variant_DD_CB_dd_7D ], // bit 7,(ix+dd) (alias)
-      [ 0x7E, variant_DD_CB_dd_7E ], // bit 7,(ix+dd) (alias)
+      [ 0x78, variant_DD_CB_dd_78 ], // bit 7,(ix+dd) (alias of variant_DD_CB_dd_7F)
+      [ 0x79, variant_DD_CB_dd_79 ], // bit 7,(ix+dd) (alias of variant_DD_CB_dd_7F)
+      [ 0x7A, variant_DD_CB_dd_7A ], // bit 7,(ix+dd) (alias of variant_DD_CB_dd_7F)
+      [ 0x7B, variant_DD_CB_dd_7B ], // bit 7,(ix+dd) (alias of variant_DD_CB_dd_7F)
+      [ 0x7C, variant_DD_CB_dd_7C ], // bit 7,(ix+dd) (alias of variant_DD_CB_dd_7F)
+      [ 0x7D, variant_DD_CB_dd_7D ], // bit 7,(ix+dd) (alias of variant_DD_CB_dd_7F)
+      [ 0x7E, variant_DD_CB_dd_7E ], // bit 7,(ix+dd) (alias of variant_DD_CB_dd_7F)
       [ 0x7F, variant_DD_CB_dd_7F ], // bit 7,(ix+dd)
       [ 0x80, variant_DD_CB_dd_80 ], // ld b,res 0,(ix+dd)
       [ 0x81, variant_DD_CB_dd_81 ], // ld c,res 0,(ix+dd)
@@ -53370,56 +51965,56 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x41, variant_ED_41 ], // out (c),b
     [ 0x42, variant_ED_42 ], // sbc hl,bc
     [ 0x43, variant_ED_43_nnnn ], // ld (nnnn),bc
-    [ 0x44, variant_ED_44 ], // neg (alias)
-    [ 0x45, variant_ED_45 ], // retn (alias)
-    [ 0x46, variant_ED_46 ], // im 0 (alias)
+    [ 0x44, variant_ED_44 ], // neg (alias of variant_ED_7C)
+    [ 0x45, variant_ED_45 ], // retn (alias of variant_ED_7D)
+    [ 0x46, variant_ED_46 ], // im 0 (alias of variant_ED_6E)
     [ 0x47, variant_ED_47 ], // ld i,a
     [ 0x48, variant_ED_48 ], // in c,(c)
     [ 0x49, variant_ED_49 ], // out (c),c
     [ 0x4A, variant_ED_4A ], // adc hl,bc
     [ 0x4B, variant_ED_4B_nnnn ], // ld bc,(nnnn)
-    [ 0x4C, variant_ED_4C ], // neg (alias)
+    [ 0x4C, variant_ED_4C ], // neg (alias of variant_ED_7C)
     [ 0x4D, variant_ED_4D ], // reti
-    [ 0x4E, variant_ED_4E ], // im 0 (alias)
+    [ 0x4E, variant_ED_4E ], // im 0 (alias of variant_ED_6E)
     [ 0x4F, variant_ED_4F ], // ld r,a
     [ 0x50, variant_ED_50 ], // in d,(c)
     [ 0x51, variant_ED_51 ], // out (c),d
     [ 0x52, variant_ED_52 ], // sbc hl,de
     [ 0x53, variant_ED_53_nnnn ], // ld (nnnn),de
-    [ 0x54, variant_ED_54 ], // neg (alias)
-    [ 0x55, variant_ED_55 ], // retn (alias)
-    [ 0x56, variant_ED_56 ], // im 1 (alias)
+    [ 0x54, variant_ED_54 ], // neg (alias of variant_ED_7C)
+    [ 0x55, variant_ED_55 ], // retn (alias of variant_ED_7D)
+    [ 0x56, variant_ED_56 ], // im 1 (alias of variant_ED_76)
     [ 0x57, variant_ED_57 ], // ld a,i
     [ 0x58, variant_ED_58 ], // in e,(c)
     [ 0x59, variant_ED_59 ], // out (c),e
     [ 0x5A, variant_ED_5A ], // adc hl,de
     [ 0x5B, variant_ED_5B_nnnn ], // ld de,(nnnn)
-    [ 0x5C, variant_ED_5C ], // neg (alias)
-    [ 0x5D, variant_ED_5D ], // retn (alias)
-    [ 0x5E, variant_ED_5E ], // im 2 (alias)
+    [ 0x5C, variant_ED_5C ], // neg (alias of variant_ED_7C)
+    [ 0x5D, variant_ED_5D ], // retn (alias of variant_ED_7D)
+    [ 0x5E, variant_ED_5E ], // im 2 (alias of variant_ED_7E)
     [ 0x5F, variant_ED_5F ], // ld a,r
     [ 0x60, variant_ED_60 ], // in h,(c)
     [ 0x61, variant_ED_61 ], // out (c),h
     [ 0x62, variant_ED_62 ], // sbc hl,hl
-    [ 0x63, variant_ED_63_nnnn ], // ld (nnnn),hl
-    [ 0x64, variant_ED_64 ], // neg (alias)
-    [ 0x65, variant_ED_65 ], // retn (alias)
-    [ 0x66, variant_ED_66 ], // im 0 (alias)
+    [ 0x63, variant_ED_63_nnnn ], // ld (nnnn),hl (alias of variant_22_nnnn)
+    [ 0x64, variant_ED_64 ], // neg (alias of variant_ED_7C)
+    [ 0x65, variant_ED_65 ], // retn (alias of variant_ED_7D)
+    [ 0x66, variant_ED_66 ], // im 0 (alias of variant_ED_6E)
     [ 0x67, variant_ED_67 ], // rrd
     [ 0x68, variant_ED_68 ], // in l,(c)
     [ 0x69, variant_ED_69 ], // out (c),l
     [ 0x6A, variant_ED_6A ], // adc hl,hl
-    [ 0x6B, variant_ED_6B_nnnn ], // ld hl,(nnnn)
-    [ 0x6C, variant_ED_6C ], // neg (alias)
-    [ 0x6D, variant_ED_6D ], // retn (alias)
+    [ 0x6B, variant_ED_6B_nnnn ], // ld hl,(nnnn) (alias of variant_2A_nnnn)
+    [ 0x6C, variant_ED_6C ], // neg (alias of variant_ED_7C)
+    [ 0x6D, variant_ED_6D ], // retn (alias of variant_ED_7D)
     [ 0x6E, variant_ED_6E ], // im 0
     [ 0x6F, variant_ED_6F ], // rld
     [ 0x70, variant_ED_70 ], // in f,(c)
     [ 0x71, variant_ED_71 ], // out (c),0
     [ 0x72, variant_ED_72 ], // sbc hl,sp
     [ 0x73, variant_ED_73_nnnn ], // ld (nnnn),sp
-    [ 0x74, variant_ED_74 ], // neg (alias)
-    [ 0x75, variant_ED_75 ], // retn (alias)
+    [ 0x74, variant_ED_74 ], // neg (alias of variant_ED_7C)
+    [ 0x75, variant_ED_75 ], // retn (alias of variant_ED_7D)
     [ 0x76, variant_ED_76 ], // im 1
     [ 0x78, variant_ED_78 ], // in a,(c)
     [ 0x79, variant_ED_79 ], // out (c),a
@@ -53479,38 +52074,38 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x35, variant_FD_35_dd ], // dec (iy+dd)
     [ 0x36, variant_FD_36_dd_nn ], // ld (iy+dd),nn
     [ 0x39, variant_FD_39 ], // add iy,sp
-    [ 0x40, variant_FD_40 ], // ld b,b
-    [ 0x41, variant_FD_41 ], // ld b,c
-    [ 0x42, variant_FD_42 ], // ld b,d
-    [ 0x43, variant_FD_43 ], // ld b,e
+    [ 0x40, variant_FD_40 ], // ld b,b (alias of variant_40)
+    [ 0x41, variant_FD_41 ], // ld b,c (alias of variant_41)
+    [ 0x42, variant_FD_42 ], // ld b,d (alias of variant_42)
+    [ 0x43, variant_FD_43 ], // ld b,e (alias of variant_43)
     [ 0x44, variant_FD_44 ], // ld b,iyh
     [ 0x45, variant_FD_45 ], // ld b,iyl
     [ 0x46, variant_FD_46_dd ], // ld b,(iy+dd)
-    [ 0x47, variant_FD_47 ], // ld b,a
-    [ 0x48, variant_FD_48 ], // ld c,b
-    [ 0x49, variant_FD_49 ], // ld c,c
-    [ 0x4A, variant_FD_4A ], // ld c,d
-    [ 0x4B, variant_FD_4B ], // ld c,e
+    [ 0x47, variant_FD_47 ], // ld b,a (alias of variant_47)
+    [ 0x48, variant_FD_48 ], // ld c,b (alias of variant_48)
+    [ 0x49, variant_FD_49 ], // ld c,c (alias of variant_49)
+    [ 0x4A, variant_FD_4A ], // ld c,d (alias of variant_4A)
+    [ 0x4B, variant_FD_4B ], // ld c,e (alias of variant_4B)
     [ 0x4C, variant_FD_4C ], // ld c,iyh
     [ 0x4D, variant_FD_4D ], // ld c,iyl
     [ 0x4E, variant_FD_4E_dd ], // ld c,(iy+dd)
-    [ 0x4F, variant_FD_4F ], // ld c,a
-    [ 0x50, variant_FD_50 ], // ld d,b
-    [ 0x51, variant_FD_51 ], // ld d,c
-    [ 0x52, variant_FD_52 ], // ld d,d
-    [ 0x53, variant_FD_53 ], // ld d,e
+    [ 0x4F, variant_FD_4F ], // ld c,a (alias of variant_4F)
+    [ 0x50, variant_FD_50 ], // ld d,b (alias of variant_50)
+    [ 0x51, variant_FD_51 ], // ld d,c (alias of variant_51)
+    [ 0x52, variant_FD_52 ], // ld d,d (alias of variant_52)
+    [ 0x53, variant_FD_53 ], // ld d,e (alias of variant_53)
     [ 0x54, variant_FD_54 ], // ld d,iyh
     [ 0x55, variant_FD_55 ], // ld d,iyl
     [ 0x56, variant_FD_56_dd ], // ld d,(iy+dd)
-    [ 0x57, variant_FD_57 ], // ld d,a
-    [ 0x58, variant_FD_58 ], // ld e,b
-    [ 0x59, variant_FD_59 ], // ld e,c
-    [ 0x5A, variant_FD_5A ], // ld e,d
-    [ 0x5B, variant_FD_5B ], // ld e,e
+    [ 0x57, variant_FD_57 ], // ld d,a (alias of variant_57)
+    [ 0x58, variant_FD_58 ], // ld e,b (alias of variant_58)
+    [ 0x59, variant_FD_59 ], // ld e,c (alias of variant_59)
+    [ 0x5A, variant_FD_5A ], // ld e,d (alias of variant_5A)
+    [ 0x5B, variant_FD_5B ], // ld e,e (alias of variant_5B)
     [ 0x5C, variant_FD_5C ], // ld e,iyh
     [ 0x5D, variant_FD_5D ], // ld e,iyl
     [ 0x5E, variant_FD_5E_dd ], // ld e,(iy+dd)
-    [ 0x5F, variant_FD_5F ], // ld e,a
+    [ 0x5F, variant_FD_5F ], // ld e,a (alias of variant_5F)
     [ 0x60, variant_FD_60 ], // ld iyh,b
     [ 0x61, variant_FD_61 ], // ld iyh,c
     [ 0x62, variant_FD_62 ], // ld iyh,d
@@ -53534,14 +52129,14 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x74, variant_FD_74_dd ], // ld (iy+dd),h
     [ 0x75, variant_FD_75_dd ], // ld (iy+dd),l
     [ 0x77, variant_FD_77_dd ], // ld (iy+dd),a
-    [ 0x78, variant_FD_78 ], // ld a,b
-    [ 0x79, variant_FD_79 ], // ld a,c
-    [ 0x7A, variant_FD_7A ], // ld a,d
-    [ 0x7B, variant_FD_7B ], // ld a,e
+    [ 0x78, variant_FD_78 ], // ld a,b (alias of variant_78)
+    [ 0x79, variant_FD_79 ], // ld a,c (alias of variant_79)
+    [ 0x7A, variant_FD_7A ], // ld a,d (alias of variant_7A)
+    [ 0x7B, variant_FD_7B ], // ld a,e (alias of variant_7B)
     [ 0x7C, variant_FD_7C ], // ld a,iyh
     [ 0x7D, variant_FD_7D ], // ld a,iyl
     [ 0x7E, variant_FD_7E_dd ], // ld a,(iy+dd)
-    [ 0x7F, variant_FD_7F ], // ld a,a
+    [ 0x7F, variant_FD_7F ], // ld a,a (alias of variant_7F)
     [ 0x84, variant_FD_84 ], // add a,iyh
     [ 0x85, variant_FD_85 ], // add a,iyl
     [ 0x86, variant_FD_86_dd ], // add a,(iy+dd)
@@ -53631,69 +52226,69 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
       [ 0x3D, variant_FD_CB_dd_3D ], // ld l,srl (iy+dd)
       [ 0x3E, variant_FD_CB_dd_3E ], // srl (iy+dd)
       [ 0x3F, variant_FD_CB_dd_3F ], // ld a,srl (iy+dd)
-      [ 0x40, variant_FD_CB_dd_40 ], // bit 0,(iy+dd) (alias)
-      [ 0x41, variant_FD_CB_dd_41 ], // bit 0,(iy+dd) (alias)
-      [ 0x42, variant_FD_CB_dd_42 ], // bit 0,(iy+dd) (alias)
-      [ 0x43, variant_FD_CB_dd_43 ], // bit 0,(iy+dd) (alias)
-      [ 0x44, variant_FD_CB_dd_44 ], // bit 0,(iy+dd) (alias)
-      [ 0x45, variant_FD_CB_dd_45 ], // bit 0,(iy+dd) (alias)
-      [ 0x46, variant_FD_CB_dd_46 ], // bit 0,(iy+dd) (alias)
+      [ 0x40, variant_FD_CB_dd_40 ], // bit 0,(iy+dd) (alias of variant_FD_CB_dd_47)
+      [ 0x41, variant_FD_CB_dd_41 ], // bit 0,(iy+dd) (alias of variant_FD_CB_dd_47)
+      [ 0x42, variant_FD_CB_dd_42 ], // bit 0,(iy+dd) (alias of variant_FD_CB_dd_47)
+      [ 0x43, variant_FD_CB_dd_43 ], // bit 0,(iy+dd) (alias of variant_FD_CB_dd_47)
+      [ 0x44, variant_FD_CB_dd_44 ], // bit 0,(iy+dd) (alias of variant_FD_CB_dd_47)
+      [ 0x45, variant_FD_CB_dd_45 ], // bit 0,(iy+dd) (alias of variant_FD_CB_dd_47)
+      [ 0x46, variant_FD_CB_dd_46 ], // bit 0,(iy+dd) (alias of variant_FD_CB_dd_47)
       [ 0x47, variant_FD_CB_dd_47 ], // bit 0,(iy+dd)
-      [ 0x48, variant_FD_CB_dd_48 ], // bit 1,(iy+dd) (alias)
-      [ 0x49, variant_FD_CB_dd_49 ], // bit 1,(iy+dd) (alias)
-      [ 0x4A, variant_FD_CB_dd_4A ], // bit 1,(iy+dd) (alias)
-      [ 0x4B, variant_FD_CB_dd_4B ], // bit 1,(iy+dd) (alias)
-      [ 0x4C, variant_FD_CB_dd_4C ], // bit 1,(iy+dd) (alias)
-      [ 0x4D, variant_FD_CB_dd_4D ], // bit 1,(iy+dd) (alias)
-      [ 0x4E, variant_FD_CB_dd_4E ], // bit 1,(iy+dd) (alias)
+      [ 0x48, variant_FD_CB_dd_48 ], // bit 1,(iy+dd) (alias of variant_FD_CB_dd_4F)
+      [ 0x49, variant_FD_CB_dd_49 ], // bit 1,(iy+dd) (alias of variant_FD_CB_dd_4F)
+      [ 0x4A, variant_FD_CB_dd_4A ], // bit 1,(iy+dd) (alias of variant_FD_CB_dd_4F)
+      [ 0x4B, variant_FD_CB_dd_4B ], // bit 1,(iy+dd) (alias of variant_FD_CB_dd_4F)
+      [ 0x4C, variant_FD_CB_dd_4C ], // bit 1,(iy+dd) (alias of variant_FD_CB_dd_4F)
+      [ 0x4D, variant_FD_CB_dd_4D ], // bit 1,(iy+dd) (alias of variant_FD_CB_dd_4F)
+      [ 0x4E, variant_FD_CB_dd_4E ], // bit 1,(iy+dd) (alias of variant_FD_CB_dd_4F)
       [ 0x4F, variant_FD_CB_dd_4F ], // bit 1,(iy+dd)
-      [ 0x50, variant_FD_CB_dd_50 ], // bit 2,(iy+dd) (alias)
-      [ 0x51, variant_FD_CB_dd_51 ], // bit 2,(iy+dd) (alias)
-      [ 0x52, variant_FD_CB_dd_52 ], // bit 2,(iy+dd) (alias)
-      [ 0x53, variant_FD_CB_dd_53 ], // bit 2,(iy+dd) (alias)
-      [ 0x54, variant_FD_CB_dd_54 ], // bit 2,(iy+dd) (alias)
-      [ 0x55, variant_FD_CB_dd_55 ], // bit 2,(iy+dd) (alias)
-      [ 0x56, variant_FD_CB_dd_56 ], // bit 2,(iy+dd) (alias)
+      [ 0x50, variant_FD_CB_dd_50 ], // bit 2,(iy+dd) (alias of variant_FD_CB_dd_57)
+      [ 0x51, variant_FD_CB_dd_51 ], // bit 2,(iy+dd) (alias of variant_FD_CB_dd_57)
+      [ 0x52, variant_FD_CB_dd_52 ], // bit 2,(iy+dd) (alias of variant_FD_CB_dd_57)
+      [ 0x53, variant_FD_CB_dd_53 ], // bit 2,(iy+dd) (alias of variant_FD_CB_dd_57)
+      [ 0x54, variant_FD_CB_dd_54 ], // bit 2,(iy+dd) (alias of variant_FD_CB_dd_57)
+      [ 0x55, variant_FD_CB_dd_55 ], // bit 2,(iy+dd) (alias of variant_FD_CB_dd_57)
+      [ 0x56, variant_FD_CB_dd_56 ], // bit 2,(iy+dd) (alias of variant_FD_CB_dd_57)
       [ 0x57, variant_FD_CB_dd_57 ], // bit 2,(iy+dd)
-      [ 0x58, variant_FD_CB_dd_58 ], // bit 3,(iy+dd) (alias)
-      [ 0x59, variant_FD_CB_dd_59 ], // bit 3,(iy+dd) (alias)
-      [ 0x5A, variant_FD_CB_dd_5A ], // bit 3,(iy+dd) (alias)
-      [ 0x5B, variant_FD_CB_dd_5B ], // bit 3,(iy+dd) (alias)
-      [ 0x5C, variant_FD_CB_dd_5C ], // bit 3,(iy+dd) (alias)
-      [ 0x5D, variant_FD_CB_dd_5D ], // bit 3,(iy+dd) (alias)
-      [ 0x5E, variant_FD_CB_dd_5E ], // bit 3,(iy+dd) (alias)
+      [ 0x58, variant_FD_CB_dd_58 ], // bit 3,(iy+dd) (alias of variant_FD_CB_dd_5F)
+      [ 0x59, variant_FD_CB_dd_59 ], // bit 3,(iy+dd) (alias of variant_FD_CB_dd_5F)
+      [ 0x5A, variant_FD_CB_dd_5A ], // bit 3,(iy+dd) (alias of variant_FD_CB_dd_5F)
+      [ 0x5B, variant_FD_CB_dd_5B ], // bit 3,(iy+dd) (alias of variant_FD_CB_dd_5F)
+      [ 0x5C, variant_FD_CB_dd_5C ], // bit 3,(iy+dd) (alias of variant_FD_CB_dd_5F)
+      [ 0x5D, variant_FD_CB_dd_5D ], // bit 3,(iy+dd) (alias of variant_FD_CB_dd_5F)
+      [ 0x5E, variant_FD_CB_dd_5E ], // bit 3,(iy+dd) (alias of variant_FD_CB_dd_5F)
       [ 0x5F, variant_FD_CB_dd_5F ], // bit 3,(iy+dd)
-      [ 0x60, variant_FD_CB_dd_60 ], // bit 4,(iy+dd) (alias)
-      [ 0x61, variant_FD_CB_dd_61 ], // bit 4,(iy+dd) (alias)
-      [ 0x62, variant_FD_CB_dd_62 ], // bit 4,(iy+dd) (alias)
-      [ 0x63, variant_FD_CB_dd_63 ], // bit 4,(iy+dd) (alias)
-      [ 0x64, variant_FD_CB_dd_64 ], // bit 4,(iy+dd) (alias)
-      [ 0x65, variant_FD_CB_dd_65 ], // bit 4,(iy+dd) (alias)
-      [ 0x66, variant_FD_CB_dd_66 ], // bit 4,(iy+dd) (alias)
+      [ 0x60, variant_FD_CB_dd_60 ], // bit 4,(iy+dd) (alias of variant_FD_CB_dd_67)
+      [ 0x61, variant_FD_CB_dd_61 ], // bit 4,(iy+dd) (alias of variant_FD_CB_dd_67)
+      [ 0x62, variant_FD_CB_dd_62 ], // bit 4,(iy+dd) (alias of variant_FD_CB_dd_67)
+      [ 0x63, variant_FD_CB_dd_63 ], // bit 4,(iy+dd) (alias of variant_FD_CB_dd_67)
+      [ 0x64, variant_FD_CB_dd_64 ], // bit 4,(iy+dd) (alias of variant_FD_CB_dd_67)
+      [ 0x65, variant_FD_CB_dd_65 ], // bit 4,(iy+dd) (alias of variant_FD_CB_dd_67)
+      [ 0x66, variant_FD_CB_dd_66 ], // bit 4,(iy+dd) (alias of variant_FD_CB_dd_67)
       [ 0x67, variant_FD_CB_dd_67 ], // bit 4,(iy+dd)
-      [ 0x68, variant_FD_CB_dd_68 ], // bit 5,(iy+dd) (alias)
-      [ 0x69, variant_FD_CB_dd_69 ], // bit 5,(iy+dd) (alias)
-      [ 0x6A, variant_FD_CB_dd_6A ], // bit 5,(iy+dd) (alias)
-      [ 0x6B, variant_FD_CB_dd_6B ], // bit 5,(iy+dd) (alias)
-      [ 0x6C, variant_FD_CB_dd_6C ], // bit 5,(iy+dd) (alias)
-      [ 0x6D, variant_FD_CB_dd_6D ], // bit 5,(iy+dd) (alias)
-      [ 0x6E, variant_FD_CB_dd_6E ], // bit 5,(iy+dd) (alias)
+      [ 0x68, variant_FD_CB_dd_68 ], // bit 5,(iy+dd) (alias of variant_FD_CB_dd_6F)
+      [ 0x69, variant_FD_CB_dd_69 ], // bit 5,(iy+dd) (alias of variant_FD_CB_dd_6F)
+      [ 0x6A, variant_FD_CB_dd_6A ], // bit 5,(iy+dd) (alias of variant_FD_CB_dd_6F)
+      [ 0x6B, variant_FD_CB_dd_6B ], // bit 5,(iy+dd) (alias of variant_FD_CB_dd_6F)
+      [ 0x6C, variant_FD_CB_dd_6C ], // bit 5,(iy+dd) (alias of variant_FD_CB_dd_6F)
+      [ 0x6D, variant_FD_CB_dd_6D ], // bit 5,(iy+dd) (alias of variant_FD_CB_dd_6F)
+      [ 0x6E, variant_FD_CB_dd_6E ], // bit 5,(iy+dd) (alias of variant_FD_CB_dd_6F)
       [ 0x6F, variant_FD_CB_dd_6F ], // bit 5,(iy+dd)
-      [ 0x70, variant_FD_CB_dd_70 ], // bit 6,(iy+dd) (alias)
-      [ 0x71, variant_FD_CB_dd_71 ], // bit 6,(iy+dd) (alias)
-      [ 0x72, variant_FD_CB_dd_72 ], // bit 6,(iy+dd) (alias)
-      [ 0x73, variant_FD_CB_dd_73 ], // bit 6,(iy+dd) (alias)
-      [ 0x74, variant_FD_CB_dd_74 ], // bit 6,(iy+dd) (alias)
-      [ 0x75, variant_FD_CB_dd_75 ], // bit 6,(iy+dd) (alias)
-      [ 0x76, variant_FD_CB_dd_76 ], // bit 6,(iy+dd) (alias)
+      [ 0x70, variant_FD_CB_dd_70 ], // bit 6,(iy+dd) (alias of variant_FD_CB_dd_77)
+      [ 0x71, variant_FD_CB_dd_71 ], // bit 6,(iy+dd) (alias of variant_FD_CB_dd_77)
+      [ 0x72, variant_FD_CB_dd_72 ], // bit 6,(iy+dd) (alias of variant_FD_CB_dd_77)
+      [ 0x73, variant_FD_CB_dd_73 ], // bit 6,(iy+dd) (alias of variant_FD_CB_dd_77)
+      [ 0x74, variant_FD_CB_dd_74 ], // bit 6,(iy+dd) (alias of variant_FD_CB_dd_77)
+      [ 0x75, variant_FD_CB_dd_75 ], // bit 6,(iy+dd) (alias of variant_FD_CB_dd_77)
+      [ 0x76, variant_FD_CB_dd_76 ], // bit 6,(iy+dd) (alias of variant_FD_CB_dd_77)
       [ 0x77, variant_FD_CB_dd_77 ], // bit 6,(iy+dd)
-      [ 0x78, variant_FD_CB_dd_78 ], // bit 7,(iy+dd) (alias)
-      [ 0x79, variant_FD_CB_dd_79 ], // bit 7,(iy+dd) (alias)
-      [ 0x7A, variant_FD_CB_dd_7A ], // bit 7,(iy+dd) (alias)
-      [ 0x7B, variant_FD_CB_dd_7B ], // bit 7,(iy+dd) (alias)
-      [ 0x7C, variant_FD_CB_dd_7C ], // bit 7,(iy+dd) (alias)
-      [ 0x7D, variant_FD_CB_dd_7D ], // bit 7,(iy+dd) (alias)
-      [ 0x7E, variant_FD_CB_dd_7E ], // bit 7,(iy+dd) (alias)
+      [ 0x78, variant_FD_CB_dd_78 ], // bit 7,(iy+dd) (alias of variant_FD_CB_dd_7F)
+      [ 0x79, variant_FD_CB_dd_79 ], // bit 7,(iy+dd) (alias of variant_FD_CB_dd_7F)
+      [ 0x7A, variant_FD_CB_dd_7A ], // bit 7,(iy+dd) (alias of variant_FD_CB_dd_7F)
+      [ 0x7B, variant_FD_CB_dd_7B ], // bit 7,(iy+dd) (alias of variant_FD_CB_dd_7F)
+      [ 0x7C, variant_FD_CB_dd_7C ], // bit 7,(iy+dd) (alias of variant_FD_CB_dd_7F)
+      [ 0x7D, variant_FD_CB_dd_7D ], // bit 7,(iy+dd) (alias of variant_FD_CB_dd_7F)
+      [ 0x7E, variant_FD_CB_dd_7E ], // bit 7,(iy+dd) (alias of variant_FD_CB_dd_7F)
       [ 0x7F, variant_FD_CB_dd_7F ], // bit 7,(iy+dd)
       [ 0x80, variant_FD_CB_dd_80 ], // ld b,res 0,(iy+dd)
       [ 0x81, variant_FD_CB_dd_81 ], // ld c,res 0,(iy+dd)
