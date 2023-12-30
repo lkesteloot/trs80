@@ -1,6 +1,6 @@
 import {hi, KnownLabel, lo, toHexWord} from "z80-base";
 import {dirname, parse, resolve} from "./path.js";
-import {isOpcodeTemplateOperand, mnemonicMap, OpcodeTemplateOperand, OpcodeVariant} from "z80-inst";
+import {isOpcodeTemplateOperand, mnemonicMap, OpcodeTemplateOperand, OpcodeVariant, opcodeVariantToString} from "z80-inst";
 import {isLegalIdentifierCharacter, parseDigit, PositionRequirement, Tokenizer} from "./Tokenizer.js";
 
 // Title-definition pseudo instructions.
@@ -423,6 +423,122 @@ class Scope {
     public remove(identifier: string): void {
         this.symbols.delete(identifier);
     }
+}
+
+// Token to trie node for the variants reachable after parsing that token.
+type TrieMap = Map<string,TrieNode>;
+
+type TrieExpression = {expr: OpcodeTemplateOperand, trieNode: TrieNode} | Map<number, TrieNode> | undefined;
+
+class TrieNode {
+    public readonly variant: OpcodeVariant | undefined;
+    public readonly tokens: TrieMap;
+    // Pseudo-token for expressions (nnnn, etc.) or numeric constants (RST 8).
+    public readonly expression: TrieExpression;
+
+    constructor(variant: OpcodeVariant | undefined,
+                tokens: TrieMap,
+                expression: TrieExpression) {
+
+        this.variant = variant;
+        this.tokens = tokens;
+        this.expression = expression;
+    }
+
+    public dump(indent = "") {
+        if (this.variant !== undefined) {
+            console.log(indent, this.variant.mnemonic + " " + this.variant.tokens.join(""));
+        }
+        for (const [token, subtrie] of this.tokens.entries()) {
+            console.log(indent, "[" + token + "]");
+            subtrie.dump(indent + "    ");
+        }
+        if (this.expression instanceof Map) {
+            for (const [constValue, subtrie] of this.expression.entries()) {
+                console.log(indent, "[" + constValue + "]");
+                subtrie.dump(indent + "    ");
+            }
+        } else if (this.expression !== undefined) {
+            const {expr, trieNode} = this.expression;
+            console.log(indent, "[" + expr + "]");
+            trieNode.dump(indent + "    ");
+        }
+    }
+}
+
+function makeTrieNodeFromVariants(variants: OpcodeVariant[], tokenIndex: number): TrieNode {
+    // Group into variants by branching token.
+    let terminalVariant: OpcodeVariant | undefined;
+    const variantsByToken = new Map<string,OpcodeVariant[]>();
+    for (const variant of variants) {
+        if (variant.aliasOf !== undefined) {
+            // Don't add aliases to trie, they're longer than the thing they're an alias for.
+            continue;
+        }
+        if (tokenIndex >= variant.tokens.length) {
+            if (terminalVariant !== undefined) {
+                // Internal error.
+                throw new Error("same sequence of tokens leads to different trie node: " + opcodeVariantToString(terminalVariant));
+            }
+            terminalVariant = variant;
+        } else {
+            let token = variant.tokens[tokenIndex];
+            if (token === "+" && variant.tokens[tokenIndex + 1] === "dd") {
+                // Skip the "+" to make it easier to detect later, and to more easily allow negative sign there.
+                token = "dd";
+            }
+            let tokenVariants = variantsByToken.get(token);
+            if (tokenVariants === undefined) {
+                tokenVariants = [];
+                variantsByToken.set(token, tokenVariants);
+            }
+            tokenVariants.push(variant);
+        }
+    }
+
+    // Make a new trie node for each group of variants.
+    const tokens = new Map<string,TrieNode>();
+    let expression: TrieExpression = undefined;
+    for (const [token, tokenVariants] of variantsByToken.entries()) {
+        const skip = token === "dd" ? 2 : 1;
+        const subtrieNode = makeTrieNodeFromVariants(tokenVariants, tokenIndex + skip);
+        if (isOpcodeTemplateOperand(token)) {
+            if (expression !== undefined) {
+                // Internal error.
+                throw new Error("can only have one expression trie node");
+            }
+            expression = { expr: token, trieNode: subtrieNode };
+        } else if (parseDigit(token[0], 10) !== undefined) {
+            const constValue = parseInt(token, 10);
+            if (expression === undefined) {
+                expression = new Map<number, TrieNode>();
+            } else if (!(expression instanceof Map)) {
+                // Internal error.
+                throw new Error("can only have one expression trie node");
+            }
+            expression.set(constValue, subtrieNode);
+        } else {
+            tokens.set(token, subtrieNode);
+        }
+    }
+
+    return new TrieNode(terminalVariant, tokens, expression);
+}
+
+let g_instructionTrie: Map<string,TrieNode> | undefined;
+
+function getInstructionTrie() {
+    if (g_instructionTrie === undefined) {
+        g_instructionTrie = new Map<string,TrieNode>();
+        for (const [mnemonic, variants] of mnemonicMap.entries()) {
+            const trie = makeTrieNodeFromVariants(variants, 0);
+            // console.log(mnemonic);
+            // trie.dump("    ");
+            g_instructionTrie.set(mnemonic, trie);
+        }
+    }
+
+    return g_instructionTrie;
 }
 
 /**
@@ -1468,6 +1584,9 @@ class LineParser {
         this.ensureEndOfLine();
     }
 
+    /**
+     * Process a macro or normal Z80 mnemonic.
+     */
     private processOpCode(mnemonic: string): void {
         // See if we should expand a macro.
         const macro = this.pass.asm.macros.get(mnemonic);
@@ -1524,150 +1643,128 @@ class LineParser {
         }
 
         // See if it's a Z80 mnemonic.
-        const mnemonicInfo = mnemonicMap.get(mnemonic);
-        if (mnemonicInfo === undefined) {
+        let trie = getInstructionTrie().get(mnemonic);
+        if (trie === undefined) {
             this.assembledLine.error = "unknown mnemonic \"" + mnemonic + "\"";
             if (this.tokenizer.matches(":")) {
                 this.assembledLine.error += " (if it's a label, unindent it)";
             }
-        } else {
-            const argStartIndex = this.tokenizer.tokenIndex;
-            let match = false;
+            return;
+        }
 
-            for (const variant of mnemonicInfo) {
-                // Map from something like "nn" to its value.
-                const args = new Map<OpcodeTemplateOperand, number>();
+        // Map from template operand like "nnnn" to the value of the expression we parsed at that location.
+        const args = new Map<OpcodeTemplateOperand, number>();
 
-                match = true;
-
-                for (let i = 0; i < variant.tokens.length; i++) {
-                    const token = variant.tokens[i];
-
-                    // Some instructions like "LD A,(IX+dd)" should also allow "LD A,(IX)". Perhaps
-                    // we should have this in the official list of variants, but instead let's just
-                    // hack it here.
-                    const nextToken = variant.tokens[i + 1];
-                    if (token === "+" &&
-                        isOpcodeTemplateOperand(nextToken) &&
-                        variant.tokens[i + 2] === ")" &&
-                        this.tokenizer.found(")")) {
-
-                        // Pretend missing arg is zero
-                        args.set(nextToken, 0);
-                        i += 2;
-                        continue;
-                    }
-
-                    if (token === "+" && this.tokenizer.matches("-")) {
-                        // This is something like (IX+DD), but DD is signed and we allow the
-                        // user to simply write (IX-5), so pretend we got the + and move on
-                        // to parsing the number as-is.
-                        match = true;
-                    } else if (token === "," || token === "(" || token === ")" || token === "+") {
-                        if (!this.tokenizer.found(token)) {
-                            match = false;
-                        }
-                    } else if (isOpcodeTemplateOperand(token)) {
-                        // Parse. We don't allow a starting parenthesis here because
-                        // "ld a,(5)" would be ambiguous. One option here is to always
-                        // try "ld a,(nnnn)" first, then try "ld a,n" and allow parentheses,
-                        // so that "ld a,(1+2)+3" would work. The order of variants is
-                        // not currently guaranteed, though.
-                        const value = this.readUnparenthesizedExpression();
-                        if (value === undefined) {
-                            match = false;
-                        } else {
-                            // Add value to binary.
-                            if (args.has(token)) {
-                                // I believe this is internal error, can't have duplicate token.
-                                throw new Error("duplicate arg: " + this.tokenizer.line);
-                            }
-                            args.set(token, value);
-                        }
-                    } else if (parseDigit(token[0], 10) !== undefined) {
-                        // If the token is a number, then we must parse an expression and
-                        // compare the values. This is used for BIT, SET, RES, RST, IM, and one
-                        // variant of OUT (OUT (C), 0).
-                        const expectedValue = parseInt(token, 10);
-                        const actualValue = this.readUnparenthesizedExpression();
-                        if (expectedValue !== actualValue) {
-                            match = false;
-                        }
-                    } else {
-                        // Register or flag.
-                        const identifier = this.tokenizer.readIdentifier(true)?.name;
-                        if (identifier !== token) {
-                            match = false;
-                        }
-                    }
-
-                    if (!match) {
-                        break;
-                    }
-                }
-
-                if (match) {
-                    // Make sure they're no extra garbage.
-                    if (!this.tokenizer.isEndOfLine()) {
-                        match = false;
-                    }
-                }
-
-                if (match) {
+        // Descend down the trie.
+        while (true) {
+            const token = this.tokenizer.getCurrentToken();
+            if (token === undefined || token.tag === "comment") {
+                // End of line.
+                if (trie.variant !== undefined) {
+                    // Found variant. Generate opcodes.
                     this.assembledLine.binary = [];
-                    for (const op of variant.opcodes) {
-                        if (typeof op === "string") {
+                    for (const op of trie.variant.opcodes) {
+                        if (typeof op === "number") {
+                            this.assembledLine.binary.push(op);
+                        } else {
                             const value = args.get(op);
                             if (value === undefined) {
-                                // I believe this is internal error.
-                                throw new Error("arg " + op + " not found for " + this.tokenizer.line);
+                                // Internal error.
+                                throw new Error("did not find arg " + op);
                             }
                             switch (op) {
+                                case "nn":
+                                    this.assembledLine.binary.push(lo(value));
+                                    break;
+
                                 case "nnnn":
                                     this.assembledLine.binary.push(lo(value));
                                     this.assembledLine.binary.push(hi(value));
                                     break;
 
-                                case "nn":
                                 case "dd":
                                     this.assembledLine.binary.push(lo(value));
                                     break;
 
                                 case "offset":
-                                    const offset = value - this.assembledLine.address - this.assembledLine.binary.length - 1;
-                                    if (this.pass.passNumber > 1 && (offset < -128 || offset > 127)) {
-                                        // Too far for relative jump.
-                                        const excess = offset < -128 ? -128 - offset : offset - 127;
-                                        if (this.assembledLine.error === undefined) {
-                                            this.assembledLine.error = "destination is too far by " + excess + " byte" +
-                                                (excess === 1 ? "" : "s") + " for relative jump";
-                                            if (variant.mnemonic === "jr") {
-                                                this.assembledLine.error += "; use jp";
-                                            }
-                                        }
-                                        this.assembledLine.binary = [];
-                                        return;
-                                    }
-                                    this.assembledLine.binary.push(lo(offset));
+                                    this.assembledLine.binary.push(lo(value));
                                     break;
-
-                                default:
-                                    throw new Error("Unknown arg type " + op);
                             }
-                        } else {
-                            this.assembledLine.binary.push(op);
                         }
                     }
-                    this.assembledLine.variant = variant;
-                    break;
-                } else {
-                    // Reset reader and try another variant.
-                    this.tokenizer.tokenIndex = argStartIndex;
-                }
-            }
 
-            if (!match && this.assembledLine.error === undefined) {
-                this.assembledLine.error = "no variant found for " + mnemonic;
+                    this.assembledLine.variant = trie.variant;
+                    return;
+                } else {
+                    // Syntax error, end of line without finding variant.
+                    // TODO provide list of available tokens for IDE auto-complete.
+                    this.assembledLine.error = "no variant found for " + mnemonic;
+                    return;
+                }
+            } else {
+                const subtrie = trie.tokens.get(token.text.toLowerCase());
+                if (subtrie !== undefined) {
+                    // Eat this token.
+                    trie = subtrie;
+                    this.tokenizer.tokenIndex += 1;
+                } else if (trie.expression === undefined) {
+                    // Can't accept expression here.
+                    this.assembledLine.error = "no variant found for " + mnemonic;
+                    return;
+                } else {
+                    // No explicit token. Try an expression.
+                    if (trie.expression instanceof Map) {
+                        const value = this.readExpressionUpdateError();
+                        const subtrie = trie.expression.get(value);
+                        if (subtrie !== undefined) {
+                            // Eat expression and continue.
+                            trie = subtrie;
+                        } else {
+                            this.assembledLine.error = value + " is not a valid value for " + mnemonic;
+                            return;
+                        }
+                    } else {
+                        if (args.has(trie.expression.expr)) {
+                            // Internal error.
+                            throw new Error("multiple expressions for arg " + trie.expression.expr);
+                        }
+                        let value: number;
+                        if (trie.expression.expr === "dd") {
+                            // For "dd", allow no expression, or any expression that starts with + or -.
+                            if (token.text === ")") {
+                                value = 0;
+                            } else if (token.text === "+" || token.text === "-") {
+                                value = this.readExpressionUpdateError();
+                            } else {
+                                this.assembledLine.error = "invalid expression for +dd offset";
+                                return;
+                            }
+                        } else {
+                            // For other template operands, just parse expression normally.
+                            value = this.readExpressionUpdateError();
+                        }
+                        if (trie.expression.expr === "offset") {
+                            // Compute relative offset, make sure it's not too far.
+                            const offset = value - this.assembledLine.address - this.assembledLine.binary.length - 2;
+                            if (this.pass.passNumber > 1 && (offset < -128 || offset > 127)) {
+                                // Too far for relative jump.
+                                const excess = offset < -128 ? -128 - offset : offset - 127;
+                                if (this.assembledLine.error === undefined) {
+                                    this.assembledLine.error = "destination is too far by " + excess + " byte" +
+                                        (excess === 1 ? "" : "s") + " for relative jump";
+                                    if (mnemonic === "jr") {
+                                        this.assembledLine.error += "; use jp";
+                                    }
+                                }
+                                this.assembledLine.binary = [];
+                                return;
+                            }
+                            value = offset;
+                        }
+                        args.set(trie.expression.expr, value);
+                        trie = trie.expression.trieNode;
+                    }
+                }
             }
         }
     }
@@ -1723,20 +1820,17 @@ class LineParser {
     }
 
     /**
-     * Read an expression that cannot start with a parenthesis.
-     *
-     * @return the value of the expression, or undefined if it starts with a parenthesis.
-     *
-     * @throws Error if a parse error is found.
+     * Read an expression. On error, return 0, update line error, and continue parsing.
      */
-    private readUnparenthesizedExpression(): number | undefined {
-        if (this.tokenizer.matches('(')) {
-            // Expressions can't start with an open parenthesis because that's ambiguous
-            // with dereferencing.
-            return undefined;
+    private readExpressionUpdateError() {
+        try {
+            return this.readExpression();
+        } catch (e: any) {
+            if (this.assembledLine.error === undefined) {
+                this.assembledLine.error = e.message;
+            }
+            return 0;
         }
-
-        return this.readExpression();
     }
 
     /**

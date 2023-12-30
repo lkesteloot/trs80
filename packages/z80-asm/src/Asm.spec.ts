@@ -1,6 +1,9 @@
 import {expect} from "chai";
 import {Asm, FileSystem} from "./Asm";
 import {Tokenizer} from "./Tokenizer";
+import {mnemonicMap, opcodeVariantToString } from "z80-inst";
+import {Disasm} from "z80-disasm";
+import {hi, lo} from "z80-base";
 
 // I can't get mocha to work with TypeScript and ESM, so just provide their
 // functions.
@@ -172,6 +175,12 @@ describe("assemble", () => {
         ]);
     });
 
+    it("LD A,C", () => {
+        runTest([
+            { line: " LD A,C", opcodes: [0x79] },
+        ]);
+    });
+
     it("or 0x55", () => {
         runTest([
             { line: " or 0x55", opcodes: [0xF6, 0x55] },
@@ -280,6 +289,57 @@ describe("assemble", () => {
             { line: " push af'", error: true },
         ]);
     });
+});
+
+describe("all opcodes", () => {
+    for (const [mnemonic, variants] of mnemonicMap) {
+        for (const variant of variants) {
+            if (variant.aliasOf !== undefined) {
+                // Don't test for aliases, we don't assemble to them.
+                continue;
+            }
+            const loadAddress = 100; // Non-zero to test the offsets.
+            const disasm = new Disasm();
+            const opcodes: number[] = [];
+            const value = loadAddress - 10;
+            for (const opcode of variant.opcodes) {
+                if (typeof opcode === "number") {
+                    opcodes.push(opcode);
+                } else {
+                    switch (opcode) {
+                        case "nnnn":
+                            opcodes.push(lo(value));
+                            opcodes.push(hi(value));
+                            break;
+
+                        case "nn":
+                            opcodes.push(lo(value));
+                            break;
+
+                        case "dd":
+                            opcodes.push(lo(value));
+                            break;
+
+                        case "offset":
+                            opcodes.push(lo(value - loadAddress - opcodes.length - 1));
+                            break;
+                    }
+                }
+            }
+            disasm.addChunk(opcodes, loadAddress);
+            disasm.addEntryPoint(loadAddress);
+            const instructions = disasm.disassemble();
+            const testLines: TestLine[] = [{
+                line: " .org " + loadAddress,
+            }].concat(instructions.map(instruction => ({
+                    line: " " + instruction.toText(false),
+                    opcodes: instruction.bin,
+            })));
+            it(opcodeVariantToString(variant), () => {
+                runTest(testLines);
+            });
+        }
+    }
 });
 
 describe("expressions", () => {
