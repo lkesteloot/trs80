@@ -2151,12 +2151,7 @@ class LineParser {
             if (this.pass.passNumber === 1) {
                 const symbolAppearance = new SymbolAppearance(symbolInfo,
                     this.assembledLine, identifierColumn, symbolInfo.references.length);
-                // This is a terrible hack, but we might push this multiple times if we
-                // try multiple variants. Really we should roll this back if we decide
-                // against the variant. Instead, just check to see if we just pushed it.
-                if (!symbolAppearance.equals(symbolInfo.references[symbolInfo.references.length - 1])) {
-                    symbolInfo.references.push(symbolAppearance);
-                }
+                symbolInfo.references.push(symbolAppearance);
             } else if (symbolInfo.definitions.length === 0) {
                 throw new Error("unknown identifier \"" + identifier + "\"");
             } else if (symbolInfo.definitions.length > 1 &&
