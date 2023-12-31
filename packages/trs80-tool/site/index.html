@@ -4,7 +4,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>TRS-80 Tool</title>
         <link href="https://fonts.googleapis.com/css?family=Roboto+Mono|Roboto:100,400,700&display=block" rel="stylesheet">
-        <link href="style.css" rel="stylesheet">
+        <link href="style.css?v=2" rel="stylesheet">
     </head>
     <body class="light-mode">
         <section>
@@ -265,6 +265,8 @@ C CRC error (ID or data).</code></pre>
             <div><pre><code>% trs80-tool asm --listing program.lst program.asm program.cmd</code></pre>
             </div>
 
+
+
             <h3 id="disasm"><code>disasm</code></h3>
             <p>The <code>disasm</code> command disassembles the specified program:</p>
             <div><pre><code>% trs80-tool disasm saucer.cmd</code></pre>
@@ -287,7 +289,9 @@ C CRC error (ID or data).</code></pre>
             <p>A listing file can instead be generated with the <code>--listing</code> flag:</p>
             <div><pre><code>% trs80-tool disasm --listing program.cmd</code></pre>
             </div>
-            <p>The <code>--no-binary</code> flag will suppress opcode binary in the listing.</p>
+            <p>The <code>--no-binary</code> flag will suppress opcode binary in the listing.
+            The <code>--upper</code> flag will generate upper case assembly language.</p>
+
 
             <h3 id="run"><code>run</code></h3>
             <p>Run a TRS-80 emulator in the shell:</p>
@@ -341,7 +345,27 @@ C CRC error (ID or data).</code></pre>
 
             <h2 id="change-log">Change log</h2>
 
-            <h3>2.5.0</h3>
+            <h3>2.6.0 <span class="release-date">Dec 31, 2023</span></h3>
+
+            <ul>
+                <li>Better handling of double-sided disks.</li>
+                <li>Assembler:
+                    <ul>
+                        <li>Full expression support: All the operators in C,
+                            with their same precedence.</li>
+                        <li>Assembles about 10 times faster.</li>
+                        <li>Allow <code>nv</code> and <code>v</code> for
+                            <code>po</code> and <code>pe</code> flags.</li>
+                        <li>Various compatibility improvements with zmac.</li>
+                        <li>Breaking change: No longer permit <code>%</code> as binary
+                            prefix. Instead of writing <code>%1010</code>,
+                            use <code>1010b</code> or <code>0b1010</code>.</li>
+                    </ul>
+                </li>
+                <li>Disassembler: Add <code>--upper</code> flag.</li>
+            </ul>
+
+            <h3>2.5.0 <span class="release-date">Oct 4, 2023</span></h3>
 
             <ul>
                 <li>Display WAV metadata for <code>info --version</code>.</li>
