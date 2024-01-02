@@ -7,10 +7,10 @@ import * as fs from "fs";
 import {toHexByte} from "z80-base";
 import {
     ClrInstruction,
+    isOpcodeTemplateOperand,
     Mnemonics,
     OpcodeTemplate,
     OpcodeVariant,
-    isOpcodeTemplateOperand,
     opcodeVariantToString
 } from "../src/OpcodesTypes.js";
 import {isDataThirdByte} from "../src/Utils.js";
@@ -89,19 +89,31 @@ function fixClrDescription(desc: string): string {
 function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[], mnemonicMap: Mnemonics, clr: ClrFile): void {
     const pathname = path.join(dirname, "opcodes_" + prefix.toLowerCase() + ".dat");
 
-    let aliasOpcodes: number[] = [];
+    let previousLine = "";
 
-    fs.readFileSync(pathname, "utf-8").split(/\r?\n/).forEach((line: string) => {
+    fs.readFileSync(pathname, "utf-8").split(/\r?\n/).reverse().forEach((line: string) => {
         line = line.trim();
         if (line.length === 0 || line.startsWith("#")) {
             // Comment or empty line.
             return;
         }
 
+        // For alias lines, reuse rest of previous line.
+        if (line.length === 4) {
+            if (previousLine === "") {
+                throw new Error("no previous line for alias line: " + line);
+            }
+            line += previousLine.substring(4);
+        }
+        previousLine = line;
+
         // Parse line.
         const fields = line.split(/\s+/);
-        const opcodeString = fields.length >= 1 ? fields[0] : undefined;
-        const mnemonic = fields.length >= 2 ? fields[1].toLowerCase() : undefined;
+        if (fields.length < 2) {
+            throw new Error("Invalid opcode line: " + line);
+        }
+        const opcodeString = fields[0];
+        const mnemonic = fields[1].toLowerCase();
         const params = fields.length >= 3 ? fields[2].toLowerCase() : undefined;
         const extra = fields.length >= 4 ? fields[3].toLowerCase() : undefined;
         if (fields.length > 4) {
@@ -113,7 +125,7 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                 ? []
                 : (params + (extra === undefined ? "" : " " + extra)).split(",");
 
-        if (opcodeString === undefined || opcodeString.length == 0 || !opcodeString.startsWith("0x")) {
+        if (opcodeString.length == 0 || !opcodeString.startsWith("0x")) {
             throw new Error("Invalid opcode value: " + line);
         }
 
@@ -128,126 +140,103 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
         const fullOpcodes: OpcodeTemplate[] = opcodes.concat([opcode]);
         let opcodeIndex = fullOpcodes.length - 1;
 
-        if (mnemonic === undefined) {
-            // Fallthrough to next line. These are for different opcodes that map to the
-            // same instruction.
-            aliasOpcodes.push(opcode);
+        if (mnemonic === "shift") {
+            // Recurse for shifted instructions.
+            if (params === undefined) {
+                throw new Error("Shift must have params");
+            }
+            parseOpcodes(dirname, params, fullOpcodes, mnemonicMap, clr);
         } else {
-            if (mnemonic === "shift") {
-                // Recurse for shifted instructions.
-                if (params === undefined) {
-                    throw new Error("Shift must have params");
-                }
-                parseOpcodes(dirname, params, fullOpcodes, mnemonicMap, clr);
+            const fullOpcodesString = fullOpcodes.map(value => typeof (value) === "number" ? toHexByte(value) : "**").join("");
+            const clrInst = findClrInstruction(clr, fullOpcodesString);
+            if (clrInst === undefined) {
+                console.log("Didn't find " + fullOpcodesString + " in clr");
             } else {
-                const fullOpcodesString = fullOpcodes.map(value => typeof(value) === "number" ? toHexByte(value) : "**").join("");
-                const clrInst = findClrInstruction(clr, fullOpcodesString);
-                if (clrInst === undefined) {
-                    console.log("Didn't find " + fullOpcodesString + " in clr");
-                } else {
-                    // Fix up description to convert register names to upper case.
-                    clrInst.description = fixClrDescription(clrInst.description);
+                // Fix up description to convert register names to upper case.
+                clrInst.description = fixClrDescription(clrInst.description);
 
-                    // Mark it as used.
-                    clrInst.used = true;
-                }
+                // Mark it as used.
+                clrInst.used = true;
+            }
 
-                // Add parameters.
-                for (const token of tokens) {
-                    if (isOpcodeTemplateOperand(token)) {
-                        // For DDCB and FDCB instructions, the parameter is in the third position, not at the end.
-                        if (fullOpcodes.length === 3 &&
-                             typeof(fullOpcodes[0]) === "number" &&
-                              typeof(fullOpcodes[1]) === "number" &&
-                               isDataThirdByte(fullOpcodes[0], fullOpcodes[1])) {
+            // Add parameters.
+            for (const token of tokens) {
+                if (isOpcodeTemplateOperand(token)) {
+                    // For DDCB and FDCB instructions, the parameter is in the third position, not at the end.
+                    if (fullOpcodes.length === 3 &&
+                        typeof (fullOpcodes[0]) === "number" &&
+                        typeof (fullOpcodes[1]) === "number" &&
+                        isDataThirdByte(fullOpcodes[0], fullOpcodes[1])) {
 
-                            fullOpcodes.splice(2, 0, token);
-                            opcodeIndex += 1;
-                        } else {
-                            fullOpcodes.push(token);
-                        }
+                        fullOpcodes.splice(2, 0, token);
+                        opcodeIndex += 1;
+                    } else {
+                        fullOpcodes.push(token);
                     }
                 }
+            }
 
-                // Find mnemonic in map, adding if necessary.
-                let mnemonicInfo = mnemonicMap[mnemonic] as any;
-                if (mnemonicInfo === undefined) {
-                    mnemonicInfo = {
-                        variants: [],
-                    };
-                    mnemonicMap[mnemonic] = mnemonicInfo;
-                }
-
-                // Generate this variant.
-                let variant: OpcodeVariant = {
-                    mnemonic: mnemonic,
-                    params: newParams,
-                    tokens: tokens,
-                    opcodes: fullOpcodes,
-                    isPseudo: false,
-                    aliasOf: undefined,
-                    clr: clrInst ?? undefined,
+            // Find mnemonic in map, adding if necessary.
+            let mnemonicInfo = mnemonicMap[mnemonic] as any;
+            if (mnemonicInfo === undefined) {
+                mnemonicInfo = {
+                    variants: [],
                 };
-                mnemonicInfo.variants.push(variant);
+                mnemonicMap[mnemonic] = mnemonicInfo;
+            }
 
-                // Generate aliases (same mnemonic pattern, different opcodes).
-                if (aliasOpcodes.length > 0) {
-                    for (const aliasOpcode of aliasOpcodes) {
-                        const newOpcodes = [... variant.opcodes];
-                        newOpcodes[opcodeIndex] = aliasOpcode;
-                        mnemonicInfo.variants.push({
-                            ...variant,
-                            opcodes: newOpcodes,
-                        });
-                    }
-                    aliasOpcodes = [];
-                }
+            // Generate this variant.
+            let variant: OpcodeVariant = {
+                mnemonic: mnemonic,
+                params: newParams,
+                tokens: tokens,
+                opcodes: fullOpcodes,
+                isPseudo: false,
+                aliasOf: undefined,
+                clr: clrInst ?? undefined,
+            };
+            mnemonicInfo.variants.push(variant);
 
-                // For instructions like "ADD A,C", also produce "ADD C" with an implicit "A".
-                if (tokens.length > 2 && tokens[0] === "a" && tokens[1] === ",") {
-                    mnemonicInfo.variants.push({
-                        ...variant,
-                        params: variant.params.slice(1),
-                        tokens: variant.tokens.slice(2),
-                        isPseudo: true,
-                    });
-                }
+            // For instructions like "ADD A,C", also produce "ADD C" with an implicit "A".
+            if (tokens.length > 2 && tokens[0] === "a" && tokens[1] === ",") {
+                mnemonicInfo.variants.push({
+                    ...variant,
+                    params: variant.params.slice(1),
+                    tokens: variant.tokens.slice(2),
+                    isPseudo: true,
+                });
+            }
 
-                // The canonical instruction is "JP HL" but some people write it as "JP (HP)".
-                if (mnemonic === "jp" && variant.params.length === 1 && ["hl", "ix", "iy"].indexOf(variant.params[0]) >= 0) {
-                    const register = variant.params[0];
-                    mnemonicInfo.variants.push({
-                        ...variant,
-                        params: ["(" + register + ")"],
-                        tokens: ["(", register, ")"],
-                        isPseudo: true,
-                    });
-                }
+            // The canonical instruction is "JP HL" but some people write it as "JP (HP)".
+            if (mnemonic === "jp" && variant.params.length === 1 && ["hl", "ix", "iy"].indexOf(variant.params[0]) >= 0) {
+                const register = variant.params[0];
+                mnemonicInfo.variants.push({
+                    ...variant,
+                    params: ["(" + register + ")"],
+                    tokens: ["(", register, ")"],
+                    isPseudo: true,
+                });
+            }
 
-                // The flags po and pe can also be written nv and v respectively.
-                if (variant.params.length > 0 && variant.params[0] == "po") {
-                    mnemonicInfo.variants.push({
-                        ...variant,
-                        params: ["nv", ...variant.params.slice(1)],
-                        tokens: ["nv", ...variant.tokens.slice(1)],
-                        isPseudo: true,
-                    });
-                }
-                if (variant.params.length > 0 && variant.params[0] == "pe") {
-                    mnemonicInfo.variants.push({
-                        ...variant,
-                        params: ["v", ...variant.params.slice(1)],
-                        tokens: ["v", ...variant.tokens.slice(1)],
-                        isPseudo: true,
-                    });
-                }
+            // The flags po and pe can also be written nv and v respectively.
+            if (variant.params.length > 0 && variant.params[0] == "po") {
+                mnemonicInfo.variants.push({
+                    ...variant,
+                    params: ["nv", ...variant.params.slice(1)],
+                    tokens: ["nv", ...variant.tokens.slice(1)],
+                    isPseudo: true,
+                });
+            }
+            if (variant.params.length > 0 && variant.params[0] == "pe") {
+                mnemonicInfo.variants.push({
+                    ...variant,
+                    params: ["v", ...variant.params.slice(1)],
+                    tokens: ["v", ...variant.tokens.slice(1)],
+                    isPseudo: true,
+                });
             }
         }
     });
-
-    if (aliasOpcodes.length > 0) {
-        throw new Error("Didn't handle all aliases");
-    }
 }
 
 /**
@@ -337,7 +326,7 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
 function detectAliases(mnemonics: Mnemonics) {
     const tokensToVariants = new Map<string,OpcodeVariant[]>();
 
-    // Bin by token.
+    // Bin by token sequence.
     for (const mnemonic in mnemonics) {
         const mnemonicInfo = mnemonics[mnemonic];
         const variants = mnemonicInfo.variants;
@@ -354,26 +343,28 @@ function detectAliases(mnemonics: Mnemonics) {
     }
 
     /**
-     * Whether the new variant is a better reference alias than the old one. We prefer
-     * those with fewer opcodes (to make the final binary smaller). For a tie, we
-     * prefer the higher opcodes (for backward compatibility with the previous isAlias
-     * system).
+     * Whether the new variant is a better reference alias than the old one.
      */
     function isBetter(newOne: OpcodeVariant, oldOne: OpcodeVariant): boolean {
-        if (newOne.opcodes.length < oldOne.opcodes.length) {
-            return true;
+        // Prefer the new one if it's documented and old is not.
+        if (newOne.clr !== undefined && oldOne.clr !== undefined &&
+            newOne.clr.undocumented !== oldOne.clr.undocumented) {
+
+            return !newOne.clr.undocumented;
         }
-        if (newOne.opcodes.length > oldOne.opcodes.length) {
-            return false;
+
+        // Prefer shorter.
+        if (newOne.opcodes.length !== oldOne.opcodes.length) {
+            return newOne.opcodes.length < oldOne.opcodes.length;
         }
+
+        // Prefer lower (arbitrary, but for stability).
         for (let i = 0; i < newOne.opcodes.length; i++) {
-            if (newOne.opcodes[i] > oldOne.opcodes[i]) {
-                return true;
-            }
-            if (newOne.opcodes[i] < oldOne.opcodes[i]) {
-                return false;
+            if (newOne.opcodes[i] !== oldOne.opcodes[i]) {
+                return newOne.opcodes[i] < oldOne.opcodes[i];
             }
         }
+
         throw new Error("aliases have the same opcodes: " + opcodeVariantToString(newOne));
     }
 
@@ -403,10 +394,6 @@ function makeVariantVariableName(variant: OpcodeVariant): string {
         (variant.isPseudo ? "_pseudo" : "");
 }
 
-function makeVariantLabel(variant: OpcodeVariant): string {
-    return (variant.mnemonic + " " + variant.params.join(",")).trim();
-}
-
 type CodeOpcodeMap = Map<number, OpcodeVariant | CodeOpcodeMap>;
 function outputOpcodeMap(opcodeMapCode: string[], map: CodeOpcodeMap, indent: number): void {
     const indentString = "  ".repeat(indent + 1);
@@ -422,7 +409,7 @@ function outputOpcodeMap(opcodeMapCode: string[], map: CodeOpcodeMap, indent: nu
             opcodeMapCode.push(indentString + "])],");
         } else {
             const variableName = makeVariantVariableName(value);
-            const label = makeVariantLabel(value);
+            const label = opcodeVariantToString(value);
             opcodeMapCode.push(indentString + "[ 0x" + toHexByte(key) + ", " +  variableName + " ], // " + label +
                 (value.aliasOf !== undefined ? " (alias of " + makeVariantVariableName(value.aliasOf) + ")" : ""));
         }
@@ -454,8 +441,9 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
     mnemonicMapCode.push("export const mnemonicMap = new Map<string,OpcodeVariant[]>([");
 
     const mapEntries: CodeOpcodeMap = new Map<number, OpcodeVariant | CodeOpcodeMap>();
+    const allVariants: OpcodeVariant[] = [];
 
-    for (const mnemonic in mnemonics) {
+    for (const mnemonic of Object.keys(mnemonics).sort()) {
         const mnemonicInfo = mnemonics[mnemonic];
         const variants = mnemonicInfo.variants;
 
@@ -463,16 +451,16 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
         mnemonicMapCode.push("    \"" + mnemonic + "\",");
         mnemonicMapCode.push("    [");
 
+        const variantsSublist: string[] = [];
+
         for (const variant of variants) {
             const variableName = makeVariantVariableName(variant);
-            const label = makeVariantLabel(variant);
+            const label = opcodeVariantToString(variant);
 
-            variantCode.push("");
-            variantCode.push("// " + label);
-            variantCode.push("const " + variableName + ": OpcodeVariant = " + removeAliasQuotes(JSON.stringify(variant, jsonReplacer, 2)) + ";");
+            allVariants.push(variant);
 
             if (variant.aliasOf === undefined) {
-                mnemonicMapCode.push("      " + variableName + ", // " + label);
+                variantsSublist.push("      " + variableName + ", // " + label);
             }
 
             if (!variant.isPseudo) {
@@ -498,11 +486,36 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
             }
         }
 
+        mnemonicMapCode.push(... variantsSublist.sort());
         mnemonicMapCode.push("    ],");
         mnemonicMapCode.push("  ],");
     }
 
     mnemonicMapCode.push("]);");
+
+    // Sort variants with aliases last since they refer to the documented version, which must come first.
+    allVariants.sort((a, b) => {
+        // Aliases last.
+        if ((a.aliasOf === undefined) !== (b.aliasOf === undefined)) {
+            return a.aliasOf === undefined ? -1 : 1;
+        }
+
+        // Opcodes.
+        const aOpcodes = makeVariantVariableName(a);
+        const bOpcodes = makeVariantVariableName(b);
+        if (aOpcodes < bOpcodes) {
+            return -1;
+        }
+        if (aOpcodes > bOpcodes) {
+            return 1;
+        }
+        return 0;
+    });
+    for (const variant of allVariants) {
+        variantCode.push("");
+        variantCode.push("// " + opcodeVariantToString(variant));
+        variantCode.push("const " + makeVariantVariableName(variant) + ": OpcodeVariant = " + removeAliasQuotes(JSON.stringify(variant, jsonReplacer, 2)) + ";");
+    }
 
     // Opcode map in different pass.
     opcodeMapCode.push("// Map from opcode to variant or sub-map.");

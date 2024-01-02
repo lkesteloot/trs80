@@ -289,6 +289,13 @@ describe("assemble", () => {
             { line: " push af'", error: true },
         ]);
     });
+
+    it("assemble to documented", () => {
+        runTest([
+            // The last byte can be 0x40 to 0x47, but 0x46 is what's documented.
+            { line: " BIT 0,(IX+$07)", opcodes: [0xDD, 0xCB, 0x07, 0x46] },
+        ]);
+    });
 });
 
 describe("all opcodes", () => {

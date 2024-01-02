@@ -82,7 +82,7 @@ export function isOpcodeTemplateOperand(operand: string): operand is OpcodeTempl
 export function opcodeVariantToString(variant: OpcodeVariant): string {
     const parts: string[] = [variant.mnemonic, " "];
 
-    let lastWasAlphanumeric = true;
+    let lastWasAlphanumeric = false;
     for (const token of variant.tokens) {
         const thisIsAlphanumeric = token !== "(" && token !== ")" && token !== "," && token !== "+";
         if (lastWasAlphanumeric && thisIsAlphanumeric) {
