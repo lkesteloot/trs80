@@ -1,5 +1,5 @@
 import { getAsmDirectiveDocs } from "z80-asm";
-import {mnemonicMap, OpcodeVariant } from "z80-inst";
+import {mnemonicMap, OpcodeVariant, opcodeVariantToString } from "z80-inst";
 import {CompletionContext, Completion, CompletionResult, snippetCompletion} from "@codemirror/autocomplete";
 import {StateField} from "@codemirror/state";
 import {getInitialSpaceCount} from "./utils";
@@ -7,8 +7,7 @@ import {AssemblyResults} from "./AssemblyResults";
 
 // Get the full label (such as "ld a,b") for the variant.
 function getVariantLabel(variant: OpcodeVariant): string {
-    const label = variant.mnemonic + " " + variant.params.join(",");
-    return label.trim();
+    return opcodeVariantToString(variant);
 }
 
 const ASM_DIRECTIVE_DOCS = getAsmDirectiveDocs();
