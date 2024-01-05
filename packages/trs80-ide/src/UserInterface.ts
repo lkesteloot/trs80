@@ -747,11 +747,19 @@ export class UserInterface {
     private async openFile(editor: Editor) {
         const proceed = await this.promptIfFileModified(editor);
         if (proceed) {
-            const blob = await fileOpen({
-                description: "Assembly Language files",
-                extensions: ASSEMBLY_LANGUAGE_EXTENSIONS,
-                id: ASSEMBLY_LANGUAGE_FILES_DIR_ID,
-            });
+            let blob;
+
+            try {
+                blob = await fileOpen({
+                    description: "Assembly Language files",
+                    extensions: ASSEMBLY_LANGUAGE_EXTENSIONS,
+                    id: ASSEMBLY_LANGUAGE_FILES_DIR_ID,
+                });
+            } catch (e: any) {
+                // Pressed Cancel.
+                return;
+            }
+
             const text = await blob.text();
             const name = stripExtension(blob.name);
             editor.setCode(text, name, blob.handle);
@@ -774,11 +782,19 @@ export class UserInterface {
             type: "text/plain",
         });
         const handle = saveAs ? null : editor.getFileHandle();
-        const newHandle = await fileSave(blob, {
-            id: ASSEMBLY_LANGUAGE_FILES_DIR_ID,
-            fileName: fileName,
-            extensions: ASSEMBLY_LANGUAGE_EXTENSIONS,
-        }, handle);
+        let newHandle;
+
+        try {
+            newHandle = await fileSave(blob, {
+                id: ASSEMBLY_LANGUAGE_FILES_DIR_ID,
+                fileName: fileName,
+                extensions: ASSEMBLY_LANGUAGE_EXTENSIONS,
+            }, handle);
+        } catch (e: any) {
+            // Pressed Cancel.
+            return false;
+        }
+
         if (newHandle === null) {
             return false;
         } else {
@@ -884,11 +900,19 @@ export class UserInterface {
      * Prompt the user to open a floppy, and mount it.
      */
     private async mountFloppy(emulator: Emulator) {
-        const blob = await fileOpen({
-            description: "Floppy disk files",
-            extensions: FLOPPY_FILES_EXTENSIONS,
-            id: FLOPPY_FILES_DIR_ID,
-        });
+        let blob;
+
+        try {
+            blob = await fileOpen({
+                description: "Floppy disk files",
+                extensions: FLOPPY_FILES_EXTENSIONS,
+                id: FLOPPY_FILES_DIR_ID,
+            });
+        } catch (e: any) {
+            // Pressed Cancel.
+            return;
+        }
+
         const text = new Uint8Array(await blob.arrayBuffer());
         const floppy = decodeTrs80File(text, blob.name);
         if (isFloppy(floppy)) {
