@@ -51,6 +51,20 @@ function findClrInstruction(clr: ClrFile, opcodes: string): ClrInstruction | und
     return undefined;
 }
 
+// If the Clr instruction has a DD or FD IX/IY prefix, but its data is the same as the
+// base (non-prefix) instruction, then it's not useful, that's the default behavior
+// when using the prefix.
+function isClrRedundant(clr: ClrFile, instruction: ClrInstruction): boolean {
+    if (instruction.opcodes.startsWith("DD") || instruction.opcodes.startsWith("FD")) {
+        const base = findClrInstruction(clr, instruction.opcodes.substring(2));
+        if (base !== undefined && base.instruction === instruction.instruction) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Capitalize register names.
 function fixClrDescription(desc: string): string {
     return desc
@@ -558,7 +572,7 @@ function generateOpcodes(): void {
     // Warn about the clr entries we didn't use.
     let clrUnusedCount = 0;
     for (const instruction of clr.instructions) {
-        if (!instruction.used) {
+        if (!instruction.used && !instruction.z180 && !isClrRedundant(clr, instruction)) {
             if (clrUnusedCount < 10) {
                 console.log("Warning: Unused CLR instruction: " +
                             instruction.opcodes + " " + instruction.instruction);

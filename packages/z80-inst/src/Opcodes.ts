@@ -14,6 +14,7 @@ const variant_00: OpcodeVariant = {
   "clr": {
     "opcodes": "00",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -44,6 +45,7 @@ const variant_01_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "01",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -75,6 +77,7 @@ const variant_02: OpcodeVariant = {
   "clr": {
     "opcodes": "02",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -101,6 +104,7 @@ const variant_03: OpcodeVariant = {
   "clr": {
     "opcodes": "03",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 6,
@@ -127,6 +131,7 @@ const variant_04: OpcodeVariant = {
   "clr": {
     "opcodes": "04",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -153,6 +158,7 @@ const variant_05: OpcodeVariant = {
   "clr": {
     "opcodes": "05",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -183,6 +189,7 @@ const variant_06_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "06",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -205,6 +212,7 @@ const variant_07: OpcodeVariant = {
   "clr": {
     "opcodes": "07",
     "undocumented": false,
+    "z180": false,
     "flags": "+0-0--",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -234,6 +242,7 @@ const variant_08: OpcodeVariant = {
   "clr": {
     "opcodes": "08",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -263,6 +272,7 @@ const variant_09: OpcodeVariant = {
   "clr": {
     "opcodes": "09",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -294,6 +304,7 @@ const variant_0A: OpcodeVariant = {
   "clr": {
     "opcodes": "0A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -322,6 +333,7 @@ const variant_0A_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "0A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -348,6 +360,7 @@ const variant_0B: OpcodeVariant = {
   "clr": {
     "opcodes": "0B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 6,
@@ -374,6 +387,7 @@ const variant_0C: OpcodeVariant = {
   "clr": {
     "opcodes": "0C",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -400,6 +414,7 @@ const variant_0D: OpcodeVariant = {
   "clr": {
     "opcodes": "0D",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -430,6 +445,7 @@ const variant_0E_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "0E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -452,6 +468,7 @@ const variant_0F: OpcodeVariant = {
   "clr": {
     "opcodes": "0F",
     "undocumented": false,
+    "z180": false,
     "flags": "+0-0--",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -479,6 +496,7 @@ const variant_10_offset: OpcodeVariant = {
   "clr": {
     "opcodes": "10",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 13,
@@ -509,6 +527,7 @@ const variant_11_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "11",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -540,6 +559,7 @@ const variant_12: OpcodeVariant = {
   "clr": {
     "opcodes": "12",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -566,6 +586,7 @@ const variant_13: OpcodeVariant = {
   "clr": {
     "opcodes": "13",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 6,
@@ -592,6 +613,7 @@ const variant_14: OpcodeVariant = {
   "clr": {
     "opcodes": "14",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -618,6 +640,7 @@ const variant_15: OpcodeVariant = {
   "clr": {
     "opcodes": "15",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -648,6 +671,7 @@ const variant_16_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "16",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -670,6 +694,7 @@ const variant_17: OpcodeVariant = {
   "clr": {
     "opcodes": "17",
     "undocumented": false,
+    "z180": false,
     "flags": "+0-0--",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -697,6 +722,7 @@ const variant_18_offset: OpcodeVariant = {
   "clr": {
     "opcodes": "18",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -726,6 +752,7 @@ const variant_19: OpcodeVariant = {
   "clr": {
     "opcodes": "19",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -757,6 +784,7 @@ const variant_1A: OpcodeVariant = {
   "clr": {
     "opcodes": "1A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -785,6 +813,7 @@ const variant_1A_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "1A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -811,6 +840,7 @@ const variant_1B: OpcodeVariant = {
   "clr": {
     "opcodes": "1B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 6,
@@ -837,6 +867,7 @@ const variant_1C: OpcodeVariant = {
   "clr": {
     "opcodes": "1C",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -863,6 +894,7 @@ const variant_1D: OpcodeVariant = {
   "clr": {
     "opcodes": "1D",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -893,6 +925,7 @@ const variant_1E_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "1E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -915,6 +948,7 @@ const variant_1F: OpcodeVariant = {
   "clr": {
     "opcodes": "1F",
     "undocumented": false,
+    "z180": false,
     "flags": "+0-0--",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -945,6 +979,7 @@ const variant_20_offset: OpcodeVariant = {
   "clr": {
     "opcodes": "20",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -975,6 +1010,7 @@ const variant_21_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "21",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -1007,6 +1043,7 @@ const variant_22_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "22",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 16,
@@ -1033,6 +1070,7 @@ const variant_23: OpcodeVariant = {
   "clr": {
     "opcodes": "23",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 6,
@@ -1059,6 +1097,7 @@ const variant_24: OpcodeVariant = {
   "clr": {
     "opcodes": "24",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1085,6 +1124,7 @@ const variant_25: OpcodeVariant = {
   "clr": {
     "opcodes": "25",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1115,6 +1155,7 @@ const variant_26_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "26",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -1137,6 +1178,7 @@ const variant_27: OpcodeVariant = {
   "clr": {
     "opcodes": "27",
     "undocumented": false,
+    "z180": false,
     "flags": "*-P*++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1167,6 +1209,7 @@ const variant_28_offset: OpcodeVariant = {
   "clr": {
     "opcodes": "28",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -1196,6 +1239,7 @@ const variant_29: OpcodeVariant = {
   "clr": {
     "opcodes": "29",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -1228,6 +1272,7 @@ const variant_2A_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "2A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 16,
@@ -1254,6 +1299,7 @@ const variant_2B: OpcodeVariant = {
   "clr": {
     "opcodes": "2B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 6,
@@ -1280,6 +1326,7 @@ const variant_2C: OpcodeVariant = {
   "clr": {
     "opcodes": "2C",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1306,6 +1353,7 @@ const variant_2D: OpcodeVariant = {
   "clr": {
     "opcodes": "2D",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1336,6 +1384,7 @@ const variant_2E_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "2E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -1358,6 +1407,7 @@ const variant_2F: OpcodeVariant = {
   "clr": {
     "opcodes": "2F",
     "undocumented": false,
+    "z180": false,
     "flags": "-1-1--",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1388,6 +1438,7 @@ const variant_30_offset: OpcodeVariant = {
   "clr": {
     "opcodes": "30",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -1418,6 +1469,7 @@ const variant_31_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "31",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -1450,6 +1502,7 @@ const variant_32_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "32",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 13,
@@ -1476,6 +1529,7 @@ const variant_33: OpcodeVariant = {
   "clr": {
     "opcodes": "33",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 6,
@@ -1504,6 +1558,7 @@ const variant_34: OpcodeVariant = {
   "clr": {
     "opcodes": "34",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -1532,6 +1587,7 @@ const variant_35: OpcodeVariant = {
   "clr": {
     "opcodes": "35",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -1564,6 +1620,7 @@ const variant_36_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "36",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 10,
@@ -1586,6 +1643,7 @@ const variant_37: OpcodeVariant = {
   "clr": {
     "opcodes": "37",
     "undocumented": false,
+    "z180": false,
     "flags": "10-0--",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1616,6 +1674,7 @@ const variant_38_offset: OpcodeVariant = {
   "clr": {
     "opcodes": "38",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -1645,6 +1704,7 @@ const variant_39: OpcodeVariant = {
   "clr": {
     "opcodes": "39",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -1677,6 +1737,7 @@ const variant_3A_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "3A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 13,
@@ -1706,6 +1767,7 @@ const variant_3A_nnnn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "3A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 13,
@@ -1732,6 +1794,7 @@ const variant_3B: OpcodeVariant = {
   "clr": {
     "opcodes": "3B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 6,
@@ -1758,6 +1821,7 @@ const variant_3C: OpcodeVariant = {
   "clr": {
     "opcodes": "3C",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1784,6 +1848,7 @@ const variant_3D: OpcodeVariant = {
   "clr": {
     "opcodes": "3D",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1814,6 +1879,7 @@ const variant_3E_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "3E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -1841,6 +1907,7 @@ const variant_3E_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "3E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -1863,6 +1930,7 @@ const variant_3F: OpcodeVariant = {
   "clr": {
     "opcodes": "3F",
     "undocumented": false,
+    "z180": false,
     "flags": "*0-*--",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1892,6 +1960,7 @@ const variant_40: OpcodeVariant = {
   "clr": {
     "opcodes": "40",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1921,6 +1990,7 @@ const variant_41: OpcodeVariant = {
   "clr": {
     "opcodes": "41",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1950,6 +2020,7 @@ const variant_42: OpcodeVariant = {
   "clr": {
     "opcodes": "42",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -1979,6 +2050,7 @@ const variant_43: OpcodeVariant = {
   "clr": {
     "opcodes": "43",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2008,6 +2080,7 @@ const variant_44: OpcodeVariant = {
   "clr": {
     "opcodes": "44",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2056,6 +2129,7 @@ const variant_45: OpcodeVariant = {
   "clr": {
     "opcodes": "45",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2087,6 +2161,7 @@ const variant_46: OpcodeVariant = {
   "clr": {
     "opcodes": "46",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -2116,6 +2191,7 @@ const variant_47: OpcodeVariant = {
   "clr": {
     "opcodes": "47",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2145,6 +2221,7 @@ const variant_48: OpcodeVariant = {
   "clr": {
     "opcodes": "48",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2174,6 +2251,7 @@ const variant_49: OpcodeVariant = {
   "clr": {
     "opcodes": "49",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2203,6 +2281,7 @@ const variant_4A: OpcodeVariant = {
   "clr": {
     "opcodes": "4A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2232,6 +2311,7 @@ const variant_4B: OpcodeVariant = {
   "clr": {
     "opcodes": "4B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2261,6 +2341,7 @@ const variant_4C: OpcodeVariant = {
   "clr": {
     "opcodes": "4C",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2290,6 +2371,7 @@ const variant_4D: OpcodeVariant = {
   "clr": {
     "opcodes": "4D",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2321,6 +2403,7 @@ const variant_4E: OpcodeVariant = {
   "clr": {
     "opcodes": "4E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -2373,6 +2456,7 @@ const variant_4F: OpcodeVariant = {
   "clr": {
     "opcodes": "4F",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2402,6 +2486,7 @@ const variant_50: OpcodeVariant = {
   "clr": {
     "opcodes": "50",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2450,6 +2535,7 @@ const variant_51: OpcodeVariant = {
   "clr": {
     "opcodes": "51",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2479,6 +2565,7 @@ const variant_52: OpcodeVariant = {
   "clr": {
     "opcodes": "52",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2508,6 +2595,7 @@ const variant_53: OpcodeVariant = {
   "clr": {
     "opcodes": "53",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2537,6 +2625,7 @@ const variant_54: OpcodeVariant = {
   "clr": {
     "opcodes": "54",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2585,6 +2674,7 @@ const variant_55: OpcodeVariant = {
   "clr": {
     "opcodes": "55",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2616,6 +2706,7 @@ const variant_56: OpcodeVariant = {
   "clr": {
     "opcodes": "56",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -2645,6 +2736,7 @@ const variant_57: OpcodeVariant = {
   "clr": {
     "opcodes": "57",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2674,6 +2766,7 @@ const variant_58: OpcodeVariant = {
   "clr": {
     "opcodes": "58",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2703,6 +2796,7 @@ const variant_59: OpcodeVariant = {
   "clr": {
     "opcodes": "59",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2732,6 +2826,7 @@ const variant_5A: OpcodeVariant = {
   "clr": {
     "opcodes": "5A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2761,6 +2856,7 @@ const variant_5B: OpcodeVariant = {
   "clr": {
     "opcodes": "5B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2790,6 +2886,7 @@ const variant_5C: OpcodeVariant = {
   "clr": {
     "opcodes": "5C",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2819,6 +2916,7 @@ const variant_5D: OpcodeVariant = {
   "clr": {
     "opcodes": "5D",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2850,6 +2948,7 @@ const variant_5E: OpcodeVariant = {
   "clr": {
     "opcodes": "5E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -2879,6 +2978,7 @@ const variant_5F: OpcodeVariant = {
   "clr": {
     "opcodes": "5F",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2908,6 +3008,7 @@ const variant_60: OpcodeVariant = {
   "clr": {
     "opcodes": "60",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2956,6 +3057,7 @@ const variant_61: OpcodeVariant = {
   "clr": {
     "opcodes": "61",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -2985,6 +3087,7 @@ const variant_62: OpcodeVariant = {
   "clr": {
     "opcodes": "62",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3033,6 +3136,7 @@ const variant_63: OpcodeVariant = {
   "clr": {
     "opcodes": "63",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3062,6 +3166,7 @@ const variant_64: OpcodeVariant = {
   "clr": {
     "opcodes": "64",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3091,6 +3196,7 @@ const variant_65: OpcodeVariant = {
   "clr": {
     "opcodes": "65",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3122,6 +3228,7 @@ const variant_66: OpcodeVariant = {
   "clr": {
     "opcodes": "66",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -3151,6 +3258,7 @@ const variant_67: OpcodeVariant = {
   "clr": {
     "opcodes": "67",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3180,6 +3288,7 @@ const variant_68: OpcodeVariant = {
   "clr": {
     "opcodes": "68",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3209,6 +3318,7 @@ const variant_69: OpcodeVariant = {
   "clr": {
     "opcodes": "69",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3238,6 +3348,7 @@ const variant_6A: OpcodeVariant = {
   "clr": {
     "opcodes": "6A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3267,6 +3378,7 @@ const variant_6B: OpcodeVariant = {
   "clr": {
     "opcodes": "6B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3296,6 +3408,7 @@ const variant_6C: OpcodeVariant = {
   "clr": {
     "opcodes": "6C",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3325,6 +3438,7 @@ const variant_6D: OpcodeVariant = {
   "clr": {
     "opcodes": "6D",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3356,6 +3470,7 @@ const variant_6E: OpcodeVariant = {
   "clr": {
     "opcodes": "6E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -3385,6 +3500,7 @@ const variant_6F: OpcodeVariant = {
   "clr": {
     "opcodes": "6F",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3416,6 +3532,7 @@ const variant_70: OpcodeVariant = {
   "clr": {
     "opcodes": "70",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -3447,6 +3564,7 @@ const variant_71: OpcodeVariant = {
   "clr": {
     "opcodes": "71",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -3501,6 +3619,7 @@ const variant_72: OpcodeVariant = {
   "clr": {
     "opcodes": "72",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -3532,6 +3651,7 @@ const variant_73: OpcodeVariant = {
   "clr": {
     "opcodes": "73",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -3586,6 +3706,7 @@ const variant_74: OpcodeVariant = {
   "clr": {
     "opcodes": "74",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -3617,6 +3738,7 @@ const variant_75: OpcodeVariant = {
   "clr": {
     "opcodes": "75",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -3639,6 +3761,7 @@ const variant_76: OpcodeVariant = {
   "clr": {
     "opcodes": "76",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3670,6 +3793,7 @@ const variant_77: OpcodeVariant = {
   "clr": {
     "opcodes": "77",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -3699,6 +3823,7 @@ const variant_78: OpcodeVariant = {
   "clr": {
     "opcodes": "78",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3725,6 +3850,7 @@ const variant_78_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "78",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3754,6 +3880,7 @@ const variant_79: OpcodeVariant = {
   "clr": {
     "opcodes": "79",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3780,6 +3907,7 @@ const variant_79_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "79",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3809,6 +3937,7 @@ const variant_7A: OpcodeVariant = {
   "clr": {
     "opcodes": "7A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3835,6 +3964,7 @@ const variant_7A_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "7A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3864,6 +3994,7 @@ const variant_7B: OpcodeVariant = {
   "clr": {
     "opcodes": "7B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3890,6 +4021,7 @@ const variant_7B_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "7B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3919,6 +4051,7 @@ const variant_7C: OpcodeVariant = {
   "clr": {
     "opcodes": "7C",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3945,6 +4078,7 @@ const variant_7C_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "7C",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -3974,6 +4108,7 @@ const variant_7D: OpcodeVariant = {
   "clr": {
     "opcodes": "7D",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4000,6 +4135,7 @@ const variant_7D_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "7D",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4031,6 +4167,7 @@ const variant_7E: OpcodeVariant = {
   "clr": {
     "opcodes": "7E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -4059,6 +4196,7 @@ const variant_7E_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "7E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -4088,6 +4226,7 @@ const variant_7F: OpcodeVariant = {
   "clr": {
     "opcodes": "7F",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4114,6 +4253,7 @@ const variant_7F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "7F",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4143,6 +4283,7 @@ const variant_80: OpcodeVariant = {
   "clr": {
     "opcodes": "80",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4169,6 +4310,7 @@ const variant_80_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "80",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4198,6 +4340,7 @@ const variant_81: OpcodeVariant = {
   "clr": {
     "opcodes": "81",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4224,6 +4367,7 @@ const variant_81_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "81",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4253,6 +4397,7 @@ const variant_82: OpcodeVariant = {
   "clr": {
     "opcodes": "82",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4279,6 +4424,7 @@ const variant_82_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "82",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4308,6 +4454,7 @@ const variant_83: OpcodeVariant = {
   "clr": {
     "opcodes": "83",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4334,6 +4481,7 @@ const variant_83_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "83",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4363,6 +4511,7 @@ const variant_84: OpcodeVariant = {
   "clr": {
     "opcodes": "84",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4389,6 +4538,7 @@ const variant_84_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "84",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4418,6 +4568,7 @@ const variant_85: OpcodeVariant = {
   "clr": {
     "opcodes": "85",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4444,6 +4595,7 @@ const variant_85_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "85",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4475,6 +4627,7 @@ const variant_86: OpcodeVariant = {
   "clr": {
     "opcodes": "86",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -4503,6 +4656,7 @@ const variant_86_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "86",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -4532,6 +4686,7 @@ const variant_87: OpcodeVariant = {
   "clr": {
     "opcodes": "87",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4558,6 +4713,7 @@ const variant_87_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "87",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4587,6 +4743,7 @@ const variant_88: OpcodeVariant = {
   "clr": {
     "opcodes": "88",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4613,6 +4770,7 @@ const variant_88_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "88",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4642,6 +4800,7 @@ const variant_89: OpcodeVariant = {
   "clr": {
     "opcodes": "89",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4668,6 +4827,7 @@ const variant_89_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "89",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4697,6 +4857,7 @@ const variant_8A: OpcodeVariant = {
   "clr": {
     "opcodes": "8A",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4723,6 +4884,7 @@ const variant_8A_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "8A",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4752,6 +4914,7 @@ const variant_8B: OpcodeVariant = {
   "clr": {
     "opcodes": "8B",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4778,6 +4941,7 @@ const variant_8B_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "8B",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4807,6 +4971,7 @@ const variant_8C: OpcodeVariant = {
   "clr": {
     "opcodes": "8C",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4833,6 +4998,7 @@ const variant_8C_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "8C",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4862,6 +5028,7 @@ const variant_8D: OpcodeVariant = {
   "clr": {
     "opcodes": "8D",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4888,6 +5055,7 @@ const variant_8D_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "8D",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -4919,6 +5087,7 @@ const variant_8E: OpcodeVariant = {
   "clr": {
     "opcodes": "8E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -4947,6 +5116,7 @@ const variant_8E_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "8E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -4976,6 +5146,7 @@ const variant_8F: OpcodeVariant = {
   "clr": {
     "opcodes": "8F",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5002,6 +5173,7 @@ const variant_8F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "8F",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5031,6 +5203,7 @@ const variant_90: OpcodeVariant = {
   "clr": {
     "opcodes": "90",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5057,6 +5230,7 @@ const variant_90_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "90",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5086,6 +5260,7 @@ const variant_91: OpcodeVariant = {
   "clr": {
     "opcodes": "91",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5112,6 +5287,7 @@ const variant_91_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "91",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5141,6 +5317,7 @@ const variant_92: OpcodeVariant = {
   "clr": {
     "opcodes": "92",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5167,6 +5344,7 @@ const variant_92_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "92",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5196,6 +5374,7 @@ const variant_93: OpcodeVariant = {
   "clr": {
     "opcodes": "93",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5222,6 +5401,7 @@ const variant_93_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "93",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5251,6 +5431,7 @@ const variant_94: OpcodeVariant = {
   "clr": {
     "opcodes": "94",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5277,6 +5458,7 @@ const variant_94_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "94",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5306,6 +5488,7 @@ const variant_95: OpcodeVariant = {
   "clr": {
     "opcodes": "95",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5332,6 +5515,7 @@ const variant_95_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "95",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5363,6 +5547,7 @@ const variant_96: OpcodeVariant = {
   "clr": {
     "opcodes": "96",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -5391,6 +5576,7 @@ const variant_96_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "96",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -5420,6 +5606,7 @@ const variant_97: OpcodeVariant = {
   "clr": {
     "opcodes": "97",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5446,6 +5633,7 @@ const variant_97_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "97",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5475,6 +5663,7 @@ const variant_98: OpcodeVariant = {
   "clr": {
     "opcodes": "98",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5501,6 +5690,7 @@ const variant_98_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "98",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5530,6 +5720,7 @@ const variant_99: OpcodeVariant = {
   "clr": {
     "opcodes": "99",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5556,6 +5747,7 @@ const variant_99_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "99",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5585,6 +5777,7 @@ const variant_9A: OpcodeVariant = {
   "clr": {
     "opcodes": "9A",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5611,6 +5804,7 @@ const variant_9A_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "9A",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5640,6 +5834,7 @@ const variant_9B: OpcodeVariant = {
   "clr": {
     "opcodes": "9B",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5666,6 +5861,7 @@ const variant_9B_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "9B",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5695,6 +5891,7 @@ const variant_9C: OpcodeVariant = {
   "clr": {
     "opcodes": "9C",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5721,6 +5918,7 @@ const variant_9C_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "9C",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5750,6 +5948,7 @@ const variant_9D: OpcodeVariant = {
   "clr": {
     "opcodes": "9D",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5776,6 +5975,7 @@ const variant_9D_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "9D",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5807,6 +6007,7 @@ const variant_9E: OpcodeVariant = {
   "clr": {
     "opcodes": "9E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -5835,6 +6036,7 @@ const variant_9E_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "9E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -5864,6 +6066,7 @@ const variant_9F: OpcodeVariant = {
   "clr": {
     "opcodes": "9F",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5890,6 +6093,7 @@ const variant_9F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "9F",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5919,6 +6123,7 @@ const variant_A0: OpcodeVariant = {
   "clr": {
     "opcodes": "A0",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5945,6 +6150,7 @@ const variant_A0_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A0",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -5974,6 +6180,7 @@ const variant_A1: OpcodeVariant = {
   "clr": {
     "opcodes": "A1",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6000,6 +6207,7 @@ const variant_A1_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A1",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6029,6 +6237,7 @@ const variant_A2: OpcodeVariant = {
   "clr": {
     "opcodes": "A2",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6055,6 +6264,7 @@ const variant_A2_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A2",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6084,6 +6294,7 @@ const variant_A3: OpcodeVariant = {
   "clr": {
     "opcodes": "A3",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6110,6 +6321,7 @@ const variant_A3_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A3",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6139,6 +6351,7 @@ const variant_A4: OpcodeVariant = {
   "clr": {
     "opcodes": "A4",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6165,6 +6378,7 @@ const variant_A4_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A4",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6194,6 +6408,7 @@ const variant_A5: OpcodeVariant = {
   "clr": {
     "opcodes": "A5",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6220,6 +6435,7 @@ const variant_A5_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A5",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6251,6 +6467,7 @@ const variant_A6: OpcodeVariant = {
   "clr": {
     "opcodes": "A6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -6279,6 +6496,7 @@ const variant_A6_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -6308,6 +6526,7 @@ const variant_A7: OpcodeVariant = {
   "clr": {
     "opcodes": "A7",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6334,6 +6553,7 @@ const variant_A7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A7",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6363,6 +6583,7 @@ const variant_A8: OpcodeVariant = {
   "clr": {
     "opcodes": "A8",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6389,6 +6610,7 @@ const variant_A8_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A8",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6418,6 +6640,7 @@ const variant_A9: OpcodeVariant = {
   "clr": {
     "opcodes": "A9",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6444,6 +6667,7 @@ const variant_A9_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "A9",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6473,6 +6697,7 @@ const variant_AA: OpcodeVariant = {
   "clr": {
     "opcodes": "AA",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6499,6 +6724,7 @@ const variant_AA_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "AA",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6528,6 +6754,7 @@ const variant_AB: OpcodeVariant = {
   "clr": {
     "opcodes": "AB",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6554,6 +6781,7 @@ const variant_AB_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "AB",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6583,6 +6811,7 @@ const variant_AC: OpcodeVariant = {
   "clr": {
     "opcodes": "AC",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6609,6 +6838,7 @@ const variant_AC_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "AC",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6638,6 +6868,7 @@ const variant_AD: OpcodeVariant = {
   "clr": {
     "opcodes": "AD",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6664,6 +6895,7 @@ const variant_AD_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "AD",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6695,6 +6927,7 @@ const variant_AE: OpcodeVariant = {
   "clr": {
     "opcodes": "AE",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -6723,6 +6956,7 @@ const variant_AE_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "AE",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -6752,6 +6986,7 @@ const variant_AF: OpcodeVariant = {
   "clr": {
     "opcodes": "AF",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6778,6 +7013,7 @@ const variant_AF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "AF",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6807,6 +7043,7 @@ const variant_B0: OpcodeVariant = {
   "clr": {
     "opcodes": "B0",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6833,6 +7070,7 @@ const variant_B0_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B0",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6862,6 +7100,7 @@ const variant_B1: OpcodeVariant = {
   "clr": {
     "opcodes": "B1",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6888,6 +7127,7 @@ const variant_B1_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B1",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6917,6 +7157,7 @@ const variant_B2: OpcodeVariant = {
   "clr": {
     "opcodes": "B2",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6943,6 +7184,7 @@ const variant_B2_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B2",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6972,6 +7214,7 @@ const variant_B3: OpcodeVariant = {
   "clr": {
     "opcodes": "B3",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -6998,6 +7241,7 @@ const variant_B3_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B3",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7027,6 +7271,7 @@ const variant_B4: OpcodeVariant = {
   "clr": {
     "opcodes": "B4",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7053,6 +7298,7 @@ const variant_B4_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B4",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7082,6 +7328,7 @@ const variant_B5: OpcodeVariant = {
   "clr": {
     "opcodes": "B5",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7108,6 +7355,7 @@ const variant_B5_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B5",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7139,6 +7387,7 @@ const variant_B6: OpcodeVariant = {
   "clr": {
     "opcodes": "B6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -7167,6 +7416,7 @@ const variant_B6_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -7196,6 +7446,7 @@ const variant_B7: OpcodeVariant = {
   "clr": {
     "opcodes": "B7",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7222,6 +7473,7 @@ const variant_B7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B7",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7251,6 +7503,7 @@ const variant_B8: OpcodeVariant = {
   "clr": {
     "opcodes": "B8",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7277,6 +7530,7 @@ const variant_B8_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B8",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7306,6 +7560,7 @@ const variant_B9: OpcodeVariant = {
   "clr": {
     "opcodes": "B9",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7332,6 +7587,7 @@ const variant_B9_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "B9",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7361,6 +7617,7 @@ const variant_BA: OpcodeVariant = {
   "clr": {
     "opcodes": "BA",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7387,6 +7644,7 @@ const variant_BA_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "BA",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7416,6 +7674,7 @@ const variant_BB: OpcodeVariant = {
   "clr": {
     "opcodes": "BB",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7442,6 +7701,7 @@ const variant_BB_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "BB",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7471,6 +7731,7 @@ const variant_BC: OpcodeVariant = {
   "clr": {
     "opcodes": "BC",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7497,6 +7758,7 @@ const variant_BC_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "BC",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7526,6 +7788,7 @@ const variant_BD: OpcodeVariant = {
   "clr": {
     "opcodes": "BD",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7552,6 +7815,7 @@ const variant_BD_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "BD",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7583,6 +7847,7 @@ const variant_BE: OpcodeVariant = {
   "clr": {
     "opcodes": "BE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -7611,6 +7876,7 @@ const variant_BE_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "BE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 7,
@@ -7640,6 +7906,7 @@ const variant_BF: OpcodeVariant = {
   "clr": {
     "opcodes": "BF",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7666,6 +7933,7 @@ const variant_BF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "BF",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -7692,6 +7960,7 @@ const variant_C0: OpcodeVariant = {
   "clr": {
     "opcodes": "C0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -7718,6 +7987,7 @@ const variant_C1: OpcodeVariant = {
   "clr": {
     "opcodes": "C1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 10,
@@ -7748,6 +8018,7 @@ const variant_C2_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "C2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -7775,6 +8046,7 @@ const variant_C3_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "C3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -7805,6 +8077,7 @@ const variant_C4_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "C4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -7831,6 +8104,7 @@ const variant_C5: OpcodeVariant = {
   "clr": {
     "opcodes": "C5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -7861,6 +8135,7 @@ const variant_C6_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "C6",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -7888,6 +8163,7 @@ const variant_C6_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "C6",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -7914,6 +8190,7 @@ const variant_C7: OpcodeVariant = {
   "clr": {
     "opcodes": "C7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -7940,6 +8217,7 @@ const variant_C8: OpcodeVariant = {
   "clr": {
     "opcodes": "C8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -7962,6 +8240,7 @@ const variant_C9: OpcodeVariant = {
   "clr": {
     "opcodes": "C9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 10,
@@ -7992,6 +8271,7 @@ const variant_CA_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "CA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -8019,6 +8299,7 @@ const variant_CB_00: OpcodeVariant = {
   "clr": {
     "opcodes": "CB00",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8046,6 +8327,7 @@ const variant_CB_01: OpcodeVariant = {
   "clr": {
     "opcodes": "CB01",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8073,6 +8355,7 @@ const variant_CB_02: OpcodeVariant = {
   "clr": {
     "opcodes": "CB02",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8100,6 +8383,7 @@ const variant_CB_03: OpcodeVariant = {
   "clr": {
     "opcodes": "CB03",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8127,6 +8411,7 @@ const variant_CB_04: OpcodeVariant = {
   "clr": {
     "opcodes": "CB04",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8154,6 +8439,7 @@ const variant_CB_05: OpcodeVariant = {
   "clr": {
     "opcodes": "CB05",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8183,6 +8469,7 @@ const variant_CB_06: OpcodeVariant = {
   "clr": {
     "opcodes": "CB06",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -8210,6 +8497,7 @@ const variant_CB_07: OpcodeVariant = {
   "clr": {
     "opcodes": "CB07",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8237,6 +8525,7 @@ const variant_CB_08: OpcodeVariant = {
   "clr": {
     "opcodes": "CB08",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8264,6 +8553,7 @@ const variant_CB_09: OpcodeVariant = {
   "clr": {
     "opcodes": "CB09",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8291,6 +8581,7 @@ const variant_CB_0A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB0A",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8318,6 +8609,7 @@ const variant_CB_0B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB0B",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8345,6 +8637,7 @@ const variant_CB_0C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB0C",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8372,6 +8665,7 @@ const variant_CB_0D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB0D",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8401,6 +8695,7 @@ const variant_CB_0E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB0E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -8428,6 +8723,7 @@ const variant_CB_0F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB0F",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8455,6 +8751,7 @@ const variant_CB_10: OpcodeVariant = {
   "clr": {
     "opcodes": "CB10",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8482,6 +8779,7 @@ const variant_CB_11: OpcodeVariant = {
   "clr": {
     "opcodes": "CB11",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8509,6 +8807,7 @@ const variant_CB_12: OpcodeVariant = {
   "clr": {
     "opcodes": "CB12",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8536,6 +8835,7 @@ const variant_CB_13: OpcodeVariant = {
   "clr": {
     "opcodes": "CB13",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8563,6 +8863,7 @@ const variant_CB_14: OpcodeVariant = {
   "clr": {
     "opcodes": "CB14",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8590,6 +8891,7 @@ const variant_CB_15: OpcodeVariant = {
   "clr": {
     "opcodes": "CB15",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8619,6 +8921,7 @@ const variant_CB_16: OpcodeVariant = {
   "clr": {
     "opcodes": "CB16",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -8646,6 +8949,7 @@ const variant_CB_17: OpcodeVariant = {
   "clr": {
     "opcodes": "CB17",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8673,6 +8977,7 @@ const variant_CB_18: OpcodeVariant = {
   "clr": {
     "opcodes": "CB18",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8700,6 +9005,7 @@ const variant_CB_19: OpcodeVariant = {
   "clr": {
     "opcodes": "CB19",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8727,6 +9033,7 @@ const variant_CB_1A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB1A",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8754,6 +9061,7 @@ const variant_CB_1B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB1B",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8781,6 +9089,7 @@ const variant_CB_1C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB1C",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8808,6 +9117,7 @@ const variant_CB_1D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB1D",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8837,6 +9147,7 @@ const variant_CB_1E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB1E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -8864,6 +9175,7 @@ const variant_CB_1F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB1F",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8891,6 +9203,7 @@ const variant_CB_20: OpcodeVariant = {
   "clr": {
     "opcodes": "CB20",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8918,6 +9231,7 @@ const variant_CB_21: OpcodeVariant = {
   "clr": {
     "opcodes": "CB21",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8945,6 +9259,7 @@ const variant_CB_22: OpcodeVariant = {
   "clr": {
     "opcodes": "CB22",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8972,6 +9287,7 @@ const variant_CB_23: OpcodeVariant = {
   "clr": {
     "opcodes": "CB23",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -8999,6 +9315,7 @@ const variant_CB_24: OpcodeVariant = {
   "clr": {
     "opcodes": "CB24",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9026,6 +9343,7 @@ const variant_CB_25: OpcodeVariant = {
   "clr": {
     "opcodes": "CB25",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9055,6 +9373,7 @@ const variant_CB_26: OpcodeVariant = {
   "clr": {
     "opcodes": "CB26",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -9082,6 +9401,7 @@ const variant_CB_27: OpcodeVariant = {
   "clr": {
     "opcodes": "CB27",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9109,6 +9429,7 @@ const variant_CB_28: OpcodeVariant = {
   "clr": {
     "opcodes": "CB28",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9136,6 +9457,7 @@ const variant_CB_29: OpcodeVariant = {
   "clr": {
     "opcodes": "CB29",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9163,6 +9485,7 @@ const variant_CB_2A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB2A",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9190,6 +9513,7 @@ const variant_CB_2B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB2B",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9217,6 +9541,7 @@ const variant_CB_2C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB2C",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9244,6 +9569,7 @@ const variant_CB_2D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB2D",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9273,6 +9599,7 @@ const variant_CB_2E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB2E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -9300,6 +9627,7 @@ const variant_CB_2F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB2F",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9327,6 +9655,7 @@ const variant_CB_30: OpcodeVariant = {
   "clr": {
     "opcodes": "CB30",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9354,6 +9683,7 @@ const variant_CB_31: OpcodeVariant = {
   "clr": {
     "opcodes": "CB31",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9381,6 +9711,7 @@ const variant_CB_32: OpcodeVariant = {
   "clr": {
     "opcodes": "CB32",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9408,6 +9739,7 @@ const variant_CB_33: OpcodeVariant = {
   "clr": {
     "opcodes": "CB33",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9435,6 +9767,7 @@ const variant_CB_34: OpcodeVariant = {
   "clr": {
     "opcodes": "CB34",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9462,6 +9795,7 @@ const variant_CB_35: OpcodeVariant = {
   "clr": {
     "opcodes": "CB35",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9491,6 +9825,7 @@ const variant_CB_36: OpcodeVariant = {
   "clr": {
     "opcodes": "CB36",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -9518,6 +9853,7 @@ const variant_CB_37: OpcodeVariant = {
   "clr": {
     "opcodes": "CB37",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9545,6 +9881,7 @@ const variant_CB_38: OpcodeVariant = {
   "clr": {
     "opcodes": "CB38",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9572,6 +9909,7 @@ const variant_CB_39: OpcodeVariant = {
   "clr": {
     "opcodes": "CB39",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9599,6 +9937,7 @@ const variant_CB_3A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB3A",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9626,6 +9965,7 @@ const variant_CB_3B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB3B",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9653,6 +9993,7 @@ const variant_CB_3C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB3C",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9680,6 +10021,7 @@ const variant_CB_3D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB3D",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9709,6 +10051,7 @@ const variant_CB_3E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB3E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -9736,6 +10079,7 @@ const variant_CB_3F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB3F",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9766,6 +10110,7 @@ const variant_CB_40: OpcodeVariant = {
   "clr": {
     "opcodes": "CB40",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9796,6 +10141,7 @@ const variant_CB_41: OpcodeVariant = {
   "clr": {
     "opcodes": "CB41",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9826,6 +10172,7 @@ const variant_CB_42: OpcodeVariant = {
   "clr": {
     "opcodes": "CB42",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9856,6 +10203,7 @@ const variant_CB_43: OpcodeVariant = {
   "clr": {
     "opcodes": "CB43",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9886,6 +10234,7 @@ const variant_CB_44: OpcodeVariant = {
   "clr": {
     "opcodes": "CB44",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9916,6 +10265,7 @@ const variant_CB_45: OpcodeVariant = {
   "clr": {
     "opcodes": "CB45",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -9948,6 +10298,7 @@ const variant_CB_46: OpcodeVariant = {
   "clr": {
     "opcodes": "CB46",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -9978,6 +10329,7 @@ const variant_CB_47: OpcodeVariant = {
   "clr": {
     "opcodes": "CB47",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10008,6 +10360,7 @@ const variant_CB_48: OpcodeVariant = {
   "clr": {
     "opcodes": "CB48",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10038,6 +10391,7 @@ const variant_CB_49: OpcodeVariant = {
   "clr": {
     "opcodes": "CB49",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10068,6 +10422,7 @@ const variant_CB_4A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB4A",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10098,6 +10453,7 @@ const variant_CB_4B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB4B",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10128,6 +10484,7 @@ const variant_CB_4C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB4C",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10158,6 +10515,7 @@ const variant_CB_4D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB4D",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10190,6 +10548,7 @@ const variant_CB_4E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB4E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -10220,6 +10579,7 @@ const variant_CB_4F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB4F",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10250,6 +10610,7 @@ const variant_CB_50: OpcodeVariant = {
   "clr": {
     "opcodes": "CB50",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10280,6 +10641,7 @@ const variant_CB_51: OpcodeVariant = {
   "clr": {
     "opcodes": "CB51",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10310,6 +10672,7 @@ const variant_CB_52: OpcodeVariant = {
   "clr": {
     "opcodes": "CB52",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10340,6 +10703,7 @@ const variant_CB_53: OpcodeVariant = {
   "clr": {
     "opcodes": "CB53",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10370,6 +10734,7 @@ const variant_CB_54: OpcodeVariant = {
   "clr": {
     "opcodes": "CB54",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10400,6 +10765,7 @@ const variant_CB_55: OpcodeVariant = {
   "clr": {
     "opcodes": "CB55",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10432,6 +10798,7 @@ const variant_CB_56: OpcodeVariant = {
   "clr": {
     "opcodes": "CB56",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -10462,6 +10829,7 @@ const variant_CB_57: OpcodeVariant = {
   "clr": {
     "opcodes": "CB57",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10492,6 +10860,7 @@ const variant_CB_58: OpcodeVariant = {
   "clr": {
     "opcodes": "CB58",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10522,6 +10891,7 @@ const variant_CB_59: OpcodeVariant = {
   "clr": {
     "opcodes": "CB59",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10552,6 +10922,7 @@ const variant_CB_5A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB5A",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10582,6 +10953,7 @@ const variant_CB_5B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB5B",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10612,6 +10984,7 @@ const variant_CB_5C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB5C",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10642,6 +11015,7 @@ const variant_CB_5D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB5D",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10674,6 +11048,7 @@ const variant_CB_5E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB5E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -10704,6 +11079,7 @@ const variant_CB_5F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB5F",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10734,6 +11110,7 @@ const variant_CB_60: OpcodeVariant = {
   "clr": {
     "opcodes": "CB60",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10764,6 +11141,7 @@ const variant_CB_61: OpcodeVariant = {
   "clr": {
     "opcodes": "CB61",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10794,6 +11172,7 @@ const variant_CB_62: OpcodeVariant = {
   "clr": {
     "opcodes": "CB62",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10824,6 +11203,7 @@ const variant_CB_63: OpcodeVariant = {
   "clr": {
     "opcodes": "CB63",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10854,6 +11234,7 @@ const variant_CB_64: OpcodeVariant = {
   "clr": {
     "opcodes": "CB64",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10884,6 +11265,7 @@ const variant_CB_65: OpcodeVariant = {
   "clr": {
     "opcodes": "CB65",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10916,6 +11298,7 @@ const variant_CB_66: OpcodeVariant = {
   "clr": {
     "opcodes": "CB66",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -10946,6 +11329,7 @@ const variant_CB_67: OpcodeVariant = {
   "clr": {
     "opcodes": "CB67",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -10976,6 +11360,7 @@ const variant_CB_68: OpcodeVariant = {
   "clr": {
     "opcodes": "CB68",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11006,6 +11391,7 @@ const variant_CB_69: OpcodeVariant = {
   "clr": {
     "opcodes": "CB69",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11036,6 +11422,7 @@ const variant_CB_6A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB6A",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11066,6 +11453,7 @@ const variant_CB_6B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB6B",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11096,6 +11484,7 @@ const variant_CB_6C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB6C",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11126,6 +11515,7 @@ const variant_CB_6D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB6D",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11158,6 +11548,7 @@ const variant_CB_6E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB6E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -11188,6 +11579,7 @@ const variant_CB_6F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB6F",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11218,6 +11610,7 @@ const variant_CB_70: OpcodeVariant = {
   "clr": {
     "opcodes": "CB70",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11248,6 +11641,7 @@ const variant_CB_71: OpcodeVariant = {
   "clr": {
     "opcodes": "CB71",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11278,6 +11672,7 @@ const variant_CB_72: OpcodeVariant = {
   "clr": {
     "opcodes": "CB72",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11308,6 +11703,7 @@ const variant_CB_73: OpcodeVariant = {
   "clr": {
     "opcodes": "CB73",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11338,6 +11734,7 @@ const variant_CB_74: OpcodeVariant = {
   "clr": {
     "opcodes": "CB74",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11368,6 +11765,7 @@ const variant_CB_75: OpcodeVariant = {
   "clr": {
     "opcodes": "CB75",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11400,6 +11798,7 @@ const variant_CB_76: OpcodeVariant = {
   "clr": {
     "opcodes": "CB76",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -11430,6 +11829,7 @@ const variant_CB_77: OpcodeVariant = {
   "clr": {
     "opcodes": "CB77",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11460,6 +11860,7 @@ const variant_CB_78: OpcodeVariant = {
   "clr": {
     "opcodes": "CB78",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11490,6 +11891,7 @@ const variant_CB_79: OpcodeVariant = {
   "clr": {
     "opcodes": "CB79",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11520,6 +11922,7 @@ const variant_CB_7A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB7A",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11550,6 +11953,7 @@ const variant_CB_7B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB7B",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11580,6 +11984,7 @@ const variant_CB_7C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB7C",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11610,6 +12015,7 @@ const variant_CB_7D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB7D",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11642,6 +12048,7 @@ const variant_CB_7E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB7E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -11672,6 +12079,7 @@ const variant_CB_7F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB7F",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11702,6 +12110,7 @@ const variant_CB_80: OpcodeVariant = {
   "clr": {
     "opcodes": "CB80",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11732,6 +12141,7 @@ const variant_CB_81: OpcodeVariant = {
   "clr": {
     "opcodes": "CB81",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11762,6 +12172,7 @@ const variant_CB_82: OpcodeVariant = {
   "clr": {
     "opcodes": "CB82",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11792,6 +12203,7 @@ const variant_CB_83: OpcodeVariant = {
   "clr": {
     "opcodes": "CB83",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11822,6 +12234,7 @@ const variant_CB_84: OpcodeVariant = {
   "clr": {
     "opcodes": "CB84",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11852,6 +12265,7 @@ const variant_CB_85: OpcodeVariant = {
   "clr": {
     "opcodes": "CB85",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11884,6 +12298,7 @@ const variant_CB_86: OpcodeVariant = {
   "clr": {
     "opcodes": "CB86",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -11914,6 +12329,7 @@ const variant_CB_87: OpcodeVariant = {
   "clr": {
     "opcodes": "CB87",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11944,6 +12360,7 @@ const variant_CB_88: OpcodeVariant = {
   "clr": {
     "opcodes": "CB88",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -11974,6 +12391,7 @@ const variant_CB_89: OpcodeVariant = {
   "clr": {
     "opcodes": "CB89",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12004,6 +12422,7 @@ const variant_CB_8A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB8A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12034,6 +12453,7 @@ const variant_CB_8B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB8B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12064,6 +12484,7 @@ const variant_CB_8C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB8C",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12094,6 +12515,7 @@ const variant_CB_8D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB8D",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12126,6 +12548,7 @@ const variant_CB_8E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB8E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -12156,6 +12579,7 @@ const variant_CB_8F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB8F",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12186,6 +12610,7 @@ const variant_CB_90: OpcodeVariant = {
   "clr": {
     "opcodes": "CB90",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12216,6 +12641,7 @@ const variant_CB_91: OpcodeVariant = {
   "clr": {
     "opcodes": "CB91",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12246,6 +12672,7 @@ const variant_CB_92: OpcodeVariant = {
   "clr": {
     "opcodes": "CB92",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12276,6 +12703,7 @@ const variant_CB_93: OpcodeVariant = {
   "clr": {
     "opcodes": "CB93",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12306,6 +12734,7 @@ const variant_CB_94: OpcodeVariant = {
   "clr": {
     "opcodes": "CB94",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12336,6 +12765,7 @@ const variant_CB_95: OpcodeVariant = {
   "clr": {
     "opcodes": "CB95",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12368,6 +12798,7 @@ const variant_CB_96: OpcodeVariant = {
   "clr": {
     "opcodes": "CB96",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -12398,6 +12829,7 @@ const variant_CB_97: OpcodeVariant = {
   "clr": {
     "opcodes": "CB97",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12428,6 +12860,7 @@ const variant_CB_98: OpcodeVariant = {
   "clr": {
     "opcodes": "CB98",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12458,6 +12891,7 @@ const variant_CB_99: OpcodeVariant = {
   "clr": {
     "opcodes": "CB99",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12488,6 +12922,7 @@ const variant_CB_9A: OpcodeVariant = {
   "clr": {
     "opcodes": "CB9A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12518,6 +12953,7 @@ const variant_CB_9B: OpcodeVariant = {
   "clr": {
     "opcodes": "CB9B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12548,6 +12984,7 @@ const variant_CB_9C: OpcodeVariant = {
   "clr": {
     "opcodes": "CB9C",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12578,6 +13015,7 @@ const variant_CB_9D: OpcodeVariant = {
   "clr": {
     "opcodes": "CB9D",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12610,6 +13048,7 @@ const variant_CB_9E: OpcodeVariant = {
   "clr": {
     "opcodes": "CB9E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -12640,6 +13079,7 @@ const variant_CB_9F: OpcodeVariant = {
   "clr": {
     "opcodes": "CB9F",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12670,6 +13110,7 @@ const variant_CB_A0: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12700,6 +13141,7 @@ const variant_CB_A1: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12730,6 +13172,7 @@ const variant_CB_A2: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12760,6 +13203,7 @@ const variant_CB_A3: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12790,6 +13234,7 @@ const variant_CB_A4: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12820,6 +13265,7 @@ const variant_CB_A5: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12852,6 +13298,7 @@ const variant_CB_A6: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -12882,6 +13329,7 @@ const variant_CB_A7: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12912,6 +13360,7 @@ const variant_CB_A8: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12942,6 +13391,7 @@ const variant_CB_A9: OpcodeVariant = {
   "clr": {
     "opcodes": "CBA9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -12972,6 +13422,7 @@ const variant_CB_AA: OpcodeVariant = {
   "clr": {
     "opcodes": "CBAA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13002,6 +13453,7 @@ const variant_CB_AB: OpcodeVariant = {
   "clr": {
     "opcodes": "CBAB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13032,6 +13484,7 @@ const variant_CB_AC: OpcodeVariant = {
   "clr": {
     "opcodes": "CBAC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13062,6 +13515,7 @@ const variant_CB_AD: OpcodeVariant = {
   "clr": {
     "opcodes": "CBAD",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13094,6 +13548,7 @@ const variant_CB_AE: OpcodeVariant = {
   "clr": {
     "opcodes": "CBAE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -13124,6 +13579,7 @@ const variant_CB_AF: OpcodeVariant = {
   "clr": {
     "opcodes": "CBAF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13154,6 +13610,7 @@ const variant_CB_B0: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13184,6 +13641,7 @@ const variant_CB_B1: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13214,6 +13672,7 @@ const variant_CB_B2: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13244,6 +13703,7 @@ const variant_CB_B3: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13274,6 +13734,7 @@ const variant_CB_B4: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13304,6 +13765,7 @@ const variant_CB_B5: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13336,6 +13798,7 @@ const variant_CB_B6: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -13366,6 +13829,7 @@ const variant_CB_B7: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13396,6 +13860,7 @@ const variant_CB_B8: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13426,6 +13891,7 @@ const variant_CB_B9: OpcodeVariant = {
   "clr": {
     "opcodes": "CBB9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13456,6 +13922,7 @@ const variant_CB_BA: OpcodeVariant = {
   "clr": {
     "opcodes": "CBBA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13486,6 +13953,7 @@ const variant_CB_BB: OpcodeVariant = {
   "clr": {
     "opcodes": "CBBB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13516,6 +13984,7 @@ const variant_CB_BC: OpcodeVariant = {
   "clr": {
     "opcodes": "CBBC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13546,6 +14015,7 @@ const variant_CB_BD: OpcodeVariant = {
   "clr": {
     "opcodes": "CBBD",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13578,6 +14048,7 @@ const variant_CB_BE: OpcodeVariant = {
   "clr": {
     "opcodes": "CBBE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -13608,6 +14079,7 @@ const variant_CB_BF: OpcodeVariant = {
   "clr": {
     "opcodes": "CBBF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13638,6 +14110,7 @@ const variant_CB_C0: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13668,6 +14141,7 @@ const variant_CB_C1: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13698,6 +14172,7 @@ const variant_CB_C2: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13728,6 +14203,7 @@ const variant_CB_C3: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13758,6 +14234,7 @@ const variant_CB_C4: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13788,6 +14265,7 @@ const variant_CB_C5: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13820,6 +14298,7 @@ const variant_CB_C6: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -13850,6 +14329,7 @@ const variant_CB_C7: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13880,6 +14360,7 @@ const variant_CB_C8: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13910,6 +14391,7 @@ const variant_CB_C9: OpcodeVariant = {
   "clr": {
     "opcodes": "CBC9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13940,6 +14422,7 @@ const variant_CB_CA: OpcodeVariant = {
   "clr": {
     "opcodes": "CBCA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -13970,6 +14453,7 @@ const variant_CB_CB: OpcodeVariant = {
   "clr": {
     "opcodes": "CBCB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14000,6 +14484,7 @@ const variant_CB_CC: OpcodeVariant = {
   "clr": {
     "opcodes": "CBCC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14030,6 +14515,7 @@ const variant_CB_CD: OpcodeVariant = {
   "clr": {
     "opcodes": "CBCD",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14062,6 +14548,7 @@ const variant_CB_CE: OpcodeVariant = {
   "clr": {
     "opcodes": "CBCE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -14092,6 +14579,7 @@ const variant_CB_CF: OpcodeVariant = {
   "clr": {
     "opcodes": "CBCF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14122,6 +14610,7 @@ const variant_CB_D0: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14152,6 +14641,7 @@ const variant_CB_D1: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14182,6 +14672,7 @@ const variant_CB_D2: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14212,6 +14703,7 @@ const variant_CB_D3: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14242,6 +14734,7 @@ const variant_CB_D4: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14272,6 +14765,7 @@ const variant_CB_D5: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14304,6 +14798,7 @@ const variant_CB_D6: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -14334,6 +14829,7 @@ const variant_CB_D7: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14364,6 +14860,7 @@ const variant_CB_D8: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14394,6 +14891,7 @@ const variant_CB_D9: OpcodeVariant = {
   "clr": {
     "opcodes": "CBD9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14424,6 +14922,7 @@ const variant_CB_DA: OpcodeVariant = {
   "clr": {
     "opcodes": "CBDA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14454,6 +14953,7 @@ const variant_CB_DB: OpcodeVariant = {
   "clr": {
     "opcodes": "CBDB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14484,6 +14984,7 @@ const variant_CB_DC: OpcodeVariant = {
   "clr": {
     "opcodes": "CBDC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14514,6 +15015,7 @@ const variant_CB_DD: OpcodeVariant = {
   "clr": {
     "opcodes": "CBDD",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14546,6 +15048,7 @@ const variant_CB_DE: OpcodeVariant = {
   "clr": {
     "opcodes": "CBDE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -14576,6 +15079,7 @@ const variant_CB_DF: OpcodeVariant = {
   "clr": {
     "opcodes": "CBDF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14606,6 +15110,7 @@ const variant_CB_E0: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14636,6 +15141,7 @@ const variant_CB_E1: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14666,6 +15172,7 @@ const variant_CB_E2: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14696,6 +15203,7 @@ const variant_CB_E3: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14726,6 +15234,7 @@ const variant_CB_E4: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14756,6 +15265,7 @@ const variant_CB_E5: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14788,6 +15298,7 @@ const variant_CB_E6: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -14818,6 +15329,7 @@ const variant_CB_E7: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14848,6 +15360,7 @@ const variant_CB_E8: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14878,6 +15391,7 @@ const variant_CB_E9: OpcodeVariant = {
   "clr": {
     "opcodes": "CBE9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14908,6 +15422,7 @@ const variant_CB_EA: OpcodeVariant = {
   "clr": {
     "opcodes": "CBEA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14938,6 +15453,7 @@ const variant_CB_EB: OpcodeVariant = {
   "clr": {
     "opcodes": "CBEB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14968,6 +15484,7 @@ const variant_CB_EC: OpcodeVariant = {
   "clr": {
     "opcodes": "CBEC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -14998,6 +15515,7 @@ const variant_CB_ED: OpcodeVariant = {
   "clr": {
     "opcodes": "CBED",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15030,6 +15548,7 @@ const variant_CB_EE: OpcodeVariant = {
   "clr": {
     "opcodes": "CBEE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -15060,6 +15579,7 @@ const variant_CB_EF: OpcodeVariant = {
   "clr": {
     "opcodes": "CBEF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15090,6 +15610,7 @@ const variant_CB_F0: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15120,6 +15641,7 @@ const variant_CB_F1: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15150,6 +15672,7 @@ const variant_CB_F2: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15180,6 +15703,7 @@ const variant_CB_F3: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15210,6 +15734,7 @@ const variant_CB_F4: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15240,6 +15765,7 @@ const variant_CB_F5: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15272,6 +15798,7 @@ const variant_CB_F6: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -15302,6 +15829,7 @@ const variant_CB_F7: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15332,6 +15860,7 @@ const variant_CB_F8: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15362,6 +15891,7 @@ const variant_CB_F9: OpcodeVariant = {
   "clr": {
     "opcodes": "CBF9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15392,6 +15922,7 @@ const variant_CB_FA: OpcodeVariant = {
   "clr": {
     "opcodes": "CBFA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15422,6 +15953,7 @@ const variant_CB_FB: OpcodeVariant = {
   "clr": {
     "opcodes": "CBFB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15452,6 +15984,7 @@ const variant_CB_FC: OpcodeVariant = {
   "clr": {
     "opcodes": "CBFC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15482,6 +16015,7 @@ const variant_CB_FD: OpcodeVariant = {
   "clr": {
     "opcodes": "CBFD",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15514,6 +16048,7 @@ const variant_CB_FE: OpcodeVariant = {
   "clr": {
     "opcodes": "CBFE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -15544,6 +16079,7 @@ const variant_CB_FF: OpcodeVariant = {
   "clr": {
     "opcodes": "CBFF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -15574,6 +16110,7 @@ const variant_CC_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "CC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -15601,6 +16138,7 @@ const variant_CD_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "CD",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -15631,6 +16169,7 @@ const variant_CE_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "CE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -15658,6 +16197,7 @@ const variant_CE_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "CE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -15684,6 +16224,7 @@ const variant_CF: OpcodeVariant = {
   "clr": {
     "opcodes": "CF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -15710,6 +16251,7 @@ const variant_D0: OpcodeVariant = {
   "clr": {
     "opcodes": "D0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -15736,6 +16278,7 @@ const variant_D1: OpcodeVariant = {
   "clr": {
     "opcodes": "D1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 10,
@@ -15766,6 +16309,7 @@ const variant_D2_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "D2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -15798,6 +16342,7 @@ const variant_D3_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "D3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 11,
@@ -15828,6 +16373,7 @@ const variant_D4_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "D4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -15854,6 +16400,7 @@ const variant_D5: OpcodeVariant = {
   "clr": {
     "opcodes": "D5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -15884,6 +16431,7 @@ const variant_D6_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "D6",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -15911,6 +16459,7 @@ const variant_D6_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "D6",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -15937,6 +16486,7 @@ const variant_D7: OpcodeVariant = {
   "clr": {
     "opcodes": "D7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -15963,6 +16513,7 @@ const variant_D8: OpcodeVariant = {
   "clr": {
     "opcodes": "D8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -15985,6 +16536,7 @@ const variant_D9: OpcodeVariant = {
   "clr": {
     "opcodes": "D9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -16015,6 +16567,7 @@ const variant_DA_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "DA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -16047,6 +16600,7 @@ const variant_DB_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "DB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 11,
@@ -16076,6 +16630,7 @@ const variant_DB_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 11,
@@ -16106,6 +16661,7 @@ const variant_DC_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "DC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -16136,6 +16692,7 @@ const variant_DD_09: OpcodeVariant = {
   "clr": {
     "opcodes": "DD09",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -16166,6 +16723,7 @@ const variant_DD_19: OpcodeVariant = {
   "clr": {
     "opcodes": "DD19",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -16197,6 +16755,7 @@ const variant_DD_21_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "DD21",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 14,
@@ -16230,6 +16789,7 @@ const variant_DD_22_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "DD22",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -16257,6 +16817,7 @@ const variant_DD_23: OpcodeVariant = {
   "clr": {
     "opcodes": "DD23",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 10,
@@ -16284,11 +16845,12 @@ const variant_DD_24: OpcodeVariant = {
   "clr": {
     "opcodes": "DD24",
     "undocumented": true,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Adds one to r.",
+    "description": "Adds one to IXH.",
     "instruction": "inc ixh",
     "used": true
   }
@@ -16311,6 +16873,7 @@ const variant_DD_25: OpcodeVariant = {
   "clr": {
     "opcodes": "DD25",
     "undocumented": true,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -16342,6 +16905,7 @@ const variant_DD_26_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "DD26",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 11,
@@ -16372,6 +16936,7 @@ const variant_DD_29: OpcodeVariant = {
   "clr": {
     "opcodes": "DD29",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -16405,6 +16970,7 @@ const variant_DD_2A_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "DD2A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -16432,6 +16998,7 @@ const variant_DD_2B: OpcodeVariant = {
   "clr": {
     "opcodes": "DD2B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 10,
@@ -16459,11 +17026,12 @@ const variant_DD_2C: OpcodeVariant = {
   "clr": {
     "opcodes": "DD2C",
     "undocumented": true,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Adds one to r.",
+    "description": "Adds one to IXL.",
     "instruction": "inc ixl",
     "used": true
   }
@@ -16486,6 +17054,7 @@ const variant_DD_2D: OpcodeVariant = {
   "clr": {
     "opcodes": "DD2D",
     "undocumented": true,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -16517,6 +17086,7 @@ const variant_DD_2E_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "DD2E",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 11,
@@ -16549,6 +17119,7 @@ const variant_DD_34_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD34",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 3,
     "with_jump_clock_count": 23,
@@ -16581,6 +17152,7 @@ const variant_DD_35_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD35",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 3,
     "with_jump_clock_count": 23,
@@ -16617,6 +17189,7 @@ const variant_DD_36_dd_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "DD36",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 19,
@@ -16647,6 +17220,7 @@ const variant_DD_39: OpcodeVariant = {
   "clr": {
     "opcodes": "DD39",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -16677,6 +17251,7 @@ const variant_DD_44: OpcodeVariant = {
   "clr": {
     "opcodes": "DD44",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -16707,6 +17282,7 @@ const variant_DD_45: OpcodeVariant = {
   "clr": {
     "opcodes": "DD45",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -16742,6 +17318,7 @@ const variant_DD_46_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD46",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -16772,6 +17349,7 @@ const variant_DD_4C: OpcodeVariant = {
   "clr": {
     "opcodes": "DD4C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -16802,6 +17380,7 @@ const variant_DD_4D: OpcodeVariant = {
   "clr": {
     "opcodes": "DD4D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -16837,6 +17416,7 @@ const variant_DD_4E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD4E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -16867,6 +17447,7 @@ const variant_DD_54: OpcodeVariant = {
   "clr": {
     "opcodes": "DD54",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -16897,6 +17478,7 @@ const variant_DD_55: OpcodeVariant = {
   "clr": {
     "opcodes": "DD55",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -16932,6 +17514,7 @@ const variant_DD_56_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD56",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -16962,6 +17545,7 @@ const variant_DD_5C: OpcodeVariant = {
   "clr": {
     "opcodes": "DD5C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -16992,6 +17576,7 @@ const variant_DD_5D: OpcodeVariant = {
   "clr": {
     "opcodes": "DD5D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17027,6 +17612,7 @@ const variant_DD_5E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD5E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17057,6 +17643,7 @@ const variant_DD_60: OpcodeVariant = {
   "clr": {
     "opcodes": "DD60",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17087,6 +17674,7 @@ const variant_DD_61: OpcodeVariant = {
   "clr": {
     "opcodes": "DD61",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17117,6 +17705,7 @@ const variant_DD_62: OpcodeVariant = {
   "clr": {
     "opcodes": "DD62",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17147,6 +17736,7 @@ const variant_DD_63: OpcodeVariant = {
   "clr": {
     "opcodes": "DD63",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17177,6 +17767,7 @@ const variant_DD_64: OpcodeVariant = {
   "clr": {
     "opcodes": "DD64",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17207,6 +17798,7 @@ const variant_DD_65: OpcodeVariant = {
   "clr": {
     "opcodes": "DD65",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17242,6 +17834,7 @@ const variant_DD_66_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD66",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17272,6 +17865,7 @@ const variant_DD_67: OpcodeVariant = {
   "clr": {
     "opcodes": "DD67",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17302,6 +17896,7 @@ const variant_DD_68: OpcodeVariant = {
   "clr": {
     "opcodes": "DD68",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17332,6 +17927,7 @@ const variant_DD_69: OpcodeVariant = {
   "clr": {
     "opcodes": "DD69",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17362,6 +17958,7 @@ const variant_DD_6A: OpcodeVariant = {
   "clr": {
     "opcodes": "DD6A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17392,6 +17989,7 @@ const variant_DD_6B: OpcodeVariant = {
   "clr": {
     "opcodes": "DD6B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17422,6 +18020,7 @@ const variant_DD_6C: OpcodeVariant = {
   "clr": {
     "opcodes": "DD6C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17452,6 +18051,7 @@ const variant_DD_6D: OpcodeVariant = {
   "clr": {
     "opcodes": "DD6D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17487,6 +18087,7 @@ const variant_DD_6E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD6E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17517,6 +18118,7 @@ const variant_DD_6F: OpcodeVariant = {
   "clr": {
     "opcodes": "DD6F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17552,6 +18154,7 @@ const variant_DD_70_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD70",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17587,6 +18190,7 @@ const variant_DD_71_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD71",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17622,6 +18226,7 @@ const variant_DD_72_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD72",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17657,6 +18262,7 @@ const variant_DD_73_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD73",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17692,6 +18298,7 @@ const variant_DD_74_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD74",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17727,6 +18334,7 @@ const variant_DD_75_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD75",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17762,6 +18370,7 @@ const variant_DD_77_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD77",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17792,6 +18401,7 @@ const variant_DD_7C: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17819,6 +18429,7 @@ const variant_DD_7C_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17849,6 +18460,7 @@ const variant_DD_7D: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17876,6 +18488,7 @@ const variant_DD_7D_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -17911,6 +18524,7 @@ const variant_DD_7E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17943,6 +18557,7 @@ const variant_DD_7E_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -17973,6 +18588,7 @@ const variant_DD_84: OpcodeVariant = {
   "clr": {
     "opcodes": "DD84",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18000,6 +18616,7 @@ const variant_DD_84_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD84",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18030,6 +18647,7 @@ const variant_DD_85: OpcodeVariant = {
   "clr": {
     "opcodes": "DD85",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18057,6 +18675,7 @@ const variant_DD_85_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD85",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18092,6 +18711,7 @@ const variant_DD_86_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD86",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18124,6 +18744,7 @@ const variant_DD_86_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD86",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18154,6 +18775,7 @@ const variant_DD_8C: OpcodeVariant = {
   "clr": {
     "opcodes": "DD8C",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18181,6 +18803,7 @@ const variant_DD_8C_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD8C",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18211,6 +18834,7 @@ const variant_DD_8D: OpcodeVariant = {
   "clr": {
     "opcodes": "DD8D",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18238,6 +18862,7 @@ const variant_DD_8D_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD8D",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18273,6 +18898,7 @@ const variant_DD_8E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD8E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18305,6 +18931,7 @@ const variant_DD_8E_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD8E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18335,6 +18962,7 @@ const variant_DD_94: OpcodeVariant = {
   "clr": {
     "opcodes": "DD94",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18362,6 +18990,7 @@ const variant_DD_94_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD94",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18392,6 +19021,7 @@ const variant_DD_95: OpcodeVariant = {
   "clr": {
     "opcodes": "DD95",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18419,6 +19049,7 @@ const variant_DD_95_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD95",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18454,6 +19085,7 @@ const variant_DD_96_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD96",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18486,6 +19118,7 @@ const variant_DD_96_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD96",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18516,6 +19149,7 @@ const variant_DD_9C: OpcodeVariant = {
   "clr": {
     "opcodes": "DD9C",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18543,6 +19177,7 @@ const variant_DD_9C_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD9C",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18573,6 +19208,7 @@ const variant_DD_9D: OpcodeVariant = {
   "clr": {
     "opcodes": "DD9D",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18600,6 +19236,7 @@ const variant_DD_9D_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD9D",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18635,6 +19272,7 @@ const variant_DD_9E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DD9E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18667,6 +19305,7 @@ const variant_DD_9E_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD9E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18697,6 +19336,7 @@ const variant_DD_A4: OpcodeVariant = {
   "clr": {
     "opcodes": "DDA4",
     "undocumented": true,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18724,6 +19364,7 @@ const variant_DD_A4_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDA4",
     "undocumented": true,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18754,6 +19395,7 @@ const variant_DD_A5: OpcodeVariant = {
   "clr": {
     "opcodes": "DDA5",
     "undocumented": true,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18781,6 +19423,7 @@ const variant_DD_A5_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDA5",
     "undocumented": true,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18816,6 +19459,7 @@ const variant_DD_A6_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DDA6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18848,6 +19492,7 @@ const variant_DD_A6_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDA6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -18878,6 +19523,7 @@ const variant_DD_AC: OpcodeVariant = {
   "clr": {
     "opcodes": "DDAC",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18905,6 +19551,7 @@ const variant_DD_AC_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDAC",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18935,6 +19582,7 @@ const variant_DD_AD: OpcodeVariant = {
   "clr": {
     "opcodes": "DDAD",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18962,6 +19610,7 @@ const variant_DD_AD_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDAD",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -18997,6 +19646,7 @@ const variant_DD_AE_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DDAE",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -19029,6 +19679,7 @@ const variant_DD_AE_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDAE",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -19059,11 +19710,12 @@ const variant_DD_B4: OpcodeVariant = {
   "clr": {
     "opcodes": "DDB4",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with r.",
+    "description": "Bitwise OR on A with IXH.",
     "instruction": "or ixh",
     "used": true
   }
@@ -19086,11 +19738,12 @@ const variant_DD_B4_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDB4",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with r.",
+    "description": "Bitwise OR on A with IXH.",
     "instruction": "or ixh",
     "used": true
   }
@@ -19116,11 +19769,12 @@ const variant_DD_B5: OpcodeVariant = {
   "clr": {
     "opcodes": "DDB5",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with r.",
+    "description": "Bitwise OR on A with IXL.",
     "instruction": "or ixl",
     "used": true
   }
@@ -19143,11 +19797,12 @@ const variant_DD_B5_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDB5",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with r.",
+    "description": "Bitwise OR on A with IXL.",
     "instruction": "or ixl",
     "used": true
   }
@@ -19178,6 +19833,7 @@ const variant_DD_B6_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DDB6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -19210,6 +19866,7 @@ const variant_DD_B6_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDB6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -19240,6 +19897,7 @@ const variant_DD_BC: OpcodeVariant = {
   "clr": {
     "opcodes": "DDBC",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -19267,6 +19925,7 @@ const variant_DD_BC_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDBC",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -19297,6 +19956,7 @@ const variant_DD_BD: OpcodeVariant = {
   "clr": {
     "opcodes": "DDBD",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -19324,6 +19984,7 @@ const variant_DD_BD_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDBD",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -19359,6 +20020,7 @@ const variant_DD_BE_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "DDBE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -19391,6 +20053,7 @@ const variant_DD_BE_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDBE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -19428,6 +20091,7 @@ const variant_DD_CB_dd_00: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB00",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19465,6 +20129,7 @@ const variant_DD_CB_dd_01: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB01",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19502,6 +20167,7 @@ const variant_DD_CB_dd_02: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB02",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19539,6 +20205,7 @@ const variant_DD_CB_dd_03: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB03",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19576,6 +20243,7 @@ const variant_DD_CB_dd_04: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB04",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19613,6 +20281,7 @@ const variant_DD_CB_dd_05: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB05",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19646,6 +20315,7 @@ const variant_DD_CB_dd_06: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB06",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19683,6 +20353,7 @@ const variant_DD_CB_dd_07: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB07",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19717,6 +20388,7 @@ const variant_DD_CB_dd_07_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB07",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19754,6 +20426,7 @@ const variant_DD_CB_dd_08: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB08",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19791,6 +20464,7 @@ const variant_DD_CB_dd_09: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB09",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19828,6 +20502,7 @@ const variant_DD_CB_dd_0A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB0A",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19865,6 +20540,7 @@ const variant_DD_CB_dd_0B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB0B",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19902,6 +20578,7 @@ const variant_DD_CB_dd_0C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB0C",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19939,6 +20616,7 @@ const variant_DD_CB_dd_0D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB0D",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -19972,6 +20650,7 @@ const variant_DD_CB_dd_0E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB0E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20009,6 +20688,7 @@ const variant_DD_CB_dd_0F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB0F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20043,6 +20723,7 @@ const variant_DD_CB_dd_0F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB0F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20080,6 +20761,7 @@ const variant_DD_CB_dd_10: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB10",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20117,6 +20799,7 @@ const variant_DD_CB_dd_11: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB11",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20154,6 +20837,7 @@ const variant_DD_CB_dd_12: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB12",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20191,6 +20875,7 @@ const variant_DD_CB_dd_13: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB13",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20228,6 +20913,7 @@ const variant_DD_CB_dd_14: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB14",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20265,6 +20951,7 @@ const variant_DD_CB_dd_15: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB15",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20298,6 +20985,7 @@ const variant_DD_CB_dd_16: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB16",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20335,6 +21023,7 @@ const variant_DD_CB_dd_17: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB17",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20369,6 +21058,7 @@ const variant_DD_CB_dd_17_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB17",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20406,6 +21096,7 @@ const variant_DD_CB_dd_18: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB18",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20443,6 +21134,7 @@ const variant_DD_CB_dd_19: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB19",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20480,6 +21172,7 @@ const variant_DD_CB_dd_1A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB1A",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20517,6 +21210,7 @@ const variant_DD_CB_dd_1B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB1B",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20554,6 +21248,7 @@ const variant_DD_CB_dd_1C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB1C",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20591,6 +21286,7 @@ const variant_DD_CB_dd_1D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB1D",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20624,6 +21320,7 @@ const variant_DD_CB_dd_1E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB1E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20661,6 +21358,7 @@ const variant_DD_CB_dd_1F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB1F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20695,6 +21393,7 @@ const variant_DD_CB_dd_1F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB1F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20732,6 +21431,7 @@ const variant_DD_CB_dd_20: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB20",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20769,6 +21469,7 @@ const variant_DD_CB_dd_21: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB21",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20806,6 +21507,7 @@ const variant_DD_CB_dd_22: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB22",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20843,6 +21545,7 @@ const variant_DD_CB_dd_23: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB23",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20880,6 +21583,7 @@ const variant_DD_CB_dd_24: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB24",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20917,6 +21621,7 @@ const variant_DD_CB_dd_25: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB25",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20950,6 +21655,7 @@ const variant_DD_CB_dd_26: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB26",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -20987,6 +21693,7 @@ const variant_DD_CB_dd_27: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB27",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21021,6 +21728,7 @@ const variant_DD_CB_dd_27_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB27",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21058,6 +21766,7 @@ const variant_DD_CB_dd_28: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB28",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21095,6 +21804,7 @@ const variant_DD_CB_dd_29: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB29",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21132,6 +21842,7 @@ const variant_DD_CB_dd_2A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB2A",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21169,6 +21880,7 @@ const variant_DD_CB_dd_2B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB2B",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21206,6 +21918,7 @@ const variant_DD_CB_dd_2C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB2C",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21243,6 +21956,7 @@ const variant_DD_CB_dd_2D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB2D",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21276,6 +21990,7 @@ const variant_DD_CB_dd_2E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB2E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21313,6 +22028,7 @@ const variant_DD_CB_dd_2F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB2F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21347,6 +22063,7 @@ const variant_DD_CB_dd_2F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB2F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21384,6 +22101,7 @@ const variant_DD_CB_dd_30: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB30",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21421,6 +22139,7 @@ const variant_DD_CB_dd_31: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB31",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21458,6 +22177,7 @@ const variant_DD_CB_dd_32: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB32",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21495,6 +22215,7 @@ const variant_DD_CB_dd_33: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB33",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21532,6 +22253,7 @@ const variant_DD_CB_dd_34: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB34",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21569,6 +22291,7 @@ const variant_DD_CB_dd_35: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB35",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21602,6 +22325,7 @@ const variant_DD_CB_dd_36: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB36",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21639,6 +22363,7 @@ const variant_DD_CB_dd_37: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB37",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21673,6 +22398,7 @@ const variant_DD_CB_dd_37_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB37",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21710,6 +22436,7 @@ const variant_DD_CB_dd_38: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB38",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21747,6 +22474,7 @@ const variant_DD_CB_dd_39: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB39",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21784,6 +22512,7 @@ const variant_DD_CB_dd_3A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB3A",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21821,6 +22550,7 @@ const variant_DD_CB_dd_3B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB3B",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21858,6 +22588,7 @@ const variant_DD_CB_dd_3C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB3C",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21895,6 +22626,7 @@ const variant_DD_CB_dd_3D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB3D",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21928,6 +22660,7 @@ const variant_DD_CB_dd_3E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB3E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21965,6 +22698,7 @@ const variant_DD_CB_dd_3F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB3F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -21999,6 +22733,7 @@ const variant_DD_CB_dd_3F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB3F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22035,6 +22770,7 @@ const variant_DD_CB_dd_46: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB46",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -22071,6 +22807,7 @@ const variant_DD_CB_dd_4E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB4E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -22107,6 +22844,7 @@ const variant_DD_CB_dd_56: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB56",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -22143,6 +22881,7 @@ const variant_DD_CB_dd_5E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB5E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -22179,6 +22918,7 @@ const variant_DD_CB_dd_66: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB66",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -22215,6 +22955,7 @@ const variant_DD_CB_dd_6E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB6E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -22251,6 +22992,7 @@ const variant_DD_CB_dd_76: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB76",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -22287,6 +23029,7 @@ const variant_DD_CB_dd_7E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB7E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -22327,6 +23070,7 @@ const variant_DD_CB_dd_80: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB80",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22367,6 +23111,7 @@ const variant_DD_CB_dd_81: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB81",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22407,6 +23152,7 @@ const variant_DD_CB_dd_82: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB82",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22447,6 +23193,7 @@ const variant_DD_CB_dd_83: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB83",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22487,6 +23234,7 @@ const variant_DD_CB_dd_84: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB84",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22527,6 +23275,7 @@ const variant_DD_CB_dd_85: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB85",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22563,6 +23312,7 @@ const variant_DD_CB_dd_86: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB86",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22603,6 +23353,7 @@ const variant_DD_CB_dd_87: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB87",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22640,6 +23391,7 @@ const variant_DD_CB_dd_87_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB87",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22680,6 +23432,7 @@ const variant_DD_CB_dd_88: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB88",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22720,6 +23473,7 @@ const variant_DD_CB_dd_89: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB89",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22760,6 +23514,7 @@ const variant_DD_CB_dd_8A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB8A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22800,6 +23555,7 @@ const variant_DD_CB_dd_8B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB8B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22840,6 +23596,7 @@ const variant_DD_CB_dd_8C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB8C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22880,6 +23637,7 @@ const variant_DD_CB_dd_8D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB8D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22916,6 +23674,7 @@ const variant_DD_CB_dd_8E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB8E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22956,6 +23715,7 @@ const variant_DD_CB_dd_8F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB8F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -22993,6 +23753,7 @@ const variant_DD_CB_dd_8F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB8F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23033,6 +23794,7 @@ const variant_DD_CB_dd_90: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB90",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23073,6 +23835,7 @@ const variant_DD_CB_dd_91: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB91",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23113,6 +23876,7 @@ const variant_DD_CB_dd_92: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB92",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23153,6 +23917,7 @@ const variant_DD_CB_dd_93: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB93",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23193,6 +23958,7 @@ const variant_DD_CB_dd_94: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB94",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23233,6 +23999,7 @@ const variant_DD_CB_dd_95: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB95",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23269,6 +24036,7 @@ const variant_DD_CB_dd_96: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB96",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23309,6 +24077,7 @@ const variant_DD_CB_dd_97: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB97",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23346,6 +24115,7 @@ const variant_DD_CB_dd_97_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB97",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23386,6 +24156,7 @@ const variant_DD_CB_dd_98: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB98",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23426,6 +24197,7 @@ const variant_DD_CB_dd_99: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB99",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23466,6 +24238,7 @@ const variant_DD_CB_dd_9A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB9A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23506,6 +24279,7 @@ const variant_DD_CB_dd_9B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB9B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23546,6 +24320,7 @@ const variant_DD_CB_dd_9C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB9C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23586,6 +24361,7 @@ const variant_DD_CB_dd_9D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB9D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23622,6 +24398,7 @@ const variant_DD_CB_dd_9E: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB9E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23662,6 +24439,7 @@ const variant_DD_CB_dd_9F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB9F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23699,6 +24477,7 @@ const variant_DD_CB_dd_9F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB9F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23739,6 +24518,7 @@ const variant_DD_CB_dd_A0: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23779,6 +24559,7 @@ const variant_DD_CB_dd_A1: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23819,6 +24600,7 @@ const variant_DD_CB_dd_A2: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23859,6 +24641,7 @@ const variant_DD_CB_dd_A3: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23899,6 +24682,7 @@ const variant_DD_CB_dd_A4: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23939,6 +24723,7 @@ const variant_DD_CB_dd_A5: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -23975,6 +24760,7 @@ const variant_DD_CB_dd_A6: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24015,6 +24801,7 @@ const variant_DD_CB_dd_A7: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24052,6 +24839,7 @@ const variant_DD_CB_dd_A7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24092,6 +24880,7 @@ const variant_DD_CB_dd_A8: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24132,6 +24921,7 @@ const variant_DD_CB_dd_A9: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBA9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24172,6 +24962,7 @@ const variant_DD_CB_dd_AA: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBAA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24212,6 +25003,7 @@ const variant_DD_CB_dd_AB: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBAB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24252,6 +25044,7 @@ const variant_DD_CB_dd_AC: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBAC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24292,6 +25085,7 @@ const variant_DD_CB_dd_AD: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBAD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24328,6 +25122,7 @@ const variant_DD_CB_dd_AE: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBAE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24368,6 +25163,7 @@ const variant_DD_CB_dd_AF: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBAF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24405,6 +25201,7 @@ const variant_DD_CB_dd_AF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBAF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24445,6 +25242,7 @@ const variant_DD_CB_dd_B0: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24485,6 +25283,7 @@ const variant_DD_CB_dd_B1: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24525,6 +25324,7 @@ const variant_DD_CB_dd_B2: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24565,6 +25365,7 @@ const variant_DD_CB_dd_B3: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24605,6 +25406,7 @@ const variant_DD_CB_dd_B4: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24645,6 +25447,7 @@ const variant_DD_CB_dd_B5: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24681,6 +25484,7 @@ const variant_DD_CB_dd_B6: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24721,6 +25525,7 @@ const variant_DD_CB_dd_B7: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24758,6 +25563,7 @@ const variant_DD_CB_dd_B7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24798,6 +25604,7 @@ const variant_DD_CB_dd_B8: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24838,6 +25645,7 @@ const variant_DD_CB_dd_B9: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBB9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24878,6 +25686,7 @@ const variant_DD_CB_dd_BA: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBBA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24918,6 +25727,7 @@ const variant_DD_CB_dd_BB: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBBB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24958,6 +25768,7 @@ const variant_DD_CB_dd_BC: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBBC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -24998,6 +25809,7 @@ const variant_DD_CB_dd_BD: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBBD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25034,6 +25846,7 @@ const variant_DD_CB_dd_BE: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBBE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25074,6 +25887,7 @@ const variant_DD_CB_dd_BF: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBBF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25111,6 +25925,7 @@ const variant_DD_CB_dd_BF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBBF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25151,6 +25966,7 @@ const variant_DD_CB_dd_C0: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25191,6 +26007,7 @@ const variant_DD_CB_dd_C1: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25231,6 +26048,7 @@ const variant_DD_CB_dd_C2: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25271,6 +26089,7 @@ const variant_DD_CB_dd_C3: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25311,6 +26130,7 @@ const variant_DD_CB_dd_C4: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25351,6 +26171,7 @@ const variant_DD_CB_dd_C5: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25387,6 +26208,7 @@ const variant_DD_CB_dd_C6: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25427,6 +26249,7 @@ const variant_DD_CB_dd_C7: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25464,6 +26287,7 @@ const variant_DD_CB_dd_C7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25504,6 +26328,7 @@ const variant_DD_CB_dd_C8: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25544,6 +26369,7 @@ const variant_DD_CB_dd_C9: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBC9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25584,6 +26410,7 @@ const variant_DD_CB_dd_CA: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBCA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25624,6 +26451,7 @@ const variant_DD_CB_dd_CB: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBCB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25664,6 +26492,7 @@ const variant_DD_CB_dd_CC: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBCC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25704,6 +26533,7 @@ const variant_DD_CB_dd_CD: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBCD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25740,6 +26570,7 @@ const variant_DD_CB_dd_CE: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBCE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25780,6 +26611,7 @@ const variant_DD_CB_dd_CF: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBCF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25817,6 +26649,7 @@ const variant_DD_CB_dd_CF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBCF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25857,6 +26690,7 @@ const variant_DD_CB_dd_D0: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25897,6 +26731,7 @@ const variant_DD_CB_dd_D1: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25937,6 +26772,7 @@ const variant_DD_CB_dd_D2: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -25977,6 +26813,7 @@ const variant_DD_CB_dd_D3: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26017,6 +26854,7 @@ const variant_DD_CB_dd_D4: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26057,6 +26895,7 @@ const variant_DD_CB_dd_D5: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26093,6 +26932,7 @@ const variant_DD_CB_dd_D6: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26133,6 +26973,7 @@ const variant_DD_CB_dd_D7: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26170,6 +27011,7 @@ const variant_DD_CB_dd_D7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26210,6 +27052,7 @@ const variant_DD_CB_dd_D8: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26250,6 +27093,7 @@ const variant_DD_CB_dd_D9: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBD9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26290,6 +27134,7 @@ const variant_DD_CB_dd_DA: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBDA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26330,6 +27175,7 @@ const variant_DD_CB_dd_DB: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBDB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26370,6 +27216,7 @@ const variant_DD_CB_dd_DC: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBDC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26410,6 +27257,7 @@ const variant_DD_CB_dd_DD: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBDD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26446,6 +27294,7 @@ const variant_DD_CB_dd_DE: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBDE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26486,6 +27335,7 @@ const variant_DD_CB_dd_DF: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBDF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26523,6 +27373,7 @@ const variant_DD_CB_dd_DF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBDF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26563,6 +27414,7 @@ const variant_DD_CB_dd_E0: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26603,6 +27455,7 @@ const variant_DD_CB_dd_E1: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26643,6 +27496,7 @@ const variant_DD_CB_dd_E2: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26683,6 +27537,7 @@ const variant_DD_CB_dd_E3: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26723,6 +27578,7 @@ const variant_DD_CB_dd_E4: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26763,6 +27619,7 @@ const variant_DD_CB_dd_E5: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26799,6 +27656,7 @@ const variant_DD_CB_dd_E6: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26839,6 +27697,7 @@ const variant_DD_CB_dd_E7: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26876,6 +27735,7 @@ const variant_DD_CB_dd_E7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26916,6 +27776,7 @@ const variant_DD_CB_dd_E8: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26956,6 +27817,7 @@ const variant_DD_CB_dd_E9: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBE9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -26996,6 +27858,7 @@ const variant_DD_CB_dd_EA: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBEA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27036,6 +27899,7 @@ const variant_DD_CB_dd_EB: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBEB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27076,6 +27940,7 @@ const variant_DD_CB_dd_EC: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBEC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27116,6 +27981,7 @@ const variant_DD_CB_dd_ED: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBED",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27152,6 +28018,7 @@ const variant_DD_CB_dd_EE: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBEE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27192,6 +28059,7 @@ const variant_DD_CB_dd_EF: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBEF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27229,6 +28097,7 @@ const variant_DD_CB_dd_EF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBEF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27269,6 +28138,7 @@ const variant_DD_CB_dd_F0: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27309,6 +28179,7 @@ const variant_DD_CB_dd_F1: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27349,6 +28220,7 @@ const variant_DD_CB_dd_F2: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27389,6 +28261,7 @@ const variant_DD_CB_dd_F3: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27429,6 +28302,7 @@ const variant_DD_CB_dd_F4: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27469,6 +28343,7 @@ const variant_DD_CB_dd_F5: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27505,6 +28380,7 @@ const variant_DD_CB_dd_F6: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27545,6 +28421,7 @@ const variant_DD_CB_dd_F7: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27582,6 +28459,7 @@ const variant_DD_CB_dd_F7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27622,6 +28500,7 @@ const variant_DD_CB_dd_F8: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27662,6 +28541,7 @@ const variant_DD_CB_dd_F9: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBF9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27702,6 +28582,7 @@ const variant_DD_CB_dd_FA: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBFA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27742,6 +28623,7 @@ const variant_DD_CB_dd_FB: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBFB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27782,6 +28664,7 @@ const variant_DD_CB_dd_FC: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBFC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27822,6 +28705,7 @@ const variant_DD_CB_dd_FD: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBFD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27858,6 +28742,7 @@ const variant_DD_CB_dd_FE: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBFE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27898,6 +28783,7 @@ const variant_DD_CB_dd_FF: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBFF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27935,6 +28821,7 @@ const variant_DD_CB_dd_FF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCBFF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -27962,6 +28849,7 @@ const variant_DD_E1: OpcodeVariant = {
   "clr": {
     "opcodes": "DDE1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 14,
@@ -27994,6 +28882,7 @@ const variant_DD_E3: OpcodeVariant = {
   "clr": {
     "opcodes": "DDE3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 23,
@@ -28021,6 +28910,7 @@ const variant_DD_E5: OpcodeVariant = {
   "clr": {
     "opcodes": "DDE5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -28048,6 +28938,7 @@ const variant_DD_E9: OpcodeVariant = {
   "clr": {
     "opcodes": "DDE9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -28077,6 +28968,7 @@ const variant_DD_E9_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DDE9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -28107,6 +28999,7 @@ const variant_DD_F9: OpcodeVariant = {
   "clr": {
     "opcodes": "DDF9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 10,
@@ -28137,6 +29030,7 @@ const variant_DE_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "DE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -28164,6 +29058,7 @@ const variant_DE_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -28190,6 +29085,7 @@ const variant_DF: OpcodeVariant = {
   "clr": {
     "opcodes": "DF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -28216,6 +29112,7 @@ const variant_E0: OpcodeVariant = {
   "clr": {
     "opcodes": "E0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -28242,6 +29139,7 @@ const variant_E0_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "E0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -28268,6 +29166,7 @@ const variant_E1: OpcodeVariant = {
   "clr": {
     "opcodes": "E1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 10,
@@ -28298,6 +29197,7 @@ const variant_E2_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "E2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -28328,6 +29228,7 @@ const variant_E2_nnnn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "E2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -28359,6 +29260,7 @@ const variant_E3: OpcodeVariant = {
   "clr": {
     "opcodes": "E3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 19,
@@ -28389,6 +29291,7 @@ const variant_E4_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "E4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -28419,6 +29322,7 @@ const variant_E4_nnnn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "E4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -28445,6 +29349,7 @@ const variant_E5: OpcodeVariant = {
   "clr": {
     "opcodes": "E5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -28475,6 +29380,7 @@ const variant_E6_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "E6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -28502,6 +29408,7 @@ const variant_E6_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "E6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -28528,6 +29435,7 @@ const variant_E7: OpcodeVariant = {
   "clr": {
     "opcodes": "E7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -28554,6 +29462,7 @@ const variant_E8: OpcodeVariant = {
   "clr": {
     "opcodes": "E8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -28580,6 +29489,7 @@ const variant_E8_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "E8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -28606,6 +29516,7 @@ const variant_E9: OpcodeVariant = {
   "clr": {
     "opcodes": "E9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -28634,6 +29545,7 @@ const variant_E9_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "E9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -28664,6 +29576,7 @@ const variant_EA_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "EA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -28694,6 +29607,7 @@ const variant_EA_nnnn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "EA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -28723,6 +29637,7 @@ const variant_EB: OpcodeVariant = {
   "clr": {
     "opcodes": "EB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
@@ -28753,6 +29668,7 @@ const variant_EC_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "EC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -28783,6 +29699,7 @@ const variant_EC_nnnn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "EC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -28815,6 +29732,7 @@ const variant_ED_40: OpcodeVariant = {
   "clr": {
     "opcodes": "ED40",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -28847,6 +29765,7 @@ const variant_ED_41: OpcodeVariant = {
   "clr": {
     "opcodes": "ED41",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -28877,6 +29796,7 @@ const variant_ED_42: OpcodeVariant = {
   "clr": {
     "opcodes": "ED42",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -28910,6 +29830,7 @@ const variant_ED_43_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "ED43",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -28933,6 +29854,7 @@ const variant_ED_44: OpcodeVariant = {
   "clr": {
     "opcodes": "ED44",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -28956,6 +29878,7 @@ const variant_ED_45: OpcodeVariant = {
   "clr": {
     "opcodes": "ED45",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 14,
@@ -28983,6 +29906,7 @@ const variant_ED_46: OpcodeVariant = {
   "clr": {
     "opcodes": "ED46",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -29013,6 +29937,7 @@ const variant_ED_47: OpcodeVariant = {
   "clr": {
     "opcodes": "ED47",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 9,
@@ -29045,6 +29970,7 @@ const variant_ED_48: OpcodeVariant = {
   "clr": {
     "opcodes": "ED48",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29077,6 +30003,7 @@ const variant_ED_49: OpcodeVariant = {
   "clr": {
     "opcodes": "ED49",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29107,6 +30034,7 @@ const variant_ED_4A: OpcodeVariant = {
   "clr": {
     "opcodes": "ED4A",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -29140,6 +30068,7 @@ const variant_ED_4B_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "ED4B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -29163,6 +30092,7 @@ const variant_ED_4D: OpcodeVariant = {
   "clr": {
     "opcodes": "ED4D",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 14,
@@ -29193,6 +30123,7 @@ const variant_ED_4F: OpcodeVariant = {
   "clr": {
     "opcodes": "ED4F",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 9,
@@ -29225,6 +30156,7 @@ const variant_ED_50: OpcodeVariant = {
   "clr": {
     "opcodes": "ED50",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29257,6 +30189,7 @@ const variant_ED_51: OpcodeVariant = {
   "clr": {
     "opcodes": "ED51",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29287,6 +30220,7 @@ const variant_ED_52: OpcodeVariant = {
   "clr": {
     "opcodes": "ED52",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -29320,6 +30254,7 @@ const variant_ED_53_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "ED53",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -29347,6 +30282,7 @@ const variant_ED_56: OpcodeVariant = {
   "clr": {
     "opcodes": "ED56",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -29377,6 +30313,7 @@ const variant_ED_57: OpcodeVariant = {
   "clr": {
     "opcodes": "ED57",
     "undocumented": false,
+    "z180": false,
     "flags": "-0*0++",
     "byte_count": 2,
     "with_jump_clock_count": 9,
@@ -29404,6 +30341,7 @@ const variant_ED_57_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "ED57",
     "undocumented": false,
+    "z180": false,
     "flags": "-0*0++",
     "byte_count": 2,
     "with_jump_clock_count": 9,
@@ -29436,6 +30374,7 @@ const variant_ED_58: OpcodeVariant = {
   "clr": {
     "opcodes": "ED58",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29468,6 +30407,7 @@ const variant_ED_59: OpcodeVariant = {
   "clr": {
     "opcodes": "ED59",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29498,6 +30438,7 @@ const variant_ED_5A: OpcodeVariant = {
   "clr": {
     "opcodes": "ED5A",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -29531,6 +30472,7 @@ const variant_ED_5B_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "ED5B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -29558,6 +30500,7 @@ const variant_ED_5E: OpcodeVariant = {
   "clr": {
     "opcodes": "ED5E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -29588,6 +30531,7 @@ const variant_ED_5F: OpcodeVariant = {
   "clr": {
     "opcodes": "ED5F",
     "undocumented": false,
+    "z180": false,
     "flags": "-0*0++",
     "byte_count": 2,
     "with_jump_clock_count": 9,
@@ -29615,6 +30559,7 @@ const variant_ED_5F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "ED5F",
     "undocumented": false,
+    "z180": false,
     "flags": "-0*0++",
     "byte_count": 2,
     "with_jump_clock_count": 9,
@@ -29647,6 +30592,7 @@ const variant_ED_60: OpcodeVariant = {
   "clr": {
     "opcodes": "ED60",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29679,6 +30625,7 @@ const variant_ED_61: OpcodeVariant = {
   "clr": {
     "opcodes": "ED61",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29709,6 +30656,7 @@ const variant_ED_62: OpcodeVariant = {
   "clr": {
     "opcodes": "ED62",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -29732,6 +30680,7 @@ const variant_ED_67: OpcodeVariant = {
   "clr": {
     "opcodes": "ED67",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 18,
@@ -29764,6 +30713,7 @@ const variant_ED_68: OpcodeVariant = {
   "clr": {
     "opcodes": "ED68",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29796,6 +30746,7 @@ const variant_ED_69: OpcodeVariant = {
   "clr": {
     "opcodes": "ED69",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29826,6 +30777,7 @@ const variant_ED_6A: OpcodeVariant = {
   "clr": {
     "opcodes": "ED6A",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -29849,6 +30801,7 @@ const variant_ED_6F: OpcodeVariant = {
   "clr": {
     "opcodes": "ED6F",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 18,
@@ -29881,6 +30834,7 @@ const variant_ED_70: OpcodeVariant = {
   "clr": {
     "opcodes": "ED70",
     "undocumented": true,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29913,6 +30867,7 @@ const variant_ED_71: OpcodeVariant = {
   "clr": {
     "opcodes": "ED71",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -29943,6 +30898,7 @@ const variant_ED_72: OpcodeVariant = {
   "clr": {
     "opcodes": "ED72",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -29976,6 +30932,7 @@ const variant_ED_73_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "ED73",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -30008,6 +30965,7 @@ const variant_ED_78: OpcodeVariant = {
   "clr": {
     "opcodes": "ED78",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -30037,6 +30995,7 @@ const variant_ED_78_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "ED78",
     "undocumented": false,
+    "z180": false,
     "flags": "-0P0++",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -30069,6 +31028,7 @@ const variant_ED_79: OpcodeVariant = {
   "clr": {
     "opcodes": "ED79",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 12,
@@ -30099,6 +31059,7 @@ const variant_ED_7A: OpcodeVariant = {
   "clr": {
     "opcodes": "ED7A",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -30132,6 +31093,7 @@ const variant_ED_7B_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "ED7B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -30155,11 +31117,12 @@ const variant_ED_A0: OpcodeVariant = {
   "clr": {
     "opcodes": "EDA0",
     "undocumented": false,
+    "z180": false,
     "flags": "-0*0--",
     "byte_count": 2,
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
-    "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL and DE are incremented and BC is decremented.",
+    "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL and DE are incremented and BC is decremented. p/v is reset if BC becomes zero and set otherwise.",
     "instruction": "ldi",
     "used": true
   }
@@ -30178,11 +31141,12 @@ const variant_ED_A1: OpcodeVariant = {
   "clr": {
     "opcodes": "EDA1",
     "undocumented": false,
+    "z180": false,
     "flags": "-1*+++",
     "byte_count": 2,
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
-    "description": "Compares the value of the memory location pointed to by HL with A. Then HL is incremented and BC is decremented.",
+    "description": "Compares the value of the memory location pointed to by HL with A. Then HL is incremented and BC is decremented. p/v is reset if BC becomes zero and set otherwise.",
     "instruction": "cpi",
     "used": true
   }
@@ -30201,6 +31165,7 @@ const variant_ED_A2: OpcodeVariant = {
   "clr": {
     "opcodes": "EDA2",
     "undocumented": false,
+    "z180": false,
     "flags": "-1  * ",
     "byte_count": 2,
     "with_jump_clock_count": 16,
@@ -30224,11 +31189,12 @@ const variant_ED_A3: OpcodeVariant = {
   "clr": {
     "opcodes": "EDA3",
     "undocumented": false,
+    "z180": false,
     "flags": "-1  * ",
     "byte_count": 2,
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
-    "description": "a byte from the memory location pointed to by HL is written to port C. Then HL is incremented and B is decremented.",
+    "description": "B is decremented. a byte from the memory location pointed to by HL is written to port C. Then HL is incremented.",
     "instruction": "outi",
     "used": true
   }
@@ -30247,11 +31213,12 @@ const variant_ED_A8: OpcodeVariant = {
   "clr": {
     "opcodes": "EDA8",
     "undocumented": false,
+    "z180": false,
     "flags": "-0*0--",
     "byte_count": 2,
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
-    "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL, DE, and BC are decremented.",
+    "description": "Transfers a byte of data from the memory location pointed to by HL to the memory location pointed to by DE. Then HL, DE, and BC are decremented. p/v is reset if BC becomes zero and set otherwise.",
     "instruction": "ldd",
     "used": true
   }
@@ -30270,11 +31237,12 @@ const variant_ED_A9: OpcodeVariant = {
   "clr": {
     "opcodes": "EDA9",
     "undocumented": false,
+    "z180": false,
     "flags": "-1*+++",
     "byte_count": 2,
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
-    "description": "Compares the value of the memory location pointed to by HL with A. Then HL and BC are decremented.",
+    "description": "Compares the value of the memory location pointed to by HL with A. Then HL and BC are decremented. p/v is reset if BC becomes zero and set otherwise.",
     "instruction": "cpd",
     "used": true
   }
@@ -30293,6 +31261,7 @@ const variant_ED_AA: OpcodeVariant = {
   "clr": {
     "opcodes": "EDAA",
     "undocumented": false,
+    "z180": false,
     "flags": "-1  * ",
     "byte_count": 2,
     "with_jump_clock_count": 16,
@@ -30316,11 +31285,12 @@ const variant_ED_AB: OpcodeVariant = {
   "clr": {
     "opcodes": "EDAB",
     "undocumented": false,
+    "z180": false,
     "flags": "-1  * ",
     "byte_count": 2,
     "with_jump_clock_count": 16,
     "without_jump_clock_count": 16,
-    "description": "a byte from the memory location pointed to by HL is written to port C. Then HL and B are decremented.",
+    "description": "B is decremented. a byte from the memory location pointed to by HL is written to port C. Then HL is decremented.",
     "instruction": "outd",
     "used": true
   }
@@ -30339,6 +31309,7 @@ const variant_ED_B0: OpcodeVariant = {
   "clr": {
     "opcodes": "EDB0",
     "undocumented": false,
+    "z180": false,
     "flags": "-000--",
     "byte_count": 2,
     "with_jump_clock_count": 21,
@@ -30362,11 +31333,12 @@ const variant_ED_B1: OpcodeVariant = {
   "clr": {
     "opcodes": "EDB1",
     "undocumented": false,
-    "flags": "-10+++",
+    "z180": false,
+    "flags": "-1*+++",
     "byte_count": 2,
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
-    "description": "Compares the value of the memory location pointed to by HL with A. Then HL is incremented and BC is decremented. If BC is not zero and Z is not set, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+    "description": "Compares the value of the memory location pointed to by HL with A. Then HL is incremented and BC is decremented. If BC is not zero and Z is not set, this operation is repeated. p/v is reset if BC becomes zero and set otherwise, acting as an indicator that HL reached A memory location whose value equalled A before the counter went to zero. Interrupts can trigger while this instruction is processing.",
     "instruction": "cpir",
     "used": true
   }
@@ -30385,6 +31357,7 @@ const variant_ED_B2: OpcodeVariant = {
   "clr": {
     "opcodes": "EDB2",
     "undocumented": false,
+    "z180": false,
     "flags": "-1  1 ",
     "byte_count": 2,
     "with_jump_clock_count": 21,
@@ -30408,11 +31381,12 @@ const variant_ED_B3: OpcodeVariant = {
   "clr": {
     "opcodes": "EDB3",
     "undocumented": false,
+    "z180": false,
     "flags": "-1  1 ",
     "byte_count": 2,
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
-    "description": "a byte from the memory location pointed to by HL is written to port C. Then HL is incremented and B is decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+    "description": "B is decremented. a byte from the memory location pointed to by HL is written to port C. Then HL is incremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
     "instruction": "otir",
     "used": true
   }
@@ -30431,6 +31405,7 @@ const variant_ED_B8: OpcodeVariant = {
   "clr": {
     "opcodes": "EDB8",
     "undocumented": false,
+    "z180": false,
     "flags": "-000--",
     "byte_count": 2,
     "with_jump_clock_count": 21,
@@ -30454,11 +31429,12 @@ const variant_ED_B9: OpcodeVariant = {
   "clr": {
     "opcodes": "EDB9",
     "undocumented": false,
-    "flags": "-10+++",
+    "z180": false,
+    "flags": "-1*+++",
     "byte_count": 2,
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
-    "description": "Compares the value of the memory location pointed to by HL with A. Then HL and BC are decremented. If BC is not zero and Z is not set, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+    "description": "Compares the value of the memory location pointed to by HL with A. Then HL and BC are decremented. If BC is not zero and Z is not set, this operation is repeated. p/v is reset if BC becomes zero and set otherwise, acting as an indicator that HL reached A memory location whose value equalled A before the counter went to zero. Interrupts can trigger while this instruction is processing.",
     "instruction": "cpdr",
     "used": true
   }
@@ -30477,6 +31453,7 @@ const variant_ED_BA: OpcodeVariant = {
   "clr": {
     "opcodes": "EDBA",
     "undocumented": false,
+    "z180": false,
     "flags": "-1  1 ",
     "byte_count": 2,
     "with_jump_clock_count": 21,
@@ -30500,11 +31477,12 @@ const variant_ED_BB: OpcodeVariant = {
   "clr": {
     "opcodes": "EDBB",
     "undocumented": false,
+    "z180": false,
     "flags": "-1  1 ",
     "byte_count": 2,
     "with_jump_clock_count": 21,
     "without_jump_clock_count": 16,
-    "description": "a byte from the memory location pointed to by HL is written to port C. Then HL and B are decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
+    "description": "B is decremented. a byte from the memory location pointed to by HL is written to port C. Then HL is decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
     "instruction": "otdr",
     "used": true
   }
@@ -30530,6 +31508,7 @@ const variant_EE_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "EE",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -30557,6 +31536,7 @@ const variant_EE_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "EE",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -30583,6 +31563,7 @@ const variant_EF: OpcodeVariant = {
   "clr": {
     "opcodes": "EF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -30609,6 +31590,7 @@ const variant_F0: OpcodeVariant = {
   "clr": {
     "opcodes": "F0",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -30635,6 +31617,7 @@ const variant_F1: OpcodeVariant = {
   "clr": {
     "opcodes": "F1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 10,
@@ -30665,6 +31648,7 @@ const variant_F2_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "F2",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -30687,11 +31671,12 @@ const variant_F3: OpcodeVariant = {
   "clr": {
     "opcodes": "F3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
-    "description": "Resets both interrupt flip-flops, thus prenting maskable interrupts from triggering.",
+    "description": "Resets both interrupt flip-flops, thus preventing maskable interrupts from triggering.",
     "instruction": "di",
     "used": true
   }
@@ -30717,6 +31702,7 @@ const variant_F4_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "F4",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -30743,6 +31729,7 @@ const variant_F5: OpcodeVariant = {
   "clr": {
     "opcodes": "F5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -30773,6 +31760,7 @@ const variant_F6_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "F6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -30800,6 +31788,7 @@ const variant_F6_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "F6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -30826,6 +31815,7 @@ const variant_F7: OpcodeVariant = {
   "clr": {
     "opcodes": "F7",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -30852,6 +31842,7 @@ const variant_F8: OpcodeVariant = {
   "clr": {
     "opcodes": "F8",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -30881,6 +31872,7 @@ const variant_F9: OpcodeVariant = {
   "clr": {
     "opcodes": "F9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 6,
@@ -30911,6 +31903,7 @@ const variant_FA_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "FA",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -30933,11 +31926,12 @@ const variant_FB: OpcodeVariant = {
   "clr": {
     "opcodes": "FB",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 4,
     "without_jump_clock_count": 4,
-    "description": "Sets both interrupt flip-flops, thus allowing maskable interrupts to occur. An interrupt will not occur until after the immediatediyl following instruction.",
+    "description": "Sets both interrupt flip-flops, thus allowing maskable interrupts to occur. An interrupt will not occur until after the immediately following instruction.",
     "instruction": "ei",
     "used": true
   }
@@ -30963,6 +31957,7 @@ const variant_FC_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "FC",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 17,
@@ -30993,6 +31988,7 @@ const variant_FD_09: OpcodeVariant = {
   "clr": {
     "opcodes": "FD09",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -31023,6 +32019,7 @@ const variant_FD_19: OpcodeVariant = {
   "clr": {
     "opcodes": "FD19",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -31054,6 +32051,7 @@ const variant_FD_21_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "FD21",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 14,
@@ -31087,6 +32085,7 @@ const variant_FD_22_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "FD22",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -31114,6 +32113,7 @@ const variant_FD_23: OpcodeVariant = {
   "clr": {
     "opcodes": "FD23",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 10,
@@ -31141,11 +32141,12 @@ const variant_FD_24: OpcodeVariant = {
   "clr": {
     "opcodes": "FD24",
     "undocumented": true,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Adds one to r.",
+    "description": "Adds one to IYH.",
     "instruction": "inc iyh",
     "used": true
   }
@@ -31168,6 +32169,7 @@ const variant_FD_25: OpcodeVariant = {
   "clr": {
     "opcodes": "FD25",
     "undocumented": true,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31199,6 +32201,7 @@ const variant_FD_26_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "FD26",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 11,
@@ -31229,6 +32232,7 @@ const variant_FD_29: OpcodeVariant = {
   "clr": {
     "opcodes": "FD29",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -31262,6 +32266,7 @@ const variant_FD_2A_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "FD2A",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -31289,6 +32294,7 @@ const variant_FD_2B: OpcodeVariant = {
   "clr": {
     "opcodes": "FD2B",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 10,
@@ -31316,11 +32322,12 @@ const variant_FD_2C: OpcodeVariant = {
   "clr": {
     "opcodes": "FD2C",
     "undocumented": true,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Adds one to r.",
+    "description": "Adds one to IYL.",
     "instruction": "inc iyl",
     "used": true
   }
@@ -31343,6 +32350,7 @@ const variant_FD_2D: OpcodeVariant = {
   "clr": {
     "opcodes": "FD2D",
     "undocumented": true,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31374,6 +32382,7 @@ const variant_FD_2E_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "FD2E",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 11,
@@ -31406,6 +32415,7 @@ const variant_FD_34_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD34",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 3,
     "with_jump_clock_count": 23,
@@ -31438,6 +32448,7 @@ const variant_FD_35_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD35",
     "undocumented": false,
+    "z180": false,
     "flags": "-+V+++",
     "byte_count": 3,
     "with_jump_clock_count": 23,
@@ -31474,6 +32485,7 @@ const variant_FD_36_dd_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "FD36",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 19,
@@ -31504,6 +32516,7 @@ const variant_FD_39: OpcodeVariant = {
   "clr": {
     "opcodes": "FD39",
     "undocumented": false,
+    "z180": false,
     "flags": "++-+--",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -31534,6 +32547,7 @@ const variant_FD_44: OpcodeVariant = {
   "clr": {
     "opcodes": "FD44",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31564,6 +32578,7 @@ const variant_FD_45: OpcodeVariant = {
   "clr": {
     "opcodes": "FD45",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31599,6 +32614,7 @@ const variant_FD_46_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD46",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -31629,6 +32645,7 @@ const variant_FD_4C: OpcodeVariant = {
   "clr": {
     "opcodes": "FD4C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31659,6 +32676,7 @@ const variant_FD_4D: OpcodeVariant = {
   "clr": {
     "opcodes": "FD4D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31694,6 +32712,7 @@ const variant_FD_4E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD4E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -31724,6 +32743,7 @@ const variant_FD_54: OpcodeVariant = {
   "clr": {
     "opcodes": "FD54",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31754,6 +32774,7 @@ const variant_FD_55: OpcodeVariant = {
   "clr": {
     "opcodes": "FD55",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31789,6 +32810,7 @@ const variant_FD_56_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD56",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -31819,6 +32841,7 @@ const variant_FD_5C: OpcodeVariant = {
   "clr": {
     "opcodes": "FD5C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31849,6 +32872,7 @@ const variant_FD_5D: OpcodeVariant = {
   "clr": {
     "opcodes": "FD5D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31884,6 +32908,7 @@ const variant_FD_5E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD5E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -31914,6 +32939,7 @@ const variant_FD_60: OpcodeVariant = {
   "clr": {
     "opcodes": "FD60",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31944,6 +32970,7 @@ const variant_FD_61: OpcodeVariant = {
   "clr": {
     "opcodes": "FD61",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -31974,6 +33001,7 @@ const variant_FD_62: OpcodeVariant = {
   "clr": {
     "opcodes": "FD62",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32004,6 +33032,7 @@ const variant_FD_63: OpcodeVariant = {
   "clr": {
     "opcodes": "FD63",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32034,6 +33063,7 @@ const variant_FD_64: OpcodeVariant = {
   "clr": {
     "opcodes": "FD64",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32064,6 +33094,7 @@ const variant_FD_65: OpcodeVariant = {
   "clr": {
     "opcodes": "FD65",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32099,6 +33130,7 @@ const variant_FD_66_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD66",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32129,6 +33161,7 @@ const variant_FD_67: OpcodeVariant = {
   "clr": {
     "opcodes": "FD67",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32159,6 +33192,7 @@ const variant_FD_68: OpcodeVariant = {
   "clr": {
     "opcodes": "FD68",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32189,6 +33223,7 @@ const variant_FD_69: OpcodeVariant = {
   "clr": {
     "opcodes": "FD69",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32219,6 +33254,7 @@ const variant_FD_6A: OpcodeVariant = {
   "clr": {
     "opcodes": "FD6A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32249,6 +33285,7 @@ const variant_FD_6B: OpcodeVariant = {
   "clr": {
     "opcodes": "FD6B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32279,6 +33316,7 @@ const variant_FD_6C: OpcodeVariant = {
   "clr": {
     "opcodes": "FD6C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32309,6 +33347,7 @@ const variant_FD_6D: OpcodeVariant = {
   "clr": {
     "opcodes": "FD6D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32344,6 +33383,7 @@ const variant_FD_6E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD6E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32374,6 +33414,7 @@ const variant_FD_6F: OpcodeVariant = {
   "clr": {
     "opcodes": "FD6F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32409,6 +33450,7 @@ const variant_FD_70_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD70",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32444,6 +33486,7 @@ const variant_FD_71_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD71",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32479,6 +33522,7 @@ const variant_FD_72_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD72",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32514,6 +33558,7 @@ const variant_FD_73_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD73",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32549,6 +33594,7 @@ const variant_FD_74_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD74",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32584,6 +33630,7 @@ const variant_FD_75_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD75",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32619,6 +33666,7 @@ const variant_FD_77_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD77",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32649,6 +33697,7 @@ const variant_FD_7C: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32676,6 +33725,7 @@ const variant_FD_7C_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32706,6 +33756,7 @@ const variant_FD_7D: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32733,6 +33784,7 @@ const variant_FD_7D_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32768,6 +33820,7 @@ const variant_FD_7E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32800,6 +33853,7 @@ const variant_FD_7E_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32830,6 +33884,7 @@ const variant_FD_84: OpcodeVariant = {
   "clr": {
     "opcodes": "FD84",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32857,6 +33912,7 @@ const variant_FD_84_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD84",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32887,6 +33943,7 @@ const variant_FD_85: OpcodeVariant = {
   "clr": {
     "opcodes": "FD85",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32914,6 +33971,7 @@ const variant_FD_85_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD85",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -32949,6 +34007,7 @@ const variant_FD_86_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD86",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -32981,6 +34040,7 @@ const variant_FD_86_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD86",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33011,6 +34071,7 @@ const variant_FD_8C: OpcodeVariant = {
   "clr": {
     "opcodes": "FD8C",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33038,6 +34099,7 @@ const variant_FD_8C_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD8C",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33068,6 +34130,7 @@ const variant_FD_8D: OpcodeVariant = {
   "clr": {
     "opcodes": "FD8D",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33095,6 +34158,7 @@ const variant_FD_8D_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD8D",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33130,6 +34194,7 @@ const variant_FD_8E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD8E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33162,6 +34227,7 @@ const variant_FD_8E_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD8E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33192,6 +34258,7 @@ const variant_FD_94: OpcodeVariant = {
   "clr": {
     "opcodes": "FD94",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33219,6 +34286,7 @@ const variant_FD_94_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD94",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33249,6 +34317,7 @@ const variant_FD_95: OpcodeVariant = {
   "clr": {
     "opcodes": "FD95",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33276,6 +34345,7 @@ const variant_FD_95_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD95",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33311,6 +34381,7 @@ const variant_FD_96_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD96",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33343,6 +34414,7 @@ const variant_FD_96_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD96",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33373,6 +34445,7 @@ const variant_FD_9C: OpcodeVariant = {
   "clr": {
     "opcodes": "FD9C",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33400,6 +34473,7 @@ const variant_FD_9C_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD9C",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33430,6 +34504,7 @@ const variant_FD_9D: OpcodeVariant = {
   "clr": {
     "opcodes": "FD9D",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33457,6 +34532,7 @@ const variant_FD_9D_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD9D",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33492,6 +34568,7 @@ const variant_FD_9E_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FD9E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33524,6 +34601,7 @@ const variant_FD_9E_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD9E",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33554,6 +34632,7 @@ const variant_FD_A4: OpcodeVariant = {
   "clr": {
     "opcodes": "FDA4",
     "undocumented": true,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33581,6 +34660,7 @@ const variant_FD_A4_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDA4",
     "undocumented": true,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33611,6 +34691,7 @@ const variant_FD_A5: OpcodeVariant = {
   "clr": {
     "opcodes": "FDA5",
     "undocumented": true,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33638,6 +34719,7 @@ const variant_FD_A5_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDA5",
     "undocumented": true,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33673,6 +34755,7 @@ const variant_FD_A6_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FDA6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33705,6 +34788,7 @@ const variant_FD_A6_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDA6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P1++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33735,6 +34819,7 @@ const variant_FD_AC: OpcodeVariant = {
   "clr": {
     "opcodes": "FDAC",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33762,6 +34847,7 @@ const variant_FD_AC_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDAC",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33792,6 +34878,7 @@ const variant_FD_AD: OpcodeVariant = {
   "clr": {
     "opcodes": "FDAD",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33819,6 +34906,7 @@ const variant_FD_AD_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDAD",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -33854,6 +34942,7 @@ const variant_FD_AE_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FDAE",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33886,6 +34975,7 @@ const variant_FD_AE_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDAE",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -33916,11 +35006,12 @@ const variant_FD_B4: OpcodeVariant = {
   "clr": {
     "opcodes": "FDB4",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with r.",
+    "description": "Bitwise OR on A with IYH.",
     "instruction": "or iyh",
     "used": true
   }
@@ -33943,11 +35034,12 @@ const variant_FD_B4_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDB4",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with r.",
+    "description": "Bitwise OR on A with IYH.",
     "instruction": "or iyh",
     "used": true
   }
@@ -33973,11 +35065,12 @@ const variant_FD_B5: OpcodeVariant = {
   "clr": {
     "opcodes": "FDB5",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with r.",
+    "description": "Bitwise OR on A with IYL.",
     "instruction": "or iyl",
     "used": true
   }
@@ -34000,11 +35093,12 @@ const variant_FD_B5_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDB5",
     "undocumented": true,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
     "without_jump_clock_count": 8,
-    "description": "Bitwise OR on A with r.",
+    "description": "Bitwise OR on A with IYL.",
     "instruction": "or iyl",
     "used": true
   }
@@ -34035,6 +35129,7 @@ const variant_FD_B6_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FDB6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -34067,6 +35162,7 @@ const variant_FD_B6_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDB6",
     "undocumented": false,
+    "z180": false,
     "flags": "00P0++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -34097,6 +35193,7 @@ const variant_FD_BC: OpcodeVariant = {
   "clr": {
     "opcodes": "FDBC",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -34124,6 +35221,7 @@ const variant_FD_BC_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDBC",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -34154,6 +35252,7 @@ const variant_FD_BD: OpcodeVariant = {
   "clr": {
     "opcodes": "FDBD",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -34181,6 +35280,7 @@ const variant_FD_BD_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDBD",
     "undocumented": true,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -34216,6 +35316,7 @@ const variant_FD_BE_dd: OpcodeVariant = {
   "clr": {
     "opcodes": "FDBE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -34248,6 +35349,7 @@ const variant_FD_BE_dd_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDBE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 3,
     "with_jump_clock_count": 19,
@@ -34285,6 +35387,7 @@ const variant_FD_CB_dd_00: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB00",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34322,6 +35425,7 @@ const variant_FD_CB_dd_01: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB01",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34359,6 +35463,7 @@ const variant_FD_CB_dd_02: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB02",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34396,6 +35501,7 @@ const variant_FD_CB_dd_03: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB03",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34433,6 +35539,7 @@ const variant_FD_CB_dd_04: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB04",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34470,6 +35577,7 @@ const variant_FD_CB_dd_05: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB05",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34503,6 +35611,7 @@ const variant_FD_CB_dd_06: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB06",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34540,6 +35649,7 @@ const variant_FD_CB_dd_07: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB07",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34574,6 +35684,7 @@ const variant_FD_CB_dd_07_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB07",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34611,6 +35722,7 @@ const variant_FD_CB_dd_08: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB08",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34648,6 +35760,7 @@ const variant_FD_CB_dd_09: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB09",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34685,6 +35798,7 @@ const variant_FD_CB_dd_0A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB0A",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34722,6 +35836,7 @@ const variant_FD_CB_dd_0B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB0B",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34759,6 +35874,7 @@ const variant_FD_CB_dd_0C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB0C",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34796,6 +35912,7 @@ const variant_FD_CB_dd_0D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB0D",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34829,6 +35946,7 @@ const variant_FD_CB_dd_0E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB0E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34866,6 +35984,7 @@ const variant_FD_CB_dd_0F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB0F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34900,6 +36019,7 @@ const variant_FD_CB_dd_0F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB0F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34937,6 +36057,7 @@ const variant_FD_CB_dd_10: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB10",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -34974,6 +36095,7 @@ const variant_FD_CB_dd_11: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB11",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35011,6 +36133,7 @@ const variant_FD_CB_dd_12: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB12",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35048,6 +36171,7 @@ const variant_FD_CB_dd_13: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB13",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35085,6 +36209,7 @@ const variant_FD_CB_dd_14: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB14",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35122,6 +36247,7 @@ const variant_FD_CB_dd_15: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB15",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35155,6 +36281,7 @@ const variant_FD_CB_dd_16: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB16",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35192,6 +36319,7 @@ const variant_FD_CB_dd_17: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB17",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35226,6 +36354,7 @@ const variant_FD_CB_dd_17_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB17",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35263,6 +36392,7 @@ const variant_FD_CB_dd_18: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB18",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35300,6 +36430,7 @@ const variant_FD_CB_dd_19: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB19",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35337,6 +36468,7 @@ const variant_FD_CB_dd_1A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB1A",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35374,6 +36506,7 @@ const variant_FD_CB_dd_1B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB1B",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35411,6 +36544,7 @@ const variant_FD_CB_dd_1C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB1C",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35448,6 +36582,7 @@ const variant_FD_CB_dd_1D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB1D",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35481,6 +36616,7 @@ const variant_FD_CB_dd_1E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB1E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35518,6 +36654,7 @@ const variant_FD_CB_dd_1F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB1F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35552,6 +36689,7 @@ const variant_FD_CB_dd_1F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB1F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35589,6 +36727,7 @@ const variant_FD_CB_dd_20: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB20",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35626,6 +36765,7 @@ const variant_FD_CB_dd_21: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB21",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35663,6 +36803,7 @@ const variant_FD_CB_dd_22: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB22",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35700,6 +36841,7 @@ const variant_FD_CB_dd_23: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB23",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35737,6 +36879,7 @@ const variant_FD_CB_dd_24: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB24",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35774,6 +36917,7 @@ const variant_FD_CB_dd_25: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB25",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35807,6 +36951,7 @@ const variant_FD_CB_dd_26: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB26",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35844,6 +36989,7 @@ const variant_FD_CB_dd_27: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB27",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35878,6 +37024,7 @@ const variant_FD_CB_dd_27_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB27",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35915,6 +37062,7 @@ const variant_FD_CB_dd_28: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB28",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35952,6 +37100,7 @@ const variant_FD_CB_dd_29: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB29",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -35989,6 +37138,7 @@ const variant_FD_CB_dd_2A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB2A",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36026,6 +37176,7 @@ const variant_FD_CB_dd_2B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB2B",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36063,6 +37214,7 @@ const variant_FD_CB_dd_2C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB2C",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36100,6 +37252,7 @@ const variant_FD_CB_dd_2D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB2D",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36133,6 +37286,7 @@ const variant_FD_CB_dd_2E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB2E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36170,6 +37324,7 @@ const variant_FD_CB_dd_2F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB2F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36204,6 +37359,7 @@ const variant_FD_CB_dd_2F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB2F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36241,6 +37397,7 @@ const variant_FD_CB_dd_30: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB30",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36278,6 +37435,7 @@ const variant_FD_CB_dd_31: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB31",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36315,6 +37473,7 @@ const variant_FD_CB_dd_32: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB32",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36352,6 +37511,7 @@ const variant_FD_CB_dd_33: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB33",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36389,6 +37549,7 @@ const variant_FD_CB_dd_34: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB34",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36426,6 +37587,7 @@ const variant_FD_CB_dd_35: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB35",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36459,6 +37621,7 @@ const variant_FD_CB_dd_36: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB36",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36496,6 +37659,7 @@ const variant_FD_CB_dd_37: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB37",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36530,6 +37694,7 @@ const variant_FD_CB_dd_37_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB37",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36567,6 +37732,7 @@ const variant_FD_CB_dd_38: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB38",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36604,6 +37770,7 @@ const variant_FD_CB_dd_39: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB39",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36641,6 +37808,7 @@ const variant_FD_CB_dd_3A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB3A",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36678,6 +37846,7 @@ const variant_FD_CB_dd_3B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB3B",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36715,6 +37884,7 @@ const variant_FD_CB_dd_3C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB3C",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36752,6 +37922,7 @@ const variant_FD_CB_dd_3D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB3D",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36785,6 +37956,7 @@ const variant_FD_CB_dd_3E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB3E",
     "undocumented": false,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36822,6 +37994,7 @@ const variant_FD_CB_dd_3F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB3F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36856,6 +38029,7 @@ const variant_FD_CB_dd_3F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB3F",
     "undocumented": true,
+    "z180": false,
     "flags": "+0P0++",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -36892,6 +38066,7 @@ const variant_FD_CB_dd_46: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB46",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -36928,6 +38103,7 @@ const variant_FD_CB_dd_4E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB4E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -36964,6 +38140,7 @@ const variant_FD_CB_dd_56: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB56",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -37000,6 +38177,7 @@ const variant_FD_CB_dd_5E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB5E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -37036,6 +38214,7 @@ const variant_FD_CB_dd_66: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB66",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -37072,6 +38251,7 @@ const variant_FD_CB_dd_6E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB6E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -37108,6 +38288,7 @@ const variant_FD_CB_dd_76: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB76",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -37144,6 +38325,7 @@ const variant_FD_CB_dd_7E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB7E",
     "undocumented": false,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -37184,6 +38366,7 @@ const variant_FD_CB_dd_80: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB80",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37224,6 +38407,7 @@ const variant_FD_CB_dd_81: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB81",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37264,6 +38448,7 @@ const variant_FD_CB_dd_82: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB82",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37304,6 +38489,7 @@ const variant_FD_CB_dd_83: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB83",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37344,6 +38530,7 @@ const variant_FD_CB_dd_84: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB84",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37384,6 +38571,7 @@ const variant_FD_CB_dd_85: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB85",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37420,6 +38608,7 @@ const variant_FD_CB_dd_86: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB86",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37460,6 +38649,7 @@ const variant_FD_CB_dd_87: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB87",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37497,6 +38687,7 @@ const variant_FD_CB_dd_87_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB87",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37537,6 +38728,7 @@ const variant_FD_CB_dd_88: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB88",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37577,6 +38769,7 @@ const variant_FD_CB_dd_89: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB89",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37617,6 +38810,7 @@ const variant_FD_CB_dd_8A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB8A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37657,6 +38851,7 @@ const variant_FD_CB_dd_8B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB8B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37697,6 +38892,7 @@ const variant_FD_CB_dd_8C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB8C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37737,6 +38933,7 @@ const variant_FD_CB_dd_8D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB8D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37773,6 +38970,7 @@ const variant_FD_CB_dd_8E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB8E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37813,6 +39011,7 @@ const variant_FD_CB_dd_8F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB8F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37850,6 +39049,7 @@ const variant_FD_CB_dd_8F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB8F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37890,6 +39090,7 @@ const variant_FD_CB_dd_90: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB90",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37930,6 +39131,7 @@ const variant_FD_CB_dd_91: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB91",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -37970,6 +39172,7 @@ const variant_FD_CB_dd_92: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB92",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38010,6 +39213,7 @@ const variant_FD_CB_dd_93: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB93",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38050,6 +39254,7 @@ const variant_FD_CB_dd_94: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB94",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38090,6 +39295,7 @@ const variant_FD_CB_dd_95: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB95",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38126,6 +39332,7 @@ const variant_FD_CB_dd_96: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB96",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38166,6 +39373,7 @@ const variant_FD_CB_dd_97: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB97",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38203,6 +39411,7 @@ const variant_FD_CB_dd_97_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB97",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38243,6 +39452,7 @@ const variant_FD_CB_dd_98: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB98",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38283,6 +39493,7 @@ const variant_FD_CB_dd_99: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB99",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38323,6 +39534,7 @@ const variant_FD_CB_dd_9A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB9A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38363,6 +39575,7 @@ const variant_FD_CB_dd_9B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB9B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38403,6 +39616,7 @@ const variant_FD_CB_dd_9C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB9C",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38443,6 +39657,7 @@ const variant_FD_CB_dd_9D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB9D",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38479,6 +39694,7 @@ const variant_FD_CB_dd_9E: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB9E",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38519,6 +39735,7 @@ const variant_FD_CB_dd_9F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB9F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38556,6 +39773,7 @@ const variant_FD_CB_dd_9F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB9F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38596,6 +39814,7 @@ const variant_FD_CB_dd_A0: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38636,6 +39855,7 @@ const variant_FD_CB_dd_A1: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38676,6 +39896,7 @@ const variant_FD_CB_dd_A2: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38716,6 +39937,7 @@ const variant_FD_CB_dd_A3: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38756,6 +39978,7 @@ const variant_FD_CB_dd_A4: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38796,6 +40019,7 @@ const variant_FD_CB_dd_A5: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38832,6 +40056,7 @@ const variant_FD_CB_dd_A6: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38872,6 +40097,7 @@ const variant_FD_CB_dd_A7: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38909,6 +40135,7 @@ const variant_FD_CB_dd_A7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38949,6 +40176,7 @@ const variant_FD_CB_dd_A8: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -38989,6 +40217,7 @@ const variant_FD_CB_dd_A9: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBA9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39029,6 +40258,7 @@ const variant_FD_CB_dd_AA: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBAA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39069,6 +40299,7 @@ const variant_FD_CB_dd_AB: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBAB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39109,6 +40340,7 @@ const variant_FD_CB_dd_AC: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBAC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39149,6 +40381,7 @@ const variant_FD_CB_dd_AD: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBAD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39185,6 +40418,7 @@ const variant_FD_CB_dd_AE: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBAE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39225,6 +40459,7 @@ const variant_FD_CB_dd_AF: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBAF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39262,6 +40497,7 @@ const variant_FD_CB_dd_AF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBAF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39302,6 +40538,7 @@ const variant_FD_CB_dd_B0: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39342,6 +40579,7 @@ const variant_FD_CB_dd_B1: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39382,6 +40620,7 @@ const variant_FD_CB_dd_B2: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39422,6 +40661,7 @@ const variant_FD_CB_dd_B3: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39462,6 +40702,7 @@ const variant_FD_CB_dd_B4: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39502,6 +40743,7 @@ const variant_FD_CB_dd_B5: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39538,6 +40780,7 @@ const variant_FD_CB_dd_B6: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39578,6 +40821,7 @@ const variant_FD_CB_dd_B7: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39615,6 +40859,7 @@ const variant_FD_CB_dd_B7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39655,6 +40900,7 @@ const variant_FD_CB_dd_B8: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39695,6 +40941,7 @@ const variant_FD_CB_dd_B9: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBB9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39735,6 +40982,7 @@ const variant_FD_CB_dd_BA: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBBA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39775,6 +41023,7 @@ const variant_FD_CB_dd_BB: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBBB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39815,6 +41064,7 @@ const variant_FD_CB_dd_BC: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBBC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39855,6 +41105,7 @@ const variant_FD_CB_dd_BD: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBBD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39891,6 +41142,7 @@ const variant_FD_CB_dd_BE: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBBE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39931,6 +41183,7 @@ const variant_FD_CB_dd_BF: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBBF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -39968,6 +41221,7 @@ const variant_FD_CB_dd_BF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBBF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40008,6 +41262,7 @@ const variant_FD_CB_dd_C0: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40048,6 +41303,7 @@ const variant_FD_CB_dd_C1: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40088,6 +41344,7 @@ const variant_FD_CB_dd_C2: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40128,6 +41385,7 @@ const variant_FD_CB_dd_C3: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40168,6 +41426,7 @@ const variant_FD_CB_dd_C4: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40208,6 +41467,7 @@ const variant_FD_CB_dd_C5: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40244,6 +41504,7 @@ const variant_FD_CB_dd_C6: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40284,6 +41545,7 @@ const variant_FD_CB_dd_C7: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40321,6 +41583,7 @@ const variant_FD_CB_dd_C7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40361,6 +41624,7 @@ const variant_FD_CB_dd_C8: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40401,6 +41665,7 @@ const variant_FD_CB_dd_C9: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBC9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40441,6 +41706,7 @@ const variant_FD_CB_dd_CA: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBCA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40481,6 +41747,7 @@ const variant_FD_CB_dd_CB: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBCB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40521,6 +41788,7 @@ const variant_FD_CB_dd_CC: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBCC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40561,6 +41829,7 @@ const variant_FD_CB_dd_CD: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBCD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40597,6 +41866,7 @@ const variant_FD_CB_dd_CE: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBCE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40637,6 +41907,7 @@ const variant_FD_CB_dd_CF: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBCF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40674,6 +41945,7 @@ const variant_FD_CB_dd_CF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBCF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40714,6 +41986,7 @@ const variant_FD_CB_dd_D0: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40754,6 +42027,7 @@ const variant_FD_CB_dd_D1: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40794,6 +42068,7 @@ const variant_FD_CB_dd_D2: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40834,6 +42109,7 @@ const variant_FD_CB_dd_D3: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40874,6 +42150,7 @@ const variant_FD_CB_dd_D4: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40914,6 +42191,7 @@ const variant_FD_CB_dd_D5: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40950,6 +42228,7 @@ const variant_FD_CB_dd_D6: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -40990,6 +42269,7 @@ const variant_FD_CB_dd_D7: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41027,6 +42307,7 @@ const variant_FD_CB_dd_D7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41067,6 +42348,7 @@ const variant_FD_CB_dd_D8: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41107,6 +42389,7 @@ const variant_FD_CB_dd_D9: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBD9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41147,6 +42430,7 @@ const variant_FD_CB_dd_DA: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBDA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41187,6 +42471,7 @@ const variant_FD_CB_dd_DB: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBDB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41227,6 +42512,7 @@ const variant_FD_CB_dd_DC: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBDC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41267,6 +42553,7 @@ const variant_FD_CB_dd_DD: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBDD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41303,6 +42590,7 @@ const variant_FD_CB_dd_DE: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBDE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41343,6 +42631,7 @@ const variant_FD_CB_dd_DF: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBDF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41380,6 +42669,7 @@ const variant_FD_CB_dd_DF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBDF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41420,6 +42710,7 @@ const variant_FD_CB_dd_E0: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41460,6 +42751,7 @@ const variant_FD_CB_dd_E1: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41500,6 +42792,7 @@ const variant_FD_CB_dd_E2: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41540,6 +42833,7 @@ const variant_FD_CB_dd_E3: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41580,6 +42874,7 @@ const variant_FD_CB_dd_E4: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41620,6 +42915,7 @@ const variant_FD_CB_dd_E5: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41656,6 +42952,7 @@ const variant_FD_CB_dd_E6: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41696,6 +42993,7 @@ const variant_FD_CB_dd_E7: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41733,6 +43031,7 @@ const variant_FD_CB_dd_E7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41773,6 +43072,7 @@ const variant_FD_CB_dd_E8: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41813,6 +43113,7 @@ const variant_FD_CB_dd_E9: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBE9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41853,6 +43154,7 @@ const variant_FD_CB_dd_EA: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBEA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41893,6 +43195,7 @@ const variant_FD_CB_dd_EB: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBEB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41933,6 +43236,7 @@ const variant_FD_CB_dd_EC: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBEC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -41973,6 +43277,7 @@ const variant_FD_CB_dd_ED: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBED",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42009,6 +43314,7 @@ const variant_FD_CB_dd_EE: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBEE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42049,6 +43355,7 @@ const variant_FD_CB_dd_EF: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBEF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42086,6 +43393,7 @@ const variant_FD_CB_dd_EF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBEF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42126,6 +43434,7 @@ const variant_FD_CB_dd_F0: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF0",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42166,6 +43475,7 @@ const variant_FD_CB_dd_F1: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF1",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42206,6 +43516,7 @@ const variant_FD_CB_dd_F2: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF2",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42246,6 +43557,7 @@ const variant_FD_CB_dd_F3: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF3",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42286,6 +43598,7 @@ const variant_FD_CB_dd_F4: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF4",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42326,6 +43639,7 @@ const variant_FD_CB_dd_F5: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF5",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42362,6 +43676,7 @@ const variant_FD_CB_dd_F6: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF6",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42402,6 +43717,7 @@ const variant_FD_CB_dd_F7: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42439,6 +43755,7 @@ const variant_FD_CB_dd_F7_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF7",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42479,6 +43796,7 @@ const variant_FD_CB_dd_F8: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF8",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42519,6 +43837,7 @@ const variant_FD_CB_dd_F9: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBF9",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42559,6 +43878,7 @@ const variant_FD_CB_dd_FA: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBFA",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42599,6 +43919,7 @@ const variant_FD_CB_dd_FB: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBFB",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42639,6 +43960,7 @@ const variant_FD_CB_dd_FC: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBFC",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42679,6 +44001,7 @@ const variant_FD_CB_dd_FD: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBFD",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42715,6 +44038,7 @@ const variant_FD_CB_dd_FE: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBFE",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42755,6 +44079,7 @@ const variant_FD_CB_dd_FF: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBFF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42792,6 +44117,7 @@ const variant_FD_CB_dd_FF_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCBFF",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 23,
@@ -42819,6 +44145,7 @@ const variant_FD_E1: OpcodeVariant = {
   "clr": {
     "opcodes": "FDE1",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 14,
@@ -42851,6 +44178,7 @@ const variant_FD_E3: OpcodeVariant = {
   "clr": {
     "opcodes": "FDE3",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 23,
@@ -42878,6 +44206,7 @@ const variant_FD_E5: OpcodeVariant = {
   "clr": {
     "opcodes": "FDE5",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 15,
@@ -42905,6 +44234,7 @@ const variant_FD_E9: OpcodeVariant = {
   "clr": {
     "opcodes": "FDE9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -42934,6 +44264,7 @@ const variant_FD_E9_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FDE9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -42964,6 +44295,7 @@ const variant_FD_F9: OpcodeVariant = {
   "clr": {
     "opcodes": "FDF9",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 10,
@@ -42994,6 +44326,7 @@ const variant_FE_nn: OpcodeVariant = {
   "clr": {
     "opcodes": "FE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -43021,6 +44354,7 @@ const variant_FE_nn_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FE",
     "undocumented": false,
+    "z180": false,
     "flags": "++V+++",
     "byte_count": 2,
     "with_jump_clock_count": 7,
@@ -43047,6 +44381,7 @@ const variant_FF: OpcodeVariant = {
   "clr": {
     "opcodes": "FF",
     "undocumented": false,
+    "z180": false,
     "flags": "------",
     "byte_count": 1,
     "with_jump_clock_count": 11,
@@ -43078,6 +44413,7 @@ const variant_DD_40: OpcodeVariant = {
   "clr": {
     "opcodes": "DD40",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43109,6 +44445,7 @@ const variant_DD_41: OpcodeVariant = {
   "clr": {
     "opcodes": "DD41",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43140,6 +44477,7 @@ const variant_DD_42: OpcodeVariant = {
   "clr": {
     "opcodes": "DD42",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43171,6 +44509,7 @@ const variant_DD_43: OpcodeVariant = {
   "clr": {
     "opcodes": "DD43",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43202,6 +44541,7 @@ const variant_DD_47: OpcodeVariant = {
   "clr": {
     "opcodes": "DD47",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43233,6 +44573,7 @@ const variant_DD_48: OpcodeVariant = {
   "clr": {
     "opcodes": "DD48",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43264,6 +44605,7 @@ const variant_DD_49: OpcodeVariant = {
   "clr": {
     "opcodes": "DD49",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43295,6 +44637,7 @@ const variant_DD_4A: OpcodeVariant = {
   "clr": {
     "opcodes": "DD4A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43326,6 +44669,7 @@ const variant_DD_4B: OpcodeVariant = {
   "clr": {
     "opcodes": "DD4B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43357,6 +44701,7 @@ const variant_DD_4F: OpcodeVariant = {
   "clr": {
     "opcodes": "DD4F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43388,6 +44733,7 @@ const variant_DD_50: OpcodeVariant = {
   "clr": {
     "opcodes": "DD50",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43419,6 +44765,7 @@ const variant_DD_51: OpcodeVariant = {
   "clr": {
     "opcodes": "DD51",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43450,6 +44797,7 @@ const variant_DD_52: OpcodeVariant = {
   "clr": {
     "opcodes": "DD52",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43481,6 +44829,7 @@ const variant_DD_53: OpcodeVariant = {
   "clr": {
     "opcodes": "DD53",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43512,6 +44861,7 @@ const variant_DD_57: OpcodeVariant = {
   "clr": {
     "opcodes": "DD57",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43543,6 +44893,7 @@ const variant_DD_58: OpcodeVariant = {
   "clr": {
     "opcodes": "DD58",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43574,6 +44925,7 @@ const variant_DD_59: OpcodeVariant = {
   "clr": {
     "opcodes": "DD59",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43605,6 +44957,7 @@ const variant_DD_5A: OpcodeVariant = {
   "clr": {
     "opcodes": "DD5A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43636,6 +44989,7 @@ const variant_DD_5B: OpcodeVariant = {
   "clr": {
     "opcodes": "DD5B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43667,6 +45021,7 @@ const variant_DD_5F: OpcodeVariant = {
   "clr": {
     "opcodes": "DD5F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43698,6 +45053,7 @@ const variant_DD_78: OpcodeVariant = {
   "clr": {
     "opcodes": "DD78",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43726,6 +45082,7 @@ const variant_DD_78_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD78",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43757,6 +45114,7 @@ const variant_DD_79: OpcodeVariant = {
   "clr": {
     "opcodes": "DD79",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43785,6 +45143,7 @@ const variant_DD_79_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD79",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43816,6 +45175,7 @@ const variant_DD_7A: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43844,6 +45204,7 @@ const variant_DD_7A_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43875,6 +45236,7 @@ const variant_DD_7B: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43903,6 +45265,7 @@ const variant_DD_7B_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43934,6 +45297,7 @@ const variant_DD_7F: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43962,6 +45326,7 @@ const variant_DD_7F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "DD7F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -43999,6 +45364,7 @@ const variant_DD_CB_dd_40: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB40",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44036,6 +45402,7 @@ const variant_DD_CB_dd_41: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB41",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44073,6 +45440,7 @@ const variant_DD_CB_dd_42: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB42",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44110,6 +45478,7 @@ const variant_DD_CB_dd_43: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB43",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44147,6 +45516,7 @@ const variant_DD_CB_dd_44: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB44",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44184,6 +45554,7 @@ const variant_DD_CB_dd_45: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB45",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44221,6 +45592,7 @@ const variant_DD_CB_dd_47: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB47",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44258,6 +45630,7 @@ const variant_DD_CB_dd_48: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB48",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44295,6 +45668,7 @@ const variant_DD_CB_dd_49: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB49",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44332,6 +45706,7 @@ const variant_DD_CB_dd_4A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB4A",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44369,6 +45744,7 @@ const variant_DD_CB_dd_4B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB4B",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44406,6 +45782,7 @@ const variant_DD_CB_dd_4C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB4C",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44443,6 +45820,7 @@ const variant_DD_CB_dd_4D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB4D",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44480,6 +45858,7 @@ const variant_DD_CB_dd_4F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB4F",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44517,6 +45896,7 @@ const variant_DD_CB_dd_50: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB50",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44554,6 +45934,7 @@ const variant_DD_CB_dd_51: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB51",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44591,6 +45972,7 @@ const variant_DD_CB_dd_52: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB52",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44628,6 +46010,7 @@ const variant_DD_CB_dd_53: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB53",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44665,6 +46048,7 @@ const variant_DD_CB_dd_54: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB54",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44702,6 +46086,7 @@ const variant_DD_CB_dd_55: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB55",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44739,6 +46124,7 @@ const variant_DD_CB_dd_57: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB57",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44776,6 +46162,7 @@ const variant_DD_CB_dd_58: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB58",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44813,6 +46200,7 @@ const variant_DD_CB_dd_59: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB59",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44850,6 +46238,7 @@ const variant_DD_CB_dd_5A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB5A",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44887,6 +46276,7 @@ const variant_DD_CB_dd_5B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB5B",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44924,6 +46314,7 @@ const variant_DD_CB_dd_5C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB5C",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44961,6 +46352,7 @@ const variant_DD_CB_dd_5D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB5D",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -44998,6 +46390,7 @@ const variant_DD_CB_dd_5F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB5F",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45035,6 +46428,7 @@ const variant_DD_CB_dd_60: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB60",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45072,6 +46466,7 @@ const variant_DD_CB_dd_61: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB61",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45109,6 +46504,7 @@ const variant_DD_CB_dd_62: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB62",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45146,6 +46542,7 @@ const variant_DD_CB_dd_63: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB63",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45183,6 +46580,7 @@ const variant_DD_CB_dd_64: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB64",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45220,6 +46618,7 @@ const variant_DD_CB_dd_65: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB65",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45257,6 +46656,7 @@ const variant_DD_CB_dd_67: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB67",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45294,6 +46694,7 @@ const variant_DD_CB_dd_68: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB68",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45331,6 +46732,7 @@ const variant_DD_CB_dd_69: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB69",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45368,6 +46770,7 @@ const variant_DD_CB_dd_6A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB6A",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45405,6 +46808,7 @@ const variant_DD_CB_dd_6B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB6B",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45442,6 +46846,7 @@ const variant_DD_CB_dd_6C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB6C",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45479,6 +46884,7 @@ const variant_DD_CB_dd_6D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB6D",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45516,6 +46922,7 @@ const variant_DD_CB_dd_6F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB6F",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45553,6 +46960,7 @@ const variant_DD_CB_dd_70: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB70",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45590,6 +46998,7 @@ const variant_DD_CB_dd_71: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB71",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45627,6 +47036,7 @@ const variant_DD_CB_dd_72: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB72",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45664,6 +47074,7 @@ const variant_DD_CB_dd_73: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB73",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45701,6 +47112,7 @@ const variant_DD_CB_dd_74: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB74",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45738,6 +47150,7 @@ const variant_DD_CB_dd_75: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB75",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45775,6 +47188,7 @@ const variant_DD_CB_dd_77: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB77",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45812,6 +47226,7 @@ const variant_DD_CB_dd_78: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB78",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45849,6 +47264,7 @@ const variant_DD_CB_dd_79: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB79",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45886,6 +47302,7 @@ const variant_DD_CB_dd_7A: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB7A",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45923,6 +47340,7 @@ const variant_DD_CB_dd_7B: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB7B",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45960,6 +47378,7 @@ const variant_DD_CB_dd_7C: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB7C",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -45997,6 +47416,7 @@ const variant_DD_CB_dd_7D: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB7D",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -46034,6 +47454,7 @@ const variant_DD_CB_dd_7F: OpcodeVariant = {
   "clr": {
     "opcodes": "DDCB7F",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -46058,6 +47479,7 @@ const variant_ED_4C: OpcodeVariant = {
   "clr": {
     "opcodes": "ED4C",
     "undocumented": false,
+    "z180": true,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 17,
@@ -46125,6 +47547,7 @@ const variant_ED_5C: OpcodeVariant = {
   "clr": {
     "opcodes": "ED5C",
     "undocumented": false,
+    "z180": true,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 17,
@@ -46172,6 +47595,7 @@ const variant_ED_63_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "ED63",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -46196,6 +47620,7 @@ const variant_ED_64: OpcodeVariant = {
   "clr": {
     "opcodes": "ED64",
     "undocumented": false,
+    "z180": true,
     "flags": "00P1++",
     "byte_count": 3,
     "with_jump_clock_count": 10,
@@ -46260,6 +47685,7 @@ const variant_ED_6B_nnnn: OpcodeVariant = {
   "clr": {
     "opcodes": "ED6B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -46284,6 +47710,7 @@ const variant_ED_6C: OpcodeVariant = {
   "clr": {
     "opcodes": "ED6C",
     "undocumented": false,
+    "z180": true,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 17,
@@ -46338,6 +47765,7 @@ const variant_ED_74: OpcodeVariant = {
   "clr": {
     "opcodes": "ED74",
     "undocumented": false,
+    "z180": true,
     "flags": "00P1++",
     "byte_count": 3,
     "with_jump_clock_count": 12,
@@ -46379,6 +47807,7 @@ const variant_ED_76: OpcodeVariant = {
   "clr": {
     "opcodes": "ED76",
     "undocumented": false,
+    "z180": true,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46403,6 +47832,7 @@ const variant_ED_7C: OpcodeVariant = {
   "clr": {
     "opcodes": "ED7C",
     "undocumented": false,
+    "z180": true,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 17,
@@ -46464,6 +47894,7 @@ const variant_FD_40: OpcodeVariant = {
   "clr": {
     "opcodes": "FD40",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46495,6 +47926,7 @@ const variant_FD_41: OpcodeVariant = {
   "clr": {
     "opcodes": "FD41",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46526,6 +47958,7 @@ const variant_FD_42: OpcodeVariant = {
   "clr": {
     "opcodes": "FD42",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46557,6 +47990,7 @@ const variant_FD_43: OpcodeVariant = {
   "clr": {
     "opcodes": "FD43",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46588,6 +48022,7 @@ const variant_FD_47: OpcodeVariant = {
   "clr": {
     "opcodes": "FD47",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46619,6 +48054,7 @@ const variant_FD_48: OpcodeVariant = {
   "clr": {
     "opcodes": "FD48",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46650,6 +48086,7 @@ const variant_FD_49: OpcodeVariant = {
   "clr": {
     "opcodes": "FD49",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46681,6 +48118,7 @@ const variant_FD_4A: OpcodeVariant = {
   "clr": {
     "opcodes": "FD4A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46712,6 +48150,7 @@ const variant_FD_4B: OpcodeVariant = {
   "clr": {
     "opcodes": "FD4B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46743,6 +48182,7 @@ const variant_FD_4F: OpcodeVariant = {
   "clr": {
     "opcodes": "FD4F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46774,6 +48214,7 @@ const variant_FD_50: OpcodeVariant = {
   "clr": {
     "opcodes": "FD50",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46805,6 +48246,7 @@ const variant_FD_51: OpcodeVariant = {
   "clr": {
     "opcodes": "FD51",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46836,6 +48278,7 @@ const variant_FD_52: OpcodeVariant = {
   "clr": {
     "opcodes": "FD52",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46867,6 +48310,7 @@ const variant_FD_53: OpcodeVariant = {
   "clr": {
     "opcodes": "FD53",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46898,6 +48342,7 @@ const variant_FD_57: OpcodeVariant = {
   "clr": {
     "opcodes": "FD57",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46929,6 +48374,7 @@ const variant_FD_58: OpcodeVariant = {
   "clr": {
     "opcodes": "FD58",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46960,6 +48406,7 @@ const variant_FD_59: OpcodeVariant = {
   "clr": {
     "opcodes": "FD59",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -46991,6 +48438,7 @@ const variant_FD_5A: OpcodeVariant = {
   "clr": {
     "opcodes": "FD5A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47022,6 +48470,7 @@ const variant_FD_5B: OpcodeVariant = {
   "clr": {
     "opcodes": "FD5B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47053,6 +48502,7 @@ const variant_FD_5F: OpcodeVariant = {
   "clr": {
     "opcodes": "FD5F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47084,6 +48534,7 @@ const variant_FD_78: OpcodeVariant = {
   "clr": {
     "opcodes": "FD78",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47112,6 +48563,7 @@ const variant_FD_78_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD78",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47143,6 +48595,7 @@ const variant_FD_79: OpcodeVariant = {
   "clr": {
     "opcodes": "FD79",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47171,6 +48624,7 @@ const variant_FD_79_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD79",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47202,6 +48656,7 @@ const variant_FD_7A: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47230,6 +48685,7 @@ const variant_FD_7A_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7A",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47261,6 +48717,7 @@ const variant_FD_7B: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47289,6 +48746,7 @@ const variant_FD_7B_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7B",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47320,6 +48778,7 @@ const variant_FD_7F: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47348,6 +48807,7 @@ const variant_FD_7F_pseudo: OpcodeVariant = {
   "clr": {
     "opcodes": "FD7F",
     "undocumented": true,
+    "z180": false,
     "flags": "------",
     "byte_count": 2,
     "with_jump_clock_count": 8,
@@ -47385,6 +48845,7 @@ const variant_FD_CB_dd_40: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB40",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47422,6 +48883,7 @@ const variant_FD_CB_dd_41: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB41",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47459,6 +48921,7 @@ const variant_FD_CB_dd_42: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB42",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47496,6 +48959,7 @@ const variant_FD_CB_dd_43: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB43",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47533,6 +48997,7 @@ const variant_FD_CB_dd_44: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB44",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47570,6 +49035,7 @@ const variant_FD_CB_dd_45: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB45",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47607,6 +49073,7 @@ const variant_FD_CB_dd_47: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB47",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47644,6 +49111,7 @@ const variant_FD_CB_dd_48: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB48",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47681,6 +49149,7 @@ const variant_FD_CB_dd_49: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB49",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47718,6 +49187,7 @@ const variant_FD_CB_dd_4A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB4A",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47755,6 +49225,7 @@ const variant_FD_CB_dd_4B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB4B",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47792,6 +49263,7 @@ const variant_FD_CB_dd_4C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB4C",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47829,6 +49301,7 @@ const variant_FD_CB_dd_4D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB4D",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47866,6 +49339,7 @@ const variant_FD_CB_dd_4F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB4F",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47903,6 +49377,7 @@ const variant_FD_CB_dd_50: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB50",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47940,6 +49415,7 @@ const variant_FD_CB_dd_51: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB51",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -47977,6 +49453,7 @@ const variant_FD_CB_dd_52: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB52",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48014,6 +49491,7 @@ const variant_FD_CB_dd_53: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB53",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48051,6 +49529,7 @@ const variant_FD_CB_dd_54: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB54",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48088,6 +49567,7 @@ const variant_FD_CB_dd_55: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB55",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48125,6 +49605,7 @@ const variant_FD_CB_dd_57: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB57",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48162,6 +49643,7 @@ const variant_FD_CB_dd_58: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB58",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48199,6 +49681,7 @@ const variant_FD_CB_dd_59: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB59",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48236,6 +49719,7 @@ const variant_FD_CB_dd_5A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB5A",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48273,6 +49757,7 @@ const variant_FD_CB_dd_5B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB5B",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48310,6 +49795,7 @@ const variant_FD_CB_dd_5C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB5C",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48347,6 +49833,7 @@ const variant_FD_CB_dd_5D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB5D",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48384,6 +49871,7 @@ const variant_FD_CB_dd_5F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB5F",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48421,6 +49909,7 @@ const variant_FD_CB_dd_60: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB60",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48458,6 +49947,7 @@ const variant_FD_CB_dd_61: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB61",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48495,6 +49985,7 @@ const variant_FD_CB_dd_62: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB62",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48532,6 +50023,7 @@ const variant_FD_CB_dd_63: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB63",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48569,6 +50061,7 @@ const variant_FD_CB_dd_64: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB64",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48606,6 +50099,7 @@ const variant_FD_CB_dd_65: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB65",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48643,6 +50137,7 @@ const variant_FD_CB_dd_67: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB67",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48680,6 +50175,7 @@ const variant_FD_CB_dd_68: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB68",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48717,6 +50213,7 @@ const variant_FD_CB_dd_69: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB69",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48754,6 +50251,7 @@ const variant_FD_CB_dd_6A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB6A",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48791,6 +50289,7 @@ const variant_FD_CB_dd_6B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB6B",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48828,6 +50327,7 @@ const variant_FD_CB_dd_6C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB6C",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48865,6 +50365,7 @@ const variant_FD_CB_dd_6D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB6D",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48902,6 +50403,7 @@ const variant_FD_CB_dd_6F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB6F",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48939,6 +50441,7 @@ const variant_FD_CB_dd_70: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB70",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -48976,6 +50479,7 @@ const variant_FD_CB_dd_71: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB71",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49013,6 +50517,7 @@ const variant_FD_CB_dd_72: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB72",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49050,6 +50555,7 @@ const variant_FD_CB_dd_73: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB73",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49087,6 +50593,7 @@ const variant_FD_CB_dd_74: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB74",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49124,6 +50631,7 @@ const variant_FD_CB_dd_75: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB75",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49161,6 +50669,7 @@ const variant_FD_CB_dd_77: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB77",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49198,6 +50707,7 @@ const variant_FD_CB_dd_78: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB78",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49235,6 +50745,7 @@ const variant_FD_CB_dd_79: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB79",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49272,6 +50783,7 @@ const variant_FD_CB_dd_7A: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB7A",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49309,6 +50821,7 @@ const variant_FD_CB_dd_7B: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB7B",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49346,6 +50859,7 @@ const variant_FD_CB_dd_7C: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB7C",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49383,6 +50897,7 @@ const variant_FD_CB_dd_7D: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB7D",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,
@@ -49420,6 +50935,7 @@ const variant_FD_CB_dd_7F: OpcodeVariant = {
   "clr": {
     "opcodes": "FDCB7F",
     "undocumented": true,
+    "z180": false,
     "flags": "-0 1+ ",
     "byte_count": 4,
     "with_jump_clock_count": 20,

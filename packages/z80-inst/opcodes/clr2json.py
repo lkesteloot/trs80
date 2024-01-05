@@ -1,6 +1,7 @@
 
 # Converts the HTML of http://clrhome.org/table/ to a JSON file.
 #
+# curl -o clr.html https://clrhome.org/table/
 # python3 clr2json.py clr.html > clr.json
 
 import sys
@@ -45,13 +46,14 @@ while n < len(lines):
     m = TD_RE.search(line)
     if m and "</td" not in line:
         undocumented = m.group(1) == "undocumented"
+        z180 = m.group(1) == "z180"
         flags = ""
         n += 1
         # inc d
         line = lines[n].strip()
         if line.startswith("<a"):
             continue
-        instruction = lines[n].strip().replace("<var>", "").replace("</var>", "")
+        instruction = lines[n].strip().replace("<var>", "").replace("</var>", "").replace("<code>", "").replace("</code>", "")
         n += 1
         # <dl>
         assert lines[n].strip() == "<dl>"
@@ -123,6 +125,7 @@ while n < len(lines):
         instructions.append({
             "opcodes": opcodes,
             "undocumented": undocumented,
+            "z180": z180,
             "flags": flags,
             "byte_count": byte_count,
             "with_jump_clock_count": with_jump_clock_count,

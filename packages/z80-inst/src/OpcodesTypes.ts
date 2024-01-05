@@ -7,6 +7,7 @@ export type OpcodeTemplate = number | OpcodeTemplateOperand;
 export interface ClrInstruction {
     opcodes: string;
     undocumented: boolean;
+    z180: boolean;
     flags: string;
     byte_count: number;
     with_jump_clock_count: number;
