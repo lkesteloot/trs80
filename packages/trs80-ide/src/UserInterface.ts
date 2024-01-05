@@ -1,19 +1,20 @@
 import {breakdwn} from "./breakdwn";
 import {scarfman} from "./scarfman";
 import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, MenuCommand} from "./Menubar";
-import {downloadFromRetroStore, uploadToRetroStore} from "./RetroStore";
 import {Emulator} from "./Emulator";
 import {Editor} from "./Editor";
 import {wolf} from "./wolf";
 import { fileOpen, fileSave } from "browser-fs-access"
 import { binaryAsCasFile, casAsAudio, DEFAULT_SAMPLE_RATE, writeWavFile } from "trs80-cassette";
+import { decodeTrs80File, isFloppy } from "trs80-base";
 
-// So that if we later have different types of files (images, project files), the user agent
-// can have a different default or current directory for each.
+// ID so that the user agent can have a different default or current directory for each.
 const ASSEMBLY_LANGUAGE_FILES_DIR_ID = "asm_files";
+const FLOPPY_FILES_DIR_ID = "floppy_files";
 
-// File extensions for assembly language files.
+// File extensions for various file types.
 const ASSEMBLY_LANGUAGE_EXTENSIONS = [".asm", ".s", ".z"];
+const FLOPPY_FILES_EXTENSIONS = [".jv1", ".jv3", ".dmk", ".dsk"];
 
 const minimalTemplate = `
         ; Where to load the program in memory.
@@ -535,6 +536,23 @@ export class UserInterface {
                 ],
             },
             {
+                text: "Mount",
+                menu: [
+                    {
+                        text: "Insert Floppy...",
+                        action: async () => {
+                            await this.mountFloppy(emulator);
+                        },
+                    },
+                    {
+                        text: "Eject Floppy",
+                        action: () => {
+                            emulator.trs80.loadFloppyDisk(undefined, 0);
+                        },
+                    },
+                ],
+            },
+            {
                 text: "Help",
                 menu: [
                     {
@@ -860,5 +878,21 @@ export class UserInterface {
         audioNode.volume = 0.5;
 
         dialogBox.showModal();
+    }
+
+    /**
+     * Prompt the user to open a floppy, and mount it.
+     */
+    private async mountFloppy(emulator: Emulator) {
+        const blob = await fileOpen({
+            description: "Floppy disk files",
+            extensions: FLOPPY_FILES_EXTENSIONS,
+            id: FLOPPY_FILES_DIR_ID,
+        });
+        const text = new Uint8Array(await blob.arrayBuffer());
+        const floppy = decodeTrs80File(text, blob.name);
+        if (isFloppy(floppy)) {
+            emulator.trs80.loadFloppyDisk(floppy, 0);
+        }
     }
 }
