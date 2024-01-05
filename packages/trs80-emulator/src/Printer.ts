@@ -44,8 +44,6 @@ export abstract class LinePrinter implements Printer {
     private line = "";
 
     printChar(ch: number): void {
-        console.log("Writing \"" + String.fromCodePoint(ch) + "\" (" + ch + ") to printer");
-
         if (ch === 13) {
             // Carriage return, end of line.
             this.printLine(this.line);

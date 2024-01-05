@@ -58,7 +58,8 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
         this.node.append(this.paper);
 
         const controlPanel = new ControlPanel(this.node);
-        controlPanel.addSaveButton(() => this.hide());
+        controlPanel.addCloseButton(() => this.hide());
+        controlPanel.addTrashButton(() => this.clearPrintout());
     }
 
     /**
@@ -105,6 +106,10 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
 
     private hide() {
         this.flipCard?.hide(this);
+    }
+
+    private clearPrintout() {
+        this.paper.replaceChildren();
     }
 
     save() {
