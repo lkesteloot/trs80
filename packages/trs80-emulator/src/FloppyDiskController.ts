@@ -184,6 +184,43 @@ class FloppyDrive {
     public floppyDisk: FloppyDisk | undefined = undefined;
 }
 
+// Snapshot of FDC state, of save() and restore().
+export class FdcState {
+    // Registers.
+    public readonly status: number;
+    public readonly track: number;
+    public readonly sector: number;
+    public readonly data: number;
+
+    // Internal state.
+    public readonly currentCommand: number;
+    public readonly side: Side;
+    public readonly doubleDensity: boolean;
+    public readonly currentDrive: number;
+    public readonly motorOn: boolean;
+    public readonly lastReadAddress: number | undefined;
+    public readonly dataIndex: number;
+    public readonly sectorData: SectorData | undefined;
+
+    constructor(status: number, track: number, sector: number, data: number, currentCommand: number, side: Side,
+                doubleDensity: boolean, currentDrive: number, motorOn: boolean, lastReadAddress: number | undefined,
+                dataIndex: number, sectorData: SectorData | undefined) {
+
+        this.status = status;
+        this.track = track;
+        this.sector = sector;
+        this.data = data;
+        this.currentCommand = currentCommand;
+        this.side = side;
+        this.doubleDensity = doubleDensity;
+        this.currentDrive = currentDrive;
+        this.motorOn = motorOn;
+        this.lastReadAddress = lastReadAddress;
+        this.dataIndex = dataIndex;
+        this.sectorData = sectorData;
+    }
+}
+
 /**
  * The disk controller. We only emulate the WD1791/93, not the Model I's WD1771.
  */
@@ -243,6 +280,27 @@ export class FloppyDiskController {
         }
 
         this.drives[driveNumber].floppyDisk = floppyDisk;
+    }
+
+    public save(): FdcState {
+        return new FdcState(this.status, this.track, this.sector, this.data, this.currentCommand, this.side,
+            this.doubleDensity, this.currentDrive, this.motorOn, this.lastReadAddress,
+            this.dataIndex, this.sectorData);
+    }
+
+    public restore(fdcState: FdcState): void {
+        this.status = fdcState.status;
+        this.track = fdcState.track;
+        this.sector = fdcState.sector;
+        this.data = fdcState.data;
+        this.currentCommand = fdcState.currentCommand;
+        this.side = fdcState.side;
+        this.doubleDensity = fdcState.doubleDensity;
+        this.currentDrive = fdcState.currentDrive;
+        this.motorOn = fdcState.motorOn;
+        this.lastReadAddress = fdcState.lastReadAddress;
+        this.dataIndex = fdcState.dataIndex;
+        this.sectorData = fdcState.sectorData;
     }
 
     public readStatus(): number {

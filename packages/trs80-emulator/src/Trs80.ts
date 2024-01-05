@@ -21,7 +21,7 @@ import {
     Level1Program
 } from "trs80-base";
 import {FloppyDisk} from "trs80-base";
-import {FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
+import {FdcState, FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
 import {Machine} from "./Machine.js";
 import {EventScheduler} from "./EventScheduler.js";
 import {SoundPlayer} from "./SoundPlayer.js";
@@ -132,13 +132,15 @@ export class Trs80State {
     public readonly z80State: Z80State;
     public readonly memory: Uint8Array;
     public readonly printerState: any;
+    public readonly fdcState: FdcState;
     // TODO so much more here.
 
-    constructor(config: Config, z80State: Z80State, memory: Uint8Array, printerState: any) {
+    constructor(config: Config, z80State: Z80State, memory: Uint8Array, printerState: any, fdcState: FdcState) {
         this.config = config;
         this.z80State = z80State;
         this.memory = memory;
         this.printerState = printerState;
+        this.fdcState = fdcState;
     }
 }
 
@@ -293,7 +295,8 @@ export class Trs80 implements Hal, Machine {
             this.config,  // Immutable, safe to pass in.
             this.z80.save(),
             new Uint8Array(this.memory),
-            this.printer.save());
+            this.printer.save(),
+            this.fdc.save());
     }
 
     /**
@@ -312,6 +315,7 @@ export class Trs80 implements Hal, Machine {
         // Restore RAM.
         this.memory.set(state.memory.subarray(RAM_START), RAM_START);
         this.printer.restore(state.printerState);
+        this.fdc.restore(state.fdcState);
     }
 
     /**
