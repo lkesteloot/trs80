@@ -893,6 +893,45 @@ export class UserInterface {
         const floppy = decodeTrs80File(text, blob.name);
         if (isFloppy(floppy)) {
             emulator.trs80.loadFloppyDisk(floppy, 0);
+        } else {
+            await this.showDialogBox("Uploaded file is not a floppy.");
         }
+    }
+
+    /**
+     * Show generic dialog box with a message and OK button.
+     */
+    private async showDialogBox(message: string): Promise<void> {
+        return new Promise(resolve => {
+            // Ask user if they want to save the file.
+            const dialog = document.createElement("dialog");
+            dialog.classList.add("modal-dialog");
+            const promptNode = document.createElement("div");
+            promptNode.classList.add("dialog-prompt");
+            promptNode.textContent = message;
+
+            const buttonRow = document.createElement("form");
+            buttonRow.classList.add("dialog-button-row");
+            buttonRow.method = "dialog";
+
+            const spacer = document.createElement("div");
+            spacer.classList.add("dialog-spacer");
+
+            const okButton = document.createElement("button");
+            okButton.classList.add("dialog-ok-button");
+            okButton.textContent = "OK";
+            okButton.value = "ok";
+
+            buttonRow.append(spacer, okButton);
+            dialog.append(promptNode, buttonRow);
+            document.body.append(dialog);
+            dialog.showModal();
+            okButton.focus();
+
+            dialog.addEventListener("close", () => {
+                dialog.remove();
+                resolve();
+            });
+        });
     }
 }
