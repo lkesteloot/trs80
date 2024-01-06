@@ -71,6 +71,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
     }
 
     printChar(ch: number): void {
+        // console.log("Printing \"" + String.fromCodePoint(ch) + "\" (" + ch + ")");
         this.linePrinter.printChar(ch);
     }
 
@@ -83,6 +84,8 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
         // Add the new line.
         const lineNode = document.createElement("div");
         lineNode.style.padding = "0 40px";
+        lineNode.style.whiteSpace = "pre-wrap";
+        lineNode.style.minHeight = "1lh"; // For blank lines.
         lineNode.textContent = line;
         this.paper.append(lineNode);
 
