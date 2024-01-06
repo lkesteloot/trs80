@@ -5,7 +5,7 @@
  */
 
 import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
-import {hi, lo, toHexWord} from "z80-base";
+import {hi, lo, toHexWord, word} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
 import {
@@ -15,6 +15,7 @@ import {
     SystemProgram
 } from "./SystemProgram.js";
 import {ProgramBuilder} from "./ProgramBuilder.js";
+import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "./Constants.js";
 
 // Chunk types.
 export const CMD_LOAD_BLOCK = 0x01;
@@ -102,6 +103,22 @@ export class CmdTransferAddressChunk extends CmdAbstractChunk {
     }
 }
 
+function decodeHeaderName(data: Uint8Array): string {
+    if (data.length >= 2) {
+        const location = word(data[1], data[0]);
+        if (location >= TRS80_SCREEN_BEGIN && location < TRS80_SCREEN_END) {
+            // We've seen headers that contain graphic characters that are meant to be
+            // displayed on the screen at a particular location. This is not useful
+            // as a name, even the text is too verbose to extract anything useful from.
+            //
+            // For an example of this, see SCRIPSIT.CMD.
+            return "";
+        }
+    }
+
+    return new TextDecoder().decode(data).trim().replace(/ +/g, " ");
+}
+
 /**
  * A header chunk for the filename.
  */
@@ -111,7 +128,7 @@ export class CmdLoadModuleHeaderChunk extends CmdAbstractChunk {
 
     constructor(type: number, data: Uint8Array) {
         super(type, data);
-        this.filename = new TextDecoder().decode(data).trim().replace(/ +/g, " ");
+        this.filename = decodeHeaderName(data);
     }
 
     /**
