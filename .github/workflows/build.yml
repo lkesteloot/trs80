@@ -9,3 +9,6 @@ jobs:
           node-version: '20'
       - run: npm install
       - run: npm run build --workspaces
+      - run: npm run test -w packages/z80-asm
+      - run: npm run test -w packages/z80-disasm
+      - run: npm run test -w packages/z80-emulator
