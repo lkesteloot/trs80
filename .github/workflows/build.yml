@@ -24,3 +24,16 @@ jobs:
         with:
           name: trs80-ide
           path: packages/trs80-ide/dist/
+      - run: npm run buildBinaries -w packages/trs80-tool
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trs80-tool-linux
+          path: binaries/trs80-tool/linux/trs80-tool
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trs80-tool-macos
+          path: binaries/trs80-tool/macos/trs80-tool
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trs80-tool-windows
+          path: binaries/trs80-tool/windows/trs80-tool.exe
