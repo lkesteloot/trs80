@@ -37,3 +37,7 @@ jobs:
         with:
           name: trs80-tool-windows
           path: packages/trs80-tool/binaries/trs80-tool/windows/trs80-tool.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trs80-tool-site
+          path: packages/trs80-tool/site/
