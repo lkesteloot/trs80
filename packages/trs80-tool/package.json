@@ -7,7 +7,8 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "build": "tsc",
+        "updateBuildInfo": "../../printBuildInfo > src/build.ts",
+        "build": "npm run updateBuildInfo && tsc",
         "clean": "rm -rf dist",
         "updateVersion": "python3 update_version.py > src/version.ts",
         "prepublishOnly": "npm run updateVersion && npm run build",

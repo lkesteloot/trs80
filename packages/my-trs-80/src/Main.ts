@@ -31,6 +31,7 @@ import {isRegisterSetField, toHexWord} from "z80-base";
 import {disasmForTrs80} from "trs80-disasm";
 import {WebSoundPlayer} from "trs80-emulator-web";
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
+import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 
 function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () => void): HTMLElement {
     const body = document.querySelector("body") as HTMLElement;
@@ -79,6 +80,9 @@ function makeFlagString(f: number): string {
 }
 
 export function main() {
+    console.log("Build hash: " + BUILD_GIT_HASH);
+    console.log("Build date: " + new Date(BUILD_DATE*1000));
+
     const args = Context.parseFragment(window.location.hash);
     const runFileId = args.get("runFile")?.[0];
     const userId = args.get("user")?.[0];

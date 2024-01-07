@@ -1,32 +1,11 @@
 import "./style.css";
-import {UserInterface} from "./UserInterface";
-import {Emulator} from "./Emulator";
-import {Editor} from "./Editor";
+import {UserInterface} from "./UserInterface.js";
+import {Emulator} from "./Emulator.js";
+import {Editor} from "./Editor.js";
+import { BUILD_DATE, BUILD_GIT_HASH } from './build';
 
-// /**
-//  * Plugin to set and update the timing results.
-//  */
-// const timingViewPlugin = ViewPlugin.fromClass(class {
-//     decorations: DecorationSet
-//
-//     constructor(view: EditorView) {
-//         this.decorations = decorationsForTiming(view);
-//     }
-//
-//     update(update: ViewUpdate) {
-//         if (update.docChanged || true) {
-//             this.decorations = decorationsForTiming(update.view)
-//         }
-//     }
-// }, {
-//     decorations: v => v.decorations,
-// });
-//
-// function timingPlugin(): Extension {
-//     return [
-//         timingViewPlugin,
-//     ];
-// }
+console.log("Build hash: " + BUILD_GIT_HASH);
+console.log("Build date: " + new Date(BUILD_DATE*1000));
 
 const gEmulator = new Emulator();
 const gEditor = new Editor(gEmulator);

@@ -15,6 +15,7 @@ import {
     Tape,
     WaveformAnnotation
 } from "trs80-cassette";
+import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 
 function nameFromPathname(pathname: string): string {
     let name = pathname;
@@ -503,6 +504,9 @@ function handleNewLocation() {
 }
 
 export function main() {
+    console.log("Build hash: " + BUILD_GIT_HASH);
+    console.log("Build date: " + new Date(BUILD_DATE*1000));
+
     showScreen("drop_screen");
 
     // Configure uploading box.

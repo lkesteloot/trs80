@@ -18,6 +18,7 @@ import { asm } from "./asm.js";
 import {disasm} from "./disasm.js";
 import { run } from "./run.js";
 import { repl } from "./repl.js";
+import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -55,11 +56,13 @@ function setColorLevel(levelName: string): void {
 }
 
 function main() {
+    const fullVersion = version + " (git " + BUILD_GIT_HASH.substring(0, 7) +
+        ", built " + new Date(BUILD_DATE * 1000).toLocaleDateString() + ")";
     program
         .storeOptionsAsProperties(false)
         .name("trs80-tool")
         .addHelpText("after", HELP_TEXT)
-        .version(version)
+        .version(fullVersion)
         .addOption(new Option("--color <color>", "color output")
             .choices(["off", "16", "256", "16m", "auto"])
             .default("auto"));

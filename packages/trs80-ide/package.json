@@ -9,7 +9,8 @@
   "type": "module",
   "scripts": {
     "start": "webpack serve --open",
-    "build": "webpack",
+    "updateBuildInfo": "../../printBuildInfo > src/build.ts",
+    "build": "npm run updateBuildInfo && webpack",
     "clean": "rm -rf dist",
     "publish": "npm run build && rsync -a dist/ lk@hitch.headcode.com:my-trs-80-website/ide/"
   },
