@@ -430,8 +430,13 @@ type TrieMap = Map<string,TrieNode>;
 
 type TrieExpression = {expr: OpcodeTemplateOperand, trieNode: TrieNode} | Map<number, TrieNode> | undefined;
 
+/**
+ * Trie node to parse a set of variants of a mnemonic.
+ */
 class TrieNode {
+    // Variant at this node, if the line stops here.
     public readonly variant: OpcodeVariant | undefined;
+    // Map from tokens to other trie nodes.
     public readonly tokens: TrieMap;
     // Pseudo-token for expressions (nnnn, etc.) or numeric constants (RST 8).
     public readonly expression: TrieExpression;
@@ -466,6 +471,10 @@ class TrieNode {
     }
 }
 
+/**
+ * Given a list of variants and the index of tokens within their token list, makes a trie node
+ * that selects those variants given those tokens.
+ */
 function makeTrieNodeFromVariants(variants: OpcodeVariant[], tokenIndex: number): TrieNode {
     // Group into variants by branching token.
     let terminalVariant: OpcodeVariant | undefined;
@@ -525,8 +534,12 @@ function makeTrieNodeFromVariants(variants: OpcodeVariant[], tokenIndex: number)
     return new TrieNode(terminalVariant, tokens, expression);
 }
 
+// Mnemonic to trie node for that variant.
 let g_instructionTrie: Map<string,TrieNode> | undefined;
 
+/**
+ * Creates (and caches) the instructions trie.
+ */
 function getInstructionTrie() {
     if (g_instructionTrie === undefined) {
         g_instructionTrie = new Map<string,TrieNode>();
@@ -1674,20 +1687,14 @@ class LineParser {
                             }
                             switch (op) {
                                 case "nn":
+                                case "dd":
+                                case "offset":
                                     this.assembledLine.binary.push(lo(value));
                                     break;
 
                                 case "nnnn":
                                     this.assembledLine.binary.push(lo(value));
                                     this.assembledLine.binary.push(hi(value));
-                                    break;
-
-                                case "dd":
-                                    this.assembledLine.binary.push(lo(value));
-                                    break;
-
-                                case "offset":
-                                    this.assembledLine.binary.push(lo(value));
                                     break;
                             }
                         }
