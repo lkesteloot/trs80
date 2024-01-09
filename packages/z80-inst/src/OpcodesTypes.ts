@@ -14,10 +14,6 @@ export interface ClrInstruction {
     without_jump_clock_count: number;
     description: string;
     instruction: string;
-
-    // Not in the file, we use this to keep track of which ones we've used so we
-    // can flag the missing ones.
-    used?: boolean;
 }
 
 // A particular variant of a mnemonic, such as "ld a,(hl)".
