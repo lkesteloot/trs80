@@ -2034,7 +2034,18 @@ const variant_44_4D_pseudo: OpcodeVariant = {
     68,
     77
   ],
-  "isPseudo": true
+  "isPseudo": true,
+  "clr": {
+    "opcodes": "444D",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of HL are loaded into BC.",
+    "instruction": "ld bc,hl"
+  }
 };
 
 // ld b,l
@@ -2351,7 +2362,18 @@ const variant_4E_23_46_2B_pseudo: OpcodeVariant = {
     70,
     43
   ],
-  "isPseudo": true
+  "isPseudo": true,
+  "clr": {
+    "opcodes": "4E23462B",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 4,
+    "with_jump_clock_count": 26,
+    "without_jump_clock_count": 26,
+    "description": "The contents of (HL) are loaded into BC.",
+    "instruction": "ld bc,(hl)"
+  }
 };
 
 // ld c,a
@@ -2428,7 +2450,18 @@ const variant_50_59_pseudo: OpcodeVariant = {
     80,
     89
   ],
-  "isPseudo": true
+  "isPseudo": true,
+  "clr": {
+    "opcodes": "5059",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of BC are loaded into DE.",
+    "instruction": "ld de,bc"
+  }
 };
 
 // ld d,c
@@ -2563,7 +2596,18 @@ const variant_54_5D_pseudo: OpcodeVariant = {
     84,
     93
   ],
-  "isPseudo": true
+  "isPseudo": true,
+  "clr": {
+    "opcodes": "545D",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of HL are loaded into DE.",
+    "instruction": "ld de,hl"
+  }
 };
 
 // ld d,l
@@ -2934,7 +2978,18 @@ const variant_60_69_pseudo: OpcodeVariant = {
     96,
     105
   ],
-  "isPseudo": true
+  "isPseudo": true,
+  "clr": {
+    "opcodes": "6069",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of BC are loaded into HL.",
+    "instruction": "ld hl,bc"
+  }
 };
 
 // ld h,c
@@ -3011,7 +3066,18 @@ const variant_62_6B_pseudo: OpcodeVariant = {
     98,
     107
   ],
-  "isPseudo": true
+  "isPseudo": true,
+  "clr": {
+    "opcodes": "626B",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of DE are loaded into HL.",
+    "instruction": "ld hl,de"
+  }
 };
 
 // ld h,e
@@ -3477,7 +3543,18 @@ const variant_71_23_70_2B_pseudo: OpcodeVariant = {
     112,
     43
   ],
-  "isPseudo": true
+  "isPseudo": true,
+  "clr": {
+    "opcodes": "7123702B",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 4,
+    "with_jump_clock_count": 26,
+    "without_jump_clock_count": 26,
+    "description": "The contents of BC are loaded into (HL).",
+    "instruction": "ld (hl),bc"
+  }
 };
 
 // ld (hl),d
@@ -3562,7 +3639,18 @@ const variant_73_23_72_2B_pseudo: OpcodeVariant = {
     114,
     43
   ],
-  "isPseudo": true
+  "isPseudo": true,
+  "clr": {
+    "opcodes": "7323722B",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 4,
+    "with_jump_clock_count": 26,
+    "without_jump_clock_count": 26,
+    "description": "The contents of DE are loaded into (HL).",
+    "instruction": "ld (hl),de"
+  }
 };
 
 // ld (hl),h
@@ -46082,7 +46170,18 @@ const variant_ED_4E: OpcodeVariant = {
     78
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_46
+  "aliasOf": variant_ED_46,
+  "clr": {
+    "opcodes": "ED4E",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Sets interrupt mode 0.",
+    "instruction": "im 0"
+  }
 };
 
 // neg 
@@ -46095,7 +46194,18 @@ const variant_ED_54: OpcodeVariant = {
     84
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_44
+  "aliasOf": variant_ED_44,
+  "clr": {
+    "opcodes": "ED54",
+    "undocumented": true,
+    "z180": false,
+    "flags": "++V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
+    "instruction": "neg"
+  }
 };
 
 // retn 
@@ -46108,7 +46218,18 @@ const variant_ED_55: OpcodeVariant = {
     85
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_45
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED55",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
 };
 
 // neg 
@@ -46145,7 +46266,18 @@ const variant_ED_5D: OpcodeVariant = {
     93
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_45
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED5D",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
 };
 
 // ld (nnnn),hl
@@ -46216,7 +46348,18 @@ const variant_ED_65: OpcodeVariant = {
     101
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_45
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED65",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
 };
 
 // im 0
@@ -46233,7 +46376,18 @@ const variant_ED_66: OpcodeVariant = {
     102
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_46
+  "aliasOf": variant_ED_46,
+  "clr": {
+    "opcodes": "ED66",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Sets interrupt mode 0.",
+    "instruction": "im 0"
+  }
 };
 
 // ld hl,(nnnn)
@@ -46304,7 +46458,18 @@ const variant_ED_6D: OpcodeVariant = {
     109
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_45
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED6D",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
 };
 
 // im 0
@@ -46321,7 +46486,18 @@ const variant_ED_6E: OpcodeVariant = {
     110
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_46
+  "aliasOf": variant_ED_46,
+  "clr": {
+    "opcodes": "ED6E",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Sets interrupt mode 0.",
+    "instruction": "im 0"
+  }
 };
 
 // neg 
@@ -46358,7 +46534,18 @@ const variant_ED_75: OpcodeVariant = {
     117
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_45
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED75",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
 };
 
 // im 1
@@ -46423,7 +46610,18 @@ const variant_ED_7D: OpcodeVariant = {
     125
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_45
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED7D",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
 };
 
 // im 2
@@ -46440,7 +46638,18 @@ const variant_ED_7E: OpcodeVariant = {
     126
   ],
   "isPseudo": false,
-  "aliasOf": variant_ED_5E
+  "aliasOf": variant_ED_5E,
+  "clr": {
+    "opcodes": "ED7E",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Sets interrupt mode 2.",
+    "instruction": "im 2"
+  }
 };
 
 // ld b,b

@@ -42,8 +42,8 @@ export interface OpcodeVariant {
     // the highest opcodes.
     aliasOf?: OpcodeVariant;
 
-    // Optional clr information. TODO: Make not optional.
-    clr?: ClrInstruction;
+    // Clr information.
+    clr: ClrInstruction;
 }
 
 // Map from opcode to its variant, or to a submap.

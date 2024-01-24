@@ -19,6 +19,9 @@ import {fileURLToPath} from "url";
 // Break args into sequences of letters, digits, or single punctuation.
 const TOKENIZING_REGEXP = /([a-z]+)'?|([,+()])|([0-9]+)|(;.*)/g;
 
+// Opcodes field of temporary empty Clr until we have a chance to fix it up.
+const EMPTY_CLR_OPCODES = "empty";
+
 interface ClrFile {
     instructions: ClrInstruction[];
 }
@@ -163,17 +166,31 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
             }
             parseOpcodes(dirname, params, fullOpcodes, mnemonicMap, clr, clrUsed);
         } else {
-            const fullOpcodesString = fullOpcodes.map(value => typeof (value) === "number" ? toHexByte(value) : "**").join("");
-            const clrInst = findClrInstruction(clr, fullOpcodesString);
+            const fullOpcodesString = fullOpcodes.map(
+                value => typeof (value) === "number" ? toHexByte(value) : "**").join("");
+            let clrInst = findClrInstruction(clr, fullOpcodesString);
             if (clrInst === undefined) {
-                console.log("Didn't find " + fullOpcodesString + " in clr");
-            } else {
-                // Fix up description to convert register names to upper case.
-                clrInst.description = fixClrDescription(clrInst.description);
-
-                // Mark it as used.
-                clrUsed.add(clrInst.opcodes);
+                // These are aliases that aren't in CLR. Find the official variant and modify its CLR.
+                // Unfortunately we've perhaps not even parsed the official variant yet at this point,
+                // so create a bogus Clr here and fix it later when we look for aliases.
+                clrInst = {
+                    opcodes: EMPTY_CLR_OPCODES,
+                    undocumented: true,
+                    z180: false,
+                    flags: "",
+                    byte_count: 0,
+                    with_jump_clock_count: 0,
+                    without_jump_clock_count: 0,
+                    description: "",
+                    instruction: "",
+                };
             }
+
+            // Fix up description to convert register names to upper case.
+            clrInst.description = fixClrDescription(clrInst.description);
+
+            // Mark it as used.
+            clrUsed.add(clrInst.opcodes);
 
             // Add parameters.
             for (const token of tokens) {
@@ -209,7 +226,7 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
                 opcodes: fullOpcodes,
                 isPseudo: false,
                 aliasOf: undefined,
-                clr: clrInst ?? undefined,
+                clr: clrInst,
             };
             mnemonicInfo.variants.push(variant);
 
@@ -268,7 +285,17 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcodes: [0x60, 0x69],
         isPseudo: true,
         aliasOf: undefined,
-        clr: undefined,
+        clr: {
+            opcodes: "6069",
+            undocumented: true,
+            z180: false,
+            flags: "------",
+            byte_count: 2,
+            with_jump_clock_count: 8,
+            without_jump_clock_count: 8,
+            description: "The contents of BC are loaded into HL.",
+            instruction: "ld hl,bc",
+        },
     });
     mnemonics["ld"].variants.push({
         mnemonic: "ld",
@@ -277,7 +304,17 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcodes: [0x44, 0x4D],
         isPseudo: true,
         aliasOf: undefined,
-        clr: undefined,
+        clr: {
+            opcodes: "444D",
+            undocumented: true,
+            z180: false,
+            flags: "------",
+            byte_count: 2,
+            with_jump_clock_count: 8,
+            without_jump_clock_count: 8,
+            description: "The contents of HL are loaded into BC.",
+            instruction: "ld bc,hl",
+        },
     });
     mnemonics["ld"].variants.push({
         mnemonic: "ld",
@@ -286,7 +323,17 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcodes: [0x54, 0x5D],
         isPseudo: true,
         aliasOf: undefined,
-        clr: undefined,
+        clr: {
+            opcodes: "545D",
+            undocumented: true,
+            z180: false,
+            flags: "------",
+            byte_count: 2,
+            with_jump_clock_count: 8,
+            without_jump_clock_count: 8,
+            description: "The contents of HL are loaded into DE.",
+            instruction: "ld de,hl",
+        },
     });
     mnemonics["ld"].variants.push({
         mnemonic: "ld",
@@ -295,7 +342,17 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcodes: [0x62, 0x6B],
         isPseudo: true,
         aliasOf: undefined,
-        clr: undefined,
+        clr: {
+            opcodes: "626B",
+            undocumented: true,
+            z180: false,
+            flags: "------",
+            byte_count: 2,
+            with_jump_clock_count: 8,
+            without_jump_clock_count: 8,
+            description: "The contents of DE are loaded into HL.",
+            instruction: "ld hl,de",
+        },
     });
     mnemonics["ld"].variants.push({
         mnemonic: "ld",
@@ -304,7 +361,17 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcodes: [0x4E, 0x23, 0x46, 0x2B],
         isPseudo: true,
         aliasOf: undefined,
-        clr: undefined,
+        clr: {
+            opcodes: "4E23462B",
+            undocumented: true,
+            z180: false,
+            flags: "------",
+            byte_count: 4,
+            with_jump_clock_count: 26,
+            without_jump_clock_count: 26,
+            description: "The contents of (HL) are loaded into BC.",
+            instruction: "ld bc,(hl)",
+        },
     })
     mnemonics["ld"].variants.push({
         mnemonic: "ld",
@@ -313,7 +380,17 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcodes: [0x71, 0x23, 0x70, 0x2B],
         isPseudo: true,
         aliasOf: undefined,
-        clr: undefined,
+        clr: {
+            opcodes: "7123702B",
+            undocumented: true,
+            z180: false,
+            flags: "------",
+            byte_count: 4,
+            with_jump_clock_count: 26,
+            without_jump_clock_count: 26,
+            description: "The contents of BC are loaded into (HL).",
+            instruction: "ld (hl),bc",
+        },
     })
     mnemonics["ld"].variants.push({
         mnemonic: "ld",
@@ -322,7 +399,17 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcodes: [0x73, 0x23, 0x72, 0x2B],
         isPseudo: true,
         aliasOf: undefined,
-        clr: undefined,
+        clr: {
+            opcodes: "7323722B",
+            undocumented: true,
+            z180: false,
+            flags: "------",
+            byte_count: 4,
+            with_jump_clock_count: 26,
+            without_jump_clock_count: 26,
+            description: "The contents of DE are loaded into (HL).",
+            instruction: "ld (hl),de",
+        },
     })
     mnemonics["ld"].variants.push({
         mnemonic: "ld",
@@ -331,7 +418,17 @@ function addPseudoInstructions(mnemonics: Mnemonics) {
         opcodes: [0x50, 0x59],
         isPseudo: true,
         aliasOf: undefined,
-        clr: undefined,
+        clr: {
+            opcodes: "5059",
+            undocumented: true,
+            z180: false,
+            flags: "------",
+            byte_count: 2,
+            with_jump_clock_count: 8,
+            without_jump_clock_count: 8,
+            description: "The contents of BC are loaded into DE.",
+            instruction: "ld de,bc",
+        },
     })
 }
 
@@ -344,10 +441,7 @@ function detectAliases(mnemonics: Mnemonics) {
 
     // Bin by token sequence.
     for (const mnemonic in mnemonics) {
-        const mnemonicInfo = mnemonics[mnemonic];
-        const variants = mnemonicInfo.variants;
-
-        for (const variant of variants) {
+        for (const variant of mnemonics[mnemonic].variants) {
             const key = opcodeVariantToString(variant);
             let tokenVariants = tokensToVariants.get(key);
             if (tokenVariants === undefined) {
@@ -400,6 +494,37 @@ function detectAliases(mnemonics: Mnemonics) {
             }
             for (const variant of variants) {
                 variant.aliasOf = variant === chosenVariant ? undefined : chosenVariant;
+
+                if (variant.clr.opcodes === EMPTY_CLR_OPCODES) {
+                    if (variant === chosenVariant) {
+                        // Internal error.
+                        throw new Error("chosen variant has no clr");
+                    }
+
+                    // Replace the Clr with one based on the chosen variant.
+                    variant.clr = {
+                        ...chosenVariant.clr,
+                        opcodes: variant.opcodes
+                            .map(v => typeof v === "number" ? toHexByte(v).toUpperCase() : "")
+                            .join(""),
+                        undocumented: true,
+                        // We assume here that byte count etc are the same, which isn't logically
+                        // required but happens to be true because these are all 0xED aliases of each other.
+                    };
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Make sure that no empty Clr instructions made it through.
+ */
+function checkEmptyClr(mnemonics: Mnemonics) {
+    for (const mnemonic in mnemonics) {
+        for (const variant of mnemonics[mnemonic].variants) {
+            if (variant.clr.opcodes === EMPTY_CLR_OPCODES) {
+                console.log("Error: Variant " + variant.opcodes + " has an empty Clr.");
             }
         }
     }
@@ -556,6 +681,7 @@ function generateOpcodes(): void {
     parseOpcodes(opcodesDir, "base", [], mnemonics, clr, clrUsed);
     addPseudoInstructions(mnemonics);
     detectAliases(mnemonics);
+    checkEmptyClr(mnemonics);
 
     // Generate variables and indexes.
     const { variantCode, mnemonicMapCode, opcodeMapCode } = generateCode(mnemonics);
