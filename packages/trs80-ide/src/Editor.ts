@@ -418,7 +418,10 @@ export class Editor {
             EditorState.allowMultipleSelections.of(true),
             // indentOnInput(),
             // bracketMatching(),
-            closeBrackets(),
+            // Disable closeBrackets(), it's not super useful in assembly, and it gets in the way of
+            // auto-complete where you type "ld (", the close parenthesis gets added, and when the
+            // line auto-completes the close parenthesis is left at the end.
+            // closeBrackets(),
             autocompletion({
                 override: [
                     (context: CompletionContext) => customCompletions(context, this.assemblyResultsStateField)

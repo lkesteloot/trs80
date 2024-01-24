@@ -129,6 +129,28 @@ export function customCompletions(context: CompletionContext, assemblyResultsSta
         return null;
     }
 
+    if (2 < 3) { // TODO
+        const completionResult = assemblyResults.asm.getCompletions(word.text, context.explicit);
+        if (completionResult === undefined) {
+            return null;
+        }
+        return {
+            from: word.from + completionResult.from,
+            options: completionResult.options.map(option => {
+                const htmlInfo = option.htmlInfo;
+                return {
+                    label: option.label,
+                    info: htmlInfo === undefined ? undefined : () => {
+                        const span = document.createElement("span");
+                        span.innerHTML = htmlInfo;
+                        return span;
+                    },
+                };
+            }),
+            filter: false,
+        };
+    }
+
     // Count space at the front of the line.
     let spaceCount = getInitialSpaceCount(word.text);
 

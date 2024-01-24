@@ -264,7 +264,7 @@ function readNumericLiteral(s: string): { value: number, end: number, error: str
     };
 }
 
-type Token = {
+export type Token = {
     /**
      * Position (inclusive) in line where token begins.
      */
@@ -295,6 +295,9 @@ type Token = {
         value: number;
     }
 );
+
+// A token without an error. Only use this if you've verified that the error field is undefined.
+type ValidToken = Token & { error: undefined };
 
 /**
  * Return the token at the position in the string.
@@ -436,6 +439,12 @@ export class Tokenizer {
         return this.tokenIndex < this.tokens.length ? this.tokens[this.tokenIndex] : undefined;
     }
 
+    // Like getCurrentToken(), but returns undefined if the token contains an error.
+    public getCurrentValidToken(): ValidToken | undefined {
+        const token = this.getCurrentToken();
+        return token === undefined || token.error !== undefined ? undefined : { ...token, error: undefined };
+    }
+
     // The column of the next token, or -1 if we're at the end of the line.
     public getCurrentColumn(): number {
         return this.getCurrentToken()?.begin ?? -1;
@@ -475,11 +484,20 @@ export class Tokenizer {
      * Else returns false.
      */
     public found(s: string): boolean {
-        if (this.matches(s)) {
+        return this.foundToken(s) !== undefined;
+    }
+
+    /**
+     * If the next part of the line matches the parameter, skip it and subsequent whitespace and return the token.
+     * Else returns undefined.
+     */
+    public foundToken(s: string): ValidToken | undefined {
+        const token = this.matchesToken(s);
+        if (token !== undefined) {
             this.tokenIndex += 1;
-            return true;
+            return token;
         } else {
-            return false;
+            return undefined;
         }
     }
 
@@ -501,8 +519,16 @@ export class Tokenizer {
      * Whether the next part of the line matches the passed-in string. Does not advance.
      */
     public matches(expectedToken: string): boolean {
-        const token = this.getCurrentToken();
-        return token !== undefined && token.text.toLowerCase() === expectedToken && token.error === undefined;
+        return this.matchesToken(expectedToken) !== undefined;
+    }
+
+    /**
+     * If the next part of the line matches the passed-in string, which must be in lower case, returns the
+     * token, otherwise returns undefined. Does not advance.
+     */
+    public matchesToken(expectedToken: string): ValidToken | undefined {
+        const token = this.getCurrentValidToken();
+        return token !== undefined && token.text.toLowerCase() === expectedToken ? token : undefined;
     }
 
     /**
@@ -513,8 +539,8 @@ export class Tokenizer {
         { name: string; column: number } | undefined {
 
         // Get the current token, basic checks.
-        const token = this.getCurrentToken();
-        if (token === undefined || token.error !== undefined || token.tag !== "identifier") {
+        const token = this.getCurrentValidToken();
+        if (token === undefined || token.tag !== "identifier") {
             return undefined;
         }
 
@@ -558,8 +584,8 @@ export class Tokenizer {
      * If found the beginning of a string but not the end, throws an Error.
      */
     public readString(): string | undefined {
-        const token = this.getCurrentToken();
-        if (token === undefined || token.error !== undefined || token.tag !== "string") {
+        const token = this.getCurrentValidToken();
+        if (token === undefined || token.tag !== "string") {
             return undefined;
         }
 
@@ -574,8 +600,8 @@ export class Tokenizer {
      * a character constant. Throws if it's a mis-formatted character constant.
      */
     public readCharConstant(): number | undefined {
-        const token = this.getCurrentToken();
-        if (token === undefined || token.error !== undefined || token.tag !== "string") {
+        const token = this.getCurrentValidToken();
+        if (token === undefined || token.tag !== "string") {
             return undefined;
         }
         if (token.value.length !== 1) {
@@ -674,8 +700,8 @@ export class Tokenizer {
      * to that and not a hex prefix.
      */
     public readNumericConstant(address: number): number | undefined {
-        const token = this.getCurrentToken();
-        if (token === undefined || token.error !== undefined) {
+        const token = this.getCurrentValidToken();
+        if (token === undefined) {
             return undefined;
         }
         if (token.tag === "number") {

@@ -48,9 +48,9 @@ const PSEUDO_MACRO = new Set(["macro", ".macro"]);
 const PSEUDO_ENDM = new Set(["endm", ".endm"]);
 
 // Pseudo instructions for if/else/endif.
-const PSEUDO_IF = new Set(["if", "cond", "#if"]);
-const PSEUDO_ELSE = new Set(["else", "#else"]);
-const PSEUDO_ENDIF = new Set(["endif", "endc", "#endif"]);
+const PSEUDO_IF = new Set(["if", "cond"]);
+const PSEUDO_ELSE = new Set(["else"]);
+const PSEUDO_ENDIF = new Set(["endif", "endc"]);
 
 // End file instruction. Followed by optional entry address or label.
 const PSEUDO_END = new Set(["end"]);
@@ -440,14 +440,18 @@ class TrieNode {
     public readonly tokens: TrieMap;
     // Pseudo-token for expressions (nnnn, etc.) or numeric constants (RST 8).
     public readonly expression: TrieExpression;
+    // Children are commands (mnemonics, pseudo-mnemonics, macros). They're always followed by a space.
+    public readonly isCommand: boolean;
 
     constructor(variant: OpcodeVariant | undefined,
                 tokens: TrieMap,
-                expression: TrieExpression) {
+                expression: TrieExpression,
+                isCommand: boolean) {
 
         this.variant = variant;
         this.tokens = tokens;
         this.expression = expression;
+        this.isCommand = isCommand;
     }
 
     public dump(indent = "") {
@@ -531,27 +535,45 @@ function makeTrieNodeFromVariants(variants: OpcodeVariant[], tokenIndex: number)
         }
     }
 
-    return new TrieNode(terminalVariant, tokens, expression);
+    return new TrieNode(terminalVariant, tokens, expression, false);
 }
 
 // Mnemonic to trie node for that variant.
-let g_instructionTrie: Map<string,TrieNode> | undefined;
+let g_instructionTrie: TrieNode | undefined;
 
 /**
  * Creates (and caches) the instructions trie.
  */
-function getInstructionTrie() {
+function getInstructionTrie(): TrieNode {
     if (g_instructionTrie === undefined) {
-        g_instructionTrie = new Map<string,TrieNode>();
+        const treeMap = new Map<string,TrieNode>();
         for (const [mnemonic, variants] of mnemonicMap.entries()) {
             const trie = makeTrieNodeFromVariants(variants, 0);
-            // console.log(mnemonic);
-            // trie.dump("    ");
-            g_instructionTrie.set(mnemonic, trie);
+            treeMap.set(mnemonic, trie);
         }
+        g_instructionTrie = new TrieNode(undefined, treeMap, undefined, true);
+        // g_instructionTrie.dump();
     }
 
     return g_instructionTrie;
+}
+
+// An individual completion to show to the user.
+interface AsmCompletion {
+    // Label to show and complete.
+    label: string;
+
+    // Optional HTML text to show next to the label when it's highlighted.
+    htmlInfo?: string;
+}
+
+// All completion info.
+interface AsmCompletionResult {
+    // Column where to start replacing text with our completions.
+    from: number;
+
+    // List of completions. Already sorted.
+    options: AsmCompletion[];
 }
 
 /**
@@ -778,6 +800,161 @@ export class Asm {
 
         return { entryPoint, guessed };
     }
+
+    /**
+     * After having assembled a file, this method can be called on a partial line to get a list of
+     * completions available at the end of the line (where the cursor is).
+     */
+    public getCompletions(line: string, explicit: boolean): AsmCompletionResult | undefined {
+        const tokenizer = new Tokenizer(line);
+
+        let trie = getInstructionTrie();
+        let tokens = tokenizer.tokens;
+
+        // Get all defined symbol names starting with the given prefix.
+        const symbols = (prefix: string): string[] => {
+            return this.symbols
+                .filter(symbol => symbol.definitions.length > 0 && symbol.name.startsWith(prefix))
+                .map(symbol => symbol.name);
+        };
+
+        // Add all variants below trieNode to the list of options.
+        function addVariantToOptions(prefix: string, trieNode: TrieNode, options: AsmCompletion[],
+                                     addSpace: boolean, explicit: boolean): void {
+
+            // We're at a node with a variant; add it to the list of options.
+            if (trieNode.variant !== undefined) {
+                options.push({
+                    label: prefix,
+                    htmlInfo: trieNode.variant.clr?.description,
+                });
+            }
+            if (addSpace) {
+                // Space after command like "ld".
+                prefix += " ";
+            }
+            // Recurse for tokens available from here.
+            for (const [token, child] of trieNode.tokens.entries()) {
+                addVariantToOptions(prefix + token, child, options, trieNode.isCommand, false);
+            }
+            // If we allow numeric constants, recurse for those.
+            if (trieNode.expression instanceof Map) {
+                // Don't show symbols here for "explicit", it's much more likely that they're going to
+                // type a numeric literal than want an expression for this kind of instruction.
+                for (const [token, child] of trieNode.expression.entries()) {
+                    addVariantToOptions(prefix + token, child, options, false, false);
+                }
+            } else if (trieNode.expression !== undefined) {
+                if (explicit) {
+                    // Show all symbols here for this expression.
+                    for (const symbolName of symbols("")) {
+                        addVariantToOptions(prefix + symbolName, trieNode.expression.trieNode, options,
+                            false, false);
+                    }
+                } else {
+                    // Show the generic operand ("nnnn" etc).
+                    let operand: string = trieNode.expression.expr;
+                    if (operand === "dd") {
+                        // We strip the + to make parsing elsewhere easier.
+                        operand = "+dd";
+                    }
+                    addVariantToOptions(prefix + operand, trieNode.expression.trieNode, options,
+                        false, false);
+                }
+            }
+        }
+
+        // Find partially-typed word to filter on.
+        let trieEndIndex = tokens.length; // Exclusive.
+        let filter = "";
+        let filterBegin = line.length;
+        if (tokens.length > 0) {
+            const lastToken = tokens[tokens.length - 1];
+            // We include "number" here because if the user types "1" we can't autocomplete immediately
+            // after that, and the number itself will stop that from happening.
+            if (lastToken.end === line.length && (lastToken.tag === "identifier" || lastToken.tag === "number")) {
+                trieEndIndex -= 1;
+                filter = lastToken.text;
+                filterBegin = lastToken.begin;
+            }
+        }
+        const from = tokens.length > 0 ? tokens[0].begin : line.length;
+
+        // Recurse down the trie while moving forward through the user's list of tokens.
+        const tryTokens = (tokenIndex: number, trieNode: TrieNode, options: AsmCompletion[]) => {
+            if (tokenIndex === tokens.length) {
+                // Ran out of the line, add all variants below this.
+                addVariantToOptions(line.substring(from), trieNode, options, false, explicit);
+                return;
+            }
+
+            const lastToken = tokens[tokenIndex];
+            const lastTokenText = lastToken.text;
+            // Never do a full match on the last token, that's always for filtering.
+            const subTrieNode = tokenIndex < trieEndIndex ? trieNode.tokens.get(lastTokenText) : undefined;
+            if (subTrieNode === undefined) {
+                // The next token didn't literally match. See if we get a partial match.
+                for (const [fullToken, fullTrieNode] of trieNode.tokens.entries()) {
+                    if (fullToken.startsWith(lastTokenText)) {
+                        addVariantToOptions(line.substring(from, lastToken.begin) + fullToken, fullTrieNode, options,
+                            trieNode.isCommand, false);
+                    }
+                }
+
+                // See if an expression is allowed here.
+                if (trieNode.expression !== undefined) {
+                    // Eat up the expression. All expressions either end with a close parenthesis,
+                    // end of line, or comma, so we don't need a full parser.
+                    let parensCount = 0;
+                    while (tokenIndex < tokens.length) {
+                        if (tokens[tokenIndex].text === "(") {
+                            parensCount += 1;
+                        } else if (tokens[tokenIndex].text === ")") {
+                            if (parensCount === 0) {
+                                // End of expression.
+                                break;
+                            } else {
+                                parensCount -= 1;
+                            }
+                        } else if (tokens[tokenIndex].text === ",") {
+                            break;
+                        }
+                        tokenIndex += 1;
+                    }
+
+                    let subTrieNode: TrieNode;
+                    if (trieNode.expression instanceof Map) {
+                        // Assume all paths have the same set of sub-tries. We don't want to have to
+                        // evaluate the expression here to see which key to look up.
+                        subTrieNode = trieNode.expression.values().next().value;
+                    } else {
+                        subTrieNode = trieNode.expression.trieNode;
+                    }
+
+                    if (tokenIndex === tokens.length) {
+                        for (const symbolName of symbols(filter)) {
+                            addVariantToOptions(line.substring(from, filterBegin) + symbolName, subTrieNode, options,
+                                trieNode.isCommand, false);
+                        }
+                    } else {
+                        tryTokens(tokenIndex, subTrieNode, options);
+                    }
+                } else {
+                    // No expression allowed, this won't match any variant.
+                }
+            } else {
+                // Matched a token, keep going.
+                tryTokens(tokenIndex + 1, subTrieNode, options);
+            }
+        };
+
+        let options: AsmCompletion[] = [];
+        tryTokens(0, trie, options);
+        return {
+            from,
+            options,
+        };
+    }
 }
 
 /**
@@ -996,7 +1173,7 @@ class LineParser {
         let labelValue: number | undefined;
 
         // Look for compiler directive.
-        if (enabledLine && this.tokenizer.line.trim().startsWith("#")) {
+        if (enabledLine && this.tokenizer.found("#")) {
             this.parseDirective();
             return;
         }
@@ -1428,10 +1605,6 @@ class LineParser {
     }
 
     private parseDirective(): void {
-        if (!this.tokenizer.found('#')) {
-            // Logic error.
-            throw new Error("did not find # for directive");
-        }
         const directive = this.tokenizer.readIdentifier(true)?.name;
         if (directive === undefined || directive === "") {
             this.assembledLine.error = "must specify directive after #";
@@ -1656,7 +1829,7 @@ class LineParser {
         }
 
         // See if it's a Z80 mnemonic.
-        let trie = getInstructionTrie().get(mnemonic);
+        let trie = getInstructionTrie().tokens.get(mnemonic);
         if (trie === undefined) {
             this.assembledLine.error = "unknown mnemonic \"" + mnemonic + "\"";
             if (this.tokenizer.matches(":")) {
@@ -1670,7 +1843,7 @@ class LineParser {
 
         // Descend down the trie.
         while (true) {
-            const token = this.tokenizer.getCurrentToken();
+            const token = this.tokenizer.getCurrentValidToken();
             if (token === undefined || token.tag === "comment") {
                 // End of line.
                 if (trie.variant !== undefined) {
