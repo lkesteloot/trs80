@@ -402,13 +402,9 @@ export class Disasm {
      * Add the label or, if it's already there, add a suffix to make it unique.
      */
     public addUniqueLabel(address: number, label: string): void {
-        let suffix = 1;
-
-        while (suffix < 1000) {
+        for (let suffix = 1; suffix < 1000; suffix++) {
             const uniqueLabel = label + (suffix === 1 ? "" : suffix);
-            if (this.haveLabel(uniqueLabel)) {
-                suffix += 1;
-            } else {
+            if (!this.haveLabel(uniqueLabel)) {
                 this.addLabel(address, uniqueLabel);
                 break;
             }
@@ -439,10 +435,10 @@ export class Disasm {
             if (preamble !== undefined) {
                 const begin = preamble.sourceAddress;
                 const end = begin + preamble.copyLength;
-                this.addChunk(this.memory.subarray(begin, end), preamble.destinationAddress);
-                // Unmark this so that we don't decode it as data. It's possible that the program makes use of
-                // it, but unlikely.
+                // Unmark this so that we don't decode it as data. It's possible that the program makes
+                // use of it, but unlikely. Do this before the addChunk() in case the regions overlap.
                 this.hasContent.fill(0, begin, end);
+                this.addChunk(this.memory.subarray(begin, end), preamble.destinationAddress);
                 this.addUniqueLabel(preamble.jumpAddress, "main");
                 // It might have a preamble! See Galaxy Invasion.
                 this.addEntryPoint(preamble.jumpAddress);
@@ -486,9 +482,20 @@ export class Disasm {
             const address = addressesToDecode.values().next().value;
             addressesToDecode.delete(address);
 
+            if (this.isDecoded[address]) {
+                console.log("Warning: Address", toHexWord(address), "has already been decoded");
+                continue;
+            }
             const instruction = this.disassembleOne(address, this.readMemory);
             this.instructions[address] = instruction;
             this.isDecoded.fill(1, address, address + instruction.bin.length);
+            // This is TRS-80 specific, but that's what this disassembler is mostly used for.
+            if (instruction.jumpTarget !== undefined &&
+                instruction.jumpTarget >= 0x3C00 &&
+                instruction.jumpTarget < 0x4000) {
+
+                console.log("Warning: Instruction at", toHexWord(address), "is jumping to screen address", toHexWord(instruction.jumpTarget));
+            }
             addAddressToDecode(instruction.jumpTarget);
             addAddressToDecode(instruction.continuesAt());
         }
