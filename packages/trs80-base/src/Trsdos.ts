@@ -8,7 +8,7 @@
 
 import {concatByteArrays} from "teamten-ts-utils";
 import {Density, FloppyDisk, FloppyDiskGeometry, numberToSide, Side} from "./FloppyDisk.js";
-import {toHexByte} from "z80-base";
+import {toHexByte, word} from "z80-base";
 
 // Print extra debugging information.
 const DEBUG = false;
@@ -142,15 +142,14 @@ function decodeAscii(binary: Uint8Array, trim: boolean = true): string | undefin
  * Lowest three bits of the directory entry's flag.
  */
 export enum TrsdosProtectionLevel {
-    // Keep this values in this order, they match the bit values (0 to 7).
-    FULL,
-    REMOVE,
-    RENAME,
-    WRITE,
-    UPDATE,
-    READ,
-    EXEC,
-    NO_ACCESS,
+    FULL = 0,
+    REMOVE = 1,
+    RENAME = 2,
+    WRITE = 3,
+    UPDATE = 4,
+    READ = 5,
+    EXEC = 6,
+    NO_ACCESS = 7,
 }
 
 /**
@@ -202,7 +201,7 @@ export class TrsdosExtent {
  * @param end index past last extent in binary.
  * @param geometry the disk geometry, for error checking.
  * @param version version of TRSDOS.
- * @param trackFirst whether the track comes first or second.
+ * @param trackFirst whether the track comes first or second (the other being the granule byte).
  */
 function decodeExtents(binary: Uint8Array, begin: number, end: number,
                        geometry: FloppyDiskGeometry,
@@ -313,7 +312,7 @@ function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
     const gat = binary.subarray(0, geometry.numTracks());
 
     // Assume big endian.
-    const password = (binary[0xCE] << 8) | binary[0xCF];
+    const password = word(binary[0xCE], binary[0xCF]);
     const name = decodeAscii(binary.subarray(0xD0, 0xD8));
     const date = decodeAscii(binary.subarray(0xD8, 0xE0));
 
@@ -465,7 +464,7 @@ export class TrsdosDirEntry {
 
     /**
      * Whether this is an extended entry (as opposed to primary entry). Each entry has a limited
-     * number of extents extents, so subsequent extents are stored in extended entries.
+     * number of extents, so subsequent extents are stored in extended entries.
      */
     public isExtendedEntry(): boolean {
         return (this.flags & 0x80) !== 0;
@@ -585,11 +584,11 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
 
     const filename = decodeAscii(binary.subarray(5, 16));
     // Not sure how to convert these two into a number. Just use big endian.
-    const updatePassword = (binary[16] << 8) | binary[17];
-    const accessPassword = (binary[18] << 8) | binary[19];
+    const updatePassword = word(binary[16], binary[17]);
+    const accessPassword = word(binary[18], binary[19]);
 
     // Number of sectors in the file. Little endian.
-    const sectorCount = (binary[21] << 8) | binary[20];
+    const sectorCount = word(binary[21], binary[20]);
 
     // Number of extents listed in the directory entry.
     const extentsCount = isModel3(version) ? 13 : 4;
@@ -849,12 +848,12 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
     // Decode directory entries.
     for (let side = 0; side < sideCount; side++) {
         for (let sectorIndex = 0; sectorIndex < geometry.lastTrack.numSectors(); sectorIndex++) {
-            const sectorNumber = geometry.firstTrack.firstSector + sectorIndex;
             if (side === 0 && sectorIndex < 2) {
                 // Skip GAT and HIT.
                 continue;
             }
 
+            const sectorNumber = geometry.firstTrack.firstSector + sectorIndex;
             const dirSector = disk.readSector(dirTrackNumber, numberToSide(side), sectorNumber);
             if (dirSector !== undefined) {
                 // Sanity check Model III entry.
