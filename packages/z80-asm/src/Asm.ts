@@ -62,6 +62,9 @@ const LIBRARY_EXTS = new Set([".s", ".ass", ".asm"]);
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z65.htm#A
 const MACRO_TAGS = ["!", "#", "$", "%", "&", ".", ":", "?", "@", "\\", "^", "_", "|", "~"];
 
+// Regular expression for entire-line label.
+const LABEL_RE = /^[a-z_][a-z0-9_]*$/i;
+
 // Type of target we can handle.
 type Target = "bin" | "rom";
 
@@ -804,8 +807,41 @@ export class Asm {
     /**
      * After having assembled a file, this method can be called on a partial line to get a list of
      * completions available at the end of the line (where the cursor is).
+     *
+     * @param line text from the beginning of the line to where the cursor is.
+     * @param explicit whether the user has explicitly requested this completion (with Ctrl-Space).
+     * @param lineNumber 0-base line number the line is on.
      */
-    public getCompletions(line: string, explicit: boolean): AsmCompletionResult | undefined {
+    public getCompletions(line: string, explicit: boolean, lineNumber: number): AsmCompletionResult | undefined {
+        const options: AsmCompletion[] = [];
+
+        // See if we're completing a label.
+        if ((line === "" && explicit) || line.match(LABEL_RE)) {
+            // Auto-complete labels that are used but not yet defined.
+            for (const symbolInfo of this.symbols) {
+                // Show the symbol if our typed text is a prefix and the symbol has been used but not
+                // defined. There's an extra special case to handle: the user is typing a new symbol,
+                // and as they reach the last letter, it immediately becomes defined, and therefore
+                // disappears from the list! We want to keep it in the list, so if the definition is
+                // on the line we're typing, then include it.
+                if (symbolInfo.name.toLowerCase().startsWith(line) &&
+                    symbolInfo.references.length > 0 &&
+                    (symbolInfo.definitions.length === 0 ||
+                        symbolInfo.definitions[0].assembledLine?.lineNumber === lineNumber)) {
+
+                    options.push({
+                        label: symbolInfo.name + ":",
+                    });
+                }
+            }
+            // May as well sort them.
+            options.sort((a, b) => a.label.localeCompare(b.label));
+            return {
+                from: 0,
+                options,
+            };
+        }
+
         const tokenizer = new Tokenizer(line);
 
         let trie = getInstructionTrie();
@@ -948,7 +984,6 @@ export class Asm {
             }
         };
 
-        let options: AsmCompletion[] = [];
         tryTokens(0, trie, options);
         return {
             from,

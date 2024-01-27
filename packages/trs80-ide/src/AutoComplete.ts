@@ -130,7 +130,8 @@ export function customCompletions(context: CompletionContext, assemblyResultsSta
     }
 
     if (2 < 3) { // TODO
-        const completionResult = assemblyResults.asm.getCompletions(word.text, context.explicit);
+        const lineNumber = context.state.doc.lineAt(context.pos).number - 1;
+        const completionResult = assemblyResults.asm.getCompletions(word.text, context.explicit, lineNumber);
         if (completionResult === undefined) {
             return null;
         }
@@ -162,34 +163,6 @@ export function customCompletions(context: CompletionContext, assemblyResultsSta
 
     // All the options we'll show, in order.
     const options: Completion[] = [];
-
-    // See if we're completing a new label.
-    if (spaceCount === 0) {
-        // Auto-complete labels that are used but not yet defined.
-        for (const symbolInfo of assemblyResults.asm.symbols) {
-            // Show the symbol if our typed text is a prefix and the symbol has been used but not
-            // defined. There's an extra special case to handle: the user is typing a new symbol,
-            // and as they reach the last letter, it immediately becomes defined, and therefore
-            // disappears from the list! We want to keep it in the list, so if the definition is
-            // on the line we're typing, then include it.
-            if (symbolInfo.name.toLowerCase().startsWith(search) &&
-                symbolInfo.references.length > 0 &&
-                (symbolInfo.definitions.length === 0 ||
-                    symbolInfo.definitions[0].assembledLine?.lineNumber === context.state.doc.lineAt(context.pos).number - 1)) {
-
-                options.push({
-                    label: symbolInfo.name + ":",
-                });
-            }
-        }
-        // May as well sort them.
-        options.sort((a, b) => a.label.localeCompare(b.label));
-        return {
-            from: word.from + spaceCount,
-            options: options,
-            filter: false,
-        };
-    }
 
     // Break search string into words. Remove words that start with a period, only want those in "search".
     const searchWords = search.split(" ").filter(word => word !== "" && !word.startsWith("."));
