@@ -137,16 +137,22 @@ export function customCompletions(context: CompletionContext, assemblyResultsSta
         }
         return {
             from: word.from + completionResult.from,
-            options: completionResult.options.map(option => {
-                const htmlInfo = option.htmlInfo;
-                return {
-                    label: option.label,
+            options: completionResult.options.map(asmCompletion => {
+                const htmlInfo = asmCompletion.htmlInfo;
+                let option: Completion = {
+                    label: asmCompletion.label,
                     info: htmlInfo === undefined ? undefined : () => {
                         const span = document.createElement("span");
                         span.innerHTML = htmlInfo;
                         return span;
                     },
                 };
+                // Make template with the constants.
+                const template = option.label.replace(/\b(offset|nn|nnnn|dd)\b/g, "#{$&}");
+                if (template !== option.label) {
+                    option = snippetCompletion(template, option);
+                }
+                return option;
             }),
             filter: false,
         };
@@ -179,32 +185,20 @@ export function customCompletions(context: CompletionContext, assemblyResultsSta
     }
 
     // Find all variants.
-    const matchingVariantsLabel: OpcodeVariant[] = []; // Match by label, we'll put those first.
     const matchingVariantsDesc: OpcodeVariant[] = [];  // Match by description, put those later.
     for (const variants of mnemonicMap.values()) {
         for (const variant of variants) {
-            const variantLabel = getVariantLabel(variant).toLowerCase();
-            if (variantLabel === search) {
-                // If we exactly match a variant, then don't auto-complete. It's annoying
-                // to have to close the pop-up when you've typed the full string.
-                return null;
-            } else if (variantLabel.startsWith(search)) {
-                matchingVariantsLabel.push(variant);
-            } else if (variant.clr !== undefined && matchesDescription(searchWords, variant.clr.description)) {
+            if (variant.clr !== undefined && matchesDescription(searchWords, variant.clr.description)) {
                 matchingVariantsDesc.push(variant);
             }
         }
     }
 
     // Sort to put most likely on top. Assume those with fewer opcodes are more common/likely.
-    matchingVariantsLabel.sort((a, b) => a.opcodes.length - b.opcodes.length);
     matchingVariantsDesc.sort((a, b) => a.opcodes.length - b.opcodes.length);
 
-    // Put label matches first, then description matches.
-    const matchingVariants = [... matchingVariantsLabel, ... matchingVariantsDesc];
-
     // Convert to options.
-    for (const variant of matchingVariants) {
+    for (const variant of matchingVariantsDesc) {
         const label = getVariantLabel(variant);
         let option: Completion = {
             label: label,

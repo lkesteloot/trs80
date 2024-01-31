@@ -580,6 +580,34 @@ interface AsmCompletionResult {
 }
 
 /**
+ * Return true if every word appears in the description. The words must already be lower case.
+ */
+function matchesDescription(words: string[], description: string): boolean {
+    if (words.length === 0) {
+        return false;
+    }
+
+    description = description.toLowerCase();
+
+    for (const word of words) {
+        const index = description.indexOf(word);
+        if (index === -1) {
+            return false;
+        }
+
+        // Must be at start of word.
+        if (index > 0) {
+            const ch = description.charAt(index - 1);
+            if (ch !== " " && ch !== "(") {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/**
  * Assembler.
  */
 export class Asm {
@@ -917,7 +945,7 @@ export class Asm {
         const from = tokens.length > 0 ? tokens[0].begin : line.length;
 
         // Recurse down the trie while moving forward through the user's list of tokens.
-        const tryTokens = (tokenIndex: number, trieNode: TrieNode, options: AsmCompletion[]) => {
+        const tryTokens = (tokenIndex: number, trieNode: TrieNode) => {
             if (tokenIndex === tokens.length) {
                 // Ran out of the line, add all variants below this.
                 addVariantToOptions(line.substring(from), trieNode, options, false, explicit);
@@ -973,18 +1001,40 @@ export class Asm {
                                 trieNode.isCommand, false);
                         }
                     } else {
-                        tryTokens(tokenIndex, subTrieNode, options);
+                        tryTokens(tokenIndex, subTrieNode);
                     }
                 } else {
                     // No expression allowed, this won't match any variant.
                 }
             } else {
                 // Matched a token, keep going.
-                tryTokens(tokenIndex + 1, subTrieNode, options);
+                tryTokens(tokenIndex + 1, subTrieNode);
             }
         };
 
-        tryTokens(0, trie, options);
+        tryTokens(0, trie);
+
+        // Find all variants.
+        const matchingVariantsDesc: OpcodeVariant[] = [];
+        const searchWords = tokens.filter(token => token.begin > 0).map(token => token.text.toLowerCase());
+        for (const variants of mnemonicMap.values()) {
+            for (const variant of variants) {
+                if (variant.clr !== undefined && matchesDescription(searchWords, variant.clr.description)) {
+                    matchingVariantsDesc.push(variant);
+                }
+            }
+        }
+
+        for (const variant of matchingVariantsDesc) {
+            options.push({
+                label: opcodeVariantToString(variant),
+                htmlInfo: variant.clr?.description,
+            });
+        }
+
+        // Sort to put most likely on top. Assume those with fewer opcodes are more common/likely.
+        // options.sort((a, b) => a.opcodes.length - b.opcodes.length);
+
         return {
             from,
             options,
