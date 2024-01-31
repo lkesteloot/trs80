@@ -1,7 +1,7 @@
 import {hi, KnownLabel, lo, toHexWord} from "z80-base";
 import {dirname, parse, resolve} from "./path.js";
 import {isOpcodeTemplateOperand, mnemonicMap, OpcodeTemplateOperand, OpcodeVariant, opcodeVariantToString} from "z80-inst";
-import {isLegalIdentifierCharacter, parseDigit, PositionRequirement, Tokenizer} from "./Tokenizer.js";
+import {isLegalIdentifierCharacter, parseDigit, PositionRequirement, AsmTokenizer} from "./AsmTokenizer";
 
 // Title-definition pseudo instructions.
 const PSEUDO_TITLE = new Set([".title"]);
@@ -870,7 +870,7 @@ export class Asm {
             };
         }
 
-        const tokenizer = new Tokenizer(line);
+        const tokenizer = new AsmTokenizer(line);
 
         let trie = getInstructionTrie();
         let tokens = tokenizer.tokens;
@@ -1221,12 +1221,12 @@ class Pass {
 class LineParser {
     private readonly pass: Pass;
     private readonly assembledLine: AssembledLine;
-    private readonly tokenizer: Tokenizer;
+    private readonly tokenizer: AsmTokenizer;
 
     constructor(pass: Pass, assembledLine: AssembledLine) {
         this.pass = pass;
         this.assembledLine = assembledLine;
-        this.tokenizer = new Tokenizer(assembledLine.line);
+        this.tokenizer = new AsmTokenizer(assembledLine.line);
     }
 
     public assemble(): void {

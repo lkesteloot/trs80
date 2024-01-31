@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import {Asm, FileSystem} from "./Asm";
-import {Tokenizer} from "./Tokenizer";
+import {AsmTokenizer} from "./AsmTokenizer";
 import {mnemonicMap, opcodeVariantToString } from "z80-inst";
 import {Disasm} from "z80-disasm";
 import {hi, lo} from "z80-base";
@@ -23,19 +23,19 @@ const it = describe;
 // Test tokenizer.
 describe("tokenizer", () => {
    it("simple identifier", () => {
-       const tokenizer = new Tokenizer("a");
+       const tokenizer = new AsmTokenizer("a");
        expect(tokenizer.matches("a")).to.be.true;
        expect(tokenizer.matches("b")).to.be.false;
     });
     it("simple identifiers", () => {
-        const tokenizer = new Tokenizer("a b c");
+        const tokenizer = new AsmTokenizer("a b c");
         expect(tokenizer.found("a")).to.be.true;
         expect(tokenizer.found("b")).to.be.true;
         expect(tokenizer.found("c")).to.be.true;
         expect(tokenizer.found("d")).to.be.false;
     });
     it("all token types", () => {
-        const tokenizer = new Tokenizer("a + 20 <= \"abc\" ; yeah");
+        const tokenizer = new AsmTokenizer("a + 20 <= \"abc\" ; yeah");
         expect(tokenizer.found("a")).to.be.true;
         expect(tokenizer.found("+")).to.be.true;
         expect(tokenizer.found("20")).to.be.true;
@@ -46,7 +46,7 @@ describe("tokenizer", () => {
         expect(tokenizer.isEndOfLine()).to.be.true;
     });
     it("identifiers with dots", () => {
-        const tokenizer = new Tokenizer("abc .abc . ab.cd");
+        const tokenizer = new AsmTokenizer("abc .abc . ab.cd");
         expect(tokenizer.found("abc")).to.be.true;
         expect(tokenizer.found(".abc")).to.be.true;
         expect(tokenizer.found(".")).to.be.false;
@@ -56,12 +56,12 @@ describe("tokenizer", () => {
     });
     it("hex number in identifier", () => {
         // We used to mis-parse "CHKX" as the hex number "CH".
-        const tokenizer = new Tokenizer("CHKX");
+        const tokenizer = new AsmTokenizer("CHKX");
         expect(tokenizer.found("chkx")).to.be.true;
         expect(tokenizer.isEndOfLine()).to.be.true;
     });
     it("af' register", () => {
-        const tokenizer = new Tokenizer("af'");
+        const tokenizer = new AsmTokenizer("af'");
         expect(tokenizer.found("af'")).to.be.true;
         expect(tokenizer.isEndOfLine()).to.be.true;
     })

@@ -420,7 +420,7 @@ function tokenizeLine(line: string): Token[] {
  * Takes a line of text, breaks it into tokens, and provides some higher level functions to walk
  * through the sequence of tokens.
  */
-export class Tokenizer {
+export class AsmTokenizer {
     // Full text of line being parsed.
     public readonly line: string;
     // Parsed tokens.
