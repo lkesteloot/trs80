@@ -79,27 +79,39 @@ ld h,a          ; Store high byte
 ];
 
 /**
- * Return true if every word appears in the description. The words must already be lower case.
+ * Extract the alphanumeric words from the string, converting to lower case.
+ *
+ * @param s the string to break into words
+ * @param skipLabel skip any word at the start of the line (first character, location 0)
+ * @param includePrefixes for each word, also include its prefixes (e.g., for "the" also
+ * include "t" and "th")
  */
-function matchesDescription(words: string[], description: string): boolean {
-    if (words.length === 0) {
-        return false;
+function extractWords(s: string, skipLabel: boolean, includePrefixes: boolean): Set<string> {
+    let wordMatches = [...s.toLowerCase().matchAll(/\w+/g)];
+    if (skipLabel) {
+        wordMatches = wordMatches.filter(match => match.index !== undefined && match.index > 0);
     }
-
-    description = description.toLowerCase();
-
-    for (const word of words) {
-        const index = description.indexOf(word);
-        if (index === -1) {
-            return false;
-        }
-
-        // Must be at start of word.
-        if (index > 0) {
-            const ch = description.charAt(index - 1);
-            if (ch !== " " && ch !== "(") {
-                return false;
+    const words = wordMatches.map(match => match[0]);
+    if (includePrefixes) {
+        const set = new Set<string>();
+        for (const word of words) {
+            for (let letterCount = 1; letterCount <= word.length; letterCount++) {
+                set.add(word.substring(0, letterCount));
             }
+        }
+        return set;
+    } else {
+        return new Set(words);
+    }
+}
+
+/**
+ * Whether all words in searchWords are in the set targetPrefixes.
+ */
+function allWordsFound(searchWords: Set<string>, targetPrefixes: Set<string>): boolean {
+    for (const searchWord of searchWords) {
+        if (!targetPrefixes.has(searchWord)) {
+            return false;
         }
     }
 
@@ -111,6 +123,7 @@ function matchesDescription(words: string[], description: string): boolean {
  */
 class Completer {
     private readonly tokens: AsmToken[];
+    private readonly searchWords: Set<string>;
     private readonly options: Completion[] = [];
     /**
      * Where in the line we want to replace what's been written.
@@ -136,9 +149,9 @@ class Completer {
          */
         private readonly explicit: boolean) {
 
-        // Nothing.
         const tokenizer = new AsmTokenizer(line);
         this.tokens = tokenizer.tokens;
+        this.searchWords = extractWords(this.line, true, false);
     }
 
     /**
@@ -221,10 +234,11 @@ class Completer {
     private completeDescriptions() {
         // Find all variants.
         const matchingVariants: OpcodeVariant[] = [];
-        const searchWords = this.tokens.filter(token => token.begin > 0).map(token => token.text.toLowerCase());
         for (const variants of mnemonicMap.values()) {
             for (const variant of variants) {
-                if (variant.clr !== undefined && matchesDescription(searchWords, variant.clr.description)) {
+                if (variant.clr !== undefined &&
+                    allWordsFound(this.searchWords, extractWords(variant.clr.description, false, true))) {
+
                     matchingVariants.push(variant);
                 }
             }
@@ -242,11 +256,9 @@ class Completer {
      * List snippets that match the words entered so far.
      */
     private completeSnippets() {
-        const searchWords = this.tokens.filter(token => token.begin > 0).map(token => token.text.toLowerCase());
-
         for (const snippet of SNIPPETS) {
-            if (matchesDescription(searchWords, snippet.value) ||
-                matchesDescription(searchWords, snippet.description)) {
+            if (allWordsFound(this.searchWords, extractWords(snippet.value, false, true)) ||
+                allWordsFound(this.searchWords, extractWords(snippet.description, false, true))) {
                 this.options.push(snippetCompletion(snippet.template, {
                     label: snippet.value,
                     info: snippet.description,
@@ -254,20 +266,20 @@ class Completer {
                 }));
             }
         }
+        // TODO sort
     }
 
     /**
      * Complete assembly directives that match what's been written so far.
      */
     private completeDirectives() {
-        const searchWords = this.tokens.filter(token => token.begin > 0).map(token => token.text.toLowerCase());
         const search = this.line.trim(); // TODO replace with trie search.
 
         const options: Completion[] = [];
 
         for (const doc of ASM_DIRECTIVE_DOCS) {
-            const descriptionMatches = searchWords.length > 0 &&
-                matchesDescription(searchWords, doc.description);
+            const descriptionMatches = this.searchWords.size > 0 &&
+                allWordsFound(this.searchWords, extractWords(doc.description, false, true));
             for (const directive of doc.directives.values()) {
                 if (descriptionMatches || directive.toLowerCase().startsWith(search)) {
                     options.push({
