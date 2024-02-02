@@ -28,7 +28,7 @@ const IDENTIFIER_RE = /^(?:af'|\.?[a-z_][a-z0-9_]*)/i;
  * Tokens and token lists are immutable, so we can memoize the tokenized line.
  * This speeds up assembly by 10% to 20%.
  */
-const LINE_TO_TOKENS = new Map<string,Token[]>();
+const LINE_TO_TOKENS = new Map<string,AsmToken[]>();
 
 // Whether the specified character counts as horizontal whitespace.
 function isWhitespace(c: string): boolean {
@@ -264,7 +264,7 @@ function readNumericLiteral(s: string): { value: number, end: number, error: str
     };
 }
 
-export type Token = {
+export type AsmToken = {
     /**
      * Position (inclusive) in line where token begins.
      */
@@ -297,12 +297,12 @@ export type Token = {
 );
 
 // A token without an error. Only use this if you've verified that the error field is undefined.
-type ValidToken = Token & { error: undefined };
+type ValidToken = AsmToken & { error: undefined };
 
 /**
  * Return the token at the position in the string.
  */
-function tokenAt(s: string, pos: number): Token {
+function tokenAt(s: string, pos: number): AsmToken {
     s = s.substring(pos);
     if (s === "") {
         // Programmer error.
@@ -385,13 +385,13 @@ function tokenAt(s: string, pos: number): Token {
 /**
  * Make a list of tokens from the string.
  */
-function tokenizeLine(line: string): Token[] {
+function tokenizeLine(line: string): AsmToken[] {
     const cachedTokens = LINE_TO_TOKENS.get(line);
     if (cachedTokens !== undefined) {
         return cachedTokens;
     }
 
-    const tokens: Token[] = [];
+    const tokens: AsmToken[] = [];
 
     let pos = 0;
     while (pos < line.length) {
@@ -424,7 +424,7 @@ export class AsmTokenizer {
     // Full text of line being parsed.
     public readonly line: string;
     // Parsed tokens.
-    public readonly tokens: Token[];
+    public readonly tokens: AsmToken[];
     // Parsing index into token list.
     public tokenIndex = 0;
 
@@ -435,7 +435,7 @@ export class AsmTokenizer {
     }
 
     // The current token, or undefined if we've gone past the end.
-    public getCurrentToken(): Token | undefined {
+    public getCurrentToken(): AsmToken | undefined {
         return this.tokenIndex < this.tokens.length ? this.tokens[this.tokenIndex] : undefined;
     }
 
@@ -471,7 +471,7 @@ export class AsmTokenizer {
     /**
      * Skip comment. If at end of line, return undefined, otherwise return the token.
      */
-    public ensureEndOfLine(): Token | undefined {
+    public ensureEndOfLine(): AsmToken | undefined {
         // Skip comment.
         while (this.tokenIndex < this.tokens.length && this.tokens[this.tokenIndex].tag === "comment") {
             this.tokenIndex += 1;

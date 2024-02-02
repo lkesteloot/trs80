@@ -1,7 +1,7 @@
 import {hi, KnownLabel, lo, toHexWord} from "z80-base";
 import {dirname, parse, resolve} from "./path.js";
 import {isOpcodeTemplateOperand, mnemonicMap, OpcodeTemplateOperand, OpcodeVariant, opcodeVariantToString} from "z80-inst";
-import {isLegalIdentifierCharacter, parseDigit, PositionRequirement, AsmTokenizer} from "./AsmTokenizer";
+import {isLegalIdentifierCharacter, parseDigit, PositionRequirement, AsmTokenizer} from "./AsmTokenizer.js";
 
 // Title-definition pseudo instructions.
 const PSEUDO_TITLE = new Set([".title"]);
@@ -61,9 +61,6 @@ const LIBRARY_EXTS = new Set([".s", ".ass", ".asm"]);
 // Possible tags for macro parameters.
 // https://k1.spdns.de/Develop/Projects/zasm/Documentation/z65.htm#A
 const MACRO_TAGS = ["!", "#", "$", "%", "&", ".", ":", "?", "@", "\\", "^", "_", "|", "~"];
-
-// Regular expression for entire-line label.
-const LABEL_RE = /^[a-z_][a-z0-9_]*$/i;
 
 // Type of target we can handle.
 type Target = "bin" | "rom";
@@ -429,26 +426,26 @@ class Scope {
 }
 
 // Token to trie node for the variants reachable after parsing that token.
-type TrieMap = Map<string,TrieNode>;
+export type AsmTrieMap = Map<string,AsmTrieNode>;
 
-type TrieExpression = {expr: OpcodeTemplateOperand, trieNode: TrieNode} | Map<number, TrieNode> | undefined;
+export type AsmTrieExpression = {expr: OpcodeTemplateOperand, trieNode: AsmTrieNode} | Map<number, AsmTrieNode> | undefined;
 
 /**
  * Trie node to parse a set of variants of a mnemonic.
  */
-class TrieNode {
+export class AsmTrieNode {
     // Variant at this node, if the line stops here.
     public readonly variant: OpcodeVariant | undefined;
     // Map from tokens to other trie nodes.
-    public readonly tokens: TrieMap;
+    public readonly tokens: AsmTrieMap;
     // Pseudo-token for expressions (nnnn, etc.) or numeric constants (RST 8).
-    public readonly expression: TrieExpression;
+    public readonly expression: AsmTrieExpression;
     // Children are commands (mnemonics, pseudo-mnemonics, macros). They're always followed by a space.
     public readonly isCommand: boolean;
 
     constructor(variant: OpcodeVariant | undefined,
-                tokens: TrieMap,
-                expression: TrieExpression,
+                tokens: AsmTrieMap,
+                expression: AsmTrieExpression,
                 isCommand: boolean) {
 
         this.variant = variant;
@@ -482,7 +479,7 @@ class TrieNode {
  * Given a list of variants and the index of tokens within their token list, makes a trie node
  * that selects those variants given those tokens.
  */
-function makeTrieNodeFromVariants(variants: OpcodeVariant[], tokenIndex: number): TrieNode {
+function makeTrieNodeFromVariants(variants: OpcodeVariant[], tokenIndex: number): AsmTrieNode {
     // Group into variants by branching token.
     let terminalVariant: OpcodeVariant | undefined;
     const variantsByToken = new Map<string,OpcodeVariant[]>();
@@ -513,8 +510,8 @@ function makeTrieNodeFromVariants(variants: OpcodeVariant[], tokenIndex: number)
     }
 
     // Make a new trie node for each group of variants.
-    const tokens = new Map<string,TrieNode>();
-    let expression: TrieExpression = undefined;
+    const tokens = new Map<string,AsmTrieNode>();
+    let expression: AsmTrieExpression = undefined;
     for (const [token, tokenVariants] of variantsByToken.entries()) {
         const skip = token === "dd" ? 2 : 1;
         const subtrieNode = makeTrieNodeFromVariants(tokenVariants, tokenIndex + skip);
@@ -527,7 +524,7 @@ function makeTrieNodeFromVariants(variants: OpcodeVariant[], tokenIndex: number)
         } else if (parseDigit(token[0], 10) !== undefined) {
             const constValue = parseInt(token, 10);
             if (expression === undefined) {
-                expression = new Map<number, TrieNode>();
+                expression = new Map<number, AsmTrieNode>();
             } else if (!(expression instanceof Map)) {
                 // Internal error.
                 throw new Error("can only have one expression trie node");
@@ -538,73 +535,27 @@ function makeTrieNodeFromVariants(variants: OpcodeVariant[], tokenIndex: number)
         }
     }
 
-    return new TrieNode(terminalVariant, tokens, expression, false);
+    return new AsmTrieNode(terminalVariant, tokens, expression, false);
 }
 
-// Mnemonic to trie node for that variant.
-let g_instructionTrie: TrieNode | undefined;
+// Root instruction trie node.
+let g_instructionTrie: AsmTrieNode | undefined;
 
 /**
  * Creates (and caches) the instructions trie.
  */
-function getInstructionTrie(): TrieNode {
+export function getAsmInstructionTrie(): AsmTrieNode {
     if (g_instructionTrie === undefined) {
-        const treeMap = new Map<string,TrieNode>();
+        const treeMap = new Map<string,AsmTrieNode>();
         for (const [mnemonic, variants] of mnemonicMap.entries()) {
             const trie = makeTrieNodeFromVariants(variants, 0);
             treeMap.set(mnemonic, trie);
         }
-        g_instructionTrie = new TrieNode(undefined, treeMap, undefined, true);
+        g_instructionTrie = new AsmTrieNode(undefined, treeMap, undefined, true);
         // g_instructionTrie.dump();
     }
 
     return g_instructionTrie;
-}
-
-// An individual completion to show to the user.
-interface AsmCompletion {
-    // Label to show and complete.
-    label: string;
-
-    // Optional HTML text to show next to the label when it's highlighted.
-    htmlInfo?: string;
-}
-
-// All completion info.
-interface AsmCompletionResult {
-    // Column where to start replacing text with our completions.
-    from: number;
-
-    // List of completions. Already sorted.
-    options: AsmCompletion[];
-}
-
-/**
- * Return true if every word appears in the description. The words must already be lower case.
- */
-function matchesDescription(words: string[], description: string): boolean {
-    if (words.length === 0) {
-        return false;
-    }
-
-    description = description.toLowerCase();
-
-    for (const word of words) {
-        const index = description.indexOf(word);
-        if (index === -1) {
-            return false;
-        }
-
-        // Must be at start of word.
-        if (index > 0) {
-            const ch = description.charAt(index - 1);
-            if (ch !== " " && ch !== "(") {
-                return false;
-            }
-        }
-    }
-
-    return true;
 }
 
 /**
@@ -830,215 +781,6 @@ export class Asm {
         }
 
         return { entryPoint, guessed };
-    }
-
-    /**
-     * After having assembled a file, this method can be called on a partial line to get a list of
-     * completions available at the end of the line (where the cursor is).
-     *
-     * @param line text from the beginning of the line to where the cursor is.
-     * @param explicit whether the user has explicitly requested this completion (with Ctrl-Space).
-     * @param lineNumber 0-base line number the line is on.
-     */
-    public getCompletions(line: string, explicit: boolean, lineNumber: number): AsmCompletionResult | undefined {
-        const options: AsmCompletion[] = [];
-
-        // See if we're completing a label.
-        if ((line === "" && explicit) || line.match(LABEL_RE)) {
-            // Auto-complete labels that are used but not yet defined.
-            for (const symbolInfo of this.symbols) {
-                // Show the symbol if our typed text is a prefix and the symbol has been used but not
-                // defined. There's an extra special case to handle: the user is typing a new symbol,
-                // and as they reach the last letter, it immediately becomes defined, and therefore
-                // disappears from the list! We want to keep it in the list, so if the definition is
-                // on the line we're typing, then include it.
-                if (symbolInfo.name.toLowerCase().startsWith(line) &&
-                    symbolInfo.references.length > 0 &&
-                    (symbolInfo.definitions.length === 0 ||
-                        symbolInfo.definitions[0].assembledLine?.lineNumber === lineNumber)) {
-
-                    options.push({
-                        label: symbolInfo.name + ":",
-                    });
-                }
-            }
-            // May as well sort them.
-            options.sort((a, b) => a.label.localeCompare(b.label));
-            return {
-                from: 0,
-                options,
-            };
-        }
-
-        const tokenizer = new AsmTokenizer(line);
-
-        let trie = getInstructionTrie();
-        let tokens = tokenizer.tokens;
-
-        // Get all defined symbol names starting with the given prefix.
-        const symbols = (prefix: string): string[] => {
-            return this.symbols
-                .filter(symbol => symbol.definitions.length > 0 && symbol.name.startsWith(prefix))
-                .map(symbol => symbol.name);
-        };
-
-        // Add all variants below trieNode to the list of options.
-        function addVariantToOptions(prefix: string, trieNode: TrieNode, options: AsmCompletion[],
-                                     addSpace: boolean, explicit: boolean): void {
-
-            // We're at a node with a variant; add it to the list of options.
-            if (trieNode.variant !== undefined) {
-                options.push({
-                    label: prefix,
-                    htmlInfo: trieNode.variant.clr?.description,
-                });
-            }
-            if (addSpace) {
-                // Space after command like "ld".
-                prefix += " ";
-            }
-            // Recurse for tokens available from here.
-            for (const [token, child] of trieNode.tokens.entries()) {
-                addVariantToOptions(prefix + token, child, options, trieNode.isCommand, false);
-            }
-            // If we allow numeric constants, recurse for those.
-            if (trieNode.expression instanceof Map) {
-                // Don't show symbols here for "explicit", it's much more likely that they're going to
-                // type a numeric literal than want an expression for this kind of instruction.
-                for (const [token, child] of trieNode.expression.entries()) {
-                    addVariantToOptions(prefix + token, child, options, false, false);
-                }
-            } else if (trieNode.expression !== undefined) {
-                if (explicit) {
-                    // Show all symbols here for this expression.
-                    for (const symbolName of symbols("")) {
-                        addVariantToOptions(prefix + symbolName, trieNode.expression.trieNode, options,
-                            false, false);
-                    }
-                } else {
-                    // Show the generic operand ("nnnn" etc).
-                    let operand: string = trieNode.expression.expr;
-                    if (operand === "dd") {
-                        // We strip the + to make parsing elsewhere easier.
-                        operand = "+dd";
-                    }
-                    addVariantToOptions(prefix + operand, trieNode.expression.trieNode, options,
-                        false, false);
-                }
-            }
-        }
-
-        // Find partially-typed word to filter on.
-        let trieEndIndex = tokens.length; // Exclusive.
-        let filter = "";
-        let filterBegin = line.length;
-        if (tokens.length > 0) {
-            const lastToken = tokens[tokens.length - 1];
-            // We include "number" here because if the user types "1" we can't autocomplete immediately
-            // after that, and the number itself will stop that from happening.
-            if (lastToken.end === line.length && (lastToken.tag === "identifier" || lastToken.tag === "number")) {
-                trieEndIndex -= 1;
-                filter = lastToken.text;
-                filterBegin = lastToken.begin;
-            }
-        }
-        const from = tokens.length > 0 ? tokens[0].begin : line.length;
-
-        // Recurse down the trie while moving forward through the user's list of tokens.
-        const tryTokens = (tokenIndex: number, trieNode: TrieNode) => {
-            if (tokenIndex === tokens.length) {
-                // Ran out of the line, add all variants below this.
-                addVariantToOptions(line.substring(from), trieNode, options, false, explicit);
-                return;
-            }
-
-            const lastToken = tokens[tokenIndex];
-            const lastTokenText = lastToken.text;
-            // Never do a full match on the last token, that's always for filtering.
-            const subTrieNode = tokenIndex < trieEndIndex ? trieNode.tokens.get(lastTokenText) : undefined;
-            if (subTrieNode === undefined) {
-                // The next token didn't literally match. See if we get a partial match.
-                for (const [fullToken, fullTrieNode] of trieNode.tokens.entries()) {
-                    if (fullToken.startsWith(lastTokenText)) {
-                        addVariantToOptions(line.substring(from, lastToken.begin) + fullToken, fullTrieNode, options,
-                            trieNode.isCommand, false);
-                    }
-                }
-
-                // See if an expression is allowed here.
-                if (trieNode.expression !== undefined) {
-                    // Eat up the expression. All expressions either end with a close parenthesis,
-                    // end of line, or comma, so we don't need a full parser.
-                    let parensCount = 0;
-                    while (tokenIndex < tokens.length) {
-                        if (tokens[tokenIndex].text === "(") {
-                            parensCount += 1;
-                        } else if (tokens[tokenIndex].text === ")") {
-                            if (parensCount === 0) {
-                                // End of expression.
-                                break;
-                            } else {
-                                parensCount -= 1;
-                            }
-                        } else if (tokens[tokenIndex].text === ",") {
-                            break;
-                        }
-                        tokenIndex += 1;
-                    }
-
-                    let subTrieNode: TrieNode;
-                    if (trieNode.expression instanceof Map) {
-                        // Assume all paths have the same set of sub-tries. We don't want to have to
-                        // evaluate the expression here to see which key to look up.
-                        subTrieNode = trieNode.expression.values().next().value;
-                    } else {
-                        subTrieNode = trieNode.expression.trieNode;
-                    }
-
-                    if (tokenIndex === tokens.length) {
-                        for (const symbolName of symbols(filter)) {
-                            addVariantToOptions(line.substring(from, filterBegin) + symbolName, subTrieNode, options,
-                                trieNode.isCommand, false);
-                        }
-                    } else {
-                        tryTokens(tokenIndex, subTrieNode);
-                    }
-                } else {
-                    // No expression allowed, this won't match any variant.
-                }
-            } else {
-                // Matched a token, keep going.
-                tryTokens(tokenIndex + 1, subTrieNode);
-            }
-        };
-
-        tryTokens(0, trie);
-
-        // Find all variants.
-        const matchingVariantsDesc: OpcodeVariant[] = [];
-        const searchWords = tokens.filter(token => token.begin > 0).map(token => token.text.toLowerCase());
-        for (const variants of mnemonicMap.values()) {
-            for (const variant of variants) {
-                if (variant.clr !== undefined && matchesDescription(searchWords, variant.clr.description)) {
-                    matchingVariantsDesc.push(variant);
-                }
-            }
-        }
-
-        for (const variant of matchingVariantsDesc) {
-            options.push({
-                label: opcodeVariantToString(variant),
-                htmlInfo: variant.clr?.description,
-            });
-        }
-
-        // Sort to put most likely on top. Assume those with fewer opcodes are more common/likely.
-        // options.sort((a, b) => a.opcodes.length - b.opcodes.length);
-
-        return {
-            from,
-            options,
-        };
     }
 }
 
@@ -1914,7 +1656,7 @@ class LineParser {
         }
 
         // See if it's a Z80 mnemonic.
-        let trie = getInstructionTrie().tokens.get(mnemonic);
+        let trie = getAsmInstructionTrie().tokens.get(mnemonic);
         if (trie === undefined) {
             this.assembledLine.error = "unknown mnemonic \"" + mnemonic + "\"";
             if (this.tokenizer.matches(":")) {
