@@ -158,8 +158,9 @@ class Completer {
      * Get all completions available at this location, or null for none.
      */
     public getCompletions(): CompletionResult | null {
-        this.completeNewLabels();
-        if (this.options.length === 0) {
+        if ((this.line === "" && this.explicit) || this.line.match(LABEL_RE)) {
+            this.completeNewLabels();
+        } else {
             this.completeInstructions();
             this.completeDescriptions(); // TODO dedupe from above list.
             this.completeSnippets();
@@ -179,27 +180,24 @@ class Completer {
      * Complete labels at the start of the line to the set of identifiers that have been used but not defined.
      */
     private completeNewLabels(): void {
-        // See if we're completing a label.
-        if ((this.line === "" && this.explicit) || this.line.match(LABEL_RE)) {
-            // Auto-complete labels that are used but not yet defined.
-            for (const symbolInfo of this.asm.symbols) {
-                // Show the symbol if our typed text is a prefix and the symbol has been used but not
-                // defined. There's a special case to handle: the user is typing a new symbol,
-                // and as they reach the last letter, it immediately becomes defined, and therefore
-                // disappears from the list! We want to keep it in the list, so if the definition is
-                // on the line we're typing, then include it.
-                if (symbolInfo.name.toLowerCase().startsWith(this.line) &&
-                    symbolInfo.references.length > 0 &&
-                    (symbolInfo.definitions.length === 0 ||
-                        symbolInfo.definitions[0].assembledLine?.lineNumber === this.lineNumber)) {
+        // Auto-complete labels that are used but not yet defined.
+        for (const symbolInfo of this.asm.symbols) {
+            // Show the symbol if our typed text is a prefix and the symbol has been used but not
+            // defined. There's a special case to handle: the user is typing a new symbol,
+            // and as they reach the last letter, it immediately becomes defined, and therefore
+            // disappears from the list! We want to keep it in the list, so if the definition is
+            // on the line we're typing, then include it.
+            if (symbolInfo.name.toLowerCase().startsWith(this.line) &&
+                symbolInfo.references.length > 0 &&
+                (symbolInfo.definitions.length === 0 ||
+                    symbolInfo.definitions[0].assembledLine?.lineNumber === this.lineNumber)) {
 
-                    this.options.push(this.makeOption(symbolInfo.name + ":", "New Label", undefined));
-                }
+                this.options.push(this.makeOption(symbolInfo.name + ":", "New Label", undefined));
             }
-
-            this.options.sort((a, b) => a.label.localeCompare(b.label));
-            this.localFrom = 0;
         }
+
+        this.options.sort((a, b) => a.label.localeCompare(b.label));
+        this.localFrom = 0;
     }
 
     /**
@@ -209,10 +207,27 @@ class Completer {
         let trie = getAsmInstructionTrie();
 
         // Find partially-typed word to filter on.
+        let trieStartIndex = 0;
         let trieEndIndex = this.tokens.length; // Exclusive.
         let filter = "";
         let filterBegin = this.line.length;
+        this.localFrom = this.tokens.length > 0 ? this.tokens[0].begin : this.line.length;
         if (this.tokens.length > 0) {
+            // Skip label.
+            if (this.tokens[0].begin === 0) {
+                trieStartIndex += 1;
+                if (this.tokens.length > 1) {
+                    if (this.tokens[1].text === ":") {
+                        trieStartIndex += 1;
+                        if (this.tokens.length > 2) {
+                            this.localFrom = this.tokens[2].begin;
+                        }
+                    } else {
+                        this.localFrom = this.tokens[1].begin;
+                    }
+                }
+            }
+
             const lastToken = this.tokens[this.tokens.length - 1];
             // We include "number" here because if the user types "1" we can't autocomplete immediately
             // after that, and the number itself will stop that from happening.
@@ -222,9 +237,8 @@ class Completer {
                 filterBegin = lastToken.begin;
             }
         }
-        this.localFrom = this.tokens.length > 0 ? this.tokens[0].begin : this.line.length;
 
-        this.tryTokens(0, trie, trieEndIndex, filter, filterBegin);
+        this.tryTokens(trieStartIndex, trie, trieEndIndex, filter, filterBegin);
     }
 
 
