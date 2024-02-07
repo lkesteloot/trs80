@@ -426,7 +426,12 @@ export class Editor {
                 override: [
                     (context: CompletionContext) => customCompletions(context, this.assemblyResultsStateField)
                 ],
+                defaultKeymap: false,
             }),
+            // Use the default autocomplete keymap, but add Enter as an alias for Tab.
+            Prec.highest(keymap.of([...completionKeymap, ...completionKeymap
+                .filter(m => m.key === "Enter")
+                .map(m => ({ ...m, key: "Tab" }))])),
             rectangularSelection(),
             keymap.of([
                 ...closeBracketsKeymap,
