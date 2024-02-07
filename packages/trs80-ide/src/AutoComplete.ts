@@ -118,13 +118,55 @@ function allWordsFound(searchWords: Set<string>, targetPrefixes: Set<string>): b
     return true;
 }
 
+// Our own Completion type where we keep track of the variant.
+type CompletionWithVariant = Completion & { variant?: OpcodeVariant };
+
+/**
+ * Use various heuristics to put more useful variants on top.
+ */
+function compareCompletionWithVariants(a: CompletionWithVariant, b: CompletionWithVariant): number {
+    if (a.variant === undefined && b.variant === undefined) {
+        return a.label.localeCompare(b.label);
+    }
+    // Put those without variants later.
+    if (a.variant === undefined) {
+        return 1;
+    }
+    if (b.variant === undefined) {
+        return -1;
+    }
+    return compareVariants(a.variant, b.variant);
+}
+
+/**
+ * Use various heuristics to put more useful variants on top.
+ */
+function compareVariants(a: OpcodeVariant, b: OpcodeVariant): number {
+    // Assume those with fewer opcodes are more common/likely.
+    let cmp = a.opcodes.length - b.opcodes.length;
+    if (cmp !== 0) {
+        return cmp;
+    }
+
+    // Prefer shorter instructions.
+    const aLabel = opcodeVariantToString(a);
+    const bLabel = opcodeVariantToString(b);
+    cmp = aLabel.length - bLabel.length;
+    if (cmp !== 0) {
+        return cmp;
+    }
+
+    // Break ties with alphabetical sort.
+    return aLabel.localeCompare(bLabel);
+}
+
 /**
  * Given a completion context (line written so far, file assembled), can generate list of possible completions.
  */
 class Completer {
     private readonly tokens: AsmToken[];
     private readonly searchWords: Set<string>;
-    private readonly options: Completion[] = [];
+    private readonly options: CompletionWithVariant[] = [];
     /**
      * Where in the line we want to replace what's been written.
      */
@@ -162,7 +204,7 @@ class Completer {
             this.completeNewLabels();
         } else {
             this.completeInstructions();
-            this.completeDescriptions(); // TODO dedupe from above list.
+            this.completeDescriptions();
             this.completeSnippets();
             this.completeDirectives();
         }
@@ -180,7 +222,7 @@ class Completer {
      * Complete labels at the start of the line to the set of identifiers that have been used but not defined.
      */
     private completeNewLabels(): void {
-        // Auto-complete labels that are used but not yet defined.
+        const options: CompletionWithVariant[] = []
         for (const symbolInfo of this.asm.symbols) {
             // Show the symbol if our typed text is a prefix and the symbol has been used but not
             // defined. There's a special case to handle: the user is typing a new symbol,
@@ -192,11 +234,12 @@ class Completer {
                 (symbolInfo.definitions.length === 0 ||
                     symbolInfo.definitions[0].assembledLine?.lineNumber === this.lineNumber)) {
 
-                this.options.push(this.makeOption(symbolInfo.name + ":", "New Label", undefined));
+                options.push(this.makeOption(symbolInfo.name + ":", "New Label",
+                    undefined, undefined));
             }
         }
-
-        this.options.sort((a, b) => a.label.localeCompare(b.label));
+        options.sort(compareCompletionWithVariants);
+        this.options.push(...options);
         this.localFrom = 0;
     }
 
@@ -238,19 +281,35 @@ class Completer {
             }
         }
 
+        const beginIndex = this.options.length;
         this.tryTokens(trieStartIndex, trie, trieEndIndex, filter, filterBegin);
-    }
+        const endIndex = this.options.length;
 
+        // Sort to put most likely on top.
+        const subOptions = this.options.splice(beginIndex, endIndex - beginIndex);
+        subOptions.sort(compareCompletionWithVariants);
+        this.options.splice(beginIndex, 0, ...subOptions);
+    }
 
     /**
      * Add variants that have a description that match tokens.
      */
     private completeDescriptions() {
+        // See what variants we've already added (by matching the trie tokens) and don't add those again.
+        // This map uses the identity of the variant, which is fine.
+        const alreadyAdded = new Set<OpcodeVariant>();
+        for (const option of this.options) {
+            if (option.variant !== undefined) {
+                alreadyAdded.add(option.variant);
+            }
+        }
+
         // Find all variants.
         const matchingVariants: OpcodeVariant[] = [];
         for (const variants of mnemonicMap.values()) {
             for (const variant of variants) {
                 if (variant.clr !== undefined &&
+                    !alreadyAdded.has(variant) &&
                     allWordsFound(this.searchWords, extractWords(variant.clr.description, false, true))) {
 
                     matchingVariants.push(variant);
@@ -259,10 +318,11 @@ class Completer {
         }
 
         // Sort to put most likely on top.
-        matchingVariants.sort((a, b) => this.compareVariants(a, b));
+        matchingVariants.sort(compareVariants);
 
         for (const variant of matchingVariants) {
-            this.options.push(this.makeOption(opcodeVariantToString(variant), "Instructions", variant.clr?.description));
+            this.options.push(this.makeOption(opcodeVariantToString(variant), "Instructions",
+                variant.clr?.description, variant));
         }
     }
 
@@ -270,17 +330,20 @@ class Completer {
      * List snippets that match the words entered so far.
      */
     private completeSnippets() {
+        const options: CompletionWithVariant[] = [];
         for (const snippet of SNIPPETS) {
             if (allWordsFound(this.searchWords, extractWords(snippet.value, false, true)) ||
                 allWordsFound(this.searchWords, extractWords(snippet.description, false, true))) {
-                this.options.push(snippetCompletion(snippet.template, {
+                options.push(snippetCompletion(snippet.template, {
                     label: snippet.value,
                     info: snippet.description,
                     section: "Snippets",
                 }));
             }
         }
-        // TODO sort
+
+        options.sort(compareCompletionWithVariants);
+        this.options.push(...options);
     }
 
     /**
@@ -313,7 +376,9 @@ class Completer {
     /**
      * Recurse down the trie while moving forward through the user's list of tokens.
      */
-    private tryTokens(tokenIndex: number, trieNode: AsmTrieNode, trieEndIndex: number, filter: string, filterBegin: number) {
+    private tryTokens(tokenIndex: number, trieNode: AsmTrieNode, trieEndIndex: number,
+                      filter: string, filterBegin: number) {
+
         if (tokenIndex === this.tokens.length) {
             // Ran out of the line, add all variants below this.
             this.addVariantToOptions(this.line.substring(this.localFrom), trieNode, false, this.explicit);
@@ -386,7 +451,8 @@ class Completer {
     private addVariantToOptions(prefix: string, trieNode: AsmTrieNode, addSpace: boolean, explicit: boolean): void {
         // We're at a node with a variant; add it to the list of options.
         if (trieNode.variant !== undefined) {
-            this.options.push(this.makeOption(prefix, "Instructions", trieNode.variant.clr?.description));
+            this.options.push(this.makeOption(prefix, "Instructions",
+                trieNode.variant.clr?.description, trieNode.variant));
         }
         if (addSpace) {
             // Space after command like "ld".
@@ -426,8 +492,8 @@ class Completer {
     /**
      * Make a completion option from the label, section, and optional HTML description.
      */
-    private makeOption(label: string, section: string, htmlInfo: string | undefined): Completion {
-        let option: Completion = {
+    private makeOption(label: string, section: string, htmlInfo: string | undefined, variant: OpcodeVariant | undefined): Completion {
+        let option: CompletionWithVariant = {
             label,
             info: htmlInfo === undefined ? undefined : () => {
                 const span = document.createElement("span");
@@ -435,6 +501,7 @@ class Completer {
                 return span;
             },
             section,
+            variant,
         };
 
         // Make template with the constants.
@@ -451,33 +518,13 @@ class Completer {
      */
     private symbolsWithPrefix(prefix: string): string[] {
         return this.asm.symbols
-            // TODO should we include undefined symbols? Why not, if we allow user to use it
+            // Should we include undefined symbols? Why not, if we allow user to use it
             // before auto-complete definition, they may want to use it multiple times and
             // complete from it. But it might be misleading if it implies that it's defined.
+            // One problem is that as you're typing, you're defining that new symbol, and it
+            // shows up in the list of completions. Leaving it alone for now.
             .filter(symbol => symbol.definitions.length > 0 && symbol.name.startsWith(prefix))
             .map(symbol => symbol.name);
-    }
-
-    /**
-     * Use various heuristics to put more useful variants on top.
-     */
-    private compareVariants(a: OpcodeVariant, b: OpcodeVariant): number {
-        // Assume those with fewer opcodes are more common/likely.
-        let cmp = a.opcodes.length - b.opcodes.length;
-        if (cmp !== 0) {
-            return cmp;
-        }
-
-        // Prefer shorter instructions.
-        const aLabel = opcodeVariantToString(a);
-        const bLabel = opcodeVariantToString(b);
-        cmp = aLabel.length - bLabel.length;
-        if (cmp !== 0) {
-            return cmp;
-        }
-
-        // Break ties with alphabetical sort.
-        return aLabel.localeCompare(bLabel);
     }
 }
 
