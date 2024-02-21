@@ -590,7 +590,7 @@ export class Disasm {
         if (instruction.jumpTarget !== undefined) {
             let label = this.useKnownLabels ? this.knownLabels.get(instruction.jumpTarget) : undefined;
             if (label === undefined) {
-                label = this.toHexWord(instruction.jumpTarget);
+                label = instruction.jumpTarget === instruction.address ? "$" : this.toHexWord(instruction.jumpTarget);
             }
 
             instruction.replaceArgVariable(TARGET, label);
