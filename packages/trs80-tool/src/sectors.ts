@@ -17,7 +17,7 @@ export function sectors(filename: string, showContents: boolean): void {
         return;
     }
 
-    // Decode the floppy or cassette.
+    // Decode the floppy.
     const file = decodeTrs80File(buffer, filename);
     if (!isFloppy(file)) {
         console.log("Not a recognized floppy file: " + filename);
@@ -90,8 +90,7 @@ export function sectors(filename: string, showContents: boolean): void {
     }
 
     if (usedLetters.size > 0) {
-        const legendLetters = Array.from(usedLetters.values());
-        legendLetters.sort();
+        const legendLetters = [...usedLetters.values()].sort();
 
         console.log("Legend:");
         for (const legendLetter of legendLetters) {

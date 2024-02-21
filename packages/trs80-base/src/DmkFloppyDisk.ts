@@ -391,9 +391,11 @@ export class DmkFloppyDisk extends FloppyDisk {
         for (const track of this.tracks) {
             if (track.trackNumber === trackNumber && track.side === side) {
                 for (const sector of track.sectors) {
-                    if (sectorNumber === undefined || (sector.getSectorNumber() === sectorNumber &&
-                        sector.getSide() === side)) {
-
+                    // Note that the sector's side might not match the track side. This happens on
+                    // MultiDOS floppies when it stores a different file system on each side.
+                    // The back side will have sectors with Side = 0. This method should treat the
+                    // "side" parameter like the physical side, not the side the sector thinks it's on.
+                    if (sectorNumber === undefined || sector.getSectorNumber() === sectorNumber) {
                         // Pull out the actual data.
                         const data = sector.getData();
                         if (data === undefined) {
