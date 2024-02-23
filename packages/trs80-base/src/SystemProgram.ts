@@ -16,6 +16,7 @@ import {
     encodeCmdProgram
 } from "./CmdProgram.js";
 import {ProgramBuilder} from "./ProgramBuilder.js";
+import {disasmForTrs80} from "./Disasm.js";
 
 const FILE_HEADER = 0x55;
 const DATA_HEADER = 0x3C;
@@ -241,7 +242,20 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
         if (data.length < length) {
             return makeSystemProgram("File is truncated at data");
         }
-        annotations.push(new ProgramAnnotation(`Chunk data`, dataStartAddr, b.addr()));
+        const dataAnnotation = new ProgramAnnotation(`Chunk data`, dataStartAddr, b.addr());
+        annotations.push(dataAnnotation);
+
+        // Disassemble the data, for optional display.
+        const disasm = disasmForTrs80();
+        disasm.addChunk(binary.subarray(dataAnnotation.begin, dataAnnotation.end), loadAddress);
+        disasm.addEntryPoint(loadAddress);
+        disasm.setCreateLabels(false);
+        const instructions = disasm.disassemble();
+        for (const instruction of instructions) {
+            const text = "  " + toHexWord(instruction.address) + "  " + instruction.toText(false);
+            const begin = instruction.address - loadAddress + dataAnnotation.begin;
+            dataAnnotation.nestedAnnotations.push(new ProgramAnnotation(text, begin, begin + instruction.bin.length));
+        }
 
         const checksum = b.read();
         if (loadAddress === EOF) {

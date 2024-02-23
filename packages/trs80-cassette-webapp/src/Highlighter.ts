@@ -46,7 +46,7 @@ export class Highlighter {
     /**
      * All elements, index by the byte index.
      */
-    readonly elements: HTMLElement[] = [];
+    readonly elements: HTMLElement[][] = [];
     /**
      * Currently-highlighted elements.
      */
@@ -90,7 +90,12 @@ export class Highlighter {
         }
 
         for (let byteIndex = h.firstIndex; byteIndex <= h.lastIndex; byteIndex++) {
-            this.elements[byteIndex] = element;
+            let elements = this.elements[byteIndex];
+            if (elements === undefined) {
+                elements = [];
+                this.elements[byteIndex] = elements;
+            }
+            elements.push(element);
         }
 
         // Set up event listeners for highlighting.
@@ -130,39 +135,38 @@ export class Highlighter {
     }
 
     /**
+     * Highlight or select the specified elements.
+     */
+    private highlightSelect(highlight: Highlight | undefined, existingElements: HTMLElement[],
+                            program: Program, className: string): void {
+
+        for (const e of existingElements) {
+            e.classList.remove(className);
+        }
+        existingElements.splice(0);
+        if (highlight !== undefined && highlight.program === program) {
+            const elements = this.elements[highlight.firstIndex];
+            if (elements !== undefined) {
+                for (const element of elements) {
+                    element.classList.add(className);
+                }
+                existingElements.push(...elements);
+            }
+        }
+    }
+
+    /**
      * Highlight the specified elements.
      */
     public highlight(highlight: Highlight | undefined, program: Program, highlightClassName: string): void {
-        for (const e of this.highlightedElements) {
-            e.classList.remove(highlightClassName);
-        }
-        this.highlightedElements.splice(0);
-        if (highlight !== undefined && highlight.program === program) {
-            const e = this.elements[highlight.firstIndex];
-            if (e !== undefined) {
-                e.classList.add(highlightClassName);
-                this.highlightedElements.push(e);
-            }
-        }
+        this.highlightSelect(highlight, this.highlightedElements, program, highlightClassName);
     }
 
     /**
      * Select the specified elements.
      */
     public select(highlight: Highlight | undefined, program: Program, selectClassName: string): void {
-        for (const e of this.selectedElements) {
-            e.classList.remove(selectClassName);
-        }
-        this.selectedElements.splice(0);
-        if (highlight !== undefined && highlight.program === program) {
-            for (let byteIndex = highlight.firstIndex; byteIndex <= highlight.lastIndex; byteIndex++) {
-                const e = this.elements[byteIndex];
-                if (e !== undefined) {
-                    e.classList.add(selectClassName);
-                    this.selectedElements.push(e);
-                }
-            }
-        }
+        this.highlightSelect(highlight, this.selectedElements, program, selectClassName);
     }
 
     /**

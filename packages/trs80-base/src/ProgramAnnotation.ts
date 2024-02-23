@@ -16,6 +16,11 @@ export class ProgramAnnotation {
      * Byte index into the binary array of the end of the annotation, exclusive.
      */
     public readonly end: number;
+    /**
+     * Sub-annotations that can be shown instead of this one, when the user asks for it.
+     * Only do this for one level, the user interface does not support more.
+     */
+    public readonly nestedAnnotations: ProgramAnnotation[] = [];
 
     constructor(text: string, begin: number, end: number) {
         this.text = text;
@@ -27,6 +32,12 @@ export class ProgramAnnotation {
      * Create a new program annotation with the begin and end increased by the specified offset.
      */
     public adjusted(offset: number): ProgramAnnotation {
-        return new ProgramAnnotation(this.text, this.begin + offset, this.end + offset);
+        const adjustedAnnotation = new ProgramAnnotation(this.text, this.begin + offset, this.end + offset);
+
+        // Adjust the nested ones.
+        adjustedAnnotation.nestedAnnotations.push(
+            ... this.nestedAnnotations.map(annotation => annotation.adjusted(offset)));
+
+        return adjustedAnnotation;
     }
 }

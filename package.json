@@ -24,7 +24,6 @@
     "packages/z80-test",
     "packages/trs80-base",
     "packages/trs80-asm",
-    "packages/trs80-disasm",
     "packages/trs80-emulator",
     "packages/trs80-cassette",
     "packages/trs80-cassette-player",

@@ -1,8 +1,7 @@
 import jss from './Jss'
 import {toHexByte, toHexWord} from "z80-base";
 import {Highlightable} from "./Highlighter";
-import {disasmForTrs80Program} from "trs80-disasm";
-import {CmdProgram} from "trs80-base";
+import {CmdProgram, disasmForTrs80Program} from "trs80-base";
 import {ProgramAnnotation} from "trs80-base/dist/ProgramAnnotation";
 
 /**
@@ -86,7 +85,8 @@ export const selectClassName = sheet.classes.selected;
 /**
  * Render a disassembled system program.
  *
- * @return array of the elements added, with the index being the offset into the original bytes array.
+ * @return array of two things: the elements added, with the index being the offset into the original bytes array;
+ * the annotations to show for this program, in addition to the program's.
  */
 export function toDiv(cmdProgram: CmdProgram, out: HTMLElement): [Highlightable[], ProgramAnnotation[]] {
     sheet.attach();
@@ -191,7 +191,6 @@ export function toDiv(cmdProgram: CmdProgram, out: HTMLElement): [Highlightable[
             if (byteOffset !== undefined) {
                 const endIndex = byteOffset + subbytes.length;
                 elements.push(new Highlightable(byteOffset, endIndex - 1, line));
-                annotations.push(new ProgramAnnotation(instruction.toText(false) + "\n" + instruction.binText(), byteOffset, endIndex));
             }
 
             address += subbytes.length;

@@ -1,19 +1,13 @@
 
-import {
-    CmdLoadBlockChunk,
-    CmdProgram,
-    CmdTransferAddressChunk,
-    Level1Program,
-    SystemChunk,
-    SystemProgram,
-    TRS80_MODEL_III_BASIC_TOKENS,
-    TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS,
-    TRS80_MODEL_III_KNOWN_LABELS,
-    TRS80_SCREEN_BEGIN,
-    TRS80_SCREEN_END,
-} from "trs80-base";
+
 import { Z80_KNOWN_LABELS } from "z80-base";
 import {Disasm} from "z80-disasm";
+import {SystemChunk, SystemProgram} from "./SystemProgram.js";
+import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "./Constants.js";
+import {TRS80_MODEL_III_BASIC_TOKENS, TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS} from "./BasicTokens.js";
+import {TRS80_MODEL_III_KNOWN_LABELS} from "./KnownLabels.js";
+import {CmdLoadBlockChunk, CmdProgram, CmdTransferAddressChunk} from "./CmdProgram.js";
+import {Level1Program} from "./Level1Program.js";
 
 // Whether to try to disassemble this chunk.
 function shouldDisassembleSystemProgramChunk(chunk: SystemChunk): boolean {

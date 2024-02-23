@@ -541,14 +541,14 @@ export class TapeBrowser {
         return new Pane(div);
     }
 
-    private makeBinaryPane(program: Program): Pane {
+    private makeHexdumpPane(program: Program): Pane {
         const div = document.createElement("div");
         div.classList.add("program");
 
         const hexHighlighter = new Highlighter(this, program, div);
         const asciiHighlighter = new Highlighter(this, program, div);
 
-        const [hexElements, asciiElements] = Hexdump.create(program.binary, div);
+        const [hexElements, asciiElements] = Hexdump.create(program, div);
         hexHighlighter.addHighlightables(hexElements);
         asciiHighlighter.addHighlightables(asciiElements);
 
@@ -913,8 +913,8 @@ export class TapeBrowser {
             });
 
             // Make the various panes.
-            addPane("Binary" + (duplicateOfCopy !== undefined ? " (same as copy " + duplicateOfCopy.copyNumber + ")" : ""),
-                this.makeBinaryPane(program));
+            addPane("Hexdump" + (duplicateOfCopy !== undefined ? " (same as copy " + duplicateOfCopy.copyNumber + ")" : ""),
+                this.makeHexdumpPane(program));
             if (program.reconstructedSamples !== undefined) {
                 addPane("Reconstructed", this.makeReconstructedPane(program.reconstructedSamples));
             }

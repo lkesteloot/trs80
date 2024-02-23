@@ -1,9 +1,8 @@
 import jss from './Jss'
-import {toHexByte, toHexWord} from "z80-base";
+import {toHexByte, toHexWord, word} from "z80-base";
 import {Highlightable} from "./Highlighter";
 import {CanvasScreen} from "trs80-emulator-web";
-import {disasmForTrs80Program} from "trs80-disasm";
-import {SystemProgram, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
+import {SystemProgram, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END, disasmForTrs80, disasmForTrs80Program} from "trs80-base";
 import {ProgramAnnotation} from "trs80-base/dist/ProgramAnnotation";
 
 /**
@@ -87,7 +86,8 @@ export const selectClassName = sheet.classes.selected;
 /**
  * Render a disassembled system program.
  *
- * @return array of the elements added, with the index being the offset into the original bytes array.
+ * @return array of two things: the elements added, with the index being the offset into the original bytes array;
+ * the annotations to show for this program, in addition to the program's.
  */
 export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highlightable[], ProgramAnnotation[]] {
     sheet.attach();
@@ -182,7 +182,6 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
 
     const disasm = disasmForTrs80Program(systemProgram);
     const instructions = disasm.disassemble();
-
     for (const instruction of instructions) {
         if (instruction.label !== undefined) {
             const line = document.createElement("div");
@@ -213,13 +212,11 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
             if (byteOffset !== undefined) {
                 const endIndex = byteOffset + subbytes.length;
                 elements.push(new Highlightable(byteOffset, endIndex - 1, line));
-                annotations.push(new ProgramAnnotation(instruction.toText(false) + "\n" + instruction.binText(), byteOffset, endIndex));
             }
 
             address += subbytes.length;
             bytes.splice(0, subbytes.length);
         }
-
     }
 
     return [elements, annotations];

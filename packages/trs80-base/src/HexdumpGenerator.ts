@@ -108,6 +108,58 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
     protected abstract addTextToSpan(span: SPAN_TYPE, text: string): void;
 
     /**
+     * Whether the subclass supports expansion of nested annotations. If not, then
+     * they won't be generated.
+     */
+    protected supportsNestedAnnotations(): boolean {
+        return false;
+    }
+
+    /**
+     * For subclasses that support nested annotations, informs the subclass that
+     * we're about to generate lines that can be expanded.
+     */
+    protected beginExpandable(): void {
+        // Subclass should override and modify the next line to show some kind
+        // of "expand" button. All the lines until beginExpanded() should be
+        // hidden when this button is pressed.
+    }
+
+    protected beginExpanded(): void {
+        // Subclass should override and hide all subsequent lines by default,
+        // only showing them when the above button is pressed.
+    }
+
+    protected endExpanded(): void {
+        // Subclass should override and return to normal (always-visible) lines.
+    }
+
+    /**
+     * Whether the subclass wants the registerHexByte() and registerAsciiByte() methods
+     * called. If yes, each span will only have one byte. If no, spans can include
+     * multiple bytes, for efficiency, using the addTextToSpan() method.
+     */
+    protected requireRegisteredBytes(): boolean {
+        return false;
+    }
+
+    /**
+     * A hex byte (in the binary) has been generated for this index.
+     * Only called if requireRegisteredBytes() returns true.
+     */
+    protected registerHexByte(span: SPAN_TYPE, index: number): void {
+        // Nothing.
+    }
+
+    /**
+     * An ASCII byte (in the binary) has been generated for this index.
+     * Only called if requireRegisteredBytes() returns true.
+     */
+    protected registerAsciiByte(span: SPAN_TYPE, index: number): void {
+        // Nothing.
+    }
+
+    /**
      * Generate all HTML elements for this binary.
      */
     public *generate(): Generator<LINE_TYPE, void, void> {
@@ -115,29 +167,52 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
 
         const [addrDigits, addrSpaces] = this.computeAddressSize();
 
-        // Sort in case they were generated out of order.
-        this.annotations.sort((a, b) => a.begin - b.begin);
+        yield* this.generateAnnotations(binary, 0, binary.length, addrDigits, this.annotations);
 
-        let lastAnnotation: ProgramAnnotation | undefined = undefined;
-        for (const annotation of this.annotations) {
-            if (lastAnnotation !== undefined && lastAnnotation.end < annotation.begin) {
-                yield* this.generateAnnotation(new ProgramAnnotation("", lastAnnotation.end, annotation.begin));
-            }
-            // Make sure there are no overlapping annotations.
-            if (lastAnnotation === undefined || lastAnnotation.end <= annotation.begin) {
-                yield* this.generateAnnotation(annotation);
-            }
-            lastAnnotation = annotation;
-        }
-        const lastAnnotationEnd = lastAnnotation !== undefined ? lastAnnotation.end : 0;
-        if (lastAnnotationEnd < binary.length) {
-            yield* this.generateAnnotation(new ProgramAnnotation("", lastAnnotationEnd, binary.length));
-        }
-
-        // Final address to show where file ends.
+        // Final address (with no data) to show where file ends.
         const finalLine = this.newLine();
         this.newSpan(finalLine, toHex(binary.length, addrDigits), "address");
         yield finalLine;
+    }
+
+    private *generateAnnotations(binary: Uint8Array, addr: number, endAddr: number, addrDigits: number,
+                                 annotations: ProgramAnnotation[]): Generator<LINE_TYPE, void, void> {
+
+        // Sort in case they were generated out of order.
+        annotations.sort((a, b) => a.begin - b.begin);
+
+        for (const annotation of annotations) {
+            // Fill empty space between annotations and at the very start.
+            if (addr < annotation.begin) {
+                yield* this.generateAnnotation(new ProgramAnnotation("", addr, annotation.begin));
+            }
+            // Make sure there are no overlapping annotations.
+            if (addr <= annotation.begin) {
+                const expandNestedAnnotations = this.supportsNestedAnnotations() &&
+                    annotation.nestedAnnotations.length > 0;
+                if (expandNestedAnnotations) {
+                    this.beginExpandable();
+                }
+
+                // Show this annotation.
+                yield* this.generateAnnotation(annotation);
+
+                if (expandNestedAnnotations) {
+                    this.beginExpanded();
+                    yield* this.generateAnnotation(
+                        new ProgramAnnotation(annotation.text, annotation.begin, annotation.begin));
+                    yield* this.generateAnnotations(binary, annotation.begin, annotation.end,
+                        addrDigits, annotation.nestedAnnotations);
+                    this.endExpanded();
+                }
+            }
+            addr = annotation.end;
+        }
+
+        // Fill to end of program.
+        if (addr < endAddr) {
+            yield* this.generateAnnotation(new ProgramAnnotation("", addr, endAddr));
+        }
     }
 
     /**
@@ -205,7 +280,6 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
                     if (addr === beginAddr) {
                         label = annotation.text;
                     } else {
-                        // Vertical ellipsis.
                         label = "  " + String.fromCodePoint(VERTICAL_ELLIPSIS);
                     }
                 }
@@ -252,11 +326,23 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
         let subAddr: number;
         for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
             const cssClass = ["hex"];
-            if (subAddr < beginAddr || subAddr >= endAddr) {
+            const outside = subAddr < beginAddr || subAddr >= endAddr;
+            if (outside) {
                 cssClass.push("outside-annotation");
             }
+            const hexByte = toHexByte(binary[subAddr]);
+            if (this.requireRegisteredBytes() && !outside) {
+                const span = this.newSpan(line, hexByte, ...cssClass);
+                this.registerHexByte(span, subAddr);
+                e = undefined;
+            } else {
+                addText(hexByte, ...cssClass);
+            }
+
+            // Spacing.
             const halfWay = subAddr == addr + STRIDE/2 - 1;
-            addText(toHexByte(binary[subAddr]) + (halfWay ? "  " : " "), ...cssClass);
+            const spacing = halfWay ? "  " : " ";
+            addText(spacing, ...cssClass);
         }
         const numBytesSkipped = addr + STRIDE - subAddr;
         addText("".padStart(numBytesSkipped*3 + (numBytesSkipped > STRIDE/2 ? 1 : 0) + 2, " "), "hex");
@@ -273,10 +359,17 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
                 cssClass.push("ascii-unprintable");
                 char = ".";
             }
-            if (subAddr < beginAddr || subAddr >= endAddr) {
+            const outside = subAddr < beginAddr || subAddr >= endAddr;
+            if (outside) {
                 cssClass.push("outside-annotation");
             }
-            addText(char, ...cssClass);
+            if (this.requireRegisteredBytes() && !outside) {
+                const span = this.newSpan(line, char, ...cssClass);
+                this.registerAsciiByte(span, subAddr);
+                e = undefined;
+            } else {
+                addText(char, ...cssClass);
+            }
         }
         if (label !== "") {
             addText("".padStart(addr + STRIDE - subAddr + 2, " ") + label, "annotation");
