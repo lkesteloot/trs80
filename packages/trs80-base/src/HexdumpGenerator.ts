@@ -188,6 +188,7 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
             }
             // Make sure there are no overlapping annotations.
             if (addr <= annotation.begin) {
+                // Include nested annotations if the subclass wants them.
                 const expandNestedAnnotations = this.supportsNestedAnnotations() &&
                     annotation.nestedAnnotations.length > 0;
                 if (expandNestedAnnotations) {
@@ -199,8 +200,6 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
 
                 if (expandNestedAnnotations) {
                     this.beginExpanded();
-                    yield* this.generateAnnotation(
-                        new ProgramAnnotation(annotation.text, annotation.begin, annotation.begin));
                     yield* this.generateAnnotations(binary, annotation.begin, annotation.end,
                         addrDigits, annotation.nestedAnnotations);
                     this.endExpanded();
@@ -225,7 +224,11 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
         const [addrDigits, addrSpaces] = this.computeAddressSize();
 
         const beginAddr = Math.floor(annotation.begin/STRIDE)*STRIDE;
-        const endAddr = Math.min(Math.ceil(annotation.end/STRIDE)*STRIDE, binary.length);
+        // If the annotation is zero-length and a multiple of STRIDE, push it to the next STRIDE
+        // above beginAddr. Otherwise no row will be generated. (This is for empty annotations
+        // at the beginning of nested annotation lists.)
+        const endAddr = Math.min(Math.max(
+            Math.ceil(annotation.end/STRIDE)*STRIDE, beginAddr + STRIDE), binary.length);
         let lastAddr: number | undefined = undefined;
         for (let addr = beginAddr; addr < endAddr; addr += STRIDE) {
             if (this.collapse && lastAddr !== undefined &&

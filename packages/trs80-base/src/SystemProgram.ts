@@ -251,6 +251,10 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
         disasm.addEntryPoint(loadAddress);
         disasm.setCreateLabels(false);
         const instructions = disasm.disassemble();
+        if (instructions.length > 0) {
+            // Repeat header so we can put a control on it.
+            dataAnnotation.nestedAnnotations.push(new ProgramAnnotation("Chunk data", dataStartAddr, dataStartAddr));
+        }
         for (const instruction of instructions) {
             const text = "  " + toHexWord(instruction.address) + "  " + instruction.toText(false);
             const begin = instruction.address - loadAddress + dataAnnotation.begin;

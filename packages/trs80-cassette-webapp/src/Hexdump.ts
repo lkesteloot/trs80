@@ -66,7 +66,7 @@ class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLDivElement, HTMLSpanElem
     public readonly asciiHighlightables: Highlightable[] = [];
     private nestedCounter = 1;
     private nestedId: string = "";
-    private nextLineExpandable = false;
+    private showExpandingControl = false;
     private expanded = false;
 
     constructor(binary: Uint8Array, collapse: boolean,
@@ -115,7 +115,7 @@ class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLDivElement, HTMLSpanElem
 
         // Create and add stylesheet.
         const stylesheet = document.createElement("style");
-        stylesheet.innerText = `
+        stylesheet.textContent = `
         #${this.nestedId}-checkbox {
             display: none;
         }
@@ -136,17 +136,17 @@ class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLDivElement, HTMLSpanElem
         this.parent.append(stylesheet);
 
         // Mark that we need to modify next line.
-        this.nextLineExpandable = true;
+        this.showExpandingControl = true;
         this.expanded = false;
     }
 
     protected beginExpanded(): void {
-        this.nextLineExpandable = true;
+        this.showExpandingControl = true;
         this.expanded = true;
     }
 
     protected endExpanded(): void {
-        this.nextLineExpandable = false;
+        this.showExpandingControl = false;
         this.nestedId = "";
     }
 
@@ -167,7 +167,7 @@ class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLDivElement, HTMLSpanElem
      */
     public run(): void {
         for (const line of this.generate()) {
-            if (this.nextLineExpandable) {
+            if (this.showExpandingControl) {
                 const label = document.createElement("label");
                 label.innerText = this.expanded ? "collapse" : "disasm";
                 label.classList.add(this.nestedId + "-label");
@@ -178,7 +178,7 @@ class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLDivElement, HTMLSpanElem
                 control.append(" (", label, ")");
 
                 line.lastElementChild?.append(control);
-                this.nextLineExpandable = false;
+                this.showExpandingControl = false;
             }
             if (this.nestedId !== "") {
                 if (this.expanded) {
