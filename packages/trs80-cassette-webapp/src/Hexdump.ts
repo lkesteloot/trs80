@@ -125,6 +125,7 @@ class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLDivElement, HTMLSpanElem
         .${this.nestedId}-label {
             cursor: pointer;
             text-decoration: underline;
+            user-select: none;
         }
         #${this.nestedId}-checkbox:checked ~ .${this.nestedId}-expandable {
             display: none;

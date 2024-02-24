@@ -69,7 +69,13 @@ export class Highlighter {
         this.program = program;
         this.container = container;
 
-        container.addEventListener("mousedown", event => event.preventDefault());
+        container.addEventListener("mousedown", event => {
+            // Let labels be clicked.
+            const isLabel = event.target instanceof Element && event.target.tagName === "LABEL";
+            if (!isLabel) {
+                event.preventDefault();
+            }
+        });
         window.addEventListener("mouseup", event => {
             if (this.selectionBeginIndex !== undefined) {
                 this.selectionBeginIndex = undefined;
