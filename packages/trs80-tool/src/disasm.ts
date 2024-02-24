@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { CmdProgram, SystemProgram, decodeTrs80File } from "trs80-base";
-import {addModel3RomEntryPoints, disasmForTrs80, disasmForTrs80Program } from "trs80-disasm";
+import { CmdProgram, SystemProgram, addModel3RomEntryPoints, decodeTrs80File, disasmForTrs80, disasmForTrs80Program } from "trs80-base";
 import {Disasm, HexFormat, instructionsToText } from "z80-disasm";
 
 /**

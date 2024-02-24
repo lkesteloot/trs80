@@ -1,7 +1,6 @@
-import {ProgramBuilder, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
+import {ProgramBuilder, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END, disasmForTrs80} from "trs80-base";
 import * as RetroStoreProto from "retrostore-api";
 import {AssemblyResults} from "./AssemblyResults";
-import {disasmForTrs80} from "trs80-disasm";
 import {instructionsToText} from "z80-disasm";
 import {toHexWord} from "z80-base";
 

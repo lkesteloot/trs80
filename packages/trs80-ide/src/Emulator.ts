@@ -14,8 +14,7 @@ import {ScreenEditor} from "./ScreenEditor";
 import {AssemblyResults} from "./AssemblyResults";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Flag, hi, inc16, lo, RegisterSet, toHexByte} from "z80-base";
-import {disasmForTrs80} from "trs80-disasm";
-import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
+import {disasmForTrs80, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 
 // Given two instruction bytes, whether we want to continue until the next
 // instruction, and if so how long the current instruction is.

@@ -28,10 +28,10 @@ import {Database} from "./Database";
 import {File} from "./File";
 import {BasicEditor} from "trs80-emulator-web";
 import {isRegisterSetField, toHexWord} from "z80-base";
-import {disasmForTrs80} from "trs80-disasm";
 import {WebSoundPlayer} from "trs80-emulator-web";
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
+import { disasmForTrs80 } from "trs80-base";
 
 function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () => void): HTMLElement {
     const body = document.querySelector("body") as HTMLElement;

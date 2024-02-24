@@ -1,8 +1,7 @@
 import {toHexByte, toHexWord} from "z80-base";
 import {PageTab} from "./PageTab";
-import {CmdProgram, SystemProgram} from "trs80-base";
+import {CmdProgram, SystemProgram, disasmForTrs80Program} from "trs80-base";
 import {clearElement} from "teamten-ts-utils";
-import {disasmForTrs80Program} from "trs80-disasm";
 
 /**
  * Add text to the line with the specified class.
