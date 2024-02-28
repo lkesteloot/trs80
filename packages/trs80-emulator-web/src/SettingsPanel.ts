@@ -18,7 +18,7 @@ const gAcceptButtonColor = "#449944";
 const GLOBAL_CSS = `
 .${gPanelCssClass} {
     display: flex;
-    align-items: stretch;
+    align-items: center;
     justify-content: center;
     position: absolute;
     left: 0;
@@ -43,7 +43,8 @@ const GLOBAL_CSS = `
 .${gPanelCssClass} > div {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 30px;
     
     background-color: rgba(40, 40, 40, 0.8);
     border-radius: 15px;
@@ -135,6 +136,7 @@ const GLOBAL_CSS = `
 
 .${gPanelCssClass} .${gButtonsClass} {
     display: flex;
+    margin-top: 20px;
 }
 
 .${gPanelCssClass} a {
