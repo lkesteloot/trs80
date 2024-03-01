@@ -17,6 +17,7 @@ export class FP215 {
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+        this.configureContext();
         this.updatePlottingArea();
     }
 
@@ -60,12 +61,20 @@ export class FP215 {
             }
 
             case "D": {
-                if (numericArgs.length % 2 !== 0 || numericArgs.some(arg => isNaN(arg))) {
+                if (numericArgs.length < 2 ||
+                    numericArgs.length % 2 !== 0 ||
+                    numericArgs.some(arg => isNaN(arg))) {
+
                     console.log("FP-215: Invalid drawing command: " + command);
                 } else {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.xToCanvas(this.x), this.yToCanvas(this.y));
                     for (let i = 0; i < numericArgs.length; i += 2) {
-                        this.drawTo(numericArgs[i], numericArgs[i + 1]);
+                        this.ctx.lineTo(this.xToCanvas(numericArgs[i]), this.yToCanvas(numericArgs[i + 1]));
                     }
+                    this.ctx.stroke();
+                    this.x = numericArgs[numericArgs.length - 2];
+                    this.y = numericArgs[numericArgs.length - 1];
                 }
                 break;
             }
@@ -175,7 +184,15 @@ export class FP215 {
         const heightMm = this.plottingArea === 0 ? 186 : 216;
         this.canvas.width = widthMm*10;
         this.canvas.height = heightMm*10;
+        this.configureContext();
         this.newPaper();
+    }
+
+    private configureContext(): void {
+        this.ctx.strokeStyle = "rgb(0 0 0 / 50%)";
+        this.ctx.globalCompositeOperation = "multiply";
+        this.ctx.lineWidth = 2;
+        this.ctx.lineCap = "round";
     }
 
     private drawTo(x: number, y: number): void {
@@ -200,10 +217,17 @@ export class FP215 {
      * Coordinates are in canvas space.
      */
     private drawLine(x1: number, y1: number, x2: number, y2: number): void {
-        this.ctx.strokeStyle = "black";
         this.ctx.beginPath();
         this.ctx.moveTo(x1, y1);
         this.ctx.lineTo(x2, y2);
         this.ctx.stroke();
+    }
+
+    private xToCanvas(x: number): number {
+        return this.xOrigin + x;
+    }
+
+    private yToCanvas(y: number): number {
+        return this.canvas.height - (this.xOrigin + y);
     }
 }
