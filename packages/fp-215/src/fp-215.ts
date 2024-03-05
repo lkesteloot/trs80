@@ -1,17 +1,23 @@
 
 /**
- * Emulator for the FP-215 plotter.
+ * Emulator for the FP-215 plotter. Takes the ASCII commands and draws to an HTML canvas.
  */
 export class FP215 {
     private readonly canvas: HTMLCanvasElement;
     private readonly ctx: CanvasRenderingContext2D;
+    // Accumulated command so far.
     private currentCommand = "";
+    // Current pen position, in point space.
     private x = 0;
     private y = 0;
+    // Origin of point space.
     private xOrigin = 0;
     private yOrigin = 0;
+    // Length of dashes (and spaces) for dashed lines, in points.
     private dashLength = 30;
+    // Size of paper.
     private plottingArea: 0 | 1 = 0;
+    // 0 = solid, 1 = dashed.
     private lineType: 0 | 1 = 0;
 
     constructor(canvas: HTMLCanvasElement) {
@@ -21,17 +27,24 @@ export class FP215 {
         this.updatePlottingArea();
     }
 
+    // Blank out the canvas.
     public newPaper() {
+        const oldGlobalCompositeOperation = this.ctx.globalCompositeOperation;
+        this.ctx.globalCompositeOperation = "source-over";
         this.ctx.fillStyle = "white";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.globalCompositeOperation = oldGlobalCompositeOperation;
     }
 
+    // Process bytes sent to the plotter. May contain partial commands or more than one
+    // command, but each command must be terminated with a newline or linefeed.
     public processBytes(s: string): void {
         for (const ch of s) {
             this.processByte(ch);
         }
     }
 
+    // Process a single byte of a command.
     public processByte(ch: string): void {
         if (ch === "\n" || ch === "\r") {
             this.processCommand(this.currentCommand);
@@ -41,18 +54,22 @@ export class FP215 {
         }
     }
 
+    // Process a single command. Must not contain the terminating newline or linefeed.
     private processCommand(command: string): void {
         if (command.length === 0) {
             return;
         }
 
+        // Break off the arguments and parse them as numbers.
         const rest = command.substring(1);
         const args = rest.split(",");
         const numericArgs = args.map(arg => parseFloat(arg));
+        const anyNaNs = numericArgs.some(arg => isNaN(arg));
 
         switch (command[0]) {
+            // Set the length of the dash (and space) for dashed lines.
             case "B": {
-                if (numericArgs.length !== 1 || isNaN(numericArgs[0])) {
+                if (numericArgs.length !== 1 || anyNaNs) {
                     console.log("FP-215: Invalid dash length command: " + command);
                 } else {
                     this.dashLength = numericArgs[0];
@@ -60,11 +77,10 @@ export class FP215 {
                 break;
             }
 
+            // Draw from the current point to the specified point, then to the
+            // other points if specified.
             case "D": {
-                if (numericArgs.length < 2 ||
-                    numericArgs.length % 2 !== 0 ||
-                    numericArgs.some(arg => isNaN(arg))) {
-
+                if (numericArgs.length < 2 || numericArgs.length % 2 !== 0 || anyNaNs) {
                     console.log("FP-215: Invalid drawing command: " + command);
                 } else {
                     this.ctx.beginPath();
@@ -79,6 +95,7 @@ export class FP215 {
                 break;
             }
 
+            // Set the size of the paper.
             case "F": {
                 if (numericArgs.length !== 1 || (numericArgs[0] !== 0 && numericArgs[0] !== 1)) {
                     console.log("FP-215: Invalid plotting area command: " + command);
@@ -89,17 +106,20 @@ export class FP215 {
                 break;
             }
 
+            // Move the pen to the origin.
             case "H": {
                 this.x = 0;
                 this.y = 0;
                 break;
             }
 
+            // Set the origin, either to an explicit location (if specified), or the current
+            // pen location if not.
             case "I": {
                 if (numericArgs.length === 0) {
                     this.xOrigin = this.x;
                     this.yOrigin = this.y;
-                } else if (numericArgs.length !== 2 || isNaN(numericArgs[0]) || isNaN(numericArgs[1])) {
+                } else if (numericArgs.length !== 2 || anyNaNs) {
                     console.log("FP-215: Invalid set-origin command: " + command);
                 } else {
                     this.xOrigin = numericArgs[0];
@@ -108,28 +128,39 @@ export class FP215 {
                 break;
             }
 
+            // Like "D", but the numbers are relative to the previous position.
             case "J": {
-                if (numericArgs.length % 2 !== 0 || numericArgs.some(arg => isNaN(arg))) {
+                if (numericArgs.length < 2 || numericArgs.length % 2 !== 0 || anyNaNs) {
                     console.log("FP-215: Invalid drawing command: " + command);
                 } else {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.xToCanvas(this.x), this.yToCanvas(this.y));
                     for (let i = 0; i < numericArgs.length; i += 2) {
-                        this.drawBy(numericArgs[i], numericArgs[i + 1]);
+                        this.x += numericArgs[i];
+                        this.y += numericArgs[i + 1];
+                        this.ctx.lineTo(this.xToCanvas(this.x), this.yToCanvas(this.y));
                     }
+                    this.ctx.stroke();
                 }
                 break;
             }
 
+            // Set whether to draw solid or dashed lines.
             case "L": {
                 if (numericArgs.length !== 1 || (numericArgs[0] !== 0 && numericArgs[0] !== 1)) {
                     console.log("FP-215: Invalid line type command: " + command);
                 } else {
                     this.lineType = numericArgs[0];
+                    if (this.lineType === 1) {
+                        console.log("FP-215: Dashed lines are not supported");
+                    }
                 }
                 break;
             }
 
+            // Move the pen (without drawing) to the specified location.
             case "M": {
-                if (numericArgs.length !== 2 || isNaN(numericArgs[0]) || isNaN(numericArgs[1])) {
+                if (numericArgs.length !== 2 || anyNaNs) {
                     console.log("FP-215: Invalid move command: " + command);
                 } else {
                     this.x = numericArgs[0];
@@ -138,23 +169,27 @@ export class FP215 {
                 break;
             }
 
+            // Draw an icon.
             case "N": {
                 console.log("FP-215: Drawing an icon is not supported: " + command);
                 break;
             }
 
+            // Draw text.
             case "P": {
                 console.log("FP-215: Drawing text is not supported:" + command);
                 break;
             }
 
+            // Set text orientation.
             case "Q": {
                 console.log("FP-215: Setting text orientation is not supported:" + command);
                 break;
             }
 
+            // Like "M" but relative to current location.
             case "R": {
-                if (numericArgs.length !== 2 || isNaN(numericArgs[0]) || isNaN(numericArgs[1])) {
+                if (numericArgs.length !== 2 || anyNaNs) {
                     console.log("FP-215: Invalid relative move command: " + command);
                 } else {
                     this.x += numericArgs[0];
@@ -163,11 +198,13 @@ export class FP215 {
                 break;
             }
 
+            // Set size of text and icons.
             case "S": {
                 console.log("FP-215: Setting size of text is not supported:" + command);
                 break;
             }
 
+            // Draw a set of axes.
             case "X": {
                 console.log("FP-215: Drawing axes is not supported:" + command);
                 break;
@@ -179,6 +216,7 @@ export class FP215 {
         }
     }
 
+    // After setting the plotting area, updates the canvas size to match and clears the paper.
     private updatePlottingArea(): void {
         const widthMm = this.plottingArea === 0 ? 270 : 298;
         const heightMm = this.plottingArea === 0 ? 186 : 216;
@@ -188,6 +226,7 @@ export class FP215 {
         this.newPaper();
     }
 
+    // Configure the Canvas context for plotting.
     private configureContext(): void {
         this.ctx.strokeStyle = "rgb(0 0 0 / 50%)";
         this.ctx.globalCompositeOperation = "multiply";
@@ -195,39 +234,13 @@ export class FP215 {
         this.ctx.lineCap = "round";
     }
 
-    private drawTo(x: number, y: number): void {
-        this.drawLine(
-            this.xOrigin + this.x, this.canvas.height - (this.xOrigin + this.y),
-            this.xOrigin + x, this.canvas.height - (this.xOrigin + y));
-        this.x = x;
-        this.y = y;
-    }
-
-    private drawBy(dx: number, dy: number): void {
-        const xNew = this.x + dx;
-        const yNew = this.y + dy;
-
-        this.drawTo(xNew, yNew);
-
-        this.x = xNew;
-        this.y = yNew;
-    }
-
-    /**
-     * Coordinates are in canvas space.
-     */
-    private drawLine(x1: number, y1: number, x2: number, y2: number): void {
-        this.ctx.beginPath();
-        this.ctx.moveTo(x1, y1);
-        this.ctx.lineTo(x2, y2);
-        this.ctx.stroke();
-    }
-
+    // Convert an X coordinate in points to the X coordinate on the canvas.
     private xToCanvas(x: number): number {
         return this.xOrigin + x;
     }
 
+    // Convert a Y coordinate in points to the Y coordinate on the canvas.
     private yToCanvas(y: number): number {
-        return this.canvas.height - (this.xOrigin + y);
+        return this.canvas.height - (this.yOrigin + y);
     }
 }
