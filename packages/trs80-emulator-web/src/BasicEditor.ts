@@ -71,7 +71,7 @@ export class BasicEditor extends FlipCardSideAdapter {
             } else {
                 this.oldRunningState = this.trs80.setRunningState(RunningState.STOPPED);
                 this.setProgram(basicProgram);
-                this.flipCard.show(this);
+                this.show();
             }
         }
     }
@@ -82,7 +82,7 @@ export class BasicEditor extends FlipCardSideAdapter {
      */
     private keyboardListener(e: KeyboardEvent): void {
         if (e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && e.key === "Enter") {
-            if (this.flipCard !== undefined && this.flipCard.isShowing(this)) {
+            if (this.isShowing()) {
                 this.save();
                 e.preventDefault();
                 e.stopPropagation();
@@ -131,7 +131,7 @@ export class BasicEditor extends FlipCardSideAdapter {
      */
     private close(): void {
         this.trs80.setRunningState(this.oldRunningState);
-        this.flipCard?.hide(this);
+        this.hide();
     }
 
     /**

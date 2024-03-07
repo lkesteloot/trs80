@@ -98,7 +98,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
 
         // Call the activity callback.
         const now = Date.now();
-        if (now - this.lastActivityCallback > MIN_ACTIVITY_CALLBACK_MS) {
+        if (!this.isShowing() && now - this.lastActivityCallback > MIN_ACTIVITY_CALLBACK_MS) {
             this.lastActivityCallback = now;
             this.activityCallback();
         }
@@ -106,11 +106,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
 
     public show() {
         addPrinterCssFontToPage();
-        this.flipCard?.show(this);
-    }
-
-    private hide() {
-        this.flipCard?.hide(this);
+        super.show();
     }
 
     private clearPrintout() {
