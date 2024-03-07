@@ -1,8 +1,9 @@
 import {FlipCardSideAdapter} from "./FlipCard.js";
 import {CanvasScreen} from "./CanvasScreen.js";
 import {ControlPanel} from "./ControlPanel.js";
-import {LinePrinter, Printer } from "trs80-emulator";
+import {LinePrinter, Printer, Trs80} from "trs80-emulator";
 import {addPrinterCssFontToPage, PRINTER_REGULAR_FONT_FAMILY} from "./PrinterFonts.js";
+import {PanelType, SettingsPanel} from "./SettingsPanel.js";
 
 // Holes on sides. See assets/README.md.
 const BACKGROUND_LEFT_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAQAAACROWYpAAABH0lEQVQ4y+XUvU7DMBhG4cdJoECFQPwIRjbukAtlRowsIH6KgCZpbAZAIq1LUBYGPNrfsY/ez3YwYlyw49xlMQZG7VocC287YSyc7CrGwnNXf6ldrV3eNFHo1Np12nl4x7Hpp1Xn2a06oz3LwQdOtB40ksLE1Jkbz7/R3nPk0UwjSoLSzL5TC29DaW848OTeq1Yn6jRe3Hl12As3m/ZU60kjfZuLao8KW8vafTjY9LKEfuFzkyFtGfQj83pVu1op6rIwnfCzdrLolfTHYki7UWTxIGiG0q5RZuBS7F3T7JOMGtXKlqXKvJfFmrRbnerb6UGp0uh6Vdm0P/BCqZAkQUArLtX88CSj+IklKdu6gZ8kiaK4puv/9gP8E+0th9I7ord+FFKRmsMAAAAASUVORK5CYII=";
@@ -30,7 +31,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
     private activityCallback = () => {};
     private lastActivityCallback = 0;
 
-    constructor(screen: CanvasScreen) {
+    constructor(trs80: Trs80, screen: CanvasScreen) {
         super();
 
         const width = screen.getWidth();
@@ -59,6 +60,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
 
         const controlPanel = new ControlPanel(this.node);
         controlPanel.addCloseButton(() => this.hide());
+        controlPanel.addSettingsButton(new SettingsPanel(this.getNode(), trs80, PanelType.PRINTER));
         controlPanel.addTrashButton(() => this.clearPrintout());
     }
 

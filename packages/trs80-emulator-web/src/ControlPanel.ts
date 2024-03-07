@@ -302,6 +302,7 @@ export class ControlPanel {
         let iconSvg: string;
         switch (settingsPanel.panelType) {
             case PanelType.HARDWARE:
+            case PanelType.PRINTER:
             default:
                 iconSvg = HARDWARE_SETTINGS_ICON;
                 break;

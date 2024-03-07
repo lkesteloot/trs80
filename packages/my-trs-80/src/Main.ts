@@ -192,7 +192,7 @@ export function main() {
     keyboard.configureKeyboard();
 
     const basicEditor = new BasicEditor(trs80, screen);
-    const webPrinter = new WebPrinter(screen);
+    const webPrinter = new WebPrinter(trs80, screen);
     trs80.setPrinter(webPrinter);
 
     const flipCard = new FlipCard(screen.getWidth(), screen.getHeight());
