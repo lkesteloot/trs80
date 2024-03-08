@@ -16,7 +16,7 @@ const MIN_ACTIVITY_CALLBACK_MS = 60*1000;
 const BLACK_INK_COLOR: PenColor = [0, 0, 0];
 const RED_INK_COLOR: PenColor = [200, 0, 0];
 const BLUE_INK_COLOR: PenColor = [0, 0, 255];
-const GREEN_INK_COLOR: PenColor = [0, 200, 0];
+const GREEN_INK_COLOR: PenColor = [0, 150, 0];
 
 // Gets an RGB array (0-255) for an ink color.
 export function inkColorToRgb(inkColor: InkColor): PenColor {
