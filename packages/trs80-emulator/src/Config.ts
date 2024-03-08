@@ -107,6 +107,20 @@ export enum PrinterModel {
 }
 
 /**
+ * Ink color for the printer.
+ */
+export enum InkColor {
+    // Plotter pen catalog number: 26-1343.
+    BLACK,
+    // Plotter pen catalog number: 26-1344.
+    RED,
+    // Plotter pen catalog number: 26-1345.
+    BLUE,
+    // Plotter pen catalog number: 26-1346.
+    GREEN,
+}
+
+/**
  * Return the ROM size in bytes. This is not affected by any custom ROM, only by
  * the model and level numbers.
  */
@@ -151,10 +165,12 @@ export class Config {
     public readonly customRom: string | undefined;
     public readonly romSize: number;
     public readonly printerModel: PrinterModel;
+    public readonly inkColor: InkColor;
 
     constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize,
                 phosphor: Phosphor, background: Background, scanLines: ScanLines,
-                customRom: string | undefined, printerModel: PrinterModel) {
+                customRom: string | undefined, printerModel: PrinterModel,
+                inkColor: InkColor) {
 
         this.modelType = modelType;
         this.basicLevel = basicLevel;
@@ -165,6 +181,7 @@ export class Config {
         this.scanLines = scanLines;
         this.customRom = customRom;
         this.printerModel = printerModel;
+        this.inkColor = inkColor;
 
         // Compute this once, it's used a lot.
         this.romSize = computeRomSize(modelType, basicLevel);
@@ -189,7 +206,8 @@ export class Config {
             Background.AUTHENTIC,
             ScanLines.OFF,
             undefined,
-            PrinterModel.EPSON_MX_80);
+            PrinterModel.EPSON_MX_80,
+            InkColor.BLACK);
     }
 
     /**
@@ -252,15 +270,16 @@ export class Config {
  * Mutable class to build a Config object.
  */
 export class ConfigBuilder {
-    public modelType: ModelType;
-    public basicLevel: BasicLevel;
-    public cgChip: CGChip;
-    public ramSize: RamSize;
-    public phosphor: Phosphor;
-    public background: Background;
-    public scanLines: ScanLines;
-    public customRom: string | undefined;
-    public printerModel: PrinterModel;
+    private modelType: ModelType;
+    private basicLevel: BasicLevel;
+    private cgChip: CGChip;
+    private ramSize: RamSize;
+    private phosphor: Phosphor;
+    private background: Background;
+    private scanLines: ScanLines;
+    private customRom: string | undefined;
+    private printerModel: PrinterModel;
+    private inkColor: InkColor;
 
     constructor(config: Config) {
         this.modelType = config.modelType;
@@ -272,6 +291,7 @@ export class ConfigBuilder {
         this.scanLines = config.scanLines;
         this.customRom = config.customRom;
         this.printerModel = config.printerModel;
+        this.inkColor = config.inkColor;
     }
 
     /**
@@ -287,7 +307,8 @@ export class ConfigBuilder {
             this.background,
             this.scanLines,
             this.customRom,
-            this.printerModel);
+            this.printerModel,
+            this.inkColor);
     }
 
     public withModelType(modelType: ModelType): this {
@@ -332,6 +353,11 @@ export class ConfigBuilder {
 
     public withPrinterModel(printerModel: PrinterModel): this {
         this.printerModel = printerModel;
+        return this;
+    }
+
+    public withInkColor(inkColor: InkColor): this {
+        this.inkColor = inkColor;
         return this;
     }
 }

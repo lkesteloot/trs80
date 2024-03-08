@@ -1,10 +1,10 @@
 import {FlipCardSideAdapter} from "./FlipCard.js";
 import {CanvasScreen} from "./CanvasScreen.js";
 import {ControlPanel} from "./ControlPanel.js";
-import {LinePrinter, Printer, PrinterModel, Trs80} from "trs80-emulator";
+import {InkColor, LinePrinter, Printer, PrinterModel, Trs80} from "trs80-emulator";
 import {addPrinterCssFontToPage, PRINTER_REGULAR_FONT_FAMILY} from "./PrinterFonts.js";
 import {PanelType, SettingsPanel} from "./SettingsPanel.js";
-import {Fp215} from "fp-215";
+import {Fp215, PenColor} from "fp-215";
 
 // Holes on sides. See assets/README.md.
 const BACKGROUND_LEFT_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAQAAACROWYpAAABH0lEQVQ4y+XUvU7DMBhG4cdJoECFQPwIRjbukAtlRowsIH6KgCZpbAZAIq1LUBYGPNrfsY/ez3YwYlyw49xlMQZG7VocC287YSyc7CrGwnNXf6ldrV3eNFHo1Np12nl4x7Hpp1Xn2a06oz3LwQdOtB40ksLE1Jkbz7/R3nPk0UwjSoLSzL5TC29DaW848OTeq1Yn6jRe3Hl12As3m/ZU60kjfZuLao8KW8vafTjY9LKEfuFzkyFtGfQj83pVu1op6rIwnfCzdrLolfTHYki7UWTxIGiG0q5RZuBS7F3T7JOMGtXKlqXKvJfFmrRbnerb6UGp0uh6Vdm0P/BCqZAkQUArLtX88CSj+IklKdu6gZ8kiaK4puv/9gP8E+0th9I7ord+FFKRmsMAAAAASUVORK5CYII=";
@@ -12,6 +12,29 @@ const BACKGROUND_RIGHT_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4A
 
 // Amount of time to wait before we'll alert about activity again.
 const MIN_ACTIVITY_CALLBACK_MS = 60*1000;
+
+const BLACK_INK_COLOR: PenColor = [0, 0, 0];
+const RED_INK_COLOR: PenColor = [200, 0, 0];
+const BLUE_INK_COLOR: PenColor = [0, 0, 255];
+const GREEN_INK_COLOR: PenColor = [0, 200, 0];
+
+// Gets an RGB array (0-255) for an ink color.
+export function inkColorToRgb(inkColor: InkColor): PenColor {
+    switch (inkColor) {
+        case InkColor.BLACK:
+        default:
+            return BLACK_INK_COLOR;
+
+        case InkColor.RED:
+            return RED_INK_COLOR;
+
+        case InkColor.BLUE:
+            return BLUE_INK_COLOR;
+
+        case InkColor.GREEN:
+            return GREEN_INK_COLOR;
+    }
+}
 
 /**
  * A card side to show the output of the printer.
@@ -78,7 +101,10 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
         this.node.append(this.linePrinterPaper, this.plotterPaper);
 
         const settingsPanel = new SettingsPanel(this.getNode(), trs80, PanelType.PRINTER);
-        settingsPanel.addOnClose(() => this.syncPrinterModel());
+        settingsPanel.addOnClose(() => {
+            this.syncPrinterModel();
+            this.syncPenColor();
+        });
 
         const controlPanel = new ControlPanel(this.node);
         controlPanel.addCloseButton(() => this.hide());
@@ -86,6 +112,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
         controlPanel.addTrashButton(() => this.clearPrintout());
 
         this.syncPrinterModel();
+        this.syncPenColor();
     }
 
     /**
@@ -193,5 +220,12 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
             this.linePrinterPaper.style.display = "block";
             this.plotterPaper.style.display = "none";
         }
+    }
+
+    /**
+     * Update the FP-215 with the current pen color.
+     */
+    private syncPenColor(): void {
+        this.fp215.setPenColor(inkColorToRgb(this.trs80.getConfig().inkColor));
     }
 }

@@ -1,7 +1,8 @@
 import {CSS_PREFIX} from "./Utils.js";
-import {Background, BasicLevel, CGChip, Config, ModelType, Phosphor, PrinterModel, RamSize, ScanLines} from "trs80-emulator";
+import {Background, BasicLevel, CGChip, Config, InkColor, ModelType, Phosphor, PrinterModel, RamSize, ScanLines} from "trs80-emulator";
 import {Trs80} from "trs80-emulator";
 import {AUTHENTIC_BACKGROUND, BLACK_BACKGROUND, phosphorToRgb} from "./CanvasScreen.js";
+import { inkColorToRgb } from "./WebPrinter.js";
 
 const gCssPrefix = CSS_PREFIX + "-settings-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
@@ -375,6 +376,30 @@ const PRINTER_OPTION_BLOCKS: OptionBlock<any>[] = [
             {
                 label: "FP-215",
                 value: PrinterModel.FP_215,
+            },
+        ]
+    },
+    {
+        title: "Ink Color",
+        isChecked: (inkColor: InkColor, config: Config) => inkColor === config.inkColor,
+        updateConfig: (inkColor: InkColor, config: Config) => config.edit().withInkColor(inkColor).build(),
+        options: [
+            {
+                label: rgbToCss(adjustColor(inkColorToRgb(InkColor.BLACK), 0.8)),
+                value: InkColor.BLACK,
+            },
+            {
+                label: rgbToCss(adjustColor(inkColorToRgb(InkColor.RED), 0.8)),
+                value: InkColor.RED,
+            },
+            {
+                label: rgbToCss(adjustColor(inkColorToRgb(InkColor.BLUE), 0.8)),
+                value: InkColor.BLUE,
+            },
+            {
+                // Cheat and use the green from the OK button so that the two greens don't clash.
+                label: gAcceptButtonColor,
+                value: InkColor.GREEN,
             },
         ]
     },

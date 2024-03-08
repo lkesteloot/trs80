@@ -1,4 +1,6 @@
 
+export type PenColor = [number, number, number];
+
 /**
  * Emulator for the FP-215 plotter. Takes the ASCII commands and draws to an HTML canvas.
  */
@@ -19,12 +21,22 @@ export class Fp215 {
     private plottingArea: 0 | 1 = 0;
     // 0 = solid, 1 = dashed.
     private lineType: 0 | 1 = 0;
+    private penColor: PenColor = [0, 0, 0];
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
         this.configureContext();
         this.updatePlottingArea();
+    }
+
+    /**
+     * Set the pen color as an RGB triple, each component from 0 to 255. The default
+     * is black [0, 0, 0].
+     */
+    public setPenColor(penColor: PenColor): void {
+        this.penColor = penColor;
+        this.configureContext();
     }
 
     // Blank out the canvas.
@@ -228,7 +240,8 @@ export class Fp215 {
 
     // Configure the Canvas context for plotting.
     private configureContext(): void {
-        this.ctx.strokeStyle = "rgb(0 0 0 / 50%)";
+        const c = this.penColor;
+        this.ctx.strokeStyle = `rgb(${c[0]} ${c[1]} ${c[2]} / 50%)`;
         this.ctx.globalCompositeOperation = "multiply";
         this.ctx.lineWidth = 5;
         this.ctx.lineCap = "round";
