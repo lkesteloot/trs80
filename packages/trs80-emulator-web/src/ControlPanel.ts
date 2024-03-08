@@ -296,8 +296,8 @@ export class ControlPanel {
      * Add a settings button.
      */
     public addSettingsButton(settingsPanel: SettingsPanel): HTMLElement {
-        settingsPanel.onOpen = () => this.screenNode.classList.add(gShowingOtherPanelCssClass);
-        settingsPanel.onClose = () => this.screenNode.classList.remove(gShowingOtherPanelCssClass);
+        settingsPanel.addOnOpen(() => this.screenNode.classList.add(gShowingOtherPanelCssClass));
+        settingsPanel.addOnClose(() => this.screenNode.classList.remove(gShowingOtherPanelCssClass));
 
         let iconSvg: string;
         switch (settingsPanel.panelType) {

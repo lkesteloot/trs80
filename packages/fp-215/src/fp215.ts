@@ -2,7 +2,7 @@
 /**
  * Emulator for the FP-215 plotter. Takes the ASCII commands and draws to an HTML canvas.
  */
-export class FP215 {
+export class Fp215 {
     private readonly canvas: HTMLCanvasElement;
     private readonly ctx: CanvasRenderingContext2D;
     // Accumulated command so far.
@@ -30,8 +30,8 @@ export class FP215 {
     // Blank out the canvas.
     public newPaper() {
         const oldGlobalCompositeOperation = this.ctx.globalCompositeOperation;
-        this.ctx.globalCompositeOperation = "source-over";
-        this.ctx.fillStyle = "white";
+        this.ctx.globalCompositeOperation = "copy";
+        this.ctx.fillStyle = "transparent"; // Use canvas's background color.
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.globalCompositeOperation = oldGlobalCompositeOperation;
     }
@@ -230,7 +230,7 @@ export class FP215 {
     private configureContext(): void {
         this.ctx.strokeStyle = "rgb(0 0 0 / 50%)";
         this.ctx.globalCompositeOperation = "multiply";
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 5;
         this.ctx.lineCap = "round";
     }
 

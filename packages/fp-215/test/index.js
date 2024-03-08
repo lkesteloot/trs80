@@ -1,5 +1,5 @@
 
-import { FP215 } from "../dist/index.js";
+import { Fp215 } from "../dist/index.js";
 
 async function main() {
     const canvas = document.createElement("canvas");
@@ -8,7 +8,7 @@ async function main() {
     document.body.append(canvas);
 
     const before = Date.now();
-    const fp215 = new FP215(canvas);
+    const fp215 = new Fp215(canvas);
 
     // const testFilename = "DISNEY27.PLX";
     const testFilename = "EDushku2.PLX";

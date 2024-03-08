@@ -1,9 +1,10 @@
 import {FlipCardSideAdapter} from "./FlipCard.js";
 import {CanvasScreen} from "./CanvasScreen.js";
 import {ControlPanel} from "./ControlPanel.js";
-import {LinePrinter, Printer, Trs80} from "trs80-emulator";
+import {LinePrinter, Printer, PrinterModel, Trs80} from "trs80-emulator";
 import {addPrinterCssFontToPage, PRINTER_REGULAR_FONT_FAMILY} from "./PrinterFonts.js";
 import {PanelType, SettingsPanel} from "./SettingsPanel.js";
+import {Fp215} from "fp-215";
 
 // Holes on sides. See assets/README.md.
 const BACKGROUND_LEFT_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAQAAACROWYpAAABH0lEQVQ4y+XUvU7DMBhG4cdJoECFQPwIRjbukAtlRowsIH6KgCZpbAZAIq1LUBYGPNrfsY/ez3YwYlyw49xlMQZG7VocC287YSyc7CrGwnNXf6ldrV3eNFHo1Np12nl4x7Hpp1Xn2a06oz3LwQdOtB40ksLE1Jkbz7/R3nPk0UwjSoLSzL5TC29DaW848OTeq1Yn6jRe3Hl12As3m/ZU60kjfZuLao8KW8vafTjY9LKEfuFzkyFtGfQj83pVu1op6rIwnfCzdrLolfTHYki7UWTxIGiG0q5RZuBS7F3T7JOMGtXKlqXKvJfFmrRbnerb6UGp0uh6Vdm0P/BCqZAkQUArLtX88CSj+IklKdu6gZ8kiaK4puv/9gP8E+0th9I7ord+FFKRmsMAAAAASUVORK5CYII=";
@@ -16,8 +17,11 @@ const MIN_ACTIVITY_CALLBACK_MS = 60*1000;
  * A card side to show the output of the printer.
  */
 export class WebPrinter extends FlipCardSideAdapter implements Printer {
+    private readonly trs80: Trs80;
     private readonly node: HTMLElement;
-    private readonly paper: HTMLElement;
+    private readonly linePrinterPaper: HTMLElement;
+    private readonly plotterPaper: HTMLCanvasElement;
+    private readonly fp215: Fp215;
     private readonly linePrinter = new class extends LinePrinter {
         constructor(private readonly webPrinter: WebPrinter) {
             super();
@@ -34,6 +38,8 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
     constructor(trs80: Trs80, screen: CanvasScreen) {
         super();
 
+        this.trs80 = trs80;
+
         const width = screen.getWidth();
         const height = screen.getHeight();
 
@@ -41,27 +47,45 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
         this.node.style.width = width + "px";
         this.node.style.height = height + "px";
         this.node.style.borderRadius = screen.getBorderRadius() + "px";
-        this.node.style.backgroundColor = "#eeeee8";
+        this.node.style.backgroundColor = "#ddddd8";
         this.node.style.boxSizing = "border-box";
+        this.node.style.display = "grid"; // For centering the children.
 
-        this.paper = document.createElement("div");
-        this.paper.style.width = "100%";
-        this.paper.style.height = "100%";
-        this.paper.style.padding = "20px 0";
-        this.paper.style.fontFamily = `"${PRINTER_REGULAR_FONT_FAMILY}", monospace`;
-        this.paper.style.fontSize = "12px"; // To get 80 chars across.
-        this.paper.style.lineHeight = "1.5";
-        this.paper.style.boxSizing = "border-box";
-        this.paper.style.color = "#222";
-        this.paper.style.overflowY = "scroll";
-        this.paper.style.background = "local url(" + BACKGROUND_LEFT_URL + ") top left repeat-y, " +
-            "local url(" + BACKGROUND_RIGHT_URL + ") top right repeat-y";
-        this.node.append(this.paper);
+        this.linePrinterPaper = document.createElement("div");
+        this.linePrinterPaper.style.width = "100%";
+        this.linePrinterPaper.style.height = "100%";
+        this.linePrinterPaper.style.padding = "20px 0";
+        this.linePrinterPaper.style.fontFamily = `"${PRINTER_REGULAR_FONT_FAMILY}", monospace`;
+        this.linePrinterPaper.style.fontSize = "12px"; // To get 80 chars across.
+        this.linePrinterPaper.style.lineHeight = "1.5";
+        this.linePrinterPaper.style.boxSizing = "border-box";
+        this.linePrinterPaper.style.borderRadius = "inherit";
+        this.linePrinterPaper.style.color = "#222";
+        this.linePrinterPaper.style.overflowY = "scroll";
+        this.linePrinterPaper.style.background = "local url(" + BACKGROUND_LEFT_URL + ") top left repeat-y, " +
+            "local url(" + BACKGROUND_RIGHT_URL + ") top right repeat-y, #fffff8";
+
+        this.plotterPaper = document.createElement("canvas");
+        this.plotterPaper.style.maxWidth = "calc(100% - 40px)";
+        this.plotterPaper.style.maxHeight = "calc(100% - 40px)";
+        this.plotterPaper.style.margin = "auto"; // Center both directions because of grid parent.
+        this.plotterPaper.style.background = "#fffff8";
+        this.plotterPaper.style.boxShadow = "0 0 10px 5px rgb(0 0 0 / 5%)";
+        this.plotterPaper.style.display = "none";
+
+        this.fp215 = new Fp215(this.plotterPaper);
+
+        this.node.append(this.linePrinterPaper, this.plotterPaper);
+
+        const settingsPanel = new SettingsPanel(this.getNode(), trs80, PanelType.PRINTER);
+        settingsPanel.addOnClose(() => this.syncPrinterModel());
 
         const controlPanel = new ControlPanel(this.node);
         controlPanel.addCloseButton(() => this.hide());
-        controlPanel.addSettingsButton(new SettingsPanel(this.getNode(), trs80, PanelType.PRINTER));
+        controlPanel.addSettingsButton(settingsPanel);
         controlPanel.addTrashButton(() => this.clearPrintout());
+
+        this.syncPrinterModel();
     }
 
     /**
@@ -74,12 +98,47 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
 
     printChar(ch: number): void {
         // console.log("Printing \"" + String.fromCodePoint(ch) + "\" (" + ch + ")");
-        this.linePrinter.printChar(ch);
+
+        // Call the activity callback.
+        if ((ch === 10 || ch === 13) && !this.isShowing()) {
+            const now = Date.now();
+            if (now - this.lastActivityCallback > MIN_ACTIVITY_CALLBACK_MS) {
+                this.lastActivityCallback = now;
+                this.activityCallback();
+            }
+        }
+
+        // Switch to line printer. (This is an FP-215 command to print text.)
+        if ((ch === 17 || ch === 18) && this.trs80.getConfig().printerModel === PrinterModel.FP_215) {
+            this.trs80.setConfig(this.trs80.getConfig()
+                .edit()
+                .withPrinterModel(PrinterModel.EPSON_MX_80)
+                .build());
+            this.syncPrinterModel();
+        }
+        // Switch to plotter. (This is an FP-215 command to switch to graphics mode.)
+        if (ch === 19 && this.trs80.getConfig().printerModel === PrinterModel.EPSON_MX_80) {
+            this.trs80.setConfig(this.trs80.getConfig()
+                .edit()
+                .withPrinterModel(PrinterModel.FP_215)
+                .build());
+            this.syncPrinterModel();
+        }
+
+        switch (this.trs80.getConfig().printerModel) {
+            case PrinterModel.EPSON_MX_80:
+                this.linePrinter.printChar(ch);
+                break;
+
+            case PrinterModel.FP_215:
+                this.fp215.processByte(String.fromCodePoint(ch));
+                break;
+        }
     }
 
     printLine(line: string): void {
         // Figure out scroll space at the bottom:
-        const bottomSpace = Math.abs(this.paper.scrollHeight - this.paper.scrollTop - this.paper.clientHeight);
+        const bottomSpace = Math.abs(this.linePrinterPaper.scrollHeight - this.linePrinterPaper.scrollTop - this.linePrinterPaper.clientHeight);
         // There's some rounding, be sloppy:
         const wasAtBottom = bottomSpace < 1;
 
@@ -89,18 +148,11 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
         lineNode.style.whiteSpace = "pre-wrap";
         lineNode.style.minHeight = "1lh"; // For blank lines.
         lineNode.textContent = line;
-        this.paper.append(lineNode);
+        this.linePrinterPaper.append(lineNode);
 
         if (wasAtBottom) {
             // Stay scrolled at the bottom.
-            this.paper.scrollTop = this.paper.scrollHeight;
-        }
-
-        // Call the activity callback.
-        const now = Date.now();
-        if (!this.isShowing() && now - this.lastActivityCallback > MIN_ACTIVITY_CALLBACK_MS) {
-            this.lastActivityCallback = now;
-            this.activityCallback();
+            this.linePrinterPaper.scrollTop = this.linePrinterPaper.scrollHeight;
         }
     }
 
@@ -110,7 +162,8 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
     }
 
     private clearPrintout() {
-        this.paper.replaceChildren();
+        this.linePrinterPaper.replaceChildren();
+        this.fp215.newPaper();
     }
 
     save() {
@@ -124,5 +177,21 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
 
     getNode(): HTMLElement {
         return this.node;
+    }
+
+    /**
+     * Show the correct DOM element for the current printer.
+     */
+    private syncPrinterModel(): void {
+        const printerModel = this.trs80.getConfig().printerModel;
+        const isPlotter = printerModel === PrinterModel.FP_215;
+
+        if (isPlotter) {
+            this.linePrinterPaper.style.display = "none";
+            this.plotterPaper.style.display = "block";
+        } else {
+            this.linePrinterPaper.style.display = "block";
+            this.plotterPaper.style.display = "none";
+        }
     }
 }

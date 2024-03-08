@@ -1,5 +1,5 @@
 {
-  "name": "fp-512",
+  "name": "fp-215",
   "version": "1.0.0",
   "description": "Emulator for the FP-215 plotter",
   "main": "dist/index.js",

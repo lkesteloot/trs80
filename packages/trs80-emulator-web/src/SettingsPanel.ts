@@ -429,8 +429,8 @@ let gRadioButtonCounter = 1;
  * A full-screen control panel for configuring the emulator.
  */
 export class SettingsPanel {
-    public onOpen: (() => void) | undefined;
-    public onClose: (() => void) | undefined;
+    private onOpen: (() => void) | undefined;
+    private onClose: (() => void) | undefined;
     public readonly panelType: PanelType;
     private readonly trs80: Trs80;
     private readonly panelNode: HTMLElement;
@@ -532,6 +532,28 @@ export class SettingsPanel {
         this.updateEnabledOptions();
 
         this.panelNode.classList.add(gShownCssClass);
+    }
+
+    /**
+     * Add a function to call after the panel closes. Is called after already-registered functions.
+     */
+    public addOnOpen(onOpen: () => void): void {
+        const oldOnOpen = this.onOpen;
+        this.onOpen = () => {
+            oldOnOpen?.();
+            onOpen();
+        };
+    }
+
+    /**
+     * Add a function to call after the panel closes. Is called after already-registered functions.
+     */
+    public addOnClose(onClose: () => void): void {
+        const oldOnClose = this.onClose;
+        this.onClose = () => {
+            oldOnClose?.();
+            onClose();
+        };
     }
 
     /**
