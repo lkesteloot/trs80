@@ -142,6 +142,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
                 .withPrinterModel(PrinterModel.EPSON_MX_80)
                 .build());
             this.syncPrinterModel();
+            return;
         }
         // Switch to plotter. (This is an FP-215 command to switch to graphics mode.)
         if (ch === 19 && this.trs80.getConfig().printerModel === PrinterModel.EPSON_MX_80) {
@@ -150,6 +151,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
                 .withPrinterModel(PrinterModel.FP_215)
                 .build());
             this.syncPrinterModel();
+            return;
         }
 
         switch (this.trs80.getConfig().printerModel) {

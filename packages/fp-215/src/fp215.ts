@@ -2,6 +2,39 @@
 export type PenColor = [number, number, number];
 
 /**
+ * Parse a numeric parameter, like "5". May contain spaces before
+ * and after, but nothing else. Return NaN if the number cannot be parsed.
+ */
+function parseNumericParameter(arg: string): number {
+    let i = 0;
+
+    // Skip initial space.
+    while (i < arg.length && arg[i] === " ") {
+        i += 1;
+    }
+
+    // Parse integer. Don't use parseInt(), it's too permissive and
+    // we want to reject strings that the plotter would reject.
+    let value = 0;
+    while (i < arg.length) {
+        const ch = arg.charCodeAt(i);
+        if (ch >= 0x30 && ch <= 0x39) {
+            value = value*10 + ch - 0x30;
+        } else {
+            break;
+        }
+        i += 1;
+    }
+
+    // Skip trailing space.
+    while (i < arg.length && arg[i] === " ") {
+        i += 1;
+    }
+
+    return i === arg.length ? value : NaN;
+}
+
+/**
  * Emulator for the FP-215 plotter. Takes the ASCII commands and draws to an HTML canvas.
  */
 export class Fp215 {
@@ -75,7 +108,7 @@ export class Fp215 {
         // Break off the arguments and parse them as numbers.
         const rest = command.substring(1);
         const args = rest.split(",");
-        const numericArgs = args.map(arg => parseFloat(arg));
+        const numericArgs = args.map(parseNumericParameter);
         const anyNaNs = numericArgs.some(arg => isNaN(arg));
 
         switch (command[0]) {
