@@ -5,6 +5,7 @@ import {InkColor, LinePrinter, Printer, PrinterModel, Trs80} from "trs80-emulato
 import {addPrinterCssFontToPage, PRINTER_REGULAR_FONT_FAMILY} from "./PrinterFonts.js";
 import {PanelType, SettingsPanel} from "./SettingsPanel.js";
 import {Fp215, PenColor} from "fp-215";
+import { rgbToCss } from "./Utils.js";
 
 // Holes on sides. See assets/README.md.
 const BACKGROUND_LEFT_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAQAAACROWYpAAABH0lEQVQ4y+XUvU7DMBhG4cdJoECFQPwIRjbukAtlRowsIH6KgCZpbAZAIq1LUBYGPNrfsY/ez3YwYlyw49xlMQZG7VocC287YSyc7CrGwnNXf6ldrV3eNFHo1Np12nl4x7Hpp1Xn2a06oz3LwQdOtB40ksLE1Jkbz7/R3nPk0UwjSoLSzL5TC29DaW848OTeq1Yn6jRe3Hl12As3m/ZU60kjfZuLao8KW8vafTjY9LKEfuFzkyFtGfQj83pVu1op6rIwnfCzdrLolfTHYki7UWTxIGiG0q5RZuBS7F3T7JOMGtXKlqXKvJfFmrRbnerb6UGp0uh6Vdm0P/BCqZAkQUArLtX88CSj+IklKdu6gZ8kiaK4puv/9gP8E+0th9I7ord+FFKRmsMAAAAASUVORK5CYII=";
@@ -176,6 +177,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
         lineNode.style.padding = "0 40px";
         lineNode.style.whiteSpace = "pre-wrap";
         lineNode.style.minHeight = "1lh"; // For blank lines.
+        lineNode.style.color = rgbToCss(inkColorToRgb(this.trs80.getConfig().inkColor));
         lineNode.textContent = line;
         this.linePrinterPaper.append(lineNode);
 

@@ -1,4 +1,4 @@
-import {CSS_PREFIX} from "./Utils.js";
+import {adjustColor, CSS_PREFIX, rgbToCss} from "./Utils.js";
 import {Background, BasicLevel, CGChip, Config, InkColor, ModelType, Phosphor, PrinterModel, RamSize, ScanLines} from "trs80-emulator";
 import {Trs80} from "trs80-emulator";
 import {AUTHENTIC_BACKGROUND, BLACK_BACKGROUND, phosphorToRgb} from "./CanvasScreen.js";
@@ -222,16 +222,6 @@ class DisplayedOption<T> {
         this.block = block;
         this.option = option;
     }
-}
-
-// Convert RGB array (0-255) to a CSS string.
-function rgbToCss(color: number[]): string {
-    return "#" + color.map(c => c.toString(16).padStart(2, "0").toUpperCase()).join("");
-}
-
-// Multiplies an RGB (0-255) color by a factor.
-function adjustColor(color: number[], factor: number): number[] {
-    return color.map(c => Math.max(0, Math.min(255, Math.round(c*factor))));
 }
 
 /**
