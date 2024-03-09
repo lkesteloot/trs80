@@ -202,8 +202,10 @@ function main() {
             }
 
             const config = Config.makeDefault()
+                .edit()
                 .withModelType(modelType)
-                .withBasicLevel(basicLevel);
+                .withBasicLevel(basicLevel)
+                .build();
             if (!config.isValid()) {
                 // Kinda generic!
                 console.log("Invalid model and Basic level configuration");

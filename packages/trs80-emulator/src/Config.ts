@@ -97,6 +97,30 @@ export enum ScanLines {
 }
 
 /**
+ * Model of printer attached to the machine.
+ */
+export enum PrinterModel {
+    // Dot-matrix line printer.
+    EPSON_MX_80,
+    // Plotter.
+    FP_215,
+}
+
+/**
+ * Ink color for the printer.
+ */
+export enum InkColor {
+    // Plotter pen catalog number: 26-1343.
+    BLACK,
+    // Plotter pen catalog number: 26-1344.
+    RED,
+    // Plotter pen catalog number: 26-1345.
+    BLUE,
+    // Plotter pen catalog number: 26-1346.
+    GREEN,
+}
+
+/**
  * Return the ROM size in bytes. This is not affected by any custom ROM, only by
  * the model and level numbers.
  */
@@ -128,7 +152,7 @@ function computeRomSize(modelType: ModelType, basicLevel: BasicLevel): number {
 }
 
 /**
- * A specific configuration of model and RAM.
+ * A specific configuration of model, RAM, ROM, display, and peripherals.
  */
 export class Config {
     public readonly modelType: ModelType;
@@ -140,10 +164,13 @@ export class Config {
     public readonly scanLines: ScanLines;
     public readonly customRom: string | undefined;
     public readonly romSize: number;
+    public readonly printerModel: PrinterModel;
+    public readonly inkColor: InkColor;
 
     constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize,
                 phosphor: Phosphor, background: Background, scanLines: ScanLines,
-                customRom: string | undefined) {
+                customRom: string | undefined, printerModel: PrinterModel,
+                inkColor: InkColor) {
 
         this.modelType = modelType;
         this.basicLevel = basicLevel;
@@ -153,49 +180,34 @@ export class Config {
         this.background = background;
         this.scanLines = scanLines;
         this.customRom = customRom;
+        this.printerModel = printerModel;
+        this.inkColor = inkColor;
 
         // Compute this once, it's used a lot.
         this.romSize = computeRomSize(modelType, basicLevel);
     }
 
-    public withModelType(modelType: ModelType): Config {
-        return new Config(modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines, this.customRom);
-    }
-
-    public withBasicLevel(basicLevel: BasicLevel): Config {
-        return new Config(this.modelType, basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines, this.customRom);
-    }
-
-    public withCGChip(cgChip: CGChip): Config {
-        return new Config(this.modelType, this.basicLevel, cgChip, this.ramSize, this.phosphor, this.background, this.scanLines, this.customRom);
-    }
-
-    public withRamSize(ramSize: RamSize): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, ramSize, this.phosphor, this.background, this.scanLines, this.customRom);
-    }
-
-    public withPhosphor(phosphor: Phosphor): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, phosphor, this.background, this.scanLines, this.customRom);
-    }
-
-    public withBackground(background: Background): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, background, this.scanLines, this.customRom);
-    }
-
-    public withScanLines(scanLines: ScanLines): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, scanLines, this.customRom);
-    }
-
-    public withCustomRom(customRom: string | undefined): Config {
-        return new Config(this.modelType, this.basicLevel, this.cgChip, this.ramSize, this.phosphor, this.background, this.scanLines, customRom);
+    /**
+     * Create a builder based on this object's values.
+     */
+    public edit(): ConfigBuilder {
+        return new ConfigBuilder(this);
     }
 
     /**
      * Make a default configuration.
      */
     public static makeDefault(): Config {
-        return new Config(ModelType.MODEL3, BasicLevel.LEVEL2, CGChip.LOWER_CASE, RamSize.RAM_48_KB,
-            Phosphor.WHITE, Background.AUTHENTIC, ScanLines.OFF, undefined);
+        return new Config(ModelType.MODEL3,
+            BasicLevel.LEVEL2,
+            CGChip.LOWER_CASE,
+            RamSize.RAM_48_KB,
+            Phosphor.WHITE,
+            Background.AUTHENTIC,
+            ScanLines.OFF,
+            undefined,
+            PrinterModel.EPSON_MX_80,
+            InkColor.BLACK);
     }
 
     /**
@@ -251,5 +263,101 @@ export class Config {
         }
 
         return kb*1024;
+    }
+}
+
+/**
+ * Mutable class to build a Config object.
+ */
+export class ConfigBuilder {
+    private modelType: ModelType;
+    private basicLevel: BasicLevel;
+    private cgChip: CGChip;
+    private ramSize: RamSize;
+    private phosphor: Phosphor;
+    private background: Background;
+    private scanLines: ScanLines;
+    private customRom: string | undefined;
+    private printerModel: PrinterModel;
+    private inkColor: InkColor;
+
+    constructor(config: Config) {
+        this.modelType = config.modelType;
+        this.basicLevel = config.basicLevel;
+        this.cgChip = config.cgChip;
+        this.ramSize = config.ramSize;
+        this.phosphor = config.phosphor;
+        this.background = config.background;
+        this.scanLines = config.scanLines;
+        this.customRom = config.customRom;
+        this.printerModel = config.printerModel;
+        this.inkColor = config.inkColor;
+    }
+
+    /**
+     * Make an immutable Config object using this object's values.
+     */
+    public build(): Config {
+        return new Config(
+            this.modelType,
+            this.basicLevel,
+            this.cgChip,
+            this.ramSize,
+            this.phosphor,
+            this.background,
+            this.scanLines,
+            this.customRom,
+            this.printerModel,
+            this.inkColor);
+    }
+
+    public withModelType(modelType: ModelType): this {
+        this.modelType = modelType;
+        return this;
+    }
+
+    public withBasicLevel(basicLevel: BasicLevel): this {
+        this.basicLevel = basicLevel;
+        return this;
+    }
+
+    public withCGChip(cgChip: CGChip): this {
+        this.cgChip = cgChip;
+        return this;
+    }
+
+    public withRamSize(ramSize: RamSize): this {
+        this.ramSize = ramSize;
+        return this;
+    }
+
+    public withPhosphor(phosphor: Phosphor): this {
+        this.phosphor = phosphor;
+        return this;
+    }
+
+    public withBackground(background: Background): this {
+        this.background = background;
+        return this;
+    }
+
+    public withScanLines(scanLines: ScanLines): this {
+        this.scanLines = scanLines;
+        return this;
+    }
+
+    public withCustomRom(customRom: string | undefined): this {
+        this.customRom = customRom;
+        return this;
+    }
+
+    public withPrinterModel(printerModel: PrinterModel): this {
+        this.printerModel = printerModel;
+        return this;
+    }
+
+    public withInkColor(inkColor: InkColor): this {
+        this.inkColor = inkColor;
+        return this;
     }
 }

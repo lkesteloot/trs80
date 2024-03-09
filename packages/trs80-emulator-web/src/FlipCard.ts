@@ -1,3 +1,5 @@
+import {addPrinterCssFontToPage} from "./PrinterFonts";
+
 /**
  * Internal number of side, where 0 is the front and 1 is the back.
  */
@@ -55,6 +57,18 @@ export abstract class FlipCardSideAdapter implements FlipCardSide {
 
     willDetachFromFlipCard(): void {
         this.flipCard = undefined;
+    }
+
+    show() {
+        this.flipCard?.show(this);
+    }
+
+    hide() {
+        this.flipCard?.hide(this);
+    }
+
+    isShowing(): boolean {
+        return this.flipCard?.isShowing(this) ?? false;
     }
 }
 

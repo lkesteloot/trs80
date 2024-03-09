@@ -499,6 +499,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         }
     }
 
+    /**
+     * The border radius of the screen, in pixels ("px" units).
+     */
     public getBorderRadius(): number {
         return BORDER_RADIUS*this.scale;
     }

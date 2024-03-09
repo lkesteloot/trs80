@@ -14,6 +14,7 @@
     "webpack-dev-server": "^4.7.4"
   },
   "workspaces": [
+    "packages/fp-215",
     "packages/retrostore-api",
     "packages/z80-inst",
     "packages/z80-base",

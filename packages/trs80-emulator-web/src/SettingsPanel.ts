@@ -1,7 +1,8 @@
-import {CSS_PREFIX} from "./Utils.js";
-import {Background, BasicLevel, CGChip, Config, ModelType, Phosphor, RamSize, ScanLines} from "trs80-emulator";
+import {adjustColor, CSS_PREFIX, rgbToCss} from "./Utils.js";
+import {Background, BasicLevel, CGChip, Config, InkColor, ModelType, Phosphor, PrinterModel, RamSize, ScanLines} from "trs80-emulator";
 import {Trs80} from "trs80-emulator";
 import {AUTHENTIC_BACKGROUND, BLACK_BACKGROUND, phosphorToRgb} from "./CanvasScreen.js";
+import { inkColorToRgb } from "./WebPrinter.js";
 
 const gCssPrefix = CSS_PREFIX + "-settings-panel";
 const gScreenNodeCssClass = gCssPrefix + "-screen-node";
@@ -195,52 +196,42 @@ interface Option {
 /**
  * A block of options that are mutually exclusive, like all the models.
  */
-interface OptionBlock {
+interface OptionBlock<T> {
     title: string;
     /**
      * Whether the option should be checked, based on this config.
      */
-    isChecked: (value: any, config: Config) => boolean;
+    isChecked: (value: T, config: Config) => boolean;
     /**
      * Return a modified config, given that this option was selected by the user.
      */
-    updateConfig: (value: any, config: Config) => Config;
+    updateConfig: (value: T, config: Config) => Config;
     options: Option[];
 }
 
 /**
  * An option that's currently displayed to the user.
  */
-class DisplayedOption {
+class DisplayedOption<T> {
     public readonly input: HTMLInputElement;
-    public readonly block: OptionBlock;
+    public readonly block: OptionBlock<T>;
     public readonly option: Option;
 
-    constructor(input: HTMLInputElement, block: OptionBlock, option: Option) {
+    constructor(input: HTMLInputElement, block: OptionBlock<T>, option: Option) {
         this.input = input;
         this.block = block;
         this.option = option;
     }
 }
 
-// Convert RGB array (0-255) to a CSS string.
-function rgbToCss(color: number[]): string {
-    return "#" + color.map(c => c.toString(16).padStart(2, "0").toUpperCase()).join("");
-}
-
-// Multiplies an RGB (0-255) color by a factor.
-function adjustColor(color: number[], factor: number): number[] {
-    return color.map(c => Math.max(0, Math.min(255, Math.round(c*factor))));
-}
-
 /**
  * Our full configuration options.
  */
-const HARDWARE_OPTION_BLOCKS: OptionBlock[] = [
+const HARDWARE_OPTION_BLOCKS: OptionBlock<any>[] = [
     {
         title: "Model",
         isChecked: (modelType: ModelType, config: Config) => modelType === config.modelType,
-        updateConfig: (modelType: ModelType, config: Config) => config.withModelType(modelType),
+        updateConfig: (modelType: ModelType, config: Config) => config.edit().withModelType(modelType).build(),
         options: [
             {
                 label: "Model I",
@@ -259,7 +250,7 @@ const HARDWARE_OPTION_BLOCKS: OptionBlock[] = [
     {
         title: "Basic",
         isChecked: (basicLevel: BasicLevel, config: Config) => basicLevel === config.basicLevel,
-        updateConfig: (basicLevel: BasicLevel, config: Config) => config.withBasicLevel(basicLevel),
+        updateConfig: (basicLevel: BasicLevel, config: Config) => config.edit().withBasicLevel(basicLevel).build(),
         options: [
             {
                 label: "Level 1",
@@ -274,7 +265,7 @@ const HARDWARE_OPTION_BLOCKS: OptionBlock[] = [
     {
         title: "Characters",
         isChecked: (cgChip: CGChip, config: Config) => cgChip === config.cgChip,
-        updateConfig: (cgChip: CGChip, config: Config) => config.withCGChip(cgChip),
+        updateConfig: (cgChip: CGChip, config: Config) => config.edit().withCGChip(cgChip).build(),
         options: [
             {
                 label: "Original",
@@ -289,7 +280,7 @@ const HARDWARE_OPTION_BLOCKS: OptionBlock[] = [
     {
         title: "RAM",
         isChecked: (ramSize: RamSize, config: Config) => ramSize === config.ramSize,
-        updateConfig: (ramSize: RamSize, config: Config) => config.withRamSize(ramSize),
+        updateConfig: (ramSize: RamSize, config: Config) => config.edit().withRamSize(ramSize).build(),
         options: [
             {
                 label: "4 kB",
@@ -310,11 +301,11 @@ const HARDWARE_OPTION_BLOCKS: OptionBlock[] = [
         ]
     },
 ];
-const VIEW_OPTION_BLOCKS: OptionBlock[] = [
+const VIEW_OPTION_BLOCKS: OptionBlock<any>[] = [
     {
         title: "Phosphor",
         isChecked: (phosphor: Phosphor, config: Config) => phosphor === config.phosphor,
-        updateConfig: (phosphor: Phosphor, config: Config) => config.withPhosphor(phosphor),
+        updateConfig: (phosphor: Phosphor, config: Config) => config.edit().withPhosphor(phosphor).build(),
         options: [
             {
                 label: rgbToCss(adjustColor(phosphorToRgb(Phosphor.WHITE), 0.8)),
@@ -334,7 +325,7 @@ const VIEW_OPTION_BLOCKS: OptionBlock[] = [
     {
         title: "Background",
         isChecked: (background: Background, config: Config) => background === config.background,
-        updateConfig: (background: Background, config: Config) => config.withBackground(background),
+        updateConfig: (background: Background, config: Config) => config.edit().withBackground(background).build(),
         options: [
             {
                 label: BLACK_BACKGROUND,
@@ -349,7 +340,7 @@ const VIEW_OPTION_BLOCKS: OptionBlock[] = [
     {
         title: "Scan Lines",
         isChecked: (scanLines: ScanLines, config: Config) => scanLines === config.scanLines,
-        updateConfig: (scanLines: ScanLines, config: Config) => config.withScanLines(scanLines),
+        updateConfig: (scanLines: ScanLines, config: Config) => config.edit().withScanLines(scanLines).build(),
         options: [
             {
                 label: "Off",
@@ -362,6 +353,47 @@ const VIEW_OPTION_BLOCKS: OptionBlock[] = [
         ]
     },
 ];
+const PRINTER_OPTION_BLOCKS: OptionBlock<any>[] = [
+    {
+        title: "Printer Model",
+        isChecked: (printerModel: PrinterModel, config: Config) => printerModel === config.printerModel,
+        updateConfig: (printerModel: PrinterModel, config: Config) => config.edit().withPrinterModel(printerModel).build(),
+        options: [
+            {
+                label: "Epson MX-80",
+                value: PrinterModel.EPSON_MX_80,
+            },
+            {
+                label: "FP-215",
+                value: PrinterModel.FP_215,
+            },
+        ]
+    },
+    {
+        title: "Ink Color",
+        isChecked: (inkColor: InkColor, config: Config) => inkColor === config.inkColor,
+        updateConfig: (inkColor: InkColor, config: Config) => config.edit().withInkColor(inkColor).build(),
+        options: [
+            {
+                label: rgbToCss(adjustColor(inkColorToRgb(InkColor.BLACK), 0.8)),
+                value: InkColor.BLACK,
+            },
+            {
+                label: rgbToCss(adjustColor(inkColorToRgb(InkColor.RED), 0.8)),
+                value: InkColor.RED,
+            },
+            {
+                label: rgbToCss(adjustColor(inkColorToRgb(InkColor.BLUE), 0.8)),
+                value: InkColor.BLUE,
+            },
+            {
+                // Cheat and use the green from the OK button so that the two greens don't clash.
+                label: gAcceptButtonColor,
+                value: InkColor.GREEN,
+            },
+        ]
+    },
+];
 
 // Type of panel to show.
 export enum PanelType {
@@ -369,10 +401,12 @@ export enum PanelType {
     HARDWARE,
     // Phosphor color, background, etc.
     VIEW,
+    // Printer, plotter, etc.
+    PRINTER,
 }
 
 // Get the right options blocks for the panel type.
-function optionBlocksForPanelType(panelType: PanelType): OptionBlock[] {
+function optionBlocksForPanelType(panelType: PanelType): OptionBlock<any>[] {
     switch (panelType) {
         case PanelType.HARDWARE:
         default:
@@ -380,6 +414,9 @@ function optionBlocksForPanelType(panelType: PanelType): OptionBlock[] {
 
         case PanelType.VIEW:
             return VIEW_OPTION_BLOCKS;
+
+        case PanelType.PRINTER:
+            return PRINTER_OPTION_BLOCKS;
     }
 }
 
@@ -407,12 +444,12 @@ let gRadioButtonCounter = 1;
  * A full-screen control panel for configuring the emulator.
  */
 export class SettingsPanel {
-    public onOpen: (() => void) | undefined;
-    public onClose: (() => void) | undefined;
+    private onOpen: (() => void) | undefined;
+    private onClose: (() => void) | undefined;
     public readonly panelType: PanelType;
     private readonly trs80: Trs80;
     private readonly panelNode: HTMLElement;
-    private readonly displayedOptions: DisplayedOption[] = [];
+    private readonly displayedOptions: DisplayedOption<any>[] = [];
     private readonly acceptButton: HTMLElement;
 
     constructor(screenNode: HTMLElement, trs80: Trs80, panelType: PanelType) {
@@ -510,6 +547,28 @@ export class SettingsPanel {
         this.updateEnabledOptions();
 
         this.panelNode.classList.add(gShownCssClass);
+    }
+
+    /**
+     * Add a function to call after the panel closes. Is called after already-registered functions.
+     */
+    public addOnOpen(onOpen: () => void): void {
+        const oldOnOpen = this.onOpen;
+        this.onOpen = () => {
+            oldOnOpen?.();
+            onOpen();
+        };
+    }
+
+    /**
+     * Add a function to call after the panel closes. Is called after already-registered functions.
+     */
+    public addOnClose(onClose: () => void): void {
+        const oldOnClose = this.onClose;
+        this.onClose = () => {
+            oldOnClose?.();
+            onClose();
+        };
     }
 
     /**
