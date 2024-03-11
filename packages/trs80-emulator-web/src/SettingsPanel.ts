@@ -95,14 +95,10 @@ const GLOBAL_CSS = `
     width: 24px;
     height: 24px;
     padding: 0;
+    border: solid 2px #ccc;
     border-radius: 999px;
-    border: 2px solid transparent;
     color: transparent;
     transition: color .20s ease-in-out;
-}
-
-.${gPanelCssClass} input[type=radio] + label.${gColorButtonClass}.${gDarkColorButtonClass} {
-    border: solid 2px #ccc;
 }
 
 .${gPanelCssClass} input[type=radio]:checked + label.${gColorButtonClass}::after {

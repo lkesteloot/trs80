@@ -8,19 +8,3 @@ To add a dependency:
 No need to add dependencies between our own modules, they're all available
 to each other.
 
-To publish new version:
-
-- In "my-trs-80" directory:
-    % npm run publish
-- In "trs80-cassette-webapp" directory:
-    % npm run publish
-- In "trs80-ide" directory:
-    % npm run publish
-- In "trs80-tool" directory:
-    Edit package.json and bump version.
-    Update site/index.html
-    % npm run buildBinaries
-    % make rsync rsync-site
-    % git commit -am "trs80-tool: Step to X.Y.Z."
-    % git tag vX.Y.Z
-
