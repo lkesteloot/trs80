@@ -526,6 +526,24 @@ export class SettingsPanel {
             this.close();
         });
         buttonsDiv.appendChild(cancelButton);
+
+        // Close panel on Esc.
+        const body = document.querySelector("body") as HTMLBodyElement;
+        body.addEventListener("keydown", event => {
+            if (this.isOpen() && !event.metaKey && !event.shiftKey && !event.altKey && !event.ctrlKey) {
+                switch (event.key) {
+                    case "Enter":
+                        event.preventDefault();
+                        this.accept();
+                        break;
+
+                    case "Escape":
+                        event.preventDefault();
+                        this.close();
+                        break;
+                }
+            }
+        });
     }
 
     /**
