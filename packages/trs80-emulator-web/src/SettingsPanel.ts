@@ -546,6 +546,13 @@ export class SettingsPanel {
     }
 
     /**
+     * Whether the panel is being shown.
+     */
+    public isOpen(): boolean {
+        return this.panelNode.classList.contains(gShownCssClass);
+    }
+
+    /**
      * Add a function to call after the panel closes. Is called after already-registered functions.
      */
     public addOnOpen(onOpen: () => void): void {

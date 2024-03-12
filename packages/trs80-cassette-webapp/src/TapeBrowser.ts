@@ -767,6 +767,12 @@ export class TapeBrowser {
             const progressBar = new WebProgressBar(screen.getNode());
             cassette.setProgressBar(progressBar);
         }
+
+        // Disable keyboard when a settings panel is open.
+        keyboard.addInterceptKeys(() =>
+            !hardwareSettingsPanel.isOpen() &&
+            !viewPanel.isOpen());
+
         reboot();
 
         const pane = new Pane(div);

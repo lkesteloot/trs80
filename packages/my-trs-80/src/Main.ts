@@ -215,6 +215,12 @@ export function main() {
     controlPanel.addSettingsButton(viewPanel);
     controlPanel.addMuteButton(soundPlayer);
 
+    // Disable keyboard when a settings panel is open.
+    keyboard.addInterceptKeys(() =>
+        !hardwareSettingsPanel.isOpen() &&
+        !viewPanel.isOpen() &&
+        !webPrinter.isSettingsPanelOpen());
+
     const driveIndicators = new DriveIndicators(screen.getNode(), trs80.getMaxDrives());
     trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
 
@@ -269,9 +275,7 @@ export function main() {
         flipCard.setBack(webPrinter);
         webPrinter.show();
     });
-    webPrinter.setActivityCallback(() => {
-        controlPanel.flashButton(printerButton);
-    });
+    webPrinter.setActivityCallback(() => controlPanel.flashButton(printerButton));
 
     let logging = false;
     const logs: string[] = [];

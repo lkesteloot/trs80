@@ -2,7 +2,7 @@ import {Keyboard} from "trs80-emulator";
 
 // Web-based emulator keyboard.
 export class WebKeyboard extends Keyboard {
-    public interceptKeys = true;
+    private interceptKeys: () => boolean = () => true;
 
     // Convert keys on the keyboard to ASCII letters or special strings like "Enter".
     public configureKeyboard(): void {
@@ -35,10 +35,10 @@ export class WebKeyboard extends Keyboard {
             }
         };
 
-        const body = document.getElementsByTagName("body")[0];
-        body.addEventListener("keydown", (event) => keyEvent(event, true));
-        body.addEventListener("keyup", (event) => keyEvent(event, false));
-        body.addEventListener("paste", (event) => {
+        const body = document.querySelector("body") as HTMLBodyElement;
+        body.addEventListener("keydown", event => keyEvent(event, true));
+        body.addEventListener("keyup", event => keyEvent(event, false));
+        body.addEventListener("paste", event => {
             // Don't do anything if we're not active.
             if (!this.shouldInterceptKeys()) {
                 return;
@@ -54,8 +54,17 @@ export class WebKeyboard extends Keyboard {
         });
     }
 
+    /**
+     * Add a new function that can determine whether to intercept keys. Will be
+     * called after the existing function.
+     */
+    public addInterceptKeys(interceptKeys: () => boolean): void {
+        const oldInterceptKeys = this.interceptKeys;
+        this.interceptKeys = () => oldInterceptKeys() && interceptKeys();
+    }
+
     // Whether we should intercept browser keys.
     private shouldInterceptKeys(): boolean {
-        return this.interceptKeys && this.emulatorStarted;
+        return this.emulatorStarted && this.interceptKeys();
     }
 }

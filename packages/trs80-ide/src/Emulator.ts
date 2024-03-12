@@ -1,5 +1,5 @@
-import {EditorView,} from "@codemirror/view"
-import {CassettePlayer, Config, RunningState, Trs80, Trs80State} from "trs80-emulator";
+import { EditorView } from '@codemirror/view';
+import { CassettePlayer, Config, RunningState, Trs80, Trs80State } from 'trs80-emulator';
 import {
     CanvasScreen,
     ControlPanel,
@@ -7,14 +7,14 @@ import {
     PanelType,
     SettingsPanel,
     WebKeyboard,
-    WebSoundPlayer
-} from "trs80-emulator-web";
+    WebSoundPlayer,
+} from 'trs80-emulator-web';
 
-import {ScreenEditor} from "./ScreenEditor";
-import {AssemblyResults} from "./AssemblyResults";
-import {SimpleEventDispatcher} from "strongly-typed-events";
-import {Flag, hi, inc16, lo, RegisterSet, toHexByte} from "z80-base";
-import {disasmForTrs80, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
+import { ScreenEditor } from './ScreenEditor';
+import { AssemblyResults } from './AssemblyResults';
+import { SimpleEventDispatcher } from 'strongly-typed-events';
+import { Flag, hi, inc16, lo, RegisterSet, toHexByte } from 'z80-base';
+import { disasmForTrs80, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END } from 'trs80-base';
 
 // Given two instruction bytes, whether we want to continue until the next
 // instruction, and if so how long the current instruction is.
@@ -72,6 +72,11 @@ export class Emulator {
         this.controlPanel.addSettingsButton(viewPanel);
         this.controlPanel.addMuteButton(soundPlayer);
 
+        // Disable keyboard when a settings panel is open.
+        keyboard.addInterceptKeys(() =>
+            !hardwareSettingsPanel.isOpen() &&
+            !viewPanel.isOpen());
+
         const driveIndicators = new DriveIndicators(this.screen.getNode(), this.trs80.getMaxDrives());
         this.trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
         this.trs80.onRunningState.subscribe(this.onRunningState.bind(this));
@@ -79,14 +84,8 @@ export class Emulator {
         reboot();
 
         // Give focus to the emulator if the editor does not have it.
-        function updateFocus() {
-            keyboard.interceptKeys = document.activeElement === document.body;
-        }
-
-        document.body.addEventListener("focus", () => updateFocus(), true);
-        document.body.addEventListener("blur", () => updateFocus(), true);
+        keyboard.addInterceptKeys(() => document.activeElement === document.body);
         document.body.focus();
-        updateFocus();
     }
 
     public getNode(): HTMLElement {
@@ -159,13 +158,9 @@ export class Emulator {
             }
         }
         // Configure the ROM, if that's what we're developing.
-        if (rom !== undefined) {
-            // Use the custom ROM.
-            const romString = String.fromCharCode(...rom);
-            this.trs80.setConfig(config.withCustomRom(romString));
-        } else {
-            this.trs80.setConfig(config.withCustomRom(undefined));
-        }
+        this.trs80.setConfig(config.edit()
+            .withCustomRom(rom === undefined ? undefined : String.fromCharCode(...rom))
+            .build());
         const { entryPoint } = results.asm.getEntryPoint();
         if (entryPoint !== undefined) {
             this.trs80.jumpTo(entryPoint);

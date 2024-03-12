@@ -46,6 +46,7 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
     private readonly linePrinterPaper: HTMLElement;
     private readonly plotterPaper: HTMLCanvasElement;
     private readonly fp215: Fp215;
+    private readonly settingsPanel: SettingsPanel;
     private readonly linePrinter = new class extends LinePrinter {
         constructor(private readonly webPrinter: WebPrinter) {
             super();
@@ -101,15 +102,15 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
 
         this.node.append(this.linePrinterPaper, this.plotterPaper);
 
-        const settingsPanel = new SettingsPanel(this.getNode(), trs80, PanelType.PRINTER);
-        settingsPanel.addOnClose(() => {
+        this.settingsPanel = new SettingsPanel(this.getNode(), trs80, PanelType.PRINTER);
+        this.settingsPanel.addOnClose(() => {
             this.syncPrinterModel();
             this.syncPenColor();
         });
 
         const controlPanel = new ControlPanel(this.node);
         controlPanel.addCloseButton(() => this.hide());
-        controlPanel.addSettingsButton(settingsPanel);
+        controlPanel.addSettingsButton(this.settingsPanel);
         controlPanel.addTrashButton(() => this.clearPrintout());
 
         this.syncPrinterModel();
@@ -122,6 +123,13 @@ export class WebPrinter extends FlipCardSideAdapter implements Printer {
      */
     public setActivityCallback(callback: () => void) {
         this.activityCallback = callback;
+    }
+
+    /**
+     * Whether the printer settings panel is open.
+     */
+    public isSettingsPanelOpen(): boolean {
+        return this.settingsPanel.isOpen();
     }
 
     printChar(ch: number): void {
