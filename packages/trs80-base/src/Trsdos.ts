@@ -49,8 +49,10 @@ function rotateByteLeft(x: number): number {
 function hashForFilename(filename: string): number {
     let hash = 0;
 
-    for (const ch of filename) {
-        const n = ch.charCodeAt(0);
+    // 8 characters for base name, 3 for extension.
+    for (let i = 0; i < 11; i++) {
+        // Use space if too short.
+        const n = i < filename.length ? filename.charCodeAt(i) : 32;
 
         // XOR in the new byte, then rotate left.
         hash = rotateByteLeft(n ^ hash);
