@@ -67,7 +67,7 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                     const trsdos = decodeTrsdos(trs80File);
                     if (trsdos !== undefined) {
                         description += ", " + trsdos.getOperatingSystemName() + " " + trsdos.getVersion() +
-                            " with " + pluralizeWithCount(trsdos.dirEntries.length, "file");
+                            " with " + pluralizeWithCount(trsdos.getDirEntries().length, "file");
                     }
 
                     if (verbose) {
@@ -92,14 +92,19 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                         }
 
                         if (trsdos !== undefined) {
-                            if (trsdos.gatInfo.name !== "") {
-                                verboseLines.push("Floppy name: " + trsdos.gatInfo.name);
-                            }
-                            if (trsdos.gatInfo.date !== "") {
-                                verboseLines.push("Floppy date: " + trsdos.gatInfo.date);
-                            }
-                            if (trsdos.gatInfo.autoCommand !== "") {
-                                verboseLines.push("Auto command: " + trsdos.gatInfo.autoCommand);
+                            const gatInfo = trsdos.getGatInfo();
+                            if (typeof gatInfo === "string") {
+                                verboseLines.push("Error: " + gatInfo);
+                            } else {
+                                if (gatInfo.name !== "") {
+                                    verboseLines.push("Floppy name: " + gatInfo.name);
+                                }
+                                if (gatInfo.date !== "") {
+                                    verboseLines.push("Floppy date: " + gatInfo.date);
+                                }
+                                if (gatInfo.autoCommand !== "") {
+                                    verboseLines.push("Auto command: " + gatInfo.autoCommand);
+                                }
                             }
                         }
                     }

@@ -37,9 +37,15 @@ export class TrsdosTab extends PageTab {
             }
             infoDiv.append(valueSpan);
         };
-        addField("Disk name", trsdos.gatInfo.name, "name");
-        addField("Date", trsdos.gatInfo.date, "date");
-        addField("Auto command", trsdos.gatInfo.autoCommand, "auto-command");
+        addField("Version", trsdos.getOperatingSystemName() + " " + trsdos.getVersion(), "version");
+        const gatInfo = trsdos.getGatInfo();
+        if (typeof gatInfo === "string") {
+            addField("Error", gatInfo, "error");
+        } else {
+            addField("Disk name", gatInfo.name, "name");
+            addField("Date", gatInfo.date, "date");
+            addField("Auto command", gatInfo.autoCommand, "auto-command");
+        }
         mainContents.append(infoDiv);
 
         // Add directory.
@@ -61,7 +67,8 @@ export class TrsdosTab extends PageTab {
         addDirEntryField("Permission", "protection-level", "header");
         addDirEntryField("Run", "run", "header");
         addDirEntryField("Import", "import", "header");
-        for (const dirEntry of trsdos.dirEntries) {
+        const dirEntries = trsdos.getDirEntries();
+        for (const dirEntry of dirEntries) {
             const extraCssClasses: string[] = [];
             if (dirEntry.isHidden()) {
                 extraCssClasses.push("hidden-file");
@@ -131,7 +138,7 @@ export class TrsdosTab extends PageTab {
         const exportZipButton = makeTextButton("Export ZIP", "get_app", "export-zip-button", () => {
             const zip = new JSZip();
 
-            for (const dirEntry of trsdos.dirEntries) {
+            for (const dirEntry of dirEntries) {
                 zip.file(dirEntry.getFilename("."), trsdos.readFile(dirEntry), {
                     date: dirEntry.getDate(),
                 });

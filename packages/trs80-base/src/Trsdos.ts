@@ -30,6 +30,40 @@ const NO_PASSWORD = 0xEF5C;
 // Password value for "PASSWORD".
 const PASSWORD = 0xD38F;
 
+// Rotate an 8-bit byte left, putting bit 7 into bit 0.
+function rotateByteLeft(x: number): number {
+    // Make integer.
+    x |= 0;
+
+    // Rotate left.
+    const highBitSet = (x & 0x80) !== 0;
+    return ((x << 1) | (highBitSet ? 1 : 0)) & 0xFF;
+}
+
+// Compute the one-byte HIT hash for an 11-letter filename. Use spaces to fill in
+// the file or extension if necessary (e.g., "FOO     BAS").
+//
+// Based on the assembly code in TRSDOS:
+//
+// https://www.trs-80.com/wordpress/dos-trsdos-v2-3-disassembled/model-i-trsdos-sys2-sys/#509BH
+function hashForFilename(filename: string): number {
+    let hash = 0;
+
+    for (const ch of filename) {
+        const n = ch.charCodeAt(0);
+
+        // XOR in the new byte, then rotate left.
+        hash = rotateByteLeft(n ^ hash);
+    }
+
+    // Don't let it be 0, that means "no file".
+    if (hash === 0) {
+        hash = 1;
+    }
+
+    return hash;
+}
+
 // Various TRSDOS versions, labeled after the model they were made for.
 enum TrsdosVersion {
     MODEL_1,  // TRSDOS 2.3
@@ -349,6 +383,22 @@ function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
     }
 }
 
+function readAndDecodeGetInfo(disk: FloppyDisk, geometry: FloppyDiskGeometry,
+                              version: TrsdosVersion, dirTrackNumber: number): TrsdosGatInfo | string {
+
+    const gatSector = disk.readSector(dirTrackNumber,
+        geometry.lastTrack.firstSide, geometry.lastTrack.firstSector);
+    if (gatSector === undefined) {
+        return "Can't read GAT sector";
+    }
+    const gatInfo = decodeGatInfo(gatSector.data, geometry, version);
+    if (typeof gatInfo === "string") {
+        return "Can't decode GAT (" + gatInfo + ")";
+    }
+
+    return gatInfo;
+}
+
 /**
  * The Hash Allocation Table sector info.
  */
@@ -611,33 +661,105 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
 }
 
 /**
- * A decoded TRSDOS diskette.
+ * A TRSDOS diskette.
  */
 export class Trsdos {
-    public readonly disk: FloppyDisk;
-    public readonly version: TrsdosVersion;
-    public readonly sectorsPerGranule: number;
-    public readonly gatInfo: TrsdosGatInfo;
-    public readonly hitInfo: TrsdosHitInfo;
-    public readonly dirEntries: TrsdosDirEntry[];
+    constructor(
+        public readonly disk: FloppyDisk,
+        public readonly geometry: FloppyDiskGeometry,
+        public readonly version: TrsdosVersion,
+        public readonly dirTrackNumber: number,
+        public readonly sideCount: number,
+        public readonly sectorsPerTrack: number,
+        public readonly granulesPerTrack: number,
+        public readonly sectorsPerGranule: number,
+        public readonly dirEntryLength: number,
+        public readonly dirEntriesPerSector: number) {
 
-    constructor(disk: FloppyDisk, version: TrsdosVersion, sectorsPerGranule: number,
-                gatInfo: TrsdosGatInfo,
-                hitInfo: TrsdosHitInfo, dirEntries: TrsdosDirEntry[]) {
+        // Nothing.
+    }
 
-        this.disk = disk;
-        this.version = version;
-        this.sectorsPerGranule = sectorsPerGranule;
-        this.gatInfo = gatInfo;
-        this.hitInfo = hitInfo;
-        this.dirEntries = dirEntries;
+    public getGatInfo(): TrsdosGatInfo | string {
+        return readAndDecodeGetInfo(this.disk, this.geometry, this.version, this.dirTrackNumber);
+    }
+
+    public getHitInfo(): TrsdosHitInfo | string {
+        // Decode Hash Index Table sector.
+        const hitSector = this.disk.readSector(this.dirTrackNumber,
+            this.geometry.lastTrack.firstSide,
+            this.geometry.lastTrack.firstSector + 1);
+        if (hitSector === undefined) {
+            return "Can't read HIT sector";
+        }
+        const hitInfo = decodeHitInfo(hitSector.data, this.geometry, this.version);
+        if (hitInfo === undefined) {
+            return "Can't decode HIT";
+        }
+
+        return hitInfo;
+    }
+
+    public getDirEntries(): TrsdosDirEntry[] {
+        // Map from position of directory entry to its actual entry. The key is the asKey() result
+        // of DirEntryPosition.
+        const dirEntries = new Map<string, TrsdosDirEntry>();
+
+        // Decode directory entries.
+        for (let side = 0; side < this.sideCount; side++) {
+            for (let sectorIndex = 0; sectorIndex < this.sectorsPerTrack; sectorIndex++) {
+                if (side === 0 && sectorIndex < 2) {
+                    // Skip GAT and HIT.
+                    continue;
+                }
+
+                const sectorNumber = this.geometry.lastTrack.firstSector + sectorIndex;
+                const dirSector = this.disk.readSector(
+                    this.dirTrackNumber, numberToSide(side), sectorNumber);
+                if (dirSector !== undefined) {
+                    for (let i = 0; i < this.dirEntriesPerSector; i++) {
+                        const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
+                        const dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
+                        if (dirEntry !== undefined) {
+                            if (!dirEntry.isExtendedEntry() && dirEntry.isSystemFile() && dirEntry.isActive()) {
+                                // Skip system files.
+                                continue;
+                            }
+                            // TODO it's weird that we skip system files but include empty-filename files?!
+                            // I think we should include them all, but hide them downstream.
+                            dirEntries.set(new DirEntryPosition(side, sectorIndex, i).asKey(), dirEntry);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Keep only good entries (active and not extensions to other entries).
+        const goodDirEntries = [...dirEntries.values()]
+            .filter(d => d.isActive() && !d.isExtendedEntry());
+
+        // Look up continuations by sector/index and update original entries.
+        for (const dirEntry of dirEntries.values()) {
+            if (dirEntry.nextHit !== undefined) {
+                const position = hitNumberToDirEntry(dirEntry.nextHit, this.version,
+                    this.sectorsPerTrack, this.dirEntriesPerSector);
+                const nextDirEntry = dirEntries.get(position.asKey());
+                if (nextDirEntry !== undefined) {
+                    dirEntry.nextDirEntry = nextDirEntry;
+                }
+            }
+        }
+
+        return goodDirEntries;
     }
 
     /**
      * Guess the name of the operating system.
      */
     public getOperatingSystemName(): string {
-        if (this.gatInfo instanceof Trsdos14GatInfo && (this.gatInfo.osVersion & 0xF0) === 0x50) {
+        const gatInfo = this.getGatInfo();
+        if (typeof gatInfo === "string") {
+            return "Unknown";
+        } else if (gatInfo instanceof Trsdos14GatInfo && (gatInfo.osVersion & 0xF0) === 0x50) {
             return "LDOS";
         } else {
             return "TRSDOS";
@@ -648,8 +770,11 @@ export class Trsdos {
      * Return a string for the version of TRSDOS or LDOS this is. There's some guesswork here!
      */
     public getVersion(): string {
-        if (this.gatInfo instanceof Trsdos14GatInfo) {
-            const osVersion = this.gatInfo.osVersion;
+        const gatInfo = this.getGatInfo();
+        if (typeof gatInfo === "string") {
+            return "Unknown";
+        } else if (gatInfo instanceof Trsdos14GatInfo) {
+            const osVersion = gatInfo.osVersion;
             return (osVersion >> 4) + "." + (osVersion & 0x0F);
         } else {
             // Probably Model III, guess 1.3.
@@ -721,7 +846,7 @@ export class Trsdos {
 }
 
 /**
- * Maps an index into the HIT (zero-based) to its sector index and dir entry index.
+ * Map an index into the HIT (zero-based) to its sector index and dir entry index.
  */
 function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion,
                              sectorsPerTrack: number, dirEntriesPerSector: number): DirEntryPosition {
@@ -734,7 +859,7 @@ function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion,
         // Model 3 TRSDOS is always single-sided.
         side = 0;
         // These are laid out continuously.
-        sectorIndex = hitIndex / dirEntriesPerSector + 2;
+        sectorIndex = Math.floor(hitIndex / dirEntriesPerSector) + 2;
         dirEntryIndex = hitIndex % dirEntriesPerSector;
     } else {
         // These are laid out in chunks of 32 to make decoding easier.
@@ -744,6 +869,8 @@ function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion,
         // 35. How are the last two sectors reached?
         // Also, this whole "mod sectorsPerTrack" thing is made up,
         // I don't actually know how to get to the second side.
+        // Is it possible that the second side has no directory track?
+        // TODO Get a TRSDOS 6 disk and examine it.
         side = Math.floor(sectorIndex / sectorsPerTrack);
         sectorIndex %= sectorsPerTrack;
         dirEntryIndex = hitIndex >> 5;
@@ -753,10 +880,34 @@ function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion,
 }
 
 /**
+ * Map a directory sector and dir entry index to an index into the HIT (zero-based).
+ */
+function dirEntryToHitNumber(side: number, sectorIndex: number, dirEntryIndex: number,
+                             version: TrsdosVersion,
+                             sectorsPerTrack: number, dirEntriesPerSector: number): number {
+
+    let hitNumber: number;
+
+    if (side == 0) {
+        sectorIndex -= 2;
+    }
+
+    if (isModel3(version)) {
+        hitNumber = sectorIndex*dirEntriesPerSector + dirEntryIndex;
+    } else {
+        // TODO use side
+        hitNumber = sectorIndex | (dirEntryIndex << 5);
+    }
+
+    return hitNumber;
+}
+
+/**
  * Decode a TRSDOS diskette for a particular version, or return an error string if this does
  * not look like such a diskette.
  */
 function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos | string {
+    // Load boot sector information.
     const geometry = disk.getGeometry();
     const bootSector = disk.readSector(geometry.firstTrack.trackNumber,
         geometry.firstTrack.firstSide, geometry.firstTrack.firstSector);
@@ -768,14 +919,9 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
         return "Invalid directory track number (" + dirTrackNumber + ")";
     }
 
-    // Decode Granule Allocation Table sector.
-    const gatSector = disk.readSector(dirTrackNumber, geometry.lastTrack.firstSide, geometry.lastTrack.firstSector);
-    if (gatSector === undefined) {
-        return "Can't read GAT sector";
-    }
-    const gatInfo = decodeGatInfo(gatSector.data, geometry, version);
+    const gatInfo = readAndDecodeGetInfo(disk, geometry, version, dirTrackNumber);
     if (typeof gatInfo === "string") {
-        return "Can't decode GAT (" + gatInfo + ")";
+        return gatInfo;
     }
 
     const sideCount = getSideCount(geometry, version);
@@ -820,7 +966,9 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
         return `Sectors per track ${sectorsPerTrack} is not a multiple of granules per track ${granulesPerTrack}`;
     }
 
-    if (!isModel3(version)) {
+    if (isModel3(version)) {
+        // TODO can we verify sectorsPerGranule for Model III?
+    } else {
         if (geometry.lastTrack.density === Density.SINGLE && sectorsPerGranule !== 5 && sectorsPerGranule !== 8) {
             return "Invalid sectors per granule for single density: " + sectorsPerGranule;
         }
@@ -830,69 +978,38 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
         }
     }
 
-    // Decode Hash Index Table sector.
-    const hitSector = disk.readSector(dirTrackNumber, geometry.lastTrack.firstSide,
-        geometry.lastTrack.firstSector + 1);
-    if (hitSector === undefined) {
-        return "Can't read HIT sector";
-    }
-    const hitInfo = decodeHitInfo(hitSector.data, geometry, version);
-    if (hitInfo === undefined) {
-        return "Can't decode HIT";
-    }
+    // Check directory sectors for magic string.
+    if (isModel3(version)) {
+        for (let side = 0; side < sideCount; side++) {
+            for (let sectorIndex = 0; sectorIndex < sectorsPerTrack; sectorIndex++) {
+                if (side === 0 && sectorIndex < 2) {
+                    // Skip GAT and HIT.
+                    continue;
+                }
 
-    // Map from position of directory entry to its actual entry. The key is the asKey() result
-    // of DirEntryPosition.
-    const dirEntries = new Map<string, TrsdosDirEntry>();
-
-    // Decode directory entries.
-    for (let side = 0; side < sideCount; side++) {
-        for (let sectorIndex = 0; sectorIndex < geometry.lastTrack.numSectors(); sectorIndex++) {
-            if (side === 0 && sectorIndex < 2) {
-                // Skip GAT and HIT.
-                continue;
-            }
-
-            const sectorNumber = geometry.firstTrack.firstSector + sectorIndex;
-            const dirSector = disk.readSector(dirTrackNumber, numberToSide(side), sectorNumber);
-            if (dirSector !== undefined) {
-                // Sanity check Model III entry.
-                if (isModel3(version)) {
+                const sectorNumber = geometry.lastTrack.firstSector + sectorIndex;
+                const dirSector = disk.readSector(dirTrackNumber, numberToSide(side), sectorNumber);
+                if (dirSector !== undefined) {
                     const tandy = decodeAscii(dirSector.data.subarray(dirEntriesPerSector * dirEntryLength));
                     if (tandy !== EXPECTED_TANDY) {
-                        return `Expected "${EXPECTED_TANDY}", got "${tandy}"`;
-                    }
-                }
-                for (let i = 0; i < dirEntriesPerSector; i++) {
-                    const dirEntryBinary = dirSector.data.subarray(i * dirEntryLength, (i + 1) * dirEntryLength);
-                    const dirEntry = decodeDirEntry(dirEntryBinary, geometry, version);
-                    if (dirEntry !== undefined) {
-                        if (!dirEntry.isExtendedEntry() && dirEntry.isSystemFile() && dirEntry.isActive()) {
-                            // Skip system files.
-                            continue;
-                        }
-                        dirEntries.set(new DirEntryPosition(side, sectorIndex, i).asKey(), dirEntry);
+                        return `Expected "${EXPECTED_TANDY}", got "${tandy}", on sector ${sectorNumber} of side ${side}`;
                     }
                 }
             }
         }
     }
 
-    // Keep only good entries (active and not extensions to other entries).
-    const goodDirEntries = Array.from(dirEntries.values()).filter(d => d.isActive() && !d.isExtendedEntry());
+    const trsdos = new Trsdos(disk, geometry, version, dirTrackNumber,
+        sideCount, sectorsPerTrack, granulesPerTrack, sectorsPerGranule,
+        dirEntryLength, dirEntriesPerSector);
 
-    // Look up continuations by sector/index and update original entries.
-    for (const dirEntry of dirEntries.values()) {
-        if (dirEntry.nextHit !== undefined) {
-            const position = hitNumberToDirEntry(dirEntry.nextHit, version, sectorsPerTrack, dirEntriesPerSector);
-            const nextDirEntry = dirEntries.get(position.asKey());
-            if (nextDirEntry !== undefined) {
-                dirEntry.nextDirEntry = nextDirEntry;
-            }
-        }
+    // Make sure HIT can be read and parsed.
+    const hitInfo = trsdos.getHitInfo();
+    if (typeof hitInfo === "string") {
+        return hitInfo;
     }
 
-    return new Trsdos(disk, version, sectorsPerGranule, gatInfo, hitInfo, goodDirEntries);
+    return trsdos;
 }
 
 /**

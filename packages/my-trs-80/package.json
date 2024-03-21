@@ -21,9 +21,10 @@
     "@types/node": "^16.0.0",
     "pbjs": "^0.0.14",
     "snowpack": "^3.8.8",
-    "typescript": "^4.0.0"
+    "typescript": "^4.9.5"
   },
   "dependencies": {
+    "@snowpack/plugin-typescript": "^1.2.1",
     "base64-js": "^1.5.1",
     "firebase": "^8.3.0",
     "firebaseui": "^4.8.0",

@@ -140,7 +140,7 @@ export class Archive {
             if (isFloppy(file)) {
                 const trsdos = decodeTrsdos(file);
                 if (trsdos !== undefined) {
-                    for (const dirEntry of trsdos.dirEntries) {
+                    for (const dirEntry of trsdos.getDirEntries()) {
                         this.files.push(new TrsdosFile(trsdos, dirEntry));
                     }
                 } else {

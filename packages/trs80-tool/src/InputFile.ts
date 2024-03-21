@@ -167,7 +167,7 @@ export function expandFile(inFilename: string): InputFile[] {
                 inFiles.push(new InputFile(base, buffer, trs80File));
             } else {
                 // Expand floppy.
-                for (const dirEntry of trsdos.dirEntries) {
+                for (const dirEntry of trsdos.getDirEntries()) {
                     inFiles.push(new TrsdosInputFile(trsdos, dirEntry));
                 }
             }
