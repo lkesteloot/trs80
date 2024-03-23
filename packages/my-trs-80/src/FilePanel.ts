@@ -49,7 +49,7 @@ export class FilePanel extends TabbedPanel implements IFilePanel {
             case "DmkFloppyDisk":
                 const trsdos = decodeTrsdos(trs80File);
                 if (trsdos !== undefined) {
-                    this.pageTabs.addTab(new TrsdosTab(this, trsdos));
+                    this.pageTabs.addTab(new TrsdosTab(this, trs80File, trsdos));
                 }
                 break;
 

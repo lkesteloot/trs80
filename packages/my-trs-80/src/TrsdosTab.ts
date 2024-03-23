@@ -1,5 +1,5 @@
 
-import {decodeTrs80File, Trsdos, trsdosProtectionLevelToString} from "trs80-base";
+import {decodeTrs80File, Trs80File, Trsdos, trsdosProtectionLevelToString} from "trs80-base";
 import {PageTab} from "./PageTab";
 import {withCommas} from "teamten-ts-utils";
 import {makeIcon, makeTextButton} from "./Utils";
@@ -11,7 +11,7 @@ import JSZip from "jszip";
  * Handles the TRSDOS tab in the file panel.
  */
 export class TrsdosTab extends PageTab {
-    constructor(filePanel: IFilePanel, trsdos: Trsdos) {
+    constructor(filePanel: IFilePanel, trs80File: Trs80File, trsdos: Trsdos) {
         super("TRSDOS");
 
         this.element.classList.add("trsdos-tab");
@@ -37,6 +37,7 @@ export class TrsdosTab extends PageTab {
             }
             infoDiv.append(valueSpan);
         };
+        addField("File type", trs80File.getDescription(), "file-type");
         addField("Version", trsdos.getOperatingSystemName() + " " + trsdos.getVersion(), "version");
         const gatInfo = trsdos.getGatInfo();
         if (typeof gatInfo === "string") {
