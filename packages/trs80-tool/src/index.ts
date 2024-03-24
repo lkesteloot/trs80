@@ -19,6 +19,7 @@ import {disasm} from "./disasm.js";
 import { run } from "./run.js";
 import { repl } from "./repl.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
+import { mount } from "./mount.js";
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -77,7 +78,7 @@ function main() {
     program
         .command("info <infiles...>")
         .description("show information about each file", {
-            infile: "any TRS-80 file",
+            infiles: "any TRS-80 files",
         })
         .option("--verbose", "output more information about each file")
         .action((infiles, options) => {
@@ -86,7 +87,7 @@ function main() {
     program
         .command("convert <files...>")
         .description("convert one or more infiles to one outfile", {
-            infile: "WAV, CAS, CMD, 3BN, or BAS file",
+            infile: "WAV, CAS, CMD, 3BN, or BAS file", // TODO these aren't used.
             outfile: "WAV, CAS, CMD, 3BN, BAS, ASM, or LST file",
         })
         .option("--baud <baud>", "output baud rate (250, 500, 1000, or 1500)")
@@ -105,9 +106,18 @@ function main() {
             convert(infiles, outfile, baud, start, entryPoints);
         });
     program
+        .command("mount <diskfile> [commands...]")
+        .description("mount a floppy file and perform operations on it", {
+            diskfile: "JV1, JV3, DMK, or DSK file",
+            commands: "import FILE [as FILE], export FILE [as FILE], delete FILE, rename FILE to FILE"
+        })
+        .action((diskfile, commands, options) => {
+            mount(diskfile, commands);
+        });
+    program
         .command("sectors <infiles...>")
         .description("show a sector map for each floppy file", {
-            infile: "any TRS-80 floppy file",
+            infiles: "any TRS-80 floppy files",
         })
         .option("--contents", "show the contents of the sectors")
         .action((infiles, options) => {

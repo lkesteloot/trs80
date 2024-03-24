@@ -29,22 +29,34 @@ export function replaceExtension(pathname: string, extension: string): string {
 }
 
 /**
+ * Load a file and return its bytes, or an error.
+ */
+export function loadFile(filename: string): Uint8Array | string {
+    let buffer;
+    try {
+        buffer = fs.readFileSync(filename);
+    } catch (e: any) {
+        return `Can't open file "${filename}" (${e.message})`;
+    }
+
+    return new Uint8Array(buffer.buffer);
+}
+
+/**
  * Synchronously read a TRS-80 file, or return an error string.
  *
  * TODO: This pattern appears several times in this file.
  */
 export function readTrs80File(filename: string): Trs80File | AudioFile | string {
-    let buffer;
-    try {
-        buffer = fs.readFileSync(filename);
-    } catch (e: any) {
-        return filename + ": Can't open file: " + e.message;
+    const binary = loadFile(filename);
+    if (typeof binary === "string") {
+        return binary;
     }
 
     const extension = path.parse(filename).ext.toUpperCase();
     if (extension === ".WAV") {
         try {
-            return readWavFile(buffer.buffer);
+            return readWavFile(binary);
         } catch (e: any) {
             if (e.message) {
                 return filename + ": " + e.message;
@@ -54,7 +66,7 @@ export function readTrs80File(filename: string): Trs80File | AudioFile | string 
         }
     }
 
-    const trs80File = decodeTrs80File(buffer, filename);
+    const trs80File = decodeTrs80File(binary, filename);
     if (trs80File.error !== undefined) {
         return filename + ": " + trs80File.error;
     }

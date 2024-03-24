@@ -11,6 +11,7 @@ const DIRECTORY_TRACK = 17;
  */
 export class Jv1FloppyDisk extends FloppyDisk {
     public readonly className = "Jv1FloppyDisk";
+    public readonly supportsWriting = true;
     private readonly geometry: FloppyDiskGeometry;
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
@@ -87,6 +88,26 @@ export class Jv1FloppyDisk extends FloppyDisk {
         }
 
         return sectorData;
+    }
+
+    public writeSector(trackNumber: number, side: Side,
+                       sectorNumber: number, data: SectorData): void {
+
+        if (trackNumber < 0 ||
+            side === Side.BACK ||
+            sectorNumber >= SECTORS_PER_TRACK ||
+            data.data.length !== BYTES_PER_SECTOR) {
+
+            throw new Error("invalid write sector parameter");
+        }
+
+        // Offset straight into data.
+        const offset = (SECTORS_PER_TRACK*trackNumber + sectorNumber)*BYTES_PER_SECTOR;
+        if (offset > this.binary.length - BYTES_PER_SECTOR) {
+            throw new Error("binary too short for sector write");
+        }
+
+        this.binary.set(data.data, offset);
     }
 }
 

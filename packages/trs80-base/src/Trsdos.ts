@@ -247,7 +247,9 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
     const extents: TrsdosExtent[] = [];
 
     for (let i = begin; i < end; i += 2) {
-        if (binary[i] === 0xFF && binary[i + 1] === 0xFF) {
+        // 0xFF means end of extents, 0xFE means extension pointer.
+        // TODO that's for trackFirst, not sure about !trackFirst.
+        if (binary[i] === 0xFF || binary[i] === 0xFE) {
             break;
         }
 
@@ -276,14 +278,21 @@ export class TrsdosGatInfo {
     // to first granule in track, etc. In Model 1/4, higher bits are 1, in Model 3 they're zero.
     public readonly gat: Uint8Array;
 
+    // Lock out table, one byte per track. These are per-track, not per-granule.
+    // 0xFF means locked out, 0xFC means available.
+    public readonly lockOut: Uint8Array;
+
     // All models:
     public readonly password: number;
     public readonly name: string;
     public readonly date: string;
     public readonly autoCommand: string;
 
-    constructor(gat: Uint8Array, password: number, name: string, date: string, autoCommand: string) {
+    constructor(gat: Uint8Array, lockOut: Uint8Array,
+                password: number, name: string, date: string, autoCommand: string) {
+
         this.gat = gat;
+        this.lockOut = lockOut;
         this.password = password;
         this.name = name;
         this.date = date;
@@ -327,11 +336,12 @@ export class Trsdos14GatInfo extends TrsdosGatInfo {
     public readonly sideCount: number;
     public readonly density: Density;
 
-    constructor(gat: Uint8Array, password: number, name: string, date: string, autoCommand: string,
+    constructor(gat: Uint8Array, lockOut: Uint8Array,
+                password: number, name: string, date: string, autoCommand: string,
                 osVersion: number, cylinderCount: number, granulesPerTrack: number,
                 sideCount: number, density: Density) {
 
-        super(gat, password, name, date, autoCommand);
+        super(gat, lockOut, password, name, date, autoCommand);
         this.osVersion = osVersion;
         this.cylinderCount = cylinderCount;
         this.granulesPerTrack = granulesPerTrack;
@@ -346,6 +356,10 @@ export class Trsdos14GatInfo extends TrsdosGatInfo {
 function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosGatInfo | string {
     // One byte for each track. Each bit is a granule, 0 means free and 1 means used.
     const gat = binary.subarray(0, geometry.numTracks());
+
+    // Lock out table, one byte per track. These are per-track, not per-granule.
+    // 0xFF means locked out, 0xFC means available.
+    const lockOut = binary.subarray(0x60, 0x60 + geometry.numTracks());
 
     // Assume big endian.
     const password = word(binary[0xCE], binary[0xCF]);
@@ -367,7 +381,7 @@ function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
     }
 
     if (isModel3(version)) {
-        return new TrsdosGatInfo(gat, password, name, date, autoCommand);
+        return new TrsdosGatInfo(gat, lockOut, password, name, date, autoCommand);
     } else {
         // Additional fields for Model 1 and 4.
         const osVersion = binary[0xCB];
@@ -380,12 +394,12 @@ function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
         // TODO data disks only reserve 2 entries for system files, not 16. But I don't know which two!
         const isDataDisk = osVersion === 0x60 && (flags & 0x80) !== 0;
 
-        return new Trsdos14GatInfo(gat, password, name, date, autoCommand,
+        return new Trsdos14GatInfo(gat, lockOut, password, name, date, autoCommand,
             osVersion, cylinderCount, granulesPerTrack, sideCount, density);
     }
 }
 
-function readAndDecodeGetInfo(disk: FloppyDisk, geometry: FloppyDiskGeometry,
+function readAndDecodeGatInfo(disk: FloppyDisk, geometry: FloppyDiskGeometry,
                               version: TrsdosVersion, dirTrackNumber: number): TrsdosGatInfo | string {
 
     const gatSector = disk.readSector(dirTrackNumber,
@@ -405,7 +419,9 @@ function readAndDecodeGetInfo(disk: FloppyDisk, geometry: FloppyDiskGeometry,
  * The Hash Allocation Table sector info.
  */
 export class TrsdosHitInfo {
+    // 80 bytes for Model III, 256 bytes for Models 1 and 4:
     public readonly hit: Uint8Array;
+    // Model III only:
     public readonly systemFiles: TrsdosExtent[];
 
     constructor(hit: Uint8Array, systemFiles: TrsdosExtent[]) {
@@ -443,7 +459,7 @@ export class TrsdosDirEntry {
     public readonly month: number;
     public readonly year: number;
     public readonly lastSectorSize: number;
-    // Logical record length.
+    // Logical record length. I think this is unused.
     public readonly lrl: number;
     public readonly rawFilename: string;
     public readonly updatePassword: number;
@@ -451,8 +467,12 @@ export class TrsdosDirEntry {
     // This is the number of *full* sectors. It doesn't include a possible
     // additional partial sector of "lastSectorSize" bytes.
     public readonly sectorCount: number;
-    // HIT entry of the extended directory entry, if any.
-    public readonly nextHit: number | undefined;
+    // Directory entry code of the primary directory entry, if any.
+    public readonly prevDec: number | undefined;
+    // Directory entry code of the extended directory entry, if any.
+    public readonly nextDec: number | undefined;
+    // Link to previous (primary) directory entry.
+    public prevDirEntry: TrsdosDirEntry | undefined = undefined;
     // Link to next (extended) directory entry.
     public nextDirEntry: TrsdosDirEntry | undefined = undefined;
     public readonly extents: TrsdosExtent[];
@@ -460,7 +480,10 @@ export class TrsdosDirEntry {
     constructor(version: TrsdosVersion, flags: number, day: number, month: number, year: number,
                 lastSectorSize: number, lrl: number,
                 filename: string, updatePassword: number, accessPassword: number,
-                sectorCount: number, nextHit: number | undefined, extents: TrsdosExtent[]) {
+                sectorCount: number,
+                prevDec: number | undefined,
+                nextDec: number | undefined,
+                extents: TrsdosExtent[]) {
 
         this.version = version;
         this.flags = flags;
@@ -473,7 +496,8 @@ export class TrsdosDirEntry {
         this.updatePassword = updatePassword;
         this.accessPassword = accessPassword;
         this.sectorCount = sectorCount;
-        this.nextHit = nextHit;
+        this.prevDec = prevDec;
+        this.nextDec = nextDec;
         this.extents = extents;
     }
 
@@ -553,14 +577,14 @@ export class TrsdosDirEntry {
      * Get the basename (part before the period) of the filename.
      */
     public getBasename(): string {
-        return this.rawFilename.substr(0, 8).trim();
+        return this.rawFilename.substring(0, 8).trim();
     }
 
     /**
      * Get the extension of the filename.
      */
     public getExtension(): string {
-        return this.rawFilename.substr(8).trim();
+        return this.rawFilename.substring(8).trim();
     }
 
     /**
@@ -621,6 +645,10 @@ export class TrsdosDirEntry {
 function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosDirEntry | undefined {
     const flags = binary[0];
 
+    // DEC to previous entry, if we're an extended entry.
+    const prevDec = (flags & 0x80) !== 0 ? binary[1] : undefined;
+
+    // Date.
     const month = binary[1] & 0x0F;
     // binary[1] has a few extra bits on Model 1/4 that we don't care about.
 
@@ -643,7 +671,7 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     const sectorCount = word(binary[21], binary[20]);
 
     // Number of extents listed in the directory entry.
-    const extentsCount = isModel3(version) ? 13 : 4;
+    const extentsCount = isModel3(version) ? 13 : 5;
 
     // Byte offsets.
     const extentsStart = 22;
@@ -651,7 +679,7 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     const extents = decodeExtents(binary, extentsStart, extentsEnd, geometry, version, true);
 
     // On model 1/4 bytes 30 and 31 point to extended directory entry, if any.
-    const nextHit = !isModel3(version) && binary[30] === 0xFE ? binary[31] : undefined;
+    const nextDec = !isModel3(version) && binary[30] === 0xFE ? binary[31] : undefined;
 
     if (filename === undefined || extents === undefined) {
         // This signals empty directory, but really should imply a non-TRSDOS disk.
@@ -659,7 +687,7 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     }
 
     return new TrsdosDirEntry(version, flags, day, month, year, lastSectorSize, lrl, filename, updatePassword,
-        accessPassword, sectorCount, nextHit, extents);
+        accessPassword, sectorCount, prevDec, nextDec, extents);
 }
 
 /**
@@ -682,7 +710,7 @@ export class Trsdos {
     }
 
     public getGatInfo(): TrsdosGatInfo | string {
-        return readAndDecodeGetInfo(this.disk, this.geometry, this.version, this.dirTrackNumber);
+        return readAndDecodeGatInfo(this.disk, this.geometry, this.version, this.dirTrackNumber);
     }
 
     public getHitInfo(): TrsdosHitInfo | string {
@@ -721,13 +749,8 @@ export class Trsdos {
                     for (let i = 0; i < this.dirEntriesPerSector; i++) {
                         const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
                         const dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
+                        // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                         if (dirEntry !== undefined) {
-                            if (!dirEntry.isExtendedEntry() && dirEntry.isSystemFile() && dirEntry.isActive()) {
-                                // Skip system files.
-                                continue;
-                            }
-                            // TODO it's weird that we skip system files but include empty-filename files?!
-                            // I think we should include them all, but hide them downstream.
                             dirEntries.set(new DirEntryPosition(side, sectorIndex, i).asKey(), dirEntry);
                         }
                     }
@@ -735,14 +758,18 @@ export class Trsdos {
             }
         }
 
-        // Keep only good entries (active and not extensions to other entries).
-        const goodDirEntries = [...dirEntries.values()]
-            .filter(d => d.isActive() && !d.isExtendedEntry());
-
         // Look up continuations by sector/index and update original entries.
         for (const dirEntry of dirEntries.values()) {
-            if (dirEntry.nextHit !== undefined) {
-                const position = hitNumberToDirEntry(dirEntry.nextHit, this.version,
+            if (dirEntry.prevDec !== undefined) {
+                const position = hitNumberToDirEntry(dirEntry.prevDec, this.version,
+                    this.sectorsPerTrack, this.dirEntriesPerSector);
+                const prevDirEntry = dirEntries.get(position.asKey());
+                if (prevDirEntry !== undefined) {
+                    dirEntry.prevDirEntry = prevDirEntry;
+                }
+            }
+            if (dirEntry.nextDec !== undefined) {
+                const position = hitNumberToDirEntry(dirEntry.nextDec, this.version,
                     this.sectorsPerTrack, this.dirEntriesPerSector);
                 const nextDirEntry = dirEntries.get(position.asKey());
                 if (nextDirEntry !== undefined) {
@@ -751,7 +778,36 @@ export class Trsdos {
             }
         }
 
+        if (2 > 3) {
+            // Find extended entries, for debugging. TODO remove.
+            for (const dirEntry of dirEntries.values()) {
+                if (dirEntry.isExtendedEntry()) {
+                    console.log("extended entry", dirEntry);
+                }
+            }
+        }
+
+        // Keep only good entries. TODO consider keeping system files, we don't know if
+        // caller will want them. Hide them in the UX if necessary.
+        const goodDirEntries = [...dirEntries.values()]
+            .filter(d => d.isActive() && !d.isExtendedEntry() && !d.isSystemFile());
+
         return goodDirEntries;
+    }
+
+    /**
+     * Filename must be in TRSDOS format ("FOO/CMD").
+     */
+    public findFile(filename: string): TrsdosDirEntry | undefined {
+        // TODO make this more efficient, maybe pass in filter.
+        const entries = this.getDirEntries();
+        for (const entry of entries) {
+            if (entry.getFilename("/") === filename) {
+                return entry;
+            }
+        }
+
+        return undefined;
     }
 
     /**
@@ -845,6 +901,22 @@ export class Trsdos {
         // Clip to size. In principle this is cheap because it's a view.
         return binary.subarray(0, fileSize);
     }
+
+    /**
+     * Write the binary for a file on the diskette.
+     *
+     * @param binary the bytes to write to the file.
+     * @param filename TRSDOS filename, with a slash for the extension ("FOO/CMD").
+     * @return a string if an error occurred.
+     */
+    public writeFile(binary: Uint8Array, filename: string): string | undefined {
+        const entry = this.findFile(filename);
+        if (entry !== undefined) {
+            return `The file "${filename}" already exists; delete it first`;
+        }
+
+        return undefined;
+    }
 }
 
 /**
@@ -864,11 +936,27 @@ function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion,
         sectorIndex = Math.floor(hitIndex / dirEntriesPerSector) + 2;
         dirEntryIndex = hitIndex % dirEntriesPerSector;
     } else {
-        // These are laid out in chunks of 32 to make decoding easier.
-        sectorIndex = (hitIndex & 0x1F) + 2;
+        // The hit index has format IIISSSSS where III is the index within
+        // the sector (0-7, Model 1/4 has 8 dir entries per sector) and
+        // SSSSS is the sector number minus 2 (we know the first two
+        // sectors can't contain dir entries, they're GAT/HIT).
+
+        // Also, entry indexes 0 and 1 are reserved for system files.
+        // Entry 0 on sector 2 is BOOT/SYS, followed by entry 0 on
+        // sector 3 (DIR/SYS), entry 0 on sector 4 (SYS0/SYS), and
+        // so on, wrapping back to sector 2, entry 1 (SYS6/SYS).
+        // The algorithm that looks for empty HIT entries when creating
+        // a new file (0x50AB in SYS2/SYS) does not even consider entries
+        // 0 and 1 of each sector. This leaves 48 possible HIT entries
+        // for user files: 6 entries per sector, times 8 sectors (10
+        // sectors per track minus 2 for HIT and GAT).
+
         // Mystery: the sectorIndex variable is in the range [2,33], but
-        // disks can have 18 sectors per side, for a highest value of
-        // 35. How are the last two sectors reached?
+        // disks can have 18 sectors per side (when double density), for
+        // a highest value of 35. How are the last two sectors reached?
+
+        sectorIndex = (hitIndex & 0x1F) + 2;
+
         // Also, this whole "mod sectorsPerTrack" thing is made up,
         // I don't actually know how to get to the second side.
         // Is it possible that the second side has no directory track?
@@ -921,7 +1009,7 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
         return "Invalid directory track number (" + dirTrackNumber + ")";
     }
 
-    const gatInfo = readAndDecodeGetInfo(disk, geometry, version, dirTrackNumber);
+    const gatInfo = readAndDecodeGatInfo(disk, geometry, version, dirTrackNumber);
     if (typeof gatInfo === "string") {
         return gatInfo;
     }
