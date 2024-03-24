@@ -296,10 +296,6 @@ export class FloppyDiskGeometry {
  */
 export abstract class FloppyDisk extends AbstractTrs80File {
     public readonly supportsDoubleDensity: boolean;
-    /**
-     * Whether the floppy format supports the writeSector() method.
-     */
-    public readonly supportsWriting: boolean = false;
 
     protected constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
                           supportsDoubleDensity: boolean) {
@@ -314,6 +310,15 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     public abstract getGeometry(): FloppyDiskGeometry;
 
     /**
+     * This can return true to mean that this file format does not
+     * support writing at all (the writeSector() method is not implemented)
+     * or that it's implemented but the file is virtually write-protected.
+     */
+    public isWriteProtected(): boolean {
+        return true;
+    }
+
+    /**
      * Read a sector on the specified track, side, and sector.
      *
      * @param trackNumber the track the sector resides on.
@@ -325,8 +330,8 @@ export abstract class FloppyDisk extends AbstractTrs80File {
                                sectorNumber: number | undefined): SectorData | undefined;
 
     /**
-     * Write a sector to the specified track, side, and sector. Throws an exception
-     * if writing is not supported, so check first with supportsWriting.
+     * Write a sector to the specified track, side, and sector. Throw an exception
+     * if writing is not supported, so check first with isWriteProtected().
      */
     public writeSector(trackNumber: number, side: Side,
                        sectorNumber: number, data: SectorData): void {

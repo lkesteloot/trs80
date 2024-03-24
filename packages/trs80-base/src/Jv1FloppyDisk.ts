@@ -11,7 +11,6 @@ const DIRECTORY_TRACK = 17;
  */
 export class Jv1FloppyDisk extends FloppyDisk {
     public readonly className = "Jv1FloppyDisk";
-    public readonly supportsWriting = true;
     private readonly geometry: FloppyDiskGeometry;
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[]) {
@@ -62,6 +61,10 @@ export class Jv1FloppyDisk extends FloppyDisk {
         return this.geometry;
     }
 
+    public isWriteProtected(): boolean {
+        return false;
+    }
+
     public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
         sectorNumber = sectorNumber ?? 0;
 
@@ -92,6 +95,8 @@ export class Jv1FloppyDisk extends FloppyDisk {
 
     public writeSector(trackNumber: number, side: Side,
                        sectorNumber: number, data: SectorData): void {
+
+        // TODO This method has never been tested.
 
         if (trackNumber < 0 ||
             side === Side.BACK ||

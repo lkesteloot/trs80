@@ -6,7 +6,7 @@
  * https://hansotten.file-hunter.com/technical-info/wd1793/
  */
 
-import {FloppyDisk, SectorData, Side} from "trs80-base";
+import {Density, FloppyDisk, SectorData, Side} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Machine} from "./Machine.js";
 import {toHexByte} from "z80-base";
@@ -14,9 +14,6 @@ import {EventType} from "./EventScheduler.js";
 
 // Enable debug logging.
 const DEBUG_LOG = false;
-
-// Whether this controller supports writing.
-const SUPPORT_WRITING = false;
 
 // Number of physical drives.
 export const FLOPPY_DRIVE_COUNT = 4;
@@ -180,7 +177,6 @@ function isReadWriteCommand(command: number): boolean {
  */
 class FloppyDrive {
     public physicalTrack = 0;
-    public writeProtected = true;
     public floppyDisk: FloppyDisk | undefined = undefined;
 }
 
@@ -445,7 +441,7 @@ export class FloppyDiskController {
                     () => this.done(0));
                 break;
 
-            case COMMAND_READ:
+            case COMMAND_READ: {
                 // Read the sector. The bytes will be read later.
                 this.lastReadAddress = undefined;
                 this.status = STATUS_BUSY;
@@ -474,11 +470,31 @@ export class FloppyDiskController {
                         () => this.firstDrq(newStatus));
                 }
                 break;
+            }
 
-            case COMMAND_WRITE:
-                console.log(`Sector write: ${drive.physicalTrack}, ${this.sector}, ${this.side}`);
-                this.status = STATUS_WRITE_PROTECTED;
+            case COMMAND_WRITE: {
+                // console.log(`Sector write: ${drive.physicalTrack}, ${this.sector}, ${this.side}`);
+                this.lastReadAddress = undefined;
+                this.status = 0;
+
+                // Not sure how to use this. Ignored for now:
+                const goalSide = (cmd & MASK_C) === 0 ? undefined : booleanToSide((cmd & MASK_B) !== 0);
+
+                if (drive.floppyDisk === undefined) {
+                    this.status |= STATUS_NOT_FOUND | STATUS_BUSY;
+                    this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 512,
+                        () => this.done(0));
+                } else if (drive.floppyDisk.isWriteProtected()) {
+                    this.status = STATUS_WRITE_PROTECTED;
+                } else {
+                    const deleted = (cmd & MASK_D) !== 0;
+                    this.dataIndex = 0;
+                    // TODO get size and density from somewhere:
+                    this.sectorData = new SectorData(new Uint8Array(256), Density.SINGLE);
+                    this.firstDrq(STATUS_BUSY);
+                }
                 break;
+            }
 
             case COMMAND_FORCE_INTERRUPT:
                 // Stop whatever is going on and forget it.
@@ -496,7 +512,7 @@ export class FloppyDiskController {
                 break;
 
             default:
-                throw new Error("Don't handle command 0x" + toHexByte(cmd));
+                throw new Error("Don't handle FDC command 0x" + toHexByte(cmd));
         }
     }
 
@@ -521,9 +537,28 @@ export class FloppyDiskController {
             // console.log("writeData(" + toHexByte(data) + ")");
         }
 
-        const command = this.currentCommand & COMMAND_MASK;
-        if (command === COMMAND_WRITE || command === COMMAND_WRITE_TRACK) {
-            throw new Error("Can't yet write data");
+        switch (this.currentCommand & COMMAND_MASK) {
+            case COMMAND_WRITE:
+                if (this.sectorData !== undefined && this.dataIndex < this.sectorData.data.length) {
+                    this.sectorData.data[this.dataIndex] = data;
+                    this.dataIndex += 1;
+                    if (this.dataIndex === this.sectorData.data.length) {
+                        const floppyDisk = this.drives[this.currentDrive].floppyDisk;
+                        if (floppyDisk !== undefined) {
+                            floppyDisk.writeSector(this.track, this.side, this.sector, this.sectorData);
+                        }
+
+                        this.sectorData = undefined;
+                        this.dataIndex = 0;
+
+                        this.status &= ~STATUS_DRQ;
+                        this.machine.diskDrqInterrupt(false);
+                        this.machine.eventScheduler.cancelByEventTypeMask(EventType.DISK_LOST_DATA);
+                        this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 64,
+                            () => this.done(0));
+                    }
+                }
+                break;
         }
 
         this.data = data;
@@ -645,7 +680,7 @@ export class FloppyDiskController {
             }
 
             // See if the diskette is write protected.
-            if (drive.writeProtected || !SUPPORT_WRITING) {
+            if (drive.floppyDisk.isWriteProtected()) {
                 this.status |= STATUS_WRITE_PROTECTED;
             } else {
                 this.status &= ~STATUS_WRITE_PROTECTED;

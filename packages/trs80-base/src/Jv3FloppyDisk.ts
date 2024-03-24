@@ -190,6 +190,10 @@ export class Jv3FloppyDisk extends FloppyDisk {
         return this.geometry;
     }
 
+    public isWriteProtected(): boolean {
+        return this.writeProtected;
+    }
+
     public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
         const sectorInfo = this.findSectorInfo(trackNumber, side, sectorNumber);
         if (sectorInfo === undefined) {
@@ -203,6 +207,27 @@ export class Jv3FloppyDisk extends FloppyDisk {
         sectorData.deleted = sectorInfo.isDeleted();
         sectorData.crcError = sectorInfo.hasCrcError();
         return sectorData;
+    }
+
+    public writeSector(trackNumber: number, side: Side, sectorNumber: number, data: SectorData) {
+        if (this.isWriteProtected()) {
+            // Shouldn't happen, failure upstream.
+            throw new Error("tried to write sector to Jv3 but it's write protected");
+        }
+
+        const sectorInfo = this.findSectorInfo(trackNumber, side, sectorNumber);
+        if (sectorInfo === undefined) {
+            // Not sure how to handle this.
+            console.log(`JV3 write sector not found ${trackNumber}, ${side}, ${sectorNumber}`);
+            return;
+        }
+
+        if (sectorInfo.size !== data.data.length) {
+            throw new Error(`size mismatch when writing sector (${sectorInfo.size} vs. ${data.data.length}`);
+        }
+
+        this.binary.set(data.data, sectorInfo.offset);
+        // TODO update deleted and CRC.
     }
 
     /**
