@@ -71,7 +71,7 @@ import {getDefaultExample} from "./UserInterface";
 import {getInitialSpaceCount} from "./utils";
 import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
 import {solarizedDark} from 'cm6-theme-solarized-dark'
-import {asmToCmdBinary, asmToSystemBinary} from "trs80-asm"
+import {asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary} from "trs80-asm"
 import {variablePillPlugin} from "./VariablePillPlugin";
 
 // Keys for local storage.
@@ -1513,6 +1513,24 @@ export class Editor {
         }
 
         return asmToSystemBinary(name, entryPoint, results.asm);
+    }
+
+    /**
+     * Make a raw binary file, loading at address 0, from the assembled code.
+     */
+    public makeRawBinaryFile(): Uint8Array {
+        const results = this.getAssemblyResults();
+        return asmToRawBinary(0, results.asm);
+    }
+
+    /**
+     * Make an Intel HEX file from the assembled code.
+     */
+    public makeIntelHexFile(): Uint8Array {
+        const results = this.getAssemblyResults();
+        const lines = asmToIntelHex(results.asm);
+        const text = lines.join("\n") + "\n";
+        return new TextEncoder().encode(text);
     }
 
     /**

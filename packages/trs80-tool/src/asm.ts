@@ -3,7 +3,7 @@ import * as path from "path";
 import chalk from "chalk";
 import {pluralizeWithCount} from "./utils.js";
 import {Z80_KNOWN_LABELS, toHex, toHexWord } from "z80-base";
-import { asmToCmdBinary, asmToSystemBinary } from "trs80-asm";
+import { asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary } from "trs80-asm";
 import {Asm, FileSystem} from "z80-asm";
 import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio, writeWavFile } from "trs80-cassette";
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base";
@@ -156,6 +156,17 @@ export function asm(srcPathname: string, outPathname: string, baud: number, lstP
                     binary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
                 }
             }
+            break;
+        }
+
+        case ".BIN":
+            binary = asmToRawBinary(0, asm);
+            break;
+
+        case ".HEX": {
+            const lines = asmToIntelHex(asm);
+            const text = lines.join("\n") + "\n";
+            binary = Buffer.from(text, "ascii");
             break;
         }
 

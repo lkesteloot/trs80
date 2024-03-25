@@ -3,9 +3,19 @@ import {
     CmdLoadModuleHeaderChunk,
     CmdProgramBuilder,
     CmdTransferAddressChunk, encodeCmdProgram, encodeSystemProgram,
+    IntelHexFileBuilder,
+    IntelHexRecord,
+    ProgramBuilder,
+    RawBinaryFileBuilder,
     SystemProgramBuilder,
 } from "trs80-base";
 import { Asm } from "z80-asm";
+
+function addAsmToBuilder(asm: Asm, builder: ProgramBuilder): void {
+    for (const line of asm.assembledLines) {
+        builder.addBytes(line.address, line.binary);
+    }
+}
 
 /**
  * Generate a CMD binary from an assembled program
@@ -17,9 +27,7 @@ import { Asm } from "z80-asm";
  */
 export function asmToCmdBinary(name: string, entryPoint: number, asm: Asm): Uint8Array {
     const builder = new CmdProgramBuilder();
-    for (const line of asm.assembledLines) {
-        builder.addBytes(line.address, line.binary);
-    }
+    addAsmToBuilder(asm, builder);
     const chunks = [
         CmdLoadModuleHeaderChunk.fromFilename(name),
         ... builder.getChunks(),
@@ -38,9 +46,30 @@ export function asmToCmdBinary(name: string, entryPoint: number, asm: Asm): Uint
  */
 export function asmToSystemBinary(name: string, entryPoint: number, asm: Asm): Uint8Array {
     const builder = new SystemProgramBuilder();
-    for (const line of asm.assembledLines) {
-        builder.addBytes(line.address, line.binary);
-    }
+    addAsmToBuilder(asm, builder);
     const chunks = builder.getChunks();
     return encodeSystemProgram(name, chunks, entryPoint);
+}
+
+/**
+ * Generate the lines for an Intel Hex file for an assembled program.
+ */
+export function asmToIntelHex(asm: Asm): string[] {
+    const builder = new IntelHexFileBuilder();
+    addAsmToBuilder(asm, builder);
+    const chunks = [
+        ... builder.getChunks(),
+        IntelHexRecord.endOfFile(),
+    ];
+    return chunks.map(chunk => chunk.generateRecord());
+}
+
+/**
+ * Generate a BIN or ROM file from the assembled program. Does not
+ * output anything before the load address (org), and fills gaps with nuls.
+ */
+export function asmToRawBinary(org: number, asm: Asm): Uint8Array {
+    const builder = new RawBinaryFileBuilder();
+    addAsmToBuilder(asm, builder);
+    return builder.getBinary(org);
 }

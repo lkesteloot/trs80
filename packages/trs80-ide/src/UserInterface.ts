@@ -229,6 +229,20 @@ export class UserInterface {
                                 },
                             },
                             {
+                                text: "Raw Binary (.bin)",
+                                action: () => {
+                                    const binary = editor.makeRawBinaryFile();
+                                    this.exportFile(binary, editor.getName(), "bin");
+                                },
+                            },
+                            {
+                                text: "Intel HEX (.hex)",
+                                action: () => {
+                                    const binary = editor.makeIntelHexFile();
+                                    this.exportFile(binary, editor.getName(), "hex");
+                                },
+                            },
+                            {
                                 text: "Cassette Audio (.wav, low speed)",
                                 action: () => {
                                     this.exportWav(editor, 500);
@@ -829,9 +843,22 @@ export class UserInterface {
      * @param extension the file extension, not including the period.
      */
     private arrayToBlobUrl(contents: ArrayBuffer, extension: string): string {
-        const type =
-            extension.toLowerCase() === "wav" ? "audio/wav" : "application/octet-stream";
-        const blob = new Blob([contents], {type: type});
+        let type: string;
+        switch (extension.toLowerCase()) {
+            case "wav":
+                type = "audio/wav";
+                break;
+
+            case "hex":
+                type = "text/plain";
+                break;
+
+            default:
+                type = "application/octet-stream";
+                break;
+        }
+
+        const blob = new Blob([contents], {type});
 
         return window.URL.createObjectURL(blob);
     }

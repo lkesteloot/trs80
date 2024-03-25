@@ -17,3 +17,4 @@ export * from "./ProgramBuilder.js";
 export * from "./Level1Program.js";
 export * from "./EdtasmFile.js";
 export * from "./Disasm.js";
+export * from "./IntelHexFile.js";

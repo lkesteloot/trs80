@@ -6,6 +6,7 @@ import {
     encodeCmdProgram
 } from "./CmdProgram.js";
 import {encodeSystemProgram, SystemChunk, SystemProgram, SystemProgramBuilder} from "./SystemProgram.js";
+import {ProgramBuilder} from "./ProgramBuilder.js";
 
 /**
  * File when we don't recognize the type.
@@ -59,5 +60,42 @@ export class RawBinaryFile extends AbstractTrs80File {
 
         const binary = encodeSystemProgram(filename, systemChunks, org);
         return new SystemProgram(binary, undefined, filename, systemChunks, org, []);
+    }
+}
+
+/**
+ * Builds a raw binary (BIN or ROM) file from binary chunks.
+ */
+export class RawBinaryFileBuilder extends ProgramBuilder {
+    /**
+     * Get the binary, assuming that it loads at "org". Does not include anything before
+     * org, and fills gaps with nuls.
+     */
+    public getBinary(org: number): Uint8Array {
+        // Sort blocks by address.
+        this.blocks.sort((a, b) => a.address - b.address);
+        if (this.blocks.length === 0) {
+            return new Uint8Array(0);
+        }
+
+        const lastBlock = this.blocks[this.blocks.length - 1];
+        const size = lastBlock.address + lastBlock.bytes.length - org;
+        const binary = new Uint8Array(size);
+
+        for (const block of this.blocks) {
+            const begin = block.address;
+            const end = begin + block.bytes.length;
+
+            if (end > org) {
+                const offset = begin - org;
+                if (offset >= 0) {
+                    binary.set(block.bytes, offset);
+                } else {
+                    binary.set(block.bytes.slice(-offset), 0);
+                }
+            }
+        }
+
+        return binary;
     }
 }

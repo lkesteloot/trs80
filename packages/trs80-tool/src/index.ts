@@ -140,7 +140,7 @@ function main() {
         .command("asm <infile> <outfile>")
         .description("assemble a program", {
             infile: "ASM file",
-            outfile: "CMD, 3BN, CAS, or WAV file",
+            outfile: "CMD, 3BN, CAS, WAV, BIN, or HEX file",
         })
         .option("--baud <baud>", "baud rate for CAS and WAV file (250, 500, 1000, 1500), defaults to 500")
         .option("--listing <filename>", "generate listing file")
