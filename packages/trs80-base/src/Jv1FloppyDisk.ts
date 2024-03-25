@@ -1,4 +1,4 @@
-import {Density, FloppyDisk, FloppyDiskGeometry, SectorData, Side, TrackGeometry} from "./FloppyDisk.js";
+import {Density, FloppyDisk, FloppyDiskGeometry, FloppyWrite, SectorData, Side, TrackGeometry} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 const BYTES_PER_SECTOR = 256;
@@ -62,7 +62,9 @@ export class Jv1FloppyDisk extends FloppyDisk {
     }
 
     public isWriteProtected(): boolean {
-        return false;
+        // We support writing, but our file format doesn't have a bit for write protect, so
+        // all we have is the mounted state.
+        return this.mountedWriteProtected;
     }
 
     public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
@@ -112,7 +114,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
             throw new Error("binary too short for sector write");
         }
 
-        this.binary.set(data.data, offset);
+        this.write(new FloppyWrite(data.data, offset));
     }
 }
 

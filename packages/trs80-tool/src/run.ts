@@ -373,12 +373,14 @@ class FilePrinter extends LinePrinter {
  * @param programFilename optional file to run
  * @param mountedFilenames optional cassette or floppy files to mount
  * @param xray whether to run the xray server
+ * @param writeProtected mark mounted floppies as write-protected.
  * @param config machine configuration
  * @param printerPathname file to write printer output to, or undefined to write to the console.
  */
 export function run(programFilename: string | undefined,
                     mountedFilenames: string[],
                     xray: boolean,
+                    writeProtected: boolean,
                     config: Config,
                     printerPathname: string | undefined) {
 
@@ -437,7 +439,7 @@ export function run(programFilename: string | undefined,
     let mountedCassette = false;
     for (const mountedFilename of mountedFilenames) {
         const program = readTrs80File(mountedFilename);
-        if (typeof (program) === "string") {
+        if (typeof program === "string") {
             console.log(program);
             return;
         }
@@ -450,6 +452,12 @@ export function run(programFilename: string | undefined,
             cassette.setAudioFile(program, 0);
             mountedCassette = true;
         } else if (isFloppy(program)) {
+            program.setMountedWriteProtected(writeProtected);
+            program.onWrite.subscribe(floppyWrite => {
+                const fd = fs.openSync(mountedFilename, "r+");
+                fs.writeSync(fd, floppyWrite.data, 0, floppyWrite.data.length, floppyWrite.offset);
+                fs.closeSync(fd);
+            });
             trs80.loadFloppyDisk(program, driveNumber++);
         } else if (program.className === "Cassette") {
             // Cassette.

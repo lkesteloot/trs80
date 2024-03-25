@@ -2,7 +2,7 @@ import {toHexByte} from "z80-base";
 import {
     Density,
     FloppyDisk,
-    FloppyDiskGeometry,
+    FloppyDiskGeometry, FloppyWrite,
     SectorData,
     Side,
     TrackGeometry,
@@ -191,7 +191,8 @@ export class Jv3FloppyDisk extends FloppyDisk {
     }
 
     public isWriteProtected(): boolean {
-        return this.writeProtected;
+        // Our file's state or the mounted state.
+        return this.writeProtected || this.mountedWriteProtected;
     }
 
     public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
@@ -226,7 +227,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
             throw new Error(`size mismatch when writing sector (${sectorInfo.size} vs. ${data.data.length}`);
         }
 
-        this.binary.set(data.data, sectorInfo.offset);
+        this.write(new FloppyWrite(data.data, sectorInfo.offset));
         // TODO update deleted and CRC.
     }
 

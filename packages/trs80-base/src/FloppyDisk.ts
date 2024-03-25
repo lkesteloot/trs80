@@ -1,3 +1,4 @@
+import { SimpleEventDispatcher } from "strongly-typed-events";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
 
@@ -292,10 +293,28 @@ export class FloppyDiskGeometry {
 }
 
 /**
+ * Represents a write to an underlying disk file.
+ */
+export class FloppyWrite {
+    // Data to be written to the underlying file.
+    public readonly data: Uint8Array;
+
+    // Offset into the underlying file.
+    public readonly offset: number;
+
+    constructor(data: Uint8Array, offset: number) {
+        this.data = data;
+        this.offset = offset;
+    }
+}
+
+/**
  * Abstract class for virtual floppy disk file formats.
  */
 export abstract class FloppyDisk extends AbstractTrs80File {
     public readonly supportsDoubleDensity: boolean;
+    public readonly onWrite = new SimpleEventDispatcher<FloppyWrite>();
+    protected mountedWriteProtected = false;
 
     protected constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
                           supportsDoubleDensity: boolean) {
@@ -310,11 +329,20 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     public abstract getGeometry(): FloppyDiskGeometry;
 
     /**
+     * Whether the file was mounted write-protected, at the request of the user.
+     */
+    public setMountedWriteProtected(mountedWriteProtected: boolean): void {
+        this.mountedWriteProtected = mountedWriteProtected;
+    }
+
+    /**
      * This can return true to mean that this file format does not
-     * support writing at all (the writeSector() method is not implemented)
-     * or that it's implemented but the file is virtually write-protected.
+     * support writing at all (the writeSector() method is not implemented),
+     * that it's implemented but the file is virtually write-protected,
+     * or that the file was mounted write-protected (the mountedWriteProtected field).
      */
     public isWriteProtected(): boolean {
+        // The base class does not support writing.
         return true;
     }
 
@@ -351,5 +379,13 @@ export abstract class FloppyDisk extends AbstractTrs80File {
         }
 
         return data;
+    }
+
+    /**
+     * Modify the underlying file and the in-memory binary.
+     */
+    protected write(floppyWrite: FloppyWrite): void {
+        this.binary.set(floppyWrite.data, floppyWrite.offset);
+        this.onWrite.dispatch(floppyWrite);
     }
 }
