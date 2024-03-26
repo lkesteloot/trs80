@@ -4,7 +4,7 @@ import {expandFile} from "./InputFile.js";
 /**
  * Handle the "dir" command.
  */
-export function dir(inFilenames: string[]): void {
+export function dir(inFilenames: string[], showSystemFiles: boolean): void {
     const multipleInputFiles = inFilenames.length > 1;
     let firstFile = true;
 
@@ -15,13 +15,13 @@ export function dir(inFilenames: string[]): void {
             }
             console.log(inFilename + ":");
         }
-        dirFile(inFilename);
+        dirFile(inFilename, showSystemFiles);
         firstFile = false;
     }
 }
 
-function dirFile(inFilename: string): void {
-    const inFiles = expandFile(inFilename);
+function dirFile(inFilename: string, showSystemFiles: boolean): void {
+    const inFiles = expandFile(inFilename, showSystemFiles);
     if (inFiles.length === 0) {
         console.log("No files");
     } else {

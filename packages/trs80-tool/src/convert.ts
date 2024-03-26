@@ -23,7 +23,7 @@ export function convert(inFilenames: string[], outFilename: string, baud: number
     const outputIsDirectory = fs.existsSync(outFilename) && fs.statSync(outFilename).isDirectory();
 
     // Read all input files into an internal data structure, expanding archives like cassettes and floppies.
-    const inFiles = inFilenames.flatMap(expandFile);
+    const inFiles = inFilenames.flatMap(filename => expandFile(filename, false));
 
     // Update start address if requested.
     if (start !== undefined) {

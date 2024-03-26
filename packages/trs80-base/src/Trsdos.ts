@@ -729,7 +729,7 @@ export class Trsdos {
         return hitInfo;
     }
 
-    public getDirEntries(): TrsdosDirEntry[] {
+    public getDirEntries(includeSystemFiles: boolean): TrsdosDirEntry[] {
         // Map from position of directory entry to its actual entry. The key is the asKey() result
         // of DirEntryPosition.
         const dirEntries = new Map<string, TrsdosDirEntry>();
@@ -739,6 +739,7 @@ export class Trsdos {
             for (let sectorIndex = 0; sectorIndex < this.sectorsPerTrack; sectorIndex++) {
                 if (side === 0 && sectorIndex < 2) {
                     // Skip GAT and HIT.
+                    // TODO confirm that the second side does not have GAT/HIT.
                     continue;
                 }
 
@@ -750,7 +751,8 @@ export class Trsdos {
                         const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
                         const dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
                         // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
-                        if (dirEntry !== undefined) {
+                        // Don't record deleted entries.
+                        if (dirEntry !== undefined && dirEntry.isActive()) {
                             dirEntries.set(new DirEntryPosition(side, sectorIndex, i).asKey(), dirEntry);
                         }
                     }
@@ -787,12 +789,9 @@ export class Trsdos {
             }
         }
 
-        // Keep only good entries. TODO consider keeping system files, we don't know if
-        // caller will want them. Hide them in the UX if necessary.
-        const goodDirEntries = [...dirEntries.values()]
-            .filter(d => d.isActive() && !d.isExtendedEntry() && !d.isSystemFile());
-
-        return goodDirEntries;
+        // Remove the extended entries and possibly the system files.
+        return [...dirEntries.values()]
+            .filter(d => !d.isExtendedEntry() && (includeSystemFiles || !d.isSystemFile()));
     }
 
     /**
@@ -800,7 +799,7 @@ export class Trsdos {
      */
     public findFile(filename: string): TrsdosDirEntry | undefined {
         // TODO make this more efficient, maybe pass in filter.
-        const entries = this.getDirEntries();
+        const entries = this.getDirEntries(true);
         for (const entry of entries) {
             if (entry.getFilename("/") === filename) {
                 return entry;

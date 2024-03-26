@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import {pluralizeWithCount} from "./utils.js";
-import {AudioFile, Decoder, Tape, WAV_INFO_TAGS, readWavFile } from "trs80-cassette";
-import {Density, TrackGeometry, decodeTrs80File, decodeTrsdos, isFloppy } from "trs80-base";
+import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
+import {decodeTrs80File, decodeTrsdos, Density, isFloppy, TrackGeometry} from "trs80-base";
 
 /**
  * Return a list of strings for the metata from the audio file.
@@ -66,8 +66,9 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                 if (isFloppy(trs80File)) {
                     const trsdos = decodeTrsdos(trs80File);
                     if (trsdos !== undefined) {
+                        // Users don't care about system files.
                         description += ", " + trsdos.getOperatingSystemName() + " " + trsdos.getVersion() +
-                            " with " + pluralizeWithCount(trsdos.getDirEntries().length, "file");
+                            " with " + pluralizeWithCount(trsdos.getDirEntries(false).length, "file");
                     }
 
                     if (verbose) {

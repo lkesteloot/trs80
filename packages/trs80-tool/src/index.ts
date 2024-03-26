@@ -72,8 +72,9 @@ function main() {
         .description("list files in the infiles", {
             infiles: "WAV, CAS, JV1, JV3, or DMK file (TRSDOS floppies only)",
         })
-        .action(infiles => {
-            dir(infiles);
+        .option("--system", "include floppy system files")
+        .action((infiles, options) => {
+            dir(infiles, options.system);
         });
     program
         .command("info <infiles...>")

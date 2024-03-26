@@ -68,7 +68,7 @@ export class TrsdosTab extends PageTab {
         addDirEntryField("Permission", "protection-level", "header");
         addDirEntryField("Run", "run", "header");
         addDirEntryField("Import", "import", "header");
-        const dirEntries = trsdos.getDirEntries();
+        const dirEntries = trsdos.getDirEntries(false);
         for (const dirEntry of dirEntries) {
             const extraCssClasses: string[] = [];
             if (dirEntry.isHidden()) {
@@ -153,12 +153,12 @@ export class TrsdosTab extends PageTab {
                     let i = filename.lastIndexOf("/");
                     if (i >= 0) {
                         // Strip path.
-                        filename = filename.substr(i + 1);
+                        filename = filename.substring(i + 1);
                     }
                     i = filename.lastIndexOf(".");
                     if (i > 0) {
                         // Strip existing extension.
-                        filename = filename.substr(0, i);
+                        filename = filename.substring(0, i);
                     }
                     if (filename === "") {
                         filename = "trsdos"

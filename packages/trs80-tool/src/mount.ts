@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { FloppyDisk, decodeTrsdos } from "trs80-base";
+import {decodeTrsdos, FloppyDisk} from "trs80-base";
 import {loadFile, pluralizeWithCount, readTrs80File} from "./utils.js";
 
 const VERBOSE = true;
@@ -49,9 +49,10 @@ export function mount(diskfile: string, commands: string[]): void {
     }
 
     if (VERBOSE) {
+        // Users don't care about system files.
         console.log("Mounted \"" + diskfile + "\", " +
             trsdos.getOperatingSystemName() + " " + trsdos.getVersion() +
-            " with " + pluralizeWithCount(trsdos.getDirEntries().length, "file"));
+            " with " + pluralizeWithCount(trsdos.getDirEntries(false).length, "file"));
     }
 
     // Process commands.

@@ -130,7 +130,7 @@ export class TrsdosInputFile extends InputFile {
  * Load the file. If the file can contain other files (floppies, cassettes, and wav files),
  * then expand the file and return the contained files. Otherwise just return the file.
  */
-export function expandFile(inFilename: string): InputFile[] {
+export function expandFile(inFilename: string, includeSystemFiles: boolean): InputFile[] {
     const inFiles: InputFile[] = [];
 
     const { base, ext } = path.parse(inFilename);
@@ -167,7 +167,7 @@ export function expandFile(inFilename: string): InputFile[] {
                 inFiles.push(new InputFile(base, buffer, trs80File));
             } else {
                 // Expand floppy.
-                for (const dirEntry of trsdos.getDirEntries()) {
+                for (const dirEntry of trsdos.getDirEntries(includeSystemFiles)) {
                     inFiles.push(new TrsdosInputFile(trsdos, dirEntry));
                 }
             }
