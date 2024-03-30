@@ -395,6 +395,12 @@ export class FloppyDiskController {
             console.log("writeCommand(" + toHexByte(cmd) + ")");
         }
 
+        if (cmd === 0xFE || cmd === 0xFF) {
+            // Command to Percom Doubler, ignore.
+            // (0xFE is configure FM, 0xFF is configure MFM.)
+            return;
+        }
+
         const drive = this.drives[this.currentDrive];
 
         // Cancel "lost data" event.
@@ -611,7 +617,8 @@ export class FloppyDiskController {
                 break;
 
             default:
-                throw new Error("Not drive specified in select: 0x" + toHexByte(value));
+                // Or multiple drives!
+                throw new Error("No drive specified in select: 0x" + toHexByte(value));
         }
 
         if (this.currentDrive !== previousDrive) {

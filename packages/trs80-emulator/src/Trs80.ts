@@ -58,6 +58,9 @@ const M4_CLOCK_HZ = 4_055_040;
 
 const INITIAL_CLOCKS_PER_TICK = 2000;
 
+// Printer status: Printer selected, ready, with paper, not busy.
+const PRINTER_STATUS = 0x30;
+
 // Whether the emulator is going or not.
 export enum RunningState {
     // Not running at all.
@@ -556,19 +559,49 @@ export class Trs80 implements Hal, Machine {
     }
 
     public readMemory(address: number): number {
+        if (address == 0x37E8 || address == 0x37E9) {
+            // Both Model I and Model III map these two addresses to the printer (despite
+            // these being in the ROM on the Model III).
+            return PRINTER_STATUS;
+        }
+
         if (address < this.config.romSize || address >= RAM_START || isScreenAddress(address)) {
             return address < this.memory.length ? this.memory[address] : 0xFF;
-        } else if (address === 0x37E8) {
-            // Printer. 0x30 = Printer selected, ready, with paper, not busy.
-            return 0x30;
-        } else if (Keyboard.isInRange(address)) {
+        }
+
+        if (Keyboard.isInRange(address)) {
             // Keyboard.
             return this.keyboard.readKeyboard(address, this.tStateCount);
-        } else {
-            // Unmapped memory.
-            warnOnce("Reading from unmapped memory at 0x" + toHex(address, 4));
-            return 0;
         }
+
+        if (this.config.modelType === ModelType.MODEL1) {
+            switch (address) {
+                case 0x37E0:
+                case 0x37E1:
+                case 0x37E2:
+                case 0x37E3:
+                    // TODO return expansion interface interrupt status byte and
+                    // clear the top bit (0x80, timer interrupt status).
+                    warnOnce("Warning: Reading from expansion interface interrupt status");
+                    return 0x3F;
+
+                case 0x37EC:
+                    return this.fdc.readStatus();
+
+                case 0x37ED:
+                    return this.fdc.readTrack();
+
+                case 0x37EE:
+                    return this.fdc.readSector();
+
+                case 0x37EF:
+                    return this.fdc.readData();
+            }
+        }
+
+        // Unmapped memory.
+        warnOnce("Reading from unmapped memory at 0x" + toHexWord(address));
+        return 0xFF;
     }
 
     public readPort(address: number): number {
@@ -633,9 +666,7 @@ export class Trs80 implements Hal, Machine {
             case 0xF9:
             case 0xFA:
             case 0xFB:
-                // Printer status. Printer selected, ready, with paper, not busy.
-                value = 0x30;
-                // console.log("Reading from printer", toHexByte(value));
+                value = PRINTER_STATUS;
                 break;
 
             case 0xFF:
@@ -788,14 +819,68 @@ export class Trs80 implements Hal, Machine {
     }
 
     public writeMemory(address: number, value: number): void {
-        if (address < this.config.romSize) {
-            warnOnce("Warning: Writing to ROM location 0x" + toHex(address, 4));
-        } else {
-            if (address >= TRS80_SCREEN_BEGIN && address < TRS80_SCREEN_END) {
-                this.writeToScreenMemory(address, value);
-            } else if (address < RAM_START) {
-                warnOnce("Writing to unmapped memory at 0x" + toHex(address, 4));
+        if (address == 0x37E8 || address == 0x37E9) {
+            // Both Model I and Model III map these two addresses to the printer (despite
+            // these being in the ROM on the Model III).
+            this.printer.printChar(value);
+            return;
+        }
+
+        if (Keyboard.isInRange(address)) {
+            warnOnce("Warning: Writing to keyboard location 0x" + toHexWord(address) + ": " + toHexByte(value));
+            return;
+        }
+
+        if (this.config.modelType === ModelType.MODEL1) {
+            switch (address) {
+                case 0x37E0:
+                case 0x37E1:
+                case 0x37E2:
+                case 0x37E3:
+                    this.fdc.writeSelect(value & 0x0F);
+                    return;
+
+                case 0x37EC:
+                    this.fdc.writeCommand(value);
+                    return;
+
+                case 0x37ED:
+                    this.fdc.writeTrack(value);
+                    return;
+
+                case 0x37EE:
+                    this.fdc.writeSector(value);
+                    return;
+
+                case 0x37EF:
+                    this.fdc.writeData(value);
+                    return;
             }
+        }
+
+        if (address < this.config.romSize) {
+            if (address >= 0x3000 && address < 0x3800 && this.config.modelType !== ModelType.MODEL1) {
+                // Possibly Model I program/OS running on other machine.
+                warnOnce("Warning: Writing to Model I memory I/O location 0x" + toHexWord(address) + ": " + toHexByte(value));
+            } else {
+                // Probably a bug.
+                warnOnce("Warning: Writing to ROM location 0x" + toHexWord(address) + ": " + toHexByte(value));
+            }
+            return;
+        }
+
+        if (address >= TRS80_SCREEN_BEGIN && address < TRS80_SCREEN_END) {
+            this.writeToScreenMemory(address, value);
+            this.memory[address] = value;
+            return;
+        }
+
+        if (address < RAM_START) {
+            warnOnce("Writing to unmapped memory at 0x" + toHexWord(address) + ": " + toHexByte(value));
+            return;
+        }
+
+        if (address < this.memory.length) {
             this.memory[address] = value;
         }
     }

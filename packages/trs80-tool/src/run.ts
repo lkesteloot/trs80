@@ -7,6 +7,7 @@ import {TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
 import { AudioFile } from "trs80-cassette";
 import { readTrs80File } from "./utils.js";
+import { word } from "z80-base";
 
 // Size of screen.
 const WIDTH = TRS80_CHAR_WIDTH;
@@ -204,7 +205,7 @@ class TtyScreen extends Trs80Screen {
             cursorIndex = this.lastUnderscoreIndex;
         } else {
             // Get cursor position from RAM.
-            const cursorAddress = this.readMemory(0x4020) | (this.readMemory(0x4021) << 8);
+            const cursorAddress = word(this.readMemory(0x4021), this.readMemory(0x4020));
             cursorIndex = cursorAddress - TRS80_SCREEN_BEGIN;
         }
 
