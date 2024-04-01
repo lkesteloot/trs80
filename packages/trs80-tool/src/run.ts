@@ -103,6 +103,9 @@ class TtyScreen extends Trs80Screen {
         // Update cursor periodically. Have to do this on a timer since the memory location
         // can be updated anytime.
         setInterval(() => this.checkCursorPosition(false), 10);
+
+        // Resizing the window might require redrawing the log.
+        process.stdout.on("resize", () => this.redraw());
     }
 
     public exit(): void {
