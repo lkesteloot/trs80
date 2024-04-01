@@ -7,7 +7,7 @@ import {TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
 import { AudioFile } from "trs80-cassette";
 import { readTrs80File } from "./utils.js";
-import { word } from "z80-base";
+import {DEFAULT_LOGGER, LogLevel, Logger, word } from "z80-base";
 
 // Size of screen.
 const WIDTH = TRS80_CHAR_WIDTH;
@@ -89,6 +89,7 @@ class TtyScreen extends Trs80Screen {
     // Cache of what we've drawn already.
     private readonly drawnScreen = new Uint8Array(WIDTH*HEIGHT);
     private readonly vt100Control = new Vt100Control();
+    private readonly logMessages: { logLevel: LogLevel, message: string }[] = [];
     private lastCursorIndex: number | undefined = undefined;
     private lastUnderscoreIndex = 0;
 
@@ -189,6 +190,7 @@ class TtyScreen extends Trs80Screen {
         this.vt100Control.moveTo(1, 1);
         this.drawFrame();
         this.updateScreen(true);
+        this.redrawLogMessages();
     }
 
     /**
@@ -223,6 +225,45 @@ class TtyScreen extends Trs80Screen {
 
         // Adjust for frame.
         this.vt100Control.moveTo(row + 1, col + 1);
+    }
+
+    public log(logLevel: LogLevel, message: string): void {
+        this.logMessages.push({logLevel, message});
+        while (this.logMessages.length > HEIGHT + 2) {
+            this.logMessages.shift();
+        }
+        this.redrawLogMessages();
+    }
+
+    public redrawLogMessages(): void {
+        const terminalColumns = process.stdout.columns ?? 80;
+        const messageColumn = WIDTH + 2 + 1;
+        const maxMessageLength = Math.max(terminalColumns - messageColumn - 1, 0);
+
+        for (let i = 0; i < this.logMessages.length; i++) {
+            const logEvent = this.logMessages[i];
+            const message = logEvent.message.slice(0, maxMessageLength).padEnd(maxMessageLength, " ");
+
+            switch (logEvent.logLevel) {
+                case LogLevel.TRACE:
+                    // Don't display.
+                    continue;
+
+                case LogLevel.WARNING:
+                    process.stdout.write("\x1B[33m");
+                    break;
+
+                case LogLevel.INFO:
+                    // Draw normally.
+                    break;
+            }
+
+            this.vt100Control.moveTo(i + 1, messageColumn + 1);
+            process.stdout.write(message);
+            // Reset style.
+            process.stdout.write("\x1B[0m");
+            this.vt100Control.advancedCol(message.length);
+        }
     }
 
     /**
@@ -388,13 +429,16 @@ export function run(programFilename: string | undefined,
     let screen: Trs80Screen;
     let keyboard: Keyboard;
     let exitScreen: () => void;
+    let logger: Logger;
     if (xray) {
         screen = new NopScreen();
         exitScreen = () => {};
         keyboard = new Keyboard();
+        logger = DEFAULT_LOGGER;
     } else {
         const ttyScreen = new TtyScreen(readMemory, config);
         exitScreen = () => ttyScreen.exit();
+        logger = ttyScreen.log.bind(ttyScreen);
         keyboard = new TtyKeyboard(ttyScreen);
         screen = ttyScreen;
     }
@@ -409,6 +453,7 @@ export function run(programFilename: string | undefined,
             process.exit();
         }));
     }
+    trs80.log = logger;
     trs80.reset();
     trs80.setRunningState(RunningState.STARTED);
 

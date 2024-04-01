@@ -1,4 +1,4 @@
-import {hi, lo, toHex, toHexByte, toHexWord} from "z80-base";
+import {DEFAULT_LOGGER, LogLevel, Logger, hi, lo, toHex, toHexByte, toHexWord} from "z80-base";
 import {Hal, Z80, Z80State} from "z80-emulator";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Keyboard} from "./Keyboard.js";
@@ -109,19 +109,6 @@ function computeVideoBit6(value: number): number {
     return (value & 0xBF) | (bit6 << 6);
 }
 
-const WARN_ONCE_SET = new Set<string>();
-
-/**
- * Send this warning message to the console once. This is to avoid a program repeatedly doing something
- * that results in a warning (such as reading from an unmapped memory address) and crashing the browser.
- */
-function warnOnce(message: string): void {
-    if (!WARN_ONCE_SET.has(message)) {
-        WARN_ONCE_SET.add(message);
-        console.warn(message + " (further warnings suppressed)");
-    }
-}
-
 /**
  * setTimeout() returns a different type on the browser and in node, so auto-detect the type.
  */
@@ -214,6 +201,8 @@ export class Trs80 implements Hal, Machine {
     // So that we can "continue" past a breakpoint.
     private ignoreInitialInstructionBreakpoint = false;
     private speedMultiplier = 1;
+    public log: Logger = DEFAULT_LOGGER;
+    private readonly warnOnceSet = new Set<string>();
 
     constructor(config: Config, screen: Trs80Screen, keyboard: Keyboard, cassette: CassettePlayer, soundPlayer: SoundPlayer) {
         this.screen = screen;
@@ -227,6 +216,8 @@ export class Trs80 implements Hal, Machine {
         this.tStateCount = 0;
         this.fdc.onActiveDrive.subscribe(activeDrive => this.soundPlayer.setFloppyMotorOn(activeDrive !== undefined));
         this.fdc.onTrackMove.subscribe(moveCount => this.soundPlayer.trackMoved(moveCount));
+        // Don't just point at this.log, we want to late-bind it.
+        this.fdc.log = (logLevel, message) => this.log(logLevel, message);
     }
 
     /**
@@ -319,6 +310,17 @@ export class Trs80 implements Hal, Machine {
         this.memory.set(state.memory.subarray(RAM_START), RAM_START);
         this.printer.restore(state.printerState);
         this.fdc.restore(state.fdcState);
+    }
+
+    /**
+     * Send this warning message to the console once. This is to avoid a program repeatedly doing something
+     * that results in a warning (such as reading from an unmapped memory address) and crashing the browser.
+     */
+    private warnOnce(message: string): void {
+        if (!this.warnOnceSet.has(message)) {
+            this.warnOnceSet.add(message);
+            this.log(LogLevel.WARNING, message);
+        }
     }
 
     /**
@@ -582,7 +584,7 @@ export class Trs80 implements Hal, Machine {
                 case 0x37E3:
                     // TODO return expansion interface interrupt status byte and
                     // clear the top bit (0x80, timer interrupt status).
-                    warnOnce("Warning: Reading from expansion interface interrupt status");
+                    this.warnOnce("Reading from expansion interface interrupt status");
                     return 0x3F;
 
                 case 0x37EC:
@@ -600,7 +602,7 @@ export class Trs80 implements Hal, Machine {
         }
 
         // Unmapped memory.
-        warnOnce("Reading from unmapped memory at 0x" + toHexWord(address));
+        this.warnOnce("Reading from unmapped memory at 0x" + toHexWord(address));
         return 0xFF;
     }
 
@@ -684,7 +686,7 @@ export class Trs80 implements Hal, Machine {
 
             default:
                 // Not sure what a good default value is, but other emulators use 0xFF.
-                warnOnce("Reading from unknown port 0x" + toHex(lo(address), 2));
+                this.warnOnce("Reading from unknown port 0x" + toHex(lo(address), 2));
                 value = 0xFF;
                 break;
         }
@@ -799,7 +801,7 @@ export class Trs80 implements Hal, Machine {
                 break;
 
             default:
-                warnOnce("Writing 0x" + toHex(value, 2) + " to unknown port 0x" + toHex(port, 2));
+                this.warnOnce("Writing 0x" + toHex(value, 2) + " to unknown port 0x" + toHex(port, 2));
                 return;
         }
         // console.log("Wrote 0x" + toHex(value, 2) + " to port 0x" + toHex(port, 2));
@@ -827,7 +829,7 @@ export class Trs80 implements Hal, Machine {
         }
 
         if (Keyboard.isInRange(address)) {
-            warnOnce("Warning: Writing to keyboard location 0x" + toHexWord(address) + ": " + toHexByte(value));
+            this.warnOnce("Writing to keyboard location 0x" + toHexWord(address) + ": " + toHexByte(value));
             return;
         }
 
@@ -861,10 +863,10 @@ export class Trs80 implements Hal, Machine {
         if (address < this.config.romSize) {
             if (address >= 0x3000 && address < 0x3800 && this.config.modelType !== ModelType.MODEL1) {
                 // Possibly Model I program/OS running on other machine.
-                warnOnce("Warning: Writing to Model I memory I/O location 0x" + toHexWord(address) + ": " + toHexByte(value));
+                this.warnOnce("Writing to Model I memory I/O location 0x" + toHexWord(address) + ": " + toHexByte(value));
             } else {
                 // Probably a bug.
-                warnOnce("Warning: Writing to ROM location 0x" + toHexWord(address) + ": " + toHexByte(value));
+                this.warnOnce("Writing to ROM location 0x" + toHexWord(address) + ": " + toHexByte(value));
             }
             return;
         }
@@ -876,7 +878,7 @@ export class Trs80 implements Hal, Machine {
         }
 
         if (address < RAM_START) {
-            warnOnce("Writing to unmapped memory at 0x" + toHexWord(address) + ": " + toHexByte(value));
+            this.warnOnce("Writing to unmapped memory at 0x" + toHexWord(address) + ": " + toHexByte(value));
             return;
         }
 
