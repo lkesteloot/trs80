@@ -431,7 +431,6 @@ export class AsmTokenizer {
     constructor(line: string) {
         this.line = line;
         this.tokens = tokenizeLine(line);
-        //console.log(this.tokens);
     }
 
     // The current token, or undefined if we've gone past the end.

@@ -9,8 +9,9 @@
 import {Density, FloppyDisk, SectorData, Side} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Machine} from "./Machine.js";
-import {DEFAULT_LOGGER, LogLevel, Logger, toHexByte} from "z80-base";
+import {toHexByte} from "z80-base";
 import {EventType} from "./EventScheduler.js";
+import { TRS80_EMULATOR_LOGGER } from "trs80-logger";
 
 // Enable debug logging.
 const DEBUG_LOG = false;
@@ -222,8 +223,6 @@ export class FdcState {
  */
 export class FloppyDiskController {
     private readonly machine: Machine;
-
-    public log: Logger = DEFAULT_LOGGER;
 
     // Registers.
     private status = STATUS_TRACK_ZERO | STATUS_NOT_READY;
@@ -463,7 +462,7 @@ export class FloppyDiskController {
                 if (sectorData === undefined) {
                     this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 512,
                         () => this.done(0));
-                    this.log(LogLevel.WARNING, `Didn't find sector ${this.sector} on track ${drive.physicalTrack}`);
+                    TRS80_EMULATOR_LOGGER.warn(`Didn't find sector ${this.sector} on track ${drive.physicalTrack}`);
                 } else {
                     let newStatus = 0;
                     if (sectorData.deleted) {

@@ -7,7 +7,8 @@ import {TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from
 import { AudioFileCassettePlayer } from "trs80-cassette-player";
 import { AudioFile } from "trs80-cassette";
 import { readTrs80File } from "./utils.js";
-import {DEFAULT_LOGGER, LogLevel, Logger, word } from "z80-base";
+import { word } from "z80-base";
+import {CONSOLE_LOG_FUNCTION, LogFunction, LogLevel, TRS80_MAIN_LOGGER } from "trs80-logger";
 
 // Size of screen.
 const WIDTH = TRS80_CHAR_WIDTH;
@@ -240,19 +241,19 @@ class TtyScreen extends Trs80Screen {
 
     public redrawLogMessages(): void {
         const terminalColumns = process.stdout.columns ?? 80;
-        const messageColumn = WIDTH + 2 + 1;
+        const messageColumn = WIDTH + 2;
         const maxMessageLength = Math.max(terminalColumns - messageColumn - 1, 0);
 
         for (let i = 0; i < this.logMessages.length; i++) {
             const logEvent = this.logMessages[i];
-            const message = logEvent.message.slice(0, maxMessageLength).padEnd(maxMessageLength, " ");
+            const message = (" " + logEvent.message).slice(0, maxMessageLength).padEnd(maxMessageLength, " ");
 
             switch (logEvent.logLevel) {
                 case LogLevel.TRACE:
                     // Don't display.
                     continue;
 
-                case LogLevel.WARNING:
+                case LogLevel.WARN:
                     process.stdout.write("\x1B[33m");
                     break;
 
@@ -432,18 +433,16 @@ export function run(programFilename: string | undefined,
     let screen: Trs80Screen;
     let keyboard: Keyboard;
     let exitScreen: () => void;
-    let logger: Logger;
     if (xray) {
         screen = new NopScreen();
         exitScreen = () => {};
         keyboard = new Keyboard();
-        logger = DEFAULT_LOGGER;
     } else {
         const ttyScreen = new TtyScreen(readMemory, config);
         exitScreen = () => ttyScreen.exit();
-        logger = ttyScreen.log.bind(ttyScreen);
         keyboard = new TtyKeyboard(ttyScreen);
         screen = ttyScreen;
+        TRS80_MAIN_LOGGER.logFunction = ttyScreen.log.bind(ttyScreen);
     }
 
     const cassette = new AudioFileCassettePlayer();
@@ -456,7 +455,6 @@ export function run(programFilename: string | undefined,
             process.exit();
         }));
     }
-    trs80.log = logger;
     trs80.reset();
     trs80.setRunningState(RunningState.STARTED);
 

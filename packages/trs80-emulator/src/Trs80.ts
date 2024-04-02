@@ -1,4 +1,4 @@
-import {DEFAULT_LOGGER, LogLevel, Logger, hi, lo, toHex, toHexByte, toHexWord} from "z80-base";
+import {hi, lo, toHex, toHexByte, toHexWord} from "z80-base";
 import {Hal, Z80, Z80State} from "z80-emulator";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Keyboard} from "./Keyboard.js";
@@ -20,6 +20,7 @@ import {
     Trs80File,
     Level1Program
 } from "trs80-base";
+import {LogLevel, TRS80_EMULATOR_LOGGER} from "trs80-logger";
 import {FloppyDisk} from "trs80-base";
 import {FdcState, FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
 import {Machine} from "./Machine.js";
@@ -201,7 +202,6 @@ export class Trs80 implements Hal, Machine {
     // So that we can "continue" past a breakpoint.
     private ignoreInitialInstructionBreakpoint = false;
     private speedMultiplier = 1;
-    public log: Logger = DEFAULT_LOGGER;
     private readonly warnOnceSet = new Set<string>();
 
     constructor(config: Config, screen: Trs80Screen, keyboard: Keyboard, cassette: CassettePlayer, soundPlayer: SoundPlayer) {
@@ -216,8 +216,6 @@ export class Trs80 implements Hal, Machine {
         this.tStateCount = 0;
         this.fdc.onActiveDrive.subscribe(activeDrive => this.soundPlayer.setFloppyMotorOn(activeDrive !== undefined));
         this.fdc.onTrackMove.subscribe(moveCount => this.soundPlayer.trackMoved(moveCount));
-        // Don't just point at this.log, we want to late-bind it.
-        this.fdc.log = (logLevel, message) => this.log(logLevel, message);
     }
 
     /**
@@ -319,7 +317,7 @@ export class Trs80 implements Hal, Machine {
     private warnOnce(message: string): void {
         if (!this.warnOnceSet.has(message)) {
             this.warnOnceSet.add(message);
-            this.log(LogLevel.WARNING, message);
+            TRS80_EMULATOR_LOGGER.warn(message);
         }
     }
 

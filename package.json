@@ -2,6 +2,9 @@
   "name": "root",
   "private": true,
   "repository": "https://github.com/lkesteloot/trs80.git",
+  "scripts": {
+      "build": "lerna run build"
+  },
   "devDependencies": {
     "css-loader": "^6.7.1",
     "file-loader": "^6.2.0",
@@ -23,6 +26,7 @@
     "packages/z80-asm-web",
     "packages/z80-emulator",
     "packages/z80-test",
+    "packages/trs80-logger",
     "packages/trs80-base",
     "packages/trs80-asm",
     "packages/trs80-emulator",
