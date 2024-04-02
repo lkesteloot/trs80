@@ -146,6 +146,15 @@
             <div><pre><code>% trs80-tool --color=16 hexdump in.cmd | less</code></pre>
             </div>
 
+            <div><pre><code>--trace=MODULE    show trace logs for module (base, emulator).</code></pre></div>
+
+            <p>Show tracing logs for the specified module. These log lines can reveal
+            how the module makes various decisions, and can help debugging. This flag
+            is mostly intended for the developer, but can help explain why (for example)
+            a specific floppy isn't being recognized. The “base” module deals with
+            TRS-80 file formats, and the “emulator” module is the TRS-80 emulator itself.
+            Repeat the option to enable tracing for multiple modules.</p>
+
             <h3 id="dir"><code>dir</code></h3>
             <p>The <code>dir</code> command shows the contents of an archive file. Archives
             files are those that can contain other files. These are cassette files
