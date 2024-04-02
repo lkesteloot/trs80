@@ -2,24 +2,19 @@ import {Option, program} from "commander";
 import {version} from "./version.js";
 import {HexFormat} from "z80-disasm";
 import chalk from "chalk";
-import {
-    BasicLevel,
-    basicLevelFromString,
-    Config,
-    ModelType,
-    modelTypeFromString,
-} from "trs80-emulator";
+import {BasicLevel, basicLevelFromString, Config, ModelType, modelTypeFromString,} from "trs80-emulator";
 import {dir} from "./dir.js";
 import {info} from "./info.js";
-import { convert } from "./convert.js";
-import { sectors } from "./sectors.js";
-import { hexdump } from "./hexdump.js";
-import { asm } from "./asm.js";
+import {convert} from "./convert.js";
+import {sectors} from "./sectors.js";
+import {hexdump} from "./hexdump.js";
+import {asm} from "./asm.js";
 import {disasm} from "./disasm.js";
-import { run } from "./run.js";
-import { repl } from "./repl.js";
+import {run} from "./run.js";
+import {repl} from "./repl.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
-import { mount } from "./mount.js";
+import {mount} from "./mount.js";
+import {LogLevel, TRS80_MAIN_LOGGER, TRS80_MODULE_NAME_TO_LOGGER} from "trs80-logger";
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -30,9 +25,7 @@ See this page for full documentation: https://my-trs-80.com/tool
  * @param levelName
  */
 function setColorLevel(levelName: string): void {
-    levelName = levelName.toLowerCase();
-
-    switch (levelName) {
+    switch (levelName.toLowerCase()) {
         case "auto":
         default:
             // Don't touch the level, let chalk set it.
@@ -56,7 +49,25 @@ function setColorLevel(levelName: string): void {
     }
 }
 
+function log(logLevel: LogLevel, message: string): void {
+    switch (logLevel) {
+        case LogLevel.TRACE:
+            console.log(chalk.gray(message));
+            break;
+
+        case LogLevel.INFO:
+            console.log(chalk.green(message));
+            break;
+
+        case LogLevel.WARN:
+            console.log(chalk.yellow(message));
+            break;
+    }
+}
+
 function main() {
+    TRS80_MAIN_LOGGER.logFunction = log;
+
     const fullVersion = version + " (git " + BUILD_GIT_HASH.substring(0, 7) +
         ", built " + new Date(BUILD_DATE * 1000).toLocaleDateString() + ")";
     program
@@ -66,7 +77,18 @@ function main() {
         .version(fullVersion)
         .addOption(new Option("--color <color>", "color output")
             .choices(["off", "16", "256", "16m", "auto"])
-            .default("auto"));
+            .default("auto")
+            .argParser(setColorLevel))
+        .addOption(new Option("--trace <module>", "show trace logs for module")
+            .choices(Object.keys(TRS80_MODULE_NAME_TO_LOGGER).sort())
+            .argParser(moduleName => {
+                const moduleLogger = TRS80_MODULE_NAME_TO_LOGGER[moduleName];
+                if (moduleLogger === undefined) {
+                    console.log("Unknown logger module: " + moduleName);
+                    process.exit(1);
+                }
+                moduleLogger.minLevel = LogLevel.TRACE;
+            }));
     program
         .command("dir <infiles...>")
         .description("list files in the infiles", {
@@ -122,7 +144,6 @@ function main() {
         })
         .option("--contents", "show the contents of the sectors")
         .action((infiles, options) => {
-            setColorLevel(program.opts().color);
             for (const infile of infiles) {
                 sectors(infile, options.contents);
             }
@@ -134,7 +155,6 @@ function main() {
         })
         .option("--no-collapse", "collapse consecutive identical lines")
         .action((infile, options) => {
-            setColorLevel(program.opts().color);
             hexdump(infile, options.collapse);
         });
     program
@@ -146,7 +166,6 @@ function main() {
         .option("--baud <baud>", "baud rate for CAS and WAV file (250, 500, 1000, 1500), defaults to 500")
         .option("--listing <filename>", "generate listing file")
         .action((infile, outfile, options) => {
-            setColorLevel(program.opts().color);
             const baud = options.baud === undefined ? 500 : parseInt(options.baud);
             if (baud !== 250 && baud !== 500 && baud !== 1000 && baud !== 1500) {
                 console.log("Invalid baud rate: " + options.baud);
@@ -169,7 +188,6 @@ function main() {
         .option("--hex-format <format>", "format for hex numbers: c for 0x12, dollar for $12, and h for 12h",
             "c")
         .action((infile, options) => {
-            setColorLevel(program.opts().color);
             const org = options.org === undefined ? undefined : parseInt(options.org);
             const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
             const hexFormatString = options.hexFormat as string;

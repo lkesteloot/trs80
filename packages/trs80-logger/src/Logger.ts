@@ -137,3 +137,11 @@ export const TRS80_MAIN_LOGGER = new FunctionLogger(LogLevel.TRACE);
  */
 export const TRS80_BASE_LOGGER = new DelegatingLogger(LogLevel.INFO, TRS80_MAIN_LOGGER);
 export const TRS80_EMULATOR_LOGGER = new DelegatingLogger(LogLevel.INFO, TRS80_MAIN_LOGGER);
+
+/**
+ * Map from the name of a module to its logger.
+ */
+export const TRS80_MODULE_NAME_TO_LOGGER: {[moduleName: string]: Logger} = {
+    "base": TRS80_BASE_LOGGER,
+    "emulator": TRS80_EMULATOR_LOGGER,
+};

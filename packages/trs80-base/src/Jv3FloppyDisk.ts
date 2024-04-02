@@ -9,6 +9,7 @@ import {
     TrackGeometryBuilder
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
+import { TRS80_BASE_LOGGER } from "trs80-logger";
 
 // The JV3 file consists of sectors of different sizes all bunched together. Before that
 // comes a directory of these sectors, with three bytes per directory entry (track,
@@ -219,7 +220,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
         const sectorInfo = this.findSectorInfo(trackNumber, side, sectorNumber);
         if (sectorInfo === undefined) {
             // Not sure how to handle this.
-            console.log(`JV3 write sector not found ${trackNumber}, ${side}, ${sectorNumber}`);
+            TRS80_BASE_LOGGER.warn(`JV3 write sector not found ${trackNumber}, ${side}, ${sectorNumber}`);
             return;
         }
 

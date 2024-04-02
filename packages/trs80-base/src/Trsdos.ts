@@ -9,9 +9,7 @@
 import {concatByteArrays} from "teamten-ts-utils";
 import {Density, FloppyDisk, FloppyDiskGeometry, numberToSide, Side} from "./FloppyDisk.js";
 import {toHexByte, word} from "z80-base";
-
-// Print extra debugging information.
-const DEBUG = false;
+import { TRS80_BASE_LOGGER } from "trs80-logger";
 
 // Whether to check the high bits of the GAT table entries. I keep seeing floppies with wrong values
 // here, so disabling this. Those bits were probably not accessed anyway, so it's probably not out of
@@ -260,7 +258,8 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
 
         if (!geometry.isValidTrackNumber(trackNumber)) {
             // Not a TRSDOS disk.
-            if (DEBUG) console.log("Invalid extent: ", i, trackNumber, granuleByte, granuleOffset, granuleCount)
+            TRS80_BASE_LOGGER.warn("Invalid extent: " + i + " " + trackNumber + " " + granuleByte + " " +
+                granuleOffset + " " + granuleCount);
             return undefined;
         }
 
@@ -313,7 +312,7 @@ export class TrsdosGatInfo {
             for (const g of this.gat) {
                 // Skip the first track, I don't think it actually stores granules (it's the boot sector, etc.).
                 if (trackNumber !== 0 && (g & mask) !== expectedValue) {
-                    if (DEBUG) console.log("GAT: high bits are not correct: 0x" + toHexByte(g) +
+                    TRS80_BASE_LOGGER.trace("GAT: high bits are not correct: 0x" + toHexByte(g) +
                         " track " + trackNumber + " with " + granulesPerTrack + " granules per track");
                     return false;
                 }
@@ -442,7 +441,7 @@ function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
         ? decodeExtents(binary, 0xE0, binary.length, geometry, version, false)
         : [];
     if (systemFiles === undefined) {
-        if (DEBUG) console.log("Extents in HIT are invalid");
+        TRS80_BASE_LOGGER.trace("Extents in HIT are invalid");
         return undefined;
     }
 
@@ -875,15 +874,12 @@ export class Trsdos {
                     }
                     const sector = this.disk.readSector(trackNumber, side, sectorNumber);
                     if (sector === undefined) {
-                        console.log(`Sector couldn't be read ${trackNumber}, ${sectorNumber}`);
+                        TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${trackNumber}, ${sectorNumber}`);
                         // TODO
                     } else {
                         // TODO check deleted?
                         if (sector.crcError) {
-                            console.log("Sector has CRC error");
-                        }
-                        if (sector.deleted) {
-                            // console.log("Sector " + sectorNumber + " is deleted");
+                            TRS80_BASE_LOGGER.warn("Sector has CRC error");
                         }
                         sectors.push(sector.data);
                     }
@@ -1031,7 +1027,7 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
         dirEntryLength = 32;
         if (sideCount !== gatInfo.sideCount) {
             // Sanity check.
-            if (DEBUG) console.log(`Warning: Media sides ${sideCount} doesn't match GAT sides ${gatInfo.sideCount}`);
+            TRS80_BASE_LOGGER.trace(`Warning: Media sides ${sideCount} doesn't match GAT sides ${gatInfo.sideCount}`);
             // But don't fail loading, keep using media sides.
         }
         granulesPerTrack = version === TrsdosVersion.MODEL_1
@@ -1048,7 +1044,7 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
 
     const granulesPerCylinder = granulesPerTrack * sideCount;
     if (granulesPerCylinder < 2 || granulesPerCylinder > 8) {
-        return "Invalid number of granules per cylinder: " + granulesPerCylinder;
+        return "Invalid number of granules per cylinder (" + granulesPerCylinder + ")";
     }
 
     if (sectorsPerTrack % granulesPerTrack !== 0) {
@@ -1059,11 +1055,11 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
         // TODO can we verify sectorsPerGranule for Model III?
     } else {
         if (geometry.lastTrack.density === Density.SINGLE && sectorsPerGranule !== 5 && sectorsPerGranule !== 8) {
-            return "Invalid sectors per granule for single density: " + sectorsPerGranule;
+            return "Invalid sectors per granule for single density (" + sectorsPerGranule + ")";
         }
 
         if (geometry.lastTrack.density === Density.DOUBLE && sectorsPerGranule !== 6 && sectorsPerGranule !== 10) {
-            return "Invalid sectors per granule for double density: " + sectorsPerGranule;
+            return "Invalid sectors per granule for double density (" + sectorsPerGranule + ")";
         }
     }
 
@@ -1110,11 +1106,10 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
     for (const trsdosVersion of trsdosVersions) {
         let trsdos = decodeTrsdosVersion(disk, trsdosVersion);
         if (typeof trsdos !== "string") {
+            TRS80_BASE_LOGGER.trace(`Successfully decoded as ${trsdosVersionToString(trsdosVersion)} operating system`);
             return trsdos;
         }
-        if (DEBUG) {
-            console.log(`Can't decode as ${trsdosVersionToString(trsdosVersion)} operating system: ${trsdos}`);
-        }
+        TRS80_BASE_LOGGER.trace(`Can't decode as ${trsdosVersionToString(trsdosVersion)} operating system: ${trsdos}`);
     }
 
     return undefined;
