@@ -1,3 +1,4 @@
+import fs from "fs";
 import {Option, program} from "commander";
 import {version} from "./version.js";
 import {HexFormat} from "z80-disasm";
@@ -14,7 +15,7 @@ import {run} from "./run.js";
 import {repl} from "./repl.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {mount} from "./mount.js";
-import {LogLevel, TRS80_MAIN_SINK, TRS80_MODULE_NAME_TO_LOGGER, makeBatchingSink} from "trs80-logger";
+import {LogLevel, LogSink, TRS80_MAIN_SINK, TRS80_MODULE_NAME_TO_LOGGER, makeBatchingSink} from "trs80-logger";
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -68,8 +69,36 @@ const COLORED_SINK = (level: LogLevel, message: string): void => {
     }
 };
 
+/**
+ * Make a log sink that writes to a file.
+ */
+function makeFileLogSink(pathname: string): LogSink {
+    const fd = fs.openSync(pathname, "w");
+
+    return (level: LogLevel, message: string): void => {
+        let label: string;
+        switch (level) {
+            case LogLevel.TRACE:
+                label = "T";
+                break;
+
+            case LogLevel.INFO:
+                label = "I";
+                break;
+
+            case LogLevel.WARN:
+                label = "W";
+                break;
+        }
+
+        fs.writeSync(fd, label + ": " + message + "\n");
+    };
+}
+
 function main() {
-    TRS80_MAIN_SINK.delegatedSinks = [makeBatchingSink(COLORED_SINK)];
+    TRS80_MAIN_SINK.delegatedSinks.splice(0);
+    // Important that this is first, we might replace it in the run() command.
+    TRS80_MAIN_SINK.delegatedSinks.push(makeBatchingSink(COLORED_SINK));
 
     const fullVersion = version + " (git " + BUILD_GIT_HASH.substring(0, 7) +
         ", built " + new Date(BUILD_DATE * 1000).toLocaleDateString() + ")";
@@ -91,6 +120,10 @@ function main() {
                     process.exit(1);
                 }
                 moduleLogger.minLevel = LogLevel.TRACE;
+            }))
+        .addOption(new Option("--log-file <pathname>", "write logs to the specified file")
+            .argParser(pathname => {
+                TRS80_MAIN_SINK.delegatedSinks.push(makeFileLogSink(pathname));
             }));
     program
         .command("dir <infiles...>")

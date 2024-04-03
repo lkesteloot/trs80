@@ -129,9 +129,9 @@ export function makeBatchingSink(delegatedSink: LogSink): LogSink {
  */
 export class SplittingSink {
     /**
-     * Replace or modify this array to send to other sinks.
+     * Modify this array to send to other sinks.
      */
-    public delegatedSinks: LogSink[];
+    public readonly delegatedSinks: LogSink[];
     /**
      * Write to this sink.
      */
@@ -141,7 +141,7 @@ export class SplittingSink {
         }
     };
 
-    constructor(delegatedSinks: LogSink[]) {
+    constructor(... delegatedSinks: LogSink[]) {
         this.delegatedSinks = [... delegatedSinks];
     }
 }
@@ -149,7 +149,7 @@ export class SplittingSink {
 /**
  * The top-level sink. All loggers point to this. Replace its delegated sinks to sink elsewhere.
  */
-export const TRS80_MAIN_SINK = new SplittingSink([makeBatchingSink(TRS80_CONSOLE_SINK)]);
+export const TRS80_MAIN_SINK = new SplittingSink(makeBatchingSink(TRS80_CONSOLE_SINK));
 
 /**
  * Loggers for specific sub-systems. These can be individually configured.

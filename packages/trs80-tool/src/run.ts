@@ -442,7 +442,8 @@ export function run(programFilename: string | undefined,
         exitScreen = () => ttyScreen.exit();
         keyboard = new TtyKeyboard(ttyScreen);
         screen = ttyScreen;
-        TRS80_MAIN_SINK.delegatedSinks = [makeBatchingSink(ttyScreen.logSink.bind(ttyScreen))];
+        TRS80_MAIN_SINK.delegatedSinks.shift();
+        TRS80_MAIN_SINK.delegatedSinks.unshift(makeBatchingSink(ttyScreen.logSink.bind(ttyScreen)));
     }
 
     const cassette = new AudioFileCassettePlayer();
