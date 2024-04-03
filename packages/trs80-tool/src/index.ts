@@ -14,7 +14,7 @@ import {run} from "./run.js";
 import {repl} from "./repl.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {mount} from "./mount.js";
-import {LogLevel, TRS80_MAIN_LOGGER, TRS80_MODULE_NAME_TO_LOGGER} from "trs80-logger";
+import {LogLevel, Logger, TRS80_BATCHING_LOGGER, TRS80_MODULE_NAME_TO_LOGGER} from "trs80-logger";
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -49,24 +49,29 @@ function setColorLevel(levelName: string): void {
     }
 }
 
-function log(logLevel: LogLevel, message: string): void {
-    switch (logLevel) {
-        case LogLevel.TRACE:
-            console.log(chalk.gray(message));
-            break;
+/**
+ * Logger that uses "chalk" to write colored text to the console.
+ */
+class ColoredLogger extends Logger {
+    protected logInternal(level: LogLevel, message: string) {
+        switch (level) {
+            case LogLevel.TRACE:
+                console.log(chalk.gray(message));
+                break;
 
-        case LogLevel.INFO:
-            console.log(chalk.green(message));
-            break;
+            case LogLevel.INFO:
+                console.log(chalk.green(message));
+                break;
 
-        case LogLevel.WARN:
-            console.log(chalk.yellow(message));
-            break;
+            case LogLevel.WARN:
+                console.log(chalk.yellow(message));
+                break;
+        }
     }
 }
 
 function main() {
-    TRS80_MAIN_LOGGER.logFunction = log;
+    TRS80_BATCHING_LOGGER.parentLogger = new ColoredLogger(LogLevel.TRACE);
 
     const fullVersion = version + " (git " + BUILD_GIT_HASH.substring(0, 7) +
         ", built " + new Date(BUILD_DATE * 1000).toLocaleDateString() + ")";

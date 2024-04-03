@@ -13,9 +13,6 @@ import {toHexByte} from "z80-base";
 import {EventType} from "./EventScheduler.js";
 import { TRS80_EMULATOR_LOGGER } from "trs80-logger";
 
-// Enable debug logging.
-const DEBUG_LOG = false;
-
 // Number of physical drives.
 export const FLOPPY_DRIVE_COUNT = 4;
 
@@ -255,11 +252,6 @@ export class FloppyDiskController {
     // Event when a drive moves the head this many tracks.
     public readonly onTrackMove = new SimpleEventDispatcher<number>();
 
-    // The number of debug readStatus() calls we've had to print. We use this to collapse
-    // consecutive calls, otherwise Chrome's devtools melt down.
-    private readStatusCounter = 1;
-    private readStatusLast = 0;
-
     constructor(foo: Machine) {
         this.machine = foo;
 
@@ -317,35 +309,19 @@ export class FloppyDiskController {
             status = this.status;
         }
 
-        if (DEBUG_LOG) {
-            if (status !== this.readStatusLast) {
-                this.readStatusLast = status;
-                this.readStatusCounter = 1;
-            }
-            // See if it's a power of 2.
-            if ((this.readStatusCounter & (this.readStatusCounter - 1)) === 0) {
-                console.log("readStatus() = " + toHexByte(status) + " (x" + this.readStatusCounter + ")");
-            }
-            this.readStatusCounter += 1;
-        }
+        TRS80_EMULATOR_LOGGER.trace("readStatus() = " + toHexByte(status));
 
         return status;
     }
 
     public readTrack(): number {
-        if (DEBUG_LOG) {
-            console.log("readTrack() = " + toHexByte(this.track));
-            this.readStatusCounter = 1;
-        }
+        TRS80_EMULATOR_LOGGER.trace("readTrack() = " + toHexByte(this.track));
 
         return this.track;
     }
 
     public readSector(): number {
-        if (DEBUG_LOG) {
-            console.log("readSector() = " + toHexByte(this.sector));
-            this.readStatusCounter = 1;
-        }
+        TRS80_EMULATOR_LOGGER.trace("readSector() = " + toHexByte(this.sector));
 
         return this.sector;
     }
@@ -380,10 +356,7 @@ export class FloppyDiskController {
                 throw new Error("Unhandled case in readData()");
         }
 
-        if (DEBUG_LOG) {
-            // console.log("readData() = " + toHexByte(this.data));
-            this.readStatusCounter = 1;
-        }
+        // TRS80_EMULATOR_LOGGER.trace("readData() = " + toHexByte(this.data));
 
         return this.data;
     }
@@ -392,9 +365,7 @@ export class FloppyDiskController {
      * Set current command.
      */
     public writeCommand(cmd: number): void {
-        if (DEBUG_LOG) {
-            console.log("writeCommand(" + toHexByte(cmd) + ")");
-        }
+        TRS80_EMULATOR_LOGGER.trace("writeCommand(" + toHexByte(cmd) + ")");
 
         if (cmd === 0xFE || cmd === 0xFF) {
             // Command to Percom Doubler, ignore.
@@ -524,25 +495,19 @@ export class FloppyDiskController {
     }
 
     public writeTrack(track: number): void {
-        if (DEBUG_LOG) {
-            console.log("writeTrack(" + toHexByte(track) + ")");
-        }
+        TRS80_EMULATOR_LOGGER.trace("writeTrack(" + toHexByte(track) + ")");
 
         this.track = track;
     }
 
     public writeSector(sector: number): void {
-        if (DEBUG_LOG) {
-            console.log("writeSector(" + toHexByte(sector) + ")");
-        }
+        TRS80_EMULATOR_LOGGER.trace("writeSector(" + toHexByte(sector) + ")");
 
         this.sector = sector;
     }
 
     public writeData(data: number): void {
-        if (DEBUG_LOG) {
-            // console.log("writeData(" + toHexByte(data) + ")");
-        }
+        // TRS80_EMULATOR_LOGGER.trace("writeData(" + toHexByte(data) + ")");
 
         switch (this.currentCommand & COMMAND_MASK) {
             case COMMAND_WRITE:
@@ -575,9 +540,7 @@ export class FloppyDiskController {
      * Select a drive.
      */
     public writeSelect(value: number): void {
-        if (DEBUG_LOG) {
-            console.log("writeSelect(" + toHexByte(value) + ")");
-        }
+        TRS80_EMULATOR_LOGGER.trace("writeSelect(" + toHexByte(value) + ")");
 
         this.status &= ~STATUS_NOT_READY;
         this.side = booleanToSide((value & SELECT_SIDE) !== 0);

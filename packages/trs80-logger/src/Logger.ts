@@ -23,27 +23,6 @@ export enum LogLevel {
 }
 
 /**
- * Type for the function that logs a message.
- */
-export type LogFunction = (level: LogLevel, message: string) => void;
-
-/**
- * A logger that logs to the console.
- */
-export const CONSOLE_LOG_FUNCTION: LogFunction = (level, message) => {
-    switch (level) {
-        case LogLevel.TRACE:
-        case LogLevel.INFO:
-            console.log(message);
-            break;
-
-        case LogLevel.WARN:
-            console.warn(message);
-            break;
-    }
-}
-
-/**
  * Parent class of loggers, with the convenience functions (info, warn, etc.).
  */
 export abstract class Logger {
@@ -97,16 +76,20 @@ export abstract class Logger {
 }
 
 /**
- * Logger that delegates output to a logging function, which can be replaced by the application.
+ * A logger that logs to the console.
  */
-export class FunctionLogger extends Logger {
-    /**
-     * By default log to the console, but replace this to send the logs elsewhere.
-     */
-    public logFunction: LogFunction = CONSOLE_LOG_FUNCTION;
+export class ConsoleLogger extends Logger {
+    protected logInternal(level: LogLevel, message: string) {
+        switch (level) {
+            case LogLevel.TRACE:
+            case LogLevel.INFO:
+                console.log(message);
+                break;
 
-    protected logInternal(level: LogLevel, message: string): void {
-        this.logFunction(level, message);
+            case LogLevel.WARN:
+                console.warn(message);
+                break;
+        }
     }
 }
 
@@ -114,7 +97,7 @@ export class FunctionLogger extends Logger {
  * Logger that delegates output to another logger.
  */
 export class DelegatingLogger extends Logger {
-    private readonly parentLogger: Logger;
+    public parentLogger: Logger;
 
     constructor(minLevel: LogLevel, parentLogger: Logger) {
         super(minLevel);
@@ -127,10 +110,54 @@ export class DelegatingLogger extends Logger {
 }
 
 /**
+ * A logger that batches identical sequential messages.
+ */
+export class BatchingLogger extends Logger {
+    public parentLogger: Logger;
+    private lastLevel: LogLevel = LogLevel.TRACE;
+    private lastMessage = "";
+    private lastCount = 0;
+
+    constructor(minLevel: LogLevel, parentLogger: Logger) {
+        super(minLevel);
+        this.parentLogger = parentLogger;
+    }
+
+    protected logInternal(level: LogLevel, message: string) {
+        if (level === this.lastLevel && message === this.lastMessage) {
+            this.lastCount += 1;
+        } else {
+            if (this.lastCount > 0) {
+                let lastMessage = this.lastMessage;
+                if (this.lastCount > 1) {
+                    lastMessage += " (x" + this.lastCount + ")";
+                }
+                //console.log("different, logging " + lastMessage);
+                this.parentLogger.log(this.lastLevel, lastMessage);
+            }
+
+            this.lastLevel = level;
+            this.lastMessage = message;
+            this.lastCount = 1;
+        }
+    }
+}
+
+/**
+ * Logger to the console.
+ */
+export const TRS80_CONSOLE_LOGGER = new ConsoleLogger(LogLevel.TRACE);
+
+/**
+ * Batching logger.
+ */
+export const TRS80_BATCHING_LOGGER = new BatchingLogger(LogLevel.TRACE, TRS80_CONSOLE_LOGGER);
+
+/**
  * The top-level logger. This determines where the message go, via its log function. Don't
  * log using this function, use the specific ones below.
  */
-export const TRS80_MAIN_LOGGER = new FunctionLogger(LogLevel.TRACE);
+export const TRS80_MAIN_LOGGER = new DelegatingLogger(LogLevel.TRACE, TRS80_BATCHING_LOGGER);
 
 /**
  * Loggers for specific sub-systems. These can be individually configured.
