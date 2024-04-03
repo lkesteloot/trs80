@@ -8,7 +8,7 @@ import { AudioFileCassettePlayer } from "trs80-cassette-player";
 import { AudioFile } from "trs80-cassette";
 import { readTrs80File } from "./utils.js";
 import { word } from "z80-base";
-import {LogLevel, Logger, TRS80_BATCHING_LOGGER } from "trs80-logger";
+import {LogLevel, TRS80_MAIN_SINK, makeBatchingSink } from "trs80-logger";
 
 // Size of screen.
 const WIDTH = TRS80_CHAR_WIDTH;
@@ -90,22 +90,9 @@ class TtyScreen extends Trs80Screen {
     // Cache of what we've drawn already.
     private readonly drawnScreen = new Uint8Array(WIDTH*HEIGHT);
     private readonly vt100Control = new Vt100Control();
-    private readonly logMessages: { logLevel: LogLevel, message: string }[] = [];
+    private readonly logMessages: { level: LogLevel, message: string }[] = [];
     private lastCursorIndex: number | undefined = undefined;
     private lastUnderscoreIndex = 0;
-    public readonly logger: Logger = new class extends Logger {
-        public constructor(private readonly ttyScreen: TtyScreen) {
-            super(LogLevel.TRACE);
-        }
-
-        protected logInternal(logLevel: LogLevel, message: string) {
-            this.ttyScreen.logMessages.push({logLevel, message});
-            while (this.ttyScreen.logMessages.length > HEIGHT + 2) {
-                this.ttyScreen.logMessages.shift();
-            }
-            this.ttyScreen.redrawLogMessages();
-        }
-    }(this);
 
     constructor(readMemory: (address: number) => number, config: Config) {
         super();
@@ -149,6 +136,14 @@ class TtyScreen extends Trs80Screen {
         if (index >= 0 && index < WIDTH * HEIGHT) {
             this.updateScreen(false);
         }
+    }
+
+    public logSink(level: LogLevel, message: string): void {
+        this.logMessages.push({level, message});
+        while (this.logMessages.length > HEIGHT + 2) {
+            this.logMessages.shift();
+        }
+        this.redrawLogMessages();
     }
 
     /**
@@ -253,7 +248,7 @@ class TtyScreen extends Trs80Screen {
             const logEvent = this.logMessages[i];
             const message = (" " + logEvent.message).slice(0, maxMessageLength).padEnd(maxMessageLength, " ");
 
-            switch (logEvent.logLevel) {
+            switch (logEvent.level) {
                 case LogLevel.TRACE:
                     process.stdout.write("\x1B[90m"); // Gray.
                     break;
@@ -447,7 +442,7 @@ export function run(programFilename: string | undefined,
         exitScreen = () => ttyScreen.exit();
         keyboard = new TtyKeyboard(ttyScreen);
         screen = ttyScreen;
-        TRS80_BATCHING_LOGGER.parentLogger = ttyScreen.logger;
+        TRS80_MAIN_SINK.delegatedSinks = [makeBatchingSink(ttyScreen.logSink.bind(ttyScreen))];
     }
 
     const cassette = new AudioFileCassettePlayer();

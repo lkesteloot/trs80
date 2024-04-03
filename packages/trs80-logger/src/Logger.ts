@@ -23,29 +23,36 @@ export enum LogLevel {
 }
 
 /**
- * Parent class of loggers, with the convenience functions (info, warn, etc.).
+ * Type of the function that takes a log level and message and shows it to
+ * the user or sends it to another sink. Must not filter by log level;
+ * that's already done upstream.
  */
-export abstract class Logger {
+export type LogSink = (level: LogLevel, message: string) => void;
+
+/**
+ * Logger with convenience functions and a minimum log level filter.
+ */
+export class Logger {
     /**
      * The minimum level to log at.
      */
     public minLevel: LogLevel;
-
-    constructor(minLevel: LogLevel) {
-        this.minLevel = minLevel;
-    }
-
     /**
-     * Subclass must implement this. The log level will already have been filtered for.
+     * The sink to send filtered log events to.
      */
-    protected abstract logInternal(level: LogLevel, message: string): void;
+    public readonly logSink: LogSink;
+
+    constructor(minLevel: LogLevel, logSink: LogSink) {
+        this.minLevel = minLevel;
+        this.logSink = logSink;
+    }
 
     /**
      * Generic log function with the log level parameter.
      */
     public log(level: LogLevel, message: string): void {
         if (level >= this.minLevel) {
-            this.logInternal(level, message);
+            this.logSink(level, message);
         }
     }
 
@@ -76,94 +83,79 @@ export abstract class Logger {
 }
 
 /**
- * A logger that logs to the console.
+ * A sink that logs to the console.
  */
-export class ConsoleLogger extends Logger {
-    protected logInternal(level: LogLevel, message: string) {
-        switch (level) {
-            case LogLevel.TRACE:
-            case LogLevel.INFO:
-                console.log(message);
-                break;
+export const TRS80_CONSOLE_SINK: LogSink = (level: LogLevel, message: string): void => {
+    switch (level) {
+        case LogLevel.TRACE:
+        case LogLevel.INFO:
+            console.log(message);
+            break;
 
-            case LogLevel.WARN:
-                console.warn(message);
-                break;
-        }
+        case LogLevel.WARN:
+            console.warn(message);
+            break;
     }
-}
+};
 
 /**
- * Logger that delegates output to another logger.
+ * Make a sink that batches identical sequential messages.
  */
-export class DelegatingLogger extends Logger {
-    public parentLogger: Logger;
+export function makeBatchingSink(delegatedSink: LogSink): LogSink {
+    let lastLevel: LogLevel = LogLevel.TRACE;
+    let lastMessage = "";
+    let lastCount = 0;
 
-    constructor(minLevel: LogLevel, parentLogger: Logger) {
-        super(minLevel);
-        this.parentLogger = parentLogger;
-    }
-
-    protected logInternal(level: LogLevel, message: string): void {
-        this.parentLogger.log(level, message);
-    }
-}
-
-/**
- * A logger that batches identical sequential messages.
- */
-export class BatchingLogger extends Logger {
-    public parentLogger: Logger;
-    private lastLevel: LogLevel = LogLevel.TRACE;
-    private lastMessage = "";
-    private lastCount = 0;
-
-    constructor(minLevel: LogLevel, parentLogger: Logger) {
-        super(minLevel);
-        this.parentLogger = parentLogger;
-    }
-
-    protected logInternal(level: LogLevel, message: string) {
-        if (level === this.lastLevel && message === this.lastMessage) {
-            this.lastCount += 1;
+    return (level: LogLevel, message: string): void => {
+        if (level === lastLevel && message === lastMessage) {
+            lastCount += 1;
         } else {
-            if (this.lastCount > 0) {
-                let lastMessage = this.lastMessage;
-                if (this.lastCount > 1) {
-                    lastMessage += " (x" + this.lastCount + ")";
+            if (lastCount > 0) {
+                if (lastCount > 1) {
+                    lastMessage += " (x" + lastCount + ")";
                 }
-                //console.log("different, logging " + lastMessage);
-                this.parentLogger.log(this.lastLevel, lastMessage);
+                delegatedSink(lastLevel, lastMessage);
             }
 
-            this.lastLevel = level;
-            this.lastMessage = message;
-            this.lastCount = 1;
+            lastLevel = level;
+            lastMessage = message;
+            lastCount = 1;
         }
+    };
+}
+
+/**
+ * Sends a log event to multiple sinks.
+ */
+export class SplittingSink {
+    /**
+     * Replace or modify this array to send to other sinks.
+     */
+    public delegatedSinks: LogSink[];
+    /**
+     * Write to this sink.
+     */
+    public readonly sink = (level: LogLevel, message: string): void => {
+        for (const sink of this.delegatedSinks) {
+            sink(level, message);
+        }
+    };
+
+    constructor(delegatedSinks: LogSink[]) {
+        this.delegatedSinks = [... delegatedSinks];
     }
 }
 
 /**
- * Logger to the console.
+ * The top-level sink. All loggers point to this. Replace its delegated sinks to sink elsewhere.
  */
-export const TRS80_CONSOLE_LOGGER = new ConsoleLogger(LogLevel.TRACE);
-
-/**
- * Batching logger.
- */
-export const TRS80_BATCHING_LOGGER = new BatchingLogger(LogLevel.TRACE, TRS80_CONSOLE_LOGGER);
-
-/**
- * The top-level logger. This determines where the message go, via its log function. Don't
- * log using this function, use the specific ones below.
- */
-export const TRS80_MAIN_LOGGER = new DelegatingLogger(LogLevel.TRACE, TRS80_BATCHING_LOGGER);
+export const TRS80_MAIN_SINK = new SplittingSink([makeBatchingSink(TRS80_CONSOLE_SINK)]);
 
 /**
  * Loggers for specific sub-systems. These can be individually configured.
  */
-export const TRS80_BASE_LOGGER = new DelegatingLogger(LogLevel.INFO, TRS80_MAIN_LOGGER);
-export const TRS80_EMULATOR_LOGGER = new DelegatingLogger(LogLevel.INFO, TRS80_MAIN_LOGGER);
+export const TRS80_BASE_LOGGER = new Logger(LogLevel.INFO, TRS80_MAIN_SINK.sink);
+export const TRS80_EMULATOR_LOGGER = new Logger(LogLevel.INFO, TRS80_MAIN_SINK.sink);
 
 /**
  * Map from the name of a module to its logger.

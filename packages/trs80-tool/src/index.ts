@@ -14,7 +14,7 @@ import {run} from "./run.js";
 import {repl} from "./repl.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {mount} from "./mount.js";
-import {LogLevel, Logger, TRS80_BATCHING_LOGGER, TRS80_MODULE_NAME_TO_LOGGER} from "trs80-logger";
+import {LogLevel, TRS80_MAIN_SINK, TRS80_MODULE_NAME_TO_LOGGER, makeBatchingSink} from "trs80-logger";
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -50,28 +50,26 @@ function setColorLevel(levelName: string): void {
 }
 
 /**
- * Logger that uses "chalk" to write colored text to the console.
+ * Sink that uses "chalk" to write colored text to the console.
  */
-class ColoredLogger extends Logger {
-    protected logInternal(level: LogLevel, message: string) {
-        switch (level) {
-            case LogLevel.TRACE:
-                console.log(chalk.gray(message));
-                break;
+const COLORED_SINK = (level: LogLevel, message: string): void => {
+    switch (level) {
+        case LogLevel.TRACE:
+            console.log(chalk.gray(message));
+            break;
 
-            case LogLevel.INFO:
-                console.log(chalk.green(message));
-                break;
+        case LogLevel.INFO:
+            console.log(chalk.green(message));
+            break;
 
-            case LogLevel.WARN:
-                console.log(chalk.yellow(message));
-                break;
-        }
+        case LogLevel.WARN:
+            console.log(chalk.yellow(message));
+            break;
     }
-}
+};
 
 function main() {
-    TRS80_BATCHING_LOGGER.parentLogger = new ColoredLogger(LogLevel.TRACE);
+    TRS80_MAIN_SINK.delegatedSinks = [makeBatchingSink(COLORED_SINK)];
 
     const fullVersion = version + " (git " + BUILD_GIT_HASH.substring(0, 7) +
         ", built " + new Date(BUILD_DATE * 1000).toLocaleDateString() + ")";
