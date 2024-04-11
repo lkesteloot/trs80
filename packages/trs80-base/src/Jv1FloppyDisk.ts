@@ -101,8 +101,6 @@ export class Jv1FloppyDisk extends FloppyDisk {
     public writeSector(trackNumber: number, side: Side,
                        sectorNumber: number, data: SectorData): void {
 
-        // TODO This method has never been tested.
-
         if (trackNumber < 0 ||
             side === Side.BACK ||
             sectorNumber >= SECTORS_PER_TRACK ||

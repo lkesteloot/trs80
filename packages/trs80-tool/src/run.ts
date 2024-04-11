@@ -434,6 +434,18 @@ class FilePrinter extends LinePrinter {
 }
 
 /**
+ * Whether the file can be written by the current process.
+ */
+function fileIsWritable(pathname: string): boolean {
+    try {
+        fs.accessSync(pathname, fs.constants.W_OK);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
  * Handle the "run" command.
  *
  * @param programFilename optional file to run
@@ -524,7 +536,8 @@ export function run(programFilename: string | undefined,
             cassette.setAudioFile(program, 0);
             mountedCassette = true;
         } else if (isFloppy(program)) {
-            program.setMountedWriteProtected(writeProtected);
+            const fileIsReadOnly = !fileIsWritable(mountedFilename);
+            program.setMountedWriteProtected(writeProtected || fileIsReadOnly);
             program.onWrite.subscribe(floppyWrite => {
                 const fd = fs.openSync(mountedFilename, "r+");
                 fs.writeSync(fd, floppyWrite.data, 0, floppyWrite.data.length, floppyWrite.offset);
