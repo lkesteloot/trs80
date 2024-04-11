@@ -1,6 +1,6 @@
 import fs from "fs";
 import chalk from "chalk";
-import {BasicLevel, CGChip, Config, Keyboard,
+import {BasicLevel, CGChip, Config, FLOPPY_DRIVE_COUNT, Keyboard,
     LinePrinter, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen } from "trs80-emulator";
 import {connectXray} from "./xray.js";
 import {TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from "trs80-base";
@@ -93,6 +93,7 @@ class TtyScreen extends Trs80Screen {
     private readonly logMessages: { level: LogLevel, message: string }[] = [];
     private lastCursorIndex: number | undefined = undefined;
     private lastUnderscoreIndex = 0;
+    private drive: number | undefined = undefined;
 
     constructor(readMemory: (address: number) => number, config: Config) {
         super();
@@ -146,6 +147,14 @@ class TtyScreen extends Trs80Screen {
         this.redrawLogMessages();
     }
 
+    // Drive is on (0-3) or all off (undefined).
+    public showDrive(drive: number | undefined): void {
+        if (drive !== this.drive) {
+            this.drive = drive;
+            this.redrawDrive();
+        }
+    }
+
     /**
      * Redraw any characters that have changed since the old screen.
      */
@@ -194,6 +203,16 @@ class TtyScreen extends Trs80Screen {
         }
     }
 
+    private redrawDrive(): void {
+        for (let drive = 0; drive < FLOPPY_DRIVE_COUNT; drive++) {
+            const ch = drive === this.drive ? "\u2022" : "|";
+            const color = drive === this.drive ? chalk.red : chalk.green;
+            this.vt100Control.moveTo(HEIGHT - drive + 1, WIDTH + 2);
+            process.stdout.write(color(ch));
+            this.vt100Control.advancedCol();
+        }
+    }
+
     /**
      * Redraw from memory.
      */
@@ -203,6 +222,7 @@ class TtyScreen extends Trs80Screen {
         this.drawFrame();
         this.updateScreen(true);
         this.redrawLogMessages();
+        this.redrawDrive();
     }
 
     /**
@@ -433,13 +453,16 @@ export function run(programFilename: string | undefined,
     let screen: Trs80Screen;
     let keyboard: Keyboard;
     let exitScreen: () => void;
+    let showDrive: (drive: number | undefined) => void;
     if (xray) {
         screen = new NopScreen();
         exitScreen = () => {};
+        showDrive = (drive: number | undefined) => undefined;
         keyboard = new Keyboard();
     } else {
         const ttyScreen = new TtyScreen(readMemory, config);
         exitScreen = () => ttyScreen.exit();
+        showDrive =  (drive: number | undefined) => ttyScreen.showDrive(drive);
         keyboard = new TtyKeyboard(ttyScreen);
         screen = ttyScreen;
         TRS80_MAIN_SINK.delegatedSinks.shift();
@@ -456,6 +479,7 @@ export function run(programFilename: string | undefined,
             process.exit();
         }));
     }
+    trs80.onMotorOn.subscribe(showDrive);
     trs80.reset();
     trs80.setRunningState(RunningState.STARTED);
 

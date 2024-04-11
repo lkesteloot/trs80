@@ -6,3 +6,4 @@ export type {SoundPlayer, Mutable} from "./SoundPlayer.js";
 export * from "./SoundPlayer.js";
 export {Keyboard} from "./Keyboard.js";
 export * from "./Printer.js";
+export {FLOPPY_DRIVE_COUNT} from "./FloppyDiskController.js";
