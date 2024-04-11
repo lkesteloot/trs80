@@ -91,7 +91,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
 
         const sectorData = new SectorData(data, Density.SINGLE);
         if (trackNumber === DIRECTORY_TRACK) {
-            // I don't know why "deleted" is used for the directory track.
+            // Directory sectors are marked as deleted in TRSDOS.
             sectorData.deleted = true;
         }
 

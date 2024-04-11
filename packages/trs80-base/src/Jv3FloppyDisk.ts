@@ -45,9 +45,8 @@ enum Flags {
     DOUBLE_DENSITY = 0x80,
 }
 
+// Used in the track and sector bytes.
 const FREE = 0xFF;
-
-const SIZE_CODE_MASK = 0x03;
 
 class SectorInfo {
     // Raw data from the directory entry.
@@ -75,7 +74,7 @@ class SectorInfo {
 
         // In used sectors: 0=256,1=128,2=1024,3=512
         // In free sectors: 0=512,1=1024,2=128,3=256
-        const sizeCode = (flags & SIZE_CODE_MASK) ^ (this.isFree() ? 0x02 : 0x01);
+        const sizeCode = (flags & Flags.SIZE_CODE_MASK) ^ (this.isFree() ? 0x02 : 0x01);
         this.size = 128 << sizeCode;
     }
 
@@ -229,7 +228,6 @@ export class Jv3FloppyDisk extends FloppyDisk {
         }
 
         this.write(new FloppyWrite(data.data, sectorInfo.offset));
-        // TODO update deleted and CRC.
     }
 
     /**

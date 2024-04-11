@@ -6,13 +6,13 @@
  * http://www.classiccmp.org/cpmarchives/trs80/mirrors/www.discover-net.net/~dmkeil/trs80/trstech.htm
  */
 
-import {toHexByte, toHexWord} from "z80-base";
+import {hi, lo, toHexByte, toHexWord, word} from "z80-base";
 import {CRC_16_CCITT} from "./Crc16.js";
 import {
     CrcInfo,
     Density,
     FloppyDisk,
-    FloppyDiskGeometry,
+    FloppyDiskGeometry, FloppyWrite,
     numberToSide,
     SectorCrc,
     SectorData,
@@ -113,7 +113,7 @@ class DmkSector {
     }
 
     /**
-     * Get the sector length in bytes.
+     * Get the sector length in bytes. Does not include the byte stride.
      */
     public getLength(): number {
         if (this.hasValidLength()) {
@@ -190,7 +190,7 @@ class DmkSector {
      */
     public getIdamCrc(): number {
         // Big endian.
-        return (this.getByte(5) << 8) + this.getByte(6);
+        return word(this.getByte(5), this.getByte(6));
     }
 
     /**
@@ -219,7 +219,7 @@ class DmkSector {
 
         // Big endian.
         const index = this.dataIndex + this.getLength();
-        return (this.getByte(index) << 8) + this.getByte(index + 1);
+        return word(this.getByte(index), this.getByte(index + 1));
     }
 
     /**
@@ -244,20 +244,32 @@ class DmkSector {
     }
 
     /**
-     * Whether the sector data should be considered invalid.
+     * Get the Data Access Mark, or undefined if we never found it.
      */
-    public isDeleted(): boolean {
+    public getDam(): number | undefined {
         if (this.dataIndex === undefined) {
-            return false;
+            return undefined;
         }
 
         const dam = this.getByte(this.dataIndex - 1);
         if (dam < 0xF8 || dam > 0xFB) {
-            console.error("Unknown DAM: " + toHexByte(dam));
+            // This is a pretty serious error, since the way that we determine dataIndex
+            // is by looking for a byte in this range.
+            TRS80_FLOPPY_LOGGER.warn(`Invalid DAM (0x${toHexByte(dam)})`);
         }
 
+        return dam;
+    }
+
+    /**
+     * Whether the sector data should be considered invalid. In TRSDOS this is used to mark
+     * directory sectors.
+     */
+    public isDeleted(): boolean {
+        const dam = this.getDam();
+
         // Normally, 0xFB, but 0xF8 if sector is considered deleted.
-        return (dam & 0x01) === 0;
+        return dam === undefined ? false : (dam & 0x01) === 0;
     }
 
     /**
@@ -419,6 +431,77 @@ export class DmkFloppyDisk extends FloppyDisk {
         TRS80_FLOPPY_LOGGER.warn(`DMK: Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
         return undefined;
     }
+
+    public writeSector(trackNumber: number, side: Side,
+                       sectorNumber: number, data: SectorData): void {
+
+        TRS80_FLOPPY_LOGGER.trace(`DMK: Writing sector ${trackNumber}:${side}:${sectorNumber}`);
+
+        for (const track of this.tracks) {
+            if (track.trackNumber === trackNumber && track.side === side) {
+                for (const sector of track.sectors) {
+                    if (sector.getSectorNumber() === sectorNumber) {
+                        // See if we found the DAM.
+                        if (sector.dataIndex === undefined) {
+                            // Not sure what to do here, we can't write it and there's no way to
+                            // register an error.
+                            TRS80_FLOPPY_LOGGER.warn(`DMK: No space for data on ${trackNumber}:${side}:${sectorNumber}`);
+                            return;
+                        }
+
+                        const byteStride = sector.getByteStride();
+                        const length = sector.getLength();
+
+                        // Lay out the bytes, including the CRC (two bytes).
+                        const bytes = new Uint8Array((length + 2)*byteStride);
+
+                        // Compute the new CRC.
+                        let crc = 0xFFFF;
+
+                        // For double density, include the preceding three 0xA1 bytes.
+                        if (sector.density === Density.DOUBLE) {
+                            crc = CRC_16_CCITT.update(crc, 0xA1);
+                            crc = CRC_16_CCITT.update(crc, 0xA1);
+                            crc = CRC_16_CCITT.update(crc, 0xA1);
+                        }
+
+                        // Include DAM (will always be valid).
+                        crc = CRC_16_CCITT.update(crc, sector.getDam() ?? 0);
+
+                        // Write "byte" the correct number of stride times at
+                        // virtual (stride-less) index "index" of the "bytes" array.
+                        const writeData = (index: number, byte: number): void => {
+                            for (let i = 0; i < byteStride; i++) {
+                                bytes[index*byteStride + i] = byte;
+                            }
+                        };
+
+                        // Write the data bytes.
+                        for (let i = 0; i < length; i++) {
+                            const byte = data.data[i];
+                            writeData(i, byte);
+                            crc = CRC_16_CCITT.update(crc, byte);
+                        }
+
+                        // Write CRC big endian.
+                        writeData(length, hi(crc));
+                        writeData(length + 1, lo(crc));
+
+                        const begin = track.offset + sector.offset + sector.dataIndex*byteStride;
+                        this.write(new FloppyWrite(bytes, begin));
+                        return;
+                    }
+                }
+            }
+        }
+
+        TRS80_FLOPPY_LOGGER.warn(`DMK: Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
+    }
+
+    public isWriteProtected(): boolean {
+        // Our file's state or the mounted state.
+        return this.writeProtected || this.mountedWriteProtected;
+    }
 }
 
 /**
@@ -516,7 +599,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // virtual disk is created. DON'T modify the track length unless you understand these instructions completely.
     // Nothing in the PC world can be messed up by improper modification but any other virtual disk mounted
     // in the emulator with an improperly modified disk could have their data scrambled.
-    const trackLength = binary[2] + (binary[3] << 8);
+    const trackLength = word(binary[3], binary[2]);
     if (trackLength > MAX_TRACK_LENGTH) {
         TRS80_FLOPPY_LOGGER.trace("DMK: Track length too long (" + trackLength + " > " + MAX_TRACK_LENGTH + ")");
         return undefined;
@@ -549,7 +632,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // single density. This bit can be set manually in a hex editor to access old virtual disks written
     // in single density.
     const flags = binary[4];
-    const flagParts = [];
+    const flagParts: string[] = [];
     const singleSided = (flags & 0x10) !== 0;
     if (singleSided) {
         flagParts.push("SS");
@@ -574,7 +657,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // Check that these are zero.
     for (let i = 5; i < 12; i++) {
         if (binary[i] !== 0x00) {
-            TRS80_FLOPPY_LOGGER.trace("DMK: Reserved byte " + i + " is not zero: 0x" + toHexByte(binary[i]));
+            TRS80_FLOPPY_LOGGER.trace("DMK: Reserved byte " + i + " is not zero (0x" + toHexByte(binary[i]) + ")");
             return undefined;
         }
     }
@@ -630,7 +713,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
             const track = new DmkTrack(floppyDisk, trackNumber, numberToSide(side), trackOffset);
 
             // Read the track header. The term "IDAM" in the comment below refers to the "ID access mark",
-            // where "ID" is referring to the sector ID, the few byte just before the sector data.
+            // where "ID" is referring to the sector ID, the few bytes just before the sector data.
 
             // [DMK] Each side of each track has a 128 (80H) byte header which contains an offset pointer
             // to each IDAM in the track. This allows a maximum of 64 sector IDAMs/track. This is more than
@@ -645,12 +728,12 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
             //   have a pointer of 90h, 10h+80h=90h.
             // * The IDAM offsets MUST be in ascending order with no unused or bad pointers.
             // * If all the entries are not used the header is terminated with a 0000h entry. Unused entries
-            //   must also be zero filled..
+            //   must also be zero filled.
             // * Any IDAMs overwritten during a sector write command should have their entry removed from the
             //   header and all other pointer entries shifted to fill in.
             // * The IDAM pointers are created during the track write command (format). A completed track write
             //   MUST remove all previous IDAM pointers. A partial track write (aborted with the forced interrupt
-            //   command) MUST have it's previous pointers that were not overwritten added to the new IDAM pointers.
+            //   command) MUST have its previous pointers that were not overwritten added to the new IDAM pointers.
             // * The pointer bytes are stored in reverse order (LSB/MSB).
             //
             // [DMK] Each IDAM pointer has two flags. Bit 15 is set if the sector is double density. Bit 14 is
@@ -691,8 +774,8 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                 annotations.push(new ProgramAnnotation("Length " + sectorLength, i, i + byteStride));
                 i += byteStride;
 
-                const actualIdamCrc = sector.computeIdamCrc();
-                const expectedIdamCrc = sector.getIdamCrc();
+                const actualIdamCrc = sector.getIdamCrc();
+                const expectedIdamCrc = sector.computeIdamCrc();
                 let idamCrcLabel = "IDAM CRC";
                 if (actualIdamCrc === expectedIdamCrc) {
                     idamCrcLabel += " (valid)";
@@ -713,8 +796,8 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                     annotations.push(new ProgramAnnotation("Sector data", i, i + sectorLength * byteStride));
                     i += sectorLength * byteStride;
 
-                    const actualDataCrc = sector.computeDataCrc();
-                    const expectedDataCrc = sector.getDataCrc();
+                    const actualDataCrc = sector.getDataCrc();
+                    const expectedDataCrc = sector.computeDataCrc();
                     if (actualDataCrc !== undefined && expectedDataCrc !== undefined) {
                         let dataCrcLabel = "Data CRC";
                         if (actualDataCrc === expectedDataCrc) {

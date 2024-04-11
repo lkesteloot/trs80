@@ -877,7 +877,6 @@ export class Trsdos {
                         TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${trackNumber}, ${sectorNumber}`);
                         // TODO
                     } else {
-                        // TODO check deleted?
                         if (sector.crcError) {
                             TRS80_BASE_LOGGER.warn("Sector has CRC error");
                         }
