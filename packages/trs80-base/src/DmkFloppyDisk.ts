@@ -20,7 +20,7 @@ import {
     TrackGeometryBuilder
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
-import {TRS80_BASE_LOGGER} from "trs80-logger";
+import {TRS80_FLOPPY_LOGGER} from "trs80-logger";
 
 const FILE_HEADER_SIZE = 16;
 const TRACK_HEADER_SIZE = 128;
@@ -257,7 +257,7 @@ class DmkSector {
         }
 
         // Normally, 0xFB, but 0xF8 if sector is considered deleted.
-        return dam === 0xF8;
+        return (dam & 0x01) === 0;
     }
 
     /**
@@ -284,7 +284,7 @@ class DmkSector {
             }
         }
 
-        TRS80_BASE_LOGGER.warn(`Can't find byte at start of DAM (track ${this.track.trackNumber}, sector ${this.getSectorNumber()}, offset 0x${toHexWord(this.offset)})`);
+        TRS80_FLOPPY_LOGGER.warn(`DMK: Can't find byte at start of DAM (track ${this.track.trackNumber}, sector ${this.getSectorNumber()}, offset 0x${toHexWord(this.offset)})`);
 
         return undefined;
     }
@@ -386,7 +386,7 @@ export class DmkFloppyDisk extends FloppyDisk {
     public readSector(trackNumber: number, side: Side,
                       sectorNumber: number | undefined): SectorData | undefined {
 
-        // console.log(`DMK: Reading sector ${trackNumber}:${side}:${sectorNumber}`);
+        TRS80_FLOPPY_LOGGER.trace(`DMK: Reading sector ${trackNumber}:${side}:${sectorNumber}`);
         for (const track of this.tracks) {
             if (track.trackNumber === trackNumber && track.side === side) {
                 for (const sector of track.sectors) {
@@ -399,7 +399,7 @@ export class DmkFloppyDisk extends FloppyDisk {
                         const data = sector.getData();
                         if (data === undefined) {
                             // Sector is missing data.
-                            TRS80_BASE_LOGGER.warn(`Track ${trackNumber} side ${side} sector ${sectorNumber} has no data`);
+                            TRS80_FLOPPY_LOGGER.warn(`DMK: Track ${trackNumber} side ${side} sector ${sectorNumber} has no data`);
                             return undefined;
                         }
 
@@ -416,7 +416,7 @@ export class DmkFloppyDisk extends FloppyDisk {
             }
         }
 
-        TRS80_BASE_LOGGER.warn(`Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
+        TRS80_FLOPPY_LOGGER.warn(`DMK: Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
         return undefined;
     }
 }
@@ -461,7 +461,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const annotations: ProgramAnnotation[] = [];
 
     if (binary.length < FILE_HEADER_SIZE) {
-        TRS80_BASE_LOGGER.trace("DMK: File too short (" + binary.length + " < " + FILE_HEADER_SIZE + ")");
+        TRS80_FLOPPY_LOGGER.trace("DMK: File too short (" + binary.length + " < " + FILE_HEADER_SIZE + ")");
         return undefined;
     }
 
@@ -470,7 +470,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // [DMK] If this byte is set to FFH the disk is `write protected', 00H allows writing.
     const writeProtected = binary[0] === 0xFF;
     if (binary[0] !== 0x00 && binary[0] !== 0xFF) {
-        TRS80_BASE_LOGGER.trace("DMK: First byte not 0x00 or 0xFF (0x" + toHexByte(binary[0]) + ")");
+        TRS80_FLOPPY_LOGGER.trace("DMK: First byte not 0x00 or 0xFF (0x" + toHexByte(binary[0]) + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(writeProtected ? "Write protected" : "Writable",
@@ -493,7 +493,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const trackCount = binary[1];
     if (trackCount > MAX_TRACKS) {
         // Not sure what a reasonable maximum is. I've only seen 80.
-        TRS80_BASE_LOGGER.trace("DMK: Too many tracks (" + trackCount + " > " + MAX_TRACKS + ")");
+        TRS80_FLOPPY_LOGGER.trace("DMK: Too many tracks (" + trackCount + " > " + MAX_TRACKS + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(trackCount + " tracks", 1, 2));
@@ -518,7 +518,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // in the emulator with an improperly modified disk could have their data scrambled.
     const trackLength = binary[2] + (binary[3] << 8);
     if (trackLength > MAX_TRACK_LENGTH) {
-        TRS80_BASE_LOGGER.trace("DMK: Track length too long (" + trackLength + " > " + MAX_TRACK_LENGTH + ")");
+        TRS80_FLOPPY_LOGGER.trace("DMK: Track length too long (" + trackLength + " > " + MAX_TRACK_LENGTH + ")");
         return undefined;
     }
     annotations.push(new ProgramAnnotation(trackLength + " bytes per track", 2, 4));
@@ -567,14 +567,14 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const sideCount = singleSided ? 1 : 2;
     const expectedLength = FILE_HEADER_SIZE + sideCount*trackCount*trackLength;
     if (binary.length < expectedLength) {
-        TRS80_BASE_LOGGER.trace(`DMK: File too short (${binary.length} < ${expectedLength} == ${FILE_HEADER_SIZE} + ${sideCount}*${trackCount}*${trackLength})`);
+        TRS80_FLOPPY_LOGGER.trace(`DMK: File too short (${binary.length} < ${expectedLength} == ${FILE_HEADER_SIZE} + ${sideCount}*${trackCount}*${trackLength})`);
         return undefined;
     }
 
     // Check that these are zero.
     for (let i = 5; i < 12; i++) {
         if (binary[i] !== 0x00) {
-            TRS80_BASE_LOGGER.trace("DMK: Reserved byte " + i + " is not zero: 0x" + toHexByte(binary[i]));
+            TRS80_FLOPPY_LOGGER.trace("DMK: Reserved byte " + i + " is not zero: 0x" + toHexByte(binary[i]));
             return undefined;
         }
     }
@@ -585,7 +585,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // [DMK] Must be 12345678h if virtual disk is a REAL disk specification file used to access
     // REAL TRS-80 floppies in compatible PC drives.
     if (binary[12] + binary[13] + binary[14] + binary[15] !== 0x00) {
-        TRS80_BASE_LOGGER.trace("DMK: Bytes 12 through 15 are not zero");
+        TRS80_FLOPPY_LOGGER.trace("DMK: Bytes 12 through 15 are not zero");
         return undefined;
     }
     annotations.push(new ProgramAnnotation("Virtual disk", 12, 16));

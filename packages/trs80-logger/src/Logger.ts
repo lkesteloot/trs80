@@ -48,10 +48,38 @@ export class Logger {
     }
 
     /**
+     * Whether the specified level is enabled in this logger.
+     */
+    public isEnabled(level: LogLevel): boolean {
+        return level >= this.minLevel;
+    }
+
+    /**
+     * Whether the trace level is enabled in this logger.
+     */
+    public isTraceEnabled(): boolean {
+        return this.isEnabled(LogLevel.TRACE);
+    }
+
+    /**
+     * Whether the info level is enabled in this logger.
+     */
+    public isInfoEnabled(): boolean {
+        return this.isEnabled(LogLevel.INFO);
+    }
+
+    /**
+     * Whether the warn level is enabled in this logger.
+     */
+    public isWarnEnabled(): boolean {
+        return this.isEnabled(LogLevel.WARN);
+    }
+
+    /**
      * Generic log function with the log level parameter.
      */
     public log(level: LogLevel, message: string): void {
-        if (level >= this.minLevel) {
+        if (this.isEnabled(level)) {
             this.logSink(level, message);
         }
     }
@@ -154,7 +182,10 @@ export const TRS80_MAIN_SINK = new SplittingSink(makeBatchingSink(TRS80_CONSOLE_
 /**
  * Loggers for specific sub-systems. These can be individually configured.
  */
+// Misc code in the "trs80-base" library.
 export const TRS80_BASE_LOGGER = new Logger(LogLevel.INFO, TRS80_MAIN_SINK.sink);
+// Access to floppy files (JV1, JV3, DMK, etc.).
+export const TRS80_FLOPPY_LOGGER = new Logger(LogLevel.INFO, TRS80_MAIN_SINK.sink);
 export const TRS80_EMULATOR_LOGGER = new Logger(LogLevel.INFO, TRS80_MAIN_SINK.sink);
 
 /**
@@ -162,5 +193,6 @@ export const TRS80_EMULATOR_LOGGER = new Logger(LogLevel.INFO, TRS80_MAIN_SINK.s
  */
 export const TRS80_MODULE_NAME_TO_LOGGER: {[moduleName: string]: Logger} = {
     "base": TRS80_BASE_LOGGER,
+    "floppy": TRS80_FLOPPY_LOGGER,
     "emulator": TRS80_EMULATOR_LOGGER,
 };

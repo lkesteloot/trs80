@@ -76,22 +76,30 @@ function makeFileLogSink(pathname: string): LogSink {
     const fd = fs.openSync(pathname, "w");
 
     return (level: LogLevel, message: string): void => {
+        const now = new Date();
+        const hour = now.getHours().toString().padStart(2, "0");
+        const minute = now.getMinutes().toString().padStart(2, "0");
+        const second = now.getSeconds().toString().padStart(2, "0");
+        const millisecond = now.getMilliseconds().toString().padStart(3, "0");
+        const timestamp = `${hour}:${minute}:${second}.${millisecond}`;
+
         let label: string;
         switch (level) {
             case LogLevel.TRACE:
-                label = "T";
+                label = "TRACE";
                 break;
 
             case LogLevel.INFO:
-                label = "I";
+                label = "INFO";
                 break;
 
             case LogLevel.WARN:
-                label = "W";
+                label = "WARN";
                 break;
         }
+        label = label.padEnd(5, " ");
 
-        fs.writeSync(fd, label + ": " + message + "\n");
+        fs.writeSync(fd, `${timestamp} ${label} ${message}\n`);
     };
 }
 

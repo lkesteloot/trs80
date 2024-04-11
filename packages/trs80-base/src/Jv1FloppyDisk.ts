@@ -1,3 +1,4 @@
+import { TRS80_FLOPPY_LOGGER } from "trs80-logger";
 import {Density, FloppyDisk, FloppyDiskGeometry, FloppyWrite, SectorData, Side, TrackGeometry} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
@@ -68,6 +69,8 @@ export class Jv1FloppyDisk extends FloppyDisk {
     }
 
     public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
+        TRS80_FLOPPY_LOGGER.trace(`JV1: Reading sector ${trackNumber}:${side}:${sectorNumber}`);
+
         sectorNumber = sectorNumber ?? 0;
 
         // Check for errors.

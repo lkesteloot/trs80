@@ -11,7 +11,7 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Machine} from "./Machine.js";
 import {toHexByte} from "z80-base";
 import {EventType} from "./EventScheduler.js";
-import { TRS80_EMULATOR_LOGGER } from "trs80-logger";
+import {TRS80_EMULATOR_LOGGER} from "trs80-logger";
 
 // Number of physical drives.
 export const FLOPPY_DRIVE_COUNT = 4;
@@ -91,6 +91,13 @@ const COMMAND_STEP_OUT = 0x60;
 const COMMAND_STEP_OUTU = 0x70;
 const MASK_H = 0x08;
 const MASK_V = 0x04;
+const MASK_STEP_RATE = 0x03;
+const STEP_RATE_TO_MS = new Map<number, number>([
+    [ 0x00, 6 ],
+    [ 0x01, 12 ],
+    [ 0x02, 20 ],
+    [ 0x03, 40 ],
+]);
 
 // Type II commands: ccccbecd, where
 //     cccc = command number
@@ -121,6 +128,32 @@ const COMMAND_WRITE_TRACK = 0xF0;
 //     iiii = bitmask of events to terminate and interrupt on (unused on TRS-80).
 //            0000 for immediate terminate with no interrupt.
 const COMMAND_FORCE_INTERRUPT = 0xD0;
+const MASK_CONDITIONAL_INTERRUPT = 0x07;
+const MASK_IMMEDIATE_INTERRUPT = 0x08;
+
+// Set the Percom Doubler into FM mode.
+const PERCOM_DOUBLER_FM = 0xFE;
+// Set the Percom Doubler into MFM mode.
+const PERCOM_DOUBLER_MFM = 0xFF;
+
+const COMMAND_HIGH_NYBBLE_TO_STRING = new Map<number, string>([
+    [0x00, "RESTORE"],
+    [0x10, "SEEK"],
+    [0x20, "STEP"],
+    [0x30, "STEPU"],
+    [0x40, "STEP_IN"],
+    [0x50, "STEP_INU"],
+    [0x60, "STEP_OUT"],
+    [0x70, "STEP_OUTU"],
+    [0x80, "READ"],
+    [0x90, "READM"],
+    [0xA0, "WRITE"],
+    [0xB0, "WRITEM"],
+    [0xC0, "READ_ADDRESS"],
+    [0xD0, "FORCE_INTERRUPT"],
+    [0xE0, "READ_TRACK"],
+    [0xF0, "WRITE_TRACK"],
+]);
 
 /**
  * Given a command, returns its type.
@@ -153,6 +186,121 @@ function getCommandType(command: number): CommandType {
 
         default:
             throw new Error("Unknown command 0x" + toHexByte(command));
+    }
+}
+
+/**
+ * Make a string to describe the command.
+ */
+function getCommandDescription(command: number): string {
+    if (command === PERCOM_DOUBLER_FM) {
+        return "Percom Doubler to FM";
+    }
+    if (command === PERCOM_DOUBLER_MFM) {
+        return "Percom Doubler to MFM";
+    }
+
+    const parts: string[] = [];
+
+    const commandHigh = command & COMMAND_MASK;
+    parts.push(COMMAND_HIGH_NYBBLE_TO_STRING.get(commandHigh) as string);
+
+    switch (getCommandType(command)) {
+        case CommandType.TYPE_I: {
+            if ((command & MASK_H) !== 0) parts.push("head load");
+            if ((command & MASK_V) !== 0) parts.push("verify");
+            const stepRateMs = STEP_RATE_TO_MS.get(command & MASK_STEP_RATE) as number;
+            parts.push(stepRateMs + "ms step rate");
+            break;
+        }
+
+        case CommandType.TYPE_II:
+            if ((command & MASK_E) !== 0) parts.push("delay 10ms for head engage");
+            if ((command & MASK_B) !== 0) parts.push("side expected");
+            if ((command & MASK_C) !== 0) parts.push("side compare");
+            if (isWriteCommand(command)) {
+                if ((command & MASK_D) === 0) {
+                    parts.push("set DAM to FB normal");
+                } else {
+                    parts.push("set DAM to F8 deleted");
+                }
+            }
+            break;
+
+        case CommandType.TYPE_III:
+            // I don't understand these, don't display.
+            break;
+
+        case CommandType.TYPE_IV:
+            if ((command & MASK_IMMEDIATE_INTERRUPT) !== 0) parts.push("immediate interrupt");
+            break;
+    }
+
+    return parts.join(", ");
+}
+
+/**
+ * Make a string to describe the status.
+ */
+function getStatusDescription(command: number, status: number): string {
+    const parts: string[] = [];
+
+    if ((status & STATUS_BUSY) !== 0) parts.push("busy");
+
+    switch (getCommandType(command)) {
+        case CommandType.TYPE_I:
+        case CommandType.TYPE_IV:
+            if ((status & STATUS_INDEX) !== 0) parts.push("index");
+            if ((status & STATUS_TRACK_ZERO) !== 0) parts.push("track zero");
+            if ((status & STATUS_CRC_ERROR) !== 0) parts.push("CRC error");
+            if ((status & STATUS_SEEK_ERROR) !== 0) parts.push("seek error");
+            if ((status & STATUS_HEAD_ENGAGED) !== 0) parts.push("head engaged");
+            break;
+
+        case CommandType.TYPE_II:
+        case CommandType.TYPE_III:
+            if ((status & STATUS_DRQ) !== 0) parts.push("data ready");
+            if ((status & STATUS_LOST_DATA) !== 0) parts.push("lost data");
+            if ((status & STATUS_CRC_ERROR) !== 0) parts.push("CRC error");
+            if ((status & STATUS_NOT_FOUND) !== 0) parts.push("not found");
+            if ((status & STATUS_DELETED) !== 0) {
+                if (isReadCommand(command)) parts.push("deleted");
+                if (isWriteCommand(command)) parts.push("fault");
+            }
+            break;
+    }
+
+    if ((status & STATUS_WRITE_PROTECTED) !== 0) parts.push("write protected");
+    if ((status & STATUS_NOT_READY) !== 0) parts.push("not ready");
+
+    return parts.join(", ");
+}
+
+/**
+ * Whether a command is for reading.
+ */
+function isReadCommand(command: number): boolean {
+    switch (command & COMMAND_MASK) {
+        case COMMAND_READ:
+        case COMMAND_READM:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+/**
+ * Whether a command is for writing.
+ */
+function isWriteCommand(command: number): boolean {
+    switch (command & COMMAND_MASK) {
+        case COMMAND_WRITE:
+        case COMMAND_WRITEM:
+            return true;
+
+        default:
+            return false;
     }
 }
 
@@ -309,19 +457,22 @@ export class FloppyDiskController {
             status = this.status;
         }
 
-        TRS80_EMULATOR_LOGGER.trace("readStatus() = " + toHexByte(status));
+        if (TRS80_EMULATOR_LOGGER.isTraceEnabled()) {
+            TRS80_EMULATOR_LOGGER.trace("FDC: readStatus() = " + toHexByte(status) + " "
+                + getStatusDescription(this.currentCommand, status));
+        }
 
         return status;
     }
 
     public readTrack(): number {
-        TRS80_EMULATOR_LOGGER.trace("readTrack() = " + toHexByte(this.track));
+        TRS80_EMULATOR_LOGGER.trace("FDC: readTrack() = " + toHexByte(this.track));
 
         return this.track;
     }
 
     public readSector(): number {
-        TRS80_EMULATOR_LOGGER.trace("readSector() = " + toHexByte(this.sector));
+        TRS80_EMULATOR_LOGGER.trace("FDC: readSector() = " + toHexByte(this.sector));
 
         return this.sector;
     }
@@ -339,6 +490,8 @@ export class FloppyDiskController {
                 // Keep reading from the buffer.
                 if (this.sectorData !== undefined && (this.status & STATUS_DRQ) !== 0 && drive.floppyDisk !== undefined) {
                     this.data = this.sectorData.data[this.dataIndex];
+                    TRS80_EMULATOR_LOGGER.trace("FDC: readData(" + this.dataIndex +
+                        "/" + this.sectorData.data.length + ") = " + toHexByte(this.data));
                     this.dataIndex++;
                     if (this.dataIndex >= this.sectorData.data.length) {
                         this.sectorData = undefined;
@@ -356,8 +509,6 @@ export class FloppyDiskController {
                 throw new Error("Unhandled case in readData()");
         }
 
-        // TRS80_EMULATOR_LOGGER.trace("readData() = " + toHexByte(this.data));
-
         return this.data;
     }
 
@@ -365,11 +516,12 @@ export class FloppyDiskController {
      * Set current command.
      */
     public writeCommand(cmd: number): void {
-        TRS80_EMULATOR_LOGGER.trace("writeCommand(" + toHexByte(cmd) + ")");
+        if (TRS80_EMULATOR_LOGGER.isTraceEnabled()) {
+            TRS80_EMULATOR_LOGGER.trace("FDC: writeCommand(" + toHexByte(cmd) + "), " + getCommandDescription(cmd));
+        }
 
-        if (cmd === 0xFE || cmd === 0xFF) {
+        if (cmd === PERCOM_DOUBLER_FM || cmd === PERCOM_DOUBLER_MFM) {
             // Command to Percom Doubler, ignore.
-            // (0xFE is configure FM, 0xFF is configure MFM.)
             return;
         }
 
@@ -433,7 +585,7 @@ export class FloppyDiskController {
                 if (sectorData === undefined) {
                     this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 512,
                         () => this.done(0));
-                    TRS80_EMULATOR_LOGGER.warn(`Didn't find sector ${this.sector} on track ${drive.physicalTrack}`);
+                    TRS80_EMULATOR_LOGGER.warn(`FDC: Didn't find sector ${this.sector} on track ${drive.physicalTrack}`);
                 } else {
                     let newStatus = 0;
                     if (sectorData.deleted) {
@@ -479,14 +631,11 @@ export class FloppyDiskController {
                 this.machine.eventScheduler.cancelByEventTypeMask(EventType.DISK_ALL);
                 this.status = 0;
                 this.updateStatus();
-                if ((cmd & 0x07) !== 0) {
+                if ((cmd & MASK_CONDITIONAL_INTERRUPT) !== 0) {
+                    // Apparently not used on TRS-80.
                     throw new Error("Conditional interrupt features not implemented");
-                } else if ((cmd & 0x08) !== 0) {
-                    // Immediate interrupt.
-                    this.machine.diskIntrqInterrupt(true);
-                } else {
-                    this.machine.diskIntrqInterrupt(false);
                 }
+                this.machine.diskIntrqInterrupt((cmd & MASK_IMMEDIATE_INTERRUPT) !== 0);
                 break;
 
             default:
@@ -495,20 +644,18 @@ export class FloppyDiskController {
     }
 
     public writeTrack(track: number): void {
-        TRS80_EMULATOR_LOGGER.trace("writeTrack(" + toHexByte(track) + ")");
+        TRS80_EMULATOR_LOGGER.trace("FDC: writeTrack(" + toHexByte(track) + ")");
 
         this.track = track;
     }
 
     public writeSector(sector: number): void {
-        TRS80_EMULATOR_LOGGER.trace("writeSector(" + toHexByte(sector) + ")");
+        TRS80_EMULATOR_LOGGER.trace("FDC: writeSector(" + toHexByte(sector) + ")");
 
         this.sector = sector;
     }
 
     public writeData(data: number): void {
-        // TRS80_EMULATOR_LOGGER.trace("writeData(" + toHexByte(data) + ")");
-
         switch (this.currentCommand & COMMAND_MASK) {
             case COMMAND_WRITE:
                 if (this.sectorData !== undefined && this.dataIndex < this.sectorData.data.length) {
@@ -531,6 +678,10 @@ export class FloppyDiskController {
                     }
                 }
                 break;
+
+            default:
+                TRS80_EMULATOR_LOGGER.trace("FDC: writeData(" + toHexByte(data) + ")");
+                break;
         }
 
         this.data = data;
@@ -540,7 +691,7 @@ export class FloppyDiskController {
      * Select a drive.
      */
     public writeSelect(value: number): void {
-        TRS80_EMULATOR_LOGGER.trace("writeSelect(" + toHexByte(value) + ")");
+        TRS80_EMULATOR_LOGGER.trace("FDC: writeSelect(" + toHexByte(value) + ")");
 
         this.status &= ~STATUS_NOT_READY;
         this.side = booleanToSide((value & SELECT_SIDE) !== 0);
@@ -611,6 +762,7 @@ export class FloppyDiskController {
      * STATUS_SEEK_ERROR if a problem is found.
      */
     private verify(): void {
+        const beforeStatus = this.status;
         const drive = this.drives[this.currentDrive];
         if (drive.floppyDisk === undefined) {
             this.status |= STATUS_NOT_FOUND;
@@ -625,6 +777,11 @@ export class FloppyDiskController {
             if (this.doubleDensity && !drive.floppyDisk.supportsDoubleDensity) {
                 this.status |= STATUS_NOT_FOUND;
             }
+        }
+        if (this.status === beforeStatus) {
+            TRS80_EMULATOR_LOGGER.trace(`FDC: Verify found track ${this.track}`);
+        } else {
+            TRS80_EMULATOR_LOGGER.trace(`FDC: Verify failed to find track ${this.track}, status changed from ${toHexByte(beforeStatus)} to ${toHexByte(this.status)}`);
         }
     }
 
