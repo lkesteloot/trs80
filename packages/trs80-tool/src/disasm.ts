@@ -18,7 +18,7 @@ export function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: 
         disasm.addEntryPoint(entryPoint);
     }
     const instructions = disasm.disassemble()
-    const text = instructionsToText(instructions, { makeListing }).join("\n") + "\n";
+    const text = instructionsToText(disasm, instructions, { makeListing }).join("\n") + "\n";
     const outBinary = new TextEncoder().encode(text);
     const description = "Disassembled " + (trs80File.className === "CmdProgram" ? "CMD program" : "system program");
 
@@ -42,6 +42,7 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
 
     // Create and configure the disassembler.
     let disasm: Disasm;
+    let mainEntryPoint: number | undefined = undefined;
     const ext = path.extname(filename).toUpperCase();
     if (ext === ".CMD" || ext === ".3BN" || ext === ".SYS" || ext === ".L1") {
         const trs80File = decodeTrs80File(buffer, filename);
@@ -52,12 +53,14 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
             return;
         }
         disasm = disasmForTrs80Program(trs80File);
+        mainEntryPoint = trs80File.entryPointAddress;
     } else if (ext === ".ROM" || ext === ".BIN") {
         disasm = disasmForTrs80();
         disasm.addChunk(buffer, org ?? 0);
         if (org !== undefined || entryPoints.length === 0) {
             disasm.addEntryPoint(org ?? 0);
         }
+        mainEntryPoint = org ?? 0;
         addModel3RomEntryPoints(disasm);
     } else {
         console.log("Can't disassemble files of type " + ext);
@@ -73,7 +76,12 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
         disasm.addEntryPoint(entryPoint);
     }
 
-    const instructions = disasm.disassemble()
-    const text = instructionsToText(instructions, { makeListing, showBinary, hexFormat, upperCase }).join("\n");
+    if (mainEntryPoint === undefined && entryPoints.length > 0) {
+        mainEntryPoint = entryPoints[0];
+    }
+
+    const instructions = disasm.disassemble();
+    const text = instructionsToText(disasm, instructions,
+        { makeListing, showBinary, hexFormat, upperCase, mainEntryPoint }).join("\n");
     console.log(text);
 }

@@ -64,7 +64,6 @@ export function toFormattedHex(n: number, digits: number, hexFormat: HexFormat):
     return h;
 }
 
-
 /**
  * Main class for disassembling a binary.
  */
@@ -137,6 +136,15 @@ export class Disasm {
      */
     public addAdditionalDataLength(opcode: number, length: number): void {
         this.opcodeToAdditionDataLength.set(opcode, length);
+    }
+
+    /**
+     * Get the label for the given address if we're configured to use them,
+     * or undefined otherwise.
+     */
+    public getLabelForAddress(address: number): string | undefined {
+        return this.useKnownLabels ? this.knownLabels.get(address) : undefined;
+
     }
 
     /**

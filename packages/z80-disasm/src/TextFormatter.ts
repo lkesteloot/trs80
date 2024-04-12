@@ -1,5 +1,5 @@
 import {toHexByte, toHexWord} from "z80-base";
-import {HexFormat, toFormattedHex} from "./Disasm.js";
+import {Disasm, HexFormat, toFormattedHex} from "./Disasm.js";
 import {Instruction} from "./Instruction.js";
 
 const INSTRUCTION_INDENT = " ".repeat(8);
@@ -15,23 +15,30 @@ export interface InstructionsToTextConfig {
     hexFormat?: HexFormat;
     // Generate upper case disassembly (except for string literals), default false.
     upperCase?: boolean;
+    // Main address to jump to, default unspecified.
+    mainEntryPoint?: number | undefined;
 }
 
 /**
  * Converts an array of instructions into an array of text lines, suitable for displaying
  * in a shell console.
  *
+ * @param disasm The disassembler used to make the instructions.
  * @param instructions The array of instructions to convert.
  * @param config object to configure the conversion.
  * @returns The array of text lines.
  */
-export function instructionsToText(instructions: Instruction[], config: InstructionsToTextConfig): string[] {
+export function instructionsToText(disasm: Disasm,
+                                   instructions: Instruction[],
+                                   config: InstructionsToTextConfig): string[] {
+
     // Set defaults.
     const {
         makeListing = false,
         showBinary = true,
         hexFormat = HexFormat.C,
         upperCase = false,
+        mainEntryPoint,
     } = config;
 
     // Convenience function to transform text.
@@ -77,6 +84,13 @@ export function instructionsToText(instructions: Instruction[], config: Instruct
             lines.push(INSTRUCTION_INDENT + instructionText);
         }
     }
+
+    let endLine = listingIndent + INSTRUCTION_INDENT + "end";
+    if (mainEntryPoint !== undefined) {
+        const label = disasm.getLabelForAddress(mainEntryPoint) ?? toFormattedHex(mainEntryPoint, 4, hexFormat);
+        endLine += " " + label;
+    }
+    lines.push(endLine);
 
     return lines;
 }

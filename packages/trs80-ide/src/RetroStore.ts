@@ -125,7 +125,7 @@ export async function downloadFromRetroStore(): Promise<string | undefined> {
     }
 
     const instructions = disasm.disassemble();
-    const lines = instructionsToText(instructions, {});
+    const lines = instructionsToText(disasm, instructions, {});
 
     if (regs !== undefined) {
         function setRegister(value: number | undefined, name: string): void {
