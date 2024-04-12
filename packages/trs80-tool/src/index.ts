@@ -172,15 +172,17 @@ function main() {
             const outfile = files[files.length - 1];
             convert(infiles, outfile, baud, start, entryPoints);
         });
-    program
-        .command("mount <diskfile> [commands...]")
-        .description("mount a floppy file and perform operations on it", {
-            diskfile: "JV1, JV3, DMK, or DSK file",
-            commands: "import FILE [as FILE], export FILE [as FILE], delete FILE, rename FILE to FILE"
-        })
-        .action((diskfile, commands, options) => {
-            mount(diskfile, commands);
-        });
+    if (2 > 3) {
+        program
+            .command("mount <diskfile> [commands...]")
+            .description("mount a floppy file and perform operations on it", {
+                diskfile: "JV1, JV3, DMK, or DSK file",
+                commands: "import FILE [as FILE], export FILE [as FILE], delete FILE, rename FILE to FILE"
+            })
+            .action((diskfile, commands, options) => {
+                mount(diskfile, commands);
+            });
+    }
     program
         .command("sectors <infiles...>")
         .description("show a sector map for each floppy file", {
