@@ -128,6 +128,10 @@
                 <dd>A file of unknown type, but sometimes synonymous with
                     <code>.ROM</code>.</dd>
 
+                <dt><strong><code>.HEX</code></strong></dt>
+                <dd>Intel HEX file, a text file for burning EPROMs. Can be generated
+                    by the assembler when developing a ROM.</dd>
+
             </dl>
 
             <h2 id="usage">Usage</h2>
@@ -146,13 +150,14 @@
             <div><pre><code>% trs80-tool --color=16 hexdump in.cmd | less</code></pre>
             </div>
 
-            <div><pre><code>--trace=MODULE    show trace logs for module (base, emulator).</code></pre></div>
+            <div><pre><code>--trace=MODULE    show trace logs for module (base, emulator, floppy).</code></pre></div>
 
             <p>Show tracing logs for the specified module. These log lines can reveal
             how the module makes various decisions, and can help debugging. This flag
             is mostly intended for the developer, but can help explain why (for example)
             a specific floppy isn't being recognized. The “base” module deals with
-            TRS-80 file formats, and the “emulator” module is the TRS-80 emulator itself.
+            TRS-80 file formats; the “emulator” module is the TRS-80 emulator itself;
+            and the “floppy” module is for floppy-related messages.
             Repeat the option to enable tracing for multiple modules.</p>
 
             <h3 id="dir"><code>dir</code></h3>
@@ -163,6 +168,9 @@
             </div>
             <p>The output format depends on the type of archive. Cassette files show
             baud rates, whereas floppy disks show creation date and type of file.</p>
+
+            <p>Normally system file are hidden, but can be shown by specifying
+            the <code>--system</code> option.</p>
 
             <h3 id="info"><code>info</code></h3>
             <p>The <code>info</code> command takes a list of filenames and displays a one-line
@@ -265,7 +273,8 @@ C CRC error (ID or data).</code></pre>
             <p>The <code>asm</code> command assembles the specified assembly language source code:</p>
             <div><pre><code>% trs80-tool asm program.asm program.cmd</code></pre>
             </div>
-            <p>It can generate <code>.CMD</code>, <code>.3BN</code>, <code>.CAS</code>, or <code>.WAV</code> files. For <code>.CAS</code> or
+            <p>It can generate <code>.CMD</code>, <code>.3BN</code>, <code>.CAS</code>, <code>.WAV</code>,
+            <code>BIN</code>, or <code>HEX</code> files. For <code>.CAS</code> or
             <code>.WAV</code> files the default baud rate is 500, but can be set with the <code>--baud</code>
             flag:</p>
             <div><pre><code>% trs80-tool asm --baud 1500 program.asm program.cas</code></pre>
@@ -330,6 +339,10 @@ C CRC error (ID or data).</code></pre>
             <div><pre><code>% trs80-tool run --mount in.cas in1.dmk in2.dmk in3.dmk</code></pre>
             </div>
 
+            <p>If, from within the emulator, you modify the floppy, the virtual file
+            will be modified as well. Specify the <code>--write-protected</code> option
+            to mount all floppies as write-protected.</p>
+
             <p>The <code>--xray</code> flag shows nothing in the shell but starts a web server
             for the X-ray debugger. This is experimental and not yet documented.</p>
 
@@ -348,11 +361,53 @@ C CRC error (ID or data).</code></pre>
 
             <h2 id="limitations">Limitations</h2>
             <ul>
-                <li>The tool cannot write floppy disk files.</li>
                 <li>The tool can only read TRSDOS and LDOS floppy disks.</li>
             </ul>
 
             <h2 id="change-log">Change log</h2>
+
+            <p>This change log covers the tool and the related web apps
+            (<a href="https://www.my-trs-80.com/">My TRS-80</a>,
+            the <a href="https://www.my-trs-80.com/ide/">IDE</a>,
+            and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).</p>
+
+            <h3 id="v2.7.0">2.7.0 <span class="release-date">Apr 12, 2024</span></h3>
+
+            <ul>
+                <li>Assembler:
+                    <ul>
+                        <li>Always assemble to the documented instruction. (The assembler
+                        used to sometimes assemble to valid but undocumented variants.)</li>
+                        <li>Can generate BIN and Intel HEX files (useful for burning ROMs).</li>
+                    </ul>
+                </li>
+                <li>IDE:
+                    <ul>
+                        <li>Can insert/eject floppy (the new “Mount” menu).</li>
+                        <li>Much better auto-complete of mnemonics and symbols.</li>
+                        <li>Can develop ROMs by specifying an org of 0. In the emulator
+                            your code will be loaded instead of the system ROM.</li>
+                    </ul>
+                </li>
+                <li>Emulator:
+                    <ul>
+                        <li>Can show printer output (Epson MX-80).</li>
+                        <li>Can show plotter output (FP-215).</li>
+                        <li>Floppy support in Model I.</li>
+                        <li>Write support for floppies.</li>
+                    </ul>
+                </li>
+                <li><code>trs80-tool</code>:
+                    <ul>
+                        <li>In the <code>run</code> command, if the mounted floppy is modified,
+                            the changes will be written to the underlying virtual floppy file.
+                            Specify the <code>--write-protected</code> option to mount the floppy
+                            write-protected.</li>
+                        <li>The <code>dir</code> command has a new <code>--system</code> option
+                            to show system files.</li>
+                    </ul>
+                </li>
+            </ul>
 
             <h3>2.6.0 <span class="release-date">Dec 31, 2023</span></h3>
 
