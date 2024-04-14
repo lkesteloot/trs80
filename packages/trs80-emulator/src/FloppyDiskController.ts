@@ -364,13 +364,17 @@ export class FdcState {
 }
 
 /**
- * The disk controller. We only emulate the WD1791/93, not the Model I's WD1771.
+ * The floppy disk controller. We emulate the Model I's WD1771 and the Model III's WD1791/93.
  */
 export class FloppyDiskController {
     private readonly machine: Machine;
 
     // Registers.
     private status = STATUS_TRACK_ZERO | STATUS_NOT_READY;
+    // The track register keeps track of where the FDC thinks the physical head is (which is
+    // stored in drive.physicalTrack). These can get out of sync because the track register
+    // can be written to directly, in which case the next read sector will fail because the
+    // track number found in the IDAM will be wrong.
     private track = 0;
     private sector = 0;
     private data = 0;
@@ -539,7 +543,7 @@ export class FloppyDiskController {
             case COMMAND_RESTORE:
                 this.lastReadAddress = undefined;
                 drive.physicalTrack = 0;
-                this.track = 0;
+                this.track = 0; // trs80gp sets this to 255?
                 this.status = STATUS_TRACK_ZERO | STATUS_BUSY;
                 if ((cmd & MASK_V) != 0) {
                     this.verify();
@@ -554,8 +558,12 @@ export class FloppyDiskController {
                 if (moveCount !== 0) {
                     this.onTrackMove.dispatch(moveCount);
                 }
+                TRS80_EMULATOR_LOGGER.trace("FDC: before seek: track " + this.track +
+                    ", physical track " + drive.physicalTrack + ", move count " + moveCount);
                 drive.physicalTrack += moveCount;
                 this.track = this.data;
+                TRS80_EMULATOR_LOGGER.trace("FDC: seeking to track " + this.track +
+                    ", physical track " + drive.physicalTrack + ", move count " + moveCount);
                 if (drive.physicalTrack <= 0) {
                     // this.track too?
                     drive.physicalTrack = 0;
@@ -575,8 +583,10 @@ export class FloppyDiskController {
                 // Read the sector. The bytes will be read later.
                 this.lastReadAddress = undefined;
                 this.status = STATUS_BUSY;
-                // Not sure how to use this. Ignored for now:
+                // TODO If MASK_C is specified, then the side byte in the IDAM must match MASK_B.
                 const goalSide = (cmd & MASK_C) === 0 ? undefined : booleanToSide((cmd & MASK_B) !== 0);
+                TRS80_EMULATOR_LOGGER.trace("FDC: reading track " + drive.physicalTrack +
+                    ", side " + this.side + ", sector " + this.sector);
 
                 const sectorData = drive.floppyDisk === undefined
                     ? undefined
@@ -588,11 +598,16 @@ export class FloppyDiskController {
                     TRS80_EMULATOR_LOGGER.warn(`FDC: Didn't find sector ${this.sector} on track ${drive.physicalTrack}`);
                 } else {
                     let newStatus = 0;
-                    if (sectorData.deleted) {
-                        newStatus |= STATUS_DELETED;
-                    }
-                    if (sectorData.crcError) {
-                        newStatus |= STATUS_CRC_ERROR;
+                    // TODO use C flag to also check side if requested.
+                    if (sectorData.trackNumber !== this.track || sectorData.sectorNumber !== this.sector) {
+                        newStatus |= STATUS_NOT_FOUND;
+                    } else {
+                        if (sectorData.deleted) {
+                            newStatus |= STATUS_DELETED;
+                        }
+                        if (sectorData.crcError) {
+                            newStatus |= STATUS_CRC_ERROR;
+                        }
                     }
                     this.sectorData = sectorData;
                     this.dataIndex = 0;
@@ -607,7 +622,7 @@ export class FloppyDiskController {
                 this.lastReadAddress = undefined;
                 this.status = 0;
 
-                // Not sure how to use this. Ignored for now:
+                // TODO If MASK_C is specified, then the side byte in the IDAM must match MASK_B.
                 const goalSide = (cmd & MASK_C) === 0 ? undefined : booleanToSide((cmd & MASK_B) !== 0);
 
                 if (drive.floppyDisk === undefined) {
@@ -620,7 +635,8 @@ export class FloppyDiskController {
                     const deleted = (cmd & MASK_D) !== 0;
                     this.dataIndex = 0;
                     // TODO get size and density from somewhere:
-                    this.sectorData = new SectorData(new Uint8Array(256), Density.SINGLE);
+                    this.sectorData = new SectorData(new Uint8Array(256), Density.SINGLE,
+                        this.track, this.side, this.sector);
                     this.firstDrq(STATUS_BUSY);
                 }
                 break;
@@ -664,7 +680,8 @@ export class FloppyDiskController {
                     if (this.dataIndex === this.sectorData.data.length) {
                         const floppyDisk = this.drives[this.currentDrive].floppyDisk;
                         if (floppyDisk !== undefined) {
-                            floppyDisk.writeSector(this.track, this.side, this.sector, this.sectorData);
+                            floppyDisk.writeSector(this.sectorData.trackNumber, this.sectorData.side,
+                                this.sectorData.sectorNumber, this.sectorData);
                         }
 
                         this.sectorData = undefined;

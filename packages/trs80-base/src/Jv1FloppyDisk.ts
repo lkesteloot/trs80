@@ -89,7 +89,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
 
         const data = this.padSector(this.binary.subarray(offset, offset + BYTES_PER_SECTOR), BYTES_PER_SECTOR);
 
-        const sectorData = new SectorData(data, Density.SINGLE);
+        const sectorData = new SectorData(data, Density.SINGLE, trackNumber, side, sectorNumber);
         if (trackNumber === DIRECTORY_TRACK) {
             // Directory sectors are marked as deleted in TRSDOS.
             sectorData.deleted = true;

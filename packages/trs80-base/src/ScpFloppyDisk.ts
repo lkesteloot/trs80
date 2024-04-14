@@ -232,7 +232,8 @@ export class ScpFloppyDisk extends FloppyDisk {
 
                 for (const sector of rev.sectors) {
                     if (sectorNumber === undefined || sector.getSectorNumber() === sectorNumber) {
-                        const sectorData = new SectorData(sector.getData(), sector.getDensity());
+                        const sectorData = new SectorData(sector.getData(), sector.getDensity(),
+                            sector.getTrackNumber(), sector.getSideNumber(), sector.getSectorNumber());
                         sectorData.crc = new SectorCrc(
                             new CrcInfo(sector.getIdamCrc(), sector.computeIdamCrc()),
                             new CrcInfo(sector.getDataCrc(), sector.computeDataCrc()));

@@ -415,7 +415,8 @@ export class DmkFloppyDisk extends FloppyDisk {
                             return undefined;
                         }
 
-                        const sectorData = new SectorData(data, sector.getDensity());
+                        const sectorData = new SectorData(data, sector.getDensity(),
+                            sector.getCylinder(), sector.getSide(), sector.getSectorNumber());
                         sectorData.crc = new SectorCrc(
                             new CrcInfo(sector.getIdamCrc(), sector.computeIdamCrc()),
                             new CrcInfo(sector.getDataCrc() ?? 0, sector.computeDataCrc() ?? 0));

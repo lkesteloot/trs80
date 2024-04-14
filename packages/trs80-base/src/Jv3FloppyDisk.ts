@@ -204,7 +204,8 @@ export class Jv3FloppyDisk extends FloppyDisk {
         const data = this.padSector(this.binary.subarray(sectorInfo.offset, sectorInfo.offset + sectorInfo.size),
             sectorInfo.size);
 
-        const sectorData = new SectorData(data, sectorInfo.getDensity());
+        const sectorData = new SectorData(data, sectorInfo.getDensity(),
+            sectorInfo.track, sectorInfo.getSide(), sectorInfo.sector);
         sectorData.deleted = sectorInfo.isDeleted();
         sectorData.crcError = sectorInfo.hasCrcError();
         return sectorData;

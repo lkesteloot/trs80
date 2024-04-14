@@ -115,9 +115,27 @@ export class SectorData {
      */
     public density: Density;
 
-    constructor(data: Uint8Array, density: Density) {
+    /**
+     * Track number stored in the IDAM.
+     */
+    public trackNumber: number;
+
+    /**
+     * Side stored in the IDAM.
+     */
+    public side: Side;
+
+    /**
+     * Sector number stored in the IDAM.
+     */
+    public sectorNumber: number;
+
+    constructor(data: Uint8Array, density: Density, trackNumber: number, side: Side, sectorNumber: number) {
         this.data = data;
         this.density = density;
+        this.trackNumber = trackNumber;
+        this.side = side;
+        this.sectorNumber = sectorNumber;
     }
 }
 
