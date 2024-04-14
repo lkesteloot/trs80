@@ -820,6 +820,8 @@ export class Trsdos {
             return "Unknown";
         } else if (gatInfo instanceof Trsdos14GatInfo && (gatInfo.osVersion & 0xF0) === 0x50) {
             return "LDOS";
+        } else if (gatInfo instanceof Trsdos14GatInfo && gatInfo.osVersion === 0x63) {
+            return "LS-DOS";
         } else {
             return "TRSDOS";
         }
