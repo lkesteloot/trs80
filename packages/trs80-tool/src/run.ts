@@ -1,6 +1,6 @@
 import fs from "fs";
 import chalk from "chalk";
-import {BasicLevel, CGChip, Config, FLOPPY_DRIVE_COUNT, Keyboard,
+import {BasicLevel, CGChip, Config, ConsolePrinter, FLOPPY_DRIVE_COUNT, Keyboard,
     LinePrinter, ModelType, RunningState, SilentSoundPlayer, Trs80, Trs80Screen } from "trs80-emulator";
 import {connectXray} from "./xray.js";
 import {TRS80_CHAR_HEIGHT, TRS80_CHAR_WIDTH, TRS80_SCREEN_BEGIN, isFloppy } from "trs80-base";
@@ -98,6 +98,15 @@ class TtyScreen extends Trs80Screen {
     private readonly drawnScreen = new Uint8Array(WIDTH*HEIGHT);
     private readonly vt100Control = new Vt100Control();
     private readonly logMessages: { level: LogLevel, message: string }[] = [];
+    public readonly printer = new class extends LinePrinter {
+        constructor(private ttyScreen: TtyScreen) {
+            super();
+        }
+
+        printLine(line: string): void {
+            this.ttyScreen.logSink(LogLevel.INFO, "Printer: " + line);
+        }
+    }(this);
     private lastCursorIndex: number | undefined = undefined;
     private lastUnderscoreIndex = 0;
     private drive: number | undefined = undefined;
@@ -480,15 +489,18 @@ export function run(programFilename: string | undefined,
     let keyboard: Keyboard;
     let exitScreen: () => void;
     let showDrive: (drive: number | undefined) => void;
+    let printer: LinePrinter;
     if (xray) {
         screen = new NopScreen();
         exitScreen = () => {};
         showDrive = (drive: number | undefined) => undefined;
+        printer = new ConsolePrinter();
         keyboard = new Keyboard();
     } else {
         const ttyScreen = new TtyScreen(readMemory, config);
         exitScreen = () => ttyScreen.exit();
         showDrive =  (drive: number | undefined) => ttyScreen.showDrive(drive);
+        printer = ttyScreen.printer;
         keyboard = new TtyKeyboard(ttyScreen);
         screen = ttyScreen;
         TRS80_MAIN_SINK.delegatedSinks.shift();
@@ -504,6 +516,8 @@ export function run(programFilename: string | undefined,
             console.log(msg);
             process.exit();
         }));
+    } else if (!xray) {
+        trs80.setPrinter(printer);
     }
     trs80.onMotorOn.subscribe(showDrive);
     trs80.reset();
