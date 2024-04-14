@@ -39,6 +39,7 @@ export function sectors(filename: string, showContents: boolean): void {
 
     const CHALK_FOR_LETTER: { [letter: string]: chalk.Chalk } = {
         "-": chalk.gray,
+        "?": chalk.red,
         "C": chalk.red,
         "X": chalk.yellow,
         "S": chalk.reset,
@@ -46,7 +47,8 @@ export function sectors(filename: string, showContents: boolean): void {
     };
 
     const LEGEND_FOR_LETTER: { [letter: string]: string } = {
-        "-": "Missing sector",
+        "-": "Not on track",
+        "?": "Not found",
         "C": "CRC error",
         "X": "Deleted sector",
         "S": "Single density",
@@ -63,20 +65,26 @@ export function sectors(filename: string, showContents: boolean): void {
         console.log(lineParts.join(""));
 
         for (let trackNumber = geometry.firstTrack.trackNumber; trackNumber <= geometry.lastTrack.trackNumber; trackNumber++) {
+            const trackGeometry = geometry.getTrackGeometry(trackNumber);
             const lineParts: string[] = [trackNumber.toString().padStart(6, " ") + "  "];
+
             for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
-                const sectorData = file.readSector(trackNumber, side, sectorNumber);
                 let text: string;
-                if (sectorData === undefined) {
-                    text = "-";
-                } else if (sectorData.crcError) {
-                    text = "C";
-                } else if (sectorData.deleted) {
-                    text = "X";
-                } else if (sectorData.density === Density.SINGLE) {
-                    text = "S";
+                if (trackGeometry.isValidSectorNumber(sectorNumber)) {
+                    const sectorData = file.readSector(trackNumber, side, sectorNumber);
+                    if (sectorData === undefined) {
+                        text = "?";
+                    } else if (sectorData.crcError) {
+                        text = "C";
+                    } else if (sectorData.deleted) {
+                        text = "X";
+                    } else if (sectorData.density === Density.SINGLE) {
+                        text = "S";
+                    } else {
+                        text = "D";
+                    }
                 } else {
-                    text = "D";
+                    text = "-";
                 }
 
                 usedLetters.add(text);

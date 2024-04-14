@@ -168,6 +168,13 @@ export class TrackGeometry {
     }
 
     /**
+     * Whether the sector number is valid for this track.
+     */
+    public isValidSectorNumber(sectorNumber: number): boolean {
+        return sectorNumber >= this.firstSector && sectorNumber <= this.lastSector;
+    }
+
+    /**
      * Whether this track geometry equals the other, ignoring the "trackNumber" field.
      */
     public equalsIgnoringTrack(other: TrackGeometry): boolean {
