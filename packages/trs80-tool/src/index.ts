@@ -15,7 +15,7 @@ import {run} from "./run.js";
 import {repl} from "./repl.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {mount} from "./mount.js";
-import {LogLevel, LogSink, TRS80_MAIN_SINK, TRS80_MODULE_NAME_TO_LOGGER, makeBatchingSink} from "trs80-logger";
+import {LogLevel, LogSink, TRS80_MAIN_SINK, TRS80_MODULE_NAME_TO_LOGGER} from "trs80-logger";
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -105,8 +105,9 @@ function makeFileLogSink(pathname: string): LogSink {
 
 function main() {
     TRS80_MAIN_SINK.delegatedSinks.splice(0);
-    // Important that this is first, we might replace it in the run() command.
-    TRS80_MAIN_SINK.delegatedSinks.push(makeBatchingSink(COLORED_SINK));
+    // Important that this is first, we might replace it in the run() command. Don't use
+    // a batching sink for the terminal, since it won't have a chance to flush its last line.
+    TRS80_MAIN_SINK.delegatedSinks.push(COLORED_SINK);
 
     const fullVersion = version + " (git " + BUILD_GIT_HASH.substring(0, 7) +
         ", built " + new Date(BUILD_DATE * 1000).toLocaleDateString() + ")";
