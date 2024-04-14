@@ -22,6 +22,9 @@ const BYTES_PER_SECTOR = 256;
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
 
+// Whether to check that the Tandy string appears in at least some directory sectors.
+const CHECK_EXPECTED_TANDY = true;
+
 // Password value that means "no password".
 const NO_PASSWORD = 0xEF5C;
 
@@ -1063,7 +1066,10 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
     }
 
     // Check directory sectors for magic string.
-    if (isModel3(version)) {
+    if (CHECK_EXPECTED_TANDY && isModel3(version)) {
+        let totalDirSectors = 0;
+        let dirSectorsWithTandy = 0;
+
         for (let side = 0; side < sideCount; side++) {
             for (let sectorIndex = 0; sectorIndex < sectorsPerTrack; sectorIndex++) {
                 if (side === 0 && sectorIndex < 2) {
@@ -1074,12 +1080,25 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
                 const sectorNumber = geometry.lastTrack.firstSector + sectorIndex;
                 const dirSector = disk.readSector(dirTrackNumber, numberToSide(side), sectorNumber);
                 if (dirSector !== undefined) {
+                    totalDirSectors += 1;
+
                     const tandy = decodeAscii(dirSector.data.subarray(dirEntriesPerSector * dirEntryLength));
-                    if (tandy !== EXPECTED_TANDY) {
-                        return `Expected "${EXPECTED_TANDY}", got "${tandy}", on sector ${sectorNumber} of side ${side}`;
+                    if (tandy === EXPECTED_TANDY) {
+                        dirSectorsWithTandy += 1;
                     }
                 }
             }
+        }
+
+        if (totalDirSectors < 5) {
+            return `Too few directory sectors (${totalDirSectors})`;
+        }
+
+        // I've seen floppies missing this in some sectors, so as long as at least half
+        // the sectors have it, we can be pretty sure that this was at least originally
+        // a Model 3 disk.
+        if (dirSectorsWithTandy < totalDirSectors/2) {
+            return `Got "${EXPECTED_TANDY}" on too few sectors (${dirSectorsWithTandy} of ${totalDirSectors})`;
         }
     }
 
