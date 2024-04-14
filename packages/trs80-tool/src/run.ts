@@ -79,6 +79,13 @@ class Vt100Control {
         this.row += count;
         this.col = 1;
     }
+
+    /**
+     * Clear the display from the cursor to the end of the line. Does not move the cursor.
+     */
+    public clearToEndOfLine(): void {
+        process.stdout.write("\x1B[K");
+    }
 }
 
 /**
@@ -125,6 +132,8 @@ class TtyScreen extends Trs80Screen {
             process.stdout.write(color("|" + " ".repeat(WIDTH) + "|\n"));
         }
         process.stdout.write(color("+" + "-".repeat(WIDTH) + "+\n"));
+        // Clear line below the screen, in case it got garbled.
+        this.vt100Control.clearToEndOfLine();
         this.vt100Control.advancedRow(HEIGHT + 2);
     }
 
@@ -264,28 +273,33 @@ class TtyScreen extends Trs80Screen {
         const messageColumn = WIDTH + 2;
         const maxMessageLength = Math.max(terminalColumns - messageColumn - 1, 0);
 
-        for (let i = 0; i < this.logMessages.length; i++) {
-            const logEvent = this.logMessages[i];
-            const message = (" " + logEvent.message).slice(0, maxMessageLength).padEnd(maxMessageLength, " ");
+        for (let i = 0; i < HEIGHT + 2; i++) {
+            let message = "";
 
-            switch (logEvent.level) {
-                case LogLevel.TRACE:
-                    process.stdout.write("\x1B[90m"); // Gray.
-                    break;
+            if (i < this.logMessages.length) {
+                const logEvent = this.logMessages[i];
+                message = (" " + logEvent.message).slice(0, maxMessageLength).padEnd(maxMessageLength, " ");
 
-                case LogLevel.WARN:
-                    process.stdout.write("\x1B[33m"); // Yellow.
-                    break;
+                switch (logEvent.level) {
+                    case LogLevel.TRACE:
+                        process.stdout.write("\x1B[90m"); // Gray.
+                        break;
 
-                case LogLevel.INFO:
-                    // Draw normally.
-                    break;
+                    case LogLevel.WARN:
+                        process.stdout.write("\x1B[33m"); // Yellow.
+                        break;
+
+                    case LogLevel.INFO:
+                        // Draw normally.
+                        break;
+                }
             }
 
             this.vt100Control.moveTo(i + 1, messageColumn + 1);
             process.stdout.write(message);
             // Reset style.
             process.stdout.write("\x1B[0m");
+            this.vt100Control.clearToEndOfLine();
             this.vt100Control.advancedCol(message.length);
         }
     }
