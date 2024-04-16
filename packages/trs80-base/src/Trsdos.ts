@@ -261,8 +261,9 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
 
         if (!geometry.isValidTrackNumber(trackNumber)) {
             // Not a TRSDOS disk.
-            TRS80_BASE_LOGGER.warn("Invalid extent: " + i + " " + trackNumber + " " + granuleByte + " " +
-                granuleOffset + " " + granuleCount);
+            TRS80_BASE_LOGGER.warn("Invalid extent: index " + i + ", track " + trackNumber +
+                ", granuleByte 0x" + toHexByte(granuleByte) + ", offset " +
+                granuleOffset + ", count " + granuleCount + ", track first " + trackFirst);
             return undefined;
         }
 
@@ -642,10 +643,14 @@ export class TrsdosDirEntry {
 }
 
 /**
- * Decodes a directory entry from a 32- or 48-byte chunk, or undefined if the directory entry is empty.
+ * Decodes a directory entry from a 32- or 48-byte chunk, or undefined if the directory entry is not active.
  */
 function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosDirEntry | undefined {
     const flags = binary[0];
+    if ((flags & 0x10) === 0) { // TODO merge with isActive().
+        // Don't parse an inactive entry, it might be corrupted.
+        return undefined;
+    }
 
     // DEC to previous entry, if we're an extended entry.
     const prevDec = (flags & 0x80) !== 0 ? binary[1] : undefined;
@@ -754,7 +759,7 @@ export class Trsdos {
                         const dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
                         // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
                         // Don't record deleted entries.
-                        if (dirEntry !== undefined && dirEntry.isActive()) {
+                        if (dirEntry !== undefined) {
                             dirEntries.set(new DirEntryPosition(side, sectorIndex, i).asKey(), dirEntry);
                         }
                     }
