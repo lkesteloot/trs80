@@ -644,7 +644,7 @@ export class Font {
      */
     private makeImageInternal(char: number, expanded: boolean, options: GlyphOptions): HTMLCanvasElement {
         const canvas = document.createElement("canvas");
-        let expandedMultiplier = expanded ? 2 : 1;
+        const expandedMultiplier = expanded ? 2 : 1;
         canvas.width = this.width*expandedMultiplier;
         canvas.height = this.height*2;
 
@@ -654,41 +654,17 @@ export class Font {
         }
         const imageData = ctx.createImageData(canvas.width, canvas.height);
 
-        // Light pixel at (x,y) in imageData if bit "bit" of "byte" is on.
-        const lightPixel = (x: number, y: number, byte: number, bit: number): void => {
-            const pixel = (byte & (1 << bit)) !== 0;
-            if (pixel) {
-                const pixelOffset = (y * canvas.width + x) * 4;
-                const alpha = options.scanLines ? (y % 2 == 0 ? 0xFF : 0xAA) : 0xFF;
+        const pixels = this.getGlyphPixels(char);
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                if (pixels[Math.floor(x / expandedMultiplier)][y]) {
+                    const pixelOffset = (y * canvas.width + x) * 4;
+                    const alpha = options.scanLines ? (y % 2 == 0 ? 0xFF : 0xAA) : 0xFF;
 
-                imageData.data[pixelOffset + 0] = options.color[0];
-                imageData.data[pixelOffset + 1] = options.color[1];
-                imageData.data[pixelOffset + 2] = options.color[2];
-                imageData.data[pixelOffset + 3] = alpha;
-            }
-        };
-
-        const bankOffset = this.banks[Math.floor(char/64)];
-        if (bankOffset === -1) {
-            // Graphical character.
-            const byte = char%64;
-            for (let y = 0; y < canvas.height; y++) {
-                const py = Math.floor(y/(canvas.height/3));
-                for (let x = 0; x < canvas.width; x++) {
-                    const px = Math.floor(x/(canvas.width/2));
-                    const bit = py*2 + px;
-                    lightPixel(x, y, byte, bit);
-                }
-            }
-        } else {
-            // Bitmap character.
-            const charOffset = bankOffset + char % 64;
-            const byteOffset = charOffset * 12;
-
-            for (let y = 0; y < canvas.height; y++) {
-                const byte = this.bits[byteOffset + Math.floor(y / 2)];
-                for (let x = 0; x < canvas.width; x++) {
-                    lightPixel(x, y, byte, Math.floor(x/expandedMultiplier));
+                    imageData.data[pixelOffset + 0] = options.color[0];
+                    imageData.data[pixelOffset + 1] = options.color[1];
+                    imageData.data[pixelOffset + 2] = options.color[2];
+                    imageData.data[pixelOffset + 3] = alpha;
                 }
             }
         }
@@ -696,6 +672,79 @@ export class Font {
         ctx.putImageData(imageData, 0, 0);
 
         return canvas;
+    }
+
+    /**
+     * Make an SVG <symbol> for the character, 8x24. Does not specify the ID or color, just strokes.
+     */
+    public makeSvgSymbol(ch: number): SVGSymbolElement {
+        const symbol = document.createElementNS("http://www.w3.org/2000/svg", "symbol");
+        symbol.setAttribute("width", "8");
+        symbol.setAttribute("height", "24");
+        symbol.setAttribute("viewBox", "0 0 8 24");
+
+        const pixels = this.getGlyphPixels(ch);
+        for (let y = 0; y < 24; y++) {
+            for (let x = 0; x < 8; x++) {
+                if (pixels[x][y]) {
+                    const startX = x;
+                    while (x < 8 && pixels[x][y]) {
+                        x += 1;
+                    }
+                    // x is now exclusive.
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", startX.toString());
+                    line.setAttribute("y1", (y + 0.5).toString());
+                    line.setAttribute("x2", x.toString());
+                    line.setAttribute("y2", (y + 0.5).toString());
+                    symbol.append(line);
+                    x -= 1;
+                }
+            }
+        }
+
+        return symbol;
+    }
+
+    /**
+     * Make an 8x24 array ([x][y]) of booleans for the glyph.
+     */
+    private getGlyphPixels(char: number): boolean[][] {
+        const pixels: boolean[][] = [];
+        for (let x = 0; x < 8; x++) {
+            const column: boolean[] = [];
+            for (let y = 0; y < 24; y++) {
+                column.push(false);
+            }
+            pixels.push(column);
+        }
+
+        const bankOffset = this.banks[Math.floor(char/64)];
+        if (bankOffset === -1) {
+            // Graphical character.
+            const byte = char%64;
+            for (let y = 0; y < 24; y++) {
+                const py = Math.floor(y/(24/3));
+                for (let x = 0; x < 8; x++) {
+                    const px = Math.floor(x/(8/2));
+                    const bit = py*2 + px;
+                    pixels[x][y] = (byte & (1 << bit)) !== 0;
+                }
+            }
+        } else {
+            // Bitmap character.
+            const charOffset = bankOffset + char % 64;
+            const byteOffset = charOffset * 12;
+
+            for (let y = 0; y < 24; y++) {
+                const byte = this.bits[byteOffset + Math.floor(y / 2)];
+                for (let x = 0; x < 8; x++) {
+                    pixels[x][y] = (byte & (1 << x)) !== 0;
+                }
+            }
+        }
+
+        return pixels;
     }
 }
 

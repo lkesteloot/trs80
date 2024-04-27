@@ -1,12 +1,20 @@
 import {Trs80WebScreen} from "./Trs80WebScreen.js";
-import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
+import {Font, GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
 import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "trs80-emulator";
 import {toHexByte} from "z80-base";
-import {TRS80_CHAR_HEIGHT, TRS80_CHAR_PIXEL_HEIGHT, TRS80_CHAR_PIXEL_WIDTH, TRS80_CHAR_WIDTH,
+import {
+    TRS80_CHAR_HEIGHT,
+    TRS80_CHAR_PIXEL_HEIGHT,
+    TRS80_CHAR_PIXEL_WIDTH,
+    TRS80_CHAR_WIDTH,
     TRS80_PIXEL_HEIGHT,
-    TRS80_PIXEL_WIDTH, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END, TRS80_SCREEN_SIZE} from "trs80-base";
+    TRS80_PIXEL_WIDTH,
+    TRS80_SCREEN_BEGIN,
+    TRS80_SCREEN_END,
+    TRS80_SCREEN_SIZE
+} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
-import { FlipCard, FlipCardSide} from "./FlipCard.js";
+import {FlipCard, FlipCardSide} from "./FlipCard.js";
 
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
@@ -17,6 +25,11 @@ const BORDER_RADIUS = 8;
 const WHITE_PHOSPHOR = [230, 231, 252];
 const AMBER_PHOSPHOR = [247, 190, 64];
 const GREEN_PHOSPHOR = [122, 244, 96];
+
+// Convert a 3-array (0-255) of RGB to a #rrggbb hex CSS color.
+function rgbToHexColor(color: number[]): string {
+    return "#" + color.map(toHexByte).join("");
+}
 
 // Gets an RGB array (0-255) for a phosphor.
 export function phosphorToRgb(phosphor: Phosphor): number[] {
@@ -195,10 +208,13 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     public readonly scale: number = 1;
     public readonly padding: number;
     private readonly node: HTMLElement;
-    private readonly canvas: HTMLCanvasElement;
-    private readonly context: CanvasRenderingContext2D;
+    private readonly width: number;
+    private readonly height: number;
+    private readonly canvas: SVGElement;//HTMLCanvasElement;
+    // private readonly context: CanvasRenderingContext2D;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_END - TRS80_SCREEN_BEGIN);
     private readonly glyphs: HTMLCanvasElement[] = [];
+    private readonly uses: SVGUseElement[] = [];
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private flipCard: FlipCard | undefined = undefined;
     private lastMouseEvent: MouseEvent | undefined = undefined;
@@ -223,11 +239,75 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.scale = scale;
         this.padding = Math.round(PADDING * this.scale);
 
-        this.canvas = document.createElement("canvas");
+        //this.canvas = document.createElement("canvas");
+        this.canvas = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         // Make it block so we don't have any weird text margins on the bottom.
         this.canvas.style.display = "block";
-        this.canvas.width = TRS80_CHAR_WIDTH * 8 * this.scale + 2 * this.padding;
-        this.canvas.height = TRS80_CHAR_HEIGHT * 24 * this.scale + 2 * this.padding;
+
+        const width = TRS80_CHAR_WIDTH*8 + 2*PADDING;
+        const height = TRS80_CHAR_HEIGHT*24 + 2*PADDING;
+        this.width = width*this.scale;
+        this.height = height*this.scale;
+        this.canvas.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        this.canvas.setAttribute('width', `${this.width}`);
+        this.canvas.setAttribute('height', `${this.height}`);
+        this.canvas.setAttribute("stroke", rgbToHexColor(phosphorToRgb(this.config.phosphor)));
+        this.canvas.setAttribute("stroke-width", "0.3");
+        this.canvas.setAttribute("fill", "none");
+
+        // Effects.
+        const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+        filter.setAttribute("id", "crtFilter");
+        this.canvas.append(filter);
+
+        const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+        blur.setAttribute("in", "SourceGraphic");
+        blur.setAttribute("stdDeviation", "0.3");
+        filter.append(blur);
+
+        // Background.
+        const radius = BORDER_RADIUS;
+        const background = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        background.setAttribute("fill", this.getBackgroundColor());
+        background.setAttribute("stroke", "none");
+        background.setAttribute("d", `
+            M 0 ${radius}
+            A ${radius} ${radius}, 0, 0, 1, ${radius} 0
+            L ${width - radius} 0
+            A ${radius} ${radius}, 0, 0, 1, ${width} ${radius}
+            L ${width} ${height - radius}
+            A ${radius} ${radius}, 0, 0, 1, ${width - radius} ${height}
+            L ${radius} ${height}
+            A ${radius} ${radius}, 0, 0, 1, 0 ${height - radius}
+            Z
+            `);
+        this.canvas.append(background);
+
+        // Make the symbols that the screen characters can reference.
+        const font = this.getFont();
+        for (let ch = 0; ch < 256; ch++) {
+            const symbol = font.makeSvgSymbol(ch);
+            symbol.setAttribute("id", "char" + toHexByte(ch));
+            this.canvas.append(symbol);
+        }
+
+        // Group for the characters on screen.
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("filter", "url(#crtFilter)");
+        this.canvas.append(g);
+
+        // Add <use> references for each location on the screen.
+        for (let i = 0; i < TRS80_SCREEN_SIZE; i++) {
+            const x = i % TRS80_CHAR_WIDTH * 8 + PADDING;
+            const y = Math.floor(i / TRS80_CHAR_WIDTH) * 24 + PADDING;
+            const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+            use.setAttribute("href", "#char00");
+            use.setAttribute("x", x.toString());
+            use.setAttribute("y", y.toString());
+            g.append(use);
+            this.uses.push(use);
+        }
+
         this.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
         this.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
         this.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
@@ -243,7 +323,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         });
         this.node.append(this.canvas);
 
-        this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
+        // this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
         this.updateFromConfig();
     }
@@ -274,8 +354,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const showOverlay = options.showPixelGrid || options.showCharGrid ||
             options.showHighlight !== undefined || options.showCursor || showSelection;
         if (showOverlay) {
-            const width = this.canvas.width;
-            const height = this.canvas.height;
+            const width = this.width;
+            const height = this.height;
             const gridWidth = width - 2*this.padding;
             const gridHeight = height - 2*this.padding;
 
@@ -384,14 +464,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      * Width of the entire screen, including margins.
      */
     public getWidth(): number {
-        return this.canvas.width;
+        return this.width;
     }
 
     /**
      * Height of the entire screen, including margins.
      */
     public getHeight(): number {
-        return this.canvas.height;
+        return this.height;
     }
 
     setConfig(config: Config): void {
@@ -441,26 +521,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      * Update the font and screen from the config and other state.
      */
     private updateFromConfig(): void {
-        let font;
-        switch (this.config.cgChip) {
-            case CGChip.ORIGINAL:
-                font = MODEL1A_FONT;
-                break;
-            case CGChip.LOWER_CASE:
-            default:
-                switch (this.config.modelType) {
-                    case ModelType.MODEL1:
-                        font = MODEL1B_FONT;
-                        break;
-                    case ModelType.MODEL3:
-                    case ModelType.MODEL4:
-                    default:
-                        font = this.isAlternateCharacters() ? MODEL3_ALT_FONT : MODEL3_FONT;
-                        break;
-                }
-                break;
-        }
-
+        const font = this.getFont();
         const glyphOptions: GlyphOptions = {
             color: phosphorToRgb(this.config.phosphor),
             scanLines: this.config.scanLines === ScanLines.ON,
@@ -472,6 +533,28 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
 
         this.drawBackground();
         this.refresh();
+    }
+
+    /**
+     * Get the font for the current config.
+     */
+    private getFont(): Font {
+        switch (this.config.cgChip) {
+            case CGChip.ORIGINAL:
+                return MODEL1A_FONT;
+
+            case CGChip.LOWER_CASE:
+            default:
+                switch (this.config.modelType) {
+                    case ModelType.MODEL1:
+                        return MODEL1B_FONT;
+
+                    case ModelType.MODEL3:
+                    case ModelType.MODEL4:
+                    default:
+                        return this.isAlternateCharacters() ? MODEL3_ALT_FONT : MODEL3_FONT;
+                }
+        }
     }
 
     writeChar(address: number, value: number): void {
@@ -513,18 +596,19 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const screenX = (offset % 64)*8*this.scale + this.padding;
         const screenY = Math.floor(offset / 64)*24*this.scale + this.padding;
 
-        this.context.fillStyle = this.getBackgroundColor();
+        // this.context.fillStyle = this.getBackgroundColor();
 
         if (this.isExpandedCharacters()) {
             if (offset % 2 === 0) {
-                this.context.fillRect(screenX, screenY, 16*this.scale, 24*this.scale);
-                this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth * 2, 24,
-                    screenX, screenY, 16*this.scale, 24*this.scale);
+                // this.context.fillRect(screenX, screenY, 16*this.scale, 24*this.scale);
+                // this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth * 2, 24,
+                //     screenX, screenY, 16*this.scale, 24*this.scale);
             }
         } else {
-            this.context.fillRect(screenX, screenY, 8*this.scale, 24*this.scale);
-            this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth, 24,
-                screenX, screenY, 8*this.scale, 24*this.scale);
+            // this.context.fillRect(screenX, screenY, 8*this.scale, 24*this.scale);
+            // this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth, 24,
+            //     screenX, screenY, 8*this.scale, 24*this.scale);
+            this.uses[offset].setAttribute("href", "#char" + toHexByte(value));
         }
     }
 
@@ -550,9 +634,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      * Draw the background of the canvas.
      */
     private drawBackground(): void {
+        /*
         const ctx = this.context;
-        const width = this.canvas.width;
-        const height = this.canvas.height;
+        const width = this.width;
+        const height = this.height;
         const radius = this.getBorderRadius();
 
         ctx.fillStyle = this.getBackgroundColor();
@@ -562,7 +647,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         ctx.arcTo(width, height, width - radius, height, radius);
         ctx.arcTo(0, height, 0, height - radius, radius);
         ctx.arcTo(0, 0, radius, 0, radius);
-        ctx.fill();
+        ctx.fill();*/
     }
 
     /**
@@ -582,7 +667,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      */
     public asImage(): HTMLImageElement {
         const image = document.createElement("img");
-        image.src = this.canvas.toDataURL();
+        // image.src = this.canvas.toDataURL();
         return image;
     }
 
@@ -597,6 +682,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             // the toBlob() method still has to copy the image synchronously, so this whole method still
             // takes about 13ms. It's better than toDataUrl() because it doesn't have to make an actual
             // base64 string. The Object URL is just a reference to the blob.
+            /*
             this.canvas.toBlob(blob => {
                 if (blob === null) {
                     reject("Cannot make image from screen");
@@ -610,7 +696,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                     });
                     image.src = url;
                 }
-            });
+            });*/
         });
     }
 
@@ -623,12 +709,13 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         canvas.height = selection.height*8*this.scale;
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
+        /*
         ctx.drawImage(this.canvas,
             selection.x1*4*this.scale + this.padding, selection.y1*8*this.scale + this.padding,
             selection.width*4*this.scale, selection.height*8*this.scale,
             0, 0,
             selection.width*4*this.scale, selection.height*8*this.scale);
-
+*/
         return canvas;
     }
 }
