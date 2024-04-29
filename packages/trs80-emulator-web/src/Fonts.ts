@@ -697,6 +697,42 @@ export class Font {
 
         return canvas;
     }
+
+    /**
+     * Make a sheet with all the characters laid out horizontally (0-255). Each takes
+     * 8 entries across, for 2048 numbers for each row, and 24 rows. The values will
+     * be 0 for off and 255 for on.
+     */
+    public makeFontSheet(): number[] {
+        const sheet: number[] = [];
+
+        for (let y = 0; y < 24; y++) {
+            for (let ch = 0; ch < 256; ch++) {
+                for (let x = 0; x < 8; x++) {
+                    const bankOffset = this.banks[Math.floor(ch/64)];
+                    let pixel: boolean;
+                    if (bankOffset === -1) {
+                        // Graphical character.
+                        const byte = ch%64;
+                        const py = Math.floor(y/8);
+                        const px = Math.floor(x/4);
+                        const bit = py*2 + px;
+                        pixel = (byte & (1 << bit)) !== 0;
+                    } else {
+                        // Bitmap character.
+                        const charOffset = bankOffset + ch % 64;
+                        const byteOffset = charOffset * 12;
+                        const byte = this.bits[byteOffset + Math.floor(y / 2)];
+                        pixel = (byte & (1 << x)) !== 0;
+                    }
+
+                    sheet.push(pixel ? 255 : 0);
+                }
+            }
+        }
+
+        return sheet;
+    }
 }
 
 // Original Model I.
