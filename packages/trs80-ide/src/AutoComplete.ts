@@ -1,6 +1,6 @@
 import { Asm, AsmToken, AsmTokenizer, AsmTrieNode, getAsmDirectiveDocs, getAsmInstructionTrie } from 'z80-asm';
 import { mnemonicMap, OpcodeVariant, opcodeVariantToString } from 'z80-inst';
-import { Completion, CompletionContext, CompletionResult, snippetCompletion } from '@codemirror/autocomplete';
+import { Completion, CompletionContext, CompletionResult, CompletionSection, snippetCompletion } from '@codemirror/autocomplete';
 import { StateField } from '@codemirror/state';
 import { AssemblyResults } from './AssemblyResults';
 
@@ -8,6 +8,26 @@ import { AssemblyResults } from './AssemblyResults';
 const LABEL_RE = /^[a-z_][a-z0-9_]*$/i;
 
 const ASM_DIRECTIVE_DOCS = getAsmDirectiveDocs();
+
+// Sections that the completions can be in. We list them here so that
+// we can sort them explicitly. The important thing is to put instructions
+// first because if a user types one, we shouldn't ever route them elsewhere.
+const INSTRUCTIONS_SECTION: CompletionSection = {
+    name: "Instructions",
+    rank: 1,
+};
+const NEW_LABEL_SECTION: CompletionSection = {
+    name: "New Label",
+    rank: 2,
+};
+const DIRECTIVES_SECTION: CompletionSection = {
+    name: "Directives",
+    rank: 3,
+};
+const SNIPPETS_SECTION: CompletionSection = {
+    name: "Snippets",
+    rank: 4,
+};
 
 // Snippet templates to include in auto-complete list.
 interface Snippet {
@@ -234,7 +254,7 @@ class Completer {
                 (symbolInfo.definitions.length === 0 ||
                     symbolInfo.definitions[0].assembledLine?.lineNumber === this.lineNumber)) {
 
-                options.push(this.makeOption(symbolInfo.name + ":", "New Label",
+                options.push(this.makeOption(symbolInfo.name + ":", NEW_LABEL_SECTION,
                     undefined, undefined));
             }
         }
@@ -321,7 +341,7 @@ class Completer {
         matchingVariants.sort(compareVariants);
 
         for (const variant of matchingVariants) {
-            this.options.push(this.makeOption(opcodeVariantToString(variant), "Instructions",
+            this.options.push(this.makeOption(opcodeVariantToString(variant), INSTRUCTIONS_SECTION,
                 variant.clr?.description, variant));
         }
     }
@@ -337,7 +357,7 @@ class Completer {
                 options.push(snippetCompletion(snippet.template, {
                     label: snippet.value,
                     info: snippet.description,
-                    section: "Snippets",
+                    section: SNIPPETS_SECTION,
                 }));
             }
         }
@@ -362,7 +382,7 @@ class Completer {
                     options.push({
                         label: directive,
                         info: doc.description,
-                        section: "Directives",
+                        section: DIRECTIVES_SECTION,
                     });
                 }
             }
@@ -451,7 +471,7 @@ class Completer {
     private addVariantToOptions(prefix: string, trieNode: AsmTrieNode, addSpace: boolean, explicit: boolean): void {
         // We're at a node with a variant; add it to the list of options.
         if (trieNode.variant !== undefined) {
-            this.options.push(this.makeOption(prefix, "Instructions",
+            this.options.push(this.makeOption(prefix, INSTRUCTIONS_SECTION,
                 trieNode.variant.clr?.description, trieNode.variant));
         }
         if (addSpace) {
@@ -492,7 +512,7 @@ class Completer {
     /**
      * Make a completion option from the label, section, and optional HTML description.
      */
-    private makeOption(label: string, section: string, htmlInfo: string | undefined, variant: OpcodeVariant | undefined): Completion {
+    private makeOption(label: string, section: CompletionSection, htmlInfo: string | undefined, variant: OpcodeVariant | undefined): Completion {
         let option: CompletionWithVariant = {
             label,
             info: htmlInfo === undefined ? undefined : () => {
