@@ -15,8 +15,10 @@ import {
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {FlipCard, FlipCardSide} from "./FlipCard.js";
 
-const TRS80_CRT_PIXEL_WIDTH = TRS80_CHAR_WIDTH*8;
-const TRS80_CRT_PIXEL_HEIGHT = TRS80_CHAR_HEIGHT*24;
+const TRS80_CHAR_CRT_PIXEL_WIDTH = 8;
+const TRS80_CHAR_CRT_PIXEL_HEIGHT = 24;
+const TRS80_CRT_PIXEL_WIDTH = TRS80_CHAR_WIDTH*TRS80_CHAR_CRT_PIXEL_WIDTH;
+const TRS80_CRT_PIXEL_HEIGHT = TRS80_CHAR_HEIGHT*TRS80_CHAR_CRT_PIXEL_HEIGHT;
 
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
@@ -65,28 +67,29 @@ uniform usampler2D u_memoryTexture;
 in vec2 v_texcoord;
 out vec4 outColor;
 
-ivec2 g_charSize = ivec2(8, 24);
+const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
+const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
 
 void main() {
     // Integer texel coordinate.
     ivec2 t = ivec2(v_texcoord - 0.5);
 
     // Character position.
-    ivec2 c = t/g_charSize;
+    ivec2 c = t/g_charCrtPixelSize;
 
-    if (c.x >= 0 && c.x < 64 && c.y >= 0 && c.y < 16) {
+    if (c.x >= 0 && c.x < g_charSize.x && c.y >= 0 && c.y < 16) {
         // Character sub-position.
-        ivec2 s = t % g_charSize;
+        ivec2 s = t % g_charCrtPixelSize;
 
         // Address in memory.
-        int addr = c.y*64 + c.x;
+        int addr = c.y*g_charSize.x + c.x;
 
         // Character to draw.
         vec2 memoryCoord = vec2(float(addr)/1024.0, 0.0);
         int ch = int(texture(u_memoryTexture, memoryCoord).r);
 
         // Where to look in the font texture.
-        vec2 fontCoord = vec2((float(ch*g_charSize.x + s.x))/2048.0, (float(s.y))/float(g_charSize.y));
+        vec2 fontCoord = vec2((float(ch*g_charCrtPixelSize.x + s.x))/2048.0, (float(s.y))/float(g_charCrtPixelSize.y));
         vec4 fontPixel = texture(u_fontTexture, fontCoord);
         if (fontPixel.r > 0.5) {
             outColor = vec4(1.0, 1.0, 1.0, 1.0);
@@ -108,32 +111,50 @@ uniform sampler2D u_rawScreenTexture;
 in vec2 v_texcoord;
 out vec4 outColor;
 
-vec4 g_background = vec4(51.0/255.0, 72.0/255.0, 67.0/255.0, 1.0);
-vec4 g_foreground = vec4(230.0/255.0, 231.0/255.0, 252.0/255.0, 1.0);
-vec2 g_size = vec2(64.0*8.0, 16.0*24.0);
+const vec4 g_background = vec4(51.0/255.0, 72.0/255.0, 67.0/255.0, 1.0);
+const vec4 g_foreground = vec4(230.0/255.0, 231.0/255.0, 252.0/255.0, 1.0);
+const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
+const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
+const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
+const float g_padding = 10.0;
+const float g_radius = 8.0;
+const float g_scale = 3.0;
+const int RADIUS = 0;
+const int DIAMETER = RADIUS*2 + 1;
+const int AREA = DIAMETER*DIAMETER;
+const float ZOOM = 5.0;
 
-void main() {
-    float padding = 10.0;
-    float radius = 8.0;
-    float scale = 3.0;
-
+vec4 samplePixel(vec2 pixelCoord) {
     // Unscaled.
-    vec2 p = (v_texcoord - 0.5)/scale;
+    vec2 p = (pixelCoord - 0.5)/g_scale;
 
     // Text area.
-    vec2 t = p - padding;
+    vec2 t = (p - g_padding)/ZOOM;
 
     // Start test.
     t = (t - g_size/2.0)/g_size;
-    t = t*(1.0 + 0.2*length(t));
+    t = t*(1.0 + 0.0*length(t));
     t = t*g_size + g_size/2.0;
     // End test.
     
+    vec4 color;
     if (t.x >= 0.0 && t.y >= 0.0 && t.x < g_size.x && t.y < g_size.y) {
-        outColor = texture(u_rawScreenTexture, t/g_size);
+        color = texture(u_rawScreenTexture, t/g_size);
     } else {
-        outColor = vec4(0.0, 0.0, 0.0, 1.0);
+        color = vec4(0.0, 0.0, 0.0, 1.0);
     }
+    return color;
+}
+
+void main() {
+    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+    for (int dy = -RADIUS; dy <= RADIUS; dy++) {
+        for (int dx = -RADIUS; dx <= RADIUS; dx++) {
+            vec4 pixelColor = samplePixel(v_texcoord + vec2(dx, dy));
+            color += pixelColor;
+        }
+    }
+    outColor = color / float(AREA);
 }
 `;
 
@@ -418,8 +439,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.bindTexture(gl.TEXTURE_2D, this.rawScreenTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT,
             0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
