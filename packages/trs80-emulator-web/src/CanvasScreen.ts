@@ -355,6 +355,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private flipCard: FlipCard | undefined = undefined;
     private lastMouseEvent: MouseEvent | undefined = undefined;
+    private needRedraw = true;
     private config: Config = Config.makeDefault();
     private glyphWidth = 0;
     private overlayCanvas: HTMLCanvasElement | undefined = undefined;
@@ -514,6 +515,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.vertexAttribPointer(texcoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
         this.updateFromConfig();
+
+        this.scheduleRefresh();
     }
 
     didAttachToFlipCard(flipCard: FlipCard): void {
@@ -746,7 +749,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const offset = address - TRS80_SCREEN_BEGIN;
         this.memory[offset] = value;
         this.drawChar(offset, value);
-        this.refresh();
+        this.needRedraw = true;
     }
 
     public getForegroundColor(): string {
@@ -839,6 +842,18 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         ctx.fill();
 
          */
+    }
+
+    private scheduleRefresh(): void {
+        window.requestAnimationFrame(() => {
+            if (this.needRedraw) {
+                this.needRedraw = false;
+                this.refresh();
+            }
+            if (this.getNode().parentNode !== null) {
+                this.scheduleRefresh();
+            }
+        });
     }
 
     /**
