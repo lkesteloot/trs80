@@ -63,7 +63,9 @@ precision highp float;
 precision highp usampler2D;
 
 uniform sampler2D u_fontTexture;
+uniform ivec2 u_fontTextureSize;
 uniform usampler2D u_memoryTexture;
+uniform ivec2 u_memoryTextureSize;
 in vec2 v_texcoord;
 out vec4 outColor;
 
@@ -82,11 +84,11 @@ void main() {
         ivec2 s = t % g_charCrtPixelSize;
 
         // Character to draw.
-        vec2 memoryCoord = vec2(ivec2(c.x, g_charSize.y - 1 - c.y))/vec2(g_charSize);
+        vec2 memoryCoord = vec2(ivec2(c.x, g_charSize.y - 1 - c.y))/vec2(u_memoryTextureSize);
         int ch = int(texture(u_memoryTexture, memoryCoord).r);
 
         // Where to look in the font texture.
-        vec2 fontCoord = vec2(ch*g_charCrtPixelSize.x + s.x, g_charCrtPixelSize.y - 1 - s.y)/vec2(g_charCrtPixelSize*ivec2(256, 1));
+        vec2 fontCoord = vec2(ch*g_charCrtPixelSize.x + s.x, g_charCrtPixelSize.y - 1 - s.y)/vec2(u_fontTextureSize);
         vec4 fontPixel = texture(u_fontTexture, fontCoord);
         if (fontPixel.r > 0.5) {
             outColor = vec4(1.0, 1.0, 1.0, 1.0);
@@ -105,6 +107,7 @@ precision highp float;
 precision highp usampler2D;
 
 uniform sampler2D u_rawScreenTexture;
+uniform ivec2 u_rawScreenTextureSize;
 in vec2 v_texcoord;
 out vec4 outColor;
 
@@ -141,7 +144,7 @@ vec4 samplePixel(vec2 pixelCoord) {
     float scanline = pow(max(sin(scanlineY), 0.0), 1.0/SCANLINE_WIDTH);
     
     bool on = t.x >= 0.0 && t.y >= 0.0 && t.x < g_size.x && t.y < g_size.y &&
-        texture(u_rawScreenTexture, t/g_size).r > 0.5;
+        texture(u_rawScreenTexture, t/vec2(u_rawScreenTextureSize)).r > 0.5;
     float brightness = on ? scanline : 0.0;
     return mix(g_background, g_foreground, brightness);
 }
@@ -155,6 +158,30 @@ void main() {
         }
     }
     outColor = color / float(AREA);
+}
+`;
+
+const FRAGMENT_SHADER_HORIZ_BLUR_SOURCE = `#version 300 es
+
+precision highp float;
+precision highp sampler2D;
+
+uniform sampler2D u_inputTexture;
+uniform ivec2 u_inputTextureSize;
+in vec2 v_texcoord;
+out vec4 outColor;
+
+const int RADIUS = 0;
+const int DIAMETER = RADIUS*2 + 1;
+
+void main() {
+    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+    for (int dx = -RADIUS; dx <= RADIUS; dx++) {
+        vec2 uv = (v_texcoord + vec2(dx, 0))/vec2(u_inputTextureSize);
+        vec4 pixelColor = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y));
+        color += pixelColor;
+    }
+    outColor = color / float(DIAMETER);
 }
 `;
 
@@ -203,11 +230,42 @@ function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fr
     return program;
 }
 
+/**
+ * Create an intermediate texture (8-bit RGBA) to use between render passes.
+ */
+function createIntermediateTexture(gl: WebGL2RenderingContext, width: number, height: number): WebGLTexture {
+    const texture = gl.createTexture() as WebGLTexture;
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    return texture;
+}
+
 class NamedTexture {
     public constructor(public readonly name: string,
+                       public readonly width: number,
+                       public readonly height: number,
                        public readonly texture: WebGLTexture) {
 
         // Nothing.
+    }
+
+    public bind(gl: WebGL2RenderingContext, program: WebGLProgram, index: number): void {
+        const location = gl.getUniformLocation(program, this.name) as WebGLUniformLocation;
+        gl.uniform1i(location, index);
+        gl.activeTexture(gl.TEXTURE0 + index);
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+        // Optional "...Size" ivec2.
+        const sizeLocation = gl.getUniformLocation(program, this.name + "Size");
+        if (sizeLocation !== null) {
+            gl.uniform2i(sizeLocation, this.width, this.height);
+        }
     }
 }
 
@@ -278,11 +336,7 @@ class RenderPass {
 
         // Assign textures to texture units.
         for (let i = 0; i < this.namedTextures.length; i++) {
-            const namedTexture = this.namedTextures[i];
-            const location = gl.getUniformLocation(this.program, namedTexture.name) as WebGLUniformLocation;
-            gl.uniform1i(location, i);
-            gl.activeTexture(gl.TEXTURE0 + i);
-            gl.bindTexture(gl.TEXTURE_2D, namedTexture.texture);
+            this.namedTextures[i].bind(gl, this.program, i);
         }
 
         // Flat rectangle to draw on.
@@ -457,10 +511,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private readonly height: number;
     private readonly canvas: HTMLCanvasElement;
     private readonly context: WebGL2RenderingContext;
-    private readonly renderPasses: RenderPass[] = [];
-    private readonly fontTexture: WebGLTexture;
+    private readonly renderPasses: RenderPass[];
     private readonly memoryTexture: WebGLTexture;
-    private readonly rawScreenTexture: WebGLTexture;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
     private readonly glyphs: HTMLCanvasElement[] = [];
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
@@ -521,21 +573,17 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         }
         this.context = gl;
 
-        // We'll be rendering the raw screen to a texture, so create that texture first.
-        this.rawScreenTexture = gl.createTexture() as WebGLTexture;
-        gl.bindTexture(gl.TEXTURE_2D, this.rawScreenTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT,
-            0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        // Textures to pass between rendering passes.
+        const rawScreenTexture = createIntermediateTexture(gl, TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT);
+        const sharpTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
 
         // Make the font texture.
-        this.fontTexture = gl.createTexture() as WebGLTexture;
-        gl.bindTexture(gl.TEXTURE_2D, this.fontTexture);
+        const fontTexture = gl.createTexture() as WebGLTexture;
+        gl.bindTexture(gl.TEXTURE_2D, fontTexture);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, 256 * 8, 24, 0,
+        const fontTextureWidth = 256 * 8;
+        const fontTextureHeight = 24;
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, fontTextureWidth, fontTextureHeight, 0,
             gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(MODEL3_FONT.makeFontSheet()));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -553,17 +601,21 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        this.renderPasses.push(
+        this.renderPasses = [
             new RenderPass(gl, FRAGMENT_SHADER1_SOURCE,
-                TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, this.rawScreenTexture, [
-                    new NamedTexture("u_fontTexture", this.fontTexture),
-                    new NamedTexture("u_memoryTexture", this.memoryTexture),
+                TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture, [
+                    new NamedTexture("u_fontTexture", fontTextureWidth, fontTextureHeight, fontTexture),
+                    new NamedTexture("u_memoryTexture", TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT, this.memoryTexture),
                 ]),
             new RenderPass(gl, FRAGMENT_SHADER2_SOURCE,
-                this.canvas.width, this.canvas.height, undefined, [
-                    new NamedTexture("u_rawScreenTexture", this.rawScreenTexture),
+                this.canvas.width, this.canvas.height, sharpTexture, [
+                    new NamedTexture("u_rawScreenTexture", TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture),
                 ]),
-        );
+            new RenderPass(gl, FRAGMENT_SHADER_HORIZ_BLUR_SOURCE,
+                this.canvas.width, this.canvas.height, undefined, [
+                    new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, sharpTexture),
+                ]),
+        ];
 
         this.updateFromConfig();
         this.scheduleRefresh();
