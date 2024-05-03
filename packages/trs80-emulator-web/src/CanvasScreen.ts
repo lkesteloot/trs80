@@ -119,17 +119,14 @@ const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
 const float g_padding = 10.0;
 const float g_radius = 8.0;
 const float g_scale = 3.0;
-const int RADIUS = 0;
-const int DIAMETER = RADIUS*2 + 1;
-const int AREA = DIAMETER*DIAMETER;
 const float ZOOM = 1.0;
 const float PI = 3.14159;
 const float DISTORTION = 0.2;
 const float SCANLINE_WIDTH = 1.0; //0.2;
 
-vec4 samplePixel(vec2 pixelCoord) {
+void main() {
     // Unscaled.
-    vec2 p = (pixelCoord - 0.5)/g_scale;
+    vec2 p = (v_texcoord - 0.5)/g_scale;
 
     // Text area.
     vec2 t = (p - g_padding)/ZOOM;
@@ -146,18 +143,7 @@ vec4 samplePixel(vec2 pixelCoord) {
     bool on = t.x >= 0.0 && t.y >= 0.0 && t.x < g_size.x && t.y < g_size.y &&
         texture(u_rawScreenTexture, t/vec2(u_rawScreenTextureSize)).r > 0.5;
     float brightness = on ? scanline : 0.0;
-    return mix(g_background, g_foreground, brightness);
-}
-
-void main() {
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    for (int dy = -RADIUS; dy <= RADIUS; dy++) {
-        for (int dx = -RADIUS; dx <= RADIUS; dx++) {
-            vec4 pixelColor = samplePixel(v_texcoord + vec2(dx, dy));
-            color += pixelColor;
-        }
-    }
-    outColor = color / float(AREA);
+    outColor = mix(g_background, g_foreground, brightness);
 }
 `;
 
@@ -171,17 +157,20 @@ uniform ivec2 u_inputTextureSize;
 in vec2 v_texcoord;
 out vec4 outColor;
 
-const int RADIUS = 0;
-const int DIAMETER = RADIUS*2 + 1;
+const float SIGMA = 5.0;
+const int RADIUS = int(ceil(SIGMA*3.0));
 
 void main() {
     vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+    float total = 0.0;
     for (int dx = -RADIUS; dx <= RADIUS; dx++) {
         vec2 uv = (v_texcoord + vec2(dx, 0))/vec2(u_inputTextureSize);
         vec4 pixelColor = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y));
-        color += pixelColor;
+        float coef = exp(-float(dx*dx)/(2.0*SIGMA*SIGMA));
+        color += pixelColor*coef;
+        total += coef;
     }
-    outColor = color / float(DIAMETER);
+    outColor = color / total;
 }
 `;
 
