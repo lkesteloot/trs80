@@ -77,19 +77,16 @@ void main() {
     // Character position.
     ivec2 c = t/g_charCrtPixelSize;
 
-    if (c.x >= 0 && c.x < g_charSize.x && c.y >= 0 && c.y < 16) {
+    if (c.x >= 0 && c.x < g_charSize.x && c.y >= 0 && c.y < g_charSize.y) {
         // Character sub-position.
         ivec2 s = t % g_charCrtPixelSize;
 
-        // Address in memory.
-        int addr = c.y*g_charSize.x + c.x;
-
         // Character to draw.
-        vec2 memoryCoord = vec2(float(addr)/1024.0, 0.0);
+        vec2 memoryCoord = vec2(ivec2(c.x, g_charSize.y - 1 - c.y))/vec2(g_charSize);
         int ch = int(texture(u_memoryTexture, memoryCoord).r);
 
         // Where to look in the font texture.
-        vec2 fontCoord = vec2((float(ch*g_charCrtPixelSize.x + s.x))/2048.0, (float(s.y))/float(g_charCrtPixelSize.y));
+        vec2 fontCoord = vec2(ch*g_charCrtPixelSize.x + s.x, g_charCrtPixelSize.y - 1 - s.y)/vec2(g_charCrtPixelSize*ivec2(256, 1));
         vec4 fontPixel = texture(u_fontTexture, fontCoord);
         if (fontPixel.r > 0.5) {
             outColor = vec4(1.0, 1.0, 1.0, 1.0);
@@ -122,7 +119,10 @@ const float g_scale = 3.0;
 const int RADIUS = 0;
 const int DIAMETER = RADIUS*2 + 1;
 const int AREA = DIAMETER*DIAMETER;
-const float ZOOM = 5.0;
+const float ZOOM = 1.0;
+const float PI = 3.14159;
+const float DISTORTION = 0.2;
+const float SCANLINE_WIDTH = 1.0; //0.2;
 
 vec4 samplePixel(vec2 pixelCoord) {
     // Unscaled.
@@ -130,20 +130,20 @@ vec4 samplePixel(vec2 pixelCoord) {
 
     // Text area.
     vec2 t = (p - g_padding)/ZOOM;
-
-    // Start test.
-    t = (t - g_size/2.0)/g_size;
-    t = t*(1.0 + 0.0*length(t));
-    t = t*g_size + g_size/2.0;
-    // End test.
     
-    vec4 color;
-    if (t.x >= 0.0 && t.y >= 0.0 && t.x < g_size.x && t.y < g_size.y) {
-        color = texture(u_rawScreenTexture, t/g_size);
-    } else {
-        color = vec4(0.0, 0.0, 0.0, 1.0);
-    }
-    return color;
+    // Barrel distortion.
+    t = (t - g_size/2.0)/g_size;
+    t = t*(1.0 + DISTORTION*length(t));
+    t = t*g_size + g_size/2.0;
+
+    // Scanline.
+    float scanlineY = mod(t.y*PI/2.0, PI);
+    float scanline = pow(max(sin(scanlineY), 0.0), 1.0/SCANLINE_WIDTH);
+    
+    bool on = t.x >= 0.0 && t.y >= 0.0 && t.x < g_size.x && t.y < g_size.y &&
+        texture(u_rawScreenTexture, t/g_size).r > 0.5;
+    float brightness = on ? scanline : 0.0;
+    return mix(g_background, g_foreground, brightness);
 }
 
 void main() {
@@ -158,6 +158,9 @@ void main() {
 }
 `;
 
+/**
+ * Create a WebGL shader from source. Throws on error.
+ */
 function createShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
     const shader = gl.createShader(type);
     if (shader === null) {
@@ -177,6 +180,9 @@ function createShader(gl: WebGL2RenderingContext, type: number, source: string):
     return shader;
 }
 
+/**
+ * Create a WebGL shader from a vertex and a fragment shader. Throws on error.
+ */
 function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
     const program = gl.createProgram();
     if (program === null) {
@@ -195,6 +201,94 @@ function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fr
     }
 
     return program;
+}
+
+class NamedTexture {
+    public constructor(public readonly name: string,
+                       public readonly texture: WebGLTexture) {
+
+        // Nothing.
+    }
+}
+
+class RenderPass {
+    private readonly fb: WebGLFramebuffer | undefined;
+    private readonly program: WebGLProgram;
+    private readonly vao: WebGLVertexArrayObject;
+
+    public constructor(private readonly gl: WebGL2RenderingContext,
+                       fragmentSource: string,
+                       private readonly outputWidth: number,
+                       private readonly outputHeight: number,
+                       private readonly outputTexture: WebGLTexture | undefined,
+                       private readonly namedTextures: NamedTexture[]) {
+
+        if (this.outputTexture === undefined) {
+            // Render to canvas.
+            this.fb = undefined;
+        } else {
+            // Create and bind the framebuffer we'll be drawing into.
+            this.fb = gl.createFramebuffer() as WebGLFramebuffer;
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.outputTexture, 0);
+        }
+
+        // Create our program.
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE);
+        const fragmentShader1 = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+        this.program = createProgram(gl, vertexShader, fragmentShader1);
+
+        // Create the vertex array for the raw screen texture.
+        this.vao = gl.createVertexArray() as WebGLVertexArrayObject;
+        gl.bindVertexArray(this.vao);
+
+        const vertices = [
+            -1, -1, 0, 1, // Lower left
+            1, -1, 0, 1,  // Lower right
+            -1, 1, 0, 1,  // Upper left
+            1, 1, 0, 1,   // Upper right
+        ];
+        const vertexBuffer = gl.createBuffer() as WebGLBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        const positionAttributeLocation = gl.getAttribLocation(this.program, "a_position");
+        gl.enableVertexAttribArray(positionAttributeLocation);
+        gl.vertexAttribPointer(positionAttributeLocation, 4, gl.FLOAT, false, 0, 0);
+
+        const texcoord = [
+            0, this.outputHeight,                   // Lower left
+            this.outputWidth, this.outputHeight,    // Lower right
+            0, 0,                                   // Upper left
+            this.outputWidth, 0,                    // Upper right
+        ];
+        const texcoordBuffer = gl.createBuffer() as WebGLBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoord), gl.STATIC_DRAW);
+        const texcoordAttributeLocation = gl.getAttribLocation(this.program, "a_texcoord");
+        gl.enableVertexAttribArray(texcoordAttributeLocation);
+        gl.vertexAttribPointer(texcoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    public render() {
+        const gl = this.gl;
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb ?? null);
+        gl.viewport(0, 0, this.outputWidth, this.outputHeight);
+        gl.useProgram(this.program);
+
+        // Assign textures to texture units.
+        for (let i = 0; i < this.namedTextures.length; i++) {
+            const namedTexture = this.namedTextures[i];
+            const location = gl.getUniformLocation(this.program, namedTexture.name) as WebGLUniformLocation;
+            gl.uniform1i(location, i);
+            gl.activeTexture(gl.TEXTURE0 + i);
+            gl.bindTexture(gl.TEXTURE_2D, namedTexture.texture);
+        }
+
+        // Flat rectangle to draw on.
+        gl.bindVertexArray(this.vao);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
 }
 
 /**
@@ -363,14 +457,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private readonly height: number;
     private readonly canvas: HTMLCanvasElement;
     private readonly context: WebGL2RenderingContext;
-    private readonly program1: WebGLProgram;
-    private readonly program2: WebGLProgram;
-    private readonly vao1: WebGLVertexArrayObject;
-    private readonly vao2: WebGLVertexArrayObject;
+    private readonly renderPasses: RenderPass[] = [];
     private readonly fontTexture: WebGLTexture;
     private readonly memoryTexture: WebGLTexture;
     private readonly rawScreenTexture: WebGLTexture;
-    private readonly fb: WebGLFramebuffer;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
     private readonly glyphs: HTMLCanvasElement[] = [];
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
@@ -431,9 +521,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         }
         this.context = gl;
 
-        // --------------------------------------------------------------------------------------------------------
-        // Set up the first render pass.
-
         // We'll be rendering the raw screen to a texture, so create that texture first.
         this.rawScreenTexture = gl.createTexture() as WebGLTexture;
         gl.bindTexture(gl.TEXTURE_2D, this.rawScreenTexture);
@@ -443,46 +530,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        // Create and bind the framebuffer we'll be drawing into.
-        this.fb = gl.createFramebuffer() as WebGLFramebuffer;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.rawScreenTexture, 0);
-
-        // Create our program.
-        const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE);
-        const fragmentShader1 = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER1_SOURCE);
-        this.program1 = createProgram(gl, vertexShader, fragmentShader1);
-
-        // Create the vertex array for the raw screen texture.
-        this.vao1 = gl.createVertexArray() as WebGLVertexArrayObject;
-        gl.bindVertexArray(this.vao1);
-
-        const vertices = [
-            -1, -1, 0, 1, // Lower left
-            1, -1, 0, 1,  // Lower right
-            -1, 1, 0, 1,  // Upper left
-            1, 1, 0, 1,   // Upper right
-        ];
-        const vertexBuffer1 = gl.createBuffer() as WebGLBuffer;
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer1);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-        const positionAttributeLocation = gl.getAttribLocation(this.program1, "a_position");
-        gl.enableVertexAttribArray(positionAttributeLocation);
-        gl.vertexAttribPointer(positionAttributeLocation, 4, gl.FLOAT, false, 0, 0);
-
-        const texCoord1 = [
-            0, 0,                                           // Upper left
-            TRS80_CRT_PIXEL_WIDTH, 0,                       // Upper right
-            0, TRS80_CRT_PIXEL_HEIGHT,                      // Lower left
-            TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT,  // Lower right
-        ];
-        const texCoordBuffer1 = gl.createBuffer() as WebGLBuffer;
-        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer1);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoord1), gl.STATIC_DRAW);
-        const texcoordAttributeLocation = gl.getAttribLocation(this.program1, "a_texcoord");
-        gl.enableVertexAttribArray(texcoordAttributeLocation);
-        gl.vertexAttribPointer(texcoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
         // Make the font texture.
         this.fontTexture = gl.createTexture() as WebGLTexture;
@@ -499,44 +546,26 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.memoryTexture = gl.createTexture() as WebGLTexture;
         gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, this.memory.length, 1, 0,
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT, 0,
             gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.memory);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        // --------------------------------------------------------------------------------------------------------
-        // Set up the second render pass.
-
-        // Create our program.
-        const fragmentShader2 = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER2_SOURCE);
-        this.program2 = createProgram(gl, vertexShader, fragmentShader2);
-
-        // Create the vertex array for the raw screen texture.
-        this.vao2 = gl.createVertexArray() as WebGLVertexArrayObject;
-        gl.bindVertexArray(this.vao2);
-
-        const vertexBuffer2 = gl.createBuffer() as WebGLBuffer;
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer2);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(positionAttributeLocation);
-        gl.vertexAttribPointer(positionAttributeLocation, 4, gl.FLOAT, false, 0, 0);
-
-        const texCoord2 = [
-            0, this.canvas.height,                      // Lower left
-            this.canvas.width, this.canvas.height,      // Lower right
-            0, 0,                                       // Upper left
-            this.canvas.width, 0,                       // Upper right
-        ];
-        const texCoordBuffer2 = gl.createBuffer() as WebGLBuffer;
-        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer2);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoord2), gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(texcoordAttributeLocation);
-        gl.vertexAttribPointer(texcoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+        this.renderPasses.push(
+            new RenderPass(gl, FRAGMENT_SHADER1_SOURCE,
+                TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, this.rawScreenTexture, [
+                    new NamedTexture("u_fontTexture", this.fontTexture),
+                    new NamedTexture("u_memoryTexture", this.memoryTexture),
+                ]),
+            new RenderPass(gl, FRAGMENT_SHADER2_SOURCE,
+                this.canvas.width, this.canvas.height, undefined, [
+                    new NamedTexture("u_rawScreenTexture", this.rawScreenTexture),
+                ]),
+        );
 
         this.updateFromConfig();
-
         this.scheduleRefresh();
     }
 
@@ -883,54 +912,15 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private refresh(): void {
         const gl = this.context;
 
-        // --------------------------------------------------------------------------------------------------------
-        // First render pass.
-
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
-        gl.viewport(0, 0, TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT);
-        gl.useProgram(this.program1);
-
-        // Assign textures to texture units.
-        const fontTextureLocation = gl.getUniformLocation(this.program1, "u_fontTexture") as WebGLUniformLocation;
-        const memoryTextureLocation = gl.getUniformLocation(this.program1, "u_memoryTexture") as WebGLUniformLocation;
-        gl.uniform1i(fontTextureLocation, 0);
-        gl.uniform1i(memoryTextureLocation, 1);
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.fontTexture);
-        gl.activeTexture(gl.TEXTURE1);
+        // Update memory texture.
         gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.memory.length, 1,
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT,
             gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.memory);
 
-        // Flat rectangle to draw on.
-        gl.bindVertexArray(this.vao1);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-        // --------------------------------------------------------------------------------------------------------
-        // Second render pass.
-
-        // Okay now we have our raw screen texture. Give it to our glitz renderer.
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-        gl.useProgram(this.program2);
-
-        // Assign textures to texture units.
-        const rawScreenTextureLocation = gl.getUniformLocation(this.program1, "u_rawScreenTexture") as WebGLUniformLocation;
-        gl.uniform1i(rawScreenTextureLocation, 0);
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.rawScreenTexture);
-
-        // Flat rectangle to draw on.
-        gl.bindVertexArray(this.vao2);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-        // Background.
-        const bg = this.getBackgroundColor();
-        const red = parseInt(bg.substring(1, 3), 16)/255;
-        const green = parseInt(bg.substring(3, 5), 16)/255;
-        const blue = parseInt(bg.substring(5, 7), 16)/255;
+        // Render each pass.
+        for (const renderPass of this.renderPasses) {
+            renderPass.render();
+        }
     }
 
     /**
