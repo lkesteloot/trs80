@@ -147,26 +147,27 @@ void main() {
 }
 `;
 
-const FRAGMENT_SHADER_HORIZ_BLUR_SOURCE = `#version 300 es
+const FRAGMENT_SHADER_BLUR_SOURCE = `#version 300 es
 
 precision highp float;
 precision highp sampler2D;
 
 uniform sampler2D u_inputTexture;
 uniform ivec2 u_inputTextureSize;
+uniform float u_sigma;
+uniform bool u_vertical;
 in vec2 v_texcoord;
 out vec4 outColor;
 
-const float SIGMA = 5.0;
-const int RADIUS = int(ceil(SIGMA*3.0));
-
 void main() {
+    int radius = int(ceil(u_sigma*3.0));
     vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
     float total = 0.0;
-    for (int dx = -RADIUS; dx <= RADIUS; dx++) {
-        vec2 uv = (v_texcoord + vec2(dx, 0))/vec2(u_inputTextureSize);
+    for (int dx = -radius; dx <= radius; dx++) {
+        vec2 delta = u_vertical ? vec2(0, dx) : vec2(dx, 0);
+        vec2 uv = (v_texcoord + delta)/vec2(u_inputTextureSize);
         vec4 pixelColor = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y));
-        float coef = exp(-float(dx*dx)/(2.0*SIGMA*SIGMA));
+        float coef = exp(-float(dx*dx)/(2.0*u_sigma*u_sigma));
         color += pixelColor*coef;
         total += coef;
     }
@@ -245,7 +246,10 @@ class NamedTexture {
     }
 
     public bind(gl: WebGL2RenderingContext, program: WebGLProgram, index: number): void {
-        const location = gl.getUniformLocation(program, this.name) as WebGLUniformLocation;
+        const location = gl.getUniformLocation(program, this.name);
+        if (location === null) {
+            throw new Error("Can't find texture variable \"" + this.name + "\"");
+        }
         gl.uniform1i(location, index);
         gl.activeTexture(gl.TEXTURE0 + index);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -254,6 +258,38 @@ class NamedTexture {
         const sizeLocation = gl.getUniformLocation(program, this.name + "Size");
         if (sizeLocation !== null) {
             gl.uniform2i(sizeLocation, this.width, this.height);
+        }
+    }
+}
+
+class NamedVariable {
+    public constructor(public readonly name: string,
+                       public readonly values: number[] | Int32Array) {
+
+        // Nothing.
+    }
+
+    public bind(gl: WebGL2RenderingContext, program: WebGLProgram): void {
+        const location = gl.getUniformLocation(program, this.name);
+        if (location === null) {
+            throw new Error("Can't find uniform variable \"" + this.name + "\"");
+        }
+        if (this.values instanceof Int32Array) {
+            switch (this.values.length) {
+                case 1: gl.uniform1iv(location, this.values); break;
+                case 2: gl.uniform2iv(location, this.values); break;
+                case 3: gl.uniform3iv(location, this.values); break;
+                case 4: gl.uniform4iv(location, this.values); break;
+                default: throw new Error("Invalid number of values for uniform variable \"" + this.name + "\": " + this.values.length);
+            }
+        } else {
+            switch (this.values.length) {
+                case 1: gl.uniform1fv(location, this.values); break;
+                case 2: gl.uniform2fv(location, this.values); break;
+                case 3: gl.uniform3fv(location, this.values); break;
+                case 4: gl.uniform4fv(location, this.values); break;
+                default: throw new Error("Invalid number of values for uniform variable \"" + this.name + "\": " + this.values.length);
+            }
         }
     }
 }
@@ -268,7 +304,8 @@ class RenderPass {
                        private readonly outputWidth: number,
                        private readonly outputHeight: number,
                        private readonly outputTexture: WebGLTexture | undefined,
-                       private readonly namedTextures: NamedTexture[]) {
+                       private readonly namedTextures: NamedTexture[],
+                       private readonly namedVariables: NamedVariable[]) {
 
         if (this.outputTexture === undefined) {
             // Render to canvas.
@@ -326,6 +363,11 @@ class RenderPass {
         // Assign textures to texture units.
         for (let i = 0; i < this.namedTextures.length; i++) {
             this.namedTextures[i].bind(gl, this.program, i);
+        }
+
+        // Assign the uniform variables.
+        for (const namedVariable of this.namedVariables) {
+            namedVariable.bind(gl, this.program);
         }
 
         // Flat rectangle to draw on.
@@ -565,6 +607,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         // Textures to pass between rendering passes.
         const rawScreenTexture = createIntermediateTexture(gl, TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT);
         const sharpTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
+        const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
 
         // Make the font texture.
         const fontTexture = gl.createTexture() as WebGLTexture;
@@ -595,14 +638,24 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture, [
                     new NamedTexture("u_fontTexture", fontTextureWidth, fontTextureHeight, fontTexture),
                     new NamedTexture("u_memoryTexture", TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT, this.memoryTexture),
-                ]),
+                ], []),
             new RenderPass(gl, FRAGMENT_SHADER2_SOURCE,
                 this.canvas.width, this.canvas.height, sharpTexture, [
                     new NamedTexture("u_rawScreenTexture", TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture),
-                ]),
-            new RenderPass(gl, FRAGMENT_SHADER_HORIZ_BLUR_SOURCE,
-                this.canvas.width, this.canvas.height, undefined, [
+                ], []),
+            new RenderPass(gl, FRAGMENT_SHADER_BLUR_SOURCE,
+                this.canvas.width, this.canvas.height, horizontallyBlurredTexture, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, sharpTexture),
+                ], [
+                    new NamedVariable("u_sigma", [2]),
+                    new NamedVariable("u_vertical", new Int32Array([0])),
+                ]),
+            new RenderPass(gl, FRAGMENT_SHADER_BLUR_SOURCE,
+                this.canvas.width, this.canvas.height, undefined, [
+                    new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
+                ], [
+                    new NamedVariable("u_sigma", [1]),
+                    new NamedVariable("u_vertical", new Int32Array([1])),
                 ]),
         ];
 
