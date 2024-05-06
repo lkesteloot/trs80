@@ -57,7 +57,7 @@ void main() {
 }
 `;
 
-const FRAGMENT_SHADER1_SOURCE = `#version 300 es
+const DRAW_CHARS_FRAGMENT_SHADER_SOURCE = `#version 300 es
  
 precision highp float;
 precision highp usampler2D;
@@ -74,7 +74,7 @@ const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CH
 
 void main() {
     // Integer texel coordinate.
-    ivec2 t = ivec2(v_texcoord - 0.5);
+    ivec2 t = ivec2(floor(v_texcoord));
 
     // Character position.
     ivec2 c = t/g_charCrtPixelSize;
@@ -101,7 +101,7 @@ void main() {
 }
 `;
 
-const FRAGMENT_SHADER2_SOURCE = `#version 300 es
+const RENDER_SCREEN_FRAGMENT_SHADER_SOURCE = `#version 300 es
  
 precision highp float;
 precision highp usampler2D;
@@ -111,22 +111,23 @@ uniform ivec2 u_rawScreenTextureSize;
 in vec2 v_texcoord;
 out vec4 outColor;
 
-const vec4 g_background = vec4(51.0/255.0, 72.0/255.0, 67.0/255.0, 1.0);
+// const vec4 g_background = vec4(51.0/255.0, 72.0/255.0, 67.0/255.0, 1.0);
+const vec4 g_background = vec4(0.0/255.0, 0.0/255.0, 0.0/255.0, 1.0);
 const vec4 g_foreground = vec4(230.0/255.0, 231.0/255.0, 252.0/255.0, 1.0);
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
 const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
-const float g_padding = 10.0;
-const float g_radius = 8.0;
+const float g_padding = ${PADDING}.0;
+const float g_radius = ${BORDER_RADIUS}.0;
 const float g_scale = 3.0;
 const float ZOOM = 1.0;
 const float PI = 3.14159;
 const float DISTORTION = 0.2;
-const float SCANLINE_WIDTH = 1.0; //0.2;
+const float SCANLINE_WIDTH = 0.2;
 
 void main() {
     // Unscaled.
-    vec2 p = (v_texcoord - 0.5)/g_scale;
+    vec2 p = v_texcoord/g_scale;
 
     // Text area.
     vec2 t = (p - g_padding)/ZOOM;
@@ -140,14 +141,14 @@ void main() {
     float scanlineY = mod(t.y*PI/2.0, PI);
     float scanline = pow(max(sin(scanlineY), 0.0), 1.0/SCANLINE_WIDTH);
     
-    bool on = t.x >= 0.0 && t.y >= 0.0 && t.x < g_size.x && t.y < g_size.y &&
-        texture(u_rawScreenTexture, t/vec2(u_rawScreenTextureSize)).r > 0.5;
-    float brightness = on ? scanline : 0.0;
-    outColor = mix(g_background, g_foreground, brightness);
+    float brightness = t.x >= 0.0 && t.y >= 0.0 && t.x < g_size.x && t.y < g_size.y
+        ? texture(u_rawScreenTexture, t/vec2(u_rawScreenTextureSize)).r
+        : 0.0;
+    outColor = mix(g_background, g_foreground, brightness*scanline);
 }
 `;
 
-const FRAGMENT_SHADER_BLUR_SOURCE = `#version 300 es
+const BLUR_FRAGMENT_SHADER_SOURCE = `#version 300 es
 
 precision highp float;
 precision highp sampler2D;
@@ -160,18 +161,23 @@ in vec2 v_texcoord;
 out vec4 outColor;
 
 void main() {
-    int radius = int(ceil(u_sigma*3.0));
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-    float total = 0.0;
-    for (int dx = -radius; dx <= radius; dx++) {
-        vec2 delta = u_vertical ? vec2(0, dx) : vec2(dx, 0);
-        vec2 uv = (v_texcoord + delta)/vec2(u_inputTextureSize);
-        vec4 pixelColor = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y));
-        float coef = exp(-float(dx*dx)/(2.0*u_sigma*u_sigma));
-        color += pixelColor*coef;
-        total += coef;
+    if (u_sigma == 0.0) {
+        vec2 uv = v_texcoord/vec2(u_inputTextureSize);
+        outColor = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y));
+    } else {
+        int radius = int(ceil(u_sigma*3.0));
+        vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+        float total = 0.0;
+        for (int dx = -radius; dx <= radius; dx++) {
+            vec2 delta = u_vertical ? vec2(0, dx) : vec2(dx, 0);
+            vec2 uv = (v_texcoord + delta)/vec2(u_inputTextureSize);
+            vec4 pixelColor = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y));
+            float coef = exp(-float(dx*dx)/(2.0*u_sigma*u_sigma));
+            color += pixelColor*coef;
+            total += coef;
+        }
+        outColor = color / total * 1.5;
     }
-    outColor = color / total;
 }
 `;
 
@@ -326,6 +332,7 @@ class RenderPass {
         this.vao = gl.createVertexArray() as WebGLVertexArrayObject;
         gl.bindVertexArray(this.vao);
 
+        // Vertex coordinates.
         const vertices = [
             -1, -1, 0, 1, // Lower left
             1, -1, 0, 1,  // Lower right
@@ -339,6 +346,7 @@ class RenderPass {
         gl.enableVertexAttribArray(positionAttributeLocation);
         gl.vertexAttribPointer(positionAttributeLocation, 4, gl.FLOAT, false, 0, 0);
 
+        // Texture coordinates.
         const texcoord = [
             0, this.outputHeight,                   // Lower left
             this.outputWidth, this.outputHeight,    // Lower right
@@ -634,23 +642,23 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
         this.renderPasses = [
-            new RenderPass(gl, FRAGMENT_SHADER1_SOURCE,
+            new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE,
                 TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture, [
                     new NamedTexture("u_fontTexture", fontTextureWidth, fontTextureHeight, fontTexture),
                     new NamedTexture("u_memoryTexture", TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT, this.memoryTexture),
                 ], []),
-            new RenderPass(gl, FRAGMENT_SHADER2_SOURCE,
+            new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE,
                 this.canvas.width, this.canvas.height, sharpTexture, [
                     new NamedTexture("u_rawScreenTexture", TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture),
                 ], []),
-            new RenderPass(gl, FRAGMENT_SHADER_BLUR_SOURCE,
+            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE,
                 this.canvas.width, this.canvas.height, horizontallyBlurredTexture, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, sharpTexture),
                 ], [
-                    new NamedVariable("u_sigma", [2]),
+                    new NamedVariable("u_sigma", [1]),
                     new NamedVariable("u_vertical", new Int32Array([0])),
                 ]),
-            new RenderPass(gl, FRAGMENT_SHADER_BLUR_SOURCE,
+            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE,
                 this.canvas.width, this.canvas.height, undefined, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
                 ], [
