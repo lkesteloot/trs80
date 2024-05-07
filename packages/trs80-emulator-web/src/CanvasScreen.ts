@@ -14,6 +14,7 @@ import {
 } from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {FlipCard, FlipCardSide} from "./FlipCard.js";
+import {g_amber_blue, g_amber_green, g_amber_red} from "./amber";
 
 const TRS80_CHAR_CRT_PIXEL_WIDTH = 8;
 const TRS80_CHAR_CRT_PIXEL_HEIGHT = 24;
@@ -176,8 +177,27 @@ void main() {
             color += pixelColor*coef;
             total += coef;
         }
-        outColor = color / total * 1.5;
+        outColor = color / total * 1.8;
     }
+}
+`;
+
+const COLOR_MAP_FRAGMENT_SHADER_SOURCE = `#version 300 es
+
+precision highp float;
+precision highp sampler2D;
+
+uniform sampler2D u_inputTexture;
+uniform ivec2 u_inputTextureSize;
+uniform sampler2D u_colorMapTexture;
+in vec2 v_texcoord;
+out vec4 outColor;
+
+void main() {
+    vec2 uv = v_texcoord/vec2(u_inputTextureSize);
+    float brightness = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y)).r;
+    outColor = texture(u_colorMapTexture, vec2(brightness, 0.5));
+    // outColor = texture(u_colorMapTexture, vec2(uv.x, 0.5));
 }
 `;
 
@@ -616,6 +636,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const rawScreenTexture = createIntermediateTexture(gl, TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT);
         const sharpTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
+        const blurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
 
         // Make the font texture.
         const fontTexture = gl.createTexture() as WebGLTexture;
@@ -641,6 +662,16 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+        // Make the amber texture.
+        const amberTexture = gl.createTexture() as WebGLTexture;
+        gl.bindTexture(gl.TEXTURE_2D, amberTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+            new Uint8Array(g_amber_red.flatMap((_, i) => [g_amber_red[i]*255, g_amber_green[i]*255, g_amber_blue[i]*255, 255])));
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
         this.renderPasses = [
             new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE,
                 TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture, [
@@ -655,16 +686,21 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 this.canvas.width, this.canvas.height, horizontallyBlurredTexture, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, sharpTexture),
                 ], [
-                    new NamedVariable("u_sigma", [1]),
+                    new NamedVariable("u_sigma", [0.72*devicePixelRatio*scale]),
                     new NamedVariable("u_vertical", new Int32Array([0])),
                 ]),
             new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE,
-                this.canvas.width, this.canvas.height, undefined, [
+                this.canvas.width, this.canvas.height, blurredTexture, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
                 ], [
-                    new NamedVariable("u_sigma", [1]),
+                    new NamedVariable("u_sigma", [0.20*devicePixelRatio*scale]),
                     new NamedVariable("u_vertical", new Int32Array([1])),
                 ]),
+            new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE,
+                this.canvas.width, this.canvas.height, undefined, [
+                    new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, blurredTexture),
+                    new NamedTexture("u_colorMapTexture", this.canvas.width, this.canvas.height, amberTexture),
+                ], []),
         ];
 
         this.updateFromConfig();
