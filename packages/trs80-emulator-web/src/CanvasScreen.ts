@@ -14,7 +14,8 @@ import {
 } from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {FlipCard, FlipCardSide} from "./FlipCard.js";
-import {g_amber_blue, g_amber_green, g_amber_red} from "./amber";
+import {g_amber_blue, g_amber_green, g_amber_red} from "./amber.js";
+import {g_p4_blue, g_p4_green, g_p4_red} from "./p4.js";
 
 const TRS80_CHAR_CRT_PIXEL_WIDTH = 8;
 const TRS80_CHAR_CRT_PIXEL_HEIGHT = 24;
@@ -260,6 +261,17 @@ function createIntermediateTexture(gl: WebGL2RenderingContext, width: number, he
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     return texture;
+}
+
+/**
+ * Convert three maps (256 entries -> 0..1) to a flattened RGBA (0..255) array for a color map.
+ */
+function makeColorMap(red: number[], green: number[], blue: number[]): Uint8Array {
+    return new Uint8Array(red.flatMap((_, i) => [
+        Math.floor(red[i]*255.99),
+        Math.floor(green[i]*255.99),
+        Math.floor(blue[i]*255.99),
+        255]));
 }
 
 class NamedTexture {
@@ -666,7 +678,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const amberTexture = gl.createTexture() as WebGLTexture;
         gl.bindTexture(gl.TEXTURE_2D, amberTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-            new Uint8Array(g_amber_red.flatMap((_, i) => [g_amber_red[i]*255, g_amber_green[i]*255, g_amber_blue[i]*255, 255])));
+            makeColorMap(g_p4_red, g_p4_green, g_p4_blue));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -1050,6 +1062,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private refresh(): void {
         const gl = this.context;
 
+        const before = Date.now();
         // Update memory texture.
         gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT,
@@ -1059,6 +1072,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         for (const renderPass of this.renderPasses) {
             renderPass.render();
         }
+        const after = Date.now();
+        // console.log("render time", after - before);
     }
 
     /**
