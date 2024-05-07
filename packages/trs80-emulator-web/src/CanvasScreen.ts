@@ -77,9 +77,12 @@ const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CH
 void main() {
     // Integer texel coordinate.
     ivec2 t = ivec2(floor(v_texcoord));
+    
+    // Remove black border.
+    t -= 1;
 
     // Character position.
-    ivec2 c = t/g_charCrtPixelSize;
+    ivec2 c = ivec2(floor(vec2(t)/vec2(g_charCrtPixelSize)));
 
     if (c.x >= 0 && c.x < g_charSize.x && c.y >= 0 && c.y < g_charSize.y) {
         // Character sub-position.
@@ -143,8 +146,8 @@ void main() {
     float scanlineY = mod(t.y*PI/2.0, PI);
     float scanline = pow(max(sin(scanlineY), 0.0), 1.0/SCANLINE_WIDTH);
     
-    float brightness = t.x >= 0.0 && t.y >= 0.0 && t.x < g_size.x && t.y < g_size.y
-        ? texture(u_rawScreenTexture, t/vec2(u_rawScreenTextureSize)).r
+    float brightness = t.x >= -1.0 && t.y >= -1.0 && t.x < g_size.x + 1.0 && t.y < g_size.y + 1.0
+        ? texture(u_rawScreenTexture, (t + 1.0)/vec2(u_rawScreenTextureSize)).r
         : 0.0;
     outColor = mix(g_background, g_foreground, brightness*scanline);
 }
@@ -339,11 +342,11 @@ class RenderPass {
 
     public constructor(private readonly gl: WebGL2RenderingContext,
                        fragmentSource: string,
+                       private readonly namedTextures: NamedTexture[],
+                       private readonly namedVariables: NamedVariable[],
                        private readonly outputWidth: number,
                        private readonly outputHeight: number,
-                       private readonly outputTexture: WebGLTexture | undefined,
-                       private readonly namedTextures: NamedTexture[],
-                       private readonly namedVariables: NamedVariable[]) {
+                       private readonly outputTexture: WebGLTexture | undefined) {
 
         if (this.outputTexture === undefined) {
             // Render to canvas.
@@ -645,7 +648,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.context = gl;
 
         // Textures to pass between rendering passes.
-        const rawScreenTexture = createIntermediateTexture(gl, TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT);
+        // Add a 1-pixel black border to help with antialiasing.
+        const rawWidth = TRS80_CRT_PIXEL_WIDTH + 2;
+        const rawHeight = TRS80_CRT_PIXEL_HEIGHT + 2;
+        const rawScreenTexture = createIntermediateTexture(gl, rawWidth, rawHeight);
         const sharpTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const blurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
@@ -685,34 +691,29 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
         this.renderPasses = [
-            new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE,
-                TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture, [
+            new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_fontTexture", fontTextureWidth, fontTextureHeight, fontTexture),
                     new NamedTexture("u_memoryTexture", TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT, this.memoryTexture),
-                ], []),
-            new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE,
-                this.canvas.width, this.canvas.height, sharpTexture, [
+                ], [], rawWidth, rawHeight, rawScreenTexture),
+            new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_rawScreenTexture", TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture),
-                ], []),
-            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE,
-                this.canvas.width, this.canvas.height, horizontallyBlurredTexture, [
+                ], [], this.canvas.width, this.canvas.height, sharpTexture),
+            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, sharpTexture),
                 ], [
-                    new NamedVariable("u_sigma", [0.72*devicePixelRatio*scale]),
+                    new NamedVariable("u_sigma", [0.72*devicePixelRatio*scale*0]),
                     new NamedVariable("u_vertical", new Int32Array([0])),
-                ]),
-            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE,
-                this.canvas.width, this.canvas.height, blurredTexture, [
+                ], this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
+            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
                 ], [
-                    new NamedVariable("u_sigma", [0.20*devicePixelRatio*scale]),
+                    new NamedVariable("u_sigma", [0.20*devicePixelRatio*scale*0]),
                     new NamedVariable("u_vertical", new Int32Array([1])),
-                ]),
-            new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE,
-                this.canvas.width, this.canvas.height, undefined, [
+                ], this.canvas.width, this.canvas.height, blurredTexture),
+            new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, blurredTexture),
                     new NamedTexture("u_colorMapTexture", this.canvas.width, this.canvas.height, amberTexture),
-                ], []),
+                ], [], this.canvas.width, this.canvas.height, undefined),
         ];
 
         this.updateFromConfig();
