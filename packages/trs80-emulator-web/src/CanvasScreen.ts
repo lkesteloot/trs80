@@ -113,6 +113,7 @@ precision highp usampler2D;
 
 uniform sampler2D u_rawScreenTexture;
 uniform ivec2 u_rawScreenTextureSize;
+uniform float u_time; // Seconds.
 in vec2 v_texcoord;
 out vec4 outColor;
 
@@ -127,20 +128,25 @@ const float g_radius = ${BORDER_RADIUS}.0;
 const float g_scale = 3.0;
 const float ZOOM = 1.0;
 const float PI = 3.14159;
-const float DISTORTION = 0.2;
+const float CURVATURE = 0.06;
 const float SCANLINE_WIDTH = 0.2;
 
 void main() {
+    // Modulator, for testing.
+    float modulation = (-cos(u_time) + 1.0)/2.0;
+
     // Unscaled.
     vec2 p = v_texcoord/g_scale;
 
     // Text area.
     vec2 t = (p - g_padding)/ZOOM;
     
-    // Barrel distortion.
-    t = (t - g_size/2.0)/g_size;
-    t = t*(1.0 + DISTORTION*length(t));
-    t = t*g_size + g_size/2.0;
+    // CRT curvature.
+    t = t - g_size/2.0;
+    float r2 = 4.0*dot(t, t)/dot(g_size, g_size);
+    float r4 = r2*r2;
+    float mult = 1.0 + CURVATURE*r2 + CURVATURE*r4;
+    t = g_size/2.0 + t*mult;
 
     // Scanline.
     float scanlineY = mod(t.y*PI/2.0, PI);
@@ -305,7 +311,8 @@ class NamedTexture {
 
 class NamedVariable {
     public constructor(public readonly name: string,
-                       public readonly values: number[] | Int32Array) {
+                       public readonly values: number[] | Int32Array,
+                       private readonly optional = false) {
 
         // Nothing.
     }
@@ -313,7 +320,12 @@ class NamedVariable {
     public bind(gl: WebGL2RenderingContext, program: WebGLProgram): void {
         const location = gl.getUniformLocation(program, this.name);
         if (location === null) {
-            throw new Error("Can't find uniform variable \"" + this.name + "\"");
+            if (this.optional) {
+                // Quietly ignore. This is for debug variables that might be optimized away if they're not used.
+                return;
+            } else {
+                throw new Error("Can't find uniform variable \"" + this.name + "\"");
+            }
         }
         if (this.values instanceof Int32Array) {
             switch (this.values.length) {
@@ -587,6 +599,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private readonly context: WebGL2RenderingContext;
     private readonly renderPasses: RenderPass[];
     private readonly memoryTexture: WebGLTexture;
+    private readonly time: NamedVariable;
+    private readonly startTime: number;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
     private readonly glyphs: HTMLCanvasElement[] = [];
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
@@ -690,6 +704,12 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+        // In fractions of an original (CRT) pixel.
+        const HORIZONTAL_BLUR = 0.72;
+        const VERTICAL_BLUR = 0.20;
+
+        this.time = new NamedVariable("u_time", [0], true);
+        this.startTime = Date.now()/1000;
         this.renderPasses = [
             new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_fontTexture", fontTextureWidth, fontTextureHeight, fontTexture),
@@ -697,17 +717,19 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 ], [], rawWidth, rawHeight, rawScreenTexture),
             new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_rawScreenTexture", TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture),
-                ], [], this.canvas.width, this.canvas.height, sharpTexture),
+                ], [
+                    this.time,
+                ], this.canvas.width, this.canvas.height, sharpTexture),
             new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, sharpTexture),
                 ], [
-                    new NamedVariable("u_sigma", [0.72*devicePixelRatio*scale*0]),
+                    new NamedVariable("u_sigma", [HORIZONTAL_BLUR*devicePixelRatio*scale]),
                     new NamedVariable("u_vertical", new Int32Array([0])),
                 ], this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
             new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
                 ], [
-                    new NamedVariable("u_sigma", [0.20*devicePixelRatio*scale*0]),
+                    new NamedVariable("u_sigma", [VERTICAL_BLUR*devicePixelRatio*scale]),
                     new NamedVariable("u_vertical", new Int32Array([1])),
                 ], this.canvas.width, this.canvas.height, blurredTexture),
             new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
@@ -1062,19 +1084,22 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      */
     private refresh(): void {
         const gl = this.context;
+        const now = Date.now();
 
-        const before = Date.now();
         // Update memory texture.
         gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT,
             gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.memory);
+
+        // Update time.
+        this.time.values[0] = now/1000 - this.startTime;
 
         // Render each pass.
         for (const renderPass of this.renderPasses) {
             renderPass.render();
         }
         const after = Date.now();
-        // console.log("render time", after - before);
+        // console.log("render time", after - now);
     }
 
     /**
