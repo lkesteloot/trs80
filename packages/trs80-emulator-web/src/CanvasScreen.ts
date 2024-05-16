@@ -25,7 +25,7 @@ const TRS80_CRT_PIXEL_HEIGHT = TRS80_CHAR_HEIGHT*TRS80_CHAR_CRT_PIXEL_HEIGHT;
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
 
-const PADDING = 10;
+const PADDING = 30;
 const BORDER_RADIUS = 8;
 
 const WHITE_PHOSPHOR = [230, 231, 252];
@@ -202,11 +202,56 @@ uniform ivec2 u_inputTextureSize;
 uniform sampler2D u_colorMapTexture;
 in vec2 v_texcoord;
 out vec4 outColor;
+const float RADIUS = 100.0;
+
+vec2 curve(vec2 p, vec2 size, float curvature) {
+    vec2 middle = size/2.0;
+    p = p - middle;
+    float r2 = 4.0*dot(p, p)/dot(size, size);
+    float r4 = r2*r2;
+    float mult = 1.0 + curvature*r2 + curvature*r4;
+    return middle + p*mult;
+}
+
+float bezel(vec2 uv, vec2 size) {
+    if (uv.x < 0.0 || uv.y < 0.0 || uv.x > size.x || uv.y > size.y) {
+        return 0.0;
+    }
+
+    if (uv.x < RADIUS && uv.y < RADIUS) {
+        vec2 p = vec2(RADIUS, RADIUS) - uv;
+        if (dot(p, p) > RADIUS*RADIUS) {
+            return 0.0;
+        }
+    } else if (uv.x > size.x - RADIUS && uv.y < RADIUS) {
+        vec2 p = vec2(size.x - RADIUS, RADIUS) - uv;
+        if (dot(p, p) > RADIUS*RADIUS) {
+            return 0.0;
+        }
+    } else if (uv.x < RADIUS && uv.y > size.y - RADIUS) {
+        vec2 p = vec2(RADIUS, size.y - RADIUS) - uv;
+        if (dot(p, p) > RADIUS*RADIUS) {
+            return 0.0;
+        }
+    } else if (uv.x > size.x - RADIUS && uv.y > size.y - RADIUS) {
+        vec2 p = size - vec2(RADIUS, RADIUS) - uv;
+        if (dot(p, p) > RADIUS*RADIUS) {
+            return 0.0;
+        }
+    }
+    
+    return 1.0;
+}
 
 void main() {
     vec2 uv = v_texcoord/vec2(u_inputTextureSize);
     float brightness = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y)).r;
     outColor = texture(u_colorMapTexture, vec2(brightness, 0.5));
+
+    vec2 size = vec2(u_inputTextureSize);
+    outColor.a = bezel(curve(v_texcoord, size, 0.09), size);
+
+    // To see the color map:
     // outColor = texture(u_colorMapTexture, vec2(uv.x, 0.5));
 }
 `;
