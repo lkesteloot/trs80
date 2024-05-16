@@ -114,6 +114,7 @@ precision highp usampler2D;
 uniform sampler2D u_rawScreenTexture;
 uniform ivec2 u_rawScreenTextureSize;
 uniform float u_time; // Seconds.
+uniform float u_scale;
 in vec2 v_texcoord;
 out vec4 outColor;
 
@@ -125,7 +126,6 @@ const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CH
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
 const float g_padding = ${PADDING}.0;
 const float g_radius = ${BORDER_RADIUS}.0;
-const float g_scale = 3.0;
 const float ZOOM = 1.0;
 const float PI = 3.1415926;
 const float CURVATURE = 0.06;
@@ -136,7 +136,7 @@ void main() {
     float modulation = (-cos(u_time) + 1.0)/2.0;
 
     // Unscaled.
-    vec2 p = v_texcoord/g_scale;
+    vec2 p = v_texcoord/u_scale;
 
     // Text area.
     vec2 t = (p - g_padding)/ZOOM;
@@ -767,6 +767,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                     new NamedTexture("u_rawScreenTexture", rawWidth, rawHeight, rawScreenTexture),
                 ], [
                     this.time,
+                    new NamedVariable("u_scale", [devicePixelRatio*scale]),
                 ], this.canvas.width, this.canvas.height, renderedTexture),
 
             // Horizontally blur the rendered screen.
@@ -1121,13 +1122,17 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
          */
     }
 
+    private redrawIfNecessary(): void {
+        if (this.needRedraw) {
+            this.needRedraw = false;
+            this.refresh();
+        }
+    }
+
     private scheduleRefresh(): void {
         window.requestAnimationFrame(() => {
-            if (this.needRedraw) {
-                this.needRedraw = false;
-                this.refresh();
-            }
             if (this.getNode().parentNode !== null) {
+                this.redrawIfNecessary();
                 this.scheduleRefresh();
             }
         });
@@ -1179,6 +1184,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             // the toBlob() method still has to copy the image synchronously, so this whole method still
             // takes about 13ms. It's better than toDataUrl() because it doesn't have to make an actual
             // base64 string. The Object URL is just a reference to the blob.
+            this.redrawIfNecessary();
             this.canvas.toBlob(blob => {
                 if (blob === null) {
                     reject("Cannot make image from screen");

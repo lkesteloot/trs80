@@ -288,7 +288,7 @@ export class YourFilesTab extends PageTab {
         }
 
         // Capitalize.
-        name = name.substr(0, 1).toUpperCase() + name.substr(1).toLowerCase();
+        name = name.substr(0, 1).toUpperCase() + name.substring(1).toLowerCase();
 
         // All-caps for filename.
         filename = filename.toUpperCase();
