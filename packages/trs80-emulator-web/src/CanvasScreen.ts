@@ -127,7 +127,7 @@ const float g_padding = ${PADDING}.0;
 const float g_radius = ${BORDER_RADIUS}.0;
 const float g_scale = 3.0;
 const float ZOOM = 1.0;
-const float PI = 3.14159;
+const float PI = 3.1415926;
 const float CURVATURE = 0.06;
 const float SCANLINE_WIDTH = 0.2;
 
@@ -142,15 +142,15 @@ void main() {
     vec2 t = (p - g_padding)/ZOOM;
     
     // CRT curvature.
-    t = t - g_size/2.0;
+    vec2 middle = g_size/2.0;
+    t = t - middle;
     float r2 = 4.0*dot(t, t)/dot(g_size, g_size);
     float r4 = r2*r2;
     float mult = 1.0 + CURVATURE*r2 + CURVATURE*r4;
-    t = g_size/2.0 + t*mult;
+    t = middle + t*mult;
 
     // Scanline.
-    float scanlineY = mod(t.y*PI/2.0, PI);
-    float scanline = pow(max(sin(scanlineY), 0.0), 1.0/SCANLINE_WIDTH);
+    float scanline = pow(abs(sin(t.y*PI/2.0)), 1.0/SCANLINE_WIDTH);
     
     float brightness = t.x >= -1.0 && t.y >= -1.0 && t.x < g_size.x + 1.0 && t.y < g_size.y + 1.0
         ? texture(u_rawScreenTexture, (t + 1.0)/vec2(u_rawScreenTextureSize)).r
@@ -666,7 +666,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const rawWidth = TRS80_CRT_PIXEL_WIDTH + 2;
         const rawHeight = TRS80_CRT_PIXEL_HEIGHT + 2;
         const rawScreenTexture = createIntermediateTexture(gl, rawWidth, rawHeight);
-        const sharpTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
+        const renderedTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const blurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
 
@@ -694,9 +694,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        // Make the amber texture.
-        const amberTexture = gl.createTexture() as WebGLTexture;
-        gl.bindTexture(gl.TEXTURE_2D, amberTexture);
+        // Make the phosphor texture.
+        const phosphorTexture = gl.createTexture() as WebGLTexture;
+        gl.bindTexture(gl.TEXTURE_2D, phosphorTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
             makeColorMap(g_p4_red, g_p4_green, g_p4_blue));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -711,30 +711,39 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.time = new NamedVariable("u_time", [0], true);
         this.startTime = Date.now()/1000;
         this.renderPasses = [
+            // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
             new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_fontTexture", fontTextureWidth, fontTextureHeight, fontTexture),
                     new NamedTexture("u_memoryTexture", TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT, this.memoryTexture),
                 ], [], rawWidth, rawHeight, rawScreenTexture),
+
+            // Renders the simple pixel grid to look like a CRT, adding color, curvature, and scanlines.
             new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_rawScreenTexture", TRS80_CRT_PIXEL_WIDTH, TRS80_CRT_PIXEL_HEIGHT, rawScreenTexture),
+                    new NamedTexture("u_rawScreenTexture", rawWidth, rawHeight, rawScreenTexture),
                 ], [
                     this.time,
-                ], this.canvas.width, this.canvas.height, sharpTexture),
+                ], this.canvas.width, this.canvas.height, renderedTexture),
+
+            // Horizontally blur the rendered screen.
             new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, sharpTexture),
+                    new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, renderedTexture),
                 ], [
                     new NamedVariable("u_sigma", [HORIZONTAL_BLUR*devicePixelRatio*scale]),
                     new NamedVariable("u_vertical", new Int32Array([0])),
                 ], this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
+
+            // Vertically blur the rendered screen.
             new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
                 ], [
                     new NamedVariable("u_sigma", [VERTICAL_BLUR*devicePixelRatio*scale]),
                     new NamedVariable("u_vertical", new Int32Array([1])),
                 ], this.canvas.width, this.canvas.height, blurredTexture),
+
+            // Map the pixels to the phosphor profile.
             new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, blurredTexture),
-                    new NamedTexture("u_colorMapTexture", this.canvas.width, this.canvas.height, amberTexture),
+                    new NamedTexture("u_colorMapTexture", this.canvas.width, this.canvas.height, phosphorTexture),
                 ], [], this.canvas.width, this.canvas.height, undefined),
         ];
 
