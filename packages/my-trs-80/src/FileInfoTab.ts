@@ -1,7 +1,6 @@
 import {Trs80File} from "trs80-base";
 import {PageTab} from "./PageTab";
 import {
-    defer,
     formatDate,
     makeIcon,
     makeIconButton,
@@ -12,12 +11,13 @@ import {
 } from "./Utils";
 import {LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {clearElement, withCommas} from "teamten-ts-utils";
-import {CanvasScreen} from "trs80-emulator-web";
 import isEmpty from "lodash/isEmpty";
 import {File} from "./File";
 import {IFilePanel} from "./IFilePanel";
 import type firebase from "firebase";
 import {TagSet} from "./TagSet";
+import {withCanvasScreen} from "./ScreenPool";
+
 type UpdateData = firebase.firestore.UpdateData;
 
 const SCREENSHOT_ATTR = `data-screenshot`;
@@ -459,13 +459,10 @@ export class FileInfoTab extends PageTab {
             }
             this.screenshotsDiv.append(screenshotDiv);
 
-            // Defer this so that if we have a lot of screenshots it doesn't hang the browser when
-            // creating this panel.
-            defer(() => {
-                const screen = new CanvasScreen();
-                screen.displayScreenshot(screenshot);
-                screen.asImageAsync().then(image => screenshotDiv.append(image));
-            });
+            withCanvasScreen(1, async canvasScreen => {
+                canvasScreen.displayScreenshot(screenshot);
+                screenshotDiv.append(await canvasScreen.asImageAsync());
+            }).then(() => { /* nothing */ });
         }
     }
 

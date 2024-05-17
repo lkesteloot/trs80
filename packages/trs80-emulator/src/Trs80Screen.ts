@@ -57,8 +57,11 @@ export class Trs80Screen {
      * Fill the screen with the screenshot.
      */
     public displayScreenshot(screenshot: string): void {
-        // Leave it blank if screenshot string is blank.
+        // Make it blank if screenshot string is blank.
         if (screenshot === "") {
+            for (let address = TRS80_SCREEN_BEGIN; address < TRS80_SCREEN_END; address++) {
+                this.writeChar(address, 32);
+            }
             return;
         }
 

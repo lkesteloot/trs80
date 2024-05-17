@@ -1,8 +1,7 @@
-import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
-import {File, FileBuilder} from "./File";
+import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library.js";
+import {File, FileBuilder} from "./File.js";
 import {CanvasScreen} from "trs80-emulator-web";
 import {
-    defer,
     getLabelNodeForTextButton,
     makeIcon,
     makeIconButton,
@@ -11,11 +10,12 @@ import {
     TRASH_TAG
 } from "./Utils";
 import {clearElement} from "teamten-ts-utils";
-import {Context} from "./Context";
-import {PageTab} from "./PageTab";
-import {TagSet} from "./TagSet";
-import {PageTabs} from "./PageTabs";
+import {Context} from "./Context.js";
+import {PageTab} from "./PageTab.js";
+import {TagSet} from "./TagSet.js";
+import {PageTabs} from "./PageTabs.js";
 import { TRS80_BLINK_PERIOD_MS } from "trs80-base";
+import {withCanvasScreen} from "./ScreenPool.js";
 
 const FILE_ID_ATTR = "data-file-id";
 const IMPORT_FILE_LABEL = "Import File";
@@ -327,18 +327,17 @@ export class YourFilesTab extends PageTab {
         screenshotsDiv.classList.add("screenshots");
         fileDiv.append(screenshotsDiv);
         screenshotsDiv.append(this.blankScreen.cloneNode(true));
-        defer(() => {
-            const screen = new CanvasScreen();
+        withCanvasScreen(1, async canvasScreen => {
             if (file.screenshots.length > 0) {
-                screen.displayScreenshot(file.screenshots[0]);
+                canvasScreen.displayScreenshot(file.screenshots[0]);
             } else {
+                canvasScreen.displayScreenshot("");
                 screenshotsDiv.classList.add("missing");
             }
-            screen.asImageAsync().then(image => {
-                clearElement(screenshotsDiv);
-                screenshotsDiv.append(image)
-            });
-        });
+            const image = await canvasScreen.asImageAsync();
+            clearElement(screenshotsDiv);
+            screenshotsDiv.append(image);
+        }).then(() => { /* nothing */ });
 
         const nameDiv = document.createElement("div");
         nameDiv.classList.add("name");

@@ -1,40 +1,41 @@
+
 const MATERIAL_ICONS_CLASS = "material-icons-round";
 
 // Name of tag we use for files in the trash.
  export const TRASH_TAG = "Trash";
 
 // Functions to call.
-const deferredFunctions: (() => void)[] = [];
+const gDeferredFunctions: (() => Promise<void>)[] = [];
 // Whether we've already created a timer to call the deferred functions.
-let deferredFunctionsScheduled = false;
+let gDeferredFunctionsScheduled = false;
+
+// Call the next deferred function.
+async function callDeferredFunction() {
+    const deferredFunction = gDeferredFunctions.shift();
+    if (deferredFunction === undefined) {
+        gDeferredFunctionsScheduled = false
+    } else {
+        // Make sure we don't kill the process if the function throws.
+        try {
+            await deferredFunction();
+        } finally {
+            setTimeout(callDeferredFunction, 0);
+        }
+    }
+}
 
 /**
  * Defer a function until later. All deferred functions are queued up and
  * executed sequentially, in order.
  */
-export function defer(f: () => void): void {
+export function defer(f: () => Promise<void>): void {
     // Add our function in order.
-    deferredFunctions.push(f);
-
-    // Call the next deferred function.
-    const timeoutCallback = () => {
-        const deferredFunction = deferredFunctions.shift();
-        if (deferredFunction === undefined) {
-            deferredFunctionsScheduled = false
-        } else {
-            // Make sure we don't kill the process if the function throws.
-            try {
-                deferredFunction();
-            } finally {
-                setTimeout(timeoutCallback, 0);
-            }
-        }
-    };
+    gDeferredFunctions.push(f);
 
     // Kick it all off if necessary.
-    if (!deferredFunctionsScheduled) {
-        setTimeout(timeoutCallback, 0);
-        deferredFunctionsScheduled = true;
+    if (!gDeferredFunctionsScheduled) {
+        setTimeout(callDeferredFunction, 0);
+        gDeferredFunctionsScheduled = true;
     }
 }
 

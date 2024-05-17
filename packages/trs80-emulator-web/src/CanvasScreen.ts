@@ -641,7 +641,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private readonly width: number;
     private readonly height: number;
     private readonly canvas: HTMLCanvasElement;
-    private readonly context: WebGL2RenderingContext;
     private readonly renderPasses: RenderPass[];
     private readonly memoryTexture: WebGLTexture;
     private readonly time: NamedVariable;
@@ -704,7 +703,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         if (gl === null) {
             throw new Error("WebGL2 is not supported");
         }
-        this.context = gl;
 
         // Textures to pass between rendering passes.
         // Add a 1-pixel black border to help with antialiasing.
@@ -1142,7 +1140,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      * Refresh the display based on what we've kept track of.
      */
     private refresh(): void {
-        const gl = this.context;
+        const gl = this.canvas.getContext("webgl2");
+        if (gl === null) {
+            throw new Error("WebGL2 is not supported");
+        }
         const now = Date.now();
 
         // Update memory texture.
