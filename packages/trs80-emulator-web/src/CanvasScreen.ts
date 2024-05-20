@@ -321,10 +321,20 @@ function createIntermediateTexture(gl: WebGL2RenderingContext, width: number, he
  * Convert three maps (256 entries -> 0..1) to a flattened RGBA (0..255) array for a color map.
  */
 function makeColorMap(red: number[], green: number[], blue: number[]): Uint8Array {
+    const backgroundHex = AUTHENTIC_BACKGROUND;
+    const bgFactor = 1;
+    const bgRed = parseInt(backgroundHex.substring(1, 3), 16)/255*bgFactor;
+    const bgGreen = parseInt(backgroundHex.substring(3, 5), 16)/255*bgFactor;
+    const bgBlue = parseInt(backgroundHex.substring(5, 7), 16)/255*bgFactor;
+
+    function blend(bg: number, fg: number): number {
+        return Math.max(bg, fg);
+    }
+
     return new Uint8Array(red.flatMap((_, i) => [
-        Math.floor(red[i]*255.99),
-        Math.floor(green[i]*255.99),
-        Math.floor(blue[i]*255.99),
+        Math.floor(blend(bgRed, red[i])*255.99),
+        Math.floor(blend(bgGreen, green[i])*255.99),
+        Math.floor(blend(bgBlue, blue[i])*255.99),
         255]));
 }
 
@@ -742,6 +752,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.bindTexture(gl.TEXTURE_2D, phosphorTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
             makeColorMap(g_p4_red, g_p4_green, g_p4_blue));
+            // makeColorMap(g_amber_red, g_amber_green, g_amber_blue));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
