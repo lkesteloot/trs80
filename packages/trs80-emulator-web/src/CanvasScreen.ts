@@ -111,16 +111,13 @@ const RENDER_SCREEN_FRAGMENT_SHADER_SOURCE = `#version 300 es
 precision highp float;
 precision highp usampler2D;
 
-uniform sampler2D u_rawScreenTexture;
-uniform ivec2 u_rawScreenTextureSize;
+uniform sampler2D u_inputTexture;
+uniform ivec2 u_inputTextureSize;
 uniform float u_time; // Seconds.
 uniform float u_scale;
 in vec2 v_texcoord;
 out vec4 outColor;
 
-// const vec4 g_background = vec4(51.0/255.0, 72.0/255.0, 67.0/255.0, 1.0);
-const vec4 g_background = vec4(0.0/255.0, 0.0/255.0, 0.0/255.0, 1.0);
-const vec4 g_foreground = vec4(230.0/255.0, 231.0/255.0, 252.0/255.0, 1.0);
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
 const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
@@ -153,9 +150,10 @@ void main() {
     float scanline = pow(abs(sin(t.y*PI/2.0)), 1.0/SCANLINE_WIDTH);
     
     float brightness = t.x >= -1.0 && t.y >= -1.0 && t.x < g_size.x + 1.0 && t.y < g_size.y + 1.0
-        ? texture(u_rawScreenTexture, (t + 1.0)/vec2(u_rawScreenTextureSize)).r
+        ? texture(u_inputTexture, (t + 1.0)/vec2(u_inputTextureSize)).r
         : 0.0;
-    outColor = mix(g_background, g_foreground, brightness*scanline);
+    float c = brightness*scanline;
+    outColor = vec4(c, c, c, 1.0);
 }
 `;
 
@@ -304,10 +302,10 @@ function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fr
 /**
  * Create an intermediate texture (8-bit RGBA) to use between render passes.
  */
-function createIntermediateTexture(gl: WebGL2RenderingContext, width: number, height: number): WebGLTexture {
-    const texture = gl.createTexture() as WebGLTexture;
+function createIntermediateTexture(gl: WebGL2RenderingContext, width: number, height: number): SizedTexture {
+    const texture = SizedTexture.create(gl, width, height);
 
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(gl.TEXTURE_2D, texture.texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -338,11 +336,28 @@ function makeColorMap(red: number[], green: number[], blue: number[]): Uint8Arra
         255]));
 }
 
-class NamedTexture {
-    public constructor(public readonly name: string,
-                       public readonly width: number,
+/**
+ * Gl Texture and its size.
+ */
+class SizedTexture {
+    public constructor(public readonly width: number,
                        public readonly height: number,
                        public readonly texture: WebGLTexture) {
+
+        // Nothing.
+    }
+
+    public static create(gl: WebGL2RenderingContext, width: number, height: number): SizedTexture {
+        return new SizedTexture(width, height, gl.createTexture() as WebGLTexture);
+    }
+}
+
+/**
+ * Sized texture and the "in" name it has in the fragment shader.
+ */
+class NamedTexture {
+    public constructor(public readonly name: string,
+                       public readonly texture: SizedTexture) {
 
         // Nothing.
     }
@@ -354,12 +369,12 @@ class NamedTexture {
         }
         gl.uniform1i(location, index);
         gl.activeTexture(gl.TEXTURE0 + index);
-        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+        gl.bindTexture(gl.TEXTURE_2D, this.texture.texture);
 
         // Optional "...Size" ivec2.
         const sizeLocation = gl.getUniformLocation(program, this.name + "Size");
         if (sizeLocation !== null) {
-            gl.uniform2i(sizeLocation, this.width, this.height);
+            gl.uniform2i(sizeLocation, this.texture.width, this.texture.height);
         }
     }
 }
@@ -411,18 +426,16 @@ class RenderPass {
                        fragmentSource: string,
                        private readonly namedTextures: NamedTexture[],
                        private readonly namedVariables: NamedVariable[],
-                       private readonly outputWidth: number,
-                       private readonly outputHeight: number,
-                       private readonly outputTexture: WebGLTexture | undefined) {
+                       private readonly output: SizedTexture | { width: number, height: number }) {
 
-        if (this.outputTexture === undefined) {
-            // Render to canvas.
-            this.fb = undefined;
-        } else {
+        if (this.output instanceof SizedTexture) {
             // Create and bind the framebuffer we'll be drawing into.
             this.fb = gl.createFramebuffer() as WebGLFramebuffer;
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.outputTexture, 0);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.output.texture, 0);
+        } else {
+            // Render to canvas.
+            this.fb = undefined;
         }
 
         // Create our program.
@@ -450,10 +463,10 @@ class RenderPass {
 
         // Texture coordinates.
         const texcoord = [
-            0, this.outputHeight,                   // Lower left
-            this.outputWidth, this.outputHeight,    // Lower right
+            0, output.height,                   // Lower left
+            output.width, output.height,    // Lower right
             0, 0,                                   // Upper left
-            this.outputWidth, 0,                    // Upper right
+            output.width, 0,                    // Upper right
         ];
         const texcoordBuffer = gl.createBuffer() as WebGLBuffer;
         gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
@@ -467,7 +480,7 @@ class RenderPass {
         const gl = this.gl;
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb ?? null);
-        gl.viewport(0, 0, this.outputWidth, this.outputHeight);
+        gl.viewport(0, 0, this.output.width, this.output.height);
         gl.useProgram(this.program);
 
         // Assign textures to texture units.
@@ -652,7 +665,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private readonly height: number;
     private readonly canvas: HTMLCanvasElement;
     private readonly renderPasses: RenderPass[];
-    private readonly memoryTexture: WebGLTexture;
+    private readonly memoryTexture: SizedTexture;
     private readonly time: NamedVariable;
     private readonly startTime: number;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
@@ -692,8 +705,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.canvas.style.height = `${this.height}px`;
         // In device pixels:
         const devicePixelRatio = window.devicePixelRatio ?? 1;
-        this.canvas.width = this.width*devicePixelRatio;
-        this.canvas.height = this.height*devicePixelRatio;
+        this.canvas.width = this.width * devicePixelRatio;
+        this.canvas.height = this.height * devicePixelRatio;
         this.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
         this.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
         this.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
@@ -724,12 +737,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const blurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
 
         // Make the font texture.
-        const fontTexture = gl.createTexture() as WebGLTexture;
-        gl.bindTexture(gl.TEXTURE_2D, fontTexture);
+        const fontTexture = SizedTexture.create(gl, 256 * 8, 24);
+        gl.bindTexture(gl.TEXTURE_2D, fontTexture.texture);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-        const fontTextureWidth = 256 * 8;
-        const fontTextureHeight = 24;
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, fontTextureWidth, fontTextureHeight, 0,
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, fontTexture.width, fontTexture.height, 0,
             gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(MODEL3_FONT.makeFontSheet()));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -737,10 +748,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
         // Make the memory texture.
-        this.memoryTexture = gl.createTexture() as WebGLTexture;
-        gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture);
+        this.memoryTexture = SizedTexture.create(gl, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT);
+        gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture.texture);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT, 0,
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, this.memoryTexture.width, this.memoryTexture.height, 0,
             gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.memory);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -748,11 +759,12 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
         // Make the phosphor texture.
-        const phosphorTexture = gl.createTexture() as WebGLTexture;
-        gl.bindTexture(gl.TEXTURE_2D, phosphorTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+        const phosphorTexture = SizedTexture.create(gl, 256, 1);
+        gl.bindTexture(gl.TEXTURE_2D, phosphorTexture.texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, phosphorTexture.width, phosphorTexture.height,
+            0, gl.RGBA, gl.UNSIGNED_BYTE,
             makeColorMap(g_p4_red, g_p4_green, g_p4_blue));
-            // makeColorMap(g_amber_red, g_amber_green, g_amber_blue));
+        // makeColorMap(g_amber_red, g_amber_green, g_amber_blue));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -763,43 +775,43 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const VERTICAL_BLUR = 0.20;
 
         this.time = new NamedVariable("u_time", [0], true);
-        this.startTime = Date.now()/1000;
+        this.startTime = Date.now() / 1000;
         this.renderPasses = [
             // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
             new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_fontTexture", fontTextureWidth, fontTextureHeight, fontTexture),
-                    new NamedTexture("u_memoryTexture", TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT, this.memoryTexture),
-                ], [], rawWidth, rawHeight, rawScreenTexture),
+                new NamedTexture("u_fontTexture", fontTexture),
+                new NamedTexture("u_memoryTexture", this.memoryTexture),
+            ], [], rawScreenTexture),
 
             // Renders the simple pixel grid to look like a CRT, adding color, curvature, and scanlines.
             new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_rawScreenTexture", rawWidth, rawHeight, rawScreenTexture),
-                ], [
-                    this.time,
-                    new NamedVariable("u_scale", [devicePixelRatio*scale]),
-                ], this.canvas.width, this.canvas.height, renderedTexture),
+                new NamedTexture("u_inputTexture", rawScreenTexture),
+            ], [
+                this.time,
+                new NamedVariable("u_scale", [devicePixelRatio * scale]),
+            ], renderedTexture),
 
-            // Horizontally blur the rendered screen.
+            // Scale up and horizontally blur the rendered screen.
             new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, renderedTexture),
-                ], [
-                    new NamedVariable("u_sigma", [HORIZONTAL_BLUR*devicePixelRatio*scale]),
-                    new NamedVariable("u_vertical", new Int32Array([0])),
-                ], this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
+                new NamedTexture("u_inputTexture", renderedTexture),
+            ], [
+                new NamedVariable("u_sigma", [HORIZONTAL_BLUR * devicePixelRatio * scale]),
+                new NamedVariable("u_vertical", new Int32Array([0])),
+            ], horizontallyBlurredTexture),
 
             // Vertically blur the rendered screen.
             new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, horizontallyBlurredTexture),
-                ], [
-                    new NamedVariable("u_sigma", [VERTICAL_BLUR*devicePixelRatio*scale]),
-                    new NamedVariable("u_vertical", new Int32Array([1])),
-                ], this.canvas.width, this.canvas.height, blurredTexture),
+                new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
+            ], [
+                new NamedVariable("u_sigma", [VERTICAL_BLUR * devicePixelRatio * scale]),
+                new NamedVariable("u_vertical", new Int32Array([1])),
+            ], blurredTexture),
 
             // Map the pixels to the phosphor profile.
             new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
-                    new NamedTexture("u_inputTexture", this.canvas.width, this.canvas.height, blurredTexture),
-                    new NamedTexture("u_colorMapTexture", this.canvas.width, this.canvas.height, phosphorTexture),
-                ], [], this.canvas.width, this.canvas.height, undefined),
+                new NamedTexture("u_inputTexture", blurredTexture),
+                new NamedTexture("u_colorMapTexture", phosphorTexture),
+            ], [], {width: this.canvas.width, height: this.canvas.height}),
         ];
 
         this.updateFromConfig();
@@ -1158,7 +1170,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const now = Date.now();
 
         // Update memory texture.
-        gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture);
+        gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture.texture);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT,
             gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.memory);
 
