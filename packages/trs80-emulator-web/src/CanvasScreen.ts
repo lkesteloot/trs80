@@ -77,7 +77,7 @@ const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CH
 void main() {
     // Integer texel coordinate.
     ivec2 t = ivec2(floor(v_texcoord));
-    
+
     // Remove black border.
     t -= 1;
 
@@ -172,7 +172,7 @@ out vec4 outColor;
 void main() {
     if (u_sigma == 0.0) {
         vec2 uv = v_texcoord/vec2(u_inputTextureSize);
-        outColor = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y));
+        outColor = texture(u_inputTexture, uv);
     } else {
         int radius = int(ceil(u_sigma*3.0));
         vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
@@ -180,7 +180,7 @@ void main() {
         for (int dx = -radius; dx <= radius; dx++) {
             vec2 delta = u_vertical ? vec2(0, dx) : vec2(dx, 0);
             vec2 uv = (v_texcoord + delta)/vec2(u_inputTextureSize);
-            vec4 pixelColor = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y));
+            vec4 pixelColor = texture(u_inputTexture, uv);
             float coef = exp(-float(dx*dx)/(2.0*u_sigma*u_sigma));
             color += pixelColor*coef;
             total += coef;
@@ -243,7 +243,7 @@ float bezel(vec2 uv, vec2 size) {
 
 void main() {
     vec2 uv = v_texcoord/vec2(u_inputTextureSize);
-    float brightness = texture(u_inputTexture, vec2(uv.x, 1.0 - uv.y)).r;
+    float brightness = texture(u_inputTexture, uv).r;
     outColor = texture(u_colorMapTexture, vec2(brightness, 0.5));
 
     vec2 size = vec2(u_inputTextureSize);
@@ -463,10 +463,10 @@ class RenderPass {
 
         // Texture coordinates.
         const texcoord = [
-            0, output.height,                   // Lower left
-            output.width, output.height,    // Lower right
-            0, 0,                                   // Upper left
-            output.width, 0,                    // Upper right
+            0, 0,                           // Lower left
+            output.width, 0,                // Lower right
+            0, output.height,               // Upper left
+            output.width, output.height,    // Upper right
         ];
         const texcoordBuffer = gl.createBuffer() as WebGLBuffer;
         gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
