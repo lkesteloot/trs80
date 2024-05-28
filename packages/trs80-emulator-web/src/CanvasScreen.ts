@@ -127,6 +127,7 @@ const float ZOOM = 1.0;
 const float PI = 3.1415926;
 const float CURVATURE = 0.06;
 const float SCANLINE_WIDTH = 0.2;
+const float SCANLINE_BLOOM = 0.55;
 
 void main() {
     // Modulator, for testing.
@@ -148,10 +149,16 @@ void main() {
 
     // Scanline.
     float scanline = pow(abs(sin(t.y*PI/2.0)), 1.0/SCANLINE_WIDTH);
-    
+
     float brightness = t.x >= -1.0 && t.y >= -1.0 && t.x < g_size.x + 1.0 && t.y < g_size.y + 1.0
         ? texture(u_inputTexture, (t + 1.0)/vec2(u_inputTextureSize)).r
         : 0.0;
+
+    // Scanline bloom.
+    if (SCANLINE_BLOOM > 0.0 && brightness > 0.5) {
+        scanline += SCANLINE_BLOOM*(1.0 - scanline)*(brightness - 0.5)/0.5;
+    }
+
     float c = brightness*scanline;
     outColor = vec4(c, c, c, 1.0);
 }
@@ -185,7 +192,7 @@ void main() {
             color += pixelColor*coef;
             total += coef;
         }
-        outColor = color / total * 1.8;
+        outColor = color / total * 1.5;
     }
 }
 `;
