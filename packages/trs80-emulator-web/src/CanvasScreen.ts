@@ -211,6 +211,7 @@ out vec4 outColor;
 const float RADIUS = 50.0;
 const float VIGNETTE = 0.12;
 const float HALATION = 0.40;
+const float BLACKPOINT = 0.06;
 
 vec2 curve(vec2 p, vec2 size, float curvature) {
     vec2 middle = size/2.0;
@@ -253,7 +254,14 @@ float bezel(vec2 uv, vec2 size) {
 
 void main() {
     vec2 uv = v_texcoord/vec2(u_inputTextureSize);
+
+    // Add halation.
     float brightness = max(texture(u_inputTexture, uv).r, texture(u_halationTexture, uv).r*HALATION);
+
+    // Blackpoint adjustment.
+    brightness += (1.0 - brightness)*BLACKPOINT;
+
+    // Map to color, including background.
     outColor = texture(u_colorMapTexture, vec2(brightness, 0.5));
 
     // Vignette.
