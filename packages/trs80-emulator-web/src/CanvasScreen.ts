@@ -197,11 +197,13 @@ precision highp sampler2D;
 
 uniform sampler2D u_inputTexture;
 uniform ivec2 u_inputTextureSize;
+uniform sampler2D u_halationTexture;
 uniform sampler2D u_colorMapTexture;
 in vec2 v_texcoord;
 out vec4 outColor;
 const float RADIUS = 50.0;
 const float VIGNETTE = 0.12;
+const float HALATION = 0.40;
 
 vec2 curve(vec2 p, vec2 size, float curvature) {
     vec2 middle = size/2.0;
@@ -244,7 +246,7 @@ float bezel(vec2 uv, vec2 size) {
 
 void main() {
     vec2 uv = v_texcoord/vec2(u_inputTextureSize);
-    float brightness = texture(u_inputTexture, uv).r;
+    float brightness = max(texture(u_inputTexture, uv).r, texture(u_halationTexture, uv).r*HALATION);
     outColor = texture(u_colorMapTexture, vec2(brightness, 0.5));
 
     // Vignette.
@@ -759,6 +761,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const renderedTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const blurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
+        const halationTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
 
         // Make the font texture.
         const fontTexture = SizedTexture.create(gl, 256 * 8, 24);
@@ -797,6 +800,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         // In fractions of an original (CRT) pixel.
         const HORIZONTAL_BLUR = 0.72;
         const VERTICAL_BLUR = 0.20;
+        const HALATION_BLUR = 1.5;
 
         this.time = new NamedVariable("u_time", [0], true);
         this.startTime = Date.now() / 1000;
@@ -831,9 +835,26 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 new NamedVariable("u_vertical", new Int32Array([1])),
             ], blurredTexture),
 
-            // Map the pixels to the phosphor profile.
+            // Horizontally blur for halation.
+            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                new NamedTexture("u_inputTexture", blurredTexture),
+            ], [
+                new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * scale]),
+                new NamedVariable("u_vertical", new Int32Array([0])),
+            ], horizontallyBlurredTexture),
+
+            // Vertically blur for halation.
+            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
+            ], [
+                new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * scale]),
+                new NamedVariable("u_vertical", new Int32Array([1])),
+            ], halationTexture),
+
+            // Halation, phosphor color, vignette, bezel.
             new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
                 new NamedTexture("u_inputTexture", blurredTexture),
+                new NamedTexture("u_halationTexture", halationTexture),
                 new NamedTexture("u_colorMapTexture", phosphorTexture),
             ], [], {width: this.canvas.width, height: this.canvas.height}),
         ];
