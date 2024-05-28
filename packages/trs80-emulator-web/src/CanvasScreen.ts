@@ -174,14 +174,14 @@ void main() {
         vec2 uv = v_texcoord/vec2(u_inputTextureSize);
         outColor = texture(u_inputTexture, uv);
     } else {
-        int radius = int(ceil(u_sigma*3.0));
+        float radius = ceil(u_sigma*3.0);
         vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
         float total = 0.0;
-        for (int dx = -radius; dx <= radius; dx++) {
-            vec2 delta = u_vertical ? vec2(0, dx) : vec2(dx, 0);
-            vec2 uv = (v_texcoord + delta)/vec2(u_inputTextureSize);
+        vec2 delta = u_vertical ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
+        for (float dx = -radius; dx <= radius; dx++) {
+            vec2 uv = (v_texcoord + delta*dx)/vec2(u_inputTextureSize);
             vec4 pixelColor = texture(u_inputTexture, uv);
-            float coef = exp(-float(dx*dx)/(2.0*u_sigma*u_sigma));
+            float coef = exp(-dx*dx/(2.0*u_sigma*u_sigma));
             color += pixelColor*coef;
             total += coef;
         }
@@ -200,7 +200,7 @@ uniform ivec2 u_inputTextureSize;
 uniform sampler2D u_colorMapTexture;
 in vec2 v_texcoord;
 out vec4 outColor;
-const float RADIUS = 100.0;
+const float RADIUS = 50.0;
 
 vec2 curve(vec2 p, vec2 size, float curvature) {
     vec2 middle = size/2.0;
@@ -246,8 +246,15 @@ void main() {
     float brightness = texture(u_inputTexture, uv).r;
     outColor = texture(u_colorMapTexture, vec2(brightness, 0.5));
 
+    // Anti-alias the bezel outline.
     vec2 size = vec2(u_inputTextureSize);
-    outColor.a = bezel(curve(v_texcoord, size, 0.09), size);
+    float a = 0.0;
+    for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+            a += bezel(curve(v_texcoord + vec2(dx, dy)/3.0, size, 0.09), size);
+        }
+    }
+    outColor *= a/9.0;
 
     // To see the color map:
     // outColor = texture(u_colorMapTexture, vec2(uv.x, 0.5));
@@ -1181,8 +1188,13 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         for (const renderPass of this.renderPasses) {
             renderPass.render();
         }
-        const after = Date.now();
-        // console.log("render time", after - now);
+
+        if (2 > 3) {
+            // TODO add sync fence for real timing.
+
+            const after = Date.now();
+            console.log("render time", after - now);
+        }
     }
 
     /**
