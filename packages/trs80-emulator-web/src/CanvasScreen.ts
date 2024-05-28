@@ -201,6 +201,7 @@ uniform sampler2D u_colorMapTexture;
 in vec2 v_texcoord;
 out vec4 outColor;
 const float RADIUS = 50.0;
+const float VIGNETTE = 0.12;
 
 vec2 curve(vec2 p, vec2 size, float curvature) {
     vec2 middle = size/2.0;
@@ -245,6 +246,22 @@ void main() {
     vec2 uv = v_texcoord/vec2(u_inputTextureSize);
     float brightness = texture(u_inputTexture, uv).r;
     outColor = texture(u_colorMapTexture, vec2(brightness, 0.5));
+
+    // Vignette.
+    if (VIGNETTE > 0.0) {
+        vec2 delta = uv - 0.5;
+        float d = length(delta) / 0.7071;
+        float c = cos(d * VIGNETTE * 3.14159);
+        if (c < 0.0) {
+            c = 0.0;
+        }
+        if (c > 1.0) {
+            c = 1.0;
+        }
+        c = c*c;
+        c = c*c;
+        outColor.rgb *= c;
+    }
 
     // Anti-alias the bezel outline.
     vec2 size = vec2(u_inputTextureSize);
