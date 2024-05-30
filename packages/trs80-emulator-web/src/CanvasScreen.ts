@@ -17,6 +17,8 @@ import {FlipCard, FlipCardSide} from "./FlipCard.js";
 import {g_amber_blue, g_amber_green, g_amber_red} from "./amber.js";
 import {g_p4_blue, g_p4_green, g_p4_red} from "./p4.js";
 
+const TIME_RENDERING = true;
+
 const TRS80_CHAR_CRT_PIXEL_WIDTH = 8;
 const TRS80_CHAR_CRT_PIXEL_HEIGHT = 24;
 const TRS80_CRT_PIXEL_WIDTH = TRS80_CHAR_WIDTH*TRS80_CHAR_CRT_PIXEL_WIDTH;
@@ -826,7 +828,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 new NamedTexture("u_memoryTexture", this.memoryTexture),
             ], [], rawScreenTexture),
 
-            // Renders the simple pixel grid to look like a CRT, adding color, curvature, and scanlines.
+            // Curvature, scanlines, and scanline bloom.
             new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE, [
                 new NamedTexture("u_inputTexture", rawScreenTexture),
             ], [
@@ -1242,11 +1244,32 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             renderPass.render();
         }
 
-        if (2 > 3) {
-            // TODO add sync fence for real timing.
+        if (TIME_RENDERING) {
+            const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+            if (fence === null) {
+                throw new Error("cannot create fence");
+            }
+            gl.flush();
+            const checkFence = () => {
+                // Always returns immediately (the max timeout is zero), so we poll.
+                const status = gl.clientWaitSync(fence, 0, 0);
+                switch (status) {
+                    case gl.TIMEOUT_EXPIRED:
+                        setTimeout(checkFence);
+                        break;
 
-            const after = Date.now();
-            console.log("render time", after - now);
+                    case gl.WAIT_FAILED:
+                        throw new Error("clientWaitSync failed: " + gl.getError());
+
+                    default:
+                        gl.deleteSync(fence);
+
+                        const after = Date.now();
+                        console.log("render time", after - now, "ms");
+                        break;
+                }
+            };
+            setTimeout(checkFence);
         }
     }
 
