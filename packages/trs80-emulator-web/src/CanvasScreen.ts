@@ -17,7 +17,8 @@ import {FlipCard, FlipCardSide} from "./FlipCard.js";
 import {g_amber_blue, g_amber_green, g_amber_red} from "./amber.js";
 import {g_p4_blue, g_p4_green, g_p4_red} from "./p4.js";
 
-const TIME_RENDERING = true;
+const TIME_RENDERING = false;
+const SHOW_REFLECTION = false;
 
 const TRS80_CHAR_CRT_PIXEL_WIDTH = 8;
 const TRS80_CHAR_CRT_PIXEL_HEIGHT = 24;
@@ -174,6 +175,7 @@ precision highp sampler2D;
 uniform sampler2D u_inputTexture;
 uniform ivec2 u_inputTextureSize;
 uniform float u_sigma;
+uniform float u_boost;
 uniform bool u_vertical;
 in vec2 v_texcoord;
 out vec4 outColor;
@@ -194,7 +196,7 @@ void main() {
             color += pixelColor*coef;
             total += coef;
         }
-        outColor = color / total * 1.5;
+        outColor = color / total * u_boost;
     }
 }
 `;
@@ -208,6 +210,8 @@ uniform sampler2D u_inputTexture;
 uniform ivec2 u_inputTextureSize;
 uniform sampler2D u_halationTexture;
 uniform sampler2D u_colorMapTexture;
+uniform sampler2D u_cameraTexture;
+uniform float u_reflection;
 in vec2 v_texcoord;
 out vec4 outColor;
 const float RADIUS = 50.0;
@@ -254,6 +258,38 @@ float bezel(vec2 uv, vec2 size) {
     return 1.0;
 }
 
+// uv = -0.5 to 0.5
+float getCameraWarp(vec2 uv) {
+    // Inches.
+    float screenSize = 7.0;
+    float R = 12.0;
+    float D = 18.0;
+
+    float dist = length(uv)*screenSize;
+    float A = sqrt(R*R - dist*dist);
+    float B = D + R - A;
+    float alpha = atan(dist, A); 
+    float beta = atan(dist, B);
+    float gamma = 2.0*alpha + beta;
+    return tan(gamma);
+}
+
+// uv = 0 to 1
+vec2 getCameraUv(vec2 uv) {
+    uv = uv - 0.5;
+    float pt = getCameraWarp(uv);
+    float edge = getCameraWarp(vec2(0.5, 0.5)); // TODO could do this outside, it's static.
+    
+    return normalize(uv)*pt/edge + 0.5;
+}
+
+float grid(vec2 uv, float count) {
+    uv *= count;
+    uv = mod(uv, 1.0);
+    
+    return uv.x < 0.1 || uv.y < 0.1 ? 1.0 : 0.0;
+}
+
 void main() {
     vec2 uv = v_texcoord/vec2(u_inputTextureSize);
 
@@ -280,6 +316,14 @@ void main() {
         c = c*c;
         c = c*c;
         outColor.rgb *= c;
+    }
+    
+    // Reflection.
+    if (u_reflection > 0.0) {
+        vec2 reflectionUv = getCameraUv(1.0 - uv);
+        vec4 camera = texture(u_cameraTexture, reflectionUv);
+        // camera = max(camera, grid(reflectionUv, 16.0));
+        outColor.rgb = outColor.rgb*(1.0 - u_reflection) + camera.rgb*u_reflection;
     }
 
     // Anti-alias the bezel outline.
@@ -707,8 +751,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private readonly width: number;
     private readonly height: number;
     private readonly canvas: HTMLCanvasElement;
+    private readonly camera: HTMLVideoElement;
     private readonly renderPasses: RenderPass[];
     private readonly memoryTexture: SizedTexture;
+    private readonly cameraTexture: SizedTexture;
     private readonly time: NamedVariable;
     private readonly startTime: number;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
@@ -765,6 +811,29 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         });
         this.node.append(this.canvas);
 
+        this.camera = document.createElement("video");
+        if (SHOW_REFLECTION) {
+            this.camera.style.display = "none";
+            this.camera.style.width = "512px";
+            this.camera.style.height = "512px";
+            this.camera.controls = true;
+            this.camera.playsInline = true; // Examples use empty string for iOS.
+            this.camera.crossOrigin = "anonymous";
+            document.body.append(this.camera);
+
+            navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false,
+            }).then(
+                stream => this.camera.srcObject = stream,
+                error => console.log(error));
+
+            // TODO shouldn't have to click, but browser (sometimes) requires it to allow play().
+            this.node.addEventListener("click", () => {
+                this.camera.play();
+            });
+        }
+
         const gl = this.canvas.getContext("webgl2");
         if (gl === null) {
             throw new Error("WebGL2 is not supported");
@@ -779,6 +848,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const blurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const halationTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
+        const horizontallyBlurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
+        const blurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
 
         // Make the font texture.
         const fontTexture = SizedTexture.create(gl, 256 * 8, 24);
@@ -802,6 +873,16 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+        // Make the camera texture.
+        this.cameraTexture = SizedTexture.create(gl, 512, 512);
+        gl.bindTexture(gl.TEXTURE_2D, this.cameraTexture.texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.cameraTexture.width, this.cameraTexture.height, 0,
+            gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
         // Make the phosphor texture.
         const phosphorTexture = SizedTexture.create(gl, 256, 1);
         gl.bindTexture(gl.TEXTURE_2D, phosphorTexture.texture);
@@ -818,6 +899,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const HORIZONTAL_BLUR = 0.72;
         const VERTICAL_BLUR = 0.20;
         const HALATION_BLUR = 1.5;
+        const REFLECTION_BLUR = 3;
 
         this.time = new NamedVariable("u_time", [0], true);
         this.startTime = Date.now() / 1000;
@@ -841,6 +923,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 new NamedTexture("u_inputTexture", renderedTexture),
             ], [
                 new NamedVariable("u_sigma", [HORIZONTAL_BLUR * devicePixelRatio * scale]),
+                new NamedVariable("u_boost", [1.5]),
                 new NamedVariable("u_vertical", new Int32Array([0])),
             ], horizontallyBlurredTexture),
 
@@ -849,6 +932,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
             ], [
                 new NamedVariable("u_sigma", [VERTICAL_BLUR * devicePixelRatio * scale]),
+                new NamedVariable("u_boost", [1.5]),
                 new NamedVariable("u_vertical", new Int32Array([1])),
             ], blurredTexture),
 
@@ -857,6 +941,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 new NamedTexture("u_inputTexture", blurredTexture),
             ], [
                 new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * scale]),
+                new NamedVariable("u_boost", [1.5]),
                 new NamedVariable("u_vertical", new Int32Array([0])),
             ], horizontallyBlurredTexture),
 
@@ -865,15 +950,37 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
             ], [
                 new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * scale]),
+                new NamedVariable("u_boost", [1.5]),
                 new NamedVariable("u_vertical", new Int32Array([1])),
             ], halationTexture),
+
+            // Horizontally blur camera reflection.
+            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                new NamedTexture("u_inputTexture", this.cameraTexture),
+            ], [
+                new NamedVariable("u_sigma", [REFLECTION_BLUR]),
+                new NamedVariable("u_boost", [1.0]),
+                new NamedVariable("u_vertical", new Int32Array([0])),
+            ], horizontallyBlurredReflectionTexture),
+
+            // Vertically blur camera reflection.
+            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                new NamedTexture("u_inputTexture", horizontallyBlurredReflectionTexture),
+            ], [
+                new NamedVariable("u_sigma", [REFLECTION_BLUR]),
+                new NamedVariable("u_boost", [1.0]),
+                new NamedVariable("u_vertical", new Int32Array([1])),
+            ], blurredReflectionTexture),
 
             // Halation, phosphor color, vignette, bezel.
             new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
                 new NamedTexture("u_inputTexture", blurredTexture),
                 new NamedTexture("u_halationTexture", halationTexture),
                 new NamedTexture("u_colorMapTexture", phosphorTexture),
-            ], [], {width: this.canvas.width, height: this.canvas.height}),
+                new NamedTexture("u_cameraTexture", blurredReflectionTexture),
+            ], [
+                new NamedVariable("u_reflection", [SHOW_REFLECTION ? 0.10 : 0]),
+            ], {width: this.canvas.width, height: this.canvas.height}),
         ];
 
         this.updateFromConfig();
@@ -1206,7 +1313,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     }
 
     private redrawIfNecessary(): void {
-        if (this.needRedraw) {
+        if (this.needRedraw || SHOW_REFLECTION) {
             this.needRedraw = false;
             this.refresh();
         }
@@ -1235,6 +1342,12 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture.texture);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT,
             gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.memory);
+
+        // Update reflection image.
+        if (SHOW_REFLECTION) {
+            gl.bindTexture(gl.TEXTURE_2D, this.cameraTexture.texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.camera);
+        }
 
         // Update time.
         this.time.values[0] = now/1000 - this.startTime;
