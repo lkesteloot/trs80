@@ -16,9 +16,29 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {FlipCard, FlipCardSide} from "./FlipCard.js";
 import {g_amber_blue, g_amber_green, g_amber_red} from "./amber.js";
 import {g_p4_blue, g_p4_green, g_p4_red} from "./p4.js";
+import {g_green1_blue, g_green1_green, g_green1_red} from "./green1";
+import {g_green2_blue, g_green2_green, g_green2_red} from "./green2";
 
 const TIME_RENDERING = false;
-const SHOW_REFLECTION = false;
+const SHOW_REFLECTION = true;
+
+const DEMO_MODE_ENABLED = true;
+enum DemoMode {
+    OFF,
+
+    CRT_CURVATURE,
+    SCANLINES,
+    PIXEL_BLUR,
+    PHOSPHOR,
+    SCANLINE_BLOOM,
+    HALATION,
+    BLACKPOINT,
+    VIGNETTE,
+    REFLECTION,
+
+    ZOOM,
+    ALL,
+}
 
 const TRS80_CHAR_CRT_PIXEL_WIDTH = 8;
 const TRS80_CHAR_CRT_PIXEL_HEIGHT = 24;
@@ -34,6 +54,30 @@ const BORDER_RADIUS = 8;
 const WHITE_PHOSPHOR = [230, 231, 252];
 const AMBER_PHOSPHOR = [247, 190, 64];
 const GREEN_PHOSPHOR = [122, 244, 96];
+
+const DEFAULT_CRT_CURVATURE = 0.06;
+const DEFAULT_SCANLINES = 1;
+const DEFAULT_SCANLINE_BLOOM = 0.55;
+const DEFAULT_PHOSPHOR = 1;
+const DEFAULT_HALATION = 0.4;
+const DEFAULT_BLACKPOINT = 0.06;
+const DEFAULT_VIGNETTE = 0.12;
+const DEFAULT_REFLECTION = 0.10;
+const DEFAULT_ZOOM = 1;
+const ZOOM_POINTS = [
+    [0.5, 0.5],
+    [0.2, 0.2],
+];
+
+// Modifier keys required for demo mode.
+function demoModifierKeys(event: KeyboardEvent | MouseEvent): boolean {
+    return event.shiftKey && event.ctrlKey && !event.metaKey && !event.altKey;
+}
+
+// Clamp value to min and max.
+function clamp(min: number, value: number, max: number): number {
+    return Math.min(Math.max(value, min), max);
+}
 
 // Gets an RGB array (0-255) for a phosphor.
 export function phosphorToRgb(phosphor: Phosphor): number[] {
@@ -118,6 +162,9 @@ uniform sampler2D u_inputTexture;
 uniform ivec2 u_inputTextureSize;
 uniform float u_time; // Seconds.
 uniform float u_scale;
+uniform float u_crtCurvature; // 0-
+uniform float u_scanlines; // 0-1
+uniform float u_scanlineBloom; // 0-
 in vec2 v_texcoord;
 out vec4 outColor;
 
@@ -126,11 +173,8 @@ const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CH
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
 const float g_padding = ${PADDING}.0;
 const float g_radius = ${BORDER_RADIUS}.0;
-const float ZOOM = 1.0;
-const float PI = 3.1415926;
-const float CURVATURE = 0.06;
+const float PI = ${Math.PI};
 const float SCANLINE_WIDTH = 0.2;
-const float SCANLINE_BLOOM = 0.55;
 
 void main() {
     // Modulator, for testing.
@@ -140,26 +184,27 @@ void main() {
     vec2 p = v_texcoord/u_scale;
 
     // Text area.
-    vec2 t = (p - g_padding)/ZOOM;
+    vec2 t = p - g_padding;
     
     // CRT curvature.
     vec2 middle = g_size/2.0;
     t = t - middle;
     float r2 = 4.0*dot(t, t)/dot(g_size, g_size);
     float r4 = r2*r2;
-    float mult = 1.0 + CURVATURE*r2 + CURVATURE*r4;
+    float mult = 1.0 + u_crtCurvature*r2 + u_crtCurvature*r4;
     t = middle + t*mult;
 
     // Scanline.
     float scanline = pow(abs(sin(t.y*PI/2.0)), 1.0/SCANLINE_WIDTH);
+    scanline = (1.0 - u_scanlines) + u_scanlines*scanline;
 
     float brightness = t.x >= -1.0 && t.y >= -1.0 && t.x < g_size.x + 1.0 && t.y < g_size.y + 1.0
         ? texture(u_inputTexture, (t + 1.0)/vec2(u_inputTextureSize)).r
         : 0.0;
 
     // Scanline bloom.
-    if (SCANLINE_BLOOM > 0.0 && brightness > 0.5) {
-        scanline += SCANLINE_BLOOM*(1.0 - scanline)*(brightness - 0.5)/0.5;
+    if (u_scanlineBloom > 0.0 && brightness > 0.5) {
+        scanline += u_scanlineBloom*(1.0 - scanline)*(brightness - 0.5)/0.5;
     }
 
     float c = brightness*scanline;
@@ -211,13 +256,17 @@ uniform ivec2 u_inputTextureSize;
 uniform sampler2D u_halationTexture;
 uniform sampler2D u_colorMapTexture;
 uniform sampler2D u_cameraTexture;
+uniform float u_zoom;
+uniform vec2 u_zoomPoint;
+uniform float u_halation;
+uniform float u_blackpoint;
+uniform float u_phosphor;
+uniform float u_vignette;
+uniform float u_crtCurvature;
 uniform float u_reflection;
 in vec2 v_texcoord;
 out vec4 outColor;
 const float RADIUS = 50.0;
-const float VIGNETTE = 0.12;
-const float HALATION = 0.40;
-const float BLACKPOINT = 0.06;
 
 vec2 curve(vec2 p, vec2 size, float curvature) {
     vec2 middle = size/2.0;
@@ -291,22 +340,31 @@ float grid(vec2 uv, float count) {
 }
 
 void main() {
-    vec2 uv = v_texcoord/vec2(u_inputTextureSize);
+    vec2 center = vec2(u_inputTextureSize)*u_zoomPoint;
+    vec2 zoomedUv = (v_texcoord - center)/u_zoom + center;
+
+    vec2 uv = zoomedUv/vec2(u_inputTextureSize);
 
     // Add halation.
-    float brightness = max(texture(u_inputTexture, uv).r, texture(u_halationTexture, uv).r*HALATION);
+    float brightness = max(texture(u_inputTexture, uv).r, texture(u_halationTexture, uv).r*u_halation);
 
     // Blackpoint adjustment.
-    brightness += (1.0 - brightness)*BLACKPOINT;
+    brightness += (1.0 - brightness)*u_blackpoint;
 
     // Map to color, including background.
-    outColor = texture(u_colorMapTexture, vec2(brightness, 0.5));
+    vec4 phosphorColor = texture(u_colorMapTexture, vec2(brightness, 0.5));
+    if (u_phosphor == 1.0) {
+        outColor = phosphorColor;
+    } else {
+        vec4 grayscale = vec4(brightness, brightness, brightness, 1.0);
+        outColor = grayscale*(1.0 - u_phosphor) + phosphorColor*u_phosphor;
+    }
 
     // Vignette.
-    if (VIGNETTE > 0.0) {
+    if (u_vignette > 0.0) {
         vec2 delta = uv - 0.5;
         float d = length(delta) / 0.7071;
-        float c = cos(d * VIGNETTE * 3.14159);
+        float c = cos(d * u_vignette * 3.14159);
         if (c < 0.0) {
             c = 0.0;
         }
@@ -331,7 +389,7 @@ void main() {
     float a = 0.0;
     for (int dx = -1; dx <= 1; dx++) {
         for (int dy = -1; dy <= 1; dy++) {
-            a += bezel(curve(v_texcoord + vec2(dx, dy)/3.0, size, 0.09), size);
+            a += bezel(curve(zoomedUv + vec2(dx, dy)/3.0, size, u_crtCurvature*1.5), size);
         }
     }
     outColor *= a/9.0;
@@ -405,8 +463,7 @@ function createIntermediateTexture(gl: WebGL2RenderingContext, width: number, he
 /**
  * Convert three maps (256 entries -> 0..1) to a flattened RGBA (0..255) array for a color map.
  */
-function makeColorMap(red: number[], green: number[], blue: number[]): Uint8Array {
-    const backgroundHex = AUTHENTIC_BACKGROUND;
+function makeColorMap(red: number[], green: number[], blue: number[], backgroundHex: string): Uint8Array {
     const bgFactor = 1;
     const bgRed = parseInt(backgroundHex.substring(1, 3), 16)/255*bgFactor;
     const bgGreen = parseInt(backgroundHex.substring(3, 5), 16)/255*bgFactor;
@@ -421,6 +478,23 @@ function makeColorMap(red: number[], green: number[], blue: number[]): Uint8Arra
         Math.floor(blend(bgGreen, green[i])*255.99),
         Math.floor(blend(bgBlue, blue[i])*255.99),
         255]));
+}
+
+/**
+ * Make a texture that can be used as a phosphor lookup table.
+ */
+function makePhosphorTexture(gl: WebGL2RenderingContext, colorMap: Uint8Array): SizedTexture {
+    const sizedTexture = SizedTexture.create(gl, 256, 1);
+
+    gl.bindTexture(gl.TEXTURE_2D, sizedTexture.texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizedTexture.width, sizedTexture.height,
+        0, gl.RGBA, gl.UNSIGNED_BYTE, colorMap);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    return sizedTexture;
 }
 
 /**
@@ -444,7 +518,7 @@ class SizedTexture {
  */
 class NamedTexture {
     public constructor(public readonly name: string,
-                       public readonly texture: SizedTexture) {
+                       public texture: SizedTexture) {
 
         // Nothing.
     }
@@ -467,11 +541,14 @@ class NamedTexture {
 }
 
 class NamedVariable {
+    public readonly values: number[];
+
     public constructor(public readonly name: string,
-                       public readonly values: number[] | Int32Array,
+                       values: number[] | Int32Array,
                        private readonly optional = false) {
 
-        // Nothing.
+        // Make a copy so we can modify ours.
+        this.values = [...values];
     }
 
     public bind(gl: WebGL2RenderingContext, program: WebGLProgram): void {
@@ -755,11 +832,27 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private readonly renderPasses: RenderPass[];
     private readonly memoryTexture: SizedTexture;
     private readonly cameraTexture: SizedTexture;
+    private readonly phosphors: SizedTexture[];
+    private readonly colorMapNamedTexture: NamedTexture;
     private readonly time: NamedVariable;
     private readonly startTime: number;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
     private readonly glyphs: HTMLCanvasElement[] = [];
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
+    private readonly pixelHorizontalBlurMax: number;
+    private readonly pixelVerticalBlurMax: number;
+    private readonly crtCurvature: NamedVariable;
+    private readonly scanlines: NamedVariable;
+    private readonly scanlineBloom: NamedVariable;
+    private readonly pixelHorizontalBlur: NamedVariable;
+    private readonly pixelVerticalBlur: NamedVariable;
+    private readonly phosphor: NamedVariable;
+    private readonly halation: NamedVariable;
+    private readonly blackpoint: NamedVariable;
+    private readonly vignette: NamedVariable;
+    private readonly reflection: NamedVariable;
+    private readonly zoom: NamedVariable;
+    private readonly zoomPoint: NamedVariable;
     private flipCard: FlipCard | undefined = undefined;
     private lastMouseEvent: MouseEvent | undefined = undefined;
     private needRedraw = true;
@@ -767,6 +860,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private glyphWidth = 0;
     private overlayCanvas: HTMLCanvasElement | undefined = undefined;
     private overlayOptions: FullOverlayOptions = DEFAULT_OVERLAY_OPTIONS;
+    private demoMode = DemoMode.OFF;
+    private zoomPointIndex = 0;
 
     /**
      * Create a canvas screen.
@@ -828,9 +923,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 stream => this.camera.srcObject = stream,
                 error => console.log(error));
 
-            // TODO shouldn't have to click, but browser (sometimes) requires it to allow play().
-            this.node.addEventListener("click", () => {
-                this.camera.play();
+            // Shouldn't have to click, but browser (sometimes) requires it to allow play().
+            this.node.addEventListener("click", async () => {
+                await this.camera.play();
             });
         }
 
@@ -883,17 +978,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        // Make the phosphor texture.
-        const phosphorTexture = SizedTexture.create(gl, 256, 1);
-        gl.bindTexture(gl.TEXTURE_2D, phosphorTexture.texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, phosphorTexture.width, phosphorTexture.height,
-            0, gl.RGBA, gl.UNSIGNED_BYTE,
-            makeColorMap(g_p4_red, g_p4_green, g_p4_blue));
-        // makeColorMap(g_amber_red, g_amber_green, g_amber_blue));
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        // Make the phosphor textures.
+        this.phosphors = [
+            makePhosphorTexture(gl, makeColorMap(g_p4_red, g_p4_green, g_p4_blue, AUTHENTIC_BACKGROUND)),
+            makePhosphorTexture(gl, makeColorMap(g_amber_red, g_amber_green, g_amber_blue, BLACK_BACKGROUND)),
+            makePhosphorTexture(gl, makeColorMap(g_green1_red, g_green1_green, g_green1_blue, BLACK_BACKGROUND)),
+            makePhosphorTexture(gl, makeColorMap(g_green2_red, g_green2_green, g_green2_blue, BLACK_BACKGROUND)),
+        ];
+        this.colorMapNamedTexture = new NamedTexture("u_colorMapTexture", this.phosphors[0]);
 
         // In fractions of an original (CRT) pixel.
         const HORIZONTAL_BLUR = 0.72;
@@ -901,7 +993,22 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const HALATION_BLUR = 1.5;
         const REFLECTION_BLUR = 3;
 
+        this.pixelHorizontalBlurMax = HORIZONTAL_BLUR * devicePixelRatio * scale;
+        this.pixelVerticalBlurMax = VERTICAL_BLUR * devicePixelRatio * scale;
+
         this.time = new NamedVariable("u_time", [0], true);
+        this.crtCurvature = new NamedVariable("u_crtCurvature", [DEFAULT_CRT_CURVATURE]);
+        this.scanlines = new NamedVariable("u_scanlines", [DEFAULT_SCANLINES]);
+        this.scanlineBloom = new NamedVariable("u_scanlineBloom", [DEFAULT_SCANLINE_BLOOM]);
+        this.pixelHorizontalBlur = new NamedVariable("u_sigma", [this.pixelHorizontalBlurMax]);
+        this.pixelVerticalBlur = new NamedVariable("u_sigma", [this.pixelVerticalBlurMax]);
+        this.phosphor = new NamedVariable("u_phosphor", [DEFAULT_PHOSPHOR]);
+        this.halation = new NamedVariable("u_halation", [DEFAULT_HALATION]);
+        this.blackpoint = new NamedVariable("u_blackpoint", [DEFAULT_BLACKPOINT]);
+        this.vignette = new NamedVariable("u_vignette", [DEFAULT_VIGNETTE]);
+        this.reflection = new NamedVariable("u_reflection", [DEFAULT_REFLECTION]);
+        this.zoom = new NamedVariable("u_zoom", [DEFAULT_ZOOM]);
+        this.zoomPoint = new NamedVariable("u_zoomPoint", ZOOM_POINTS[0]);
         this.startTime = Date.now() / 1000;
         this.renderPasses = [
             // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
@@ -916,14 +1023,17 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             ], [
                 this.time,
                 new NamedVariable("u_scale", [devicePixelRatio * scale]),
+                this.crtCurvature,
+                this.scanlines,
+                this.scanlineBloom,
             ], renderedTexture),
 
             // Scale up and horizontally blur the rendered screen.
             new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                 new NamedTexture("u_inputTexture", renderedTexture),
             ], [
-                new NamedVariable("u_sigma", [HORIZONTAL_BLUR * devicePixelRatio * scale]),
-                new NamedVariable("u_boost", [1.5]),
+                this.pixelHorizontalBlur,
+                new NamedVariable("u_boost", [1.0 + 0.5*this.scanlines.values[0]]),
                 new NamedVariable("u_vertical", new Int32Array([0])),
             ], horizontallyBlurredTexture),
 
@@ -931,8 +1041,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                 new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
             ], [
-                new NamedVariable("u_sigma", [VERTICAL_BLUR * devicePixelRatio * scale]),
-                new NamedVariable("u_boost", [1.5]),
+                this.pixelVerticalBlur,
+                new NamedVariable("u_boost", [1.0 + 0.5*this.scanlines.values[0]]),
                 new NamedVariable("u_vertical", new Int32Array([1])),
             ], blurredTexture),
 
@@ -941,7 +1051,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 new NamedTexture("u_inputTexture", blurredTexture),
             ], [
                 new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * scale]),
-                new NamedVariable("u_boost", [1.5]),
+                new NamedVariable("u_boost", [1.0 + 0.5*this.scanlines.values[0]]),
                 new NamedVariable("u_vertical", new Int32Array([0])),
             ], horizontallyBlurredTexture),
 
@@ -950,7 +1060,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
             ], [
                 new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * scale]),
-                new NamedVariable("u_boost", [1.5]),
+                new NamedVariable("u_boost", [1.0 + 0.5*this.scanlines.values[0]]),
                 new NamedVariable("u_vertical", new Int32Array([1])),
             ], halationTexture),
 
@@ -976,10 +1086,17 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
                 new NamedTexture("u_inputTexture", blurredTexture),
                 new NamedTexture("u_halationTexture", halationTexture),
-                new NamedTexture("u_colorMapTexture", phosphorTexture),
+                this.colorMapNamedTexture,
                 new NamedTexture("u_cameraTexture", blurredReflectionTexture),
             ], [
-                new NamedVariable("u_reflection", [SHOW_REFLECTION ? 0.10 : 0]),
+                this.zoom,
+                this.zoomPoint,
+                this.phosphor,
+                this.halation,
+                this.blackpoint,
+                this.vignette,
+                this.reflection,
+                this.crtCurvature,
             ], {width: this.canvas.width, height: this.canvas.height}),
         ];
 
@@ -1165,15 +1282,114 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         }
         this.lastMouseEvent = event;
         this.emitMouseActivity(type, event, event.shiftKey);
+
+        if (DEMO_MODE_ENABLED && type === "mousemove" && demoModifierKeys(event)) {
+            const devicePixelRatio = window.devicePixelRatio ?? 1;
+            const value = Math.max((1 - devicePixelRatio*event.offsetY/this.canvas.height)*1.5, 0);
+            this.setDemoModeParameter(this.demoMode, value);
+        }
     }
 
     /**
-     * Handle a new keyboard events. Only shift keys really matter.
+     * Handle a new keyboard events.
      */
     private onKeyEvent(event: KeyboardEvent): void {
         if (this.lastMouseEvent !== undefined) {
+            // Only shift keys really matter.
             this.emitMouseActivity("mousemove", this.lastMouseEvent, event.shiftKey);
         }
+
+        if (DEMO_MODE_ENABLED && event.type === "keydown" && demoModifierKeys(event)) {
+            if (event.key === "A") {
+                this.demoMode = DemoMode.ALL;
+            } else if (event.key === "Z") {
+                if (this.demoMode === DemoMode.ZOOM) {
+                    this.zoomPointIndex = (this.zoomPointIndex + 1) % ZOOM_POINTS.length;
+                } else {
+                    this.demoMode = DemoMode.ZOOM;
+                    this.zoomPointIndex = 0;
+                }
+                this.zoomPoint.values[0] = ZOOM_POINTS[this.zoomPointIndex][0];
+                this.zoomPoint.values[1] = ZOOM_POINTS[this.zoomPointIndex][1];
+                this.needRedraw = true;
+            } else if (event.key === "X") {
+                this.setDemoModeParameter(this.demoMode, 1.0);
+            } else if (event.key === "S") {
+                this.setDemoModeParameter(this.demoMode, 0.0);
+            } else if (event.key === "P") {
+                // Cycle through phosphors.
+                const index = this.phosphors.indexOf(this.colorMapNamedTexture.texture);
+                const newIndex = (index + 1) % this.phosphors.length;
+                this.colorMapNamedTexture.texture = this.phosphors[newIndex];
+                this.needRedraw = true;
+            } else if (event.code >= "Digit0" && event.code <= "Digit9") {
+                this.demoMode = parseInt(event.code.substring(5)) as DemoMode;
+            }
+        }
+    }
+
+    private setDemoModeParameter(demoMode: DemoMode, value: number) {
+        switch (demoMode) {
+            case DemoMode.OFF:
+                // Do nothing.
+                break;
+
+            case DemoMode.CRT_CURVATURE:
+                this.crtCurvature.values[0] = clamp(0, value*DEFAULT_CRT_CURVATURE, DEFAULT_CRT_CURVATURE*2);
+                break;
+
+            case DemoMode.SCANLINES:
+                this.scanlines.values[0] = clamp(0, value*DEFAULT_SCANLINES, 1);
+                break;
+
+            case DemoMode.PIXEL_BLUR:
+                this.pixelHorizontalBlur.values[0] = clamp(0, value*this.pixelHorizontalBlurMax, this.pixelHorizontalBlurMax*2);
+                this.pixelVerticalBlur.values[0] = clamp(0, value*this.pixelVerticalBlurMax, this.pixelVerticalBlurMax*2);
+                break;
+
+            case DemoMode.PHOSPHOR:
+                this.phosphor.values[0] = clamp(0, value*DEFAULT_PHOSPHOR, 1);
+                break;
+
+            case DemoMode.SCANLINE_BLOOM:
+                this.scanlineBloom.values[0] = clamp(0, value*DEFAULT_SCANLINE_BLOOM, DEFAULT_SCANLINE_BLOOM*2);
+                break;
+
+            case DemoMode.HALATION:
+                this.halation.values[0] = clamp(0, value*DEFAULT_HALATION, DEFAULT_HALATION*2);
+                break;
+
+            case DemoMode.BLACKPOINT:
+                this.blackpoint.values[0] = clamp(0, value*DEFAULT_BLACKPOINT, DEFAULT_BLACKPOINT*2);
+                break;
+
+            case DemoMode.VIGNETTE:
+                this.vignette.values[0] = clamp(0, value*DEFAULT_VIGNETTE, DEFAULT_VIGNETTE*2);
+                break;
+
+            case DemoMode.REFLECTION:
+                this.reflection.values[0] = clamp(0, value*DEFAULT_REFLECTION, DEFAULT_REFLECTION*2);
+                break;
+
+            case DemoMode.ZOOM:
+                this.zoom.values[0] = clamp(1, 1 + value*8, 1000);
+                break;
+
+            case DemoMode.ALL:
+                this.setDemoModeParameter(DemoMode.CRT_CURVATURE, value);
+                this.setDemoModeParameter(DemoMode.SCANLINES, value);
+                this.setDemoModeParameter(DemoMode.PIXEL_BLUR, value);
+                this.setDemoModeParameter(DemoMode.PHOSPHOR, value);
+                this.setDemoModeParameter(DemoMode.SCANLINE_BLOOM, value);
+                this.setDemoModeParameter(DemoMode.HALATION, value);
+                this.setDemoModeParameter(DemoMode.BLACKPOINT, value);
+                this.setDemoModeParameter(DemoMode.VIGNETTE, value);
+                this.setDemoModeParameter(DemoMode.REFLECTION, value);
+                // Not zoom.
+                break;
+        }
+
+        this.needRedraw = true;
     }
 
     /**
