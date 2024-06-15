@@ -16,8 +16,8 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {FlipCard, FlipCardSide} from "./FlipCard.js";
 import {g_amber_blue, g_amber_green, g_amber_red} from "./amber.js";
 import {g_p4_blue, g_p4_green, g_p4_red} from "./p4.js";
-import {g_green1_blue, g_green1_green, g_green1_red} from "./green1";
-import {g_green2_blue, g_green2_green, g_green2_red} from "./green2";
+import {g_green1_blue, g_green1_green, g_green1_red} from "./green1.js";
+import {g_green2_blue, g_green2_green, g_green2_red} from "./green2.js";
 
 const TIME_RENDERING = false;
 const SHOW_REFLECTION = true;
@@ -67,6 +67,7 @@ const DEFAULT_ZOOM = 1;
 const ZOOM_POINTS = [
     [0.5, 0.5],
     [0.2, 0.2],
+    [0.2, 0.8],
 ];
 
 // Modifier keys required for demo mode.
