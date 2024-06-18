@@ -241,6 +241,23 @@ export class Config {
     }
 
     /**
+     * Whether these two config objects have all the same values.
+     */
+    public equals(other: Config): boolean {
+        return this.modelType === other.modelType &&
+            this.basicLevel === other.basicLevel &&
+            this.cgChip === other.cgChip &&
+            this.ramSize === other.ramSize &&
+            this.phosphor === other.phosphor &&
+            this.background === other.background &&
+            this.scanLines === other.scanLines &&
+            this.customRom === other.customRom &&
+            this.romSize === other.romSize &&
+            this.printerModel === other.printerModel &&
+            this.inkColor === other.inkColor;
+    }
+
+    /**
      * Return the RAM size in bytes.
      */
     public getRamSize(): number {

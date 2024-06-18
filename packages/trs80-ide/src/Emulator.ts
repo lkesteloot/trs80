@@ -46,7 +46,7 @@ export class Emulator {
     public readonly trs80: Trs80;
     private readonly controlPanel: ControlPanel;
     private screenEditor: ScreenEditor | undefined = undefined;
-    private trs80State: Trs80State | undefined = undefined;
+    public trs80State: Trs80State | undefined = undefined;
     public readonly debugPc = new SimpleEventDispatcher<number | undefined>();
 
     public constructor() {

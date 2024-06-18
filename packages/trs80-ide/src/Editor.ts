@@ -16,7 +16,6 @@ import {
     Decoration,
     DecorationSet,
     drawSelection,
-    dropCursor,
     EditorView,
     gutter,
     gutterLineClass,
@@ -81,6 +80,9 @@ const NAME_KEY = "trs80-ide-name";
 
 // Default name for file.
 const DEFAULT_FILE_NAME = "untitled";
+
+// Milliseconds after boot to wait before we take a snapshot.
+const POST_BOOT_DELAY = 500;
 
 /**
  * Gutter to show info about the line (address, bytecode, etc.).
@@ -331,6 +333,13 @@ export class Editor {
     public constructor(emulator: Emulator) {
         this.emulator = emulator;
         this.emulator.debugPc.subscribe(this.onDebugPc.bind(this));
+        this.emulator.trs80.onConfig.subscribe(configChange => {
+            // Take another snapshot, after letting the ROM a chance to start.
+            if (!configChange.oldConfig.equals(configChange.newConfig)) {
+                this.emulator.trs80State = undefined;
+                setTimeout(() => this.reassemble(), POST_BOOT_DELAY);
+            }
+        });
 
         /**
          * State field for keeping the assembly results.
@@ -599,6 +608,9 @@ export class Editor {
 
         // Set the name of the file.
         this.setName(window.localStorage.getItem(NAME_KEY) ?? DEFAULT_FILE_NAME);
+
+        // Don't assemble right away, give the ROM a chance to start.
+        setTimeout(() => this.reassemble(), POST_BOOT_DELAY);
     }
 
     // Get the editor's node.

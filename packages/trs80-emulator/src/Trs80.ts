@@ -141,6 +141,14 @@ const myCancelAnimationFrame = typeof window == "object" ? window.cancelAnimatio
 // Tried to do the right thing here, but can't seem to get compile-time safety.
 type RequestAnimationFrameType = any;
 
+// Info about changed config.
+interface ConfigChange {
+    oldConfig: Config;
+    newConfig: Config;
+    rebooted: boolean;
+    newRom: boolean;
+}
+
 /**
  * HAL for the TRS-80 Model III.
  */
@@ -175,6 +183,7 @@ export class Trs80 implements Hal, Machine {
     private tickHandle: RequestAnimationFrameType | undefined;
     public runningState: RunningState = RunningState.STOPPED;
     public readonly onRunningState = new SimpleEventDispatcher<RunningState>();
+    public readonly onConfig = new SimpleEventDispatcher<ConfigChange>();
     // Internal state of the cassette controller.
     // Whether the motor is running.
     private cassetteMotorOn = false;
@@ -229,8 +238,9 @@ export class Trs80 implements Hal, Machine {
      * Sets a new configuration and reboots into it if necessary.
      */
     public setConfig(config: Config): void {
-        const needsReboot = config.needsReboot(this.config);
-        const hasNewRom = config.customRom !== this.config.customRom;
+        const oldConfig = this.config;
+        const needsReboot = config.needsReboot(oldConfig);
+        const hasNewRom = config.customRom !== oldConfig.customRom;
         this.config = config;
 
         this.screen.setConfig(this.config);
@@ -241,6 +251,14 @@ export class Trs80 implements Hal, Machine {
         } else if (hasNewRom) {
             this.loadRom();
         }
+
+        // Inform listeners.
+        this.onConfig.dispatch({
+            oldConfig,
+            newConfig: config,
+            rebooted: needsReboot,
+            newRom: hasNewRom,
+        });
     }
 
     /**
