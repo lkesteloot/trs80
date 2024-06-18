@@ -1103,6 +1103,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
 
         this.updateFromConfig();
         this.scheduleRefresh();
+
+        this.setDemoModeParameter(DemoMode.ALL, 0);
     }
 
     didAttachToFlipCard(flipCard: FlipCard): void {
@@ -1308,7 +1310,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                     this.zoomPointIndex = (this.zoomPointIndex + 1) % ZOOM_POINTS.length;
                 } else {
                     this.demoMode = DemoMode.ZOOM;
-                    this.zoomPointIndex = 0;
                 }
                 this.zoomPoint.values[0] = ZOOM_POINTS[this.zoomPointIndex][0];
                 this.zoomPoint.values[1] = ZOOM_POINTS[this.zoomPointIndex][1];
