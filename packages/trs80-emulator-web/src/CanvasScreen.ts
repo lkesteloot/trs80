@@ -1,6 +1,6 @@
 import {Trs80WebScreen} from "./Trs80WebScreen.js";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
-import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "trs80-emulator";
+import {Background, CGChip, Config, ModelType, Phosphor, ScanLines, Trs80ScreenState} from "trs80-emulator";
 import {toHexByte} from "z80-base";
 import {TRS80_CHAR_HEIGHT, TRS80_CHAR_PIXEL_HEIGHT, TRS80_CHAR_PIXEL_WIDTH, TRS80_CHAR_WIDTH,
     TRS80_PIXEL_HEIGHT,
@@ -544,6 +544,11 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             super.setAlternateCharacters(alternate);
             this.updateFromConfig();
         }
+    }
+
+    restore(state: Trs80ScreenState): void {
+        super.restore(state);
+        this.updateFromConfig();
     }
 
     /**

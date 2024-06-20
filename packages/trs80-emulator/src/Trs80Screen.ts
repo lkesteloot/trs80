@@ -2,6 +2,17 @@ import {Config} from "./Config.js";
 import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "trs80-base";
 
 /**
+ * For saving the internal state of the TRS-80 screen.
+ */
+export class Trs80ScreenState {
+    public constructor(public readonly expanded: boolean,
+                       public readonly alternate: boolean) {
+
+        // Nothing.
+    }
+}
+
+/**
  * Abstract base class for displaying a screen.
  */
 export class Trs80Screen {
@@ -14,6 +25,21 @@ export class Trs80Screen {
      */
     public setConfig(config: Config): void {
         throw new Error("Must be implemented");
+    }
+
+    /**
+     * Return a state structure for later restoring with {@link #restore()}.
+     */
+    public save(): Trs80ScreenState {
+        return new Trs80ScreenState(this.expanded, this.alternate);
+    }
+
+    /**
+     * Restore state saved by {@link #save()}.
+     */
+    public restore(state: Trs80ScreenState): void {
+        this.expanded = state.expanded;
+        this.alternate = state.alternate;
     }
 
     /**

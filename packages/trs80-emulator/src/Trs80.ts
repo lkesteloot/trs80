@@ -6,7 +6,7 @@ import {model1Level1Rom} from "./Model1Level1Rom.js";
 import {model1Level2Rom} from "./Model1Level2Rom.js";
 import {model3Rom} from "./Model3Rom.js";
 import {model4Rom} from "./Model4Rom.js";
-import {Trs80Screen} from "./Trs80Screen.js";
+import {Trs80Screen, Trs80ScreenState} from "./Trs80Screen.js";
 import {BasicLevel, CGChip, Config, ModelType} from "./Config.js";
 import {
     BASIC_HEADER_BYTE,
@@ -119,19 +119,14 @@ type TimeoutHandle = ReturnType<typeof setTimeout>;
  * Complete state of the machine.
  */
 export class Trs80State {
-    public readonly config: Config;
-    public readonly z80State: Z80State;
-    public readonly memory: Uint8Array;
-    public readonly printerState: any;
-    public readonly fdcState: FdcState;
-    // TODO so much more here.
+    constructor(public readonly config: Config,
+                public readonly z80State: Z80State,
+                public readonly memory: Uint8Array,
+                public readonly printerState: any,
+                public readonly fdcState: FdcState,
+                public readonly screenState: Trs80ScreenState) {
 
-    constructor(config: Config, z80State: Z80State, memory: Uint8Array, printerState: any, fdcState: FdcState) {
-        this.config = config;
-        this.z80State = z80State;
-        this.memory = memory;
-        this.printerState = printerState;
-        this.fdcState = fdcState;
+        // Nothing.
     }
 }
 
@@ -306,7 +301,8 @@ export class Trs80 implements Hal, Machine {
             this.z80.save(),
             new Uint8Array(this.memory),
             this.printer.save(),
-            this.fdc.save());
+            this.fdc.save(),
+            this.screen.save());
     }
 
     /**
@@ -326,6 +322,7 @@ export class Trs80 implements Hal, Machine {
         this.memory.set(state.memory.subarray(RAM_START), RAM_START);
         this.printer.restore(state.printerState);
         this.fdc.restore(state.fdcState);
+        this.screen.restore(state.screenState);
     }
 
     /**
