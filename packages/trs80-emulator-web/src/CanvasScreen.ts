@@ -842,6 +842,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     private readonly canvas: HTMLCanvasElement;
     private readonly camera: HTMLVideoElement;
     private readonly renderPasses: RenderPass[];
+    private readonly fontTexture: SizedTexture;
     private readonly memoryTexture: SizedTexture;
     private readonly cameraTexture: SizedTexture;
     private readonly phosphors: SizedTexture[];
@@ -960,10 +961,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const blurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
 
         // Make the font texture.
-        const fontTexture = SizedTexture.create(gl, 256 * 8, 24);
-        gl.bindTexture(gl.TEXTURE_2D, fontTexture.texture);
+        this.fontTexture = SizedTexture.create(gl, 256 * 8, 24);
+        gl.bindTexture(gl.TEXTURE_2D,this. fontTexture.texture);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, fontTexture.width, fontTexture.height, 0,
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, this.fontTexture.width, this.fontTexture.height, 0,
             gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(MODEL3_FONT.makeFontSheet()));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -1010,8 +1011,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.pixelVerticalBlurMax = VERTICAL_BLUR * devicePixelRatio * scale;
 
         this.time = new NamedVariable("u_time", [0], true);
-        this.crtCurvature = new NamedVariable("u_crtCurvature", [DEFAULT_CRT_CURVATURE]);
         this.expandedVariable = new NamedVariable("u_expanded", [0]);
+        this.crtCurvature = new NamedVariable("u_crtCurvature", [DEFAULT_CRT_CURVATURE]);
         this.scanlines = new NamedVariable("u_scanlines", [DEFAULT_SCANLINES]);
         this.scanlineBloom = new NamedVariable("u_scanlineBloom", [DEFAULT_SCANLINE_BLOOM]);
         this.pixelHorizontalBlur = new NamedVariable("u_sigma", [this.pixelHorizontalBlurMax]);
@@ -1027,7 +1028,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.renderPasses = [
             // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
             new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_fontTexture", fontTexture),
+                new NamedTexture("u_fontTexture", this.fontTexture),
                 new NamedTexture("u_memoryTexture", this.memoryTexture),
             ], [
                 this.expandedVariable,
@@ -1446,6 +1447,13 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.glyphWidth = font.width;
 
         this.expandedVariable.values[0] = this.isExpandedCharacters() ? 1 : 0;
+        const gl = this.canvas.getContext("webgl2");
+        if (gl === null) {
+            throw new Error("WebGL2 is not supported");
+        }
+        gl.bindTexture(gl.TEXTURE_2D, this.fontTexture.texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, this.fontTexture.width, this.fontTexture.height, 0,
+            gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(font.makeFontSheet()));
 
         this.drawBackground();
         this.refresh();
