@@ -116,6 +116,7 @@ uniform sampler2D u_fontTexture;
 uniform ivec2 u_fontTextureSize;
 uniform usampler2D u_memoryTexture;
 uniform ivec2 u_memoryTextureSize;
+uniform bool u_expanded;
 in vec2 v_texcoord;
 out vec4 outColor;
 
@@ -128,6 +129,11 @@ void main() {
 
     // Remove black border.
     t -= 1;
+    
+    // Expanded mode.
+    if (u_expanded) {
+        t.x /= 2;
+    }
 
     // Character position.
     ivec2 c = ivec2(floor(vec2(t)/vec2(g_charCrtPixelSize)));
@@ -135,6 +141,11 @@ void main() {
     if (c.x >= 0 && c.x < g_charSize.x && c.y >= 0 && c.y < g_charSize.y) {
         // Character sub-position.
         ivec2 s = t % g_charCrtPixelSize;
+        
+        // Every other memory location for expanded mode.
+        if (u_expanded) {
+            c.x *= 2;
+        }
 
         // Character to draw.
         vec2 memoryCoord = vec2(ivec2(c.x, g_charSize.y - 1 - c.y))/vec2(u_memoryTextureSize);
@@ -842,6 +853,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private readonly pixelHorizontalBlurMax: number;
     private readonly pixelVerticalBlurMax: number;
+    private readonly expandedVariable: NamedVariable;
     private readonly crtCurvature: NamedVariable;
     private readonly scanlines: NamedVariable;
     private readonly scanlineBloom: NamedVariable;
@@ -999,6 +1011,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
 
         this.time = new NamedVariable("u_time", [0], true);
         this.crtCurvature = new NamedVariable("u_crtCurvature", [DEFAULT_CRT_CURVATURE]);
+        this.expandedVariable = new NamedVariable("u_expanded", [0]);
         this.scanlines = new NamedVariable("u_scanlines", [DEFAULT_SCANLINES]);
         this.scanlineBloom = new NamedVariable("u_scanlineBloom", [DEFAULT_SCANLINE_BLOOM]);
         this.pixelHorizontalBlur = new NamedVariable("u_sigma", [this.pixelHorizontalBlurMax]);
@@ -1016,7 +1029,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
                 new NamedTexture("u_fontTexture", fontTexture),
                 new NamedTexture("u_memoryTexture", this.memoryTexture),
-            ], [], rawScreenTexture),
+            ], [
+                this.expandedVariable,
+            ], rawScreenTexture),
 
             // Curvature, scanlines, and scanline bloom.
             new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE, [
@@ -1429,6 +1444,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             this.glyphs[i] = font.makeImage(i, this.isExpandedCharacters(), glyphOptions);
         }
         this.glyphWidth = font.width;
+
+        this.expandedVariable.values[0] = this.isExpandedCharacters() ? 1 : 0;
 
         this.drawBackground();
         this.refresh();
