@@ -22,7 +22,7 @@ import {g_green2_blue, g_green2_green, g_green2_red} from "./green2.js";
 const TIME_RENDERING = false;
 const SHOW_REFLECTION = true;
 
-const DEMO_MODE_ENABLED = true;
+const DEMO_MODE_ENABLED = false;
 enum DemoMode {
     OFF,
 
@@ -1104,7 +1104,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.updateFromConfig();
         this.scheduleRefresh();
 
-        this.setDemoModeParameter(DemoMode.ALL, 0);
+        if (DEMO_MODE_ENABLED) {
+            // Start the demo with everything off.
+            this.setDemoModeParameter(DemoMode.ALL, 0);
+        }
     }
 
     didAttachToFlipCard(flipCard: FlipCard): void {
