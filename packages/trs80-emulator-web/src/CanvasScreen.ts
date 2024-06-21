@@ -20,7 +20,7 @@ import {g_green1_blue, g_green1_green, g_green1_red} from "./green1.js";
 import {g_green2_blue, g_green2_green, g_green2_red} from "./green2.js";
 
 const TIME_RENDERING = false;
-const SHOW_REFLECTION = true;
+const SHOW_REFLECTION = false;
 
 const DEMO_MODE_ENABLED = false;
 enum DemoMode {
@@ -132,7 +132,7 @@ void main() {
     
     // Expanded mode.
     if (u_expanded) {
-        t.x /= 2;
+        t.x = int(floor(float(t.x) / 2.0));
     }
 
     // Character position.
