@@ -1,6 +1,6 @@
 import {Trs80WebScreen} from "./Trs80WebScreen.js";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
-import {Background, CGChip, Config, ModelType, Phosphor, ScanLines} from "trs80-emulator";
+import {Background, CGChip, Config, ModelType, Phosphor, ScanLines, Trs80ScreenState} from "trs80-emulator";
 import {toHexByte} from "z80-base";
 import {
     TRS80_CHAR_HEIGHT,
@@ -1508,7 +1508,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         }
     }
 
-    private configureGl(): void {
+    restore(state: Trs80ScreenState): void {
+        super.restore(state);
+        this.updateFromConfig();
     }
 
     /**

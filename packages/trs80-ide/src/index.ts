@@ -10,6 +10,3 @@ console.log("Build date: " + new Date(BUILD_DATE*1000));
 const gEmulator = new Emulator();
 const gEditor = new Editor(gEmulator);
 const gUserInterface = new UserInterface(gEmulator, gEditor);
-
-// Don't assemble right away, give the ROM a chance to start.
-setTimeout(() => gEditor.reassemble(), 500);

@@ -6,7 +6,7 @@ import {model1Level1Rom} from "./Model1Level1Rom.js";
 import {model1Level2Rom} from "./Model1Level2Rom.js";
 import {model3Rom} from "./Model3Rom.js";
 import {model4Rom} from "./Model4Rom.js";
-import {Trs80Screen} from "./Trs80Screen.js";
+import {Trs80Screen, Trs80ScreenState} from "./Trs80Screen.js";
 import {BasicLevel, CGChip, Config, ModelType} from "./Config.js";
 import {
     BASIC_HEADER_BYTE,
@@ -119,19 +119,14 @@ type TimeoutHandle = ReturnType<typeof setTimeout>;
  * Complete state of the machine.
  */
 export class Trs80State {
-    public readonly config: Config;
-    public readonly z80State: Z80State;
-    public readonly memory: Uint8Array;
-    public readonly printerState: any;
-    public readonly fdcState: FdcState;
-    // TODO so much more here.
+    constructor(public readonly config: Config,
+                public readonly z80State: Z80State,
+                public readonly memory: Uint8Array,
+                public readonly printerState: any,
+                public readonly fdcState: FdcState,
+                public readonly screenState: Trs80ScreenState) {
 
-    constructor(config: Config, z80State: Z80State, memory: Uint8Array, printerState: any, fdcState: FdcState) {
-        this.config = config;
-        this.z80State = z80State;
-        this.memory = memory;
-        this.printerState = printerState;
-        this.fdcState = fdcState;
+        // Nothing.
     }
 }
 
@@ -140,6 +135,14 @@ const myRequestAnimationFrame = typeof window == "object" ? window.requestAnimat
 const myCancelAnimationFrame = typeof window == "object" ? window.cancelAnimationFrame : clearTimeout;
 // Tried to do the right thing here, but can't seem to get compile-time safety.
 type RequestAnimationFrameType = any;
+
+// Info about changed config.
+interface ConfigChange {
+    oldConfig: Config;
+    newConfig: Config;
+    rebooted: boolean;
+    newRom: boolean;
+}
 
 /**
  * HAL for the TRS-80 Model III.
@@ -175,6 +178,7 @@ export class Trs80 implements Hal, Machine {
     private tickHandle: RequestAnimationFrameType | undefined;
     public runningState: RunningState = RunningState.STOPPED;
     public readonly onRunningState = new SimpleEventDispatcher<RunningState>();
+    public readonly onConfig = new SimpleEventDispatcher<ConfigChange>();
     // Internal state of the cassette controller.
     // Whether the motor is running.
     private cassetteMotorOn = false;
@@ -229,8 +233,9 @@ export class Trs80 implements Hal, Machine {
      * Sets a new configuration and reboots into it if necessary.
      */
     public setConfig(config: Config): void {
-        const needsReboot = config.needsReboot(this.config);
-        const hasNewRom = config.customRom !== this.config.customRom;
+        const oldConfig = this.config;
+        const needsReboot = config.needsReboot(oldConfig);
+        const hasNewRom = config.customRom !== oldConfig.customRom;
         this.config = config;
 
         this.screen.setConfig(this.config);
@@ -241,6 +246,14 @@ export class Trs80 implements Hal, Machine {
         } else if (hasNewRom) {
             this.loadRom();
         }
+
+        // Inform listeners.
+        this.onConfig.dispatch({
+            oldConfig,
+            newConfig: config,
+            rebooted: needsReboot,
+            newRom: hasNewRom,
+        });
     }
 
     /**
@@ -288,7 +301,8 @@ export class Trs80 implements Hal, Machine {
             this.z80.save(),
             new Uint8Array(this.memory),
             this.printer.save(),
-            this.fdc.save());
+            this.fdc.save(),
+            this.screen.save());
     }
 
     /**
@@ -308,6 +322,7 @@ export class Trs80 implements Hal, Machine {
         this.memory.set(state.memory.subarray(RAM_START), RAM_START);
         this.printer.restore(state.printerState);
         this.fdc.restore(state.fdcState);
+        this.screen.restore(state.screenState);
     }
 
     /**
