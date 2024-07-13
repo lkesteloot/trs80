@@ -1154,8 +1154,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         if (showOverlay) {
             const width = this.canvas.width;
             const height = this.canvas.height;
-            const gridWidth = width - 2*this.padding;
-            const gridHeight = height - 2*this.padding;
+            const devicePixelRatio = window.devicePixelRatio ?? 1;
+            const gridWidth = width/devicePixelRatio - 2*this.padding;
+            const gridHeight = height/devicePixelRatio - 2*this.padding;
 
             // Create overlay canvas if necessary.
             let overlayCanvas = this.overlayCanvas;
@@ -1164,6 +1165,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 overlayCanvas.style.position = "absolute";
                 overlayCanvas.style.top = "0";
                 overlayCanvas.style.left = "0";
+                overlayCanvas.style.width = `${this.width}px`;
+                overlayCanvas.style.height = `${this.height}px`;
                 overlayCanvas.style.pointerEvents = "none";
                 overlayCanvas.width = width;
                 overlayCanvas.height = height;
@@ -1184,31 +1187,27 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             ctx.translate(this.padding, this.padding);
 
             // Draw columns.
-            for (let i = 0; i <= TRS80_PIXEL_WIDTH; i++) {
-                const highlighted = isHighlighted(options.showHighlight, options.highlightPixelColumn, i);
-                const isCharLine = options.showCharGrid && i % TRS80_CHAR_PIXEL_WIDTH === 0;
+            for (let x = 0; x <= TRS80_PIXEL_WIDTH; x++) {
+                const highlighted = isHighlighted(options.showHighlight, options.highlightPixelColumn, x);
+                const isCharLine = options.showCharGrid && x % TRS80_CHAR_PIXEL_WIDTH === 0;
                 if (highlighted || options.showPixelGrid || isCharLine) {
-                    const x = Math.round(i * 4 * this.scale);
                     ctx.lineWidth = isCharLine && !highlighted ? 2 : 1;
                     ctx.strokeStyle = highlighted ? GRID_HIGHLIGHT_COLOR : GRID_COLOR;
                     ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, gridHeight);
+                    this.drawCurvedGridLine(ctx, x, 0, x, TRS80_PIXEL_HEIGHT);
                     ctx.stroke();
                 }
             }
 
             // Draw rows.
-            for (let i = 0; i <= TRS80_PIXEL_HEIGHT; i++) {
-                const highlighted = isHighlighted(options.showHighlight, options.highlightPixelRow, i);
-                const isCharLine = options.showCharGrid && i % TRS80_CHAR_PIXEL_HEIGHT === 0;
+            for (let y = 0; y <= TRS80_PIXEL_HEIGHT; y++) {
+                const highlighted = isHighlighted(options.showHighlight, options.highlightPixelRow, y);
+                const isCharLine = options.showCharGrid && y % TRS80_CHAR_PIXEL_HEIGHT === 0;
                 if (highlighted || options.showPixelGrid || isCharLine) {
-                    const y = Math.round(i * 8 * this.scale);
                     ctx.lineWidth = isCharLine && !highlighted ? 2 : 1;
                     ctx.strokeStyle = highlighted ? GRID_HIGHLIGHT_COLOR : GRID_COLOR;
                     ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(gridWidth, y);
+                    this.drawCurvedGridLine(ctx, 0, y, TRS80_PIXEL_WIDTH, y);
                     ctx.stroke();
                 }
             }
@@ -1219,8 +1218,16 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 const y = Math.floor(options.cursorPosition / TRS80_CHAR_WIDTH);
 
                 ctx.fillStyle = GRID_HIGHLIGHT_COLOR;
-                ctx.fillRect(x * 8 * this.scale, y * 24 * this.scale,
-                    8 * this.scale, 24 * this.scale);
+                const pos1 = this.straightPosToCurvedPos(x * 8 * this.scale, y * 24 * this.scale);
+                const pos2 = this.straightPosToCurvedPos((x + 1) * 8 * this.scale, y * 24 * this.scale);
+                const pos3 = this.straightPosToCurvedPos((x + 1) * 8 * this.scale, (y + 1) * 24 * this.scale);
+                const pos4 = this.straightPosToCurvedPos(x * 8 * this.scale, (y + 1) * 24 * this.scale);
+                ctx.beginPath();
+                ctx.moveTo(pos1.x, pos1.y);
+                ctx.lineTo(pos2.x, pos2.y);
+                ctx.lineTo(pos3.x, pos3.y);
+                ctx.lineTo(pos4.x, pos4.y);
+                ctx.fill();
             }
 
             // Draw selection.
@@ -1229,21 +1236,21 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 const y1 = options.selection.y1*8*this.scale;
                 const x2 = options.selection.x2*4*this.scale;
                 const y2 = options.selection.y2*8*this.scale;
-                const dash = 5;
+                const dash = 5*devicePixelRatio;
                 ctx.save();
                 ctx.setLineDash([dash, dash]);
                 for (let pass = 0; pass < 2; pass++) {
-                    ctx.lineDashOffset = options.selectionAntsOffset + pass*dash;
-                    ctx.strokeStyle = pass == 0 ? "black" : "white";
+                    ctx.lineDashOffset = options.selectionAntsOffset*devicePixelRatio + pass*dash;
+                    ctx.strokeStyle = ["black", "white"][pass];
                     ctx.beginPath();
-                    ctx.moveTo(x1, y1);
-                    ctx.lineTo(x2, y1);
-                    ctx.moveTo(x1, y1);
-                    ctx.lineTo(x1, y2);
-                    ctx.moveTo(x1, y2);
-                    ctx.lineTo(x2, y2);
-                    ctx.moveTo(x2, y1);
-                    ctx.lineTo(x2, y2);
+                    this.drawCurvedGridLine(ctx, options.selection.x1, options.selection.y1,
+                        options.selection.x2, options.selection.y1);
+                    this.drawCurvedGridLine(ctx, options.selection.x2, options.selection.y1,
+                        options.selection.x2, options.selection.y2);
+                    this.drawCurvedGridLine(ctx, options.selection.x1, options.selection.y1,
+                        options.selection.x1, options.selection.y2);
+                    this.drawCurvedGridLine(ctx, options.selection.x1, options.selection.y2,
+                        options.selection.x2, options.selection.y2);
                     ctx.stroke();
                 }
                 ctx.restore();
@@ -1278,11 +1285,110 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     }
 
     /**
+     * Convert curved (by CRT curvature) XY position to the original rectangular position.
+     */
+    private curvedPosToStraightPos(x: number, y: number): {x: number, y: number} {
+        // Correct for CRT curvature.
+        const width = TRS80_PIXEL_WIDTH*4*this.scale;
+        const height = TRS80_PIXEL_HEIGHT*8*this.scale;
+        const curvature = this.crtCurvature.values[0];
+        x -= width/2;
+        y -= height/2;
+        const r2 = 4*(x*x + y*y)/(width*width + height*height);
+        const r4 = r2*r2;
+        const mult = 1 + curvature*r2 + curvature*r4;
+        x = x*mult + width/2;
+        y = y*mult + height/2;
+
+        return {x, y};
+    }
+
+    private readonly straightPosToCurvedPosMap: number[] = [];
+    private straightPosToCurvedPosMapCurvature = 0;
+
+    /**
+     * Convert rectangular XY position to curved (by CRT curvature) position.
+     */
+    private straightPosToCurvedPos(x: number, y: number): {x: number, y: number} {
+        const devicePixelRatio = window.devicePixelRatio ?? 1;
+        x *= devicePixelRatio;
+        y *= devicePixelRatio;
+        const width = TRS80_PIXEL_WIDTH*4*this.scale*devicePixelRatio;
+        const height = TRS80_PIXEL_HEIGHT*8*this.scale*devicePixelRatio;
+        const curvature = this.crtCurvature.values[0];
+
+        // I don't know how to invert this math, so build an inverse map. Make it on demand.
+        if (this.straightPosToCurvedPosMap.length === 0 || this.straightPosToCurvedPosMapCurvature !== curvature) {
+            this.straightPosToCurvedPosMap.splice(0, this.straightPosToCurvedPosMap.length);
+            this.straightPosToCurvedPosMapCurvature = curvature;
+            let prevStraightR = 0;
+            for (let r = 0; r < 1000; r++) { // TODO don't hard code 1000, maybe detect that it's big enough?
+                const r2 = 4*r*r/(width*width + height*height);
+                const r4 = r2*r2;
+                const mult = 1 + curvature*r2 + curvature*r4;
+                const straightR = Math.round(r*mult);
+                const count = straightR - prevStraightR;
+                for (let i = 1; i <= count; i++) {
+                    this.straightPosToCurvedPosMap[prevStraightR + i] = r - 1 + i/count;
+                }
+                prevStraightR = straightR;
+            }
+        }
+
+        x -= width/2;
+        y -= height/2;
+        const rectR = Math.sqrt(x*x + y*y);
+        const rectRFloor = Math.floor(rectR);
+        const rectRFract = rectR - rectRFloor;
+        const r = this.straightPosToCurvedPosMap[rectRFloor]*(1 - rectRFract) + this.straightPosToCurvedPosMap[rectRFloor + 1]*rectRFract;
+        x = x*r/rectR + width/2 + this.padding;
+        y = y*r/rectR + height/2 + this.padding;
+        return {x, y};
+    }
+
+    /**
+     * Draw a horizontal or vertical line that follows CRT curvature. Coordinates
+     * are in TRS-80 pixel space.
+     */
+    private drawCurvedGridLine(ctx: CanvasRenderingContext2D,
+                               x1: number, y1: number,
+                               x2: number, y2: number): void {
+
+        if (x1 === x2) {
+            // Vertical line.
+            const x = x1*4*this.scale;
+            for (let y = y1; y <= y2; y++) {
+                let pos = this.straightPosToCurvedPos(x, y*8*this.scale);
+                if (y === y1) {
+                    ctx.moveTo(pos.x, pos.y);
+                } else {
+                    ctx.lineTo(pos.x, pos.y);
+                }
+            }
+        } else {
+            // Horizontal line.
+            const y = y1*8*this.scale;
+            for (let x = x1; x <= x2; x++) {
+                let pos = this.straightPosToCurvedPos(x*4*this.scale, y);
+                if (x === x1) {
+                    ctx.moveTo(pos.x, pos.y);
+                } else {
+                    ctx.lineTo(pos.x, pos.y);
+                }
+            }
+        }
+    }
+
+    /**
      * Send a new mouse event to listeners.
      */
     private emitMouseActivity(type: ScreenMouseEventType, event: MouseEvent, shiftKey: boolean): void {
-        const x = event.offsetX - this.padding;
-        const y = event.offsetY - this.padding;
+        // Screen pixel, relative to upper-left.
+        const {x, y} = this.curvedPosToStraightPos(
+            event.offsetX - this.padding,
+            event.offsetY - this.padding);
+
+        // Convert to TRS-80 pixels.
         const pixelX = Math.min(TRS80_PIXEL_WIDTH - 1, Math.max(0, Math.floor(x / this.scale / 4)));
         const pixelY = Math.min(TRS80_PIXEL_HEIGHT - 1, Math.max(0, Math.floor(y / this.scale / 8)));
         const position = new ScreenMousePosition(pixelX, pixelY);

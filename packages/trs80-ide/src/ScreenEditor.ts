@@ -1163,6 +1163,8 @@ export class ScreenEditor {
 
         // Text mode.
         if (this.tool === Tool.TEXT) {
+            event.preventDefault();
+
             const key = event.key;
 
             // Reset position.
