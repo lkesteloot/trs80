@@ -1362,8 +1362,7 @@ parse_number::
     cp      '$'             ; We only handle $, not 0x for hex or % for binary.
     jp      z, is_hex
 
-    call    parse_decimal
-    jp      done
+    jp      parse_decimal   ; Tail call.
 
 is_hex:
     inc     hl
