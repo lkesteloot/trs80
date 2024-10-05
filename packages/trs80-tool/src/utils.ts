@@ -66,7 +66,7 @@ export function readTrs80File(filename: string): Trs80File | AudioFile | string 
         }
     }
 
-    const trs80File = decodeTrs80File(binary, filename);
+    const trs80File = decodeTrs80File(binary, { filename });
     if (trs80File.error !== undefined) {
         return filename + ": " + trs80File.error;
     }

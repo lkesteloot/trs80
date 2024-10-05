@@ -172,7 +172,7 @@ export class SystemProgram extends AbstractTrs80File {
  * program, returns undefined. If it's a system program with decoding errors, returns
  * partially-decoded binary and sets the "error" field.
  */
-export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefined {
+export function decodeSystemProgram(binary: Uint8Array, disassemble: boolean): SystemProgram | undefined {
     const chunks: SystemChunk[] = [];
     const annotations: ProgramAnnotation[] = [];
     let entryPointAddress = 0;
@@ -245,20 +245,22 @@ export function decodeSystemProgram(binary: Uint8Array): SystemProgram | undefin
         const dataAnnotation = new ProgramAnnotation(`Chunk data`, dataStartAddr, b.addr());
         annotations.push(dataAnnotation);
 
-        // Disassemble the data, for optional display.
-        const disasm = disasmForTrs80();
-        disasm.addChunk(binary.subarray(dataAnnotation.begin, dataAnnotation.end), loadAddress);
-        disasm.addEntryPoint(loadAddress);
-        disasm.setCreateLabels(false);
-        const instructions = disasm.disassemble();
-        if (instructions.length > 0) {
-            // Repeat header so we can put a control on it.
-            dataAnnotation.nestedAnnotations.push(new ProgramAnnotation("Chunk data", dataStartAddr, dataStartAddr));
-        }
-        for (const instruction of instructions) {
-            const text = "  " + toHexWord(instruction.address) + "  " + instruction.toText(false);
-            const begin = instruction.address - loadAddress + dataAnnotation.begin;
-            dataAnnotation.nestedAnnotations.push(new ProgramAnnotation(text, begin, begin + instruction.bin.length));
+        if (disassemble) {
+            // Disassemble the data, for optional display.
+            const disasm = disasmForTrs80();
+            disasm.addChunk(binary.subarray(dataAnnotation.begin, dataAnnotation.end), loadAddress);
+            disasm.addEntryPoint(loadAddress);
+            disasm.setCreateLabels(false);
+            const instructions = disasm.disassemble();
+            if (instructions.length > 0) {
+                // Repeat header so we can put a control on it.
+                dataAnnotation.nestedAnnotations.push(new ProgramAnnotation("Chunk data", dataStartAddr, dataStartAddr));
+            }
+            for (const instruction of instructions) {
+                const text = "  " + toHexWord(instruction.address) + "  " + instruction.toText(false);
+                const begin = instruction.address - loadAddress + dataAnnotation.begin;
+                dataAnnotation.nestedAnnotations.push(new ProgramAnnotation(text, begin, begin + instruction.bin.length));
+            }
         }
 
         const checksum = b.read();

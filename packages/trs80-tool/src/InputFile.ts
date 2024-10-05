@@ -59,7 +59,7 @@ export class WavInputFile extends InputFile {
     public readonly program: Program;
 
     constructor(program: Program) {
-        const trs80File = decodeTrs80CassetteFile(program.binary);
+        const trs80File = decodeTrs80CassetteFile(program.binary, false);
         const filename = program.getPseudoFilename() + getTrs80FileExtension(trs80File);
         super(filename, program.binary, trs80File);
         this.program = program;
@@ -108,7 +108,7 @@ export class TrsdosInputFile extends InputFile {
     constructor(trsdos: Trsdos, dirEntry: TrsdosDirEntry) {
         const filename = dirEntry.getFilename(".");
         const binary = trsdos.readFile(dirEntry);
-        const trs80File = decodeTrs80File(binary, filename);
+        const trs80File = decodeTrs80File(binary, { filename });
         super(filename, binary, trs80File);
         this.trsdos = trsdos;
         this.dirEntry = dirEntry;
@@ -153,7 +153,7 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean): Inp
             inFiles.push(new WavInputFile(program));
         }
     } else {
-        const trs80File = decodeTrs80File(buffer, inFilename);
+        const trs80File = decodeTrs80File(buffer, { filename: inFilename });
         if (trs80File.error !== undefined) {
             console.log("Can't open \"" + inFilename + "\": " + trs80File.error);
             process.exit(1);

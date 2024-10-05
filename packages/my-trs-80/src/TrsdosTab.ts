@@ -88,7 +88,8 @@ export class TrsdosTab extends PageTab {
             playButton.classList.add(... ["run", ...extraCssClasses]);
             playButton.addEventListener("click", () => {
                 const binary = trsdos.readFile(dirEntry);
-                const program = decodeTrs80File(binary, dirEntry.getFilename("."));
+                const program = decodeTrs80File(binary,
+                    { filename: dirEntry.getFilename(".")});
                 // Not quite the right file, but makes screenshots go to the floppy.
                 filePanel.context.runningFile = filePanel.file;
                 filePanel.context.trs80.runTrs80File(program);

@@ -38,7 +38,7 @@ export class WavFile extends ArchiveFile {
             extension = ".ASM";
         } else if (program.isBasicProgram()) {
             extension = ".BAS";
-        } else if (decodeSystemProgram(program.binary) !== undefined) {
+        } else if (decodeSystemProgram(program.binary, false) !== undefined) {
             extension = ".3BN";
         } else if (decodeLevel1Program(program.binary) !== undefined) {
             extension = ".L1";
@@ -135,7 +135,7 @@ export class Archive {
             }
         } else {
             // Decode the floppy or cassette.
-            const file = decodeTrs80File(buffer, filename);
+            const file = decodeTrs80File(buffer, { filename });
 
             if (isFloppy(file)) {
                 const trsdos = decodeTrsdos(file);

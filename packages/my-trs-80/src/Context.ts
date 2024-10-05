@@ -56,7 +56,7 @@ export class Context {
      */
     public runProgram(file: File, trs80File?: Trs80File): void {
         if (trs80File === undefined) {
-            trs80File = decodeTrs80File(file.binary, file.filename);
+            trs80File = decodeTrs80File(file.binary, { filename: file.filename });
         }
 
         if (trs80File.error !== undefined) {

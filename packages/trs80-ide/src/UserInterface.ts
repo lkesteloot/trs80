@@ -941,7 +941,7 @@ export class UserInterface {
         }
 
         const text = new Uint8Array(await blob.arrayBuffer());
-        const floppy = decodeTrs80File(text, blob.name);
+        const floppy = decodeTrs80File(text, { filename: blob.name });
         if (isFloppy(floppy)) {
             emulator.trs80.loadFloppyDisk(floppy, 0);
         } else {

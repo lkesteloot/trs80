@@ -18,7 +18,7 @@ export function sectors(filename: string, showContents: boolean): void {
     }
 
     // Decode the floppy.
-    const file = decodeTrs80File(buffer, filename);
+    const file = decodeTrs80File(buffer, { filename });
     if (!isFloppy(file)) {
         console.log("Not a recognized floppy file: " + filename);
         return;

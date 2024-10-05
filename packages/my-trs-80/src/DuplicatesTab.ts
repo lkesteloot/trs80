@@ -65,9 +65,10 @@ export class DuplicatesTab extends PageTab {
                 // See if we've show this file already in the panel stack.
                 const alreadyVisited = anyFilePanel(this.filePanel, panel => panel.file.id === file.id);
 
+                const trs80File = decodeTrs80File(file.binary, { filename: file.filename });
                 addDirEntryField(file.name, "name");
                 addDirEntryField(file.filename, "filename");
-                addDirEntryField(decodeTrs80File(file.binary, file.filename).getDescription(), "type");
+                addDirEntryField(trs80File.getDescription(), "type");
 
                 const inTrash = file.tags.indexOf(TRASH_TAG) >= 0;
                 if (inTrash) {

@@ -61,7 +61,7 @@ export function extract(infile: string, outfile: string): void {
 
                         // Analyze system program.
                         const fileBinary = file.getBinary();
-                        const systemProgram = decodeSystemProgram(fileBinary);
+                        const systemProgram = decodeSystemProgram(fileBinary, false);
                         if (systemProgram !== undefined) {
                             programData.type = "systemProgram";
                             programData.filename = systemProgram.filename;
