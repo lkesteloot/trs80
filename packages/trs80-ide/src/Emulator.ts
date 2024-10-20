@@ -16,6 +16,8 @@ import { SimpleEventDispatcher } from 'strongly-typed-events';
 import { Flag, hi, inc16, lo, RegisterSet, toHexByte } from 'z80-base';
 import { disasmForTrs80, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END } from 'trs80-base';
 
+const LOCAL_STORAGE_CONFIG_KEY = "trs80-ide-config";
+
 // Given two instruction bytes, whether we want to continue until the next
 // instruction, and if so how long the current instruction is.
 function getSkipLength(b1: number, b2: number): number | undefined {
@@ -40,6 +42,25 @@ function emptyNode(node: HTMLElement): void {
     }
 }
 
+// Load a TRS-80 config from local storage, or make a default one.
+function loadConfig() {
+    const serializedConfig = window.localStorage.getItem(LOCAL_STORAGE_CONFIG_KEY);
+    if (serializedConfig !== null) {
+        try {
+            const newConfig = Config.deserialize(serializedConfig);
+            if (newConfig.isValid()) {
+                return newConfig;
+            }
+        } catch (e) {
+            // Protect against future bugs in deserialization.
+            console.log("Deserialization of TRS-80 Config failed", e);
+        }
+        window.localStorage.removeItem(LOCAL_STORAGE_CONFIG_KEY);
+    }
+
+    return Config.makeDefault();
+}
+
 // Encapsulates the emulator and methods for it.
 export class Emulator {
     private readonly screen: CanvasScreen;
@@ -50,7 +71,7 @@ export class Emulator {
     public readonly debugPc = new SimpleEventDispatcher<number | undefined>();
 
     public constructor() {
-        const config = Config.makeDefault();
+        const config = loadConfig();
         this.screen = new CanvasScreen(1.5);
         const keyboard = new WebKeyboard();
         const cassettePlayer = new CassettePlayer();
@@ -71,6 +92,10 @@ export class Emulator {
         this.controlPanel.addSettingsButton(hardwareSettingsPanel);
         this.controlPanel.addSettingsButton(viewPanel);
         this.controlPanel.addMuteButton(soundPlayer);
+
+        // Save the TRS-80 config when it changes.
+        this.trs80.onConfig.subscribe(configChange =>
+            window.localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, configChange.newConfig.serialize()));
 
         // Disable keyboard when a settings panel is open.
         keyboard.addInterceptKeys(() =>

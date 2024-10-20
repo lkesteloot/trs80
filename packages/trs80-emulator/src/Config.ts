@@ -1,6 +1,8 @@
 
 /**
  * The TRS-80 models we support.
+ *
+ * This is serialized. Do not modify existing values.
  */
 export enum ModelType {
     MODEL1,
@@ -31,6 +33,8 @@ export function modelTypeFromString(modelName: string): ModelType | undefined {
 
 /**
  * The levels of Basic.
+ *
+ * This is serialized. Do not modify existing values.
  */
 export enum BasicLevel {
     LEVEL1,
@@ -55,6 +59,8 @@ export function basicLevelFromString(basicLevelName: string): BasicLevel | undef
 
 /**
  * The character generator chip we support.
+ *
+ * This is serialized. Do not modify existing values.
  */
 export enum CGChip {
     ORIGINAL,
@@ -63,6 +69,8 @@ export enum CGChip {
 
 /**
  * The amounts of RAM we support.
+ *
+ * This is serialized. Do not modify existing values.
  */
 export enum RamSize {
     RAM_4_KB,
@@ -73,6 +81,8 @@ export enum RamSize {
 
 /**
  * Phosphor color.
+ *
+ * This is serialized. Do not modify existing values.
  */
 export enum Phosphor {
     WHITE,
@@ -82,6 +92,8 @@ export enum Phosphor {
 
 /**
  * Background color.
+ *
+ * This is serialized. Do not modify existing values.
  */
 export enum Background {
     BLACK,
@@ -90,6 +102,8 @@ export enum Background {
 
 /**
  * Whether to display scan lines.
+ *
+ * This is serialized. Do not modify existing values.
  */
 export enum ScanLines {
     OFF,
@@ -98,6 +112,8 @@ export enum ScanLines {
 
 /**
  * Model of printer attached to the machine.
+ *
+ * This is serialized. Do not modify existing values.
  */
 export enum PrinterModel {
     // Dot-matrix line printer.
@@ -108,6 +124,8 @@ export enum PrinterModel {
 
 /**
  * Ink color for the printer.
+ *
+ * This is serialized. Do not modify existing values.
  */
 export enum InkColor {
     // Plotter pen catalog number: 26-1343.
@@ -192,6 +210,59 @@ export class Config {
      */
     public edit(): ConfigBuilder {
         return new ConfigBuilder(this);
+    }
+
+    /**
+     * Get a string for serializing the config. Does not include the custom ROM.
+     */
+    public serialize(): string {
+        return JSON.stringify({
+            modelType: this.modelType,
+            basicLevel: this.basicLevel,
+            cgChip: this.cgChip,
+            ramSize: this.ramSize,
+            phosphor: this.phosphor,
+            background: this.background,
+            scanLines: this.scanLines,
+            printerModel: this.printerModel,
+            inkColor: this.inkColor,
+        });
+    }
+
+    /**
+     * Create a Config from the serialized string created by {@link #serialize}.
+     */
+    public static deserialize(s: string): Config {
+        const v = JSON.parse(s);
+        const builder = this.makeDefault().edit();
+        if (v.modelType !== undefined) {
+            builder.withModelType(v.modelType);
+        }
+        if (v.basicLevel !== undefined) {
+            builder.withBasicLevel(v.basicLevel);
+        }
+        if (v.cgChip !== undefined) {
+            builder.withCGChip(v.cgChip);
+        }
+        if (v.ramSize !== undefined) {
+            builder.withRamSize(v.ramSize);
+        }
+        if (v.phosphor !== undefined) {
+            builder.withPhosphor(v.phosphor);
+        }
+        if (v.background !== undefined) {
+            builder.withBackground(v.background);
+        }
+        if (v.scanLines !== undefined) {
+            builder.withScanLines(v.scanLines);
+        }
+        if (v.printerModel !== undefined) {
+            builder.withPrinterModel(v.printerModel);
+        }
+        if (v.inkColor !== undefined) {
+            builder.withInkColor(v.inkColor);
+        }
+        return builder.build();
     }
 
     /**
