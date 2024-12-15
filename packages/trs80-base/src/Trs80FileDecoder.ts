@@ -11,13 +11,18 @@ import {decodeLevel1Program, Level1Program} from "./Level1Program.js";
 import {decodeEdtasmFile, EdtasmFile} from "./EdtasmFile.js";
 
 /**
+ * The various floppy formats we support.
+ */
+export type Trs80Floppy = Jv1FloppyDisk |
+    Jv3FloppyDisk |
+    DmkFloppyDisk |
+    ScpFloppyDisk;
+
+/**
  * All the possible programs we can decode.
  */
 export type Trs80File = BasicProgram |
-    Jv1FloppyDisk |
-    Jv3FloppyDisk |
-    DmkFloppyDisk |
-    ScpFloppyDisk |
+    Trs80Floppy |
     Cassette |
     SystemProgram |
     CmdProgram |
@@ -95,7 +100,7 @@ function decodeDsk(binary: Uint8Array): Trs80File | undefined {
 /**
  * Whether the Trs80File object is one of the floppy disk types.
  */
-export function isFloppy(trs80File: Trs80File): trs80File is Jv1FloppyDisk | Jv3FloppyDisk | DmkFloppyDisk | ScpFloppyDisk {
+export function isFloppy(trs80File: Trs80File): trs80File is Trs80Floppy {
     const className = trs80File.className;
 
     return className === "Jv1FloppyDisk" ||

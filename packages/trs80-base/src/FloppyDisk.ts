@@ -32,6 +32,15 @@ export function numberToSide(n: number): Side {
 }
 
 /**
+ * Structure to keep track of a specific sector position on a disk.
+ */
+export interface SectorPosition {
+    trackNumber: number,
+    side: Side,
+    sectorNumber: number
+}
+
+/**
  * Byte for filling sector data when reading off the end.
  */
 const FILL_BYTE = 0xE5;

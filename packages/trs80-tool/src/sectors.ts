@@ -1,13 +1,13 @@
 import * as fs from "fs";
 import chalk from "chalk";
-import {Density, Side, decodeTrs80File, isFloppy, numberToSide } from "trs80-base";
+import {Density, Side, Trs80Floppy, TrsdosDirEntry, decodeTrs80File, decodeTrsdos, isFloppy, numberToSide } from "trs80-base";
 import { toHexWord } from "z80-base";
 import { hexdumpBinary } from "./hexdump.js";
 
 /**
  * Handle the "sectors" command.
  */
-export function sectors(filename: string, showContents: boolean): void {
+export function sectors(filename: string, showContents: boolean, onlyShowBad: boolean): void {
     // Read the file.
     let buffer;
     try {
@@ -29,8 +29,100 @@ export function sectors(filename: string, showContents: boolean): void {
         return;
     }
 
-    console.log(filename + ": " + file.getDescription());
+    let title = filename + ": " + file.getDescription();
+    const trsdos = decodeTrsdos(file);
+    if (trsdos === undefined) {
+        title += ", unknown operating system";
+    } else {
+        title += ", " + trsdos.getOperatingSystemName() + " " + trsdos.getVersion();
+    }
 
+    console.log(title);
+
+    if (!onlyShowBad) {
+        printMap(file);
+    }
+
+    if (showContents || onlyShowBad) {
+        const geometry = file.getGeometry();
+
+        // Dump each sector.
+        for (let trackNumber = geometry.firstTrack.trackNumber; trackNumber <= geometry.lastTrack.trackNumber; trackNumber++) {
+            const trackGeometry = geometry.getTrackGeometry(trackNumber);
+            for (const side of trackGeometry.sides()) {
+                for (let sectorNumber = trackGeometry.firstSector; sectorNumber <= trackGeometry.lastSector; sectorNumber++) {
+                    let header = `Side ${side}, track ${trackNumber}, sector ${sectorNumber}: `;
+
+                    const sector = file.readSector(trackNumber, side, sectorNumber);
+                    if (sector === undefined) {
+                        header += "missing";
+                    } else {
+                        header += (sector.density === Density.SINGLE ? "single" : "double") + " density" +
+                            (sector.deleted ? ", marked as deleted" : "");
+
+                        if (sector.crcError) {
+                            header += ", CRC error";
+
+                            if (sector.crc !== undefined) {
+                                const parts: string[] = [];
+                                if (!sector.crc.idCrc.valid()) {
+                                    parts.push("ID " + toHexWord(sector.crc.idCrc.written) + " != " +
+                                        toHexWord(sector.crc.idCrc.computed));
+                                }
+                                if (!sector.crc.dataCrc.valid()) {
+                                    parts.push("data " + toHexWord(sector.crc.dataCrc.written) + " != " +
+                                        toHexWord(sector.crc.dataCrc.computed));
+                                }
+                                header += " (" + parts.join(", ") + ")";
+                            }
+                        }
+                    }
+
+                    if (!onlyShowBad || (sector === undefined || sector.crcError)) {
+                        console.log(header);
+
+                        if (showContents && sector !== undefined) {
+                            hexdumpBinary(sector.data, false, []);
+                        }
+
+                        if (onlyShowBad && trsdos !== undefined) {
+                            const files = trsdos.getDirEntries(true);
+                            let fileAtSector: TrsdosDirEntry | undefined = undefined;
+                            for (const file of files) {
+                                const sectorPositions = trsdos.getFileSectorPositions(file);
+                                for (const sectorPosition of sectorPositions) {
+                                    if (sectorPosition.trackNumber === trackNumber &&
+                                        sectorPosition.side === side &&
+                                        sectorPosition.sectorNumber === sectorNumber) {
+
+                                        fileAtSector = file;
+                                        break;
+                                    }
+                                }
+                                if (fileAtSector !== undefined) {
+                                    break;
+                                }
+                            }
+
+                            if (fileAtSector === undefined) {
+                                console.log("There is no file at this sector.");
+                            } else {
+                                console.log("File at this sector: " + fileAtSector.getFilename("/"));
+                            }
+                        }
+
+                        console.log("");
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Print a map of the sectors on the disk.
+ */
+function printMap(file: Trs80Floppy) {
     const geometry = file.getGeometry();
     const minSectorNumber = Math.min(geometry.firstTrack.firstSector, geometry.lastTrack.firstSector);
     const maxSectorNumber = Math.max(geometry.firstTrack.lastSector, geometry.lastTrack.lastSector);
@@ -107,49 +199,5 @@ export function sectors(filename: string, showContents: boolean): void {
             console.log("    " + color(legendLetter) + ": " + explanation);
         }
         console.log("");
-    }
-
-    if (showContents) {
-        // Dump each sector.
-        for (let trackNumber = geometry.firstTrack.trackNumber; trackNumber <= geometry.lastTrack.trackNumber; trackNumber++) {
-            const trackGeometry = geometry.getTrackGeometry(trackNumber);
-            for (const side of trackGeometry.sides()) {
-                for (let sectorNumber = trackGeometry.firstSector; sectorNumber <= trackGeometry.lastSector; sectorNumber++) {
-                    let header = `Side ${side}, track ${trackNumber}, sector ${sectorNumber}: `;
-
-                    const sector = file.readSector(trackNumber, side, sectorNumber);
-                    if (sector === undefined) {
-                        header += "missing";
-                    } else {
-                        header += (sector.density === Density.SINGLE ? "single" : "double") + " density" +
-                            (sector.deleted ? ", marked as deleted" : "");
-
-                        if (sector.crcError) {
-                            header += ", CRC error";
-
-                            if (sector.crc !== undefined) {
-                                const parts: string[] = [];
-                                if (!sector.crc.idCrc.valid()) {
-                                    parts.push("ID " + toHexWord(sector.crc.idCrc.written) + " != " +
-                                        toHexWord(sector.crc.idCrc.computed));
-                                }
-                                if (!sector.crc.dataCrc.valid()) {
-                                    parts.push("data " + toHexWord(sector.crc.dataCrc.written) + " != " +
-                                        toHexWord(sector.crc.dataCrc.computed));
-                                }
-                                header += " (" + parts.join(", ") + ")";
-                            }
-                        }
-                    }
-                    console.log(header);
-
-                    if (sector !== undefined) {
-                        hexdumpBinary(sector.data, false, []);
-                    }
-
-                    console.log("");
-                }
-            }
-        }
     }
 }

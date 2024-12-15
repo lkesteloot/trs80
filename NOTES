@@ -8,3 +8,8 @@ To add a dependency:
 No need to add dependencies between our own modules, they're all available
 to each other.
 
+---
+
+To make a new release of trs80-tool, bump the version in its package.json
+and commit/push. Github will build the binaries.
+

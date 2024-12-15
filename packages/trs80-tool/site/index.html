@@ -265,9 +265,15 @@ Wrote out.cas: System program (VCEPRN) in low speed CAS file</code></pre>
 S Single-density sector.
 D Double-density sector.
 X Deleted sector.
-C CRC error (ID or data).</code></pre>
+C CRC error (ID or data).
+? Missing sector.</code></pre>
             </div>
             <p>Use the <code>--contents</code> flag to also show the contents of the sectors.</p>
+
+            <p>The <code>--bad</code> flag lists all sectors that are missing or that
+            have a CRC error, as well as which file (if any) is on each bad sector.
+            Can be combined with <code>--contents</code> to also show the contents of the
+            bad sectors.</p>
 
             <h3 id="asm"><code>asm</code></h3>
             <p>The <code>asm</code> command assembles the specified assembly language source code:</p>
@@ -370,6 +376,20 @@ C CRC error (ID or data).</code></pre>
             (<a href="https://www.my-trs-80.com/">My TRS-80</a>,
             the <a href="https://www.my-trs-80.com/ide/">IDE</a>,
             and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).</p>
+
+            <h3 id="v2.8.0">2.8.0 <span class="release-date">Dec 13, 2024</span></h3>
+
+            <ul>
+                <li><code>trs80-tool</code>:
+                    <ul>
+                        <li>The <code>sectors</code> command has a new <code>--bad</code> option
+                            to show only missing or corrupted sectors, as well as which
+                            file (if any) is on each bad sector. Can be combined with
+                            <code>--contents</code> to also show the contents of the
+                            bad sectors.</li>
+                    </ul>
+                </li>
+            </ul>
 
             <h3 id="v2.7.0">2.7.0 <span class="release-date">Apr 12, 2024</span></h3>
 
