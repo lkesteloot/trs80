@@ -5,7 +5,7 @@ on: [push]
 env:
   REGISTRY: ghcr.io
   #IMAGE_NAME: ${{ github.repository }}
-  IMAGE_NAME: trs80-ide
+  IMAGE_NAME: lkesteloot/trs80-ide
 
 jobs:
   build-all-packages:
