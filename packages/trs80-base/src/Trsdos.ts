@@ -7,9 +7,9 @@
  */
 
 import {concatByteArrays} from "teamten-ts-utils";
-import {Density, FloppyDisk, FloppyDiskGeometry, numberToSide, Side} from "./FloppyDisk.js";
+import {Density, FloppyDisk, FloppyDiskGeometry, numberToSide, SectorPosition, Side} from "./FloppyDisk.js";
 import {toHexByte, word} from "z80-base";
-import { TRS80_BASE_LOGGER } from "trs80-logger";
+import {TRS80_BASE_LOGGER} from "trs80-logger";
 
 // Whether to check the high bits of the GAT table entries. I keep seeing floppies with wrong values
 // here, so disabling this. Those bits were probably not accessed anyway, so it's probably not out of
@@ -849,10 +849,10 @@ export class Trsdos {
     }
 
     /**
-     * Read the binary for a file on the diskette.
+     * Get the position of all the sectors of the file.
      */
-    public readFile(firstDirEntry: TrsdosDirEntry): Uint8Array {
-        const sectors: Uint8Array[] = [];
+    public getFileSectorPositions(firstDirEntry: TrsdosDirEntry): SectorPosition[] {
+        const sectorPositions: SectorPosition[] = [];
         const geometry = this.disk.getGeometry();
         const sideCount = getSideCount(geometry, this.version);
 
@@ -882,16 +882,7 @@ export class Trsdos {
                             sectorNumber = trackGeometry.firstSector;
                         }
                     }
-                    const sector = this.disk.readSector(trackNumber, side, sectorNumber);
-                    if (sector === undefined) {
-                        TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${trackNumber}, ${sectorNumber}`);
-                        // TODO
-                    } else {
-                        if (sector.crcError) {
-                            TRS80_BASE_LOGGER.warn("Sector has CRC error");
-                        }
-                        sectors.push(sector.data);
-                    }
+                    sectorPositions.push({ trackNumber, side, sectorNumber });
                 }
             }
 
@@ -899,11 +890,34 @@ export class Trsdos {
             dirEntry = dirEntry.nextDirEntry;
         }
 
+        return sectorPositions;
+    }
+
+    /**
+     * Read the binary for a file on the diskette.
+     */
+    public readFile(firstDirEntry: TrsdosDirEntry): Uint8Array {
+        const sectors: Uint8Array[] = [];
+        const sectorPositions = this.getFileSectorPositions(firstDirEntry);
+
+        for (const { trackNumber, side, sectorNumber } of sectorPositions) {
+            const sector = this.disk.readSector(trackNumber, side, sectorNumber);
+            if (sector === undefined) {
+                TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${trackNumber}, ${sectorNumber}`);
+                // TODO
+            } else {
+                if (sector.crcError) {
+                    TRS80_BASE_LOGGER.warn("Sector has CRC error");
+                }
+                sectors.push(sector.data);
+            }
+        }
+
         // All sectors.
         const binary = concatByteArrays(sectors);
 
         // Clip to size. In principle this is cheap because it's a view.
-        return binary.subarray(0, fileSize);
+        return binary.subarray(0, firstDirEntry.getSize());
     }
 
     /**

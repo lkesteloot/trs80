@@ -11,13 +11,18 @@ import {decodeLevel1Program, Level1Program} from "./Level1Program.js";
 import {decodeEdtasmFile, EdtasmFile} from "./EdtasmFile.js";
 
 /**
+ * The various floppy formats we support.
+ */
+export type Trs80Floppy = Jv1FloppyDisk |
+    Jv3FloppyDisk |
+    DmkFloppyDisk |
+    ScpFloppyDisk;
+
+/**
  * All the possible programs we can decode.
  */
 export type Trs80File = BasicProgram |
-    Jv1FloppyDisk |
-    Jv3FloppyDisk |
-    DmkFloppyDisk |
-    ScpFloppyDisk |
+    Trs80Floppy |
     Cassette |
     SystemProgram |
     CmdProgram |
@@ -95,7 +100,7 @@ function decodeDsk(binary: Uint8Array): Trs80File | undefined {
 /**
  * Whether the Trs80File object is one of the floppy disk types.
  */
-export function isFloppy(trs80File: Trs80File): trs80File is Jv1FloppyDisk | Jv3FloppyDisk | DmkFloppyDisk | ScpFloppyDisk {
+export function isFloppy(trs80File: Trs80File): trs80File is Trs80Floppy {
     const className = trs80File.className;
 
     return className === "Jv1FloppyDisk" ||
@@ -105,14 +110,35 @@ export function isFloppy(trs80File: Trs80File): trs80File is Jv1FloppyDisk | Jv3
 }
 
 /**
+ * Options for the {@link decodeTrs80File} function.
+ */
+interface DecodeTrs80FileOptions {
+    // Optional filename, to help with the decoding. If missing or empty, the type will be
+    // inferred entirely from the contents.
+    filename?: string;
+
+    // Whether to disassemble program files and include the disassembly in the annotations.
+    disassemble?: boolean;
+}
+
+const DECODE_TRS80_FILE_OPTIONS_DEFAULTS: Required<DecodeTrs80FileOptions> = {
+    filename: "",
+    disassemble: false,
+};
+
+/**
  * Top-level decoder for any TRS-80 file.
  *
  * @param binary the bytes of the file.
- * @param filename optional filename to help with detection.
+ * @param options optional object to control decoding.
  */
-export function decodeTrs80File(binary: Uint8Array, filename: string | undefined): Trs80File {
+export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOptions): Trs80File {
+    const { filename, disassemble } = {
+        ... DECODE_TRS80_FILE_OPTIONS_DEFAULTS,
+        ... options,
+    };
     let trs80File: Trs80File | undefined;
-    const extension = filename === undefined ? "" : getFilenameExtension(filename);
+    const extension = getFilenameExtension(filename);
 
     if (extension === ".JV1") {
         return decodeJv1FloppyDisk(binary) ?? new RawBinaryFile(binary);
@@ -137,7 +163,7 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
     // "Model III BiNary" format, invented by George Phillips for trs80gp.
     // Rarely used as a stand-alone file, usually just embedded in .CAS files.
     if (extension === ".3BN") {
-        return decodeSystemProgram(binary) ?? new RawBinaryFile(binary);
+        return decodeSystemProgram(binary, disassemble) ?? new RawBinaryFile(binary);
     }
 
     if (extension === ".CMD") {
@@ -146,7 +172,7 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
 
     // Cassette decoding can be a bit too eager, so be more strict if we don't have the right extension.
     const strictCassetteDecoding = extension !== ".CAS";
-    trs80File = decodeCassette(binary, strictCassetteDecoding);
+    trs80File = decodeCassette(binary, strictCassetteDecoding, disassemble);
     if (trs80File !== undefined) {
         return trs80File;
     }
@@ -185,10 +211,10 @@ export function decodeTrs80File(binary: Uint8Array, filename: string | undefined
 /**
  * Decode a binary that originated on a cassette.
  */
-export function decodeTrs80CassetteFile(binary: Uint8Array): Trs80File {
+export function decodeTrs80CassetteFile(binary: Uint8Array, disassemble: boolean): Trs80File {
     let trs80File: Trs80File | undefined;
 
-    trs80File = decodeSystemProgram(binary);
+    trs80File = decodeSystemProgram(binary, disassemble);
     if (trs80File !== undefined) {
         return trs80File;
     }

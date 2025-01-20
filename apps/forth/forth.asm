@@ -849,7 +849,7 @@ loop:
     jp      forth_next
 
 ; Immediate mode version:
-;;    call    forth_word
+;;    call    parse_forth_word
 ;;    call    forth_find
 ;;    call    forth_cfa
 ;;    push    bc
@@ -962,14 +962,14 @@ loop:
 ; - on the parameter stack.
     M_forth_native "word", 0, word
     push    bc
-    call    forth_word
+    call    parse_forth_word
     ld      bc, hl
     jp      forth_next
 
 ; - gets the next word from the input stream and returns its address in HL.
 ; - The pointer will point to a NUL byte if we're at the end of the buffer.
 #local
-forth_word::
+parse_forth_word::
     push    de
     ld      hl, (Forth_input)
 
@@ -1209,7 +1209,7 @@ done:
 #local
 forth_interpret::
     ; Parse the next space-delimited word.
-    call    forth_word
+    call    parse_forth_word
 
     ; See if we're at the end of the input buffer.
     ld      a, (hl)
@@ -1362,8 +1362,7 @@ parse_number::
     cp      '$'             ; We only handle $, not 0x for hex or % for binary.
     jp      z, is_hex
 
-    call    parse_decimal
-    jp      done
+    jp      parse_decimal   ; Tail call.
 
 is_hex:
     inc     hl

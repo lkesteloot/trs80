@@ -5,7 +5,7 @@ import {sha1} from "./Sha1";
 import {TagSet} from "./TagSet";
 import DocumentData = firebase.firestore.DocumentData;
 import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
-import {BasicProgram, Cassette, decodeTrs80File, setBasicName} from "trs80-base";
+import {decodeTrs80File, setBasicName} from "trs80-base";
 type UpdateData = firebase.firestore.UpdateData;
 
 // What's considered a "new" file.
@@ -349,7 +349,7 @@ export class FileBuilder {
         // We used to do the raw binary, but that doesn't catch some irrelevant changes, like differences
         // in CAS header or the Basic name. So decode the binary and see if we can zero out the differences.
         // This might create an unfortunate preference for setting the filename first.
-        let trs80File = decodeTrs80File(binary, this.filename);
+        let trs80File = decodeTrs80File(binary, { filename: this.filename });
 
         // Pull the program out of the cassette.
         if (trs80File.className === "Cassette") {

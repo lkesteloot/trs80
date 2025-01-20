@@ -263,7 +263,7 @@ export class RetroStoreTab extends PageTab {
         let validMediaImage: RetroStoreProto.MediaImage | undefined = undefined;
         const playButton = makeIconButton(makeIcon("play_arrow"), "Run app", () => {
             if (validMediaImage !== undefined && validMediaImage.data !== undefined) {
-                const cmdProgram = decodeTrs80File(validMediaImage.data, validMediaImage.filename);
+                const cmdProgram = decodeTrs80File(validMediaImage.data, { filename: validMediaImage.filename });
                 // TODO should set context.runningFile
                 this.context.trs80.runTrs80File(cmdProgram);
                 this.context.panelManager.close();

@@ -32,7 +32,7 @@ export class FilePanel extends TabbedPanel implements IFilePanel {
         this.nextFilePanel = gFilePanelHead;
         gFilePanelHead = this;
 
-        let trs80File = decodeTrs80File(file.binary, file.filename);
+        let trs80File = decodeTrs80File(file.binary, { filename: file.filename, disassemble: true });
 
         this.pageTabs.addTab(new FileInfoTab(this, trs80File));
         this.pageTabs.addTab(new HexdumpTab(this.context, trs80File));

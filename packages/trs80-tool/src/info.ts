@@ -46,7 +46,7 @@ function printInfoForFile(filename: string, verbose: boolean): void {
         description = "Audio file with " + pluralizeWithCount(tape.programs.length, "file");
     } else {
         try {
-            const trs80File = decodeTrs80File(buffer, filename);
+            const trs80File = decodeTrs80File(buffer, { filename });
             description = trs80File.getDescription();
             if (trs80File.error !== undefined) {
                 description += " (" + trs80File.error + ")";

@@ -16,7 +16,7 @@ import {
     numberToSide,
     SectorCrc,
     SectorData,
-    Side,
+    Side, SIDE_COUNT_TO_SIDES,
     TrackGeometryBuilder
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
@@ -45,15 +45,17 @@ interface SectorOffset {
  * @param trackHeader index into binary of track header.
  * @param sectorIndex index of sector (0-based).
  */
-function getSectorInfo(binary: Uint8Array, trackHeader: number, sectorIndex: number): undefined | SectorOffset {
-    const sectorOffset = binary[trackHeader + sectorIndex*2] + (binary[trackHeader + sectorIndex*2 + 1] << 8);
+function getSectorInfo(binary: Uint8Array, trackHeader: number, sectorIndex: number): SectorOffset | undefined {
+    const index = trackHeader + sectorIndex*2;
+    const sectorOffset = word(binary[index + 1], binary[index]);
     if (sectorOffset === 0) {
         return undefined;
     }
 
     const doubleDensity = (sectorOffset & 0x8000) !== 0;
     return {
-        offset: sectorOffset & 0x7FFF,
+        // Bits 15 and 14 must be masked:
+        offset: sectorOffset & 0x3FFF,
         density: doubleDensity ? Density.DOUBLE : Density.SINGLE,
     };
 }
@@ -296,7 +298,9 @@ class DmkSector {
             }
         }
 
-        TRS80_FLOPPY_LOGGER.warn(`DMK: Can't find byte at start of DAM (track ${this.track.trackNumber}, sector ${this.getSectorNumber()}, offset 0x${toHexWord(this.offset)})`);
+        // Don't log this, it's noisy for copy-protected disks, gets displayed before anything else
+        // (which is confusing/misleading), and the data is available later anyway.
+        // TRS80_FLOPPY_LOGGER.warn(`DMK: Can't find byte at start of DAM (track ${this.track.trackNumber}, sector ${this.getSectorNumber()}, offset 0x${toHexWord(this.offset)})`);
 
         return undefined;
     }
@@ -429,7 +433,10 @@ export class DmkFloppyDisk extends FloppyDisk {
             }
         }
 
-        TRS80_FLOPPY_LOGGER.warn(`DMK: Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
+        // Don't log this, it's noisy for copy-protected disks, gets displayed before anything else
+        // (which is confusing/misleading), and the data is available later anyway.
+        // TRS80_FLOPPY_LOGGER.warn(`DMK: Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
+
         return undefined;
     }
 
@@ -708,10 +715,11 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
 
     // Read the tracks.
     binaryOffset = FILE_HEADER_SIZE;
+    const sides = SIDE_COUNT_TO_SIDES[sideCount];
     for (let trackNumber = 0; trackNumber < trackCount; trackNumber++) {
-        for (let side = 0; side < sideCount; side++) {
+        for (const side of sides) {
             const trackOffset = binaryOffset;
-            const track = new DmkTrack(floppyDisk, trackNumber, numberToSide(side), trackOffset);
+            const track = new DmkTrack(floppyDisk, trackNumber, side, trackOffset);
 
             // Read the track header. The term "IDAM" in the comment below refers to the "ID access mark",
             // where "ID" is referring to the sector ID, the few bytes just before the sector data.

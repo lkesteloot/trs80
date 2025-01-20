@@ -190,9 +190,10 @@ function main() {
             infiles: "any TRS-80 floppy files",
         })
         .option("--contents", "show the contents of the sectors")
+        .option("--bad", "show only the bad sectors and their files")
         .action((infiles, options) => {
             for (const infile of infiles) {
-                sectors(infile, options.contents);
+                sectors(infile, options.contents, options.bad);
             }
         });
     program

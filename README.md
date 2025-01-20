@@ -44,7 +44,7 @@ npm run build --workspaces
 Or to do a parallel build:
 
 ```sh
-npx lerna run build
+npm run build
 ```
 
 If you're getting build errors, try getting a fresh clone, or clean

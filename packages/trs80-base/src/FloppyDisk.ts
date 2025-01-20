@@ -32,6 +32,23 @@ export function numberToSide(n: number): Side {
 }
 
 /**
+ * For side count (1 or 2), provide an array to iterate over for the sides.
+ */
+export const SIDE_COUNT_TO_SIDES: { [sideCount in 1|2]: Side[] } = {
+    1: [Side.FRONT],
+    2: [Side.FRONT, Side.BACK],
+};
+
+/**
+ * Structure to keep track of a specific sector position on a disk.
+ */
+export interface SectorPosition {
+    trackNumber: number,
+    side: Side,
+    sectorNumber: number
+}
+
+/**
  * Byte for filling sector data when reading off the end.
  */
 const FILL_BYTE = 0xE5;

@@ -1,6 +1,6 @@
 {
     "name": "trs80-tool",
-    "version": "2.7.0",
+    "version": "2.8.1",
     "description": "Command-line tool for manipulating TRS-80 files",
     "main": "dist/index.js",
     "repository": "https://github.com/lkesteloot/trs80.git",
@@ -8,11 +8,11 @@
     "private": true,
     "scripts": {
         "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-        "build": "npm run updateBuildInfo && tsc",
+        "build": "npm run updateVersion && npm run updateBuildInfo && tsc",
         "clean": "rm -rf dist",
         "updateVersion": "python3 update_version.py > src/version.ts",
-        "prepublishOnly": "npm run updateVersion && npm run build",
-        "buildBinaries": "npm run updateVersion && npm run build && webpack && pkg --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --out-path binaries binaries/main.js && make dist"
+        "prepublishOnly": "npm run build",
+        "buildBinaries": "npm run build && webpack && pkg --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --out-path binaries binaries/main.js && make dist"
     },
     "bin": {
         "trs80-tool": "bin/trs80-tool.js"

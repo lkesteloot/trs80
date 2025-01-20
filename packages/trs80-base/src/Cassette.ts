@@ -265,8 +265,9 @@ function findHeader(binary: Uint8Array, start: number, strict: boolean): Header 
  * @param binary the binary to decode
  * @param strict whether to be more strict in our decoding. This is typically used if we don't
  * have a file extension to be sure the kind of file we have.
+ * @param disassemble whether to include disassembly in annotations.
  */
-export function decodeCassette(binary: Uint8Array, strict: boolean): Cassette | undefined {
+export function decodeCassette(binary: Uint8Array, strict: boolean, disassemble: boolean): Cassette | undefined {
     // Detect all the headers in the file.
     const headers: Header[] = [];
     let start = 0;
@@ -309,7 +310,7 @@ export function decodeCassette(binary: Uint8Array, strict: boolean): Cassette | 
         }
 
         // See what kind of file it is.
-        const file = decodeTrs80CassetteFile(fileBinary);
+        const file = decodeTrs80CassetteFile(fileBinary, disassemble);
         const cassetteFile = new CassetteFile(fileBinary, header.programPosition, header.speed, file);
         cassetteFiles.push(cassetteFile);
 

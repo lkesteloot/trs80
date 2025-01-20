@@ -45,7 +45,7 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     let mainEntryPoint: number | undefined = undefined;
     const ext = path.extname(filename).toUpperCase();
     if (ext === ".CMD" || ext === ".3BN" || ext === ".SYS" || ext === ".L1") {
-        const trs80File = decodeTrs80File(buffer, filename);
+        const trs80File = decodeTrs80File(buffer, { filename });
         if (trs80File.className !== "CmdProgram"
             && trs80File.className !== "SystemProgram"
             && trs80File.className !== "Level1Program") {
