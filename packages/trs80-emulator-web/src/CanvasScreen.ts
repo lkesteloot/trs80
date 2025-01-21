@@ -1322,16 +1322,32 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             this.straightPosToCurvedPosMap.splice(0, this.straightPosToCurvedPosMap.length);
             this.straightPosToCurvedPosMapCurvature = curvature;
             let prevStraightR = 0;
+            let i = 0;
             for (let r = 0; r < 1000; r++) { // TODO don't hard code 1000, maybe detect that it's big enough?
                 const r2 = 4*r*r/(width*width + height*height);
                 const r4 = r2*r2;
                 const mult = 1 + curvature*r2 + curvature*r4;
-                const straightR = Math.round(r*mult);
-                const count = straightR - prevStraightR;
-                for (let i = 1; i <= count; i++) {
-                    this.straightPosToCurvedPosMap[prevStraightR + i] = r - 1 + i/count;
+                const straightR = r*mult;
+                if (straightR > prevStraightR) {
+                    while (i <= straightR) {
+                        const t = (i - prevStraightR) / (straightR - prevStraightR);
+                        this.straightPosToCurvedPosMap[i] = (r - 1) + t;
+                        i += 1;
+                    }
                 }
                 prevStraightR = straightR;
+            }
+            if (3 < 2) { // Disable code without generating a warning.
+                // Plot curve, including error. For input to Plotter program.
+                console.log("x [domain]\ty [hide]\tfixed x [hide]\terror");
+                for (let i = 0; i < this.straightPosToCurvedPosMap.length; i++) {
+                    const r = this.straightPosToCurvedPosMap[i];
+                    const r2 = 4 * r * r / (width * width + height * height);
+                    const r4 = r2 * r2;
+                    const mult = 1 + curvature * r2 + curvature * r4;
+                    const straightR = r * mult;
+                    console.log(i, r, straightR, straightR - i);
+                }
             }
         }
 
