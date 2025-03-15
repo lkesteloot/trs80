@@ -1,7 +1,6 @@
 import {adjustColor, CSS_PREFIX, rgbToCss} from "./Utils.js";
-import {Background, BasicLevel, CGChip, Config, InkColor, ModelType, Phosphor, PrinterModel, RamSize, ScanLines} from "trs80-emulator";
+import {BasicLevel, CGChip, Config, DisplayType, InkColor, ModelType, PrinterModel, RamSize} from "trs80-emulator";
 import {Trs80} from "trs80-emulator";
-import {AUTHENTIC_BACKGROUND, BLACK_BACKGROUND, phosphorToRgb} from "./CanvasScreen.js";
 import { inkColorToRgb } from "./WebPrinter.js";
 
 const gCssPrefix = CSS_PREFIX + "-settings-panel";
@@ -299,52 +298,17 @@ const HARDWARE_OPTION_BLOCKS: OptionBlock<any>[] = [
 ];
 const VIEW_OPTION_BLOCKS: OptionBlock<any>[] = [
     {
-        title: "Phosphor",
-        isChecked: (phosphor: Phosphor, config: Config) => phosphor === config.phosphor,
-        updateConfig: (phosphor: Phosphor, config: Config) => config.edit().withPhosphor(phosphor).build(),
+        title: "Display",
+        isChecked: (displayType: DisplayType, config: Config) => displayType === config.displayType,
+        updateConfig: (displayType: DisplayType, config: Config) => config.edit().withDisplayType(displayType).build(),
         options: [
             {
-                label: rgbToCss(adjustColor(phosphorToRgb(Phosphor.WHITE), 0.8)),
-                value: Phosphor.WHITE,
+                label: "Simple",
+                value: DisplayType.SIMPLE,
             },
             {
-                // Cheat and use the green from the OK button so that the two greens don't clash.
-                label: gAcceptButtonColor,
-                value: Phosphor.GREEN,
-            },
-            {
-                label: rgbToCss(adjustColor(phosphorToRgb(Phosphor.AMBER), 0.8)),
-                value: Phosphor.AMBER,
-            },
-        ]
-    },
-    {
-        title: "Background",
-        isChecked: (background: Background, config: Config) => background === config.background,
-        updateConfig: (background: Background, config: Config) => config.edit().withBackground(background).build(),
-        options: [
-            {
-                label: BLACK_BACKGROUND,
-                value: Background.BLACK,
-            },
-            {
-                label: AUTHENTIC_BACKGROUND,
-                value: Background.AUTHENTIC,
-            },
-        ]
-    },
-    {
-        title: "Scan Lines",
-        isChecked: (scanLines: ScanLines, config: Config) => scanLines === config.scanLines,
-        updateConfig: (scanLines: ScanLines, config: Config) => config.edit().withScanLines(scanLines).build(),
-        options: [
-            {
-                label: "Off",
-                value: ScanLines.OFF,
-            },
-            {
-                label: "On",
-                value: ScanLines.ON,
+                label: "Authentic",
+                value: DisplayType.AUTHENTIC,
             },
         ]
     },
@@ -426,9 +390,9 @@ function isDarkColor(color: string): boolean {
         throw new Error("isDarkColor: not a color (" + color + ")");
     }
 
-    const red = parseInt(color.substr(1, 2), 16);
-    const grn = parseInt(color.substr(3, 2), 16);
-    const blu = parseInt(color.substr(5, 2), 16);
+    const red = parseInt(color.substring(1, 3), 16);
+    const grn = parseInt(color.substring(3, 5), 16);
+    const blu = parseInt(color.substring(5, 7), 16);
     const gray = red*0.3 + grn*0.6 + blu*0.1;
 
     return gray < 110;

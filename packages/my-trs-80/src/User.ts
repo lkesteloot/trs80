@@ -1,5 +1,5 @@
-import firebase from "firebase/app";
-import DocumentData = firebase.firestore.DocumentData;
+import { DocumentData } from "firebase/firestore";
+import { User as FirebaseUser } from "firebase/auth";
 
 /**
  * The user from the perspective of the auth system.
@@ -50,7 +50,7 @@ export class AuthUser {
     /**
      * Make a new AuthUser from a Firebase user.
      */
-    public static fromFirebaseUser(firebaseUser: firebase.User): AuthUser {
+    public static fromFirebaseUser(firebaseUser: FirebaseUser): AuthUser {
         return new AuthUser(firebaseUser.uid,
             firebaseUser.email ?? "",
             firebaseUser.displayName ?? "");

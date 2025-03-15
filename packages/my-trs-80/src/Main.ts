@@ -1,37 +1,36 @@
+import {Config, RunningState, Trs80} from "trs80-emulator";
 import {
-    Config,
-    RunningState,
-    Trs80
-} from "trs80-emulator";
-import {
+    BasicEditor,
     CanvasScreen,
     ControlPanel,
-    DriveIndicators, flashNode,
-    PanelType, WebProgressBar,
-    SettingsPanel, WebKeyboard, FlipCard, WebPrinter
+    DriveIndicators,
+    flashNode,
+    FlipCard,
+    PanelType,
+    SettingsPanel,
+    WebKeyboard,
+    WebPrinter,
+    WebProgressBar,
+    WebSoundPlayer
 } from "trs80-emulator-web";
-import firebase from 'firebase/app';
-// These imports load individual services into the firebase namespace.
-import 'firebase/auth';
-import 'firebase/firestore';
-import 'firebase/analytics';
+import {initializeApp} from "firebase/app";
+import {getAnalytics} from "firebase/analytics";
+import {getAuth, GoogleAuthProvider} from "firebase/auth";
 import * as firebaseui from "firebaseui";
 import {makeIcon, makeIconButton, makeTextButton} from "./Utils";
 import {PanelManager} from "./PanelManager";
 import {LibraryPanel} from "./LibraryPanel";
 import {Context} from "./Context";
 import {Library} from "./Library";
-import {FileBuilder} from "./File";
+import {File, FileBuilder} from "./File";
 import {DialogBox} from "./DialogBox";
 import {AuthUser} from "./User";
 import {Database} from "./Database";
-import {File} from "./File";
-import {BasicEditor} from "trs80-emulator-web";
 import {isRegisterSetField, toHexWord} from "z80-base";
-import {WebSoundPlayer} from "trs80-emulator-web";
-import { AudioFileCassettePlayer } from "trs80-cassette-player";
+import {AudioFileCassettePlayer} from "trs80-cassette-player";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
-import { disasmForTrs80 } from "trs80-base";
+import {disasmForTrs80} from "trs80-base";
+import {getFirestore} from "firebase/firestore";
 
 function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () => void): HTMLElement {
     const body = document.querySelector("body") as HTMLElement;
@@ -91,7 +90,7 @@ export function main() {
     body.classList.add("signed-out");
 
     // Configuration for Firebase.
-    firebase.initializeApp({
+    const firebaseApp = initializeApp({
         apiKey: "AIzaSyAfGZY9BaDUmy4qNtg11JHd_kLd1JmgdBI",
         authDomain: "my-trs-80.firebaseapp.com",
         projectId: "my-trs-80",
@@ -99,19 +98,19 @@ export function main() {
         messagingSenderId: "438103442091",
         appId: "1:438103442091:web:0fe42c43917ba1add52dee"
     });
-    firebase.analytics();
+    const firebaseAnalytics = getAnalytics(firebaseApp);
 
     // Configuration for Firebase sign-in screen.
     const uiConfig = {
         signInSuccessUrl: '/',
         signInOptions: [
             // Leave the lines as is for the providers you want to offer your users.
-            firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-            // firebase.auth.FacebookAuthProvider.PROVIDER_ID,
-            // firebase.auth.TwitterAuthProvider.PROVIDER_ID,
-            // firebase.auth.GithubAuthProvider.PROVIDER_ID,
-            // firebase.auth.EmailAuthProvider.PROVIDER_ID,
-            // firebase.auth.PhoneAuthProvider.PROVIDER_ID,
+            GoogleAuthProvider.PROVIDER_ID,
+            // FacebookAuthProvider.PROVIDER_ID,
+            // TwitterAuthProvider.PROVIDER_ID,
+            // GithubAuthProvider.PROVIDER_ID,
+            // EmailAuthProvider.PROVIDER_ID,
+            // PhoneAuthProvider.PROVIDER_ID,
             // firebaseui.auth.AnonymousAuthProvider.PROVIDER_ID
         ],
         // Pop up a browser window for the actual sign-in page:
@@ -128,7 +127,7 @@ export function main() {
         },
     };
 
-    let firebaseAuth = firebase.auth();
+    const firebaseAuth = getAuth();
     const firebaseAuthUi = new firebaseui.auth.AuthUI(firebaseAuth);
 
     const signInDiv = document.createElement("div");
@@ -139,7 +138,7 @@ export function main() {
     signInDiv.append(signInInstructions, signInFirebase);
     let signInDialog: DialogBox | undefined = undefined;
 
-    const db = new Database(firebase.firestore());
+    const db = new Database(getFirestore(firebaseApp));
 
     firebaseAuth.onAuthStateChanged(firebaseUser => {
         if (firebaseUser !== null) {
@@ -178,7 +177,7 @@ export function main() {
             }
             signInDialog = new DialogBox("Sign In", signInDiv, "sign-in-dialog-box");
         },
-        () => firebase.auth().signOut());
+        () => firebaseAuth.signOut());
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
 
@@ -195,7 +194,7 @@ export function main() {
     const webPrinter = new WebPrinter(trs80, screen);
     trs80.setPrinter(webPrinter);
 
-    const flipCard = new FlipCard(screen.getWidth(), screen.getHeight());
+    const flipCard = new FlipCard(screen);
     flipCard.setFront(screen);
     screenDiv.append(flipCard.node);
 
@@ -390,16 +389,14 @@ export function main() {
     });
 
     // See if we should run an app right away.
-    context.onUserResolved.subscribe(() => {
+    context.onUserResolved.subscribe(async () => {
         // We're signed in, or not, and can now read the database.
         if (runFileId !== undefined) {
-            db.getFile(runFileId)
-                .then(file => {
-                    context.runProgram(file);
-                })
-                .catch(() => {
-                    // TODO Should probably display error message.
-                });
+            try {
+                context.runProgram(await db.getFile(runFileId));
+            } catch (e: any) {
+                // TODO Should probably display error message.
+            }
         }
     });
 }

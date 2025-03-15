@@ -20,9 +20,8 @@
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^16.0.0",
-    "typedoc": "^0.22.13",
-    "typescript": "^4.0.0"
+    "@types/node": "^22.13.0",
+    "typedoc": "^0.27.6"
   },
   "dependencies": {
     "strongly-typed-events": "^3.0.11",

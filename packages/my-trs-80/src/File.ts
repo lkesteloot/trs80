@@ -1,12 +1,10 @@
-import firebase from "firebase/app";
 import {isSameStringArray, TRASH_TAG} from "./Utils";
 import * as base64js from "base64-js";
 import {sha1} from "./Sha1";
 import {TagSet} from "./TagSet";
-import DocumentData = firebase.firestore.DocumentData;
-import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 import {decodeTrs80File, setBasicName} from "trs80-base";
-type UpdateData = firebase.firestore.UpdateData;
+import {Bytes, DocumentData, DocumentSnapshot, Timestamp } from "firebase/firestore";
+import {Writable} from "ts-essentials";
 
 // What's considered a "new" file.
 const NEW_TIME_MS = 60*60*24*7*1000;
@@ -118,8 +116,8 @@ export class File {
     /**
      * Returns a Firestore update object to convert oldFile to this.
      */
-    public getUpdateDataComparedTo(oldFile: File): UpdateData {
-        const updateData: UpdateData = {};
+    public getUpdateDataComparedTo(oldFile: File): Partial<File> {
+        const updateData: Partial<Writable<File>> = {};
 
         if (this.name !== oldFile.name) {
             updateData.name = this.name;
@@ -286,9 +284,9 @@ export class FileBuilder {
         builder.tags = data.tags ?? [];
         builder.hash = data.hash;
         builder.screenshots = data.screenshots ?? [];
-        builder.binary = (data.binary as firebase.firestore.Blob).toUint8Array();
-        builder.addedAt = (data.addedAt as firebase.firestore.Timestamp).toDate();
-        builder.modifiedAt = (data.modifiedAt as firebase.firestore.Timestamp).toDate();
+        builder.binary = (data.binary as Bytes).toUint8Array();
+        builder.addedAt = (data.addedAt as Timestamp).toDate();
+        builder.modifiedAt = (data.modifiedAt as Timestamp).toDate();
 
         return builder;
     }

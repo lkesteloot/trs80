@@ -487,7 +487,7 @@ export class Disasm {
         // Keep decoding as long as we have addresses to decode.
         while (addressesToDecode.size > 0) {
             // Pick any to do next.
-            const address = addressesToDecode.values().next().value;
+            const address = addressesToDecode.values().next().value!;
             addressesToDecode.delete(address);
 
             if (this.isDecoded[address]) {

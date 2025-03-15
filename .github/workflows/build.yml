@@ -28,9 +28,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - run: npm clean-install
       - run: npm run build --workspaces
-      - run: npm run test -w packages/z80-asm
-      - run: npm run test -w packages/z80-disasm
-      - run: npm run test -w packages/z80-emulator
+      - run: npm run test
       - uses: actions/upload-artifact@v4
         with:
           name: my-trs-80

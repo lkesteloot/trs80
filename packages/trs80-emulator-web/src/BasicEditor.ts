@@ -19,21 +19,21 @@ export class BasicEditor extends FlipCardSideAdapter {
         super();
 
         this.trs80 = trs80;
-        const width = screen.getWidth();
-        const height = screen.getHeight();
 
         addCssFontToPage();
 
         this.node = document.createElement("div");
-        this.node.style.width = width + "px";
-        this.node.style.height = height + "px";
 
         // The text editor sits in the editor node, on the back of the card.
         const fontSize = Math.round(24*screen.scale);
         this.textarea = document.createElement("textarea");
-        this.textarea.style.width = width + "px";
-        this.textarea.style.height = height + "px";
-        this.textarea.style.padding = screen.padding + "px";
+        screen.listenForScreenSize(screenSize => {
+            this.node.style.width = screenSize.width + "px";
+            this.node.style.height = screenSize.height + "px";
+            this.textarea.style.width = screenSize.width + "px";
+            this.textarea.style.height = screenSize.height + "px";
+            this.textarea.style.padding = screenSize.scaledPadding + "px";
+        });
         this.textarea.style.border = "0";
         this.textarea.style.borderRadius = screen.getBorderRadius() + "px";
         this.textarea.style.fontFamily = `"TreasureMIII64C", monospace`;

@@ -443,7 +443,7 @@ class Completer {
                 if (trieNode.expression instanceof Map) {
                     // Assume all paths have the same set of sub-tries. We don't want to have to
                     // evaluate the expression here to see which key to look up.
-                    subTrieNode = trieNode.expression.values().next().value;
+                    subTrieNode = trieNode.expression.values().next().value!;
                 } else {
                     subTrieNode = trieNode.expression.trieNode;
                 }

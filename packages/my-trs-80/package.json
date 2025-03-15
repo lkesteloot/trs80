@@ -6,28 +6,24 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "npx snowpack dev",
+    "start": "vite",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && npx snowpack build",
+    "build": "npm run updateBuildInfo && vite build",
     "clean": "rm -rf build",
-    "publish": "npm run build && rsync -aP build/ lk@hitch.headcode.com:my-trs-80-website/"
+    "publish": "npm run build && rsync -aP build/ lk@hitch.headcode.com:my-trs-80-website/",
+    "publish-stage": "npm run build && rsync -aP build/ lk@hitch.headcode.com:my-trs-80-website/stage/"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": "https://github.com/lkesteloot/trs80.git",
   "license": "MIT",
   "devDependencies": {
     "@types/lodash": "^4.14.165",
-    "@types/navigo": "^7.0.1",
-    "@types/node": "^16.0.0",
-    "pbjs": "^0.0.14",
-    "snowpack": "^3.8.8",
-    "typescript": "^4.9.5"
+    "pbjs": "^0.0.14"
   },
   "dependencies": {
-    "@snowpack/plugin-typescript": "^1.2.1",
     "base64-js": "^1.5.1",
-    "firebase": "^8.3.0",
-    "firebaseui": "^4.8.0",
+    "firebase": "^10.14.1",
+    "firebaseui": "^6.1.0",
     "jszip": "^3.5.0",
     "lodash": "^4.17.20",
     "retrostore-api": "^1.0.0",
@@ -35,11 +31,10 @@
     "teamten-ts-utils": "^1.0.3",
     "trs80-base": "^2.3.1",
     "trs80-cassette": "^2.3.1",
-    "trs80-disasm": "^2.3.1",
     "trs80-emulator": "^2.3.1",
     "trs80-emulator-web": "^2.3.1",
     "z80-base": "^2.0.1",
-    "z80-disasm": "^2.2.3",
+    "z80-disasm": "^2.3.0",
     "z80-emulator": "^2.3.0"
   }
 }

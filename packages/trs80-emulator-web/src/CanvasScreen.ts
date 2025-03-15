@@ -1,6 +1,6 @@
 import {Trs80WebScreen} from "./Trs80WebScreen.js";
 import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
-import {Background, CGChip, Config, ModelType, Phosphor, ScanLines, Trs80ScreenState} from "trs80-emulator";
+import {CGChip, Config, DisplayType, ModelType, Trs80ScreenState} from "trs80-emulator";
 import {toHexByte} from "z80-base";
 import {
     TRS80_CHAR_HEIGHT,
@@ -12,15 +12,23 @@ import {
     TRS80_SCREEN_BEGIN,
     TRS80_SCREEN_SIZE
 } from "trs80-base";
-import {SimpleEventDispatcher} from "strongly-typed-events";
+import {ISimpleEventHandler, SimpleEventDispatcher} from "strongly-typed-events";
 import {FlipCard, FlipCardSide} from "./FlipCard.js";
 import {g_amber_blue, g_amber_green, g_amber_red} from "./amber.js";
 import {g_p4_blue, g_p4_green, g_p4_red} from "./p4.js";
 import {g_green1_blue, g_green1_green, g_green1_red} from "./green1.js";
 import {g_green2_blue, g_green2_green, g_green2_red} from "./green2.js";
+import {ScreenSize, ScreenSizeProvider} from "./ScreenSize";
 
 const TIME_RENDERING = false;
+let TIME_BANNER: HTMLElement | undefined = undefined;
 const SHOW_REFLECTION = false;
+
+// In fractions of an original (CRT) pixel.
+const HORIZONTAL_BLUR = 0.72;
+const VERTICAL_BLUR = 0.20;
+const HALATION_BLUR = 1.5;
+const REFLECTION_BLUR = 3;
 
 const DEMO_MODE_ENABLED = false;
 enum DemoMode {
@@ -48,7 +56,6 @@ const TRS80_CRT_PIXEL_HEIGHT = TRS80_CHAR_HEIGHT*TRS80_CHAR_CRT_PIXEL_HEIGHT;
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
 
-const PADDING = 30;
 const BORDER_RADIUS = 8;
 
 const WHITE_PHOSPHOR = [230, 231, 252];
@@ -78,21 +85,6 @@ function demoModifierKeys(event: KeyboardEvent | MouseEvent): boolean {
 // Clamp value to min and max.
 function clamp(min: number, value: number, max: number): number {
     return Math.min(Math.max(value, min), max);
-}
-
-// Gets an RGB array (0-255) for a phosphor.
-export function phosphorToRgb(phosphor: Phosphor): number[] {
-    switch (phosphor) {
-        case Phosphor.WHITE:
-        default:
-            return WHITE_PHOSPHOR;
-
-        case Phosphor.GREEN:
-            return GREEN_PHOSPHOR;
-
-        case Phosphor.AMBER:
-            return AMBER_PHOSPHOR;
-    }
 }
 
 const VERTEX_SHADER_SOURCE = `#version 300 es
@@ -165,6 +157,37 @@ void main() {
 }
 `;
 
+const RENDER_SIMPLE_SCREEN_FRAGMENT_SHADER_SOURCE = `#version 300 es
+ 
+precision highp float;
+precision highp usampler2D;
+
+uniform sampler2D u_inputTexture;
+uniform ivec2 u_inputTextureSize;
+uniform float u_padding;
+uniform float u_scale;
+in vec2 v_texcoord;
+out vec4 outColor;
+
+const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
+const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
+const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
+
+void main() {
+    // Unscaled.
+    vec2 p = v_texcoord/u_scale;
+
+    // Text area.
+    vec2 t = p - u_padding;
+
+    float c = t.x >= -1.0 && t.y >= -1.0 && t.x < g_size.x + 1.0 && t.y < g_size.y + 1.0
+        ? texture(u_inputTexture, (t + 1.0)/vec2(u_inputTextureSize)).r
+        : 0.0;
+
+    outColor = vec4(c, c, c, 1.0);
+}
+`;
+
 const RENDER_SCREEN_FRAGMENT_SHADER_SOURCE = `#version 300 es
  
 precision highp float;
@@ -173,6 +196,7 @@ precision highp usampler2D;
 uniform sampler2D u_inputTexture;
 uniform ivec2 u_inputTextureSize;
 uniform float u_time; // Seconds.
+uniform float u_padding;
 uniform float u_scale;
 uniform float u_crtCurvature; // 0-
 uniform float u_scanlines; // 0-1
@@ -183,8 +207,6 @@ out vec4 outColor;
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
 const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
-const float g_padding = ${PADDING}.0;
-const float g_radius = ${BORDER_RADIUS}.0;
 const float PI = ${Math.PI};
 const float SCANLINE_WIDTH = 0.2;
 
@@ -196,7 +218,7 @@ void main() {
     vec2 p = v_texcoord/u_scale;
 
     // Text area.
-    vec2 t = p - g_padding;
+    vec2 t = p - u_padding;
     
     // CRT curvature.
     vec2 middle = g_size/2.0;
@@ -801,7 +823,7 @@ export interface OverlayOptions {
 
 type FullOverlayOptions = Required<OverlayOptions>;
 
-const DEFAULT_OVERLAY_OPTIONS: FullOverlayOptions = {
+const DEFAULT_OVERLAY_OPTIONS = {
     showPixelGrid: false,
     showCharGrid: false,
     showHighlight: false,
@@ -812,7 +834,7 @@ const DEFAULT_OVERLAY_OPTIONS: FullOverlayOptions = {
     showSelection: false,
     selection: EMPTY_SELECTION,
     selectionAntsOffset: 0,
-};
+} as const satisfies FullOverlayOptions;
 
 function overlayOptionsEqual(a: FullOverlayOptions, b: FullOverlayOptions): boolean {
     return a.showPixelGrid === b.showPixelGrid &&
@@ -830,118 +852,59 @@ function overlayOptionsEqual(a: FullOverlayOptions, b: FullOverlayOptions): bool
 const GRID_COLOR = "rgba(160, 160, 255, 0.5)";
 const GRID_HIGHLIGHT_COLOR = "rgba(255, 255, 160, 0.5)";
 
-/**
- * TRS-80 screen based on an HTML canvas element.
- */
-export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
-    public readonly scale: number = 1;
-    public readonly padding: number;
-    private readonly node: HTMLElement;
-    private readonly width: number;
-    private readonly height: number;
-    private readonly canvas: HTMLCanvasElement;
-    private readonly camera: HTMLVideoElement;
-    private readonly renderPasses: RenderPass[];
-    private readonly fontTexture: SizedTexture;
-    private readonly memoryTexture: SizedTexture;
-    private readonly cameraTexture: SizedTexture;
-    private readonly phosphors: SizedTexture[];
-    private readonly colorMapNamedTexture: NamedTexture;
-    private readonly time: NamedVariable;
-    private readonly startTime: number;
-    private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
-    private readonly glyphs: HTMLCanvasElement[] = [];
-    public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
-    private readonly pixelHorizontalBlurMax: number;
-    private readonly pixelVerticalBlurMax: number;
-    private readonly expandedVariable: NamedVariable;
-    private readonly crtCurvature: NamedVariable;
-    private readonly scanlines: NamedVariable;
-    private readonly scanlineBloom: NamedVariable;
-    private readonly pixelHorizontalBlur: NamedVariable;
-    private readonly pixelVerticalBlur: NamedVariable;
-    private readonly phosphor: NamedVariable;
-    private readonly halation: NamedVariable;
-    private readonly blackpoint: NamedVariable;
-    private readonly vignette: NamedVariable;
-    private readonly reflection: NamedVariable;
-    private readonly zoom: NamedVariable;
-    private readonly zoomPoint: NamedVariable;
-    private flipCard: FlipCard | undefined = undefined;
-    private lastMouseEvent: MouseEvent | undefined = undefined;
-    private needRedraw = true;
-    private config: Config = Config.makeDefault();
-    private glyphWidth = 0;
-    private overlayCanvas: HTMLCanvasElement | undefined = undefined;
-    private overlayOptions: FullOverlayOptions = DEFAULT_OVERLAY_OPTIONS;
-    private demoMode = DemoMode.OFF;
-    private zoomPointIndex = 0;
+class ConfiguredCanvas {
+    public readonly canvas: HTMLCanvasElement;
+    public readonly width: number;
+    public readonly height: number;
+    public readonly fontTexture: SizedTexture;
+    public readonly memoryTexture: SizedTexture;
+    public readonly cameraTexture: SizedTexture;
+    public readonly phosphors: SizedTexture[];
+    public readonly colorMapNamedTexture: NamedTexture;
+    public readonly time: NamedVariable;
+    public readonly startTime: number;
+    public readonly pixelHorizontalBlurMax: number;
+    public readonly pixelVerticalBlurMax: number;
+    public readonly expandedVariable: NamedVariable;
+    public readonly paddingVariable: NamedVariable;
+    public readonly crtCurvature: NamedVariable;
+    public readonly scanlines: NamedVariable;
+    public readonly scanlineBloom: NamedVariable;
+    public readonly pixelHorizontalBlur: NamedVariable;
+    public readonly pixelVerticalBlur: NamedVariable;
+    public readonly phosphor: NamedVariable;
+    public readonly halation: NamedVariable;
+    public readonly blackpoint: NamedVariable;
+    public readonly vignette: NamedVariable;
+    public readonly reflection: NamedVariable;
+    public readonly zoom: NamedVariable;
+    public readonly zoomPoint: NamedVariable;
+    private readonly renderPasses: RenderPass[] = [];
+    public needRedraw = true;
 
-    /**
-     * Create a canvas screen.
-     *
-     * @param scale size multiplier. If greater than 1, use multiples of 0.5.
-     */
-    constructor(scale: number = 1) {
-        super();
-
-        this.node = document.createElement("div");
-        // Fit canvas horizontally so that the nested objects (panels and progress bars) are
-        // displayed in the canvas.
-        this.node.style.maxWidth = "max-content";
-
-        this.scale = scale;
-        this.padding = Math.round(PADDING * this.scale);
+    public constructor(private readonly config: Config,
+                       private readonly scale: number,
+                       private readonly memory: Uint8Array,
+                       private readonly camera: HTMLVideoElement) {
 
         this.canvas = document.createElement("canvas");
         // Make it block so we don't have any weird text margins on the bottom.
         this.canvas.style.display = "block";
         // In CSS pixels:
-        this.width = TRS80_CRT_PIXEL_WIDTH * this.scale + 2 * this.padding;
-        this.height = TRS80_CRT_PIXEL_HEIGHT * this.scale + 2 * this.padding;
+        const scaledPadding = this.getScaledPadding();
+        this.width = TRS80_CRT_PIXEL_WIDTH * this.scale + 2 * scaledPadding;
+        this.height = TRS80_CRT_PIXEL_HEIGHT * this.scale + 2 * scaledPadding;
         this.canvas.style.width = `${this.width}px`;
         this.canvas.style.height = `${this.height}px`;
         // In device pixels:
         const devicePixelRatio = window.devicePixelRatio ?? 1;
         this.canvas.width = this.width * devicePixelRatio;
         this.canvas.height = this.height * devicePixelRatio;
-        this.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
-        this.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
-        this.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
-        // We don't have a good way to unsubscribe from these two. We could add some kind of close() method.
-        // We could also check in the callback that the canvas's ancestor is window.
-        window.addEventListener("keydown", (event) => this.onKeyEvent(event), {
-            capture: true,
-            passive: true,
-        });
-        window.addEventListener("keyup", (event) => this.onKeyEvent(event), {
-            capture: true,
-            passive: true,
-        });
-        this.node.append(this.canvas);
 
-        this.camera = document.createElement("video");
-        if (SHOW_REFLECTION) {
-            this.camera.style.display = "none";
-            this.camera.style.width = "512px";
-            this.camera.style.height = "512px";
-            this.camera.controls = true;
-            this.camera.playsInline = true; // Examples use empty string for iOS.
-            this.camera.crossOrigin = "anonymous";
-            document.body.append(this.camera);
-
-            navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false,
-            }).then(
-                stream => this.camera.srcObject = stream,
-                error => console.log(error));
-
-            // Shouldn't have to click, but browser (sometimes) requires it to allow play().
-            this.node.addEventListener("click", async () => {
-                await this.camera.play();
-            });
-        }
+        // Size of canvas is updated in updateFromConfig().
+        // this.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
+        // this.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
+        // this.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
 
         const gl = this.canvas.getContext("webgl2");
         if (gl === null) {
@@ -960,12 +923,33 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const horizontallyBlurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
         const blurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
 
+        const isAlternateCharacters = false; // TODO get from parent
+        let font;
+        switch (this.config.cgChip) {
+            case CGChip.ORIGINAL:
+                font = MODEL1A_FONT;
+                break;
+            case CGChip.LOWER_CASE:
+            default:
+                switch (this.config.modelType) {
+                    case ModelType.MODEL1:
+                        font = MODEL1B_FONT;
+                        break;
+                    case ModelType.MODEL3:
+                    case ModelType.MODEL4:
+                    default:
+                        font = isAlternateCharacters ? MODEL3_ALT_FONT : MODEL3_FONT;
+                        break;
+                }
+                break;
+        }
+
         // Make the font texture.
         this.fontTexture = SizedTexture.create(gl, 256 * 8, 24);
-        gl.bindTexture(gl.TEXTURE_2D,this. fontTexture.texture);
+        gl.bindTexture(gl.TEXTURE_2D, this.fontTexture.texture);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, this.fontTexture.width, this.fontTexture.height, 0,
-            gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(MODEL3_FONT.makeFontSheet()));
+            gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(font.makeFontSheet()));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -1001,17 +985,12 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         ];
         this.colorMapNamedTexture = new NamedTexture("u_colorMapTexture", this.phosphors[0]);
 
-        // In fractions of an original (CRT) pixel.
-        const HORIZONTAL_BLUR = 0.72;
-        const VERTICAL_BLUR = 0.20;
-        const HALATION_BLUR = 1.5;
-        const REFLECTION_BLUR = 3;
-
         this.pixelHorizontalBlurMax = HORIZONTAL_BLUR * devicePixelRatio * scale;
         this.pixelVerticalBlurMax = VERTICAL_BLUR * devicePixelRatio * scale;
 
         this.time = new NamedVariable("u_time", [0], true);
         this.expandedVariable = new NamedVariable("u_expanded", [0]);
+        this.paddingVariable = new NamedVariable("u_padding", [this.getRawPadding()]);
         this.crtCurvature = new NamedVariable("u_crtCurvature", [DEFAULT_CRT_CURVATURE]);
         this.scanlines = new NamedVariable("u_scanlines", [DEFAULT_SCANLINES]);
         this.scanlineBloom = new NamedVariable("u_scanlineBloom", [DEFAULT_SCANLINE_BLOOM]);
@@ -1025,100 +1004,386 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         this.zoom = new NamedVariable("u_zoom", [DEFAULT_ZOOM]);
         this.zoomPoint = new NamedVariable("u_zoomPoint", ZOOM_POINTS[0]);
         this.startTime = Date.now() / 1000;
-        this.renderPasses = [
-            // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
-            new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_fontTexture", this.fontTexture),
-                new NamedTexture("u_memoryTexture", this.memoryTexture),
-            ], [
-                this.expandedVariable,
-            ], rawScreenTexture),
 
-            // Curvature, scanlines, and scanline bloom.
-            new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_inputTexture", rawScreenTexture),
-            ], [
-                this.time,
-                new NamedVariable("u_scale", [devicePixelRatio * scale]),
-                this.crtCurvature,
-                this.scanlines,
-                this.scanlineBloom,
-            ], renderedTexture),
+        const isExpandedCharacters = false; // TODO get from parent
+        this.expandedVariable.values[0] = isExpandedCharacters ? 1 : 0;
 
-            // Scale up and horizontally blur the rendered screen.
-            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_inputTexture", renderedTexture),
-            ], [
-                this.pixelHorizontalBlur,
-                new NamedVariable("u_boost", [1.0 + 0.5*this.scanlines.values[0]]),
-                new NamedVariable("u_vertical", new Int32Array([0])),
-            ], horizontallyBlurredTexture),
+        if (this.config.displayType === DisplayType.SIMPLE) {
+            this.renderPasses = [
+                // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
+                new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_fontTexture", this.fontTexture),
+                    new NamedTexture("u_memoryTexture", this.memoryTexture),
+                ], [
+                    this.expandedVariable,
+                ], rawScreenTexture),
 
-            // Vertically blur the rendered screen.
-            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
-            ], [
-                this.pixelVerticalBlur,
-                new NamedVariable("u_boost", [1.0 + 0.5*this.scanlines.values[0]]),
-                new NamedVariable("u_vertical", new Int32Array([1])),
-            ], blurredTexture),
+                // Padding, colors.
+                new RenderPass(gl, RENDER_SIMPLE_SCREEN_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_inputTexture", rawScreenTexture),
+                ], [
+                    new NamedVariable("u_scale", [devicePixelRatio * this.scale]),
+                    this.paddingVariable,
+                ], {width: this.canvas.width, height: this.canvas.height}),
+            ];
+        } else {
+            this.renderPasses = [
+                // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
+                new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_fontTexture", this.fontTexture),
+                    new NamedTexture("u_memoryTexture", this.memoryTexture),
+                ], [
+                    this.expandedVariable,
+                ], rawScreenTexture),
 
-            // Horizontally blur for halation.
-            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_inputTexture", blurredTexture),
-            ], [
-                new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * scale]),
-                new NamedVariable("u_boost", [1.0 + 0.5*this.scanlines.values[0]]),
-                new NamedVariable("u_vertical", new Int32Array([0])),
-            ], horizontallyBlurredTexture),
+                // Curvature, scanlines, and scanline bloom.
+                new RenderPass(gl, RENDER_SCREEN_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_inputTexture", rawScreenTexture),
+                ], [
+                    this.time,
+                    new NamedVariable("u_scale", [devicePixelRatio * this.scale]),
+                    this.paddingVariable,
+                    this.crtCurvature,
+                    this.scanlines,
+                    this.scanlineBloom,
+                ], renderedTexture),
 
-            // Vertically blur for halation.
-            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
-            ], [
-                new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * scale]),
-                new NamedVariable("u_boost", [1.0 + 0.5*this.scanlines.values[0]]),
-                new NamedVariable("u_vertical", new Int32Array([1])),
-            ], halationTexture),
+                // Scale up and horizontally blur the rendered screen.
+                new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_inputTexture", renderedTexture),
+                ], [
+                    this.pixelHorizontalBlur,
+                    new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
+                    new NamedVariable("u_vertical", new Int32Array([0])),
+                ], horizontallyBlurredTexture),
 
-            // Horizontally blur camera reflection.
-            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_inputTexture", this.cameraTexture),
-            ], [
-                new NamedVariable("u_sigma", [REFLECTION_BLUR]),
-                new NamedVariable("u_boost", [1.0]),
-                new NamedVariable("u_vertical", new Int32Array([0])),
-            ], horizontallyBlurredReflectionTexture),
+                // Vertically blur the rendered screen.
+                new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
+                ], [
+                    this.pixelVerticalBlur,
+                    new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
+                    new NamedVariable("u_vertical", new Int32Array([1])),
+                ], blurredTexture),
 
-            // Vertically blur camera reflection.
-            new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_inputTexture", horizontallyBlurredReflectionTexture),
-            ], [
-                new NamedVariable("u_sigma", [REFLECTION_BLUR]),
-                new NamedVariable("u_boost", [1.0]),
-                new NamedVariable("u_vertical", new Int32Array([1])),
-            ], blurredReflectionTexture),
+                // Horizontally blur for halation.
+                new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_inputTexture", blurredTexture),
+                ], [
+                    new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.scale]),
+                    new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
+                    new NamedVariable("u_vertical", new Int32Array([0])),
+                ], horizontallyBlurredTexture),
 
-            // Halation, phosphor color, vignette, bezel.
-            new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
-                new NamedTexture("u_inputTexture", blurredTexture),
-                new NamedTexture("u_halationTexture", halationTexture),
-                this.colorMapNamedTexture,
-                new NamedTexture("u_cameraTexture", blurredReflectionTexture),
-            ], [
-                this.zoom,
-                this.zoomPoint,
-                this.phosphor,
-                this.halation,
-                this.blackpoint,
-                this.vignette,
-                this.reflection,
-                this.crtCurvature,
-            ], {width: this.canvas.width, height: this.canvas.height}),
-        ];
+                // Vertically blur for halation.
+                new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
+                ], [
+                    new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.scale]),
+                    new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
+                    new NamedVariable("u_vertical", new Int32Array([1])),
+                ], halationTexture),
+
+                // Horizontally blur camera reflection.
+                new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_inputTexture", this.cameraTexture),
+                ], [
+                    new NamedVariable("u_sigma", [REFLECTION_BLUR]),
+                    new NamedVariable("u_boost", [1.0]),
+                    new NamedVariable("u_vertical", new Int32Array([0])),
+                ], horizontallyBlurredReflectionTexture),
+
+                // Vertically blur camera reflection.
+                new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_inputTexture", horizontallyBlurredReflectionTexture),
+                ], [
+                    new NamedVariable("u_sigma", [REFLECTION_BLUR]),
+                    new NamedVariable("u_boost", [1.0]),
+                    new NamedVariable("u_vertical", new Int32Array([1])),
+                ], blurredReflectionTexture),
+
+                // Halation, phosphor color, vignette, bezel.
+                new RenderPass(gl, COLOR_MAP_FRAGMENT_SHADER_SOURCE, [
+                    new NamedTexture("u_inputTexture", blurredTexture),
+                    new NamedTexture("u_halationTexture", halationTexture),
+                    this.colorMapNamedTexture,
+                    new NamedTexture("u_cameraTexture", blurredReflectionTexture),
+                ], [
+                    this.zoom,
+                    this.zoomPoint,
+                    this.phosphor,
+                    this.halation,
+                    this.blackpoint,
+                    this.vignette,
+                    this.reflection,
+                    this.crtCurvature,
+                ], {width: this.canvas.width, height: this.canvas.height}),
+            ];
+        }
+
+        this.scheduleRefresh();
+    }
+
+    public getScreenSize(): ScreenSize {
+        return new ScreenSize(this.getWidth(), this.getHeight(), this.getScaledPadding());
+    }
+
+    /**
+     * Return the padding on all sides of the character grid. The unit is
+     * small (dot) TRS-80 pixels.
+     */
+    public getRawPadding(): number {
+        return this.config.displayType === DisplayType.SIMPLE ? 10 : 30;
+    }
+
+    /**
+     * Return the padding on all sides of the character grid. The unit is
+     * CSS (host display) pixels.
+     */
+    public getScaledPadding(): number {
+        return Math.round(this.getRawPadding()*this.scale);
+    }
+
+    /**
+     * Width of the entire screen, including margins.
+     */
+    public getWidth(): number {
+        return this.width;
+    }
+
+    /**
+     * Height of the entire screen, including margins.
+     */
+    public getHeight(): number {
+        return this.height;
+    }
+
+    private scheduleRefresh(): void {
+        window.requestAnimationFrame(() => {
+            if (this.canvas.parentNode !== null) {
+                this.redrawIfNecessary();
+                this.scheduleRefresh();
+            }
+        });
+    }
+
+    private redrawIfNecessary(): void {
+        if (this.needRedraw || SHOW_REFLECTION) {
+            this.needRedraw = false;
+            this.refresh();
+        }
+    }
+
+    /**
+     * Refresh the display based on what we've kept track of.
+     */
+    private refresh(): void {
+        const gl = this.canvas.getContext("webgl2");
+        if (gl === null) {
+            throw new Error("WebGL2 is not supported");
+        }
+        const now = Date.now();
+
+        // Update memory texture.
+        gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture.texture);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT,
+            gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.memory);
+
+        // Update reflection image.
+        if (SHOW_REFLECTION) {
+            gl.bindTexture(gl.TEXTURE_2D, this.cameraTexture.texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.camera);
+        }
+
+        // Update time.
+        this.time.values[0] = now/1000 - this.startTime;
+
+        // Render each pass.
+        for (const renderPass of this.renderPasses) {
+            renderPass.render();
+        }
+
+        if (TIME_RENDERING) {
+            if (TIME_BANNER === undefined) {
+                TIME_BANNER = document.createElement("div");
+                TIME_BANNER.style.position = "fixed";
+                TIME_BANNER.style.bottom = "10px";
+                TIME_BANNER.style.right = "10px";
+                TIME_BANNER.style.background = "#444";
+                TIME_BANNER.style.color = "#aaa";
+                TIME_BANNER.style.fontFamily = "sans-serif";
+                TIME_BANNER.style.borderRadius = "8px";
+                TIME_BANNER.style.padding = "0.5em 1em";
+                document.body.append(TIME_BANNER);
+            }
+            const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+            if (fence === null) {
+                throw new Error("cannot create fence");
+            }
+            gl.flush();
+            const checkFence = () => {
+                // Always returns immediately (the max timeout is zero), so we poll.
+                const status = gl.clientWaitSync(fence, 0, 0);
+                switch (status) {
+                    case gl.TIMEOUT_EXPIRED:
+                        setTimeout(checkFence);
+                        break;
+
+                    case gl.WAIT_FAILED:
+                        throw new Error("clientWaitSync failed: " + gl.getError());
+
+                    default:
+                        gl.deleteSync(fence);
+
+                        const after = Date.now();
+                        const elapsed = Math.round(after - now) + " ms";
+                        // console.log("render time", elapsed);
+                        if (TIME_BANNER !== undefined) {
+                            TIME_BANNER.innerText = elapsed;
+                        }
+                        break;
+                }
+            };
+            setTimeout(checkFence);
+        }
+    }
+
+    /**
+     * Make a canvas from the sub-rectangle section.
+     */
+    public makeSelectionCanvas(selection: Selection): HTMLCanvasElement {
+        const canvas = document.createElement("canvas");
+        canvas.width = selection.width*4*this.scale;
+        canvas.height = selection.height*8*this.scale;
+        const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+        const scaledPadding = this.getScaledPadding();
+        ctx.drawImage(this.canvas,
+            selection.x1*4*this.scale + scaledPadding,
+            selection.y1*8*this.scale + scaledPadding,
+            selection.width*4*this.scale,
+            selection.height*8*this.scale,
+            0, 0,
+            selection.width*4*this.scale,
+            selection.height*8*this.scale);
+
+        return canvas;
+    }
+
+    /**
+     * Returns the canvas as an <img> element that can be resized. This is relatively
+     * expensive.
+     *
+     * This method is deprecated, use asImageAsync instead.
+     */
+    public asImage(): HTMLImageElement {
+        const image = document.createElement("img");
+        image.src = this.canvas.toDataURL();
+        return image;
+    }
+
+    /**
+     * Returns the canvas as an <img> element that can be resized. Despite the
+     * "async" name, there's still some synchronous work, about 13ms.
+     */
+    public asImageAsync(): Promise<HTMLImageElement> {
+        return new Promise<HTMLImageElement>((resolve, reject) => {
+            // According to this answer:
+            //     https://stackoverflow.com/a/59025746/211234
+            // the toBlob() method still has to copy the image synchronously, so this whole method still
+            // takes about 13ms. It's better than toDataUrl() because it doesn't have to make an actual
+            // base64 string. The Object URL is just a reference to the blob.
+            this.redrawIfNecessary();
+            this.canvas.toBlob(blob => {
+                if (blob === null) {
+                    reject("Cannot make image from screen");
+                } else {
+                    const image = document.createElement("img");
+                    const url = URL.createObjectURL(blob);
+                    image.addEventListener("load", () => {
+                        URL.revokeObjectURL(url);
+                        // Resolve when the image is fully loaded so that there's no UI glitching.
+                        resolve(image);
+                    });
+                    image.src = url;
+                }
+            });
+        });
+    }
+}
+
+/**
+ * TRS-80 screen based on an HTML canvas element.
+ */
+export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, ScreenSizeProvider {
+    public readonly scale: number = 1;
+    private readonly node: HTMLElement;
+    private foofoo: ConfiguredCanvas;
+    private readonly camera: HTMLVideoElement;
+    private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
+    public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
+    private readonly onScreenSize = new SimpleEventDispatcher<ScreenSize>();
+    private flipCard: FlipCard | undefined = undefined; // TODO
+    private lastMouseEvent: MouseEvent | undefined = undefined;
+    private config: Config = Config.makeDefault();
+    private overlayCanvas: HTMLCanvasElement | undefined = undefined;
+    private overlayOptions: FullOverlayOptions = DEFAULT_OVERLAY_OPTIONS;
+    private demoMode = DemoMode.OFF;
+    private zoomPointIndex = 0;
+
+    /**
+     * Create a canvas screen.
+     *
+     * @param scale size multiplier. If greater than 1, use multiples of 0.5.
+     */
+    constructor(scale: number = 1) {
+        super();
+
+        this.scale = scale;
+
+        this.node = document.createElement("div");
+        // Fit canvas horizontally so that the nested objects (panels and progress bars) are
+        // displayed in the canvas.
+        this.node.style.maxWidth = "max-content";
+
+        this.camera = document.createElement("video");
+        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera);
+        this.node.append(this.foofoo.canvas);
+
+        // We don't have a good way to unsubscribe from these two. We could add some kind of close() method.
+        // We could also check in the callback that the canvas's ancestor is window.
+        window.addEventListener("keydown", (event) => this.onKeyEvent(event), {
+            capture: true,
+            passive: true,
+        });
+        window.addEventListener("keyup", (event) => this.onKeyEvent(event), {
+            capture: true,
+            passive: true,
+        });
+
+        if (SHOW_REFLECTION) {
+            this.camera.style.display = "none";
+            this.camera.style.width = "512px";
+            this.camera.style.height = "512px";
+            this.camera.controls = true;
+            this.camera.playsInline = true; // Examples use empty string for iOS.
+            this.camera.crossOrigin = "anonymous";
+            document.body.append(this.camera);
+
+            navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false,
+            }).then(
+                stream => this.camera.srcObject = stream,
+                error => console.log(error));
+
+            // Shouldn't have to click, but browser (sometimes) requires it to allow play().
+            this.node.addEventListener("click", async () => {
+                await this.camera.play();
+            });
+        }
 
         this.updateFromConfig();
-        this.scheduleRefresh();
 
         if (DEMO_MODE_ENABLED) {
             // Start the demo with everything off.
@@ -1139,10 +1404,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      */
     public setOverlayOptions(userOptions: OverlayOptions): void {
         // Fill in defaults.
-        const options: Required<OverlayOptions> = {
+        const options = {
             ... DEFAULT_OVERLAY_OPTIONS,
             ... userOptions
-        };
+        } satisfies FullOverlayOptions;
         if (overlayOptionsEqual(options, this.overlayOptions)) {
             return;
         }
@@ -1152,11 +1417,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const showOverlay = options.showPixelGrid || options.showCharGrid ||
             options.showHighlight !== undefined || options.showCursor || showSelection;
         if (showOverlay) {
-            const width = this.canvas.width;
-            const height = this.canvas.height;
+            const width = this.foofoo.canvas.width;
+            const height = this.foofoo.canvas.height;
             const devicePixelRatio = window.devicePixelRatio ?? 1;
-            const gridWidth = width/devicePixelRatio - 2*this.padding;
-            const gridHeight = height/devicePixelRatio - 2*this.padding;
 
             // Create overlay canvas if necessary.
             let overlayCanvas = this.overlayCanvas;
@@ -1165,8 +1428,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 overlayCanvas.style.position = "absolute";
                 overlayCanvas.style.top = "0";
                 overlayCanvas.style.left = "0";
-                overlayCanvas.style.width = `${this.width}px`;
-                overlayCanvas.style.height = `${this.height}px`;
+                overlayCanvas.style.width = `${this.foofoo.width}px`; // TODO update
+                overlayCanvas.style.height = `${this.foofoo.height}px`;
                 overlayCanvas.style.pointerEvents = "none";
                 overlayCanvas.width = width;
                 overlayCanvas.height = height;
@@ -1184,7 +1447,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
             const ctx = overlayCanvas.getContext("2d") as CanvasRenderingContext2D;
             ctx.save();
             ctx.clearRect(0, 0, width, height);
-            ctx.translate(this.padding, this.padding);
+            const scaledPadding = this.foofoo.getScaledPadding(); // TODO update when changed.
+            ctx.translate(scaledPadding, scaledPadding);
 
             // Draw columns.
             for (let x = 0; x <= TRS80_PIXEL_WIDTH; x++) {
@@ -1265,20 +1529,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         }
     }
 
-    /**
-     * Width of the entire screen, including margins.
-     */
-    public getWidth(): number {
-        return this.width;
-    }
-
-    /**
-     * Height of the entire screen, including margins.
-     */
-    public getHeight(): number {
-        return this.height;
-    }
-
     setConfig(config: Config): void {
         this.config = config;
         this.updateFromConfig();
@@ -1291,7 +1541,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         // Correct for CRT curvature.
         const width = TRS80_PIXEL_WIDTH*4*this.scale;
         const height = TRS80_PIXEL_HEIGHT*8*this.scale;
-        const curvature = this.crtCurvature.values[0];
+        const curvature = this.foofoo.crtCurvature.values[0];
         x -= width/2;
         y -= height/2;
         const r2 = 4*(x*x + y*y)/(width*width + height*height);
@@ -1315,7 +1565,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         y *= devicePixelRatio;
         const width = TRS80_PIXEL_WIDTH*4*this.scale*devicePixelRatio;
         const height = TRS80_PIXEL_HEIGHT*8*this.scale*devicePixelRatio;
-        const curvature = this.crtCurvature.values[0];
+        const curvature = this.foofoo.crtCurvature.values[0];
 
         // I don't know how to invert this math, so build an inverse map. Make it on demand.
         if (this.straightPosToCurvedPosMap.length === 0 || this.straightPosToCurvedPosMapCurvature !== curvature) {
@@ -1357,8 +1607,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
         const rectRFloor = Math.floor(rectR);
         const rectRFract = rectR - rectRFloor;
         const r = this.straightPosToCurvedPosMap[rectRFloor]*(1 - rectRFract) + this.straightPosToCurvedPosMap[rectRFloor + 1]*rectRFract;
-        x = x*r/rectR + width/2 + this.padding;
-        y = y*r/rectR + height/2 + this.padding;
+        const scaledPadding = this.foofoo.getScaledPadding();
+        x = x*r/rectR + width/2 + scaledPadding;
+        y = y*r/rectR + height/2 + scaledPadding;
         return {x, y};
     }
 
@@ -1400,9 +1651,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      */
     private emitMouseActivity(type: ScreenMouseEventType, event: MouseEvent, shiftKey: boolean): void {
         // Screen pixel, relative to upper-left.
+        const scaledPadding = this.foofoo.getScaledPadding();
         const {x, y} = this.curvedPosToStraightPos(
-            event.offsetX - this.padding,
-            event.offsetY - this.padding);
+            event.offsetX - scaledPadding,
+            event.offsetY - scaledPadding);
 
         // Convert to TRS-80 pixels.
         const pixelX = Math.min(TRS80_PIXEL_WIDTH - 1, Math.max(0, Math.floor(x / this.scale / 4)));
@@ -1429,7 +1681,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
 
         if (DEMO_MODE_ENABLED && type === "mousemove" && demoModifierKeys(event)) {
             const devicePixelRatio = window.devicePixelRatio ?? 1;
-            const value = Math.max((1 - devicePixelRatio*event.offsetY/this.canvas.height)*1.5, 0);
+            const value = Math.max((1 - devicePixelRatio*event.offsetY/this.foofoo.canvas.height)*1.5, 0);
             this.setDemoModeParameter(this.demoMode, value);
         }
     }
@@ -1452,19 +1704,19 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 } else {
                     this.demoMode = DemoMode.ZOOM;
                 }
-                this.zoomPoint.values[0] = ZOOM_POINTS[this.zoomPointIndex][0];
-                this.zoomPoint.values[1] = ZOOM_POINTS[this.zoomPointIndex][1];
-                this.needRedraw = true;
+                this.foofoo.zoomPoint.values[0] = ZOOM_POINTS[this.zoomPointIndex][0];
+                this.foofoo.zoomPoint.values[1] = ZOOM_POINTS[this.zoomPointIndex][1];
+                this.foofoo.needRedraw = true;
             } else if (event.key === "X") {
                 this.setDemoModeParameter(this.demoMode, 1.0);
             } else if (event.key === "S") {
                 this.setDemoModeParameter(this.demoMode, 0.0);
             } else if (event.key === "P") {
                 // Cycle through phosphors.
-                const index = this.phosphors.indexOf(this.colorMapNamedTexture.texture);
-                const newIndex = (index + 1) % this.phosphors.length;
-                this.colorMapNamedTexture.texture = this.phosphors[newIndex];
-                this.needRedraw = true;
+                const index = this.foofoo.phosphors.indexOf(this.foofoo.colorMapNamedTexture.texture);
+                const newIndex = (index + 1) % this.foofoo.phosphors.length;
+                this.foofoo.colorMapNamedTexture.texture = this.foofoo.phosphors[newIndex];
+                this.foofoo.needRedraw = true;
             } else if (event.code >= "Digit0" && event.code <= "Digit9") {
                 this.demoMode = parseInt(event.code.substring(5)) as DemoMode;
             }
@@ -1478,44 +1730,44 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 break;
 
             case DemoMode.CRT_CURVATURE:
-                this.crtCurvature.values[0] = clamp(0, value*DEFAULT_CRT_CURVATURE, DEFAULT_CRT_CURVATURE*2);
+                this.foofoo.crtCurvature.values[0] = clamp(0, value*DEFAULT_CRT_CURVATURE, DEFAULT_CRT_CURVATURE*2);
                 break;
 
             case DemoMode.SCANLINES:
-                this.scanlines.values[0] = clamp(0, value*DEFAULT_SCANLINES, 1);
+                this.foofoo.scanlines.values[0] = clamp(0, value*DEFAULT_SCANLINES, 1);
                 break;
 
             case DemoMode.PIXEL_BLUR:
-                this.pixelHorizontalBlur.values[0] = clamp(0, value*this.pixelHorizontalBlurMax, this.pixelHorizontalBlurMax*2);
-                this.pixelVerticalBlur.values[0] = clamp(0, value*this.pixelVerticalBlurMax, this.pixelVerticalBlurMax*2);
+                this.foofoo.pixelHorizontalBlur.values[0] = clamp(0, value*this.foofoo.pixelHorizontalBlurMax, this.foofoo.pixelHorizontalBlurMax*2);
+                this.foofoo.pixelVerticalBlur.values[0] = clamp(0, value*this.foofoo.pixelVerticalBlurMax, this.foofoo.pixelVerticalBlurMax*2);
                 break;
 
             case DemoMode.PHOSPHOR:
-                this.phosphor.values[0] = clamp(0, value*DEFAULT_PHOSPHOR, 1);
+                this.foofoo.phosphor.values[0] = clamp(0, value*DEFAULT_PHOSPHOR, 1);
                 break;
 
             case DemoMode.SCANLINE_BLOOM:
-                this.scanlineBloom.values[0] = clamp(0, value*DEFAULT_SCANLINE_BLOOM, DEFAULT_SCANLINE_BLOOM*2);
+                this.foofoo.scanlineBloom.values[0] = clamp(0, value*DEFAULT_SCANLINE_BLOOM, DEFAULT_SCANLINE_BLOOM*2);
                 break;
 
             case DemoMode.HALATION:
-                this.halation.values[0] = clamp(0, value*DEFAULT_HALATION, DEFAULT_HALATION*2);
+                this.foofoo.halation.values[0] = clamp(0, value*DEFAULT_HALATION, DEFAULT_HALATION*2);
                 break;
 
             case DemoMode.BLACKPOINT:
-                this.blackpoint.values[0] = clamp(0, value*DEFAULT_BLACKPOINT, DEFAULT_BLACKPOINT*2);
+                this.foofoo.blackpoint.values[0] = clamp(0, value*DEFAULT_BLACKPOINT, DEFAULT_BLACKPOINT*2);
                 break;
 
             case DemoMode.VIGNETTE:
-                this.vignette.values[0] = clamp(0, value*DEFAULT_VIGNETTE, DEFAULT_VIGNETTE*2);
+                this.foofoo.vignette.values[0] = clamp(0, value*DEFAULT_VIGNETTE, DEFAULT_VIGNETTE*2);
                 break;
 
             case DemoMode.REFLECTION:
-                this.reflection.values[0] = clamp(0, value*DEFAULT_REFLECTION, DEFAULT_REFLECTION*2);
+                this.foofoo.reflection.values[0] = clamp(0, value*DEFAULT_REFLECTION, DEFAULT_REFLECTION*2);
                 break;
 
             case DemoMode.ZOOM:
-                this.zoom.values[0] = clamp(1, 1 + value*8, 1000);
+                this.foofoo.zoom.values[0] = clamp(1, 1 + value*8, 1000);
                 break;
 
             case DemoMode.ALL:
@@ -1532,64 +1784,31 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
                 break;
         }
 
-        this.needRedraw = true;
+        this.foofoo.needRedraw = true;
     }
 
     /**
-     * Update the font and screen from the config and other state.
+     * Update the screen from the config and other state.
      */
     private updateFromConfig(): void {
-        let font;
-        switch (this.config.cgChip) {
-            case CGChip.ORIGINAL:
-                font = MODEL1A_FONT;
-                break;
-            case CGChip.LOWER_CASE:
-            default:
-                switch (this.config.modelType) {
-                    case ModelType.MODEL1:
-                        font = MODEL1B_FONT;
-                        break;
-                    case ModelType.MODEL3:
-                    case ModelType.MODEL4:
-                    default:
-                        font = this.isAlternateCharacters() ? MODEL3_ALT_FONT : MODEL3_FONT;
-                        break;
-                }
-                break;
+        const oldCanvas = this.foofoo.canvas;
+        const oldScreenSize = this.foofoo.getScreenSize();
+        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera);
+        oldCanvas.replaceWith(this.foofoo.canvas);
+        const newScreenSize = this.foofoo.getScreenSize();
+        if (!oldScreenSize.equals(newScreenSize)) {
+            this.onScreenSize.dispatch(newScreenSize);
         }
-
-        const glyphOptions: GlyphOptions = {
-            color: phosphorToRgb(this.config.phosphor),
-            scanLines: this.config.scanLines === ScanLines.ON,
-        };
-        for (let i = 0; i < 256; i++) {
-            this.glyphs[i] = font.makeImage(i, this.isExpandedCharacters(), glyphOptions);
-        }
-        this.glyphWidth = font.width;
-
-        this.expandedVariable.values[0] = this.isExpandedCharacters() ? 1 : 0;
-        const gl = this.canvas.getContext("webgl2");
-        if (gl === null) {
-            throw new Error("WebGL2 is not supported");
-        }
-        gl.bindTexture(gl.TEXTURE_2D, this.fontTexture.texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, this.fontTexture.width, this.fontTexture.height, 0,
-            gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(font.makeFontSheet()));
-
-        this.drawBackground();
-        this.refresh();
     }
 
     writeChar(address: number, value: number): void {
         const offset = address - TRS80_SCREEN_BEGIN;
         this.memory[offset] = value;
-        this.drawChar(offset, value);
-        this.needRedraw = true;
+        this.foofoo.needRedraw = true;
     }
 
     public getForegroundColor(): string {
-        const color = phosphorToRgb(this.config.phosphor);
+        const color = WHITE_PHOSPHOR;
         return "#" + toHexByte(color[0]) + toHexByte(color[1]) + toHexByte(color[2]);
     }
 
@@ -1597,44 +1816,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      * Get the background color as a CSS color based on the current config.
      */
     public getBackgroundColor(): string {
-        switch (this.config.background) {
-            case Background.BLACK:
-                return BLACK_BACKGROUND;
-
-            case Background.AUTHENTIC:
-            default:
-                return AUTHENTIC_BACKGROUND;
-        }
+        return AUTHENTIC_BACKGROUND;
     }
 
     /**
-     * The border radius of the screen, in pixels ("px" units).
+     * The border radius of the screen, in CSS pixels ("px" units).
      */
     public getBorderRadius(): number {
         return BORDER_RADIUS*this.scale;
-    }
-
-    /**
-     * Draw a single character to the canvas.
-     */
-    private drawChar(offset: number, value: number): void {
-        const screenX = (offset % 64)*8*this.scale + this.padding;
-        const screenY = Math.floor(offset / 64)*24*this.scale + this.padding;
-
-        /*
-        this.context.fillStyle = this.getBackgroundColor();
-
-        if (this.isExpandedCharacters()) {
-            if (offset % 2 === 0) {
-                this.context.fillRect(screenX, screenY, 16*this.scale, 24*this.scale);
-                this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth * 2, 24,
-                    screenX, screenY, 16*this.scale, 24*this.scale);
-            }
-        } else {
-            this.context.fillRect(screenX, screenY, 8*this.scale, 24*this.scale);
-            this.context.drawImage(this.glyphs[value], 0, 0, this.glyphWidth, 24,
-                screenX, screenY, 8*this.scale, 24*this.scale);
-        }*/
     }
 
     getNode(): HTMLElement {
@@ -1661,111 +1850,13 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
     }
 
     /**
-     * Draw the background of the canvas.
-     */
-    private drawBackground(): void {
-        /*
-        const ctx = this.context;
-        const width = this.canvas.width;
-        const height = this.canvas.height;
-        const radius = this.getBorderRadius();
-
-        ctx.fillStyle = this.getBackgroundColor();
-        ctx.beginPath();
-        ctx.moveTo(radius, 0);
-        ctx.arcTo(width, 0, width, radius, radius);
-        ctx.arcTo(width, height, width - radius, height, radius);
-        ctx.arcTo(0, height, 0, height - radius, radius);
-        ctx.arcTo(0, 0, radius, 0, radius);
-        ctx.fill();
-
-         */
-    }
-
-    private redrawIfNecessary(): void {
-        if (this.needRedraw || SHOW_REFLECTION) {
-            this.needRedraw = false;
-            this.refresh();
-        }
-    }
-
-    private scheduleRefresh(): void {
-        window.requestAnimationFrame(() => {
-            if (this.getNode().parentNode !== null) {
-                this.redrawIfNecessary();
-                this.scheduleRefresh();
-            }
-        });
-    }
-
-    /**
-     * Refresh the display based on what we've kept track of.
-     */
-    private refresh(): void {
-        const gl = this.canvas.getContext("webgl2");
-        if (gl === null) {
-            throw new Error("WebGL2 is not supported");
-        }
-        const now = Date.now();
-
-        // Update memory texture.
-        gl.bindTexture(gl.TEXTURE_2D, this.memoryTexture.texture);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, TRS80_CHAR_WIDTH, TRS80_CHAR_HEIGHT,
-            gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.memory);
-
-        // Update reflection image.
-        if (SHOW_REFLECTION) {
-            gl.bindTexture(gl.TEXTURE_2D, this.cameraTexture.texture);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.camera);
-        }
-
-        // Update time.
-        this.time.values[0] = now/1000 - this.startTime;
-
-        // Render each pass.
-        for (const renderPass of this.renderPasses) {
-            renderPass.render();
-        }
-
-        if (TIME_RENDERING) {
-            const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-            if (fence === null) {
-                throw new Error("cannot create fence");
-            }
-            gl.flush();
-            const checkFence = () => {
-                // Always returns immediately (the max timeout is zero), so we poll.
-                const status = gl.clientWaitSync(fence, 0, 0);
-                switch (status) {
-                    case gl.TIMEOUT_EXPIRED:
-                        setTimeout(checkFence);
-                        break;
-
-                    case gl.WAIT_FAILED:
-                        throw new Error("clientWaitSync failed: " + gl.getError());
-
-                    default:
-                        gl.deleteSync(fence);
-
-                        const after = Date.now();
-                        console.log("render time", after - now, "ms");
-                        break;
-                }
-            };
-            setTimeout(checkFence);
-        }
-    }
-
-    /**
      * Returns the canvas as an <img> element that can be resized. This is relatively
      * expensive.
      *
      * This method is deprecated, use asImageAsync instead.
      */
     public asImage(): HTMLImageElement {
-        const image = document.createElement("img");
-        image.src = this.canvas.toDataURL();
-        return image;
+        return this.foofoo.asImage();
     }
 
     /**
@@ -1773,45 +1864,28 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide {
      * "async" name, there's still some synchronous work, about 13ms.
      */
     public asImageAsync(): Promise<HTMLImageElement> {
-        return new Promise<HTMLImageElement>((resolve, reject) => {
-            // According to this answer:
-            //     https://stackoverflow.com/a/59025746/211234
-            // the toBlob() method still has to copy the image synchronously, so this whole method still
-            // takes about 13ms. It's better than toDataUrl() because it doesn't have to make an actual
-            // base64 string. The Object URL is just a reference to the blob.
-            this.redrawIfNecessary();
-            this.canvas.toBlob(blob => {
-                if (blob === null) {
-                    reject("Cannot make image from screen");
-                } else {
-                    const image = document.createElement("img");
-                    const url = URL.createObjectURL(blob);
-                    image.addEventListener("load", () => {
-                        URL.revokeObjectURL(url);
-                        // Resolve when the image is fully loaded so that there's no UI glitching.
-                        resolve(image);
-                    });
-                    image.src = url;
-                }
-            });
-        });
+        return this.foofoo.asImageAsync();
     }
 
     /**
      * Make a canvas from the sub-rectangle section.
      */
     public makeSelectionCanvas(selection: Selection): HTMLCanvasElement {
-        const canvas = document.createElement("canvas");
-        canvas.width = selection.width*4*this.scale;
-        canvas.height = selection.height*8*this.scale;
-        const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+        return this.foofoo.makeSelectionCanvas(selection);
+    }
 
-        ctx.drawImage(this.canvas,
-            selection.x1*4*this.scale + this.padding, selection.y1*8*this.scale + this.padding,
-            selection.width*4*this.scale, selection.height*8*this.scale,
-            0, 0,
-            selection.width*4*this.scale, selection.height*8*this.scale);
+    public getScreenSize() {
+        return this.foofoo.getScreenSize();
+    }
 
-        return canvas;
+    /**
+     * Registers a callback for changes to the screen size. The callback is called synchronously
+     * immediately with the current screen size, and subsequently whenever the size changes.
+     * Returns a function that can be used to unsubscribe.
+     */
+    public listenForScreenSize(callback: (screenSize: ScreenSize) => void): () => void {
+        const unsub = this.onScreenSize.subscribe(callback);
+        callback(this.getScreenSize());
+        return unsub;
     }
 }

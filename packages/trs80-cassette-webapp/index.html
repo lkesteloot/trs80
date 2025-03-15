@@ -12,7 +12,7 @@
     </script>
     <meta charset="UTF-8">
     <title>TRS-80 Cassette Reader</title>
-    <link href="main.css?v=3" rel="stylesheet" type="text/css">
+    <link href="/main.css" rel="stylesheet" type="text/css">
     <!-- https://favicon.io/favicon-converter/ -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -31,7 +31,7 @@
         <label id="drop_zone" for="drop_upload">
             <div id="drop_instructions">
                 <div id="cassette_icon">
-                    <img src="noun_Cassette_13639.png"/>
+                    <img src="/noun_Cassette_13639.png"/>
                 </div>
                 <p>Drop a WAV or CAS file here<br>or click to select a file</p>
             </div>
@@ -80,9 +80,7 @@
     <div id="retrostore_screen" class="screen hidden">
     </div>
 </div>
-<script type="module">
-    import "./dist/index.js";
-</script>
+<script type="module" src="src/index.ts"></script>
 </body>
 
 </html>

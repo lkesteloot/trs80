@@ -80,34 +80,13 @@ export enum RamSize {
 }
 
 /**
- * Phosphor color.
+ * Display type.
  *
  * This is serialized. Do not modify existing values.
  */
-export enum Phosphor {
-    WHITE,
-    GREEN,
-    AMBER,
-}
-
-/**
- * Background color.
- *
- * This is serialized. Do not modify existing values.
- */
-export enum Background {
-    BLACK,
+export enum DisplayType {
     AUTHENTIC,
-}
-
-/**
- * Whether to display scan lines.
- *
- * This is serialized. Do not modify existing values.
- */
-export enum ScanLines {
-    OFF,
-    ON,
+    SIMPLE,
 }
 
 /**
@@ -177,16 +156,14 @@ export class Config {
     public readonly basicLevel: BasicLevel;
     public readonly cgChip: CGChip;
     public readonly ramSize: RamSize;
-    public readonly phosphor: Phosphor;
-    public readonly background: Background;
-    public readonly scanLines: ScanLines;
+    public readonly displayType: DisplayType;
     public readonly customRom: string | undefined;
     public readonly romSize: number;
     public readonly printerModel: PrinterModel;
     public readonly inkColor: InkColor;
 
     constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize,
-                phosphor: Phosphor, background: Background, scanLines: ScanLines,
+                displayType: DisplayType,
                 customRom: string | undefined, printerModel: PrinterModel,
                 inkColor: InkColor) {
 
@@ -194,9 +171,7 @@ export class Config {
         this.basicLevel = basicLevel;
         this.cgChip = cgChip;
         this.ramSize = ramSize;
-        this.phosphor = phosphor;
-        this.background = background;
-        this.scanLines = scanLines;
+        this.displayType = displayType;
         this.customRom = customRom;
         this.printerModel = printerModel;
         this.inkColor = inkColor;
@@ -221,9 +196,7 @@ export class Config {
             basicLevel: this.basicLevel,
             cgChip: this.cgChip,
             ramSize: this.ramSize,
-            phosphor: this.phosphor,
-            background: this.background,
-            scanLines: this.scanLines,
+            displayType: this.displayType,
             printerModel: this.printerModel,
             inkColor: this.inkColor,
         });
@@ -247,14 +220,8 @@ export class Config {
         if (v.ramSize !== undefined) {
             builder.withRamSize(v.ramSize);
         }
-        if (v.phosphor !== undefined) {
-            builder.withPhosphor(v.phosphor);
-        }
-        if (v.background !== undefined) {
-            builder.withBackground(v.background);
-        }
-        if (v.scanLines !== undefined) {
-            builder.withScanLines(v.scanLines);
+        if (v.displayType !== undefined) {
+            builder.withDisplayType(v.displayType);
         }
         if (v.printerModel !== undefined) {
             builder.withPrinterModel(v.printerModel);
@@ -273,9 +240,7 @@ export class Config {
             BasicLevel.LEVEL2,
             CGChip.LOWER_CASE,
             RamSize.RAM_48_KB,
-            Phosphor.WHITE,
-            Background.AUTHENTIC,
-            ScanLines.OFF,
+            DisplayType.SIMPLE,
             undefined,
             PrinterModel.EPSON_MX_80,
             InkColor.BLACK);
@@ -319,9 +284,7 @@ export class Config {
             this.basicLevel === other.basicLevel &&
             this.cgChip === other.cgChip &&
             this.ramSize === other.ramSize &&
-            this.phosphor === other.phosphor &&
-            this.background === other.background &&
-            this.scanLines === other.scanLines &&
+            this.displayType === other.displayType &&
             this.customRom === other.customRom &&
             this.romSize === other.romSize &&
             this.printerModel === other.printerModel &&
@@ -362,9 +325,7 @@ export class ConfigBuilder {
     private basicLevel: BasicLevel;
     private cgChip: CGChip;
     private ramSize: RamSize;
-    private phosphor: Phosphor;
-    private background: Background;
-    private scanLines: ScanLines;
+    private displayType: DisplayType;
     private customRom: string | undefined;
     private printerModel: PrinterModel;
     private inkColor: InkColor;
@@ -374,9 +335,7 @@ export class ConfigBuilder {
         this.basicLevel = config.basicLevel;
         this.cgChip = config.cgChip;
         this.ramSize = config.ramSize;
-        this.phosphor = config.phosphor;
-        this.background = config.background;
-        this.scanLines = config.scanLines;
+        this.displayType = config.displayType;
         this.customRom = config.customRom;
         this.printerModel = config.printerModel;
         this.inkColor = config.inkColor;
@@ -391,9 +350,7 @@ export class ConfigBuilder {
             this.basicLevel,
             this.cgChip,
             this.ramSize,
-            this.phosphor,
-            this.background,
-            this.scanLines,
+            this.displayType,
             this.customRom,
             this.printerModel,
             this.inkColor);
@@ -419,18 +376,8 @@ export class ConfigBuilder {
         return this;
     }
 
-    public withPhosphor(phosphor: Phosphor): this {
-        this.phosphor = phosphor;
-        return this;
-    }
-
-    public withBackground(background: Background): this {
-        this.background = background;
-        return this;
-    }
-
-    public withScanLines(scanLines: ScanLines): this {
-        this.scanLines = scanLines;
+    public withDisplayType(displayType: DisplayType): this {
+        this.displayType = displayType;
         return this;
     }
 

@@ -1,4 +1,5 @@
 import {addPrinterCssFontToPage} from "./PrinterFonts";
+import {ScreenSizeProvider} from "./ScreenSize";
 
 /**
  * Internal number of side, where 0 is the front and 1 is the back.
@@ -76,26 +77,23 @@ export abstract class FlipCardSideAdapter implements FlipCardSide {
  * A card that has a front and a back, and can flip around.
  */
 export class FlipCard {
-    public readonly width: number;
-    public readonly height: number;
     public readonly node: HTMLElement;
     private readonly card: HTMLElement;
     // [Front, Back]:
     private readonly sides: (FlipCardSide | undefined)[] = [undefined, undefined];
     private showingSideNumber: SideNumber = 0;
 
-    constructor(width: number, height: number) {
-        this.width = width;
-        this.height = height;
-
+    constructor(screenSizeProvider: ScreenSizeProvider) {
         // This is the "stage" node, which provides perspective for its children.
         this.node = document.createElement("div");
         this.node.style.perspective = "1000px";
 
         // This is the card that will be flipped around.
         this.card = document.createElement("div");
-        this.card.style.width = width + "px";
-        this.card.style.height = height + "px";
+        screenSizeProvider.listenForScreenSize(screenSize => {
+            this.card.style.width = screenSize.width + "px";
+            this.card.style.height = screenSize.height + "px";
+        });
         this.card.style.position = "relative";
         this.card.style.transition = "transform 0.5s ease-in-out";
         this.card.style.transformStyle = "preserve-3d";

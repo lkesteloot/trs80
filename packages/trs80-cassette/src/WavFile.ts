@@ -252,6 +252,10 @@ export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
     while (!reader.eof()) {
         // Chunk ID.
         const chunkId = reader.readString(4);
+        if (chunkId === "") {
+            // Probably a nul at the end of the file.
+            break;
+        }
         if (chunkId.length < 4) {
             // Premature end of file.
             console.log("End of file part-way through chunk ID in WAV file: \"" + chunkId + "\" length "

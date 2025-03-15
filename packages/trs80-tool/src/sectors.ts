@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import chalk from "chalk";
+import type { ChalkInstance } from "chalk";
 import {Density, Side, Trs80Floppy, TrsdosDirEntry, decodeTrs80File, decodeTrsdos, isFloppy, numberToSide } from "trs80-base";
 import { toHexWord } from "z80-base";
 import { hexdumpBinary } from "./hexdump.js";
@@ -129,7 +130,7 @@ function printMap(file: Trs80Floppy) {
 
     const usedLetters = new Set<string>();
 
-    const CHALK_FOR_LETTER: { [letter: string]: chalk.Chalk } = {
+    const CHALK_FOR_LETTER: { [letter: string]: ChalkInstance } = {
         "-": chalk.gray,
         "?": chalk.red,
         "C": chalk.red,

@@ -14,11 +14,8 @@ import {clearElement, withCommas} from "teamten-ts-utils";
 import isEmpty from "lodash/isEmpty";
 import {File} from "./File";
 import {IFilePanel} from "./IFilePanel";
-import type firebase from "firebase";
 import {TagSet} from "./TagSet";
 import {withCanvasScreen} from "./ScreenPool";
-
-type UpdateData = firebase.firestore.UpdateData;
 
 const SCREENSHOT_ATTR = `data-screenshot`;
 
@@ -315,7 +312,7 @@ export class FileInfoTab extends PageTab {
      * is fresh in the file object.) The purpose is to avoid clobbering user-entered data in the various
      * input fields when the file object changes elsewhere in unrelated ways, such as new screenshots.
      */
-    private updateUi(updateData?: UpdateData): void {
+    private updateUi(updateData?: Partial<File>): void {
         const file = this.filePanel.file;
 
         if (updateData === undefined || updateData.hasOwnProperty("name")) {

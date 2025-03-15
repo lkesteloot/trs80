@@ -19,8 +19,7 @@
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^16.0.0",
-    "typescript": "^4.0.0"
+    "@types/node": "^22.13.0"
   },
   "dependencies": {
     "trs80-base": "^2.3.1",

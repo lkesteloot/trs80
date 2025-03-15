@@ -3,18 +3,20 @@
   "private": true,
   "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
-      "build": "lerna run build"
+    "build": "lerna run build",
+    "test": "npm run test -w packages/z80-asm -w packages/z80-disasm -w packages/z80-emulator"
   },
   "devDependencies": {
-    "css-loader": "^6.7.1",
+    "css-loader": "^7.1.2",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.0",
-    "lerna": "^7.3.0",
+    "lerna": "^8.1.9",
     "mini-css-extract-plugin": "^2.6.0",
     "raw-loader": "^4.0.2",
+    "ts-essentials": "^10.0.4",
     "ts-loader": "^9.2.8",
-    "typescript": "^4.6.2",
-    "webpack-dev-server": "^4.7.4"
+    "vite": "^6.0.11",
+    "webpack-dev-server": "^5.2.0"
   },
   "workspaces": [
     "packages/fp-215",
@@ -37,5 +39,8 @@
     "packages/trs80-ide",
     "packages/trs80-tool",
     "packages/my-trs-80"
-  ]
+  ],
+  "dependencies": {
+    "typescript": "^5.7.3"
+  }
 }

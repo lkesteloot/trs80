@@ -22,13 +22,12 @@
   "repository": "https://github.com/lkesteloot/trs80.git",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^16.0.0",
+    "@types/node": "^22.13.0",
     "tsx": "^4.7.0",
-    "typedoc": "^0.22.13",
-    "typescript": "^4.0.0"
+    "typedoc": "^0.27.6"
   },
   "dependencies": {
-    "chai": "^4.3.10",
+    "chai": "^5.1.2",
     "z80-base": "^2.0.1",
     "z80-inst": "^2.0.1"
   }
