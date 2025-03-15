@@ -1,5 +1,5 @@
 import {Trs80WebScreen} from "./Trs80WebScreen.js";
-import {GlyphOptions, MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
+import {MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
 import {CGChip, Config, DisplayType, ModelType, Trs80ScreenState} from "trs80-emulator";
 import {toHexByte} from "z80-base";
 import {
@@ -12,13 +12,13 @@ import {
     TRS80_SCREEN_BEGIN,
     TRS80_SCREEN_SIZE
 } from "trs80-base";
-import {ISimpleEventHandler, SimpleEventDispatcher} from "strongly-typed-events";
+import {SimpleEventDispatcher} from "strongly-typed-events";
 import {FlipCard, FlipCardSide} from "./FlipCard.js";
 import {g_amber_blue, g_amber_green, g_amber_red} from "./amber.js";
 import {g_p4_blue, g_p4_green, g_p4_red} from "./p4.js";
 import {g_green1_blue, g_green1_green, g_green1_red} from "./green1.js";
 import {g_green2_blue, g_green2_green, g_green2_red} from "./green2.js";
-import {ScreenSize, ScreenSizeProvider} from "./ScreenSize";
+import {ScreenSize, ScreenSizeProvider} from "./ScreenSize.js";
 
 const TIME_RENDERING = false;
 let TIME_BANNER: HTMLElement | undefined = undefined;
