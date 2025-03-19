@@ -885,7 +885,9 @@ class ConfiguredCanvas {
     public constructor(private readonly config: Config,
                        private readonly scale: number,
                        private readonly memory: Uint8Array,
-                       private readonly camera: HTMLVideoElement) {
+                       private readonly camera: HTMLVideoElement,
+                       expandedCharacters: boolean,
+                       alternateCharacters: boolean) {
 
         this.canvas = document.createElement("canvas");
         // Make it block so we don't have any weird text margins on the bottom.
@@ -901,7 +903,6 @@ class ConfiguredCanvas {
         this.canvas.width = this.width * devicePixelRatio;
         this.canvas.height = this.height * devicePixelRatio;
 
-        // Size of canvas is updated in updateFromConfig().
         // this.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
         // this.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
         // this.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
@@ -923,33 +924,12 @@ class ConfiguredCanvas {
         const horizontallyBlurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
         const blurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
 
-        const isAlternateCharacters = false; // TODO get from parent
-        let font;
-        switch (this.config.cgChip) {
-            case CGChip.ORIGINAL:
-                font = MODEL1A_FONT;
-                break;
-            case CGChip.LOWER_CASE:
-            default:
-                switch (this.config.modelType) {
-                    case ModelType.MODEL1:
-                        font = MODEL1B_FONT;
-                        break;
-                    case ModelType.MODEL3:
-                    case ModelType.MODEL4:
-                    default:
-                        font = isAlternateCharacters ? MODEL3_ALT_FONT : MODEL3_FONT;
-                        break;
-                }
-                break;
-        }
-
         // Make the font texture.
         this.fontTexture = SizedTexture.create(gl, 256 * 8, 24);
         gl.bindTexture(gl.TEXTURE_2D, this.fontTexture.texture);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, this.fontTexture.width, this.fontTexture.height, 0,
-            gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(font.makeFontSheet()));
+            gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(this.getFont(alternateCharacters).makeFontSheet()));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -989,7 +969,7 @@ class ConfiguredCanvas {
         this.pixelVerticalBlurMax = VERTICAL_BLUR * devicePixelRatio * scale;
 
         this.time = new NamedVariable("u_time", [0], true);
-        this.expandedVariable = new NamedVariable("u_expanded", [0]);
+        this.expandedVariable = new NamedVariable("u_expanded", [expandedCharacters ? 1 : 0]);
         this.paddingVariable = new NamedVariable("u_padding", [this.getRawPadding()]);
         this.crtCurvature = new NamedVariable("u_crtCurvature", [DEFAULT_CRT_CURVATURE]);
         this.scanlines = new NamedVariable("u_scanlines", [DEFAULT_SCANLINES]);
@@ -1004,9 +984,6 @@ class ConfiguredCanvas {
         this.zoom = new NamedVariable("u_zoom", [DEFAULT_ZOOM]);
         this.zoomPoint = new NamedVariable("u_zoomPoint", ZOOM_POINTS[0]);
         this.startTime = Date.now() / 1000;
-
-        const isExpandedCharacters = false; // TODO get from parent
-        this.expandedVariable.values[0] = isExpandedCharacters ? 1 : 0;
 
         if (this.config.displayType === DisplayType.SIMPLE) {
             this.renderPasses = [
@@ -1122,6 +1099,62 @@ class ConfiguredCanvas {
         }
 
         this.scheduleRefresh();
+    }
+
+    /**
+     * Enable or disable expanded (wide) character mode.
+     */
+    public setExpandedCharacters(expandedCharacters: boolean): void {
+        this.expandedVariable.values[0] = expandedCharacters ? 1 : 0;
+        this.needRedraw = true;
+    }
+
+    /**
+     * Enable or disable alternate (Katakana) character mode.
+     */
+    public setAlternateCharacters(alternateCharacters: boolean): void {
+        this.configureFont(alternateCharacters);
+        this.needRedraw = true;
+    }
+
+    /**
+     * Configure the texture for the current config and the specified setting of alternate characters.
+     */
+    private configureFont(alternateCharacters: boolean) {
+        const gl = this.canvas.getContext("webgl2");
+        if (gl === null) {
+            throw new Error("WebGL2 is not supported");
+        }
+
+        gl.bindTexture(gl.TEXTURE_2D, this.fontTexture.texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, this.fontTexture.width, this.fontTexture.height, 0,
+            gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(this.getFont(alternateCharacters).makeFontSheet()));
+    }
+
+    /**
+     * Get the font for the current config and the specified setting of alternate characters.
+     */
+    private getFont(alternateCharacters: boolean) {
+        let font;
+        switch (this.config.cgChip) {
+            case CGChip.ORIGINAL:
+                font = MODEL1A_FONT;
+                break;
+            case CGChip.LOWER_CASE:
+            default:
+                switch (this.config.modelType) {
+                    case ModelType.MODEL1:
+                        font = MODEL1B_FONT;
+                        break;
+                    case ModelType.MODEL3:
+                    case ModelType.MODEL4:
+                    default:
+                        font = alternateCharacters ? MODEL3_ALT_FONT : MODEL3_FONT;
+                        break;
+                }
+                break;
+        }
+        return font;
     }
 
     public getScreenSize(): ScreenSize {
@@ -1347,7 +1380,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         this.node.style.maxWidth = "max-content";
 
         this.camera = document.createElement("video");
-        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera);
+        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera,
+            this.isExpandedCharacters(), this.isAlternateCharacters());
         this.node.append(this.foofoo.canvas);
 
         // We don't have a good way to unsubscribe from these two. We could add some kind of close() method.
@@ -1793,7 +1827,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     private updateFromConfig(): void {
         const oldCanvas = this.foofoo.canvas;
         const oldScreenSize = this.foofoo.getScreenSize();
-        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera);
+        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera,
+            this.isExpandedCharacters(), this.isAlternateCharacters());
         oldCanvas.replaceWith(this.foofoo.canvas);
         const newScreenSize = this.foofoo.getScreenSize();
         if (!oldScreenSize.equals(newScreenSize)) {
@@ -1833,14 +1868,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     setExpandedCharacters(expanded: boolean): void {
         if (expanded !== this.isExpandedCharacters()) {
             super.setExpandedCharacters(expanded);
-            this.updateFromConfig();
+            this.foofoo.setExpandedCharacters(expanded);
         }
     }
 
     setAlternateCharacters(alternate: boolean): void {
         if (alternate !== this.isAlternateCharacters()) {
             super.setAlternateCharacters(alternate);
-            this.updateFromConfig();
+            this.foofoo.setAlternateCharacters(alternate);
         }
     }
 
