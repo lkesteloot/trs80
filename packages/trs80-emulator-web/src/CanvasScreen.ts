@@ -16,7 +16,6 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {FlipCard, FlipCardSide} from "./FlipCard.js";
 import {g_amber_blue, g_amber_green, g_amber_red} from "./amber.js";
 import {g_p4_blue, g_p4_green, g_p4_red} from "./p4.js";
-import {g_green1_blue, g_green1_green, g_green1_red} from "./green1.js";
 import {g_green2_blue, g_green2_green, g_green2_red} from "./green2.js";
 import {ScreenSize, ScreenSizeProvider} from "./ScreenSize.js";
 
@@ -185,6 +184,7 @@ void main() {
         ? texture(u_inputTexture, (t + 1.0)/vec2(u_inputTextureSize)).r
         : 0.0;
 
+    // Phosphor and background color.
     outColor = texture(u_colorMapTexture, vec2(c, 0.5));
 }
 `;
@@ -959,12 +959,12 @@ class ConfiguredCanvas {
 
         // Make the phosphor textures.
         this.phosphors = [
+            // Match the order of the Phosphor enum.
             makePhosphorTexture(gl, makeColorMap(g_p4_red, g_p4_green, g_p4_blue, AUTHENTIC_BACKGROUND)),
-            makePhosphorTexture(gl, makeColorMap(g_amber_red, g_amber_green, g_amber_blue, BLACK_BACKGROUND)),
-            makePhosphorTexture(gl, makeColorMap(g_green1_red, g_green1_green, g_green1_blue, BLACK_BACKGROUND)),
             makePhosphorTexture(gl, makeColorMap(g_green2_red, g_green2_green, g_green2_blue, BLACK_BACKGROUND)),
+            makePhosphorTexture(gl, makeColorMap(g_amber_red, g_amber_green, g_amber_blue, BLACK_BACKGROUND)),
         ];
-        this.colorMapNamedTexture = new NamedTexture("u_colorMapTexture", this.phosphors[0]);
+        this.colorMapNamedTexture = new NamedTexture("u_colorMapTexture", this.phosphors[this.config.phosphor]);
 
         this.pixelHorizontalBlurMax = HORIZONTAL_BLUR * devicePixelRatio * scale;
         this.pixelVerticalBlurMax = VERTICAL_BLUR * devicePixelRatio * scale;

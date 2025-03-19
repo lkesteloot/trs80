@@ -1,5 +1,5 @@
 import {adjustColor, CSS_PREFIX, rgbToCss} from "./Utils.js";
-import {BasicLevel, CGChip, Config, DisplayType, InkColor, ModelType, PrinterModel, RamSize} from "trs80-emulator";
+import {BasicLevel, CGChip, Config, DisplayType, InkColor, ModelType, Phosphor, PrinterModel, RamSize} from "trs80-emulator";
 import {Trs80} from "trs80-emulator";
 import { inkColorToRgb } from "./WebPrinter.js";
 
@@ -309,6 +309,25 @@ const VIEW_OPTION_BLOCKS: OptionBlock<any>[] = [
             {
                 label: "Authentic",
                 value: DisplayType.AUTHENTIC,
+            },
+        ]
+    },
+    {
+        title: "Phosphor",
+        isChecked: (phosphor: Phosphor, config: Config) => phosphor === config.phosphor,
+        updateConfig: (phosphor: Phosphor, config: Config) => config.edit().withPhosphor(phosphor).build(),
+        options: [
+            {
+                label: "White",
+                value: Phosphor.WHITE,
+            },
+            {
+                label: "Green",
+                value: Phosphor.GREEN,
+            },
+            {
+                label: "Amber",
+                value: Phosphor.AMBER,
             },
         ]
     },

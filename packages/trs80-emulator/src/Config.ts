@@ -90,6 +90,15 @@ export enum DisplayType {
 }
 
 /**
+ * Phosphor color.
+ */
+export enum Phosphor {
+    WHITE,
+    GREEN,
+    AMBER,
+}
+
+/**
  * Model of printer attached to the machine.
  *
  * This is serialized. Do not modify existing values.
@@ -157,13 +166,14 @@ export class Config {
     public readonly cgChip: CGChip;
     public readonly ramSize: RamSize;
     public readonly displayType: DisplayType;
+    public readonly phosphor: Phosphor;
     public readonly customRom: string | undefined;
     public readonly romSize: number;
     public readonly printerModel: PrinterModel;
     public readonly inkColor: InkColor;
 
     constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize,
-                displayType: DisplayType,
+                displayType: DisplayType, phosphor: Phosphor,
                 customRom: string | undefined, printerModel: PrinterModel,
                 inkColor: InkColor) {
 
@@ -172,6 +182,7 @@ export class Config {
         this.cgChip = cgChip;
         this.ramSize = ramSize;
         this.displayType = displayType;
+        this.phosphor = phosphor;
         this.customRom = customRom;
         this.printerModel = printerModel;
         this.inkColor = inkColor;
@@ -197,6 +208,7 @@ export class Config {
             cgChip: this.cgChip,
             ramSize: this.ramSize,
             displayType: this.displayType,
+            phosphor: this.phosphor,
             printerModel: this.printerModel,
             inkColor: this.inkColor,
         });
@@ -223,6 +235,9 @@ export class Config {
         if (v.displayType !== undefined) {
             builder.withDisplayType(v.displayType);
         }
+        if (v.phosphor !== undefined) {
+            builder.withPhosphor(v.phosphor);
+        }
         if (v.printerModel !== undefined) {
             builder.withPrinterModel(v.printerModel);
         }
@@ -241,6 +256,7 @@ export class Config {
             CGChip.LOWER_CASE,
             RamSize.RAM_48_KB,
             DisplayType.SIMPLE,
+            Phosphor.WHITE,
             undefined,
             PrinterModel.EPSON_MX_80,
             InkColor.BLACK);
@@ -285,6 +301,7 @@ export class Config {
             this.cgChip === other.cgChip &&
             this.ramSize === other.ramSize &&
             this.displayType === other.displayType &&
+            this.phosphor === other.phosphor &&
             this.customRom === other.customRom &&
             this.romSize === other.romSize &&
             this.printerModel === other.printerModel &&
@@ -326,6 +343,7 @@ export class ConfigBuilder {
     private cgChip: CGChip;
     private ramSize: RamSize;
     private displayType: DisplayType;
+    private phosphor: Phosphor;
     private customRom: string | undefined;
     private printerModel: PrinterModel;
     private inkColor: InkColor;
@@ -336,6 +354,7 @@ export class ConfigBuilder {
         this.cgChip = config.cgChip;
         this.ramSize = config.ramSize;
         this.displayType = config.displayType;
+        this.phosphor = config.phosphor;
         this.customRom = config.customRom;
         this.printerModel = config.printerModel;
         this.inkColor = config.inkColor;
@@ -351,6 +370,7 @@ export class ConfigBuilder {
             this.cgChip,
             this.ramSize,
             this.displayType,
+            this.phosphor,
             this.customRom,
             this.printerModel,
             this.inkColor);
@@ -378,6 +398,11 @@ export class ConfigBuilder {
 
     public withDisplayType(displayType: DisplayType): this {
         this.displayType = displayType;
+        return this;
+    }
+
+    public withPhosphor(phosphor: Phosphor): this {
+        this.phosphor = phosphor;
         return this;
     }
 
