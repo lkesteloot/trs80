@@ -163,6 +163,7 @@ precision highp float;
 precision highp usampler2D;
 
 uniform sampler2D u_inputTexture;
+uniform sampler2D u_colorMapTexture;
 uniform ivec2 u_inputTextureSize;
 uniform float u_padding;
 uniform float u_scale;
@@ -184,7 +185,7 @@ void main() {
         ? texture(u_inputTexture, (t + 1.0)/vec2(u_inputTextureSize)).r
         : 0.0;
 
-    outColor = vec4(c, c, c, 1.0);
+    outColor = texture(u_colorMapTexture, vec2(c, 0.5));
 }
 `;
 
@@ -998,6 +999,7 @@ class ConfiguredCanvas {
                 // Padding, colors.
                 new RenderPass(gl, RENDER_SIMPLE_SCREEN_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", rawScreenTexture),
+                    this.colorMapNamedTexture,
                 ], [
                     new NamedVariable("u_scale", [devicePixelRatio * this.scale]),
                     this.paddingVariable,
