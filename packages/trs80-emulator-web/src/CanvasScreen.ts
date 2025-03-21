@@ -19,6 +19,16 @@ import {g_p4_blue, g_p4_green, g_p4_red} from "./p4.js";
 import {g_green2_blue, g_green2_green, g_green2_red} from "./green2.js";
 import {ScreenSize, ScreenSizeProvider} from "./ScreenSize.js";
 
+/**
+ * These are the coordinate systems used in this file:
+ *
+ * - Device pixels: Pixels of the output display device (such as retina).
+ * - CSS pixels: Pixels as described by CSS px.
+ * - TRS-80 CRT pixel: The small TRS-80 pixels that characters are made of.
+ * - TRS-80 graphic pixels: The large TRS-80 pixels you can make with graphic characters.
+ * - TRS-80 character: Position of an entire character.
+ */
+
 const TIME_RENDERING = false;
 let TIME_BANNER: HTMLElement | undefined = undefined;
 const SHOW_REFLECTION = false;
@@ -52,11 +62,14 @@ const TRS80_CHAR_CRT_PIXEL_HEIGHT = 24;
 const TRS80_CRT_PIXEL_WIDTH = TRS80_CHAR_WIDTH*TRS80_CHAR_CRT_PIXEL_WIDTH;
 const TRS80_CRT_PIXEL_HEIGHT = TRS80_CHAR_HEIGHT*TRS80_CHAR_CRT_PIXEL_HEIGHT;
 
+// TODO delete.
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
 
+// TODO use this for all radii.
 const BORDER_RADIUS = 8;
 
+// TODO can delete these and get colors from the arrays.
 const WHITE_PHOSPHOR = [230, 231, 252];
 const AMBER_PHOSPHOR = [247, 190, 64];
 const GREEN_PHOSPHOR = [122, 244, 96];
@@ -164,21 +177,23 @@ precision highp usampler2D;
 uniform sampler2D u_inputTexture;
 uniform sampler2D u_colorMapTexture;
 uniform ivec2 u_inputTextureSize;
-uniform float u_padding;
-uniform float u_scale;
-in vec2 v_texcoord;
+uniform float u_padding; // TRS-80 CRT coordinates.
+uniform float u_scale; // Device-to-CRT.
+uniform vec2 u_outputSize;
+in vec2 v_texcoord; // Device coordinates.
 out vec4 outColor;
 
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
 const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
+const float g_radius = 25.0;
 
 void main() {
-    // Unscaled.
-    vec2 p = v_texcoord/u_scale;
+    // Convert device coordinates to CRT.
+    vec2 p = v_texcoord/u_scale - u_padding;
 
     // Text area.
-    vec2 t = p - u_padding;
+    vec2 t = p;
 
     float c = t.x >= -1.0 && t.y >= -1.0 && t.x < g_size.x + 1.0 && t.y < g_size.y + 1.0
         ? texture(u_inputTexture, (t + 1.0)/vec2(u_inputTextureSize)).r
@@ -186,6 +201,10 @@ void main() {
 
     // Phosphor and background color.
     outColor = texture(u_colorMapTexture, vec2(c, 0.5));
+
+    // Round corners.
+    float dist = length(max(abs(v_texcoord - u_outputSize/2.0) - (u_outputSize/2.0 - g_radius), 0.0));
+    outColor *= smoothstep(1.0, 0.0, dist - g_radius);
 }
 `;
 
@@ -579,7 +598,7 @@ class NamedVariable {
     public readonly values: number[];
 
     public constructor(public readonly name: string,
-                       values: number[] | Int32Array,
+                       values: number[],
                        private readonly optional = false) {
 
         // Make a copy so we can modify ours.
@@ -596,27 +615,22 @@ class NamedVariable {
                 throw new Error("Can't find uniform variable \"" + this.name + "\"");
             }
         }
-        if (this.values instanceof Int32Array) {
-            switch (this.values.length) {
-                case 1: gl.uniform1iv(location, this.values); break;
-                case 2: gl.uniform2iv(location, this.values); break;
-                case 3: gl.uniform3iv(location, this.values); break;
-                case 4: gl.uniform4iv(location, this.values); break;
-                default: throw new Error("Invalid number of values for uniform variable \"" + this.name + "\": " + this.values.length);
-            }
-        } else {
-            switch (this.values.length) {
-                case 1: gl.uniform1fv(location, this.values); break;
-                case 2: gl.uniform2fv(location, this.values); break;
-                case 3: gl.uniform3fv(location, this.values); break;
-                case 4: gl.uniform4fv(location, this.values); break;
-                default: throw new Error("Invalid number of values for uniform variable \"" + this.name + "\": " + this.values.length);
-            }
+        switch (this.values.length) {
+            case 1: gl.uniform1fv(location, this.values); break;
+            case 2: gl.uniform2fv(location, this.values); break;
+            case 3: gl.uniform3fv(location, this.values); break;
+            case 4: gl.uniform4fv(location, this.values); break;
+            default: throw new Error("Invalid number of values for uniform variable \"" + this.name + "\": " + this.values.length);
         }
     }
 }
 
+/**
+ * A pass that runs a pixel shader, perhaps on a texture, either generating an
+ * off-screen texture or rendering to the canvas.
+ */
 class RenderPass {
+    private readonly namedVariables: NamedVariable[];
     private readonly fb: WebGLFramebuffer | undefined;
     private readonly program: WebGLProgram;
     private readonly vao: WebGLVertexArrayObject;
@@ -624,8 +638,15 @@ class RenderPass {
     public constructor(private readonly gl: WebGL2RenderingContext,
                        fragmentSource: string,
                        private readonly namedTextures: NamedTexture[],
-                       private readonly namedVariables: NamedVariable[],
+                       namedVariables: NamedVariable[],
                        private readonly output: SizedTexture | { width: number, height: number }) {
+
+        this.namedVariables = [
+            ... namedVariables,
+
+            // Add optional size of output (vec2), for shaders that want that:
+            new NamedVariable("u_outputSize", [output.width, output.height], true),
+        ];
 
         if (this.output instanceof SizedTexture) {
             // Create and bind the framebuffer we'll be drawing into.
@@ -900,6 +921,11 @@ class ConfiguredCanvas {
         this.canvas.style.width = `${this.width}px`;
         this.canvas.style.height = `${this.height}px`;
         // In device pixels:
+        // TODO maybe set this to 1 for simple mode? may not be buying us anything.
+        // Or at least check if it would help, like if it would make the canvas
+        // size at least as large as the TRS-80 pixel resolution. Though also maybe
+        // by the time this is greater than 1 you probably have a good enough GPU?
+        // It actually makes the font nicely blurred, tho.
         const devicePixelRatio = window.devicePixelRatio ?? 1;
         this.canvas.width = this.width * devicePixelRatio;
         this.canvas.height = this.height * devicePixelRatio;
@@ -1033,7 +1059,7 @@ class ConfiguredCanvas {
                 ], [
                     this.pixelHorizontalBlur,
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
-                    new NamedVariable("u_vertical", new Int32Array([0])),
+                    new NamedVariable("u_vertical", [0]),
                 ], horizontallyBlurredTexture),
 
                 // Vertically blur the rendered screen.
@@ -1042,7 +1068,7 @@ class ConfiguredCanvas {
                 ], [
                     this.pixelVerticalBlur,
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
-                    new NamedVariable("u_vertical", new Int32Array([1])),
+                    new NamedVariable("u_vertical", [1]),
                 ], blurredTexture),
 
                 // Horizontally blur for halation.
@@ -1051,7 +1077,7 @@ class ConfiguredCanvas {
                 ], [
                     new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.scale]),
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
-                    new NamedVariable("u_vertical", new Int32Array([0])),
+                    new NamedVariable("u_vertical", [0]),
                 ], horizontallyBlurredTexture),
 
                 // Vertically blur for halation.
@@ -1060,7 +1086,7 @@ class ConfiguredCanvas {
                 ], [
                     new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.scale]),
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
-                    new NamedVariable("u_vertical", new Int32Array([1])),
+                    new NamedVariable("u_vertical", [1]),
                 ], halationTexture),
 
                 // Horizontally blur camera reflection.
@@ -1069,7 +1095,7 @@ class ConfiguredCanvas {
                 ], [
                     new NamedVariable("u_sigma", [REFLECTION_BLUR]),
                     new NamedVariable("u_boost", [1.0]),
-                    new NamedVariable("u_vertical", new Int32Array([0])),
+                    new NamedVariable("u_vertical", [0]),
                 ], horizontallyBlurredReflectionTexture),
 
                 // Vertically blur camera reflection.
@@ -1078,7 +1104,7 @@ class ConfiguredCanvas {
                 ], [
                     new NamedVariable("u_sigma", [REFLECTION_BLUR]),
                     new NamedVariable("u_boost", [1.0]),
-                    new NamedVariable("u_vertical", new Int32Array([1])),
+                    new NamedVariable("u_vertical", [1]),
                 ], blurredReflectionTexture),
 
                 // Halation, phosphor color, vignette, bezel.
