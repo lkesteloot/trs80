@@ -39,6 +39,10 @@ const VERTICAL_BLUR = 0.20;
 const HALATION_BLUR = 1.5;
 const REFLECTION_BLUR = 3;
 
+// Switch between display modes automatically to test interfaces that don't have a
+// control panel.
+const AUTO_TOGGLE_DISPLAY_TYPE = false;
+
 const DEMO_MODE_ENABLED = false;
 enum DemoMode {
     OFF,
@@ -925,14 +929,11 @@ class ConfiguredCanvas {
         // Or at least check if it would help, like if it would make the canvas
         // size at least as large as the TRS-80 pixel resolution. Though also maybe
         // by the time this is greater than 1 you probably have a good enough GPU?
-        // It actually makes the font nicely blurred, tho.
+        // It actually makes the font nicely blurred, tho. Also careful this is
+        // directly used elsewhere, so update all uses.
         const devicePixelRatio = window.devicePixelRatio ?? 1;
         this.canvas.width = this.width * devicePixelRatio;
         this.canvas.height = this.height * devicePixelRatio;
-
-        // this.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
-        // this.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
-        // this.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
 
         const gl = this.canvas.getContext("webgl2");
         if (gl === null) {
@@ -1191,15 +1192,14 @@ class ConfiguredCanvas {
 
     /**
      * Return the padding on all sides of the character grid. The unit is
-     * small (dot) TRS-80 pixels.
+     * TRS-80 CRT pixels.
      */
     public getRawPadding(): number {
         return this.config.displayType === DisplayType.SIMPLE ? 10 : 30;
     }
 
     /**
-     * Return the padding on all sides of the character grid. The unit is
-     * CSS (host display) pixels.
+     * Return the padding on all sides of the character grid. The unit is CSS pixels.
      */
     public getScaledPadding(): number {
         return Math.round(this.getRawPadding()*this.scale);
@@ -1219,6 +1219,15 @@ class ConfiguredCanvas {
         return this.height;
     }
 
+    public getCrtCurvature(): number {
+        return this.config.displayType === DisplayType.SIMPLE
+            ? 0
+            : this.crtCurvature.values[0];
+    }
+
+    /**
+     * Kick off an automatic refresh of the display.
+     */
     private scheduleRefresh(): void {
         window.requestAnimationFrame(() => {
             if (this.canvas.parentNode !== null) {
@@ -1228,6 +1237,9 @@ class ConfiguredCanvas {
         });
     }
 
+    /**
+     * Redraw the screen if it's changed since the last time it was drawn.
+     */
     private redrawIfNecessary(): void {
         if (this.needRedraw || SHOW_REFLECTION) {
             this.needRedraw = false;
@@ -1411,6 +1423,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera,
             this.isExpandedCharacters(), this.isAlternateCharacters());
         this.node.append(this.foofoo.canvas);
+        this.foofoo.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
+        this.foofoo.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
+        this.foofoo.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
 
         // We don't have a good way to unsubscribe from these two. We could add some kind of close() method.
         // We could also check in the callback that the canvas's ancestor is window.
@@ -1450,6 +1465,15 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         if (DEMO_MODE_ENABLED) {
             // Start the demo with everything off.
             this.setDemoModeParameter(DemoMode.ALL, 0);
+        }
+
+        if (AUTO_TOGGLE_DISPLAY_TYPE) {
+            setInterval(() => {
+                const newDisplayType = this.config.displayType === DisplayType.SIMPLE
+                    ? DisplayType.AUTHENTIC
+                    : DisplayType.SIMPLE;
+                this.setConfig(this.config.edit().withDisplayType(newDisplayType).build());
+            }, 5000);
         }
     }
 
@@ -1506,7 +1530,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             }
 
             // Clear the overlay.
-            const ctx = overlayCanvas.getContext("2d") as CanvasRenderingContext2D;
+            const ctx = overlayCanvas.getContext("2d")!;
             ctx.save();
             ctx.clearRect(0, 0, width, height);
             const scaledPadding = this.foofoo.getScaledPadding(); // TODO update when changed.
@@ -1603,7 +1627,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         // Correct for CRT curvature.
         const width = TRS80_PIXEL_WIDTH*4*this.scale;
         const height = TRS80_PIXEL_HEIGHT*8*this.scale;
-        const curvature = this.foofoo.crtCurvature.values[0];
+        const curvature = this.foofoo.getCrtCurvature();
         x -= width/2;
         y -= height/2;
         const r2 = 4*(x*x + y*y)/(width*width + height*height);
@@ -1627,7 +1651,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         y *= devicePixelRatio;
         const width = TRS80_PIXEL_WIDTH*4*this.scale*devicePixelRatio;
         const height = TRS80_PIXEL_HEIGHT*8*this.scale*devicePixelRatio;
-        const curvature = this.foofoo.crtCurvature.values[0];
+        const curvature = this.foofoo.getCrtCurvature();
 
         // I don't know how to invert this math, so build an inverse map. Make it on demand.
         if (this.straightPosToCurvedPosMap.length === 0 || this.straightPosToCurvedPosMapCurvature !== curvature) {
@@ -1858,6 +1882,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera,
             this.isExpandedCharacters(), this.isAlternateCharacters());
         oldCanvas.replaceWith(this.foofoo.canvas);
+        this.foofoo.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
+        this.foofoo.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
+        this.foofoo.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
         const newScreenSize = this.foofoo.getScreenSize();
         if (!oldScreenSize.equals(newScreenSize)) {
             this.onScreenSize.dispatch(newScreenSize);
