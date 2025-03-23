@@ -61,10 +61,12 @@ enum DemoMode {
     ALL,
 }
 
-const TRS80_CHAR_CRT_PIXEL_WIDTH = 8;
-const TRS80_CHAR_CRT_PIXEL_HEIGHT = 24;
-const TRS80_CRT_PIXEL_WIDTH = TRS80_CHAR_WIDTH*TRS80_CHAR_CRT_PIXEL_WIDTH;
-const TRS80_CRT_PIXEL_HEIGHT = TRS80_CHAR_HEIGHT*TRS80_CHAR_CRT_PIXEL_HEIGHT;
+const GRAPHIC_TO_CRT_PIXEL_WIDTH = 4;
+const GRAPHIC_TO_CRT_PIXEL_HEIGHT = 8;
+const CHAR_TO_CRT_PIXEL_WIDTH = GRAPHIC_TO_CRT_PIXEL_WIDTH*TRS80_CHAR_PIXEL_WIDTH;
+const CHAR_TO_CRT_PIXEL_HEIGHT = GRAPHIC_TO_CRT_PIXEL_HEIGHT*TRS80_CHAR_PIXEL_HEIGHT;
+const SCREEN_CRT_PIXEL_WIDTH = TRS80_CHAR_WIDTH*CHAR_TO_CRT_PIXEL_WIDTH;
+const SCREEN_CRT_PIXEL_HEIGHT = TRS80_CHAR_HEIGHT*CHAR_TO_CRT_PIXEL_HEIGHT;
 
 // TODO delete.
 export const AUTHENTIC_BACKGROUND = "#334843";
@@ -129,7 +131,7 @@ in vec2 v_texcoord;
 out vec4 outColor;
 
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
-const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
+const ivec2 g_charCrtPixelSize = ivec2(${CHAR_TO_CRT_PIXEL_WIDTH}, ${CHAR_TO_CRT_PIXEL_HEIGHT});
 
 void main() {
     // Integer texel coordinate.
@@ -188,7 +190,7 @@ in vec2 v_texcoord; // Device coordinates.
 out vec4 outColor;
 
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
-const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
+const ivec2 g_charCrtPixelSize = ivec2(${CHAR_TO_CRT_PIXEL_WIDTH}, ${CHAR_TO_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
 const float g_radius = 25.0;
 
@@ -229,7 +231,7 @@ in vec2 v_texcoord;
 out vec4 outColor;
 
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
-const ivec2 g_charCrtPixelSize = ivec2(${TRS80_CHAR_CRT_PIXEL_WIDTH}, ${TRS80_CHAR_CRT_PIXEL_HEIGHT});
+const ivec2 g_charCrtPixelSize = ivec2(${CHAR_TO_CRT_PIXEL_WIDTH}, ${CHAR_TO_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
 const float PI = ${Math.PI};
 const float SCANLINE_WIDTH = 0.2;
@@ -880,6 +882,7 @@ const GRID_HIGHLIGHT_COLOR = "rgba(255, 255, 160, 0.5)";
 
 class ConfiguredCanvas {
     public readonly canvas: HTMLCanvasElement;
+    // In CSS pixels:
     public readonly width: number;
     public readonly height: number;
     public readonly fontTexture: SizedTexture;
@@ -909,7 +912,7 @@ class ConfiguredCanvas {
     public needRedraw = true;
 
     public constructor(private readonly config: Config,
-                       private readonly scale: number,
+                       private readonly crtToCss: number,
                        private readonly memory: Uint8Array,
                        private readonly camera: HTMLVideoElement,
                        expandedCharacters: boolean,
@@ -919,9 +922,9 @@ class ConfiguredCanvas {
         // Make it block so we don't have any weird text margins on the bottom.
         this.canvas.style.display = "block";
         // In CSS pixels:
-        const scaledPadding = this.getScaledPadding();
-        this.width = TRS80_CRT_PIXEL_WIDTH * this.scale + 2 * scaledPadding;
-        this.height = TRS80_CRT_PIXEL_HEIGHT * this.scale + 2 * scaledPadding;
+        const cssPixelsPadding = this.getCssPixelsPadding();
+        this.width = SCREEN_CRT_PIXEL_WIDTH * this.crtToCss + 2 * cssPixelsPadding;
+        this.height = SCREEN_CRT_PIXEL_HEIGHT * this.crtToCss + 2 * cssPixelsPadding;
         this.canvas.style.width = `${this.width}px`;
         this.canvas.style.height = `${this.height}px`;
         // In device pixels:
@@ -942,8 +945,8 @@ class ConfiguredCanvas {
 
         // Textures to pass between rendering passes.
         // Add a 1-pixel black border to help with antialiasing.
-        const rawWidth = TRS80_CRT_PIXEL_WIDTH + 2;
-        const rawHeight = TRS80_CRT_PIXEL_HEIGHT + 2;
+        const rawWidth = SCREEN_CRT_PIXEL_WIDTH + 2;
+        const rawHeight = SCREEN_CRT_PIXEL_HEIGHT + 2;
         const rawScreenTexture = createIntermediateTexture(gl, rawWidth, rawHeight);
         const renderedTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
@@ -993,12 +996,12 @@ class ConfiguredCanvas {
         ];
         this.colorMapNamedTexture = new NamedTexture("u_colorMapTexture", this.phosphors[this.config.phosphor]);
 
-        this.pixelHorizontalBlurMax = HORIZONTAL_BLUR * devicePixelRatio * scale;
-        this.pixelVerticalBlurMax = VERTICAL_BLUR * devicePixelRatio * scale;
+        this.pixelHorizontalBlurMax = HORIZONTAL_BLUR * devicePixelRatio * crtToCss;
+        this.pixelVerticalBlurMax = VERTICAL_BLUR * devicePixelRatio * crtToCss;
 
         this.time = new NamedVariable("u_time", [0], true);
         this.expandedVariable = new NamedVariable("u_expanded", [expandedCharacters ? 1 : 0]);
-        this.paddingVariable = new NamedVariable("u_padding", [this.getRawPadding()]);
+        this.paddingVariable = new NamedVariable("u_padding", [this.getCrtPixelsPadding()]);
         this.crtCurvature = new NamedVariable("u_crtCurvature", [DEFAULT_CRT_CURVATURE]);
         this.scanlines = new NamedVariable("u_scanlines", [DEFAULT_SCANLINES]);
         this.scanlineBloom = new NamedVariable("u_scanlineBloom", [DEFAULT_SCANLINE_BLOOM]);
@@ -1028,7 +1031,7 @@ class ConfiguredCanvas {
                     new NamedTexture("u_inputTexture", rawScreenTexture),
                     this.colorMapNamedTexture,
                 ], [
-                    new NamedVariable("u_scale", [devicePixelRatio * this.scale]),
+                    new NamedVariable("u_scale", [devicePixelRatio * this.crtToCss]),
                     this.paddingVariable,
                 ], {width: this.canvas.width, height: this.canvas.height}),
             ];
@@ -1047,7 +1050,7 @@ class ConfiguredCanvas {
                     new NamedTexture("u_inputTexture", rawScreenTexture),
                 ], [
                     this.time,
-                    new NamedVariable("u_scale", [devicePixelRatio * this.scale]),
+                    new NamedVariable("u_scale", [devicePixelRatio * this.crtToCss]),
                     this.paddingVariable,
                     this.crtCurvature,
                     this.scanlines,
@@ -1076,7 +1079,7 @@ class ConfiguredCanvas {
                 new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", blurredTexture),
                 ], [
-                    new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.scale]),
+                    new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.crtToCss]),
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
                     new NamedVariable("u_vertical", [0]),
                 ], horizontallyBlurredTexture),
@@ -1085,7 +1088,7 @@ class ConfiguredCanvas {
                 new RenderPass(gl, BLUR_FRAGMENT_SHADER_SOURCE, [
                     new NamedTexture("u_inputTexture", horizontallyBlurredTexture),
                 ], [
-                    new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.scale]),
+                    new NamedVariable("u_sigma", [HALATION_BLUR * devicePixelRatio * this.crtToCss]),
                     new NamedVariable("u_boost", [1.0 + 0.5 * this.scanlines.values[0]]),
                     new NamedVariable("u_vertical", [1]),
                 ], halationTexture),
@@ -1187,38 +1190,41 @@ class ConfiguredCanvas {
     }
 
     public getScreenSize(): ScreenSize {
-        return new ScreenSize(this.getWidth(), this.getHeight(), this.getScaledPadding());
+        return new ScreenSize(this.getWidth(), this.getHeight(), this.getCssPixelsPadding());
     }
 
     /**
      * Return the padding on all sides of the character grid. The unit is
      * TRS-80 CRT pixels.
      */
-    public getRawPadding(): number {
+    public getCrtPixelsPadding(): number {
         return this.config.displayType === DisplayType.SIMPLE ? 10 : 30;
     }
 
     /**
      * Return the padding on all sides of the character grid. The unit is CSS pixels.
      */
-    public getScaledPadding(): number {
-        return Math.round(this.getRawPadding()*this.scale);
+    public getCssPixelsPadding(): number {
+        return Math.round(this.getCrtPixelsPadding()*this.crtToCss);
     }
 
     /**
-     * Width of the entire screen, including margins.
+     * Width of the entire screen, including margins, in CSS pixels.
      */
     public getWidth(): number {
         return this.width;
     }
 
     /**
-     * Height of the entire screen, including margins.
+     * Height of the entire screen, including margins, in CSS pixels.
      */
     public getHeight(): number {
         return this.height;
     }
 
+    /**
+     * Get the curvature of the screen, according to the display type.
+     */
     public getCrtCurvature(): number {
         return this.config.displayType === DisplayType.SIMPLE
             ? 0
@@ -1326,19 +1332,19 @@ class ConfiguredCanvas {
      */
     public makeSelectionCanvas(selection: Selection): HTMLCanvasElement {
         const canvas = document.createElement("canvas");
-        canvas.width = selection.width*4*this.scale;
-        canvas.height = selection.height*8*this.scale;
+        canvas.width = selection.width*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.crtToCss;
+        canvas.height = selection.height*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.crtToCss;
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-        const scaledPadding = this.getScaledPadding();
+        const cssPixelsPadding = this.getCssPixelsPadding();
         ctx.drawImage(this.canvas,
-            selection.x1*4*this.scale + scaledPadding,
-            selection.y1*8*this.scale + scaledPadding,
-            selection.width*4*this.scale,
-            selection.height*8*this.scale,
+            selection.x1*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.crtToCss + cssPixelsPadding,
+            selection.y1*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.crtToCss + cssPixelsPadding,
+            selection.width*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.crtToCss,
+            selection.height*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.crtToCss,
             0, 0,
-            selection.width*4*this.scale,
-            selection.height*8*this.scale);
+            selection.width*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.crtToCss,
+            selection.height*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.crtToCss);
 
         return canvas;
     }
@@ -1533,8 +1539,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             const ctx = overlayCanvas.getContext("2d")!;
             ctx.save();
             ctx.clearRect(0, 0, width, height);
-            const scaledPadding = this.foofoo.getScaledPadding(); // TODO update when changed.
-            ctx.translate(scaledPadding, scaledPadding);
+            const cssPixelsPadding = this.foofoo.getCssPixelsPadding(); // TODO update when changed.
+            ctx.translate(cssPixelsPadding, cssPixelsPadding);
 
             // Draw columns.
             for (let x = 0; x <= TRS80_PIXEL_WIDTH; x++) {
@@ -1582,10 +1588,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
 
             // Draw selection.
             if (showSelection) {
-                const x1 = options.selection.x1*4*this.scale;
-                const y1 = options.selection.y1*8*this.scale;
-                const x2 = options.selection.x2*4*this.scale;
-                const y2 = options.selection.y2*8*this.scale;
+                const x1 = options.selection.x1*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale;
+                const y1 = options.selection.y1*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale;
+                const x2 = options.selection.x2*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale;
+                const y2 = options.selection.y2*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale;
                 const dash = 5*devicePixelRatio;
                 ctx.save();
                 ctx.setLineDash([dash, dash]);
@@ -1625,8 +1631,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      */
     private curvedPosToStraightPos(x: number, y: number): {x: number, y: number} {
         // Correct for CRT curvature.
-        const width = TRS80_PIXEL_WIDTH*4*this.scale;
-        const height = TRS80_PIXEL_HEIGHT*8*this.scale;
+        const width = TRS80_PIXEL_WIDTH*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale;
+        const height = TRS80_PIXEL_HEIGHT*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale;
         const curvature = this.foofoo.getCrtCurvature();
         x -= width/2;
         y -= height/2;
@@ -1643,14 +1649,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     private straightPosToCurvedPosMapCurvature = 0;
 
     /**
-     * Convert rectangular XY position to curved (by CRT curvature) position.
+     * Convert rectangular XY position to curved (by CRT curvature) position, both in CSS pixels.
      */
     private straightPosToCurvedPos(x: number, y: number): {x: number, y: number} {
         const devicePixelRatio = window.devicePixelRatio ?? 1;
         x *= devicePixelRatio;
         y *= devicePixelRatio;
-        const width = TRS80_PIXEL_WIDTH*4*this.scale*devicePixelRatio;
-        const height = TRS80_PIXEL_HEIGHT*8*this.scale*devicePixelRatio;
+        const width = TRS80_PIXEL_WIDTH*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale*devicePixelRatio;
+        const height = TRS80_PIXEL_HEIGHT*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale*devicePixelRatio;
         const curvature = this.foofoo.getCrtCurvature();
 
         // I don't know how to invert this math, so build an inverse map. Make it on demand.
@@ -1693,9 +1699,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         const rectRFloor = Math.floor(rectR);
         const rectRFract = rectR - rectRFloor;
         const r = this.straightPosToCurvedPosMap[rectRFloor]*(1 - rectRFract) + this.straightPosToCurvedPosMap[rectRFloor + 1]*rectRFract;
-        const scaledPadding = this.foofoo.getScaledPadding();
-        x = x*r/rectR + width/2 + scaledPadding;
-        y = y*r/rectR + height/2 + scaledPadding;
+        const cssPixelsPadding = this.foofoo.getCssPixelsPadding();
+        x = x*r/rectR + width/2 + cssPixelsPadding;
+        y = y*r/rectR + height/2 + cssPixelsPadding;
         return {x, y};
     }
 
@@ -1709,9 +1715,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
 
         if (x1 === x2) {
             // Vertical line.
-            const x = x1*4*this.scale;
+            const x = x1*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale;
             for (let y = y1; y <= y2; y++) {
-                let pos = this.straightPosToCurvedPos(x, y*8*this.scale);
+                let pos = this.straightPosToCurvedPos(x, y*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale);
                 if (y === y1) {
                     ctx.moveTo(pos.x, pos.y);
                 } else {
@@ -1720,9 +1726,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             }
         } else {
             // Horizontal line.
-            const y = y1*8*this.scale;
+            const y = y1*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale;
             for (let x = x1; x <= x2; x++) {
-                let pos = this.straightPosToCurvedPos(x*4*this.scale, y);
+                let pos = this.straightPosToCurvedPos(x*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale, y);
                 if (x === x1) {
                     ctx.moveTo(pos.x, pos.y);
                 } else {
@@ -1737,14 +1743,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      */
     private emitMouseActivity(type: ScreenMouseEventType, event: MouseEvent, shiftKey: boolean): void {
         // Screen pixel, relative to upper-left.
-        const scaledPadding = this.foofoo.getScaledPadding();
+        const cssPixelsPadding = this.foofoo.getCssPixelsPadding();
         const {x, y} = this.curvedPosToStraightPos(
-            event.offsetX - scaledPadding,
-            event.offsetY - scaledPadding);
+            event.offsetX - cssPixelsPadding,
+            event.offsetY - cssPixelsPadding);
 
         // Convert to TRS-80 pixels.
-        const pixelX = Math.min(TRS80_PIXEL_WIDTH - 1, Math.max(0, Math.floor(x / this.scale / 4)));
-        const pixelY = Math.min(TRS80_PIXEL_HEIGHT - 1, Math.max(0, Math.floor(y / this.scale / 8)));
+        const pixelX = Math.min(TRS80_PIXEL_WIDTH - 1, Math.max(0, Math.floor(x / this.scale / GRAPHIC_TO_CRT_PIXEL_WIDTH)));
+        const pixelY = Math.min(TRS80_PIXEL_HEIGHT - 1, Math.max(0, Math.floor(y / this.scale / GRAPHIC_TO_CRT_PIXEL_HEIGHT)));
         const position = new ScreenMousePosition(pixelX, pixelY);
         this.mouseActivity.dispatch(new ScreenMouseEvent(type, position, shiftKey));
     }
