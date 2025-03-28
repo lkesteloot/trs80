@@ -104,6 +104,21 @@ function clamp(min: number, value: number, max: number): number {
     return Math.min(Math.max(value, min), max);
 }
 
+/**
+ * Describes the color of the screen (phosphor and glass).
+ */
+export class ScreenColor {
+    public constructor(public readonly textColor: string,
+                       public readonly backgroundColor: string) {
+        // Nothing.
+    }
+
+    public equals(other: ScreenColor) {
+        return this.textColor === other.textColor &&
+            this.backgroundColor === other.backgroundColor;
+    }
+}
+
 const VERTEX_SHADER_SOURCE = `#version 300 es
  
 in vec4 a_position;
@@ -1405,6 +1420,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private readonly onScreenSize = new SimpleEventDispatcher<ScreenSize>();
+    private readonly onScreenColor = new SimpleEventDispatcher<ScreenColor>();
     private flipCard: FlipCard | undefined = undefined; // TODO
     private lastMouseEvent: MouseEvent | undefined = undefined;
     private config: Config = Config.makeDefault();
@@ -1880,17 +1896,27 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Update the screen from the config and other state.
      */
     private updateFromConfig(): void {
+        // Remember old values.
         const oldCanvas = this.foofoo.canvas;
-        const oldScreenSize = this.foofoo.getScreenSize();
+        const oldScreenSize = this.getScreenSize();
+        const oldScreenColor = this.getScreenColor();
+
+        // Make a new configured canvas.
         this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera,
             this.isExpandedCharacters(), this.isAlternateCharacters());
         oldCanvas.replaceWith(this.foofoo.canvas);
         this.foofoo.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
         this.foofoo.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
         this.foofoo.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
-        const newScreenSize = this.foofoo.getScreenSize();
+
+        // Call listeners.
+        const newScreenSize = this.getScreenSize();
         if (!oldScreenSize.equals(newScreenSize)) {
             this.onScreenSize.dispatch(newScreenSize);
+        }
+        const newScreenColor = this.getScreenColor();
+        if (!oldScreenColor.equals(newScreenColor)) {
+            this.onScreenColor.dispatch(newScreenColor);
         }
     }
 
@@ -1904,9 +1930,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Get the foreground color as a CSS color based on the current config.
      */
     public getForegroundColor(): string {
+        // The brightest color actually looks a bit wrong when used in CSS
+        // (it's too desaturated), so use nearly the brightest color.
+        const FRACTION = 0.8;
         const colorMap = this.foofoo.colorMap;
-        const color = colorMap.subarray(colorMap.length - 3);
-        return "#" + toHexByte(color[0]) + toHexByte(color[1]) + toHexByte(color[2]);
+        const entry = Math.floor(FRACTION * colorMap.length / 4);
+        const index = entry*4;
+        return "#" + toHexByte(colorMap[index]) +
+            toHexByte(colorMap[index + 1]) + toHexByte(colorMap[index + 2]);
     }
 
     /**
@@ -1977,6 +2008,16 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     }
 
     /**
+     * Get the color of the phosphor and background.
+     */
+    public getScreenColor(): ScreenColor {
+        return new ScreenColor(
+            this.getForegroundColor(),
+            this.getBackgroundColor()
+        );
+    }
+
+    /**
      * Registers a callback for changes to the screen size. The callback is called synchronously
      * immediately with the current screen size, and subsequently whenever the size changes.
      * Returns a function that can be used to unsubscribe.
@@ -1984,6 +2025,17 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     public listenForScreenSize(callback: (screenSize: ScreenSize) => void): () => void {
         const unsub = this.onScreenSize.subscribe(callback);
         callback(this.getScreenSize());
+        return unsub;
+    }
+
+    /**
+     * Registers a callback for changes to the screen color. The callback is called synchronously
+     * immediately with the current screen color, and subsequently whenever the color changes.
+     * Returns a function that can be used to unsubscribe.
+     */
+    public listenForScreenColor(callback: (screenSize: ScreenColor) => void): () => void {
+        const unsub = this.onScreenColor.subscribe(callback);
+        callback(this.getScreenColor());
         return unsub;
     }
 }

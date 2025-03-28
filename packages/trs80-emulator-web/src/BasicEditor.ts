@@ -41,8 +41,10 @@ export class BasicEditor extends FlipCardSideAdapter {
         this.textarea.style.lineHeight = fontSize + "px";
         this.textarea.style.outline = "0";
         this.textarea.style.boxSizing = "border-box";
-        this.textarea.style.color = screen.getForegroundColor();
-        this.textarea.style.backgroundColor = screen.getBackgroundColor();
+        screen.listenForScreenColor(screenColor => {
+            this.textarea.style.color = screenColor.textColor;
+            this.textarea.style.backgroundColor = screenColor.backgroundColor;
+        });
         this.textarea.placeholder = "Write your Basic program here...";
         this.node.append(this.textarea);
 
