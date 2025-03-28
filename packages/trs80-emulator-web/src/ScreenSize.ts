@@ -1,6 +1,6 @@
 
 /**
- * Describes the size of a screen, in CSS units.
+ * Describes the size of a screen, all in CSS units.
  */
 export class ScreenSize {
     public constructor(
@@ -8,13 +8,13 @@ export class ScreenSize {
         public readonly width: number,
         public readonly height: number,
         // Outsize the text, on all sides.
-        public readonly scaledPadding: number) {
+        public readonly padding: number) {
     }
 
     public equals(other: ScreenSize): boolean {
         return this.width === other.width
             && this.height === other.height
-            && this.scaledPadding === other.scaledPadding;
+            && this.padding === other.padding;
     }
 }
 

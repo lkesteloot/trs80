@@ -1,6 +1,6 @@
 import {Trs80WebScreen} from "./Trs80WebScreen.js";
 import {MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
-import {CGChip, Config, DisplayType, ModelType, Trs80ScreenState} from "trs80-emulator";
+import {CGChip, Config, DisplayType, ModelType, Phosphor, Trs80ScreenState} from "trs80-emulator";
 import {toHexByte} from "z80-base";
 import {
     TRS80_CHAR_HEIGHT,
@@ -68,7 +68,6 @@ const CHAR_TO_CRT_PIXEL_HEIGHT = GRAPHIC_TO_CRT_PIXEL_HEIGHT*TRS80_CHAR_PIXEL_HE
 const SCREEN_CRT_PIXEL_WIDTH = TRS80_CHAR_WIDTH*CHAR_TO_CRT_PIXEL_WIDTH;
 const SCREEN_CRT_PIXEL_HEIGHT = TRS80_CHAR_HEIGHT*CHAR_TO_CRT_PIXEL_HEIGHT;
 
-// TODO delete.
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
 
@@ -192,7 +191,7 @@ out vec4 outColor;
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
 const ivec2 g_charCrtPixelSize = ivec2(${CHAR_TO_CRT_PIXEL_WIDTH}, ${CHAR_TO_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
-const float g_radius = 25.0;
+const float g_radius = 25.0; // TODO get from outside, and scale.
 
 void main() {
     // Convert device coordinates to CRT.
@@ -342,6 +341,7 @@ float bezel(vec2 uv, vec2 size) {
         return 0.0;
     }
 
+    // TODO use signed distance function, like in the other shader.
     if (uv.x < RADIUS && uv.y < RADIUS) {
         vec2 p = vec2(RADIUS, RADIUS) - uv;
         if (dot(p, p) > RADIUS*RADIUS) {
@@ -524,19 +524,14 @@ function createIntermediateTexture(gl: WebGL2RenderingContext, width: number, he
  * Convert three maps (256 entries -> 0..1) to a flattened RGBA (0..255) array for a color map.
  */
 function makeColorMap(red: number[], green: number[], blue: number[], backgroundHex: string): Uint8Array {
-    const bgFactor = 1;
-    const bgRed = parseInt(backgroundHex.substring(1, 3), 16)/255*bgFactor;
-    const bgGreen = parseInt(backgroundHex.substring(3, 5), 16)/255*bgFactor;
-    const bgBlue = parseInt(backgroundHex.substring(5, 7), 16)/255*bgFactor;
-
-    function blend(bg: number, fg: number): number {
-        return Math.max(bg, fg);
-    }
+    const bgRed = parseInt(backgroundHex.substring(1, 3), 16)/255;
+    const bgGreen = parseInt(backgroundHex.substring(3, 5), 16)/255;
+    const bgBlue = parseInt(backgroundHex.substring(5, 7), 16)/255;
 
     return new Uint8Array(red.flatMap((_, i) => [
-        Math.floor(blend(bgRed, red[i])*255.99),
-        Math.floor(blend(bgGreen, green[i])*255.99),
-        Math.floor(blend(bgBlue, blue[i])*255.99),
+        Math.floor(Math.max(bgRed, red[i])*255.99),
+        Math.floor(Math.max(bgGreen, green[i])*255.99),
+        Math.floor(Math.max(bgBlue, blue[i])*255.99),
         255]));
 }
 
@@ -888,7 +883,7 @@ class ConfiguredCanvas {
     public readonly fontTexture: SizedTexture;
     public readonly memoryTexture: SizedTexture;
     public readonly cameraTexture: SizedTexture;
-    public readonly phosphors: SizedTexture[];
+    public readonly colorMap: Uint8Array;
     public readonly colorMapNamedTexture: NamedTexture;
     public readonly time: NamedVariable;
     public readonly startTime: number;
@@ -987,14 +982,22 @@ class ConfiguredCanvas {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        // Make the phosphor textures.
-        this.phosphors = [
-            // Match the order of the Phosphor enum.
-            makePhosphorTexture(gl, makeColorMap(g_p4_red, g_p4_green, g_p4_blue, AUTHENTIC_BACKGROUND)),
-            makePhosphorTexture(gl, makeColorMap(g_green2_red, g_green2_green, g_green2_blue, BLACK_BACKGROUND)),
-            makePhosphorTexture(gl, makeColorMap(g_amber_red, g_amber_green, g_amber_blue, BLACK_BACKGROUND)),
-        ];
-        this.colorMapNamedTexture = new NamedTexture("u_colorMapTexture", this.phosphors[this.config.phosphor]);
+        // Make the phosphor texture.
+        switch (this.config.phosphor) {
+            case Phosphor.WHITE:
+            default:
+                this.colorMap = makeColorMap(g_p4_red, g_p4_green, g_p4_blue, AUTHENTIC_BACKGROUND);
+                break;
+
+            case Phosphor.GREEN:
+                this.colorMap = makeColorMap(g_green2_red, g_green2_green, g_green2_blue, BLACK_BACKGROUND);
+                break;
+
+            case Phosphor.AMBER:
+                this.colorMap = makeColorMap(g_amber_red, g_amber_green, g_amber_blue, BLACK_BACKGROUND);
+                break;
+        }
+        this.colorMapNamedTexture = new NamedTexture("u_colorMapTexture", makePhosphorTexture(gl, this.colorMap));
 
         this.pixelHorizontalBlurMax = HORIZONTAL_BLUR * devicePixelRatio * crtToCss;
         this.pixelVerticalBlurMax = VERTICAL_BLUR * devicePixelRatio * crtToCss;
@@ -1803,12 +1806,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 this.setDemoModeParameter(this.demoMode, 1.0);
             } else if (event.key === "S") {
                 this.setDemoModeParameter(this.demoMode, 0.0);
-            } else if (event.key === "P") {
-                // Cycle through phosphors.
-                const index = this.foofoo.phosphors.indexOf(this.foofoo.colorMapNamedTexture.texture);
-                const newIndex = (index + 1) % this.foofoo.phosphors.length;
-                this.foofoo.colorMapNamedTexture.texture = this.foofoo.phosphors[newIndex];
-                this.foofoo.needRedraw = true;
             } else if (event.code >= "Digit0" && event.code <= "Digit9") {
                 this.demoMode = parseInt(event.code.substring(5)) as DemoMode;
             }
@@ -1903,8 +1900,12 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         this.foofoo.needRedraw = true;
     }
 
+    /**
+     * Get the foreground color as a CSS color based on the current config.
+     */
     public getForegroundColor(): string {
-        const color = WHITE_PHOSPHOR;
+        const colorMap = this.foofoo.colorMap;
+        const color = colorMap.subarray(colorMap.length - 3);
         return "#" + toHexByte(color[0]) + toHexByte(color[1]) + toHexByte(color[2]);
     }
 
@@ -1912,7 +1913,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Get the background color as a CSS color based on the current config.
      */
     public getBackgroundColor(): string {
-        return AUTHENTIC_BACKGROUND;
+        const color = this.foofoo.colorMap.subarray(0, 3);
+        return "#" + toHexByte(color[0]) + toHexByte(color[1]) + toHexByte(color[2]);
     }
 
     /**

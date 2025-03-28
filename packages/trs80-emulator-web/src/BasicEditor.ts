@@ -32,7 +32,7 @@ export class BasicEditor extends FlipCardSideAdapter {
             this.node.style.height = screenSize.height + "px";
             this.textarea.style.width = screenSize.width + "px";
             this.textarea.style.height = screenSize.height + "px";
-            this.textarea.style.padding = screenSize.scaledPadding + "px";
+            this.textarea.style.padding = screenSize.padding + "px";
         });
         this.textarea.style.border = "0";
         this.textarea.style.borderRadius = screen.getBorderRadius() + "px";
