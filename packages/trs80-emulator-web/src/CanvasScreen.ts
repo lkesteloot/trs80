@@ -75,11 +75,6 @@ export const BLACK_BACKGROUND = "#000000";
 // TODO use this for all radii.
 const BORDER_RADIUS = 8;
 
-// TODO can delete these and get colors from the arrays.
-const WHITE_PHOSPHOR = [230, 231, 252];
-const AMBER_PHOSPHOR = [247, 190, 64];
-const GREEN_PHOSPHOR = [122, 244, 96];
-
 const DEFAULT_CRT_CURVATURE = 0.06;
 const DEFAULT_SCANLINES = 1;
 const DEFAULT_SCANLINE_BLOOM = 0.55;
@@ -353,34 +348,22 @@ vec2 curve(vec2 p, vec2 size, float curvature) {
 }
 
 float bezel(vec2 uv, vec2 size) {
-    if (uv.x < 0.0 || uv.y < 0.0 || uv.x > size.x || uv.y > size.y) {
-        return 0.0;
-    }
-
-    // TODO use signed distance function, like in the other shader.
-    if (uv.x < RADIUS && uv.y < RADIUS) {
-        vec2 p = vec2(RADIUS, RADIUS) - uv;
-        if (dot(p, p) > RADIUS*RADIUS) {
-            return 0.0;
-        }
-    } else if (uv.x > size.x - RADIUS && uv.y < RADIUS) {
-        vec2 p = vec2(size.x - RADIUS, RADIUS) - uv;
-        if (dot(p, p) > RADIUS*RADIUS) {
-            return 0.0;
-        }
-    } else if (uv.x < RADIUS && uv.y > size.y - RADIUS) {
-        vec2 p = vec2(RADIUS, size.y - RADIUS) - uv;
-        if (dot(p, p) > RADIUS*RADIUS) {
-            return 0.0;
-        }
-    } else if (uv.x > size.x - RADIUS && uv.y > size.y - RADIUS) {
-        vec2 p = size - vec2(RADIUS, RADIUS) - uv;
-        if (dot(p, p) > RADIUS*RADIUS) {
-            return 0.0;
-        }
-    }
+    // Subtract center of bezel.
+    uv -= size/2.0;
     
-    return 1.0;
+    // Absolute value to just get the positive coordinates, it's all symmetrical.
+    uv = abs(uv);
+    
+    // Subtract the rectangle minus the radius.
+    uv -= size/2.0 - RADIUS;
+    
+    // Clamp at zero to just get distance outside.
+    uv = max(uv, 0.0);
+    
+    // Get distance to zero.
+    float d = length(uv);
+    
+    return smoothstep(1.0, 0.0, d - RADIUS);
 }
 
 // uv = -0.5 to 0.5
@@ -891,6 +874,12 @@ function overlayOptionsEqual(a: FullOverlayOptions, b: FullOverlayOptions): bool
 const GRID_COLOR = "rgba(160, 160, 255, 0.5)";
 const GRID_HIGHLIGHT_COLOR = "rgba(255, 255, 160, 0.5)";
 
+/**
+ * A canvas that's been configured for a particular Config. I originally created this
+ * because I thought it was the easiest way to deal with changing padding when the
+ * display type changes. I eventually found a better way (the listeners), so this
+ * could possibly be removed and the canvas not re-created each time.
+ */
 class ConfiguredCanvas {
     public readonly canvas: HTMLCanvasElement;
     private readonly camera: HTMLVideoElement | undefined;
