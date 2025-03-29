@@ -1452,7 +1452,7 @@ class ConfiguredCanvas {
 export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, ScreenSizeProvider {
     public readonly scale: number = 1;
     private readonly node: HTMLElement;
-    private foofoo: ConfiguredCanvas;
+    private configuredCanvas: ConfiguredCanvas;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private readonly onScreenSize = new SimpleEventDispatcher<ScreenSize>();
@@ -1480,12 +1480,12 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         // displayed in the canvas.
         this.node.style.maxWidth = "max-content";
 
-        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory,
+        this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.memory,
             this.isExpandedCharacters(), this.isAlternateCharacters());
-        this.node.append(this.foofoo.canvas);
-        this.foofoo.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
-        this.foofoo.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
-        this.foofoo.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
+        this.node.append(this.configuredCanvas.canvas);
+        this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
+        this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
+        this.configuredCanvas.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
 
         // We don't have a good way to unsubscribe from these two. We could add some kind of close() method.
         // We could also check in the callback that the canvas's ancestor is window.
@@ -1541,8 +1541,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         const showOverlay = options.showPixelGrid || options.showCharGrid ||
             options.showHighlight !== undefined || options.showCursor || showSelection;
         if (showOverlay) {
-            const width = this.foofoo.canvas.width;
-            const height = this.foofoo.canvas.height;
+            const width = this.configuredCanvas.canvas.width;
+            const height = this.configuredCanvas.canvas.height;
             const devicePixelRatio = window.devicePixelRatio ?? 1;
 
             // Create overlay canvas if necessary.
@@ -1552,8 +1552,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 overlayCanvas.style.position = "absolute";
                 overlayCanvas.style.top = "0";
                 overlayCanvas.style.left = "0";
-                overlayCanvas.style.width = `${this.foofoo.width}px`; // TODO update
-                overlayCanvas.style.height = `${this.foofoo.height}px`;
+                overlayCanvas.style.width = `${this.configuredCanvas.width}px`; // TODO update
+                overlayCanvas.style.height = `${this.configuredCanvas.height}px`;
                 overlayCanvas.style.pointerEvents = "none";
                 overlayCanvas.width = width;
                 overlayCanvas.height = height;
@@ -1571,7 +1571,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             const ctx = overlayCanvas.getContext("2d")!;
             ctx.save();
             ctx.clearRect(0, 0, width, height);
-            const cssPixelsPadding = this.foofoo.getCssPixelsPadding(); // TODO update when changed.
+            const cssPixelsPadding = this.configuredCanvas.getCssPixelsPadding(); // TODO update when changed.
             ctx.translate(cssPixelsPadding, cssPixelsPadding);
 
             // Draw columns.
@@ -1665,7 +1665,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         // Correct for CRT curvature.
         const width = TRS80_PIXEL_WIDTH*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale;
         const height = TRS80_PIXEL_HEIGHT*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale;
-        const curvature = this.foofoo.getCrtCurvature();
+        const curvature = this.configuredCanvas.getCrtCurvature();
         x -= width/2;
         y -= height/2;
         const r2 = 4*(x*x + y*y)/(width*width + height*height);
@@ -1689,7 +1689,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         y *= devicePixelRatio;
         const width = TRS80_PIXEL_WIDTH*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale*devicePixelRatio;
         const height = TRS80_PIXEL_HEIGHT*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale*devicePixelRatio;
-        const curvature = this.foofoo.getCrtCurvature();
+        const curvature = this.configuredCanvas.getCrtCurvature();
 
         // I don't know how to invert this math, so build an inverse map. Make it on demand.
         if (this.straightPosToCurvedPosMap.length === 0 || this.straightPosToCurvedPosMapCurvature !== curvature) {
@@ -1731,7 +1731,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         const rectRFloor = Math.floor(rectR);
         const rectRFract = rectR - rectRFloor;
         const r = this.straightPosToCurvedPosMap[rectRFloor]*(1 - rectRFract) + this.straightPosToCurvedPosMap[rectRFloor + 1]*rectRFract;
-        const cssPixelsPadding = this.foofoo.getCssPixelsPadding();
+        const cssPixelsPadding = this.configuredCanvas.getCssPixelsPadding();
         x = x*r/rectR + width/2 + cssPixelsPadding;
         y = y*r/rectR + height/2 + cssPixelsPadding;
         return {x, y};
@@ -1775,7 +1775,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      */
     private emitMouseActivity(type: ScreenMouseEventType, event: MouseEvent, shiftKey: boolean): void {
         // Screen pixel, relative to upper-left.
-        const cssPixelsPadding = this.foofoo.getCssPixelsPadding();
+        const cssPixelsPadding = this.configuredCanvas.getCssPixelsPadding();
         const {x, y} = this.curvedPosToStraightPos(
             event.offsetX - cssPixelsPadding,
             event.offsetY - cssPixelsPadding);
@@ -1805,7 +1805,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
 
         if (DEMO_MODE_ENABLED && type === "mousemove" && demoModifierKeys(event)) {
             const devicePixelRatio = window.devicePixelRatio ?? 1;
-            const value = Math.max((1 - devicePixelRatio*event.offsetY/this.foofoo.canvas.height)*1.5, 0);
+            const value = Math.max((1 - devicePixelRatio*event.offsetY/this.configuredCanvas.canvas.height)*1.5, 0);
             this.setDemoModeParameter(this.demoMode, value);
         }
     }
@@ -1828,9 +1828,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 } else {
                     this.demoMode = DemoMode.ZOOM;
                 }
-                this.foofoo.zoomPoint.values[0] = ZOOM_POINTS[this.zoomPointIndex][0];
-                this.foofoo.zoomPoint.values[1] = ZOOM_POINTS[this.zoomPointIndex][1];
-                this.foofoo.needRedraw = true;
+                this.configuredCanvas.zoomPoint.values[0] = ZOOM_POINTS[this.zoomPointIndex][0];
+                this.configuredCanvas.zoomPoint.values[1] = ZOOM_POINTS[this.zoomPointIndex][1];
+                this.configuredCanvas.needRedraw = true;
             } else if (event.key === "X") {
                 this.setDemoModeParameter(this.demoMode, 1.0);
             } else if (event.key === "S") {
@@ -1848,44 +1848,44 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 break;
 
             case DemoMode.CRT_CURVATURE:
-                this.foofoo.crtCurvature.values[0] = clamp(0, value*DEFAULT_CRT_CURVATURE, DEFAULT_CRT_CURVATURE*2);
+                this.configuredCanvas.crtCurvature.values[0] = clamp(0, value*DEFAULT_CRT_CURVATURE, DEFAULT_CRT_CURVATURE*2);
                 break;
 
             case DemoMode.SCANLINES:
-                this.foofoo.scanlines.values[0] = clamp(0, value*DEFAULT_SCANLINES, 1);
+                this.configuredCanvas.scanlines.values[0] = clamp(0, value*DEFAULT_SCANLINES, 1);
                 break;
 
             case DemoMode.PIXEL_BLUR:
-                this.foofoo.pixelHorizontalBlur.values[0] = clamp(0, value*this.foofoo.pixelHorizontalBlurMax, this.foofoo.pixelHorizontalBlurMax*2);
-                this.foofoo.pixelVerticalBlur.values[0] = clamp(0, value*this.foofoo.pixelVerticalBlurMax, this.foofoo.pixelVerticalBlurMax*2);
+                this.configuredCanvas.pixelHorizontalBlur.values[0] = clamp(0, value*this.configuredCanvas.pixelHorizontalBlurMax, this.configuredCanvas.pixelHorizontalBlurMax*2);
+                this.configuredCanvas.pixelVerticalBlur.values[0] = clamp(0, value*this.configuredCanvas.pixelVerticalBlurMax, this.configuredCanvas.pixelVerticalBlurMax*2);
                 break;
 
             case DemoMode.PHOSPHOR:
-                this.foofoo.phosphor.values[0] = clamp(0, value*DEFAULT_PHOSPHOR, 1);
+                this.configuredCanvas.phosphor.values[0] = clamp(0, value*DEFAULT_PHOSPHOR, 1);
                 break;
 
             case DemoMode.SCANLINE_BLOOM:
-                this.foofoo.scanlineBloom.values[0] = clamp(0, value*DEFAULT_SCANLINE_BLOOM, DEFAULT_SCANLINE_BLOOM*2);
+                this.configuredCanvas.scanlineBloom.values[0] = clamp(0, value*DEFAULT_SCANLINE_BLOOM, DEFAULT_SCANLINE_BLOOM*2);
                 break;
 
             case DemoMode.HALATION:
-                this.foofoo.halation.values[0] = clamp(0, value*DEFAULT_HALATION, DEFAULT_HALATION*2);
+                this.configuredCanvas.halation.values[0] = clamp(0, value*DEFAULT_HALATION, DEFAULT_HALATION*2);
                 break;
 
             case DemoMode.BLACKPOINT:
-                this.foofoo.blackpoint.values[0] = clamp(0, value*DEFAULT_BLACKPOINT, DEFAULT_BLACKPOINT*2);
+                this.configuredCanvas.blackpoint.values[0] = clamp(0, value*DEFAULT_BLACKPOINT, DEFAULT_BLACKPOINT*2);
                 break;
 
             case DemoMode.VIGNETTE:
-                this.foofoo.vignette.values[0] = clamp(0, value*DEFAULT_VIGNETTE, DEFAULT_VIGNETTE*2);
+                this.configuredCanvas.vignette.values[0] = clamp(0, value*DEFAULT_VIGNETTE, DEFAULT_VIGNETTE*2);
                 break;
 
             case DemoMode.REFLECTION:
-                this.foofoo.reflection.values[0] = clamp(0, value*DEFAULT_REFLECTION, DEFAULT_REFLECTION*2);
+                this.configuredCanvas.reflection.values[0] = clamp(0, value*DEFAULT_REFLECTION, DEFAULT_REFLECTION*2);
                 break;
 
             case DemoMode.ZOOM:
-                this.foofoo.zoom.values[0] = clamp(1, 1 + value*8, 1000);
+                this.configuredCanvas.zoom.values[0] = clamp(1, 1 + value*8, 1000);
                 break;
 
             case DemoMode.ALL:
@@ -1902,7 +1902,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 break;
         }
 
-        this.foofoo.needRedraw = true;
+        this.configuredCanvas.needRedraw = true;
     }
 
     /**
@@ -1910,17 +1910,17 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      */
     private updateFromConfig(): void {
         // Remember old values.
-        const oldCanvas = this.foofoo.canvas;
+        const oldCanvas = this.configuredCanvas.canvas;
         const oldScreenSize = this.getScreenSize();
         const oldScreenColor = this.getScreenColor();
 
         // Make a new configured canvas.
-        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory,
+        this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.memory,
             this.isExpandedCharacters(), this.isAlternateCharacters());
-        oldCanvas.replaceWith(this.foofoo.canvas);
-        this.foofoo.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
-        this.foofoo.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
-        this.foofoo.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
+        oldCanvas.replaceWith(this.configuredCanvas.canvas);
+        this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
+        this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
+        this.configuredCanvas.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
 
         // Call listeners.
         const newScreenSize = this.getScreenSize();
@@ -1936,7 +1936,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     writeChar(address: number, value: number): void {
         const offset = address - TRS80_SCREEN_BEGIN;
         this.memory[offset] = value;
-        this.foofoo.needRedraw = true;
+        this.configuredCanvas.needRedraw = true;
     }
 
     /**
@@ -1946,7 +1946,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         // The brightest color actually looks a bit wrong when used in CSS
         // (it's too desaturated), so use nearly the brightest color.
         const FRACTION = 0.8;
-        const colorMap = this.foofoo.colorMap;
+        const colorMap = this.configuredCanvas.colorMap;
         const entry = Math.floor(FRACTION * colorMap.length / 4);
         const index = entry*4;
         return "#" + toHexByte(colorMap[index]) +
@@ -1957,7 +1957,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Get the background color as a CSS color based on the current config.
      */
     public getBackgroundColor(): string {
-        const color = this.foofoo.colorMap.subarray(0, 3);
+        const color = this.configuredCanvas.colorMap.subarray(0, 3);
         return "#" + toHexByte(color[0]) + toHexByte(color[1]) + toHexByte(color[2]);
     }
 
@@ -1975,14 +1975,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     setExpandedCharacters(expanded: boolean): void {
         if (expanded !== this.isExpandedCharacters()) {
             super.setExpandedCharacters(expanded);
-            this.foofoo.setExpandedCharacters(expanded);
+            this.configuredCanvas.setExpandedCharacters(expanded);
         }
     }
 
     setAlternateCharacters(alternate: boolean): void {
         if (alternate !== this.isAlternateCharacters()) {
             super.setAlternateCharacters(alternate);
-            this.foofoo.setAlternateCharacters(alternate);
+            this.configuredCanvas.setAlternateCharacters(alternate);
         }
     }
 
@@ -1998,7 +1998,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * This method is deprecated, use asImageAsync instead.
      */
     public asImage(): HTMLImageElement {
-        return this.foofoo.asImage();
+        return this.configuredCanvas.asImage();
     }
 
     /**
@@ -2006,18 +2006,18 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * "async" name, there's still some synchronous work, about 13ms.
      */
     public asImageAsync(): Promise<HTMLImageElement> {
-        return this.foofoo.asImageAsync();
+        return this.configuredCanvas.asImageAsync();
     }
 
     /**
      * Make a canvas from the sub-rectangle section.
      */
     public makeSelectionCanvas(selection: Selection): HTMLCanvasElement {
-        return this.foofoo.makeSelectionCanvas(selection);
+        return this.configuredCanvas.makeSelectionCanvas(selection);
     }
 
     public getScreenSize() {
-        return this.foofoo.getScreenSize();
+        return this.configuredCanvas.getScreenSize();
     }
 
     /**
