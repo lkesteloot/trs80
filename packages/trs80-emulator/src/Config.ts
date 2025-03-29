@@ -167,13 +167,14 @@ export class Config {
     public readonly ramSize: RamSize;
     public readonly displayType: DisplayType;
     public readonly phosphor: Phosphor;
+    public readonly reflection: boolean;
     public readonly customRom: string | undefined;
     public readonly romSize: number;
     public readonly printerModel: PrinterModel;
     public readonly inkColor: InkColor;
 
     constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize,
-                displayType: DisplayType, phosphor: Phosphor,
+                displayType: DisplayType, phosphor: Phosphor, reflection: boolean,
                 customRom: string | undefined, printerModel: PrinterModel,
                 inkColor: InkColor) {
 
@@ -183,6 +184,7 @@ export class Config {
         this.ramSize = ramSize;
         this.displayType = displayType;
         this.phosphor = phosphor;
+        this.reflection = reflection;
         this.customRom = customRom;
         this.printerModel = printerModel;
         this.inkColor = inkColor;
@@ -209,6 +211,7 @@ export class Config {
             ramSize: this.ramSize,
             displayType: this.displayType,
             phosphor: this.phosphor,
+            reflection: this.reflection,
             printerModel: this.printerModel,
             inkColor: this.inkColor,
         });
@@ -238,6 +241,9 @@ export class Config {
         if (v.phosphor !== undefined) {
             builder.withPhosphor(v.phosphor);
         }
+        if (v.reflection !== undefined) {
+            builder.withReflection(v.reflection);
+        }
         if (v.printerModel !== undefined) {
             builder.withPrinterModel(v.printerModel);
         }
@@ -257,6 +263,7 @@ export class Config {
             RamSize.RAM_48_KB,
             DisplayType.SIMPLE,
             Phosphor.WHITE,
+            false,
             undefined,
             PrinterModel.EPSON_MX_80,
             InkColor.BLACK);
@@ -273,6 +280,11 @@ export class Config {
 
         // Model III/4 only had lower case.
         if (this.modelType !== ModelType.MODEL1 && this.cgChip === CGChip.ORIGINAL) {
+            return false;
+        }
+
+        // Only the authentic display type can show reflections.
+        if (this.reflection && this.displayType !== DisplayType.AUTHENTIC) {
             return false;
         }
 
@@ -302,6 +314,7 @@ export class Config {
             this.ramSize === other.ramSize &&
             this.displayType === other.displayType &&
             this.phosphor === other.phosphor &&
+            this.reflection === other.reflection &&
             this.customRom === other.customRom &&
             this.romSize === other.romSize &&
             this.printerModel === other.printerModel &&
@@ -344,6 +357,7 @@ export class ConfigBuilder {
     private ramSize: RamSize;
     private displayType: DisplayType;
     private phosphor: Phosphor;
+    private reflection: boolean;
     private customRom: string | undefined;
     private printerModel: PrinterModel;
     private inkColor: InkColor;
@@ -355,6 +369,7 @@ export class ConfigBuilder {
         this.ramSize = config.ramSize;
         this.displayType = config.displayType;
         this.phosphor = config.phosphor;
+        this.reflection = config.reflection;
         this.customRom = config.customRom;
         this.printerModel = config.printerModel;
         this.inkColor = config.inkColor;
@@ -371,6 +386,7 @@ export class ConfigBuilder {
             this.ramSize,
             this.displayType,
             this.phosphor,
+            this.reflection,
             this.customRom,
             this.printerModel,
             this.inkColor);
@@ -403,6 +419,11 @@ export class ConfigBuilder {
 
     public withPhosphor(phosphor: Phosphor): this {
         this.phosphor = phosphor;
+        return this;
+    }
+
+    public withReflection(reflection: boolean): this {
+        this.reflection = reflection;
         return this;
     }
 

@@ -31,7 +31,8 @@ import {ScreenSize, ScreenSizeProvider} from "./ScreenSize.js";
 
 const TIME_RENDERING = false;
 let TIME_BANNER: HTMLElement | undefined = undefined;
-const SHOW_REFLECTION = false;
+
+const CAMERA_NODE_ID = "trs80_emulator_web_camera_id";
 
 // In fractions of an original (CRT) pixel.
 const HORIZONTAL_BLUR = 0.72;
@@ -892,6 +893,7 @@ const GRID_HIGHLIGHT_COLOR = "rgba(255, 255, 160, 0.5)";
 
 class ConfiguredCanvas {
     public readonly canvas: HTMLCanvasElement;
+    private readonly camera: HTMLVideoElement | undefined;
     // In CSS pixels:
     public readonly width: number;
     public readonly height: number;
@@ -924,7 +926,6 @@ class ConfiguredCanvas {
     public constructor(private readonly config: Config,
                        private readonly crtToCss: number,
                        private readonly memory: Uint8Array,
-                       private readonly camera: HTMLVideoElement,
                        expandedCharacters: boolean,
                        alternateCharacters: boolean) {
 
@@ -947,6 +948,42 @@ class ConfiguredCanvas {
         const devicePixelRatio = window.devicePixelRatio ?? 1;
         this.canvas.width = this.width * devicePixelRatio;
         this.canvas.height = this.height * devicePixelRatio;
+
+        if (this.config.displayType === DisplayType.AUTHENTIC && this.config.reflection) {
+            // Re-use or make a video element.
+            let camera = document.querySelector("#" + CAMERA_NODE_ID) as (HTMLVideoElement | null);
+            if (camera === null) {
+                camera = document.createElement("video");
+                camera.id = CAMERA_NODE_ID;
+                camera.style.display = "none";
+                camera.style.width = "512px";
+                camera.style.height = "512px";
+                camera.controls = true;
+                camera.playsInline = true; // Examples use empty string for iOS.
+                camera.crossOrigin = "anonymous";
+                document.body.append(camera);
+
+                const validCamera = camera;
+
+                // Hook it up to the camera.
+                navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false,
+                }).then(
+                    stream => validCamera.srcObject = stream,
+                    error => console.log(error));
+
+                // Shouldn't have to click, but browser (sometimes) requires it to allow play().
+                document.body.addEventListener("click", async () => {
+                    await validCamera.play();
+                }, {
+                    once: true,
+                });
+            }
+            this.camera = camera;
+        } else {
+            this.camera = undefined;
+        }
 
         const gl = this.canvas.getContext("webgl2");
         if (gl === null) {
@@ -1265,7 +1302,7 @@ class ConfiguredCanvas {
      * Redraw the screen if it's changed since the last time it was drawn.
      */
     private redrawIfNecessary(): void {
-        if (this.needRedraw || SHOW_REFLECTION) {
+        if (this.needRedraw || this.camera !== undefined) {
             this.needRedraw = false;
             this.refresh();
         }
@@ -1287,7 +1324,7 @@ class ConfiguredCanvas {
             gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.memory);
 
         // Update reflection image.
-        if (SHOW_REFLECTION) {
+        if (this.camera !== undefined) {
             gl.bindTexture(gl.TEXTURE_2D, this.cameraTexture.texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.camera);
         }
@@ -1416,7 +1453,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     public readonly scale: number = 1;
     private readonly node: HTMLElement;
     private foofoo: ConfiguredCanvas;
-    private readonly camera: HTMLVideoElement;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private readonly onScreenSize = new SimpleEventDispatcher<ScreenSize>();
@@ -1444,8 +1480,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         // displayed in the canvas.
         this.node.style.maxWidth = "max-content";
 
-        this.camera = document.createElement("video");
-        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera,
+        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory,
             this.isExpandedCharacters(), this.isAlternateCharacters());
         this.node.append(this.foofoo.canvas);
         this.foofoo.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
@@ -1462,28 +1497,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             capture: true,
             passive: true,
         });
-
-        if (SHOW_REFLECTION) {
-            this.camera.style.display = "none";
-            this.camera.style.width = "512px";
-            this.camera.style.height = "512px";
-            this.camera.controls = true;
-            this.camera.playsInline = true; // Examples use empty string for iOS.
-            this.camera.crossOrigin = "anonymous";
-            document.body.append(this.camera);
-
-            navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false,
-            }).then(
-                stream => this.camera.srcObject = stream,
-                error => console.log(error));
-
-            // Shouldn't have to click, but browser (sometimes) requires it to allow play().
-            this.node.addEventListener("click", async () => {
-                await this.camera.play();
-            });
-        }
 
         this.updateFromConfig();
 
@@ -1902,7 +1915,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         const oldScreenColor = this.getScreenColor();
 
         // Make a new configured canvas.
-        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory, this.camera,
+        this.foofoo = new ConfiguredCanvas(this.config, this.scale, this.memory,
             this.isExpandedCharacters(), this.isAlternateCharacters());
         oldCanvas.replaceWith(this.foofoo.canvas);
         this.foofoo.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));

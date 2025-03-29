@@ -331,6 +331,21 @@ const VIEW_OPTION_BLOCKS: OptionBlock<any>[] = [
             },
         ]
     },
+    {
+        title: "Reflection",
+        isChecked: (reflection: boolean, config: Config) => reflection === config.reflection,
+        updateConfig: (reflection: boolean, config: Config) => config.edit().withReflection(reflection).build(),
+        options: [
+            {
+                label: "Off",
+                value: false,
+            },
+            {
+                label: "Use Camera",
+                value: true,
+            },
+        ]
+    },
 ];
 const PRINTER_OPTION_BLOCKS: OptionBlock<any>[] = [
     {
