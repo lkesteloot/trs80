@@ -72,8 +72,7 @@ const SCREEN_CRT_PIXEL_HEIGHT = TRS80_CHAR_HEIGHT*CHAR_TO_CRT_PIXEL_HEIGHT;
 export const AUTHENTIC_BACKGROUND = "#334843";
 export const BLACK_BACKGROUND = "#000000";
 
-// TODO use this for all radii.
-const BORDER_RADIUS = 8;
+const BORDER_RADIUS = 8; // In CSS pixels.
 
 const DEFAULT_CRT_CURVATURE = 0.06;
 const DEFAULT_SCANLINES = 1;
@@ -194,7 +193,8 @@ uniform sampler2D u_inputTexture;
 uniform sampler2D u_colorMapTexture;
 uniform ivec2 u_inputTextureSize;
 uniform float u_padding; // TRS-80 CRT coordinates.
-uniform float u_scale; // Device-to-CRT.
+uniform float u_scale; // CRT to device.
+uniform float u_radius; // In device pixels.
 uniform vec2 u_outputSize;
 in vec2 v_texcoord; // Device coordinates.
 out vec4 outColor;
@@ -202,7 +202,6 @@ out vec4 outColor;
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
 const ivec2 g_charCrtPixelSize = ivec2(${CHAR_TO_CRT_PIXEL_WIDTH}, ${CHAR_TO_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
-const float g_radius = 25.0; // TODO get from outside, and scale.
 
 void main() {
     // Convert device coordinates to CRT.
@@ -219,8 +218,8 @@ void main() {
     outColor = texture(u_colorMapTexture, vec2(c, 0.5));
 
     // Round corners.
-    float dist = length(max(abs(v_texcoord - u_outputSize/2.0) - (u_outputSize/2.0 - g_radius), 0.0));
-    outColor *= smoothstep(1.0, 0.0, dist - g_radius);
+    float dist = length(max(abs(v_texcoord - u_outputSize/2.0) - (u_outputSize/2.0 - u_radius), 0.0));
+    outColor *= smoothstep(1.0, 0.0, dist - u_radius);
 }
 `;
 
@@ -1060,6 +1059,7 @@ class ConfiguredCanvas {
         this.zoomPoint = new NamedVariable("u_zoomPoint", ZOOM_POINTS[0]);
         this.startTime = Date.now() / 1000;
 
+        const crtToDevice = devicePixelRatio * this.crtToCss;
         if (this.config.displayType === DisplayType.SIMPLE) {
             this.renderPasses = [
                 // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
@@ -1075,7 +1075,8 @@ class ConfiguredCanvas {
                     new NamedTexture("u_inputTexture", rawScreenTexture),
                     this.colorMapNamedTexture,
                 ], [
-                    new NamedVariable("u_scale", [devicePixelRatio * this.crtToCss]),
+                    new NamedVariable("u_scale", [crtToDevice]),
+                    new NamedVariable("u_radius", [crtToDevice * BORDER_RADIUS]),
                     this.paddingVariable,
                 ], {width: this.canvas.width, height: this.canvas.height}),
             ];
@@ -1094,7 +1095,7 @@ class ConfiguredCanvas {
                     new NamedTexture("u_inputTexture", rawScreenTexture),
                 ], [
                     this.time,
-                    new NamedVariable("u_scale", [devicePixelRatio * this.crtToCss]),
+                    new NamedVariable("u_scale", [crtToDevice]),
                     this.paddingVariable,
                     this.crtCurvature,
                     this.scanlines,
@@ -1446,7 +1447,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private readonly onScreenSize = new SimpleEventDispatcher<ScreenSize>();
     private readonly onScreenColor = new SimpleEventDispatcher<ScreenColor>();
-    private flipCard: FlipCard | undefined = undefined; // TODO
+    private flipCard: FlipCard | undefined = undefined;
     private lastMouseEvent: MouseEvent | undefined = undefined;
     private config: Config = Config.makeDefault();
     private overlayCanvas: HTMLCanvasElement | undefined = undefined;
@@ -1541,11 +1542,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 overlayCanvas.style.position = "absolute";
                 overlayCanvas.style.top = "0";
                 overlayCanvas.style.left = "0";
-                overlayCanvas.style.width = `${this.configuredCanvas.width}px`; // TODO update
-                overlayCanvas.style.height = `${this.configuredCanvas.height}px`;
+                const validOverlayCanvas = overlayCanvas;
+                this.listenForScreenSize(screenSize => {
+                    validOverlayCanvas.style.width = `${this.configuredCanvas.width}px`;
+                    validOverlayCanvas.style.height = `${this.configuredCanvas.height}px`;
+                    validOverlayCanvas.width = this.configuredCanvas.canvas.width;
+                    validOverlayCanvas.height = this.configuredCanvas.canvas.height;
+                });
                 overlayCanvas.style.pointerEvents = "none";
-                overlayCanvas.width = width;
-                overlayCanvas.height = height;
                 this.node.append(overlayCanvas);
 
                 this.overlayCanvas = overlayCanvas;
@@ -1560,7 +1564,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             const ctx = overlayCanvas.getContext("2d")!;
             ctx.save();
             ctx.clearRect(0, 0, width, height);
-            const cssPixelsPadding = this.configuredCanvas.getCssPixelsPadding(); // TODO update when changed.
+            const cssPixelsPadding = this.configuredCanvas.getCssPixelsPadding();
             ctx.translate(cssPixelsPadding, cssPixelsPadding);
 
             // Draw columns.
