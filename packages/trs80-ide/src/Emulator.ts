@@ -4,7 +4,9 @@ import {
     CanvasScreen,
     ControlPanel,
     DriveIndicators,
+    loadTrs80Config,
     PanelType,
+    saveTrs80Config,
     SettingsPanel,
     WebKeyboard,
     WebSoundPlayer,
@@ -42,25 +44,6 @@ function emptyNode(node: HTMLElement): void {
     }
 }
 
-// Load a TRS-80 config from local storage, or make a default one.
-function loadConfig() {
-    const serializedConfig = window.localStorage.getItem(LOCAL_STORAGE_CONFIG_KEY);
-    if (serializedConfig !== null) {
-        try {
-            const newConfig = Config.deserialize(serializedConfig);
-            if (newConfig.isValid()) {
-                return newConfig;
-            }
-        } catch (e) {
-            // Protect against future bugs in deserialization.
-            console.log("Deserialization of TRS-80 Config failed", e);
-        }
-        window.localStorage.removeItem(LOCAL_STORAGE_CONFIG_KEY);
-    }
-
-    return Config.makeDefault();
-}
-
 // Encapsulates the emulator and methods for it.
 export class Emulator {
     private readonly screen: CanvasScreen;
@@ -71,7 +54,7 @@ export class Emulator {
     public readonly debugPc = new SimpleEventDispatcher<number | undefined>();
 
     public constructor() {
-        const config = loadConfig();
+        const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY);
         this.screen = new CanvasScreen(1.5);
         const keyboard = new WebKeyboard();
         const cassettePlayer = new CassettePlayer();
@@ -95,7 +78,7 @@ export class Emulator {
 
         // Save the TRS-80 config when it changes.
         this.trs80.onConfig.subscribe(configChange =>
-            window.localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, configChange.newConfig.serialize()));
+            saveTrs80Config(configChange.newConfig, LOCAL_STORAGE_CONFIG_KEY));
 
         // Disable keyboard when a settings panel is open.
         keyboard.addInterceptKeys(() =>
