@@ -6,7 +6,9 @@ import {
     DriveIndicators,
     flashNode,
     FlipCard,
+    loadTrs80Config,
     PanelType,
+    saveTrs80Config,
     SettingsPanel,
     WebKeyboard,
     WebPrinter,
@@ -31,6 +33,8 @@ import {AudioFileCassettePlayer} from "trs80-cassette-player";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {disasmForTrs80} from "trs80-base";
 import {getFirestore} from "firebase/firestore";
+
+const LOCAL_STORAGE_CONFIG_KEY = "my-trs-80-config";
 
 function createNavbar(openLibrary: () => void, signIn: () => void, signOut: () => void): HTMLElement {
     const body = document.querySelector("body") as HTMLElement;
@@ -181,14 +185,19 @@ export function main() {
     const screenDiv = document.createElement("div");
     screenDiv.classList.add("main-computer-screen");
 
+    const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY);
     const screen = new CanvasScreen(1.5);
     const keyboard = new WebKeyboard();
     const cassettePlayer = new AudioFileCassettePlayer();
     const soundPlayer = new WebSoundPlayer();
     const progressBar = new WebProgressBar(screen.getNode());
     cassettePlayer.setProgressBar(progressBar);
-    const trs80 = new Trs80(Config.makeDefault(), screen, keyboard, cassettePlayer, soundPlayer);
+    const trs80 = new Trs80(config, screen, keyboard, cassettePlayer, soundPlayer);
     keyboard.configureKeyboard();
+
+    // Save the TRS-80 config when it changes.
+    trs80.onConfig.subscribe(configChange =>
+        saveTrs80Config(configChange.newConfig, LOCAL_STORAGE_CONFIG_KEY));
 
     const basicEditor = new BasicEditor(trs80, screen);
     const webPrinter = new WebPrinter(trs80, screen);
