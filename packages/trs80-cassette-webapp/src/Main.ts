@@ -94,7 +94,7 @@ function populateBrowseScreen(browseScreen: HTMLElement): void {
                 browseScreen.appendChild(div);
                 const screen = new CanvasScreen();
                 screen.displayScreenshot(programData.screenshot);
-                div.append(screen.asImage());
+                screen.asImageAsync().then(image => div.append(image));
             }
         }
     }

@@ -4,12 +4,12 @@ import * as CmdProgramRender from "./CmdProgramRender";
 import * as Hexdump from "./Hexdump";
 import {CassettePlayer, Config, RunningState, Trs80} from "trs80-emulator";
 import {
-    ControlPanel,
     CanvasScreen,
-    SettingsPanel,
-    PanelType,
-    WebKeyboard,
+    ControlPanel,
     flashNode,
+    PanelType,
+    SettingsPanel,
+    WebKeyboard,
     WebProgressBar
 } from "trs80-emulator-web";
 import {ProgressBar} from "trs80-cassette-player";
@@ -24,7 +24,9 @@ import {
     CmdProgram,
     decodeBasicProgram,
     decodeCmdProgram,
-    decodeSystemProgram, SystemProgram, Trs80File
+    decodeSystemProgram,
+    SystemProgram,
+    Trs80File
 } from "trs80-base";
 import {BitType, DEFAULT_SAMPLE_RATE, DisplaySamples, frameToTimestamp, Program, Tape} from "trs80-cassette";
 import {WebSoundPlayer} from "../../trs80-emulator-web/dist/WebSoundPlayer";
@@ -372,11 +374,11 @@ export class TapeBrowser {
         addKeyValue("Duration", frameToTimestamp(endFrame - startFrame, this.tape.sampleRate, true), () =>
             this.originalWaveformDisplay.zoomToFit(startFrame, endFrame));
         if (program instanceof Program) {
-            const binExtention = basicPane !== undefined ? ".BAS"
+            const binExtension = basicPane !== undefined ? ".BAS"
                 : systemPane !== undefined ? ".3BN"
                     : cmdPane !== undefined ? ".CMD"
                         : ".BIN";
-            addKeyValues("Download", [binExtention, ".CAS", ".WAV"], (extension: string) => {
+            addKeyValues("Download", [binExtension, ".CAS", ".WAV"], (extension: string) => {
                 // Download binary.
                 const a = document.createElement("a");
                 let contents;
@@ -494,16 +496,14 @@ export class TapeBrowser {
             screenshotDiv.style.marginLeft = "20pt";
             div.appendChild(screenshotDiv);
             const screenshotScreen = new CanvasScreen();
-            const updateScreenshot = (screenshot: string) => {
+            const updateScreenshot = async (screenshot: string) => {
                 clearElement(screenshotDiv);
                 if (screenshot !== "") {
                     screenshotScreen.displayScreenshot(program.screenshot);
-                    screenshotDiv.append(screenshotScreen.asImage());
+                    screenshotDiv.append(await screenshotScreen.asImageAsync());
                 }
             };
-            program.onScreenshot.subscribe(screenshot => {
-                updateScreenshot(screenshot);
-            });
+            program.onScreenshot.subscribe(async screenshot => await updateScreenshot(screenshot));
             updateScreenshot(program.screenshot);
         } else {
             const screenshotsDiv = document.createElement("div");
@@ -519,11 +519,11 @@ export class TapeBrowser {
                 }
                 screenshotsDiv.appendChild(screenshotDiv);
                 const screenshotScreen = new CanvasScreen();
-                const updateScreenshot = function (screenshot: string) {
+                const updateScreenshot = async function (screenshot: string) {
                     clearElement(screenshotDiv);
                     if (screenshot !== "") {
                         screenshotScreen.displayScreenshot(screenshot);
-                        const image = screenshotScreen.asImage();
+                        const image = await screenshotScreen.asImageAsync();
                         image.style.maxWidth = "200px";
                         screenshotDiv.append(image);
                         screenshotDiv.style.display = "block";
@@ -532,9 +532,7 @@ export class TapeBrowser {
                     }
                 };
                 updateScreenshot(subprogram.screenshot);
-                subprogram.onScreenshot.subscribe(screenshot => {
-                    updateScreenshot(screenshot);
-                });
+                subprogram.onScreenshot.subscribe(async screenshot => updateScreenshot(screenshot));
             }
         }
 

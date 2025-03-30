@@ -1,20 +1,13 @@
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library.js";
 import {File, FileBuilder} from "./File.js";
 import {CanvasScreen} from "trs80-emulator-web";
-import {
-    getLabelNodeForTextButton,
-    makeIcon,
-    makeIconButton,
-    makeTagCapsule,
-    makeTextButton,
-    TRASH_TAG
-} from "./Utils";
+import {getLabelNodeForTextButton, makeIcon, makeIconButton, makeTagCapsule, makeTextButton, TRASH_TAG} from "./Utils";
 import {clearElement} from "teamten-ts-utils";
 import {Context} from "./Context.js";
 import {PageTab} from "./PageTab.js";
 import {TagSet} from "./TagSet.js";
 import {PageTabs} from "./PageTabs.js";
-import { TRS80_BLINK_PERIOD_MS } from "trs80-base";
+import {TRS80_BLINK_PERIOD_MS} from "trs80-base";
 import {withCanvasScreen} from "./ScreenPool.js";
 
 const FILE_ID_ATTR = "data-file-id";
@@ -93,7 +86,6 @@ export class YourFilesTab extends PageTab {
     private readonly excludeTags = new TagSet();
     private searchString: string = "";
     private readonly tagEditor: HTMLElement;
-    private readonly blankScreen: HTMLElement;
 
     private forceShowSearch = false;
     private readonly searchButton: HTMLButtonElement;
@@ -105,9 +97,6 @@ export class YourFilesTab extends PageTab {
         super("Your Files", context.user !== undefined);
 
         this.context = context;
-
-        // Make this blank screen synchronously so that it's immediately available when populating the file list.
-        this.blankScreen = new CanvasScreen().asImage();
 
         this.element.classList.add("your-files-tab");
         context.onUser.subscribe(user => {
@@ -326,7 +315,6 @@ export class YourFilesTab extends PageTab {
         const screenshotsDiv = document.createElement("div");
         screenshotsDiv.classList.add("screenshots");
         fileDiv.append(screenshotsDiv);
-        screenshotsDiv.append(this.blankScreen.cloneNode(true));
         withCanvasScreen(1, async canvasScreen => {
             if (file.screenshots.length > 0) {
                 canvasScreen.displayScreenshot(file.screenshots[0]);
@@ -334,10 +322,8 @@ export class YourFilesTab extends PageTab {
                 canvasScreen.displayScreenshot("");
                 screenshotsDiv.classList.add("missing");
             }
-            const image = await canvasScreen.asImageAsync();
-            clearElement(screenshotsDiv);
-            screenshotsDiv.append(image);
-        }).then(() => { /* nothing */ });
+            screenshotsDiv.replaceChildren(await canvasScreen.asImageAsync());
+        });
 
         const nameDiv = document.createElement("div");
         nameDiv.classList.add("name");

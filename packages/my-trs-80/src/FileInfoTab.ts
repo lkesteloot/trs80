@@ -459,7 +459,7 @@ export class FileInfoTab extends PageTab {
             withCanvasScreen(1, async canvasScreen => {
                 canvasScreen.displayScreenshot(screenshot);
                 screenshotDiv.append(await canvasScreen.asImageAsync());
-            }).then(() => { /* nothing */ });
+            });
         }
     }
 

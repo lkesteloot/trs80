@@ -172,7 +172,7 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
         out.appendChild(h1);
 
         const screenDiv = document.createElement("div");
-        screenDiv.append(screen.asImage());
+        screen.asImageAsync().then(image => screenDiv.append(image));
         out.append(screenDiv);
     }
 

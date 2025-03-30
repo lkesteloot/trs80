@@ -1005,10 +1005,7 @@ class ConfiguredCanvas {
             this.camera = undefined;
         }
 
-        const gl = this.canvas.getContext("webgl2");
-        if (gl === null) {
-            throw new Error("WebGL2 is not supported");
-        }
+        const gl = this.getContext();
 
         // Textures to pass between rendering passes.
         // Add a 1-pixel black border to help with antialiasing.
@@ -1211,6 +1208,20 @@ class ConfiguredCanvas {
     }
 
     /**
+     * Get a drawing context for the canvas.
+     */
+    public getContext(): WebGL2RenderingContext {
+        const gl = this.canvas.getContext("webgl2", {
+            preserveDrawingBuffer: true,
+        });
+        if (gl === null) {
+            throw new Error("WebGL2 is not supported");
+        }
+
+        return gl;
+    }
+
+    /**
      * Enable or disable expanded (wide) character mode.
      */
     public setExpandedCharacters(expandedCharacters: boolean): void {
@@ -1230,11 +1241,7 @@ class ConfiguredCanvas {
      * Configure the texture for the current config and the specified setting of alternate characters.
      */
     private configureFont(alternateCharacters: boolean) {
-        const gl = this.canvas.getContext("webgl2");
-        if (gl === null) {
-            throw new Error("WebGL2 is not supported");
-        }
-
+        const gl = this.getContext();
         gl.bindTexture(gl.TEXTURE_2D, this.fontTexture.texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, this.fontTexture.width, this.fontTexture.height, 0,
             gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(this.getFont(alternateCharacters).makeFontSheet()));
@@ -1334,10 +1341,7 @@ class ConfiguredCanvas {
      * Refresh the display based on what we've kept track of.
      */
     private refresh(): void {
-        const gl = this.canvas.getContext("webgl2");
-        if (gl === null) {
-            throw new Error("WebGL2 is not supported");
-        }
+        const gl = this.getContext();
         const now = Date.now();
 
         // Update memory texture.
@@ -1424,18 +1428,6 @@ class ConfiguredCanvas {
             selection.height*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.crtToCss);
 
         return canvas;
-    }
-
-    /**
-     * Returns the canvas as an <img> element that can be resized. This is relatively
-     * expensive.
-     *
-     * This method is deprecated, use asImageAsync instead.
-     */
-    public asImage(): HTMLImageElement {
-        const image = document.createElement("img");
-        image.src = this.canvas.toDataURL();
-        return image;
     }
 
     /**
@@ -2017,16 +2009,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     restore(state: Trs80ScreenState): void {
         super.restore(state);
         this.updateFromConfig();
-    }
-
-    /**
-     * Returns the canvas as an <img> element that can be resized. This is relatively
-     * expensive.
-     *
-     * This method is deprecated, use asImageAsync instead.
-     */
-    public asImage(): HTMLImageElement {
-        return this.configuredCanvas.asImage();
     }
 
     /**

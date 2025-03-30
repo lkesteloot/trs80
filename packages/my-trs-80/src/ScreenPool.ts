@@ -8,9 +8,6 @@ type Callback = (canvasScreen: CanvasScreen) => Promise<void>;
 interface Waiter {
     // How to call them with the screen, when it's available.
     callback: Callback;
-
-    // How to resolve them once they're done with the screen.
-    resolve: () => void;
 }
 
 // Record the screen and the queue of people waiting for it.
@@ -33,7 +30,6 @@ class ScreenPoolEntry {
                     .finally(() => {
                         this.used = false;
                         this.dispatch();
-                        waiter.resolve();
                     });
             }
         }
@@ -44,19 +40,16 @@ class ScreenPoolEntry {
 const gPool = new Map<number,ScreenPoolEntry>();
 
 /**
- * Given a scale, requests a canvas screen to be given to the callback. This will always
- * be done synchronously (before the promise is resolved). The screen must be used
+ * Given a scale, requests a canvas screen to be given to the callback. The screen must be used
  * entirely within the lifetime of the callback.
  */
-export function withCanvasScreen(scale: number, callback: Callback): Promise<void> {
-    return new Promise<void>(resolve => {
-        let entry = gPool.get(scale);
-        if (entry === undefined) {
-            entry = new ScreenPoolEntry(new CanvasScreen(scale));
-            gPool.set(scale, entry);
-        }
+export function withCanvasScreen(scale: number, callback: Callback): void {
+    let entry = gPool.get(scale);
+    if (entry === undefined) {
+        entry = new ScreenPoolEntry(new CanvasScreen(scale));
+        gPool.set(scale, entry);
+    }
 
-        entry.waiters.push({callback, resolve});
-        entry.dispatch();
-    });
+    entry.waiters.push({callback});
+    entry.dispatch();
 }
