@@ -891,7 +891,7 @@ export class TapeBrowser {
 
             // Decode the programs.
             const basicProgram = decodeBasicProgram(program.binary);
-            const systemProgram = decodeSystemProgram(program.binary);
+            const systemProgram = decodeSystemProgram(program.binary, false);
             const cmdProgram = decodeCmdProgram(program.binary);
 
             // Make these panes here so they're accessible from the metadata page.

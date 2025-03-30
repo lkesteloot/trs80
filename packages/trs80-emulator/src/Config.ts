@@ -85,8 +85,8 @@ export enum RamSize {
  * This is serialized. Do not modify existing values.
  */
 export enum DisplayType {
-    AUTHENTIC,
     SIMPLE,
+    AUTHENTIC,
 }
 
 /**

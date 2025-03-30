@@ -34,7 +34,7 @@ let TIME_BANNER: HTMLElement | undefined = undefined;
 
 const CAMERA_NODE_ID = "trs80_emulator_web_camera_id";
 
-// In fractions of an original (CRT) pixel.
+// In fractions of a CRT pixel.
 const HORIZONTAL_BLUR = 0.72;
 const VERTICAL_BLUR = 0.20;
 const HALATION_BLUR = 1.5;
@@ -114,6 +114,9 @@ export class ScreenColor {
     }
 }
 
+/**
+ * Vertex shader used for all passes. Just uses parameters as-is to draw a rectangle.
+ */
 const VERTEX_SHADER_SOURCE = `#version 300 es
  
 in vec4 a_position;
@@ -126,6 +129,10 @@ void main() {
 }
 `;
 
+/**
+ * The first pass shader, used by both simple mode and authentic mode. Draws the
+ * characters from the memory map to a plain bitmap.
+ */
 const DRAW_CHARS_FRAGMENT_SHADER_SOURCE = `#version 300 es
  
 precision highp float;
@@ -184,6 +191,10 @@ void main() {
 }
 `;
 
+/**
+ * Second (and final) pass for the simple display. Scales up to device resolution;
+ * adds padding, color, and rounded corners.
+ */
 const RENDER_SIMPLE_SCREEN_FRAGMENT_SHADER_SOURCE = `#version 300 es
  
 precision highp float;
@@ -223,6 +234,10 @@ void main() {
 }
 `;
 
+/**
+ * Main pass of the authentic display. Scales up the character bitmap, adds CRT curvature,
+ * adds scanlines and scanline bloom.
+ */
 const RENDER_SCREEN_FRAGMENT_SHADER_SOURCE = `#version 300 es
  
 precision highp float;
@@ -281,6 +296,9 @@ void main() {
 }
 `;
 
+/**
+ * Generic shader to blur the input texture in one direction (horizontal or vertical).
+ */
 const BLUR_FRAGMENT_SHADER_SOURCE = `#version 300 es
 
 precision highp float;
@@ -315,6 +333,10 @@ void main() {
 }
 `;
 
+/**
+ * Finishing pass of the authentic display. Adds phosphor colors, bezel, vignetting,
+ * halation, and reflection.
+ */
 const COLOR_MAP_FRAGMENT_SHADER_SOURCE = `#version 300 es
 
 precision highp float;
@@ -480,7 +502,7 @@ function createShader(gl: WebGL2RenderingContext, type: number, source: string):
 }
 
 /**
- * Create a WebGL shader from a vertex and a fragment shader. Throws on error.
+ * Create a WebGL program from a vertex and a fragment shader. Throws on error.
  */
 function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
     const program = gl.createProgram();
@@ -576,6 +598,9 @@ class NamedTexture {
         // Nothing.
     }
 
+    /**
+     * Bind this variable's texture in this program.
+     */
     public bind(gl: WebGL2RenderingContext, program: WebGLProgram, index: number): void {
         const location = gl.getUniformLocation(program, this.name);
         if (location === null) {
@@ -593,6 +618,9 @@ class NamedTexture {
     }
 }
 
+/**
+ * A variable in a shader that has a name and a value. The value can be a scalar or vector.
+ */
 class NamedVariable {
     public readonly values: number[];
 
@@ -604,6 +632,9 @@ class NamedVariable {
         this.values = [...values];
     }
 
+    /**
+     * Bind this variable's value in this program.
+     */
     public bind(gl: WebGL2RenderingContext, program: WebGLProgram): void {
         const location = gl.getUniformLocation(program, this.name);
         if (location === null) {
@@ -625,7 +656,7 @@ class NamedVariable {
 }
 
 /**
- * A pass that runs a pixel shader, perhaps on a texture, either generating an
+ * A pass that runs a pixel shader, perhaps on input textures, either generating an
  * off-screen texture or rendering to the canvas.
  */
 class RenderPass {
@@ -634,7 +665,7 @@ class RenderPass {
     private readonly program: WebGLProgram;
     private readonly vao: WebGLVertexArrayObject;
 
-    public constructor(private readonly gl: WebGL2RenderingContext,
+    public constructor(gl: WebGL2RenderingContext,
                        fragmentSource: string,
                        private readonly namedTextures: NamedTexture[],
                        namedVariables: NamedVariable[],
@@ -695,25 +726,26 @@ class RenderPass {
         gl.vertexAttribPointer(texcoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
     }
 
-    public render() {
-        const gl = this.gl;
-
+    /**
+     * Run this render pass.
+     */
+    public render(gl: WebGL2RenderingContext) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb ?? null);
         gl.viewport(0, 0, this.output.width, this.output.height);
         gl.useProgram(this.program);
 
         // Assign textures to texture units.
-        for (let i = 0; i < this.namedTextures.length; i++) {
-            this.namedTextures[i].bind(gl, this.program, i);
-        }
+        this.namedTextures.forEach((namedTexture, i) =>
+            namedTexture.bind(gl, this.program, i));
 
         // Assign the uniform variables.
-        for (const namedVariable of this.namedVariables) {
-            namedVariable.bind(gl, this.program);
-        }
+        this.namedVariables.forEach(namedVariable =>
+            namedVariable.bind(gl, this.program));
 
         // Flat rectangle to draw on.
         gl.bindVertexArray(this.vao);
+
+        // Draw the rectangle!
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 }
@@ -727,7 +759,7 @@ export type ScreenMouseEventType = "mousedown" | "mouseup" | "mousemove";
  * Position of the mouse on the screen.
  */
 export class ScreenMousePosition {
-    // TRS-80 pixels (128x48).
+    // TRS-80 graphics pixels (128x48).
     public readonly pixelX: number;
     public readonly pixelY: number;
     // Character position (64x16).
@@ -775,7 +807,7 @@ export class ScreenMouseEvent {
 }
 
 /**
- * Simple representation of a pixel selection.
+ * A rectangular graphical pixel selection.
  */
 export class Selection {
     public readonly x1: number;
@@ -911,7 +943,7 @@ class ConfiguredCanvas {
     private readonly renderPasses: RenderPass[] = [];
     public needRedraw = true;
 
-    public constructor(private readonly config: Config,
+    public constructor(public readonly config: Config,
                        private readonly crtToCss: number,
                        private readonly memory: Uint8Array,
                        expandedCharacters: boolean,
@@ -1324,7 +1356,7 @@ class ConfiguredCanvas {
 
         // Render each pass.
         for (const renderPass of this.renderPasses) {
-            renderPass.render();
+            renderPass.render(gl);
         }
 
         if (TIME_RENDERING) {
@@ -1454,6 +1486,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     private overlayOptions: FullOverlayOptions = DEFAULT_OVERLAY_OPTIONS;
     private demoMode = DemoMode.OFF;
     private zoomPointIndex = 0;
+    // Cache of curvature mapping.
+    private readonly straightPosToCurvedPosMap: number[] = [];
+    private straightPosToCurvedPosMapCurvature = 0;
+
 
     /**
      * Create a canvas screen.
@@ -1544,8 +1580,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 overlayCanvas.style.left = "0";
                 const validOverlayCanvas = overlayCanvas;
                 this.listenForScreenSize(screenSize => {
-                    validOverlayCanvas.style.width = `${this.configuredCanvas.width}px`;
-                    validOverlayCanvas.style.height = `${this.configuredCanvas.height}px`;
+                    validOverlayCanvas.style.width = `${screenSize.width}px`;
+                    validOverlayCanvas.style.height = `${screenSize.height}px`;
                     validOverlayCanvas.width = this.configuredCanvas.canvas.width;
                     validOverlayCanvas.height = this.configuredCanvas.canvas.height;
                 });
@@ -1669,9 +1705,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
 
         return {x, y};
     }
-
-    private readonly straightPosToCurvedPosMap: number[] = [];
-    private straightPosToCurvedPosMapCurvature = 0;
 
     /**
      * Convert rectangular XY position to curved (by CRT curvature) position, both in CSS pixels.
@@ -1907,13 +1940,15 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         const oldScreenSize = this.getScreenSize();
         const oldScreenColor = this.getScreenColor();
 
-        // Make a new configured canvas.
-        this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.memory,
-            this.isExpandedCharacters(), this.isAlternateCharacters());
-        oldCanvas.replaceWith(this.configuredCanvas.canvas);
-        this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
-        this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
-        this.configuredCanvas.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
+        if (!this.configuredCanvas.config.equals(this.config)) {
+            // Make a new configured canvas.
+            this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.memory,
+                this.isExpandedCharacters(), this.isAlternateCharacters());
+            oldCanvas.replaceWith(this.configuredCanvas.canvas);
+            this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
+            this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
+            this.configuredCanvas.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
+        }
 
         // Call listeners.
         const newScreenSize = this.getScreenSize();
