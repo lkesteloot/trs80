@@ -945,6 +945,7 @@ class ConfiguredCanvas {
 
     public constructor(public readonly config: Config,
                        private readonly crtToCss: number,
+                       private readonly devicePixelRatio: number,
                        private readonly memory: Uint8Array,
                        expandedCharacters: boolean,
                        alternateCharacters: boolean) {
@@ -959,13 +960,6 @@ class ConfiguredCanvas {
         this.canvas.style.width = `${this.width}px`;
         this.canvas.style.height = `${this.height}px`;
         // In device pixels:
-        // TODO maybe set this to 1 for simple mode? may not be buying us anything.
-        // Or at least check if it would help, like if it would make the canvas
-        // size at least as large as the TRS-80 pixel resolution. Though also maybe
-        // by the time this is greater than 1 you probably have a good enough GPU?
-        // It actually makes the font nicely blurred, tho. Also careful this is
-        // directly used elsewhere, so update all uses.
-        const devicePixelRatio = window.devicePixelRatio ?? 1;
         this.canvas.width = this.width * devicePixelRatio;
         this.canvas.height = this.height * devicePixelRatio;
 
@@ -1460,11 +1454,27 @@ class ConfiguredCanvas {
     }
 }
 
+// Options for configuring the canvas screen.
+type CanvasScreenOptions = {
+    // Scaling up the resulting canvas.
+    scale: number;
+
+    // Whether to render at a higher ratio for things like retina screen. Set this to true
+    // when directly displaying the screen, but false when generating image (asImageAsync())
+    // or the image will be too large.
+    useDevicePixelRatio: boolean;
+};
+const DEFAULT_CANVAS_SCREEN_OPTIONS = {
+    scale: 1,
+    useDevicePixelRatio: true,
+} satisfies CanvasScreenOptions;
+
 /**
  * TRS-80 screen based on an HTML canvas element.
  */
 export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, ScreenSizeProvider {
-    public readonly scale: number = 1;
+    public readonly scale: number;
+    private readonly devicePixelRatio: number;
     private readonly node: HTMLElement;
     private configuredCanvas: ConfiguredCanvas;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
@@ -1482,24 +1492,34 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     private readonly straightPosToCurvedPosMap: number[] = [];
     private straightPosToCurvedPosMapCurvature = 0;
 
-
     /**
      * Create a canvas screen.
-     *
-     * @param scale size multiplier. If greater than 1, use multiples of 0.5.
      */
-    constructor(scale: number = 1) {
+    constructor(options: (number | Partial<CanvasScreenOptions>) = 1) {
         super();
 
-        this.scale = scale;
+        const fullOptions = {
+            ... DEFAULT_CANVAS_SCREEN_OPTIONS,
+            ... (typeof options === "number" ? { scale: options } : options),
+        } satisfies CanvasScreenOptions;
+
+        this.scale = fullOptions.scale;
+        // TODO maybe set this to 1 for simple mode? may not be buying us anything.
+        // Or at least check if it would help, like if it would make the canvas
+        // size at least as large as the TRS-80 pixel resolution. Though also maybe
+        // by the time this is greater than 1 you probably have a good enough GPU?
+        // It actually makes the font nicely blurred, tho.
+        this.devicePixelRatio = fullOptions.useDevicePixelRatio
+            ? (window.devicePixelRatio ?? 1)
+            : 1;
 
         this.node = document.createElement("div");
         // Fit canvas horizontally so that the nested objects (panels and progress bars) are
         // displayed in the canvas.
         this.node.style.maxWidth = "max-content";
 
-        this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.memory,
-            this.isExpandedCharacters(), this.isAlternateCharacters());
+        this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.devicePixelRatio,
+            this.memory, this.isExpandedCharacters(), this.isAlternateCharacters());
         this.node.append(this.configuredCanvas.canvas);
         this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
         this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
@@ -1561,7 +1581,6 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         if (showOverlay) {
             const width = this.configuredCanvas.canvas.width;
             const height = this.configuredCanvas.canvas.height;
-            const devicePixelRatio = window.devicePixelRatio ?? 1;
 
             // Create overlay canvas if necessary.
             let overlayCanvas = this.overlayCanvas;
@@ -1645,11 +1664,11 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 const y1 = options.selection.y1*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale;
                 const x2 = options.selection.x2*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale;
                 const y2 = options.selection.y2*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale;
-                const dash = 5*devicePixelRatio;
+                const dash = 5*this.devicePixelRatio;
                 ctx.save();
                 ctx.setLineDash([dash, dash]);
                 for (let pass = 0; pass < 2; pass++) {
-                    ctx.lineDashOffset = options.selectionAntsOffset*devicePixelRatio + pass*dash;
+                    ctx.lineDashOffset = options.selectionAntsOffset*this.devicePixelRatio + pass*dash;
                     ctx.strokeStyle = ["black", "white"][pass];
                     ctx.beginPath();
                     this.drawCurvedGridLine(ctx, options.selection.x1, options.selection.y1,
@@ -1702,7 +1721,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Convert rectangular XY position to curved (by CRT curvature) position, both in CSS pixels.
      */
     private straightPosToCurvedPos(x: number, y: number): {x: number, y: number} {
-        const devicePixelRatio = window.devicePixelRatio ?? 1;
+        const devicePixelRatio = this.devicePixelRatio;
         x *= devicePixelRatio;
         y *= devicePixelRatio;
         const width = TRS80_PIXEL_WIDTH*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale*devicePixelRatio;
@@ -1822,8 +1841,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         this.emitMouseActivity(type, event, event.shiftKey);
 
         if (DEMO_MODE_ENABLED && type === "mousemove" && demoModifierKeys(event)) {
-            const devicePixelRatio = window.devicePixelRatio ?? 1;
-            const value = Math.max((1 - devicePixelRatio*event.offsetY/this.configuredCanvas.canvas.height)*1.5, 0);
+            const value = Math.max((1 - this.devicePixelRatio*event.offsetY/this.configuredCanvas.canvas.height)*1.5, 0);
             this.setDemoModeParameter(this.demoMode, value);
         }
     }
@@ -1934,8 +1952,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
 
         if (!this.configuredCanvas.config.equals(this.config)) {
             // Make a new configured canvas.
-            this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.memory,
-                this.isExpandedCharacters(), this.isAlternateCharacters());
+            this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.devicePixelRatio,
+                this.memory, this.isExpandedCharacters(), this.isAlternateCharacters());
             oldCanvas.replaceWith(this.configuredCanvas.canvas);
             this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
             this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));

@@ -495,7 +495,9 @@ export class TapeBrowser {
             const screenshotDiv = document.createElement("div");
             screenshotDiv.style.marginLeft = "20pt";
             div.appendChild(screenshotDiv);
-            const screenshotScreen = new CanvasScreen();
+            const screenshotScreen = new CanvasScreen({
+                useDevicePixelRatio: false,
+            });
             const updateScreenshot = async (screenshot: string) => {
                 clearElement(screenshotDiv);
                 if (screenshot !== "") {
@@ -518,7 +520,9 @@ export class TapeBrowser {
                     screenshotDiv.addEventListener("click", () => onProgramClick(subprogram));
                 }
                 screenshotsDiv.appendChild(screenshotDiv);
-                const screenshotScreen = new CanvasScreen();
+                const screenshotScreen = new CanvasScreen({
+                    useDevicePixelRatio: false,
+                });
                 const updateScreenshot = async function (screenshot: string) {
                     clearElement(screenshotDiv);
                     if (screenshot !== "") {

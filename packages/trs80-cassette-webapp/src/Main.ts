@@ -92,7 +92,9 @@ function populateBrowseScreen(browseScreen: HTMLElement): void {
             if (programData.screenshot) {
                 const div = document.createElement("div");
                 browseScreen.appendChild(div);
-                const screen = new CanvasScreen();
+                const screen = new CanvasScreen({
+                    useDevicePixelRatio: false,
+                });
                 screen.displayScreenshot(programData.screenshot);
                 screen.asImageAsync().then(image => div.append(image));
             }

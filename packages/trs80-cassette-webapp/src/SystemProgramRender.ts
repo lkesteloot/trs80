@@ -105,7 +105,9 @@ export function toDiv(systemProgram: SystemProgram, out: HTMLElement): [Highligh
     }
 
     // Prepare screenshot, in case loading process writes to screen.
-    const screen = new CanvasScreen();
+    const screen = new CanvasScreen({
+        useDevicePixelRatio: false,
+    });
 
     let wroteToScreen = false;
 
