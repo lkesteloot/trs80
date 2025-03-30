@@ -1206,6 +1206,7 @@ class ConfiguredCanvas {
      */
     public getContext(): WebGL2RenderingContext {
         const gl = this.canvas.getContext("webgl2", {
+            // Need this for makeSelectionCanvas() to work.
             preserveDrawingBuffer: true,
         });
         if (gl === null) {
@@ -1407,19 +1408,21 @@ class ConfiguredCanvas {
      */
     public makeSelectionCanvas(selection: Selection): HTMLCanvasElement {
         const canvas = document.createElement("canvas");
-        canvas.width = selection.width*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.crtToCss;
-        canvas.height = selection.height*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.crtToCss;
+        const widthScale = GRAPHIC_TO_CRT_PIXEL_WIDTH * this.crtToCss;
+        const heightScale = GRAPHIC_TO_CRT_PIXEL_HEIGHT * this.crtToCss;
+        canvas.width = selection.width*widthScale;
+        canvas.height = selection.height*heightScale;
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
         const cssPixelsPadding = this.getCssPixelsPadding();
         ctx.drawImage(this.canvas,
-            selection.x1*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.crtToCss + cssPixelsPadding,
-            selection.y1*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.crtToCss + cssPixelsPadding,
-            selection.width*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.crtToCss,
-            selection.height*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.crtToCss,
-            0, 0,
-            selection.width*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.crtToCss,
-            selection.height*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.crtToCss);
+            // Source:
+            (selection.x1*widthScale + cssPixelsPadding)*this.devicePixelRatio,
+            (selection.y1*heightScale + cssPixelsPadding)*this.devicePixelRatio,
+            (selection.width*widthScale)*this.devicePixelRatio,
+            (selection.height*heightScale)*this.devicePixelRatio,
+            // Destination:
+            0, 0, canvas.width, canvas.height);
 
         return canvas;
     }
