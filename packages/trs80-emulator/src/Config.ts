@@ -168,6 +168,7 @@ export class Config {
     public readonly displayType: DisplayType;
     public readonly phosphor: Phosphor;
     public readonly reflection: boolean;
+    public readonly grid: boolean;
     public readonly customRom: string | undefined;
     public readonly romSize: number;
     public readonly printerModel: PrinterModel;
@@ -175,7 +176,7 @@ export class Config {
 
     constructor(modelType: ModelType, basicLevel: BasicLevel, cgChip: CGChip, ramSize: RamSize,
                 displayType: DisplayType, phosphor: Phosphor, reflection: boolean,
-                customRom: string | undefined, printerModel: PrinterModel,
+                grid: boolean, customRom: string | undefined, printerModel: PrinterModel,
                 inkColor: InkColor) {
 
         this.modelType = modelType;
@@ -185,6 +186,7 @@ export class Config {
         this.displayType = displayType;
         this.phosphor = phosphor;
         this.reflection = reflection;
+        this.grid = grid;
         this.customRom = customRom;
         this.printerModel = printerModel;
         this.inkColor = inkColor;
@@ -263,6 +265,7 @@ export class Config {
             RamSize.RAM_48_KB,
             DisplayType.SIMPLE,
             Phosphor.WHITE,
+            false,
             false,
             undefined,
             PrinterModel.EPSON_MX_80,
@@ -358,6 +361,7 @@ export class ConfigBuilder {
     private displayType: DisplayType;
     private phosphor: Phosphor;
     private reflection: boolean;
+    private grid: boolean;
     private customRom: string | undefined;
     private printerModel: PrinterModel;
     private inkColor: InkColor;
@@ -370,6 +374,7 @@ export class ConfigBuilder {
         this.displayType = config.displayType;
         this.phosphor = config.phosphor;
         this.reflection = config.reflection;
+        this.grid = config.grid;
         this.customRom = config.customRom;
         this.printerModel = config.printerModel;
         this.inkColor = config.inkColor;
@@ -387,6 +392,7 @@ export class ConfigBuilder {
             this.displayType,
             this.phosphor,
             this.reflection,
+            this.grid,
             this.customRom,
             this.printerModel,
             this.inkColor);
@@ -424,6 +430,11 @@ export class ConfigBuilder {
 
     public withReflection(reflection: boolean): this {
         this.reflection = reflection;
+        return this;
+    }
+
+    public withGrid(grid: boolean): this {
+        this.grid = grid;
         return this;
     }
 

@@ -26,6 +26,7 @@
   "dependencies": {
     "strongly-typed-events": "^3.0.11",
     "teamten-ts-utils": "^1.0.3",
-    "z80-base": "^2.0.1"
+    "z80-base": "^2.0.1",
+    "z80-disasm": "^2.0.1"
   }
 }

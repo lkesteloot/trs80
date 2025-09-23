@@ -1570,13 +1570,27 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     public setOverlayOptions(userOptions: OverlayOptions): void {
         // Fill in defaults.
         const options = {
-            ... DEFAULT_OVERLAY_OPTIONS,
-            ... userOptions
+            ...DEFAULT_OVERLAY_OPTIONS,
+            ...userOptions
         } satisfies FullOverlayOptions;
         if (overlayOptionsEqual(options, this.overlayOptions)) {
             return;
         }
         this.overlayOptions = options;
+        this.updateOverlay();
+    }
+
+    /**
+     * Update the overlay canvas given the overlay options and the config.
+     */
+    private updateOverlay(): void {
+        const options = {
+            ... this.overlayOptions,
+            ... (this.config.grid ? {
+                showPixelGrid: true,
+                showCharGrid: true,
+            } : {})
+        };
 
         const showSelection = options.showSelection && !options.selection.isEmpty();
         const showOverlay = options.showPixelGrid || options.showCharGrid ||
@@ -1962,6 +1976,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
             this.configuredCanvas.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
         }
+
+        // Update grid.
+        this.updateOverlay();
 
         // Call listeners.
         const newScreenSize = this.getScreenSize();

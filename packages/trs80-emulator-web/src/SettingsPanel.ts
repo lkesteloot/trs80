@@ -346,6 +346,21 @@ const VIEW_OPTION_BLOCKS: OptionBlock<any>[] = [
             },
         ]
     },
+    {
+        title: "Design Grid",
+        isChecked: (grid: boolean, config: Config) => grid === config.grid,
+        updateConfig: (grid: boolean, config: Config) => config.edit().withGrid(grid).build(),
+        options: [
+            {
+                label: "Hide",
+                value: false,
+            },
+            {
+                label: "Show",
+                value: true,
+            },
+        ]
+    },
 ];
 const PRINTER_OPTION_BLOCKS: OptionBlock<any>[] = [
     {
