@@ -32,11 +32,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: my-trs-80
-          path: packages/my-trs-80/build/
+          path: packages/my-trs-80/dist/
       - uses: actions/upload-artifact@v4
         with:
           name: trs80-cassette-webapp
-          path: packages/trs80-cassette-webapp/build/
+          path: packages/trs80-cassette-webapp/dist/
       - uses: actions/upload-artifact@v4
         with:
           name: trs80-ide
