@@ -8,9 +8,8 @@
   "scripts": {
     "start": "vite",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && vite build",
-    "clean": "rm -rf build",
-    "publish": "npm run build && rsync -a build/ lk@hitch.headcode.com:my-trs-80-website/cassette/"
+    "build": "npm run updateBuildInfo && vite build --base=/cassette/",
+    "clean": "rm -rf dist"
   },
   "repository": "https://github.com/lkesteloot/trs80.git",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
