@@ -106,6 +106,8 @@ export class Emulator {
     public startScreenEditor(view: EditorView, assemblyResults: AssemblyResults,
                              screenshotIndex: number, onClose: () => void) {
 
+        gtag("event", "screenshot_editor");
+
         this.controlPanel.disable();
         this.closeScreenEditor();
         this.screenEditor = new ScreenEditor(view, assemblyResults, screenshotIndex, this.trs80, this.screen, () => {

@@ -23,13 +23,13 @@ function nameFromPathname(pathname: string): string {
     // Keep only last component.
     let pos = name.lastIndexOf("/");
     if (pos >= 0) {
-        name = name.substr(pos + 1);
+        name = name.substring(pos + 1);
     }
 
     // Remove extension.
     pos = name.lastIndexOf(".");
     if (pos >= 0) {
-        name = name.substr(0, pos);
+        name = name.substring(0, pos);
     }
 
     return name;
@@ -170,6 +170,10 @@ function handleAudioBuffer(pathname: string, audioFile: AudioFile) {
         document.getElementById("low_speed_canvas") as HTMLCanvasElement,
         document.getElementById("tape_contents") as HTMLElement,
         document.getElementById("top_data") as HTMLElement);
+
+    gtag("event", "upload_file", {
+        value: tape.programs.length,
+    });
 
     // Switch screens.
     showScreen("data_screen");

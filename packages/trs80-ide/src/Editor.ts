@@ -145,8 +145,13 @@ function assemble(code: string[]): AssemblyResults {
     }
 
     const screenshotSections = pickOutScreenshotSections(sourceFile);
+    const assemblyResults = new AssemblyResults(asm, sourceFile, screenshotSections);
 
-    return new AssemblyResults(asm, sourceFile, screenshotSections);
+    gtag("event", "assemble", {
+        value: assemblyResults.errorLines.length,
+    });
+
+    return assemblyResults;
 }
 
 /**

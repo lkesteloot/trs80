@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lezer/highlight": "^1.1.1",
+    "@types/gtag.js": "^0.0.20",
     "browser-fs-access": "^0.35.0",
     "cm6-theme-basic-dark": "^0.2.0",
     "cm6-theme-basic-light": "^0.2.0",

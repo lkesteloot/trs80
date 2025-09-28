@@ -15,6 +15,7 @@
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
   "devDependencies": {
+    "@types/gtag.js": "^0.0.20",
     "@types/progress": "^2.0.3",
     "@types/split.js": "^1.4.0",
     "http-server": "^14.1.1"
