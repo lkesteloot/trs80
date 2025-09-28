@@ -87,7 +87,7 @@ export class PanelManager {
     }
 
     /**
-     * Start the animation to pop the most screen panel.
+     * Start the animation to pop the right-most screen panel.
      */
     public popPanel(): void {
         if (this.panels.length > 1) {

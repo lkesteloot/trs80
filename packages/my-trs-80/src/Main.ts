@@ -252,7 +252,7 @@ export function main() {
 
     reboot();
 
-    const context = new Context(library, trs80, cassettePlayer, db, panelManager);
+    const context = new Context(firebaseAnalytics, library, trs80, cassettePlayer, db, panelManager);
 
     const screenshotButton = controlPanel.addScreenshotButton(() => {
         if (context.runningFile !== undefined) {

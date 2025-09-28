@@ -1,6 +1,6 @@
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library.js";
 import {File, FileBuilder} from "./File.js";
-import {CanvasScreen} from "trs80-emulator-web";
+import {logEvent} from "firebase/analytics";
 import {getLabelNodeForTextButton, makeIcon, makeIconButton, makeTagCapsule, makeTextButton, TRASH_TAG} from "./Utils";
 import {clearElement} from "teamten-ts-utils";
 import {Context} from "./Context.js";
@@ -273,20 +273,26 @@ export class YourFilesTab extends PageTab {
         // Remove extension.
         const i = name.lastIndexOf(".");
         if (i > 0) {
-            name = name.substr(0, i);
+            name = name.substring(0, i);
         }
 
         // Capitalize.
-        name = name.substr(0, 1).toUpperCase() + name.substring(1).toLowerCase();
+        name = name.substring(0, 1).toUpperCase() +
+            name.substring(1).toLowerCase();
 
         // All-caps for filename.
         filename = filename.toUpperCase();
+
+        logEvent(this.context.analytics, "import_file", {
+            "value": filename,
+        });
 
         let file = new FileBuilder()
             .withUid(uid)
             .withName(name)
             .withFilename(filename)
             .withBinary(binary)
+            .withShared(true)
             .build();
 
         this.context.db.addFile(file)

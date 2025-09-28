@@ -1,3 +1,4 @@
+import {Analytics, logEvent} from "firebase/analytics";
 import {Trs80} from "trs80-emulator";
 import {PanelManager} from "./PanelManager";
 import {Library, LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
@@ -16,11 +17,13 @@ const FRAGMENT_PREFIX = "#!";
  * Context of the whole app, with its global variables.
  */
 export class Context {
+    public readonly analytics: Analytics;
     public readonly library: Library;
     public readonly trs80: Trs80;
     public readonly cassettePlayer: AudioFileCassettePlayer;
     public readonly db: Database;
     public readonly panelManager: PanelManager;
+
     private _runningFile: File | undefined = undefined;
     private _user: User | undefined = undefined;
     private userResolved = false;
@@ -29,9 +32,11 @@ export class Context {
     // Dispatched when we initially figure out if we're signed in or not.
     public readonly onUserResolved = new SimpleEventDispatcher<void>();
 
-    constructor(library: Library, trs80: Trs80, cassettePlayer: AudioFileCassettePlayer,
+    constructor(analytics: Analytics, library: Library, trs80: Trs80,
+                cassettePlayer: AudioFileCassettePlayer,
                 db: Database, panelManager: PanelManager) {
 
+        this.analytics = analytics;
         this.library = library;
         this.trs80 = trs80;
         this.cassettePlayer = cassettePlayer;
@@ -64,6 +69,15 @@ export class Context {
             console.error("Error in TRS-80 file: " + trs80File.error);
         } else {
             this.runningFile = file;
+
+            // See if we're running a different user's program.
+            const isGuest = file.uid !== this.user?.uid;
+
+            logEvent(this.analytics, "run_program", {
+                "value": file.filename,
+                "guest": isGuest,
+            });
+
             if (trs80File.className === "Cassette") {
                 // Mount the cassette, skip to the second file, if any, in case it's a data
                 // file that the first file (program) will need.
@@ -149,7 +163,7 @@ export class Context {
         const args = new Map<string,string[]>();
 
         if (fragment.startsWith(FRAGMENT_PREFIX)) {
-            fragment = fragment.substr(FRAGMENT_PREFIX.length);
+            fragment = fragment.substring(FRAGMENT_PREFIX.length);
 
             const parts = fragment.split(",");
             for (const part of parts) {
