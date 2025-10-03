@@ -16,6 +16,8 @@ Icons from the Noun Project:
 * [Cancel](https://thenounproject.com/term/close/1609004) by Rohith M S
 * [Mute](https://thenounproject.com/term/mute/1915537) by shashank singh
 
+Authentic CRT algorithm based on [FFmpeg-CRT-transform](https://github.com/viler-int10h/FFmpeg-CRT-transform).
+
 # License
 
 Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).

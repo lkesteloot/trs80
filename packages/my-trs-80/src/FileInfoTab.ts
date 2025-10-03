@@ -16,6 +16,7 @@ import {File} from "./File";
 import {IFilePanel} from "./IFilePanel";
 import {TagSet} from "./TagSet";
 import {withCanvasScreen} from "./ScreenPool";
+import {BasicLevel, ModelType} from "trs80-emulator";
 
 const SCREENSHOT_ATTR = `data-screenshot`;
 
@@ -39,6 +40,7 @@ export class FileInfoTab extends PageTab {
     private readonly allTags = new TagSet();
     private readonly tagsInput: HTMLElement;
     private readonly sharedInput: HTMLInputElement;
+    private readonly computer: HTMLElement;
     private readonly screenshotsDiv: HTMLElement;
     private readonly deleteButton: HTMLButtonElement;
     private readonly undeleteButton: HTMLButtonElement;
@@ -104,21 +106,7 @@ export class FileInfoTab extends PageTab {
         noteLabel.append(this.noteInput);
 
         this.authorInput = makeInputBox("Author", undefined, true);
-        this.releaseYearInput = makeInputBox("Release year", undefined, true);
-        this.typeInput = makeInputBox("Type", undefined, false);
-        this.addedAtInput = makeInputBox("Added", undefined, false);
-        this.sizeInput = makeInputBox("Size", undefined, false);
-        this.modifiedAtInput = makeInputBox("Last modified", undefined, false);
-        {
-            // Tags editor.
-            const labelElement = document.createElement("label");
-            labelElement.innerText = "Tags";
-            form.append(labelElement);
-
-            this.tagsInput = document.createElement("div");
-            this.tagsInput.classList.add("tags-editor");
-            labelElement.append(this.tagsInput);
-        }
+        this.releaseYearInput = makeInputBox("Release year", "release-year", true);
         {
             // Shared editor.
             const labelElement = document.createElement("label");
@@ -137,6 +125,41 @@ export class FileInfoTab extends PageTab {
             onIcon.classList.add("on-state");
 
             labelElement.append(this.sharedInput, offIcon, onIcon);
+        }
+        this.typeInput = makeInputBox("Type", undefined, false);
+        this.addedAtInput = makeInputBox("Added", undefined, false);
+        this.sizeInput = makeInputBox("Size", undefined, false);
+        this.modifiedAtInput = makeInputBox("Last modified", undefined, false);
+        {
+            // Tags editor.
+            const labelElement = document.createElement("label");
+            labelElement.innerText = "Tags";
+            form.append(labelElement);
+
+            this.tagsInput = document.createElement("div");
+            this.tagsInput.classList.add("tags-editor");
+            labelElement.append(this.tagsInput);
+        }
+        {
+            // Computer (model type and basic level) editor.
+            const labelElement = document.createElement("label");
+            labelElement.innerText = "Computer";
+            form.append(labelElement);
+
+            const radioButtonRow = document.createElement("div");
+            radioButtonRow.classList.add("radio-button-row");
+            labelElement.append(radioButtonRow);
+
+            this.addRadioButton(radioButtonRow, "modelType", "Model 1", ModelType.MODEL1.toString());
+            this.addRadioButton(radioButtonRow, "modelType", "Model III", ModelType.MODEL3.toString());
+            this.addRadioButton(radioButtonRow, "modelType", "Model 4", ModelType.MODEL4.toString());
+            const gap = document.createElement("div");
+            gap.classList.add("radio-button-gap");
+            radioButtonRow.append(gap);
+            this.addRadioButton(radioButtonRow, "basicLevel", "Level 1", BasicLevel.LEVEL1.toString());
+            this.addRadioButton(radioButtonRow, "basicLevel", "Level 2", BasicLevel.LEVEL2.toString());
+
+            this.computer = radioButtonRow;
         }
 
         this.screenshotsDiv = document.createElement("div");
@@ -340,6 +363,16 @@ export class FileInfoTab extends PageTab {
             this.updateTagsInput();
         }
         this.sharedInput.checked = file.shared;
+        if (updateData === undefined || updateData.hasOwnProperty("modelType")) {
+            const selector = `input[name="modelType"][value="${file.modelType}"]`;
+            const modelType = this.computer.querySelector(selector) as HTMLInputElement;
+            modelType.checked = true;
+        }
+        if (updateData === undefined || updateData.hasOwnProperty("basicLevel")) {
+            const selector = `input[name="basicLevel"][value="${file.basicLevel}"]`;
+            const basicLevel = this.computer.querySelector(selector) as HTMLInputElement;
+            basicLevel.checked = true;
+        }
         if (updateData === undefined || updateData.hasOwnProperty("screenshots")) {
             this.populateScreenshots();
         }
@@ -495,6 +528,12 @@ export class FileInfoTab extends PageTab {
             }
         }
 
+        // Collect model type and basic level.
+        const modelTypeInput = this.computer.querySelector("input[name=modelType]:checked") as HTMLInputElement;
+        const modelType = parseInt(modelTypeInput.value, 10) as ModelType;
+        const basicLevelInput = this.computer.querySelector("input[name=basicLevel]:checked") as HTMLInputElement;
+        const basicLevel = parseInt(basicLevelInput.value, 10) as BasicLevel;
+
         return this.filePanel.file.builder()
             .withName(this.nameInput.value.trim())
             .withFilename(this.filenameInput.value.trim())
@@ -504,6 +543,28 @@ export class FileInfoTab extends PageTab {
             .withShared(this.sharedInput.checked)
             .withTags(this.tags.asArray())
             .withScreenshots(screenshots)
+            .withModelType(modelType)
+            .withBasicLevel(basicLevel)
             .build();
+    }
+
+    /**
+     * Creates something that looks like a button but is really a radio button.
+     */
+    private addRadioButton(parent: HTMLElement, name: string, text: string, value: string) {
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = name;
+        radio.value = value;
+        radio.disabled = !this.editable;
+        radio.addEventListener("change", () => this.updateButtonStatus());
+
+        const label = document.createElement("label");
+        label.classList.add("radio-button");
+        label.classList.toggle("disabled", !this.editable);
+        label.textContent = text;
+
+        label.append(radio);
+        parent.append(label);
     }
 }

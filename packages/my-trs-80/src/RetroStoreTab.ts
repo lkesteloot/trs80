@@ -24,6 +24,30 @@ class RetroStoreApp {
 }
 
 /**
+ * Converts a RetroStore model to our own model, defaulting to Model III.
+ */
+function trs80ModelToModelType(trs80Model?: RetroStoreProto.Trs80Model): ModelType {
+    if (trs80Model === undefined) {
+        return ModelType.MODEL3;
+    }
+
+    switch (trs80Model) {
+        case RetroStoreProto.Trs80Model.MODEL_I:
+            return ModelType.MODEL1;
+
+        case RetroStoreProto.Trs80Model.UNKNOWN_MODEL:
+        case RetroStoreProto.Trs80Model.MODEL_III:
+            return ModelType.MODEL3;
+
+        case RetroStoreProto.Trs80Model.MODEL_4:
+        case RetroStoreProto.Trs80Model.MODEL_4P:
+            return ModelType.MODEL4;
+    }
+
+    return ModelType.MODEL3;
+}
+
+/**
  * Fetch all apps from RetroStore. If an error occurs, returns an empty list.
  */
 function fetchApps(start: number, count: number): Promise<RetroStoreProto.App[]> {
@@ -274,6 +298,7 @@ export class RetroStoreTab extends PageTab {
         const importButton = makeIconButton(makeIcon("get_app"), "Import app", () => {
             if (validMediaImage !== undefined && validMediaImage.data !== undefined && this.context.user !== undefined) {
                 const noteParts: string[] = [];
+
                 if (app.description !== undefined && app.description !== "") {
                     noteParts.push(app.description);
                 }
@@ -291,6 +316,7 @@ export class RetroStoreTab extends PageTab {
                     .withReleaseYear(app.release_year === undefined ? "" : app.release_year.toString())
                     .withTags(["RetroStore"])
                     .withFilename(validMediaImage.filename ?? "UNKNOWN")
+                    .withModelType(trs80ModelToModelType(app.ext_trs80?.model))
                     .withBinary(validMediaImage.data)
                     .build();
 

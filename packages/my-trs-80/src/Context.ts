@@ -78,6 +78,12 @@ export class Context {
                 "guest": isGuest,
             });
 
+            // Configure the emulator.
+            this.trs80.setConfig(this.trs80.getConfig().edit()
+                .withModelType(file.modelType)
+                .withBasicLevel(file.basicLevel)
+                .build());
+
             if (trs80File.className === "Cassette") {
                 // Mount the cassette, skip to the second file, if any, in case it's a data
                 // file that the first file (program) will need.

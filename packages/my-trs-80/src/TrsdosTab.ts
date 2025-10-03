@@ -114,6 +114,8 @@ export class TrsdosTab extends PageTab {
                         .withReleaseYear(dirEntry.year > 75 ? (1900 + dirEntry.year).toString() : filePanel.file.releaseYear)
                         .withFilename(dirEntry.getFilename("."))
                         .withShared(filePanel.file.shared)
+                        .withModelType(filePanel.file.modelType)
+                        .withBasicLevel(filePanel.file.basicLevel)
                         .withBinary(binary)
                         .build();
 

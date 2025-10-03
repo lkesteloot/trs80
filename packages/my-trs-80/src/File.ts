@@ -5,6 +5,7 @@ import {TagSet} from "./TagSet";
 import {decodeTrs80File, setBasicName} from "trs80-base";
 import {Bytes, DocumentData, DocumentSnapshot, Timestamp } from "firebase/firestore";
 import {Writable} from "ts-essentials";
+import {BasicLevel, ModelType } from "trs80-emulator";
 
 // What's considered a "new" file.
 const NEW_TIME_MS = 60*60*24*7*1000;
@@ -16,7 +17,7 @@ const HASH_PREFIX = "1:";
  * Return whether the test string starts with the filter prefix.
  */
 function prefixMatches(testString: string, filterPrefix: string): boolean {
-    return testString.substr(0, filterPrefix.length).localeCompare(filterPrefix, undefined, {
+    return testString.substring(0, filterPrefix.length).localeCompare(filterPrefix, undefined, {
         usage: "search",
         sensitivity: "base",
     }) === 0;
@@ -45,13 +46,16 @@ export class File {
     public readonly hash: string;
     public readonly isDeleted: boolean;
     public readonly screenshots: string[]; // Don't modify this, treat as immutable.
+    public readonly modelType: ModelType;
+    public readonly basicLevel: BasicLevel;
     public readonly binary: Uint8Array;
     public readonly addedAt: Date;
     public readonly modifiedAt: Date;
 
     constructor(id: string, uid: string, name: string, filename: string, note: string,
                 author: string, releaseYear: string, shared: boolean, tags: string[], hash: string,
-                screenshots: string[], binary: Uint8Array, addedAt: Date, modifiedAt: Date) {
+                screenshots: string[], modelType: ModelType, basicLevel: BasicLevel,
+                binary: Uint8Array, addedAt: Date, modifiedAt: Date) {
 
         this.id = id;
         this.uid = uid;
@@ -65,6 +69,8 @@ export class File {
         this.isDeleted = this.tags.indexOf(TRASH_TAG) >= 0;
         this.hash = hash;
         this.screenshots = screenshots;
+        this.modelType = modelType;
+        this.basicLevel = basicLevel;
         this.binary = binary;
         this.addedAt = addedAt;
         this.modifiedAt = modifiedAt;
@@ -86,6 +92,8 @@ export class File {
             tags: this.tags,
             hash: this.hash,
             screenshots: this.screenshots,
+            modelType: this.modelType,
+            basicLevel: this.basicLevel,
             binary: base64js.fromByteArray(this.binary),
             addedAt: this.addedAt.getTime(),
             modifiedAt: this.modifiedAt.getTime(),
@@ -106,6 +114,8 @@ export class File {
         builder.tags = this.tags;
         builder.hash = this.hash;
         builder.screenshots = this.screenshots;
+        builder.modelType = this.modelType;
+        builder.basicLevel = this.basicLevel;
         builder.binary = this.binary;
         builder.addedAt = this.addedAt;
         builder.modifiedAt = this.modifiedAt;
@@ -145,6 +155,12 @@ export class File {
         }
         if (!isSameStringArray(this.screenshots, oldFile.screenshots)) {
             updateData.screenshots = this.screenshots;
+        }
+        if (this.modelType !== oldFile.modelType) {
+            updateData.modelType = this.modelType;
+        }
+        if (this.basicLevel !== oldFile.basicLevel) {
+            updateData.basicLevel = this.basicLevel;
         }
         if (this.modifiedAt.getTime() !== oldFile.modifiedAt.getTime()) {
             updateData.modifiedAt = this.modifiedAt;
@@ -264,6 +280,8 @@ export class FileBuilder {
     public tags: string[] = [];
     public hash = "";
     public screenshots: string[] = [];
+    public modelType: ModelType = ModelType.MODEL3;
+    public basicLevel: BasicLevel = BasicLevel.LEVEL2;
     public binary = new Uint8Array(0);
     public addedAt = new Date();
     public modifiedAt = new Date();
@@ -284,6 +302,8 @@ export class FileBuilder {
         builder.tags = data.tags ?? [];
         builder.hash = data.hash;
         builder.screenshots = data.screenshots ?? [];
+        builder.modelType = data.modelType ?? ModelType.MODEL3;
+        builder.basicLevel = data.basicLevel ?? BasicLevel.LEVEL2;
         builder.binary = (data.binary as Bytes).toUint8Array();
         builder.addedAt = (data.addedAt as Timestamp).toDate();
         builder.modifiedAt = (data.modifiedAt as Timestamp).toDate();
@@ -341,6 +361,16 @@ export class FileBuilder {
         return this;
     }
 
+    public withModelType(modelType: ModelType): this {
+        this.modelType = modelType;
+        return this;
+    }
+
+    public withBasicLevel(basicLevel: BasicLevel): this {
+        this.basicLevel = basicLevel;
+        return this;
+    }
+
     public withBinary(binary: Uint8Array): this {
         this.binary = binary;
 
@@ -375,6 +405,7 @@ export class FileBuilder {
     public build(): File {
         return new File(this.id, this.uid, this.name, this.filename, this.note,
             this.author, this.releaseYear, this.shared, this.tags, this.hash,
-            this.screenshots, this.binary, this.addedAt, this.modifiedAt);
+            this.screenshots, this.modelType, this.basicLevel,
+            this.binary, this.addedAt, this.modifiedAt);
     }
 }

@@ -74,6 +74,8 @@ export class Database {
             shared: file.shared,
             tags: file.tags,
             hash: file.hash,
+            modelType: file.modelType,
+            basicLevel: file.basicLevel,
             binary: Bytes.fromUint8Array(file.binary),
             addedAt: Timestamp.fromDate(file.addedAt),
             modifiedAt: Timestamp.fromDate(file.modifiedAt),

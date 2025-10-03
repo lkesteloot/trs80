@@ -721,17 +721,50 @@ button i {
 .file-panel-form {
     height: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 2fr;
     grid-template-rows: auto auto auto auto auto 1fr;
     column-gap: 20px;
     row-gap: 20px;
     overflow-y: auto;
+
+    .radio-button-row {
+        display: flex;
+        gap: 8x;
+
+        .radio-button {
+            color: var(--foreground);
+            background: var(--background-highlights);
+            cursor: pointer;
+            border-radius: 999px;
+            padding: 2px 7px;
+            white-space: nowrap;
+            user-select: none;
+
+            input {
+                display: none;
+            }
+
+            &:has(input:checked) {
+                color: white;
+                background: var(--blue);
+            }
+        }
+
+        .radio-button-gap {
+            width: 8px;
+        }
+    }
 }
 
 .file-panel-form label {
     display: block;
     color: var(--foreground-secondary);
     font-size: 80%;
+    grid-column: span 2;
+
+    &.release-year, &.shared {
+        grid-column: span 1;
+    }
 }
 
 .file-panel-form input,
@@ -746,10 +779,14 @@ button i {
 }
 
 .file-panel-form input,
-.file-panel-form textarea,
-.file-panel-form .tags-editor {
+.file-panel-form textarea {
 
     margin-top: 5px;
+}
+
+.file-panel-form .tags-editor,
+.file-panel-form .radio-button-row {
+    margin-top: 10px;
 }
 
 .file-panel-form input:disabled,
@@ -760,7 +797,7 @@ button i {
 }
 
 .file-panel-form .screenshots {
-    grid-column: 3 / -1;
+    grid-column: -2 / -1;
     grid-row: 1 / -1;
 
     display: flex;
@@ -782,7 +819,7 @@ button i {
 }
 
 .file-panel-form .note {
-    grid-column-end: span 2;
+    grid-column: 1 / 5;
 }
 
 .file-panel-form .misc {
