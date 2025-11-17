@@ -7,12 +7,40 @@ CURSOR_CHAR equ 128+16+32
 CLEAR_CHAR equ 32
 INPUT_BUFFER_SIZE equ 64
 KEYBOARD_BEGIN equ 0x3800
-	
+CURSOR_HALF_PERIOD equ 7
+CURSOR_DISABLED equ 0xFF
+
 	.org 0x0000
-
-
 	di
 	jp soft_boot
+
+	.org 0x0008
+	nop
+
+	.org 0x0010
+	nop
+
+	.org 0x0018
+	nop
+
+	.org 0x0020
+	nop
+
+	.org 0x0028
+	nop
+
+	.org 0x0030
+	nop
+
+	; Non-maskable interrupt routine.
+	.org 0x0038
+	push af
+	call blink_cursor
+	; Reset timer latch.
+	in (0xec)
+	pop af
+	ei
+	reti
 
 soft_boot:
 	; Configure stack.
@@ -21,8 +49,16 @@ soft_boot:
 	; Configure cursor.
 	ld hl,SCREEN_BEGIN
 	ld (cursor),hl
+	ld hl,cursor_counter
+	ld (hl),CURSOR_DISABLED
 
-	; Clear the screen.
+	; Configure interrupts.
+	im 1 ; rst 38 on maskable interrupt
+	ld a,0x04
+	out (0xe0),a ; enable timer interrupt
+	ei
+
+	; Clear the screen; home cursor.
 	call cls
 	
 	; Write boot message.
@@ -55,7 +91,7 @@ cls:
 	ld hl,SCREEN_BEGIN
 	ld (hl),CLEAR_CHAR
 	ld de,SCREEN_BEGIN+1
-	ld BC,SCREEN_SIZE-1
+	ld bc,SCREEN_SIZE-1
 
 	ldir
 
@@ -261,19 +297,82 @@ done:
 
 ; Enable the cursor.
 enable_cursor:
+#local
 	push hl
+	push af
+	di
+	; See if the cursor is already enabled.
+	ld hl,cursor_counter
+	ld a,(hl)
+	cp a,CURSOR_DISABLED
+	jp nz,done
+	; Reset the counter.
+	ld (hl),0
+	; Immediately show the cursor.
 	ld hl,(cursor)
 	ld (hl),CURSOR_CHAR
+done:
+	ei
+	pop af
 	pop hl
 	ret
+#endlocal
 
 ; Disable the cursor.
 disable_cursor:
+#local
 	push hl
+	push af
+	di
+	; See if the cursor is already disabled.
+	ld hl,cursor_counter
+	ld a,(hl)
+	cp a,CURSOR_DISABLED
+	jp z,done
+	; Disable the cursor blink.
+	ld (hl),CURSOR_DISABLED
+	; Immediately hide the cursor.
 	ld hl,(cursor)
 	ld (hl),CLEAR_CHAR
+done:
+	ei
+	pop af
 	pop hl
 	ret
+#endlocal
+
+; Blink the cursor if it's enabled. Call this only from an
+; interrupt context.
+blink_cursor:
+#local
+	push hl
+	push af
+	; See if the cursor is enabled.
+	ld hl,cursor_counter
+	ld a,(hl)
+	cp a,CURSOR_DISABLED
+	jp z,done
+	; Increment counter.
+	inc a
+	cp a,CURSOR_HALF_PERIOD
+	jp nz,skip
+	; We've reached the half period, turn it off.
+	ld hl,(cursor)
+	ld (hl),CLEAR_CHAR
+	jp done
+skip:
+	cp a,CURSOR_HALF_PERIOD*2
+	jp nz,done
+	; We've reached the full period, turn it on.
+	ld a,0
+	ld hl,(cursor)
+	ld (hl),CURSOR_CHAR
+done:
+	ld (cursor_counter),a
+	pop af
+	pop hl
+	ret	
+#endlocal
 	
 boot_message:
 	db "BASIC Compiler", 10, 0
@@ -287,10 +386,14 @@ keyboard_matrix_shifted:
 	db "`ABCDEFGHIJKLMNOPQRSTUVWXYZ     _!", 34, "#$%&'()*+<=>?", 10, 0, 27, 0, 0, 8, 9, 32
 
 ; Variables in RAM.
+; TODO all these variables need to be initialized explicitly by code.
 	.org 0x4000
 
+; Cursor blink counter. Equal to CURSOR_DISABLED if the cursor is disabled.
+cursor_counter: ds 1
+
 ; Memory address of cursor on the screen.
-cursor: dw 0
+cursor: ds 2
 
 ; Buffer for input of a line of text.
 input_buffer: 
@@ -298,7 +401,7 @@ input_buffer:
 
 ; Short buffer for write_char.
 write_char_buffer:
-	db 0, 0
+	ds 2
 
 	end
 	
