@@ -442,10 +442,9 @@ export class Editor {
                 ],
                 defaultKeymap: false,
             }),
-            // Use the default autocomplete keymap, but add Enter as an alias for Tab.
-            Prec.highest(keymap.of([...completionKeymap, ...completionKeymap
-                .filter(m => m.key === "Enter")
-                .map(m => ({ ...m, key: "Tab" }))])),
+            // Use the default autocomplete keymap, but replace Enter with Tab.
+            Prec.highest(keymap.of(completionKeymap
+                .map(m => ({ ...m, key: m.key === "Enter" ? "Tab" : m.key })))),
             rectangularSelection(),
             keymap.of([
                 ...closeBracketsKeymap,

@@ -350,6 +350,9 @@ export interface FileSystem {
     readDirectory(pathname: string): string[] | undefined;
 }
 
+/**
+ * Information about a particular file and the lines assembled in it.
+ */
 export class SourceFile {
     public readonly fileInfo: FileInfo;
     public readonly assembledLines: AssembledLine[];

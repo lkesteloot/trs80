@@ -1,8 +1,14 @@
-import { Asm, AsmToken, AsmTokenizer, AsmTrieNode, getAsmDirectiveDocs, getAsmInstructionTrie } from 'z80-asm';
-import { mnemonicMap, OpcodeVariant, opcodeVariantToString } from 'z80-inst';
-import { Completion, CompletionContext, CompletionResult, CompletionSection, snippetCompletion } from '@codemirror/autocomplete';
-import { StateField } from '@codemirror/state';
-import { AssemblyResults } from './AssemblyResults';
+import {Asm, AsmToken, AsmTokenizer, AsmTrieNode, getAsmDirectiveDocs, getAsmInstructionTrie} from 'z80-asm';
+import {mnemonicMap, OpcodeVariant, opcodeVariantToString} from 'z80-inst';
+import {
+    Completion,
+    CompletionContext,
+    CompletionResult,
+    CompletionSection,
+    snippetCompletion
+} from '@codemirror/autocomplete';
+import {StateField} from '@codemirror/state';
+import {AssemblyResults} from './AssemblyResults';
 
 // Regular expression for entire-line label.
 const LABEL_RE = /^[a-z_][a-z0-9_]*$/i;
@@ -109,8 +115,10 @@ ld h,a          ; Store high byte
 function extractWords(s: string, skipLabel: boolean, includePrefixes: boolean): Set<string> {
     let wordMatches = [...s.toLowerCase().matchAll(/\w+/g)];
     if (skipLabel) {
+        // Skip words at the beginning of the line.
         wordMatches = wordMatches.filter(match => match.index !== undefined && match.index > 0);
     }
+    // Extract the actual strings.
     const words = wordMatches.map(match => match[0]);
     if (includePrefixes) {
         const set = new Set<string>();
@@ -211,8 +219,7 @@ class Completer {
          */
         private readonly explicit: boolean) {
 
-        const tokenizer = new AsmTokenizer(line);
-        this.tokens = tokenizer.tokens;
+        this.tokens = new AsmTokenizer(line).tokens;
         this.searchWords = extractWords(this.line, true, false);
     }
 

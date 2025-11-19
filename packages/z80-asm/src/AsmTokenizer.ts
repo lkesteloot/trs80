@@ -35,16 +35,32 @@ function isWhitespace(c: string): boolean {
     return c === " " || c === "\t";
 }
 
+/**
+ * Whether the character can be part of an identifier. This includes all the normal
+ * stuff, plus a period.
+ *
+ * @param ch the character to check
+ * @param isFirst whether it's the first character of the identifier
+ */
 export function isLegalIdentifierCharacter(ch: string, isFirst: boolean) {
     return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '.' || ch == '_' ||
-        (!isFirst && (ch >= '0' && ch <= '9'));
+        (!isFirst && ch >= '0' && ch <= '9');
 }
 
+/**
+ * Whether the string is a Z80 flag (e.g., "z" for zero or "nc" for no carry).
+ */
 function isFlag(s: string): boolean {
     return FLAGS.has(s.toLowerCase());
 }
 
-// Advances past whitespace, returning the position of the next non-whitespace character.
+/**
+ * Advances past whitespace, returning the position of the next non-whitespace character.
+ * @param s the string being parsed
+ * @param pos the current positions
+ * @return the new position after whitespace.
+ */
+//
 function skipWhitespace(s: string, pos: number): number {
     while (pos < s.length && isWhitespace(s[pos])) {
         pos += 1;
@@ -67,7 +83,13 @@ export function parseDigit(ch: string, base: number): number | undefined {
 }
 
 /**
- * Reads a string like "abc", or undefined if didn't find a string.
+ * Reads a string like "abc" (in single or double quotes).
+ * The quote character can be doubled to be included in the string.
+ *
+ * @param s the strings to parse
+ * @param pos the position in the string of the first quote
+ * @return value (the string, without the quotes), pos (the position after the closing quote),
+ * and any error found; or undefined if the first position was not at a quote.
  */
 function readString(s: string, pos: number): { value: string, end: number, error: string | undefined } | undefined {
     // Find beginning of string.
@@ -111,7 +133,7 @@ function readString(s: string, pos: number): { value: string, end: number, error
  * following formats:
  *
  * Decimal: 1234
- * Binary: 0b1010, 1010b (but no longer %1010)
+ * Binary: 0b1010, 1010b (and %1010 if SUPPORT_PERCENT_BINARY is set)
  * Octal: 0o1234, 1234o
  * Hex: 0x1234, 1234h, $1234
  *
@@ -395,10 +417,7 @@ function tokenizeLine(line: string): AsmToken[] {
 
     let pos = 0;
     while (pos < line.length) {
-        // Skip whitespace.
-        while (pos < line.length && isWhitespace(line[pos])) {
-            pos++;
-        }
+        pos = skipWhitespace(line, pos);
 
         // Get next token. This always advances.
         if (pos < line.length) {
@@ -690,10 +709,10 @@ export class AsmTokenizer {
      * following formats:
      *
      * Decimal: 1234
-     * Binary: 0b1010, 1010b, %1010
+     * Binary: 0b1010, 1010b, and %1010 if SUPPORT_PERCENT_BINARY is set
      * Octal: 0o1234, 1234o
      * Hex: 0x1234, 1234h, $1234
-     * Current line address: $ or -$
+     * Current line address: $
      *
      * @param address the current line's address, in case the $ is actually a reference
      * to that and not a hex prefix.
