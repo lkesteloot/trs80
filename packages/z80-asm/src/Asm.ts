@@ -140,6 +140,30 @@ export function getAsmDirectiveDocs(): AsmDirectiveDoc[] {
             directives: PSEUDO_END,
             description: "End of file, optionally followed by entry address or label.",
         },
+        {
+            directives: new Set(["#target"]),
+            description: "Specify whether targeting bin or rom.",
+        },
+        {
+            directives: new Set(["#code"]),
+            description: "Start a new code segment.",
+        },
+        {
+            directives: new Set(["#include"]),
+            description: "Include an assembly file or library directory.",
+        },
+        {
+            directives: new Set(["#local"]),
+            description: "Start a local scope.",
+        },
+        {
+            directives: new Set(["#endlocal"]),
+            description: "End a local scope.",
+        },
+        {
+            directives: new Set(["#insert"]),
+            description: "Insert a binary file.",
+        },
     ];
 }
 

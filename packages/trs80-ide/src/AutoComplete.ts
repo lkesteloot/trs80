@@ -391,7 +391,7 @@ class Completer {
      * Complete assembly directives that match what's been written so far.
      */
     private completeDirectives() {
-        const search = this.line.trim(); // TODO replace with trie search.
+        const search = this.line.trim();
 
         const options: Completion[] = [];
 
