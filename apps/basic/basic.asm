@@ -140,7 +140,7 @@ newline:
 	adc 0
 	ld d,a
 	ld a,e
-	and a,255-SCREEN_WIDTH+1
+	and a,~(SCREEN_WIDTH-1)
 	ld e,a
 	; TODO scroll when past the bottom of the screen.
 	jp loop	

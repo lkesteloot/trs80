@@ -192,8 +192,11 @@ function compareVariants(a: OpcodeVariant, b: OpcodeVariant): number {
  * Given a completion context (line written so far, file assembled), can generate list of possible completions.
  */
 class Completer {
+    // All tokens on the line so far.
     private readonly tokens: AsmToken[];
+    // Distinct words on the line so far.
     private readonly searchWords: Set<string>;
+    // Accumulated completion options.
     private readonly options: CompletionWithVariant[] = [];
     /**
      * Where in the line we want to replace what's been written.
@@ -201,6 +204,9 @@ class Completer {
     private localFrom = 0;
 
     public constructor(
+        /**
+         * Results of assembling the code.
+         */
         private readonly asm: Asm,
         /**
          * Line until the cursor.
@@ -227,6 +233,14 @@ class Completer {
      * Get all completions available at this location, or null for none.
      */
     public getCompletions(): CompletionResult | null {
+        // Never complete inside a comment or string.
+        if (this.tokens.length > 0) {
+            const lastToken = this.tokens[this.tokens.length - 1];
+            if (lastToken.tag === "comment" || lastToken.tag === "string") {
+                return null;
+            }
+        }
+
         if ((this.line === "" && this.explicit) || this.line.match(LABEL_RE)) {
             this.completeNewLabels();
         } else {
