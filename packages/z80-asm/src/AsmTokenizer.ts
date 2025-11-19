@@ -554,7 +554,7 @@ export class AsmTokenizer {
      */
     public readIdentifier(allowRegister: boolean,
                           positionRequirement: PositionRequirement = PositionRequirement.ANYWHERE):
-        { name: string; column: number } | undefined {
+        { name: string; column: number, originalSpelling: string } | undefined {
 
         // Get the current token, basic checks.
         const token = this.getCurrentValidToken();
@@ -585,7 +585,8 @@ export class AsmTokenizer {
         }
 
         // Check if contents are acceptable.
-        let identifier = token.text.toLowerCase();
+        const originalSpelling = token.text;
+        let identifier = originalSpelling.toLowerCase();
         if (!allowRegister && (isWordReg(identifier) || isByteReg(identifier) || isFlag(identifier))) {
             // Register names can't be identifiers.
             return undefined;
@@ -594,7 +595,7 @@ export class AsmTokenizer {
         // Passed all the tests, advance past it.
         this.tokenIndex += 1;
 
-        return { name: identifier, column: token.begin };
+        return { name: identifier, column: token.begin, originalSpelling };
     }
 
     /**

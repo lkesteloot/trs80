@@ -558,6 +558,9 @@ class Completer {
      * Get all defined symbol names starting with the given prefix.
      */
     private symbolsWithPrefix(prefix: string): string[] {
+        // Symbol names are stored lower case.
+        prefix = prefix.toLowerCase();
+
         return this.asm.symbols
             // Should we include undefined symbols? Why not, if we allow user to use it
             // before auto-complete definition, they may want to use it multiple times and
@@ -565,7 +568,8 @@ class Completer {
             // One problem is that as you're typing, you're defining that new symbol, and it
             // shows up in the list of completions. Leaving it alone for now.
             .filter(symbol => symbol.definitions.length > 0 && symbol.name.startsWith(prefix))
-            .map(symbol => symbol.name);
+            // Use the capitalization originally used to define the symbol.
+            .map(symbol => symbol.originalSpelling);
     }
 }
 

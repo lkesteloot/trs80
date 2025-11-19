@@ -192,7 +192,10 @@ export enum SymbolType {
 
 // Information about a symbol (label, constant).
 export class SymbolInfo {
+    // Lower-case version of symbol name:
     public readonly name: string;
+    // How it was originally written the first time we saw it:
+    public readonly originalSpelling: string;
     public value: number;
     public type: SymbolType = SymbolType.UNKNOWN;
     public definitions: SymbolAppearance[] = [];
@@ -200,8 +203,9 @@ export class SymbolInfo {
     // If it has multiple definitions with different values.
     public changesValue = false;
 
-    constructor(name: string, value: number) {
+    constructor(name: string, originalSpelling: string, value: number) {
         this.name = name;
+        this.originalSpelling = originalSpelling;
         this.value = value;
     }
 }
@@ -588,7 +592,7 @@ export class Asm {
      * Add a global symbol outside the code, perhaps in the ROM or OS.
      */
     public addKnownLabel({ name, address }: KnownLabel): void {
-        const symbolInfo = new SymbolInfo(name.toLowerCase(), address);
+        const symbolInfo = new SymbolInfo(name.toLowerCase(), name, address);
         symbolInfo.definitions.push(new SymbolAppearance(
             symbolInfo, undefined, 0, symbolInfo.definitions.length));
         this.scopes[0].set(symbolInfo);
@@ -1010,10 +1014,12 @@ class LineParser {
 
         // Look for label in the first column.
         let label: string | undefined;
+        let originalSpelling: string | undefined;
         let labelIsGlobal = false;
         let labelInfo = this.tokenizer.readIdentifier(false, PositionRequirement.FIRST_COLUMN);
         if (labelInfo !== undefined) {
             label = labelInfo.name;
+            originalSpelling = labelInfo.originalSpelling;
 
             // By default assign it to current address, but can be overwritten
             // by .equ below.
@@ -1031,6 +1037,7 @@ class LineParser {
             if (!enabledLine) {
                 label = undefined;
                 labelValue = undefined;
+                originalSpelling = undefined;
             }
         }
 
@@ -1362,7 +1369,7 @@ class LineParser {
         this.ensureEndOfLine();
 
         // If we're defining a new symbol, record it.
-        if (label !== undefined && labelValue !== undefined) {
+        if (label !== undefined && labelValue !== undefined && originalSpelling !== undefined) {
             const scope = labelIsGlobal ? this.pass.globals() : this.pass.locals();
             let symbolInfo = scope.get(label);
             if (symbolInfo !== undefined) {
@@ -1372,7 +1379,7 @@ class LineParser {
                 }
                 symbolInfo.value = labelValue;
             } else {
-                symbolInfo = new SymbolInfo(label, labelValue);
+                symbolInfo = new SymbolInfo(label, originalSpelling, labelValue);
                 scope.set(symbolInfo);
             }
             if (this.pass.passNumber === 1) {
@@ -2141,7 +2148,7 @@ class LineParser {
         const identifierInfo = this.tokenizer.readIdentifier(false);
         if (identifierInfo !== undefined) {
             // Must be symbol reference. Get address of identifier or value of constant.
-            const { name: identifier, column: identifierColumn } = identifierInfo;
+            const { name: identifier, column: identifierColumn, originalSpelling } = identifierInfo;
 
             // Local symbols can shadow global ones, and might not be defined yet, so only check
             // the local scope in pass 1. In pass 2 the identifier must have been defined somewhere.
@@ -2151,7 +2158,7 @@ class LineParser {
                     // Record that this identifier was used so that we can include its file with
                     // library includes. We don't know whether it's a local or global symbol.
                     // Assume local and push it out in #endlocal.
-                    symbolInfo = new SymbolInfo(identifier, 0);
+                    symbolInfo = new SymbolInfo(identifier, originalSpelling, 0);
                     this.pass.locals().set(symbolInfo);
                 } else {
                     // Programmer error.
