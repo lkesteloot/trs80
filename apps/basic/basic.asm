@@ -52,7 +52,11 @@ soft_boot:
 	ld hl,cursor_counter
 	ld (hl),CURSOR_DISABLED
 
-	; Configure interrupts.
+	; Initialize other variables.
+	ld a,0
+	ld (write_char_buffer+1),a
+
+	; Configure and enable interrupts.
 	im 1 ; rst 38 on maskable interrupt
 	ld a,0x04
 	out (0xe0),a ; enable timer interrupt
@@ -138,6 +142,7 @@ newline:
 	ld a,e
 	and a,255-SCREEN_WIDTH+1
 	ld e,a
+	; TODO scroll when past the bottom of the screen.
 	jp loop	
 
 end_loop:
@@ -232,7 +237,7 @@ read_key:
 	ld hl,KEYBOARD_BEGIN+1
 	; Pointer into the letter array.
 	ld de,0
-loop:
+byte_loop:
 	; Load byte from keyboard matrix.
 	ld a,(hl)
 	; Number of bits to check.
@@ -255,7 +260,7 @@ bit_loop:
 	sla a
 	ld l,a
 	cp 0x80
-	jp nz,loop
+	jp nz,byte_loop
 
 	; No key is down.
 	xor a
@@ -280,6 +285,7 @@ release_loop:
 	ld hl,keyboard_matrix_unshifted
 
 shift_pressed:
+	; Look up key in HL array by DE index.
 	ld a,e
 	add a,l
 	ld e,a
@@ -341,8 +347,9 @@ done:
 	ret
 #endlocal
 
-; Blink the cursor if it's enabled. Call this only from an
-; interrupt context.
+; Blink the cursor if it's enabled. Call this only
+; with interrupts already disabled. Does not
+; re-enable them.
 blink_cursor:
 #local
 	push hl
@@ -386,7 +393,6 @@ keyboard_matrix_shifted:
 	db "`ABCDEFGHIJKLMNOPQRSTUVWXYZ     _!", 34, "#$%&'()*+<=>?", 10, 0, 27, 0, 0, 8, 9, 32
 
 ; Variables in RAM.
-; TODO all these variables need to be initialized explicitly by code.
 	.org 0x4000
 
 ; Cursor blink counter. Equal to CURSOR_DISABLED if the cursor is disabled.
@@ -403,5 +409,5 @@ input_buffer:
 write_char_buffer:
 	ds 2
 
-	end
+	end 0x0000
 	
