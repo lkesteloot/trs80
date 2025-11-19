@@ -1,4 +1,5 @@
 import {
+    cursorLineDown,
     defaultKeymap,
     history,
     historyKeymap,
@@ -671,9 +672,10 @@ export class Editor {
         selectAll(this.view);
     }
 
-    // Toggle comment on cursor line.
-    public toggleComment() {
+    // Toggle comment on cursor line and move to the next line.
+    public toggleCommentAndMoveDown() {
         toggleComment(this.view);
+        cursorLineDown(this.view);
     }
 
     // Move the current line up.

@@ -347,7 +347,7 @@ export class UserInterface {
                     {
                         text: "Toggle Comment",
                         hotkey: "Cmd-/",
-                        action: () => editor.toggleComment(),
+                        action: () => editor.toggleCommentAndMoveDown(),
                     },
                     {
                         text: "Move Line Up",
