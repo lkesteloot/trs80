@@ -114,3 +114,4 @@ for (const error of runner.errors) {
     console.log(error);
 }
 console.log(`Passed ${runner.successfulTests} of ${runner.tests.size} (${Math.round(runner.successfulTests*100/runner.tests.size)}%) with ${runner.errors.length} errors`);
+process.exit(runner.errors.length === 0 ? 0 : 1);

@@ -167,7 +167,7 @@ function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[]
             parseOpcodes(dirname, params, fullOpcodes, mnemonicMap, clr, clrUsed);
         } else {
             const fullOpcodesString = fullOpcodes.map(
-                value => typeof (value) === "number" ? toHexByte(value) : "**").join("");
+                value => typeof value === "number" ? toHexByte(value) : "**").join("");
             let clrInst = findClrInstruction(clr, fullOpcodesString);
             if (clrInst === undefined) {
                 // These are aliases that aren't in CLR. Find the official variant and modify its CLR.
@@ -505,7 +505,7 @@ function detectAliases(mnemonics: Mnemonics) {
                     variant.clr = {
                         ...chosenVariant.clr,
                         opcodes: variant.opcodes
-                            .map(v => typeof v === "number" ? toHexByte(v).toUpperCase() : "")
+                            .map(v => typeof v === "number" ? toHexByte(v) : "")
                             .join(""),
                         undocumented: true,
                         // We assume here that byte count etc are the same, which isn't logically
@@ -559,6 +559,8 @@ function outputOpcodeMap(opcodeMapCode: string[], map: CodeOpcodeMap, indent: nu
 
 /**
  * Put the name of the variant for the alias instead of a reference to the alias itself.
+ * This would normally write it as a string, but after generating the JSON we strip
+ * out the quotes so that it's a reference to the actual variable.
  */
 function jsonReplacer(key: string, value: any): any {
     if (key === "aliasOf" && value !== undefined) {
@@ -569,10 +571,21 @@ function jsonReplacer(key: string, value: any): any {
     return value;
 }
 
+/**
+ * Remove the quotes around the aliasOf variant names in the generated JSON so that
+ * they become references to the actual variables.
+ */
 function removeAliasQuotes(s: string): string {
     return s.replace(/"aliasOf": "([^"]+)"/g, '"aliasOf": $1');
 }
 
+/**
+ * Generate the three chunks of code (as lines of text):
+ *
+ * variantCode: all the variants, as global (unexported) variables.
+ * mnemonicMapCode: map from mnemonic (like "ld") to an array of all "ld" variants.
+ * opcodeMapCode: map from opcode (like 0x55) to either a variant or a sub-map.
+ */
 function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMapCode: string[], opcodeMapCode: string[]} {
     const variantCode: string[] = [];
     const mnemonicMapCode: string[] = [];
@@ -655,7 +668,8 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
     for (const variant of allVariants) {
         variantCode.push("");
         variantCode.push("// " + opcodeVariantToString(variant));
-        variantCode.push("const " + makeVariantVariableName(variant) + ": OpcodeVariant = " + removeAliasQuotes(JSON.stringify(variant, jsonReplacer, 2)) + ";");
+        variantCode.push("const " + makeVariantVariableName(variant) + ": OpcodeVariant = " +
+            removeAliasQuotes(JSON.stringify(variant, jsonReplacer, 2)) + ";");
     }
 
     // Opcode map in different pass.
@@ -667,6 +681,9 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
     return {variantCode, mnemonicMapCode, opcodeMapCode};
 }
 
+/**
+ * Generate the Opcodes.ts file.
+ */
 function generateOpcodes(): void {
     const scriptDir = dirname(fileURLToPath(import.meta.url));
     const opcodesDir = path.join(scriptDir, "..", "..");

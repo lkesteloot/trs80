@@ -2,10 +2,9 @@
 // and executing Z80 instructions. It takes as input the template
 // (Decode.templates.ts) and the data files in the "opcodes" directory.
 
-import * as path from "path";
 import * as fs from "fs";
-import {toHex, isWordReg, isByteReg, Flag, toHexByte} from "z80-base";
-import { OpcodeMap, opcodeMap, OpcodeVariant } from "z80-inst";
+import {toHex, isWordReg, isByteReg, toHexByte} from "z80-base";
+import { OpcodeMap, opcodeMap, OpcodeVariant, opcodeVariantToOpcodeString, opcodeVariantToString } from "z80-inst";
 
 /**
  * Params that qualify as "byte-sized".
@@ -20,7 +19,7 @@ const WORD_PARAMS = new Set(["af", "bc", "de", "hl", "nnnn", "ix", "iy", "sp"]);
 /**
  * Indentation for generate blocks.
  */
-const TAB = "    ";
+const INDENT = "    ";
 
 /**
  * The two possible param sizes.
@@ -29,25 +28,34 @@ enum DataWidth {
     BYTE, WORD
 }
 
-function makeVariantLabel(variant: OpcodeVariant): string {
-    return (variant.mnemonic + " " + variant.params.join(",")).trim();
-}
+/**
+ * Aliases point to a variant, but we must record the variant by identity until we know how to
+ * retrieve its function from a map.
+ */
+type ResolvedAlias = {
+    setter: string,
+    canonicalVariant: OpcodeVariant,
+};
 
 /**
  * Track the indentation level of code currently being generated.
  */
-let indent = "";
+let gIndent = "";
 function enter(): void {
-    indent += TAB;
+    gIndent += INDENT;
 }
 function exit(): void {
-    indent = indent.substr(0, indent.length - TAB.length);
+    gIndent = gIndent.substring(0, gIndent.length - INDENT.length);
 }
+
+/**
+ * Add indented line to the output.
+ */
 function addLine(output: string[], line: string): void {
     if (line.length === 0) {
         output.push("");
     } else {
-        output.push(indent + line);
+        output.push(gIndent + line);
     }
 }
 
@@ -58,7 +66,7 @@ function addLine(output: string[], line: string): void {
 function addCondIf(output: string[], cond: string | undefined): void {
     if (cond !== undefined) {
         let not = cond.startsWith("n");
-        let flag = (not ? cond.substr(1) : cond).toUpperCase();
+        let flag = (not ? cond.substring(1) : cond).toUpperCase();
         if (cond === "po") {
             not = true;
             flag = "P";
@@ -214,11 +222,11 @@ function handleArith(output: string[], opcode: "add" | "adc" | "sub" | "sbc", de
     addLine(output, "let value: number;");
     if (determineDataWidth(dest, src) == DataWidth.BYTE) {
         if (src.startsWith("(") && src.endsWith(")")) {
-            const addr = src.substr(1, src.length - 2);
+            const addr = src.substring(1, src.length - 1);
             if (isWordReg(addr)) {
                 addLine(output, "value = z80.readByte(z80.regs." + addr + ");");
             } else if (addr.endsWith("+dd")) {
-                const reg = addr.substr(0, addr.length - 3);
+                const reg = addr.substring(0, addr.length - 3);
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
                 addLine(output, "z80.incTStateCount(5);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
@@ -260,11 +268,11 @@ function handleArith(output: string[], opcode: "add" | "adc" | "sub" | "sbc", de
 function handleCp(output: string[], src: string): void {
     addLine(output, "let value: number;");
     if (src.startsWith("(") && src.endsWith(")")) {
-        const addr = src.substr(1, src.length - 2);
+        const addr = src.substring(1, src.length - 1);
         if (isWordReg(addr)) {
             addLine(output, "value = z80.readByte(z80.regs." + addr + ");");
         } else if (addr.endsWith("+dd")) {
-            const reg = addr.substr(0, addr.length - 3);
+            const reg = addr.substring(0, addr.length - 3);
             addLine(output, "value = z80.readByte(z80.regs.pc);");
             addLine(output, "z80.incTStateCount(5);");
             addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
@@ -363,7 +371,7 @@ function handleLd(output: string[], dest: string, src: string): void {
     addLine(output, "let value: number;");
     if (determineDataWidth(dest, src) == DataWidth.BYTE) {
         if (src.startsWith("(") && src.endsWith(")")) {
-            const addr = src.substr(1, src.length - 2);
+            const addr = src.substring(1, src.length - 1);
             if (isWordReg(addr)) {
                 if (addr === "bc" || addr === "de") {
                     addLine(output, "z80.regs.memptr = inc16(z80.regs." + addr + ");");
@@ -377,7 +385,7 @@ function handleLd(output: string[], dest: string, src: string): void {
                 addLine(output, "z80.regs.memptr = inc16(value);");
                 addLine(output, "value = z80.readByte(value);");
             } else if (addr.endsWith("+dd")) {
-                const reg = addr.substr(0, addr.length - 3);
+                const reg = addr.substring(0, addr.length - 3);
                 addLine(output, "value = z80.readByte(z80.regs.pc);");
                 addLine(output, "z80.incTStateCount(5);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
@@ -393,8 +401,6 @@ function handleLd(output: string[], dest: string, src: string): void {
                     addLine(output, "z80.incTStateCount(2);");
                 }
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
-            } else if (src === "r") {
-                addLine(output, "value = z80.regs.rCombined;");
             } else {
                 addLine(output, "value = z80.regs." + src + ";");
             }
@@ -403,7 +409,7 @@ function handleLd(output: string[], dest: string, src: string): void {
             addLine(output, "z80.incTStateCount(1);");
         }
         if (dest.startsWith("(") && dest.endsWith(")")) {
-            const addr = dest.substr(1, dest.length - 2);
+            const addr = dest.substring(1, dest.length - 1);
             if (isWordReg(addr)) {
                 if (addr === "bc" || addr === "de") {
                     addLine(output, "z80.regs.memptr = word(z80.regs.a, inc16(z80.regs." + addr + "));");
@@ -417,7 +423,7 @@ function handleLd(output: string[], dest: string, src: string): void {
                 addLine(output, "z80.regs.memptr = word(z80.regs.a, inc16(value));");
                 addLine(output, "z80.writeByte(value, z80.regs.a);");
             } else if (addr.endsWith("+dd")) {
-                const reg = addr.substr(0, addr.length - 3);
+                const reg = addr.substring(0, addr.length - 3);
                 // Value of "dd" is already in "dd" variable.
                 addLine(output, "z80.regs.memptr = (z80.regs." + reg + " + signedByte(dd)) & 0xFFFF;");
                 addLine(output, "z80.writeByte(z80.regs.memptr, value);")
@@ -434,7 +440,7 @@ function handleLd(output: string[], dest: string, src: string): void {
     } else {
         // DataWidth.WORD.
         if (src.startsWith("(") && src.endsWith(")")) {
-            const addr = src.substr(1, src.length - 2);
+            const addr = src.substring(1, src.length - 1);
             if (addr === "nnnn") {
                 addLine(output, "let addr = z80.readByte(z80.regs.pc);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
@@ -462,7 +468,7 @@ function handleLd(output: string[], dest: string, src: string): void {
             }
         }
         if (dest.startsWith("(") && dest.endsWith(")")) {
-            const addr = dest.substr(1, dest.length - 2);
+            const addr = dest.substring(1, dest.length - 1);
             if (addr === "nnnn") {
                 addLine(output, "let addr = z80.readByte(z80.regs.pc);");
                 addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
@@ -493,7 +499,7 @@ function handleLogic(output: string[], opcode: string, operand: string): void {
     } else if (operand === "(hl)") {
         addLine(output, "value = z80.readByte(z80.regs.hl);");
     } else if (operand === "(ix+dd)" || operand === "(iy+dd)") {
-        const reg = operand.substr(1, 2);
+        const reg = operand.substring(1, 3);
         addLine(output, "value = z80.readByte(z80.regs.pc);");
         addLine(output, "z80.incTStateCount(5);");
         addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
@@ -722,7 +728,6 @@ function handleSetResBit(output: string[], opcode:"bit" | "set" | "res", bit: st
             addLine(output, "const hiddenValue = hi(z80.regs.memptr);");
             addLine(output, "z80.incTStateCount(1);");
         } else if (operand.endsWith("+dd)")) {
-            const reg = operand.substr(1, 2);
             addLine(output, "const value = z80.readByte(z80.regs.memptr);");
             addLine(output, "const hiddenValue = hi(z80.regs.memptr);");
             addLine(output, "z80.incTStateCount(1);");
@@ -767,7 +772,7 @@ function handleRotateShiftIncDec(output: string[], opcode: string, operand: stri
         addLine(output, "z80.incTStateCount(1);");
     } else if (operand.endsWith("+dd)")) {
         if (opcode === "inc" || opcode === "dec") {
-            const reg = operand.substr(1, 2);
+            const reg = operand.substring(1, 3);
             addLine(output, "const offset = z80.readByte(z80.regs.pc);");
             addLine(output, "z80.incTStateCount(5);");
             addLine(output, "z80.regs.pc = inc16(z80.regs.pc);");
@@ -780,6 +785,7 @@ function handleRotateShiftIncDec(output: string[], opcode: string, operand: stri
     }
 
     // Perform operation.
+    // TODO this oldValue is sometimes not used and generates a lot of warnings.
     addLine(output, "const oldValue = value;");
     switch (opcode) {
         case "rl":
@@ -821,6 +827,7 @@ function handleRotateShiftIncDec(output: string[], opcode: string, operand: stri
                 addLine(output, "value = " + opcode + "16(value);");
             } else {
                 addLine(output, "value = " + opcode + "8(value);");
+                // TODO is this right that oldValue is used in dec but value is used in inc?
                 if (opcode === "dec") {
                     addLine(output, "z80.regs.f = (z80.regs.f & Flag.C) | (value === 0x7F ? Flag.V : 0) | ((oldValue & 0x0F) !== 0 ? 0 : Flag.H) | Flag.N | z80.sz53Table[value];");
                 } else {
@@ -832,7 +839,7 @@ function handleRotateShiftIncDec(output: string[], opcode: string, operand: stri
 
     if (opcode !== "inc" && opcode !== "dec") {
         // Which bit goes into the carry flag.
-        const bitIntoCarry = opcode.substr(1, 1) === "l" ? "0x80" : "0x01";
+        const bitIntoCarry = opcode.substring(1, 2) === "l" ? "0x80" : "0x01";
         addLine(output, "z80.regs.f = ((oldValue & " + bitIntoCarry + ") !== 0 ? Flag.C : 0) | z80.sz53pTable[value];");
     }
 
@@ -899,61 +906,65 @@ function handleRotateA(output: string[], opcode: string): void {
     }
 
     // Which bit goes into the carry flag.
-    const bitIntoCarry = opcode.substr(1, 1) === "l" ? "0x80" : "0x01";
+    const bitIntoCarry = opcode.substring(1, 2) === "l" ? "0x80" : "0x01";
     addLine(output, "z80.regs.f = (z80.regs.f & (Flag.P | Flag.Z | Flag.S)) | (z80.regs.a & (Flag.X3 | Flag.X5)) | ((oldA & " + bitIntoCarry + ") !== 0 ? Flag.C : 0);");
 }
 
-// Whether these two variants are aliases of each other.
-function areAliasVariants(v1: OpcodeVariant, v2: OpcodeVariant): boolean {
-    if (v1.mnemonic !== v2.mnemonic || v1.params.length != v2.params.length) {
-        return false;
-    }
-    for (let i = 0; i < v1.params.length; i++) {
-        if (v1.params[i] !== v2.params[i]) {
-            return false;
-        }
-    }
+/**
+ * Fills in the dispatch map for this prefix and sub-prefixes.
+ *
+ * @param opcodeMap map from opcode to either a variant or a sub-map.
+ * @param dispatchMap the map we're building: from prefix (like "base" or "ddcb") to the code that generates a map for it.
+ * @param variantMap map from variant (by identity) to a snippet of code for retrieving its function.
+ * @param aliases array of setters and the variants they should point to.
+ * @param prefix Prefix for this opcodeMap ("base" or "ddcb").
+ */
+function generateDispatch(opcodeMap: OpcodeMap,
+                          dispatchMap: Map<string, string>,
+                          variantMap: Map<OpcodeVariant, string>,
+                          aliases: ResolvedAlias[],
+                          prefix: string): void {
 
-    return true;
-}
-
-function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>, prefix: string): void {
+    // Lines for the code we'll be putting in the map.
     const output: string[] = [];
-
-    // Variants that are aliases and that we shouldn't generate code for.
-    const aliasVariants: {opcode: number, variant: OpcodeVariant}[] = [];
 
     // Name of the TypeScript map to insert into.
     const mapName = "decodeMap" + prefix.toUpperCase();
 
-    // Put all aliases into our array first, in case some come after the canonical variant.
+    // Handle non-aliases.
     for (const [opcode, value] of opcodeMap.entries()) {
-        if (!(value instanceof Map) && value.isAlias) {
-            aliasVariants.push({opcode, variant: value});
-        }
-    }
+        const hexOpcode = toHex(opcode, 2);
+        const setter = mapName + ".set(0x" + hexOpcode + ", ";
 
-    for (const [opcode, value] of opcodeMap.entries()) {
-        if (!(value instanceof Map) && value.isAlias) {
-            // Handled above.
+        if (!(value instanceof Map) && value.aliasOf !== undefined) {
+            // Don't handle aliases here, they're done at the very end.
+            aliases.push({
+                setter: setter,
+                canonicalVariant: value.aliasOf,
+            });
             continue;
         }
 
-        const label = value instanceof Map ? "shift " + toHexByte(opcode).toLowerCase() : makeVariantLabel(value);
-        addLine(output, mapName + ".set(0x" + toHex(opcode, 2) + ", (z80: Z80) => { // " + label);
+        const comment = value instanceof Map
+            ? "shift " + toHexByte(opcode).toLowerCase()
+            : opcodeVariantToString(value);
+        addLine(output, setter + "(z80: Z80) => { // " + comment);
         enter();
 
         if (value instanceof Map) {
             const newPrefix = (prefix === "base" ? "" : prefix) + toHexByte(opcode);
-            const oldIndent = indent;
-            indent = "";
-            generateDispatch(value, dispatchMap, newPrefix);
-            indent = oldIndent;
+            const oldIndent = gIndent;
+            gIndent = "";
+            generateDispatch(value, dispatchMap, variantMap, aliases, newPrefix);
+            gIndent = oldIndent;
             addLine(output, "decode" + newPrefix.toUpperCase() + "(z80);");
         } else {
             const variant = value;
             const mnemonic = variant.mnemonic;
             const params = variant.params;
+
+            // How to retrieve this variant's function later if we need it.
+            variantMap.set(variant, mapName + ".get(0x" + hexOpcode + ") as OpcodeFunc");
 
             // Special case handling for undocumented instructions that have a weird format in the data files.
             if (params.length >= 2 && params[1].indexOf(" ") >= 0) {
@@ -969,7 +980,7 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
 
                 if (newOpcode === "set" || newOpcode === "res") {
                     const bit = parts[1].split(",")[0];
-                    const [bitValue, operator, hexBit] = getSetRes(newOpcode, bit);
+                    const [_, operator, hexBit] = getSetRes(newOpcode, bit);
                     addLine(output, "z80.regs." + reg + " = z80.readByte(z80.regs.memptr) " + operator + " " + hexBit + ";");
                     addLine(output, "z80.incTStateCount(1);");
                     addLine(output, "z80.writeByte(z80.regs.memptr, z80.regs." + reg + ");");
@@ -994,9 +1005,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     case "adc":
                     case "sub":
                     case "sbc": {
-                        if (params === undefined) {
-                            throw new Error(mnemonic + " requires params");
-                        }
                         if (params.length !== 2) {
                             throw new Error(mnemonic + " requires two params");
                         }
@@ -1006,9 +1014,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     }
 
                     case "cp": {
-                        if (params === undefined) {
-                            throw new Error("CP requires params");
-                        }
                         if (params.length !== 2) {
                             throw new Error("CP requires two params: " + params);
                         }
@@ -1023,9 +1028,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     }
 
                     case "ex": {
-                        if (params === undefined) {
-                            throw new Error("EX requires params");
-                        }
                         if (params.length !== 2) {
                             throw new Error("EX requires two params");
                         }
@@ -1042,9 +1044,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     }
 
                     case "im": {
-                        if (params === undefined) {
-                            throw new Error(mnemonic + " requires params");
-                        }
                         addLine(output, "z80.regs.im = " + parseInt(params[0], 10) + ";");
                         break;
                     }
@@ -1067,9 +1066,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     case "jr":
                     case "call":
                     case "jp": {
-                        if (params === undefined) {
-                            throw new Error(mnemonic + " requires params");
-                        }
                         let cond: string | undefined;
                         let dest: string;
                         if (params.length == 2) {
@@ -1084,9 +1080,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     }
 
                     case "ld": {
-                        if (params === undefined) {
-                            throw new Error("LD requires params");
-                        }
                         if (params.length !== 2) {
                             throw new Error("LD requires two params");
                         }
@@ -1098,9 +1091,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     case "or":
                     case "and":
                     case "xor": {
-                        if (params === undefined) {
-                            throw new Error(mnemonic + " requires params");
-                        }
                         let operand: string;
                         if (params.length === 2) {
                             if (params[0] === "a") {
@@ -1150,9 +1140,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     }
 
                     case "pop": {
-                        if (params === undefined) {
-                            throw new Error("POP requires params");
-                        }
                         if (params.length !== 1) {
                             throw new Error("POP requires one param");
                         }
@@ -1161,9 +1148,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     }
 
                     case "push": {
-                        if (params === undefined) {
-                            throw new Error("PUSH requires params");
-                        }
                         if (params.length !== 1) {
                             throw new Error("PUSH requires one param");
                         }
@@ -1177,26 +1161,17 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     }
 
                     case "rst": {
-                        if (params === undefined) {
-                            throw new Error("RST requires params");
-                        }
                         handleRst(output, parseInt(params[0], 16));
                         break;
                     }
 
                     case "out": {
-                        if (params === undefined) {
-                            throw new Error(mnemonic + " requires params");
-                        }
                         const [port, src] = params;
                         handleOut(output, port, src);
                         break;
                     }
 
                     case "in": {
-                        if (params === undefined) {
-                            throw new Error(mnemonic + " requires params");
-                        }
                         const [dest, port] = params;
                         handleIn(output, dest, port);
                         break;
@@ -1233,9 +1208,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     case "bit":
                     case "set":
                     case "res": {
-                        if (params === undefined) {
-                            throw new Error(mnemonic + " requires params");
-                        }
                         const [bit, operand] = params;
                         handleSetResBit(output, mnemonic, bit, operand);
                         break;
@@ -1251,9 +1223,6 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
                     case "srl":
                     case "inc":
                     case "dec": {
-                        if (params === undefined) {
-                            throw new Error(mnemonic + " requires params");
-                        }
                         handleRotateShiftIncDec(output, mnemonic, params[0]);
                         break;
                     }
@@ -1322,34 +1291,41 @@ function generateDispatch(opcodeMap: OpcodeMap, dispatchMap: Map<string, string>
 
         exit();
         addLine(output, "});");
-
-        // Generate aliases for this variant.
-        if (!(value instanceof Map)) {
-            for (let i = 0; i < aliasVariants.length; i++) {
-                const {opcode: aliasOpcode, variant: aliasVariant} = aliasVariants[i];
-                if (areAliasVariants(value, aliasVariant)) {
-                    addLine(output, mapName + ".set(0x" + toHexByte(aliasOpcode) + ", " + mapName + ".get(0x" + toHexByte(opcode) + ") as OpcodeFunc);");
-                    aliasVariants.splice(i, 1);
-                    i -= 1;
-                }
-            }
-        }
     }
 
-    if (indent !== "") {
+    if (gIndent !== "") {
         throw new Error("Unbalanced enter/exit");
-    }
-    if (aliasVariants.length > 0) {
-        throw new Error("Some alias variants left over: " + aliasVariants.length);
     }
 
     const code = output.join("\n");
-    dispatchMap.set(prefix === "" ? "base" : prefix, code);
+    dispatchMap.set(prefix, code);
 }
 
-function generateSource(dispatchMap: Map<string, string>): void {
+function generateAliasCode(aliases: ResolvedAlias[], variantMap: Map<OpcodeVariant, string>): string {
+    const lines: string[] = [];
+
+    for (const {setter, canonicalVariant} of aliases) {
+        const getter = variantMap.get(canonicalVariant);
+        if (getter === undefined) {
+            throw new Error("Can't find variant for " + opcodeVariantToString(canonicalVariant) +
+                " (" + opcodeVariantToOpcodeString(canonicalVariant) + ")");
+        }
+        lines.push(setter + getter + ");");
+    }
+
+    return lines.join("\n");
+}
+
+/**
+ * Generate the actual source file from the map.
+ * @param dispatchMap map from prefix (like "base" or "ddcb") to the code that generates a map for it.
+ * @param aliases code that inserts aliases into all the maps.
+ */
+function generateSource(dispatchMap: Map<string, string>,
+                        aliases: string): void {
+
     let template = fs.readFileSync("src/Decode.template.ts", "utf-8");
-    const preamble = "// Do not modify. This file was generated by GenerateOpcodes.ts.\n\n";
+    const preamble = "// This file was generated by GenerateOpcodes.ts. Do not modify.\n\n";
     template = preamble + template;
 
     for (const [prefix, dispatch] of dispatchMap.entries()) {
@@ -1357,15 +1333,24 @@ function generateSource(dispatchMap: Map<string, string>): void {
         template = template.replace(key, dispatch);
     }
 
+    template = template.replace("// ALIASES", aliases);
+
     fs.writeFileSync("src/Decode.ts", template);
 }
 
+/**
+ * Create the "Decode.ts" file from all Z80 instructions.
+ */
 function generateOpcodes(): void {
-    // Map from prefix (like "base" or "ddcb") to the switch statement contents for it.
+    // Map from prefix (like "base" or "ddcb") to the code that generates a map for it.
     const dispatchMap = new Map<string, string>();
+    // Map from variant (by identity) to a bit of code to fetch the function for it.
+    const variantMap = new Map<OpcodeVariant, string>();
+    // List of aliases we need to generate at the very end.
+    const aliases: ResolvedAlias[] = [];
 
-    generateDispatch(opcodeMap, dispatchMap, "base");
-    generateSource(dispatchMap);
+    generateDispatch(opcodeMap, dispatchMap, variantMap, aliases, "base");
+    generateSource(dispatchMap, generateAliasCode(aliases, variantMap));
 }
 
 generateOpcodes();

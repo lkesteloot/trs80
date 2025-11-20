@@ -1,6 +1,7 @@
 import {Z80} from "./Z80.js";
 import {toHex, inc8, inc16, dec8, dec16, add8, add16, sub8, sub16, word, hi, lo, Flag, signedByte} from "z80-base";
 
+// Function executed for an opcode.
 type OpcodeFunc = (z80: Z80) => void;
 
 // Tables for computing flags after an operation.
@@ -30,6 +31,9 @@ const decodeMapFD = new Map<number, OpcodeFunc>();
 const decodeMapFDCB = new Map<number, OpcodeFunc>();
 // DECODE_FDCB
 
+// Insert all aliases, pointing to their canonical implementation.
+// ALIASES
+
 /**
  * Fetch an instruction for decode.
  */
@@ -37,7 +41,7 @@ function fetchInstruction(z80: Z80): number {
     z80.incTStateCount(4);
     const inst = z80.readByteInternal(z80.regs.pc);
     z80.regs.pc = (z80.regs.pc + 1) & 0xFFFF;
-    z80.regs.r = (z80.regs.r + 1) & 0xFF;
+    z80.regs.bumpR();
 
     return inst;
 }
@@ -60,7 +64,8 @@ function decodeCB(z80: Z80): void {
  */
 function decodeDD(z80: Z80): void {
     const inst = fetchInstruction(z80);
-    const func = decodeMapDD.get(inst);
+    // TODO this could cause stack overflow with repeated DD or FD prefixes.
+    const func = decodeMapDD.get(inst) ?? decodeMapBASE.get(inst);
     if (func === undefined) {
         console.log("Unhandled opcode in DD: " + toHex(inst, 2));
     } else {
@@ -107,7 +112,8 @@ function decodeED(z80: Z80): void {
  */
 function decodeFD(z80: Z80): void {
     const inst = fetchInstruction(z80);
-    const func = decodeMapFD.get(inst);
+    // TODO this could cause stack overflow with repeated DD or FD prefixes.
+    const func = decodeMapFD.get(inst) ?? decodeMapBASE.get(inst);
     if (func === undefined) {
         console.log("Unhandled opcode in FD: " + toHex(inst, 2));
     } else {

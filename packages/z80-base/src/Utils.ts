@@ -33,7 +33,7 @@ export function toHexLong(value: number): string {
         value += 0x100000000;
     }
 
-    return value.toString(16).toUpperCase().padStart(8, "0");
+    return toHex(value, 8);
 }
 
 /**

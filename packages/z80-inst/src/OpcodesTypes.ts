@@ -1,4 +1,6 @@
 
+import {toHexByte} from "z80-base";
+
 // Each opcode template can be a literal byte value or a variable like "nn".
 export type OpcodeTemplateOperand = "nn" | "nnnn" | "dd" | "offset";
 export type OpcodeTemplate = number | OpcodeTemplateOperand;
@@ -35,11 +37,11 @@ export interface OpcodeVariant {
     // In the latter case, both variants have the same opcodes but different tokens.
     isPseudo: boolean;
 
-    // Whether this is an alias for another variant (whose "isAlias" field is undefined).
-    // For example the sequence DDCBdd47 is the same instruction as DDCBdd40.
-    // Both variants have the same tokens but different opcodes. The one whose
-    // isAlias is undefined has the shortest number of opcodes, and if there's a tie,
-    // the highest opcodes.
+    // Other variant that we're an alias of, or undefined if we're the preferred
+    // (or only) variant. For example, DD40 is an undocumented variant of 40,
+    // and DDCBdd47 is an undocumented variant of DDCBdd46. We prefer variants
+    // that are documented, have fewer opcodes, or have the numerically lowest
+    // opcodes (in that order).
     aliasOf?: OpcodeVariant;
 
     // Clr information.
@@ -90,4 +92,18 @@ export function opcodeVariantToString(variant: OpcodeVariant): string {
     }
 
     return parts.join("");
+}
+
+/**
+ * Given an opcode template, returns its hex or its string value.
+ */
+function opcodeTemplateToString(opcodeTemplate: OpcodeTemplate): string {
+    return typeof opcodeTemplate === "number" ? toHexByte(opcodeTemplate) : opcodeTemplate;
+}
+
+/**
+ * Generates a string for the opcode templates, suitable for debugging.
+ */
+export function opcodeVariantToOpcodeString(variant: OpcodeVariant): string {
+    return variant.opcodes.map(opcodeTemplateToString).join(" ");
 }

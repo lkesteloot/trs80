@@ -180,12 +180,12 @@ export class Z80 {
     private interrupt(maskable: boolean): void {
         if (this.regs.halted) {
             // Skip past HALT instruction.
-            this.regs.pc++;
+            this.regs.pc = (this.regs.pc + 1) & 0xFFFF;
             this.regs.halted = 0;
         }
 
         this.incTStateCount(7);
-        this.regs.r += 1;
+        this.regs.bumpR();
         this.regs.iff1 = 0;
         if (maskable) {
             // Officially an NMI will copy iff1 to iff2, but "Undocumented Z80 Documented" says

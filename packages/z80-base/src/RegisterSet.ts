@@ -22,8 +22,7 @@ export class RegisterSet {
     // Internal state:
     public memptr: number = 0;
     public i: number = 0;
-    public r: number = 0;  // Low 7 bits of R.
-    public r7: number = 0; // Bit 7 of R.
+    public r: number = 0;
     public iff1: number = 0;
     public iff2: number = 0;
     public im: number = 0;
@@ -126,10 +125,10 @@ export class RegisterSet {
     }
 
     /**
-     * Combine the two R parts together.
+     * Increment the lower 7 bits of the R register. Bit 7 is untouched.
      */
-    get rCombined(): number {
-        return (this.r7 & 0x80) | (this.r & 0xF7);
+    public bumpR(): void {
+        this.r = (this.r & 0x80) + (((this.r & 0x7F) + 1) & 0x7F);
     }
 
     /**
@@ -161,7 +160,6 @@ export class RegisterSet {
         regs.memptr = this.memptr;
         regs.i = this.i;
         regs.r = this.r;
-        regs.r7 = this.r7;
         regs.iff1 = this.iff1;
         regs.iff2 = this.iff2;
         regs.im = this.im;

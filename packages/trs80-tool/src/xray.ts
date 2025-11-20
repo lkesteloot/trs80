@@ -105,7 +105,7 @@ export function connectXray(trs80: Trs80, keyboard: Keyboard, config: Config): v
                 iy: regs.iy,
                 i: regs.i,
                 r_1: regs.r,
-                r_2: regs.r7 & 0x7F,
+                r_2: regs.r, // TODO?
                 z80_t_state_counter: trs80.tStateCount,
                 z80_clockspeed: trs80.clockHz,
                 z80_iff1: regs.iff1,
