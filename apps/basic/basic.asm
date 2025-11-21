@@ -34,11 +34,8 @@ CURSOR_DISABLED equ 0xFF
 
 	; Non-maskable interrupt routine.
 	.org 0x0038
-	push af
-	call blink_cursor
-	; Reset timer latch.
-	in (0xec)
-	pop af
+	call handle_maskable_interrupt
+	; ei must be here, not in routine.
 	ei
 	reti
 
@@ -55,6 +52,14 @@ soft_boot:
 	; Initialize other variables.
 	ld a,0
 	ld (write_char_buffer+1),a
+	ld ix,keyboard_buffer
+	ld (ix+0),a
+	ld (ix+1),a
+	ld (ix+2),a
+	ld (ix+3),a
+	ld (ix+4),a
+	ld (ix+5),a
+	ld (ix+6),a
 
 	; Configure and enable interrupts.
 	im 1 ; rst 38 on maskable interrupt
@@ -178,7 +183,7 @@ read_text:
 	ld c,0
 
 loop:
-	call read_key
+	call poll_keyboard
 	or a
 	jp z,loop
 
@@ -225,74 +230,81 @@ done:
 	ret
 #endlocal
 
-; Read a key from the keyboard and put its
-; ASCII value in A.
-read_key:
+; Returns in A the ASCII value of the key currently
+; being pressed, or 0 if no key is pressed.
+; Shift is not included. If multiple keys are
+; being pressed, the one most recently pressed
+; is returned.
+poll_keyboard:
 #local
+	; TODO remove these?
 	push hl
 	push bc
 	push de
 
 	; Pointer to the keyboard matrix.
-	ld hl,KEYBOARD_BEGIN+1
-	; Pointer into the letter array.
-	ld de,0
+	ld bc,KEYBOARD_BEGIN+0x01
+	; Pointer into the keyboard buffer.
+	ld hl,keyboard_buffer
+	; The row we're on.
+	ld d,0
 byte_loop:
 	; Load byte from keyboard matrix.
-	ld a,(hl)
-	; Number of bits to check.
-	ld b,8
-bit_loop:
-	; Check lowest bit.
-	bit 0,a
-	; Its key is pressed.
-	jp nz,found
-
-	; Shift to the next key.
-	srl a
-	; Next byte in letter array.
-	inc de
-	; Loop through all bits.
-	djnz bit_loop
-
-	; Shift low byte of HL to get next byte address.
-	ld a,l
-	sla a
-	ld l,a
-	cp 0x80
-	jp nz,byte_loop
-
-	; No key is down.
-	xor a
+	ld a,(bc)
+	; Save it.
+	ld e,a
+	; See what's changed since last time.
+	xor a,(hl)
+	; Save new value.
+	ld (hl),e
+	; See what's pressed since last time.
+	and a,e
+	; If anything has been pressed, handle it.
+	jr nz,found_key
+	; Next row.
+	inc d
+	inc hl
+	rlc c
+	; If bit 8 isn't set, then there's more to do.
+	jp p,byte_loop
+	; Done checking all rows.
+	xor a,a
 	jp done
 
-found:
+found_key:
+	; Here we might want a debounce check.
+	; Skipping that now since we're in the
+	; emulator.
 
-	; Wait until key is released.
-	; TODO handle key repeat here by timing out.
-	; Actually no remove this altogether and check
-	; the next time we come in!
-release_loop:
-	ld a,(hl)
-	or a
-	jp nz,release_loop
+	; We now need to find the character index.
+	; Multiply d by 8 (8 bits per byte).
+	sla d
+	sla d
+	sla d
+	; And right-shift the bit until it falls off.
+bit_loop:
+	rra
+	jr c,end_bit_loop
+	inc d
+	jr bit_loop
 
+end_bit_loop:
 	; See if shift key is pressed.
-	ld hl,keyboard_matrix_shifted
-	ld a,(KEYBOARD_BEGIN+128)
-	or a
-	jp nz,shift_pressed
 	ld hl,keyboard_matrix_unshifted
-
-shift_pressed:
-	; Look up key in HL array by DE index.
-	ld a,e
-	add a,l
-	ld e,a
+	ld a,(KEYBOARD_BEGIN+0x80)
+	or a,a
 	ld a,d
-	adc a,h
-	ld d,a
-	ld a,(de)
+	jp z,shift_not_pressed
+	add a,56
+	
+shift_not_pressed:
+	; Look up key in HL array by A index.
+	add a,l         ; a = a+l
+	ld l,a          ; l = a+l
+	adc a,h         ; a = a+l+h+carry
+	sub l           ; a = h+carry
+	ld h,a          ; h = h+carry
+	ld a,(hl)
 
 done:
 	pop de
@@ -380,6 +392,15 @@ done:
 	pop hl
 	ret	
 #endlocal
+
+handle_maskable_interrupt:
+#local
+	push af
+	call blink_cursor
+	in (0xec) ; Reset timer latch.
+	pop af
+	ret
+#endlocal
 	
 boot_message:
 	db "BASIC Compiler", 10, 0
@@ -408,6 +429,10 @@ input_buffer:
 ; Short buffer for write_char.
 write_char_buffer:
 	ds 2
+
+; Keyboard buffer to remember what's pressed.
+keyboard_buffer:
+	ds 7
 
 	end 0x0000
 	
