@@ -637,3 +637,48 @@ body[data-screen-size=medium] .z80-inspector {
     width: 100%;
     filter: opacity(0.8);
 }
+
+/* ------------------------------------------------------------------------- */
+
+.about-dialog {
+    padding: 2em 5em;
+    background: var(--background);
+    color: var(--foreground);
+    border: 3px solid var(--foreground-secondary);
+    border-radius: 16px;
+    text-align: center;
+
+    &::backdrop {
+        background: rgb(0 0 0 / 70%);
+    }
+}
+
+.about-dialog-title {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+.about-dialog-byline {
+    font-size: 18px;
+    font-style: italic;
+    margin-bottom: 25px;
+}
+.about-dialog-version {
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+.about-dialog-date {
+    font-size: 14px;
+    margin-bottom: 30px;
+}
+.about-dialog-close-button {
+    background: var(--background-highlights);
+    color: var(--foreground-emphasized);
+    font-size: 16px;
+    padding: 7px 15px;
+    outline: 0;
+    border: 1px solid var(--foreground-secondary);
+    border-radius: 5px;
+    user-select: none;
+    cursor: pointer;
+}

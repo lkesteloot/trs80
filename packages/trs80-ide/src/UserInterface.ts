@@ -1,12 +1,13 @@
 import {breakdwn} from "./breakdwn";
 import {scarfman} from "./scarfman";
 import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, MenuCommand} from "./Menubar";
-import {Emulator, SCREEN_SIZES, ScreenSize} from "./Emulator";
+import {Emulator, SCREEN_SIZES} from "./Emulator";
 import {Editor} from "./Editor";
 import {wolf} from "./wolf";
 import {fileOpen, fileSave} from "browser-fs-access"
 import {binaryAsCasFile, casAsAudio, DEFAULT_SAMPLE_RATE, writeWavFile} from "trs80-cassette";
 import {decodeTrs80File, isFloppy} from "trs80-base";
+import {BUILD_DATE, BUILD_GIT_HASH} from "./build";
 
 // ID so that the user agent can have a different default or current directory for each.
 const ASSEMBLY_LANGUAGE_FILES_DIR_ID = "asm_files";
@@ -162,6 +163,40 @@ function stripExtension(name: string): string {
     }
 
     return name;
+}
+
+// Show the About dialog box.
+function showAboutDialogBox() {
+    const dialog = document.createElement("dialog");
+    document.body.append(dialog);
+    dialog.classList.add("about-dialog");
+
+    const title = document.createElement("div");
+    title.textContent = "TRS-80 IDE";
+    title.classList.add("about-dialog-title");
+
+    const byline = document.createElement("div");
+    byline.textContent = "Lawrence Kesteloot";
+    byline.classList.add("about-dialog-byline");
+
+    const version = document.createElement("div");
+    version.textContent = "Version " + BUILD_GIT_HASH.substring(0, 7);
+    version.classList.add("about-dialog-version");
+
+    const date = document.createElement("div");
+    const buildDate = new Date(BUILD_DATE*1000);
+    date.textContent = buildDate.toLocaleDateString("en-US",
+        {year: "numeric", month: "long", day: "numeric"});
+    date.classList.add("about-dialog-date");
+
+    const closeButton = document.createElement("button");
+    closeButton.textContent = "OK";
+    closeButton.classList.add("about-dialog-close-button");
+    closeButton.addEventListener("click", () => dialog.close());
+
+    dialog.append(title, byline, version, date, closeButton);
+    dialog.addEventListener("close", () => dialog.remove());
+    dialog.showModal();
 }
 
 // Everything related to the menus and the top-level UI.
@@ -577,6 +612,15 @@ export class UserInterface {
             {
                 text: "Help",
                 menu: [
+                    {
+                        text: "About TRS-80 IDE",
+                        action: () => {
+                            showAboutDialogBox();
+                        },
+                    },
+                    {
+                        separator: true,
+                    },
                     {
                         text: "IDE Documentation",
                         action: makeLink("https://lkesteloot.github.io/trs80/ide/"),
