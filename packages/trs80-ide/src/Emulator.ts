@@ -19,6 +19,22 @@ import { Flag, hi, inc16, lo, RegisterSet, toHexByte } from 'z80-base';
 import { disasmForTrs80, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END } from 'trs80-base';
 
 const LOCAL_STORAGE_CONFIG_KEY = "trs80-ide-config";
+const LOCAL_STORAGE_SCREEN_SIZE_KEY = "trs80-ide-screen-size";
+
+// Various sizes that the screen can be.
+export class ScreenSize {
+    public constructor(
+        public readonly text: string,
+        public readonly scale: number,
+        public readonly label: string) {}
+}
+export const SCREEN_SIZES: ScreenSize[] = [
+    new ScreenSize("Small", 1.0, "small"),
+    new ScreenSize("Medium", 1.25, "medium"),
+    new ScreenSize("Large", 1.5, "large"),
+];
+const DEFAULT_SCREEN_SIZE = SCREEN_SIZES[SCREEN_SIZES.length - 1];
+const SCREEN_SIZES_MAP = new Map(SCREEN_SIZES.map(screenSize => [screenSize.label, screenSize]));
 
 // Given two instruction bytes, whether we want to continue until the next
 // instruction, and if so how long the current instruction is.
@@ -55,7 +71,10 @@ export class Emulator {
 
     public constructor() {
         const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY);
-        this.screen = new CanvasScreen(1.5);
+        const screenSizeLabel = window.localStorage.getItem(LOCAL_STORAGE_SCREEN_SIZE_KEY) ?? DEFAULT_SCREEN_SIZE.label;
+        const screenSize = SCREEN_SIZES_MAP.get(screenSizeLabel) ?? DEFAULT_SCREEN_SIZE;
+        this.screen = new CanvasScreen(screenSize.scale);
+        document.body.dataset.screenSize = screenSize.label;
         const keyboard = new WebKeyboard();
         const cassettePlayer = new CassettePlayer();
         const soundPlayer = new WebSoundPlayer();
@@ -125,6 +144,15 @@ export class Emulator {
             this.screenEditor.cancel();
             // Set to undefined in the close callback.
         }
+    }
+
+    /**
+     * Update the scale of the emulator display.
+     */
+    public setScreenSize(size: ScreenSize): void {
+        this.screen.setScale(size.scale);
+        document.body.dataset.screenSize = size.label;
+        window.localStorage.setItem(LOCAL_STORAGE_SCREEN_SIZE_KEY, size.label);
     }
 
     /**

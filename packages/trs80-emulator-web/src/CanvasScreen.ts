@@ -1476,7 +1476,7 @@ const DEFAULT_CANVAS_SCREEN_OPTIONS = {
  * TRS-80 screen based on an HTML canvas element.
  */
 export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, ScreenSizeProvider {
-    public readonly scale: number;
+    public scale: number;
     private readonly devicePixelRatio: number;
     private readonly node: HTMLElement;
     private configuredCanvas: ConfiguredCanvas;
@@ -1554,6 +1554,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 this.setConfig(this.config.edit().withDisplayType(newDisplayType).build());
             }, 5000);
         }
+    }
+
+    /**
+     * Update the scale of the display. See the parameter to the constructor.
+     */
+    public setScale(scale: number): void {
+        this.scale = scale;
+        this.updateFromConfig(true);
     }
 
     didAttachToFlipCard(flipCard: FlipCard): void {
@@ -1747,7 +1755,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
 
         // I don't know how to invert this math, so build an inverse map. Make it on demand.
         if (this.straightPosToCurvedPosMap.length === 0 || this.straightPosToCurvedPosMapCurvature !== curvature) {
-            this.straightPosToCurvedPosMap.splice(0, this.straightPosToCurvedPosMap.length);
+            this.invalidateStraightPosToCurvedPosMap();
             this.straightPosToCurvedPosMapCurvature = curvature;
             let prevStraightR = 0;
             let i = 0;
@@ -1789,6 +1797,13 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         x = x*r/rectR + width/2 + cssPixelsPadding;
         y = y*r/rectR + height/2 + cssPixelsPadding;
         return {x, y};
+    }
+
+    /**
+     * Invalidate the cache of straight-to-curved positions.
+     */
+    private invalidateStraightPosToCurvedPosMap() {
+        this.straightPosToCurvedPosMap.splice(0, this.straightPosToCurvedPosMap.length);
     }
 
     /**
@@ -1961,13 +1976,13 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     /**
      * Update the screen from the config and other state.
      */
-    private updateFromConfig(): void {
+    private updateFromConfig(force?: boolean): void {
         // Remember old values.
         const oldCanvas = this.configuredCanvas.canvas;
         const oldScreenSize = this.getScreenSize();
         const oldScreenColor = this.getScreenColor();
 
-        if (!this.configuredCanvas.config.equals(this.config)) {
+        if (!this.configuredCanvas.config.equals(this.config) || force) {
             // Make a new configured canvas.
             this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.devicePixelRatio,
                 this.memory, this.isExpandedCharacters(), this.isAlternateCharacters());
@@ -1983,6 +1998,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         // Call listeners.
         const newScreenSize = this.getScreenSize();
         if (!oldScreenSize.equals(newScreenSize)) {
+            this.invalidateStraightPosToCurvedPosMap();
             this.onScreenSize.dispatch(newScreenSize);
         }
         const newScreenColor = this.getScreenColor();

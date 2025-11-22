@@ -1,12 +1,12 @@
 import {breakdwn} from "./breakdwn";
 import {scarfman} from "./scarfman";
 import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, MenuCommand} from "./Menubar";
-import {Emulator} from "./Emulator";
+import {Emulator, SCREEN_SIZES, ScreenSize} from "./Emulator";
 import {Editor} from "./Editor";
 import {wolf} from "./wolf";
-import { fileOpen, fileSave } from "browser-fs-access"
-import { binaryAsCasFile, casAsAudio, DEFAULT_SAMPLE_RATE, writeWavFile } from "trs80-cassette";
-import { decodeTrs80File, isFloppy } from "trs80-base";
+import {fileOpen, fileSave} from "browser-fs-access"
+import {binaryAsCasFile, casAsAudio, DEFAULT_SAMPLE_RATE, writeWavFile} from "trs80-cassette";
+import {decodeTrs80File, isFloppy} from "trs80-base";
 
 // ID so that the user agent can have a different default or current directory for each.
 const ASSEMBLY_LANGUAGE_FILES_DIR_ID = "asm_files";
@@ -428,6 +428,14 @@ export class UserInterface {
                             menuCommand.setChecked?.(show);
                         },
                     },
+                    {
+                        separator: true,
+                    },
+                    {
+                        id: "screen-size",
+                        text: "Screen Size",
+                        menu: [],
+                    },
                 ],
             },
             {
@@ -634,14 +642,14 @@ export class UserInterface {
             const menu = cpuSpeedMenu.menu;
             const SPEEDS = [1, 10, 100, 1000];
             let currentSpeed = 100;
-            function updateChecked() {
+            const updateChecked = () => {
                 for (let i = 0; i < menu.length; i++) {
                     const menuEntry = menu[i];
                     if (isMenuCommand(menuEntry)) {
                         menuEntry.setChecked?.(SPEEDS[i] === currentSpeed);
                     }
                 }
-            }
+            };
             for (const speed of SPEEDS) {
                 menu.push({
                     text: speed + "%",
@@ -653,7 +661,30 @@ export class UserInterface {
                     checked: speed === currentSpeed,
                 });
             }
-
+        }
+        const screenSizeMenu = getMenuEntryById(menu, "screen-size");
+        if (isMenuParent(screenSizeMenu)) {
+            const menu = screenSizeMenu.menu;
+            let currentLabel = "large";
+            const updateChecked = () => {
+                for (let i = 0; i < menu.length; i++) {
+                    const menuEntry = menu[i];
+                    if (isMenuCommand(menuEntry)) {
+                        menuEntry.setChecked?.(SCREEN_SIZES[i].label === currentLabel);
+                    }
+                }
+            };
+            for (const size of SCREEN_SIZES) {
+                menu.push({
+                    text: size.text,
+                    action: () => {
+                        currentLabel = size.label;
+                        emulator.setScreenSize(size);
+                        updateChecked();
+                    },
+                    checked: size.label === currentLabel,
+                });
+            }
         }
         const menubar = createMenubar(menu);
         const toolbar = document.createElement("div");

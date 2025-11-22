@@ -135,6 +135,14 @@ body.presentation-mode {
     gap: 10px;
 }
 
+body[data-screen-size=small] .z80-inspector {
+    font-size: 80%;
+}
+
+body[data-screen-size=medium] .z80-inspector {
+    font-size: 90%;
+}
+
 .z80-inspector:not(.z80-inspector-visible) {
     display: none;
 }
