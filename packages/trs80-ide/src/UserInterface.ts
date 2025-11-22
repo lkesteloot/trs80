@@ -709,12 +709,12 @@ export class UserInterface {
         const screenSizeMenu = getMenuEntryById(menu, "screen-size");
         if (isMenuParent(screenSizeMenu)) {
             const menu = screenSizeMenu.menu;
-            let currentLabel = "large";
+            let currentSize = emulator.getScreenSize();
             const updateChecked = () => {
                 for (let i = 0; i < menu.length; i++) {
                     const menuEntry = menu[i];
                     if (isMenuCommand(menuEntry)) {
-                        menuEntry.setChecked?.(SCREEN_SIZES[i].label === currentLabel);
+                        menuEntry.setChecked?.(SCREEN_SIZES[i] === currentSize);
                     }
                 }
             };
@@ -722,11 +722,11 @@ export class UserInterface {
                 menu.push({
                     text: size.text,
                     action: () => {
-                        currentLabel = size.label;
+                        currentSize = size;
                         emulator.setScreenSize(size);
                         updateChecked();
                     },
-                    checked: size.label === currentLabel,
+                    checked: size === currentSize,
                 });
             }
         }

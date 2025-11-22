@@ -68,13 +68,14 @@ export class Emulator {
     private screenEditor: ScreenEditor | undefined = undefined;
     public trs80State: Trs80State | undefined = undefined;
     public readonly debugPc = new SimpleEventDispatcher<number | undefined>();
+    private screenSize: ScreenSize;
 
     public constructor() {
         const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY);
         const screenSizeLabel = window.localStorage.getItem(LOCAL_STORAGE_SCREEN_SIZE_KEY) ?? DEFAULT_SCREEN_SIZE.label;
-        const screenSize = SCREEN_SIZES_MAP.get(screenSizeLabel) ?? DEFAULT_SCREEN_SIZE;
-        this.screen = new CanvasScreen(screenSize.scale);
-        document.body.dataset.screenSize = screenSize.label;
+        this.screenSize = SCREEN_SIZES_MAP.get(screenSizeLabel) ?? DEFAULT_SCREEN_SIZE;
+        this.screen = new CanvasScreen(this.screenSize.scale);
+        document.body.dataset.screenSize = this.screenSize.label;
         const keyboard = new WebKeyboard();
         const cassettePlayer = new CassettePlayer();
         const soundPlayer = new WebSoundPlayer();
@@ -153,6 +154,13 @@ export class Emulator {
         this.screen.setScale(size.scale);
         document.body.dataset.screenSize = size.label;
         window.localStorage.setItem(LOCAL_STORAGE_SCREEN_SIZE_KEY, size.label);
+    }
+
+    /**
+     * Get the current screen size.
+     */
+    public getScreenSize(): ScreenSize {
+        return this.screenSize;
     }
 
     /**
