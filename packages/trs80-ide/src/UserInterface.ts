@@ -557,18 +557,21 @@ export class UserInterface {
                         action: () => emulator.breakProgram(),
                     },
                     {
-                        text: "Step",
-                        hotkey: "Meta-Shift-S",
+                        text: "Step Into",
+                        hotkey: "F11",
+                        macHotkey: "Cmd-Shift-S",
                         action: () => emulator.step(),
                     },
                     {
                         text: "Step Over",
-                        hotkey: "Meta-Shift-O",
+                        hotkey: "F10",
+                        macHotkey: "Cmd-Shift-O",
                         action: () => emulator.stepOver(),
                     },
                     {
                         text: "Continue",
-                        hotkey: "Meta-Shift-C",
+                        hotkey: "F5",
+                        macHotkey: "Cmd-Shift-C",
                         action: () => emulator.continue(),
                     },
                     {
