@@ -5,8 +5,7 @@ To add a dependency:
 
     npm -w packages/OUR_PACKAGE_NAME install --save THEIR_PACKAGE_NAME
 
-No need to add dependencies between our own modules, they're all available
-to each other.
+This includes our own cross-dependencies.
 
 ---
 

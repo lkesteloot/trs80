@@ -428,7 +428,6 @@ export class RetroStoreTab extends PageTab {
             // TODO not in RetroStore state.
             trs80.z80.regs.memptr = 0;
             trs80.z80.regs.r = 0;  // Low 7 bits of R.
-            trs80.z80.regs.r7 = 0; // Bit 7 of R.
             trs80.z80.regs.iff1 = 0;
             trs80.z80.regs.iff2 = 0;
             trs80.z80.regs.im = 0;

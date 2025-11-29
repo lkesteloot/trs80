@@ -21,5 +21,8 @@
   "devDependencies": {
     "@types/node": "^22.13.0",
     "typedoc": "^0.27.6"
+  },
+  "dependencies": {
+    "z80-base": "^2.0.1"
   }
 }
