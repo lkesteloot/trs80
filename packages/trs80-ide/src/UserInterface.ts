@@ -1,13 +1,15 @@
 import {breakdwn} from "./breakdwn";
 import {scarfman} from "./scarfman";
 import {createMenubar, getMenuEntryById, isMenuCommand, isMenuParent, Menu, MenuCommand} from "./Menubar";
-import {Emulator, SCREEN_SIZES} from "./Emulator";
+import {Emulator} from "./Emulator";
 import {Editor} from "./Editor";
 import {wolf} from "./wolf";
 import {fileOpen, fileSave} from "browser-fs-access"
 import {binaryAsCasFile, casAsAudio, DEFAULT_SAMPLE_RATE, writeWavFile} from "trs80-cassette";
 import {decodeTrs80File, isFloppy} from "trs80-base";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build";
+import {Settings} from "./Settings";
+import {SCREEN_SIZES} from "./ScreenSize";
 
 // ID so that the user agent can have a different default or current directory for each.
 const ASSEMBLY_LANGUAGE_FILES_DIR_ID = "asm_files";
@@ -201,7 +203,7 @@ function showAboutDialogBox() {
 
 // Everything related to the menus and the top-level UI.
 export class UserInterface {
-    public constructor(emulator: Emulator, editor: Editor) {
+    public constructor(settings: Settings, emulator: Emulator, editor: Editor) {
         // Pull-down menu.
         const menu: Menu = [
             {
@@ -394,6 +396,18 @@ export class UserInterface {
                         hotkey: "Alt-ArrowDown",
                         action: () => editor.moveLineDown(),
                     },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Auto-complete on Tab",
+                        checked: settings.autocompleteOnTab,
+                        action: (menuCommand: MenuCommand) => {
+                            const enabled = !(menuCommand.checked ?? false);
+                            editor.setAutocompleteOnTab(enabled);
+                            menuCommand.setChecked?.(enabled);
+                        },
+                    },
                 ],
             },
             {
@@ -417,7 +431,7 @@ export class UserInterface {
                     },*/
                     {
                         text: "Show Line Numbers",
-                        checked: true,
+                        checked: settings.showLineNumbers,
                         action: (menuCommand: MenuCommand) => {
                             const show = !(menuCommand.checked ?? false);
                             editor.setShowLineNumbers(show);
@@ -426,7 +440,7 @@ export class UserInterface {
                     },
                     {
                         text: "Show Addresses",
-                        checked: true,
+                        checked: settings.showAddresses,
                         action: (menuCommand: MenuCommand) => {
                             const show = !(menuCommand.checked ?? false);
                             editor.setShowAddresses(show);
@@ -435,7 +449,7 @@ export class UserInterface {
                     },
                     {
                         text: "Show Bytecode",
-                        checked: true,
+                        checked: settings.showBytecode,
                         action: (menuCommand: MenuCommand) => {
                             const show = !(menuCommand.checked ?? false);
                             editor.setShowBytecode(show);
@@ -444,7 +458,7 @@ export class UserInterface {
                     },
                     {
                         text: "Show Timing",
-                        checked: false,
+                        checked: settings.showTiming,
                         action: (menuCommand: MenuCommand) => {
                             const show = !(menuCommand.checked ?? false);
                             editor.setShowTiming(show);
@@ -456,10 +470,10 @@ export class UserInterface {
                     },
                     {
                         text: "Show Statistics",
-                        checked: false,
+                        checked: settings.showStatistics,
                         action: (menuCommand: MenuCommand) => {
                             const show = !(menuCommand.checked ?? false);
-                            editor.setShowStats(show);
+                            editor.setShowStatistics(show);
                             menuCommand.setChecked?.(show);
                         },
                     },
@@ -712,12 +726,12 @@ export class UserInterface {
         const screenSizeMenu = getMenuEntryById(menu, "screen-size");
         if (isMenuParent(screenSizeMenu)) {
             const menu = screenSizeMenu.menu;
-            let currentSize = emulator.getScreenSize();
+            let currentSize = settings.screenSize;
             const updateChecked = () => {
                 for (let i = 0; i < menu.length; i++) {
                     const menuEntry = menu[i];
                     if (isMenuCommand(menuEntry)) {
-                        menuEntry.setChecked?.(SCREEN_SIZES[i] === currentSize);
+                        menuEntry.setChecked?.(SCREEN_SIZES[i].label === currentSize);
                     }
                 }
             };
@@ -725,11 +739,11 @@ export class UserInterface {
                 menu.push({
                     text: size.text,
                     action: () => {
-                        currentSize = size;
+                        currentSize = size.label;
                         emulator.setScreenSize(size);
                         updateChecked();
                     },
-                    checked: size === currentSize,
+                    checked: size.label === currentSize,
                 });
             }
         }

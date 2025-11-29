@@ -73,17 +73,24 @@ import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
 import {solarizedDark} from 'cm6-theme-solarized-dark'
 import {asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary} from "trs80-asm"
 import {variablePillPlugin} from "./VariablePillPlugin";
+import {loadSettings, saveSettings, Settings} from "./Settings";
 
 // Keys for local storage.
-const CODE_KEY = "trs80-ide-code";
-const ORIG_CODE_KEY = "trs80-ide-orig-code";
-const NAME_KEY = "trs80-ide-name";
+const LOCAL_STORAGE_CODE_KEY = "trs80-ide-code";
+const LOCAL_STORAGE_ORIG_CODE_KEY = "trs80-ide-orig-code";
+const LOCAL_STORAGE_NAME_KEY = "trs80-ide-name";
 
 // Default name for file.
 const DEFAULT_FILE_NAME = "untitled";
 
 // Milliseconds after boot to wait before we take a snapshot.
 const POST_BOOT_DELAY = 500;
+
+// Keymaps for auto-complete:
+const AUTOCOMPLETE_KEY_WITHOUT_TAB = keymap.of(completionKeymap
+    .filter(m => m.key !== "Enter"));
+const AUTOCOMPLETE_KEY_WITH_TAB = keymap.of(completionKeymap
+    .map(m => ({ ...m, key: m.key === "Enter" ? "Tab" : m.key })));
 
 /**
  * Gutter to show info about the line (address, bytecode, etc.).
@@ -216,11 +223,13 @@ function pickOutScreenshotSections(sourceFile: SourceFile): ScreenshotSection[] 
 class OptionalExtension {
     private enabled: boolean;
     private readonly extension: Extension;
+    private readonly offExtension: Extension;
     private readonly compartment = new Compartment();
 
-    public constructor(enabled: boolean, extension: Extension) {
+    public constructor(enabled: boolean, extension: Extension, offExtension: Extension = []) {
         this.enabled = enabled;
         this.extension = extension;
+        this.offExtension = offExtension;
     }
 
     // The initial extension to put into the editor's config.
@@ -238,7 +247,7 @@ class OptionalExtension {
 
     // Get the extension, if enabled.
     private getExtension(): Extension {
-        return this.enabled ? this.extension : [];
+        return this.enabled ? this.extension : this.offExtension;
     }
 }
 
@@ -308,6 +317,7 @@ const fancyTab: KeyBinding = {
 
 // Encapsulates the editor and methods for it.
 export class Editor {
+    private readonly settings: Settings;
     private readonly emulator: Emulator;
     private readonly assemblyResultsStateEffect: StateEffectType<AssemblyResults>;
     private readonly assemblyResultsStateField: StateField<AssemblyResults>;
@@ -325,18 +335,20 @@ export class Editor {
     private readonly pillNotices = new Map<PillNoticeId,PillNotice>();
     private readonly backJumpStack: number[] = [];
     private readonly forwardJumpStack: number[] = [];
-    private lineNumbersGutter: OptionalExtension;
-    private addressesGutter: OptionalExtension;
-    private bytecodeGutter: OptionalExtension;
-    private timingGutter: OptionalExtension;
-    private statsPanel: OptionalExtension;
+    private readonly lineNumbersGutter: OptionalExtension;
+    private readonly addressesGutter: OptionalExtension;
+    private readonly bytecodeGutter: OptionalExtension;
+    private readonly timingGutter: OptionalExtension;
+    private readonly statisticsPanel: OptionalExtension;
+    private readonly autocompleteOnTab: OptionalExtension;
     public autoRun = true;
     private currentLineNumber = 0; // 1-based.
     private currentLineHasError = false;
     private origCode = "";
     private currentPillNotice: PillNotice | undefined = undefined;
 
-    public constructor(emulator: Emulator) {
+    public constructor(settings: Settings, emulator: Emulator) {
+        this.settings = settings;
         this.emulator = emulator;
         this.emulator.debugPc.subscribe(this.onDebugPc.bind(this));
         this.emulator.trs80.onConfig.subscribe(configChange => {
@@ -412,18 +424,20 @@ export class Editor {
         // Update the PC while single-stepping.
         this.currentPcEffect = StateEffect.define<number | undefined>({});
 
-        this.lineNumbersGutter = new OptionalExtension(true, lineNumbers());
-        this.addressesGutter = new OptionalExtension(true, this.makeAddressesGutter());
-        this.bytecodeGutter = new OptionalExtension(true, this.makeBytecodeGutter());
-        this.timingGutter = new OptionalExtension(false, this.makeTimingGutter());
-        this.statsPanel = new OptionalExtension(false, this.makeStatsPanel());
+        this.lineNumbersGutter = new OptionalExtension(this.settings.showLineNumbers, lineNumbers());
+        this.addressesGutter = new OptionalExtension(this.settings.showAddresses, this.makeAddressesGutter());
+        this.bytecodeGutter = new OptionalExtension(this.settings.showBytecode, this.makeBytecodeGutter());
+        this.timingGutter = new OptionalExtension(this.settings.showTiming, this.makeTimingGutter());
+        this.statisticsPanel = new OptionalExtension(this.settings.showStatistics, this.makeStatsPanel());
+        this.autocompleteOnTab = new OptionalExtension(this.settings.autocompleteOnTab,
+            AUTOCOMPLETE_KEY_WITH_TAB, AUTOCOMPLETE_KEY_WITHOUT_TAB);
 
         const extensions: Extension = [
             this.lineNumbersGutter.getInitialExtension(),
             this.addressesGutter.getInitialExtension(),
             this.bytecodeGutter.getInitialExtension(),
             this.timingGutter.getInitialExtension(),
-            this.statsPanel.getInitialExtension(),
+            this.statisticsPanel.getInitialExtension(),
             highlightActiveLineGutter(),
             highlightSpecialChars(),
             history(),
@@ -443,9 +457,7 @@ export class Editor {
                 ],
                 defaultKeymap: false,
             }),
-            // Use the default autocomplete keymap, but replace Enter with Tab.
-            Prec.highest(keymap.of(completionKeymap
-                .map(m => ({ ...m, key: m.key === "Enter" ? "Tab" : m.key })))),
+            Prec.highest(this.autocompleteOnTab.getInitialExtension()),
             rectangularSelection(),
             keymap.of([
                 ...closeBracketsKeymap,
@@ -470,7 +482,7 @@ export class Editor {
             // Auto-save after doc changes.
             EditorView.updateListener.of(update => {
                 if (update.docChanged) {
-                    window.localStorage.setItem(CODE_KEY, JSON.stringify(update.state.doc.toJSON()));
+                    window.localStorage.setItem(LOCAL_STORAGE_CODE_KEY, JSON.stringify(update.state.doc.toJSON()));
                 }
                 if (update.docChanged || update.selectionSet) {
                     // Hide "1 of 3 references" when user moves around.
@@ -563,7 +575,7 @@ export class Editor {
 
         // Load saved doc.
         let defaultDoc: string | Text | undefined;
-        const saveDoc = window.localStorage.getItem(CODE_KEY);
+        const saveDoc = window.localStorage.getItem(LOCAL_STORAGE_CODE_KEY);
         if (saveDoc !== null) {
             const lines = JSON.parse(saveDoc);
             defaultDoc = Text.of(lines);
@@ -608,11 +620,11 @@ export class Editor {
         this.pillNotice.append(this.pillNoticePrevious, this.pillNoticeText, this.pillNoticeNext);
 
         // Set the orig code from storage or current editor.
-        const origCode = window.localStorage.getItem(ORIG_CODE_KEY);
+        const origCode = window.localStorage.getItem(LOCAL_STORAGE_ORIG_CODE_KEY);
         this.setOrigCode(origCode ?? this.getCode());
 
         // Set the name of the file.
-        this.setName(window.localStorage.getItem(NAME_KEY) ?? DEFAULT_FILE_NAME);
+        this.setName(window.localStorage.getItem(LOCAL_STORAGE_NAME_KEY) ?? DEFAULT_FILE_NAME);
 
         // Don't assemble right away, give the ROM a chance to start.
         setTimeout(() => this.reassemble(), POST_BOOT_DELAY);
@@ -691,26 +703,43 @@ export class Editor {
     // Specify whether to show line numbers.
     public setShowLineNumbers(showLineNumbers: boolean): void {
         this.lineNumbersGutter.setEnabled(this.view, showLineNumbers);
+        this.settings.showLineNumbers = showLineNumbers;
+        saveSettings(this.settings);
     }
 
     // Specify whether to show addresses.
     public setShowAddresses(showAddresses: boolean): void {
         this.addressesGutter.setEnabled(this.view, showAddresses);
+        this.settings.showAddresses = showAddresses;
+        saveSettings(this.settings);
     }
 
     // Specify whether to show bytecodes.
     public setShowBytecode(showBytecode: boolean): void {
         this.bytecodeGutter.setEnabled(this.view, showBytecode);
+        this.settings.showBytecode = showBytecode;
+        saveSettings(this.settings);
     }
 
     // Specify whether to show timing.
     public setShowTiming(showTiming: boolean): void {
         this.timingGutter.setEnabled(this.view, showTiming);
+        this.settings.showTiming = showTiming;
+        saveSettings(this.settings);
     }
 
     // Specify whether to show various stats.
-    public setShowStats(showStats: boolean): void {
-        this.statsPanel.setEnabled(this.view, showStats);
+    public setShowStatistics(showStatistics: boolean): void {
+        this.statisticsPanel.setEnabled(this.view, showStatistics);
+        this.settings.showStatistics = showStatistics;
+        saveSettings(this.settings);
+    }
+
+    // Specify whether Tab should trigger auto-complete.
+    public setAutocompleteOnTab(enabled: boolean): void {
+        this.autocompleteOnTab.setEnabled(this.view, enabled);
+        this.settings.autocompleteOnTab = enabled;
+        saveSettings(this.settings);
     }
 
     // Load the code of an example into the editor.
@@ -718,7 +747,7 @@ export class Editor {
         name = name ?? DEFAULT_FILE_NAME;
         this.emulator.closeScreenEditor();
         this.setOrigCode(code);
-        window.localStorage.setItem(NAME_KEY, name);
+        window.localStorage.setItem(LOCAL_STORAGE_NAME_KEY, name);
         this.view.dispatch({
             changes: {
                 from: 0,
@@ -759,7 +788,7 @@ export class Editor {
 
     // Set the current file name (without extension).
     public setName(name: string) {
-        window.localStorage.setItem(NAME_KEY, name);
+        window.localStorage.setItem(LOCAL_STORAGE_NAME_KEY, name);
         this.view.dispatch({
             effects: [
                 this.name.effect.of(name),
@@ -791,7 +820,7 @@ export class Editor {
     // the buffer has been saved.
     public setOrigCode(origCode: string) {
         this.origCode = origCode;
-        window.localStorage.setItem(ORIG_CODE_KEY, origCode);
+        window.localStorage.setItem(LOCAL_STORAGE_ORIG_CODE_KEY, origCode);
     }
 
     // Get tooltip content given a hover position.

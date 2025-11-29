@@ -1,5 +1,5 @@
 import { EditorView } from '@codemirror/view';
-import { CassettePlayer, Config, RunningState, Trs80, Trs80State } from 'trs80-emulator';
+import { CassettePlayer, RunningState, Trs80, Trs80State } from 'trs80-emulator';
 import {
     CanvasScreen,
     ControlPanel,
@@ -17,24 +17,10 @@ import { AssemblyResults } from './AssemblyResults';
 import { SimpleEventDispatcher } from 'strongly-typed-events';
 import { Flag, hi, inc16, lo, RegisterSet, toHexByte } from 'z80-base';
 import { disasmForTrs80, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END } from 'trs80-base';
+import {saveSettings, Settings} from "./Settings";
+import {DEFAULT_SCREEN_SIZE, SCREEN_SIZES_MAP, ScreenSize} from "./ScreenSize";
 
 const LOCAL_STORAGE_CONFIG_KEY = "trs80-ide-config";
-const LOCAL_STORAGE_SCREEN_SIZE_KEY = "trs80-ide-screen-size";
-
-// Various sizes that the screen can be.
-export class ScreenSize {
-    public constructor(
-        public readonly text: string,
-        public readonly scale: number,
-        public readonly label: string) {}
-}
-export const SCREEN_SIZES: ScreenSize[] = [
-    new ScreenSize("Small", 1.0, "small"),
-    new ScreenSize("Medium", 1.25, "medium"),
-    new ScreenSize("Large", 1.5, "large"),
-];
-const DEFAULT_SCREEN_SIZE = SCREEN_SIZES[SCREEN_SIZES.length - 1];
-const SCREEN_SIZES_MAP = new Map(SCREEN_SIZES.map(screenSize => [screenSize.label, screenSize]));
 
 // Given two instruction bytes, whether we want to continue until the next
 // instruction, and if so how long the current instruction is.
@@ -62,20 +48,20 @@ function emptyNode(node: HTMLElement): void {
 
 // Encapsulates the emulator and methods for it.
 export class Emulator {
+    private readonly settings: Settings;
     private readonly screen: CanvasScreen;
     public readonly trs80: Trs80;
     private readonly controlPanel: ControlPanel;
     private screenEditor: ScreenEditor | undefined = undefined;
     public trs80State: Trs80State | undefined = undefined;
     public readonly debugPc = new SimpleEventDispatcher<number | undefined>();
-    private screenSize: ScreenSize;
 
-    public constructor() {
+    public constructor(settings: Settings) {
+        this.settings = settings;
         const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY);
-        const screenSizeLabel = window.localStorage.getItem(LOCAL_STORAGE_SCREEN_SIZE_KEY) ?? DEFAULT_SCREEN_SIZE.label;
-        this.screenSize = SCREEN_SIZES_MAP.get(screenSizeLabel) ?? DEFAULT_SCREEN_SIZE;
-        this.screen = new CanvasScreen(this.screenSize.scale);
-        document.body.dataset.screenSize = this.screenSize.label;
+        const screenSize = SCREEN_SIZES_MAP.get(settings.screenSize) ?? DEFAULT_SCREEN_SIZE;
+        this.screen = new CanvasScreen(screenSize.scale);
+        document.body.dataset.screenSize = screenSize.label;
         const keyboard = new WebKeyboard();
         const cassettePlayer = new CassettePlayer();
         const soundPlayer = new WebSoundPlayer();
@@ -153,14 +139,8 @@ export class Emulator {
     public setScreenSize(size: ScreenSize): void {
         this.screen.setScale(size.scale);
         document.body.dataset.screenSize = size.label;
-        window.localStorage.setItem(LOCAL_STORAGE_SCREEN_SIZE_KEY, size.label);
-    }
-
-    /**
-     * Get the current screen size.
-     */
-    public getScreenSize(): ScreenSize {
-        return this.screenSize;
+        this.settings.screenSize = size.label;
+        saveSettings(this.settings);
     }
 
     /**
