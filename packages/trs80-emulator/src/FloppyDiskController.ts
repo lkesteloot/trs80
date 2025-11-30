@@ -273,6 +273,10 @@ function getStatusDescription(command: number, status: number): string {
     if ((status & STATUS_WRITE_PROTECTED) !== 0) parts.push("write protected");
     if ((status & STATUS_NOT_READY) !== 0) parts.push("not ready");
 
+    if (parts.length === 0) {
+        parts.push("none");
+    }
+
     return parts.join(", ");
 }
 
@@ -326,40 +330,39 @@ class FloppyDrive {
     public floppyDisk: FloppyDisk | undefined = undefined;
 }
 
-// Snapshot of FDC state, for save() and restore().
+/**
+ * Snapshot of FDC state, for save() and restore().
+ */
 export class FdcState {
-    // Registers.
-    public readonly status: number;
-    public readonly track: number;
-    public readonly sector: number;
-    public readonly data: number;
+    constructor(
+        // Registers.
+        public readonly status: number,
+        public readonly track: number,
+        public readonly sector: number,
+        public readonly data: number,
+        // Internal state.
+        public readonly currentCommand: number,
+        public readonly side: Side,
+        public readonly doubleDensity: boolean,
+        public readonly currentDrive: number,
+        public readonly motorOn: boolean,
+        public readonly lastReadAddress: number | undefined,
+        public readonly dataIndex: number,
+        public readonly sectorData: SectorData | undefined) {
+    }
 
-    // Internal state.
-    public readonly currentCommand: number;
-    public readonly side: Side;
-    public readonly doubleDensity: boolean;
-    public readonly currentDrive: number;
-    public readonly motorOn: boolean;
-    public readonly lastReadAddress: number | undefined;
-    public readonly dataIndex: number;
-    public readonly sectorData: SectorData | undefined;
+    /**
+     * User-friendly description of the status.
+     */
+    public getStatusDescription(): string {
+        return getStatusDescription(this.currentCommand, this.status);
+    }
 
-    constructor(status: number, track: number, sector: number, data: number, currentCommand: number, side: Side,
-                doubleDensity: boolean, currentDrive: number, motorOn: boolean, lastReadAddress: number | undefined,
-                dataIndex: number, sectorData: SectorData | undefined) {
-
-        this.status = status;
-        this.track = track;
-        this.sector = sector;
-        this.data = data;
-        this.currentCommand = currentCommand;
-        this.side = side;
-        this.doubleDensity = doubleDensity;
-        this.currentDrive = currentDrive;
-        this.motorOn = motorOn;
-        this.lastReadAddress = lastReadAddress;
-        this.dataIndex = dataIndex;
-        this.sectorData = sectorData;
+    /**
+     * User-friendly description of the command.
+     */
+    public getCommandDescription(): string {
+        return getCommandDescription(this.currentCommand);
     }
 }
 
@@ -423,12 +426,18 @@ export class FloppyDiskController {
         this.drives[driveNumber].floppyDisk = floppyDisk;
     }
 
+    /**
+     * Save internal state for restoring with {@link #restore}.
+     */
     public save(): FdcState {
         return new FdcState(this.status, this.track, this.sector, this.data, this.currentCommand, this.side,
             this.doubleDensity, this.currentDrive, this.motorOn, this.lastReadAddress,
             this.dataIndex, this.sectorData);
     }
 
+    /**
+     * Restore internal state saved with {@link #save}.
+     */
     public restore(fdcState: FdcState): void {
         this.status = fdcState.status;
         this.track = fdcState.track;

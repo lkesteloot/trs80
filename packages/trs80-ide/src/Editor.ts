@@ -341,7 +341,7 @@ export class Editor {
     private readonly timingGutter: OptionalExtension;
     private readonly statisticsPanel: OptionalExtension;
     private readonly autocompleteOnTab: OptionalExtension;
-    public autoRun = true;
+    public autoRun = true; // TODO: move to settings
     private currentLineNumber = 0; // 1-based.
     private currentLineHasError = false;
     private origCode = "";

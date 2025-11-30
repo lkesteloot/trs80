@@ -267,7 +267,7 @@ const HARDWARE_OPTION_BLOCKS: OptionBlock<any>[] = [
                 value: CGChip.ORIGINAL,
             },
             {
-                label: "Lower case",
+                label: "Lower Case",
                 value: CGChip.LOWER_CASE,
             },
         ]

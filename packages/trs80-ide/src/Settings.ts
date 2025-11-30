@@ -13,6 +13,8 @@ export type Settings = {
     showTiming: boolean,
     showStatistics: boolean,
     screenSize: string,
+    z80Inspector: boolean,
+    fdcInspector: boolean,
 };
 const DEFAULT_SETTINGS: Settings = {
     autocompleteOnTab: true,
@@ -22,6 +24,8 @@ const DEFAULT_SETTINGS: Settings = {
     showTiming: false,
     showStatistics: false,
     screenSize: DEFAULT_SCREEN_SIZE.label,
+    z80Inspector: true,
+    fdcInspector: false,
 };
 
 /**

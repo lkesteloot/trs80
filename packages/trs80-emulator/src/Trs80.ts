@@ -326,6 +326,13 @@ export class Trs80 implements Hal, Machine {
     }
 
     /**
+     * Get the current state of the FDC.
+     */
+    public getFdcState(): FdcState {
+        return this.fdc.save();
+    }
+
+    /**
      * Send this warning message to the console once. This is to avoid a program repeatedly doing something
      * that results in a warning (such as reading from an unmapped memory address) and crashing the browser.
      */

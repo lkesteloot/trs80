@@ -122,29 +122,36 @@ body.presentation-mode {
 
 /* ------------------------------------------------------------------------- */
 
-.z80-inspector {
+.inspector {
     background-color: var(--background);
     color: var(--foreground);
     border-radius: 20px;
     padding: 20px 30px;
     font-family: 'Roboto Mono', monospace;
 
+    body:not([data-debounced-running-state="paused"]) & {
+        display: none;
+    }
+
+    body[data-screen-size=small] & {
+        font-size: 80%;
+    }
+
+    body[data-screen-size=medium] & {
+        font-size: 90%;
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+
+.z80-inspector {
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
-}
 
-body[data-screen-size=small] .z80-inspector {
-    font-size: 80%;
-}
-
-body[data-screen-size=medium] .z80-inspector {
-    font-size: 90%;
-}
-
-.z80-inspector:not(.z80-inspector-visible) {
-    display: none;
+    body[data-z80-inspector="hidden"] & {
+        display: none;
+    }
 }
 
 .z80-inspector-label,
@@ -158,16 +165,53 @@ body[data-screen-size=medium] .z80-inspector {
 .z80-inspector-clock-value,
 .z80-inspector-time-value {
     color: var(--blue);
-    white-space: pre;
+    white-space: pre-wrap;
 }
 
 .z80-inspector-extra {
     color: var(--yellow);
-    white-space: pre;
+    white-space: pre-wrap;
 }
 
 .z80-inspector-changed {
     color: var(--red);
+}
+
+/* ------------------------------------------------------------------------- */
+
+.fdc-inspector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+
+    body[data-fdc-inspector="hidden"] & {
+        display: none;
+    }
+}
+
+.fdc-inspector-bottom {
+    grid-column: 1/-1;
+    max-width: 50ch;
+}
+
+.fdc-inspector-label {
+    color: var(--cyan);
+    white-space: pre;
+}
+
+.fdc-inspector-value-extra {
+    display: inline-flex;
+    gap: 1ch;
+}
+
+.fdc-inspector-value {
+    color: var(--blue);
+    white-space: pre-wrap;
+}
+
+.fdc-inspector-extra {
+    color: var(--yellow);
+    white-space: pre-wrap;
 }
 
 /* ------------------------------------------------------------------------- */

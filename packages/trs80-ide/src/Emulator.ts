@@ -1,5 +1,5 @@
-import { EditorView } from '@codemirror/view';
-import { CassettePlayer, RunningState, Trs80, Trs80State } from 'trs80-emulator';
+import {EditorView} from '@codemirror/view';
+import {CassettePlayer, FdcState, RunningState, Trs80, Trs80State} from 'trs80-emulator';
 import {
     CanvasScreen,
     ControlPanel,
@@ -12,15 +12,21 @@ import {
     WebSoundPlayer,
 } from 'trs80-emulator-web';
 
-import { ScreenEditor } from './ScreenEditor';
-import { AssemblyResults } from './AssemblyResults';
-import { SimpleEventDispatcher } from 'strongly-typed-events';
-import { Flag, hi, inc16, lo, RegisterSet, toHexByte } from 'z80-base';
-import { disasmForTrs80, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END } from 'trs80-base';
+import {ScreenEditor} from './ScreenEditor';
+import {AssemblyResults} from './AssemblyResults';
+import {SimpleEventDispatcher} from 'strongly-typed-events';
+import {Flag, hi, inc16, lo, RegisterSet, toHexByte} from 'z80-base';
+import {disasmForTrs80, Side, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from 'trs80-base';
 import {saveSettings, Settings} from "./Settings";
 import {DEFAULT_SCREEN_SIZE, SCREEN_SIZES_MAP, ScreenSize} from "./ScreenSize";
 
 const LOCAL_STORAGE_CONFIG_KEY = "trs80-ide-config";
+
+const RUNNING_STATE_TO_LABEL = new Map([
+    [RunningState.STOPPED, "stopped"],
+    [RunningState.STARTED, "started"],
+    [RunningState.PAUSED, "paused"],
+]);
 
 // Given two instruction bytes, whether we want to continue until the next
 // instruction, and if so how long the current instruction is.
@@ -55,13 +61,13 @@ export class Emulator {
     private screenEditor: ScreenEditor | undefined = undefined;
     public trs80State: Trs80State | undefined = undefined;
     public readonly debugPc = new SimpleEventDispatcher<number | undefined>();
+    private runningStateTimeoutHandle: number | undefined = undefined;
 
     public constructor(settings: Settings) {
         this.settings = settings;
         const config = loadTrs80Config(LOCAL_STORAGE_CONFIG_KEY);
         const screenSize = SCREEN_SIZES_MAP.get(settings.screenSize) ?? DEFAULT_SCREEN_SIZE;
         this.screen = new CanvasScreen(screenSize.scale);
-        document.body.dataset.screenSize = screenSize.label;
         const keyboard = new WebKeyboard();
         const cassettePlayer = new CassettePlayer();
         const soundPlayer = new WebSoundPlayer();
@@ -94,16 +100,29 @@ export class Emulator {
         const driveIndicators = new DriveIndicators(this.screen.getNode(), this.trs80.getMaxDrives());
         this.trs80.onMotorOn.subscribe(drive => driveIndicators.setActiveDrive(drive));
         this.trs80.onRunningState.subscribe(this.onRunningState.bind(this));
+        document.body.dataset.runningState = RUNNING_STATE_TO_LABEL.get(this.trs80.runningState);
+        document.body.dataset.debouncedRunningState = RUNNING_STATE_TO_LABEL.get(this.trs80.runningState);
 
         reboot();
 
         // Give focus to the emulator if the editor does not have it.
         keyboard.addInterceptKeys(() => document.activeElement === document.body);
         document.body.focus();
+
+        this.updateBodyDataset();
     }
 
     public getNode(): HTMLElement {
         return this.screen.getNode();
+    }
+
+    /**
+     * Update the BODY dataset based on settings.
+     */
+    private updateBodyDataset() {
+        document.body.dataset.z80Inspector = this.settings.z80Inspector ? "visible" : "hidden";
+        document.body.dataset.fdcInspector = this.settings.fdcInspector ? "visible" : "hidden";
+        document.body.dataset.screenSize = this.settings.screenSize;
     }
 
     /**
@@ -138,8 +157,8 @@ export class Emulator {
      */
     public setScreenSize(size: ScreenSize): void {
         this.screen.setScale(size.scale);
-        document.body.dataset.screenSize = size.label;
         this.settings.screenSize = size.label;
+        this.updateBodyDataset();
         saveSettings(this.settings);
     }
 
@@ -246,6 +265,25 @@ export class Emulator {
 
     // Called by Trs80 when it starts or stops.
     private onRunningState(runningState: RunningState): void {
+        // Immediate state.
+        document.body.dataset.runningState = RUNNING_STATE_TO_LABEL.get(runningState);
+
+        // Debounced state.
+        if (this.runningStateTimeoutHandle !== undefined) {
+            window.clearTimeout(this.runningStateTimeoutHandle);
+            this.runningStateTimeoutHandle = undefined;
+        }
+        if (document.body.dataset.debouncedRunningState === "paused" && runningState === RunningState.STARTED) {
+            // We don't want to turn this off too quickly, because if you Continue, it'll
+            // probably hit a breakpoint soon and show this right away.
+            this.runningStateTimeoutHandle = window.setTimeout(() => {
+                document.body.dataset.debouncedRunningState = RUNNING_STATE_TO_LABEL.get(runningState);
+            }, 500);
+        } else {
+            document.body.dataset.debouncedRunningState = RUNNING_STATE_TO_LABEL.get(runningState);
+        }
+
+        // Update PC listeners.
         if (runningState !== RunningState.PAUSED) {
             this.debugPc.dispatch(undefined);
         } else {
@@ -258,27 +296,7 @@ export class Emulator {
      */
     public createZ80Inspector(): HTMLElement {
         const node = document.createElement("div");
-        node.classList.add("z80-inspector");
-
-        // Show/hide the inspector automatically.
-        let timeoutHandle: number | undefined = undefined;
-        this.trs80.onRunningState.subscribe(runningState => {
-            const visible = runningState === RunningState.PAUSED;
-
-            // We don't want to turn this off to quickly, because if you Continue, it'll
-            // probably hit a breakpoint soon and show this right away.
-            if (timeoutHandle !== undefined) {
-                window.clearTimeout(timeoutHandle);
-                timeoutHandle = undefined;
-            }
-            if (!visible) {
-                timeoutHandle = window.setTimeout(() => {
-                    node.classList.toggle("z80-inspector-visible", false);
-                }, 500);
-            } else {
-                node.classList.toggle("z80-inspector-visible", true);
-            }
-        });
+        node.classList.add("z80-inspector", "inspector");
 
         const leftColumn = document.createElement("div");
         leftColumn.classList.add("z80-inspector-column");
@@ -575,5 +593,140 @@ export class Emulator {
         });
 
         return node;
+    }
+
+    /**
+     * Show or hide the Z80 inspector.
+     */
+    public showZ80Inspector(show: boolean) {
+        this.settings.z80Inspector = show;
+        this.updateBodyDataset();
+        saveSettings(this.settings);
+    }
+
+    /**
+     * Create the panel for inspecting Floppy Disk Controller state.
+     */
+    public createFdcInspector(): HTMLElement {
+        const node = document.createElement("div");
+        node.classList.add("fdc-inspector", "inspector");
+
+        const leftColumn = document.createElement("div");
+        leftColumn.classList.add("fdc-inspector-column");
+
+        const rightColumn = document.createElement("div");
+        rightColumn.classList.add("fdc-inspector-column");
+
+        const bottomSection = document.createElement("div");
+        bottomSection.classList.add("fdc-inspector-column", "fdc-inspector-bottom");
+
+        node.append(leftColumn, rightColumn, bottomSection);
+
+        type Updater = (fdcState: FdcState) => void;
+        type Fetcher = (fdcState: FdcState) => {value?: string, extra?: string};
+        const updaters:Updater[] = [];
+
+        // Create a new row.
+        const addRowToContainer = (container: HTMLElement, label: string, fetcher: Fetcher) => {
+            const rowNode = document.createElement("div");
+            rowNode.classList.add("fdc-inspector-row");
+            container.append(rowNode);
+
+            const labelNode = document.createElement("span");
+            labelNode.textContent = label.padEnd(8, " ");
+            labelNode.classList.add("fdc-inspector-label");
+
+            const valueExtraNode = document.createElement("span");
+            valueExtraNode.classList.add("fdc-inspector-value-extra")
+
+            const valueNode = document.createElement("span");
+            valueNode.classList.add("fdc-inspector-value");
+
+            const extraNode = document.createElement("span");
+            extraNode.classList.add("fdc-inspector-extra");
+
+            valueExtraNode.append(valueNode, extraNode);
+            rowNode.append(labelNode, valueExtraNode);
+
+            updaters.push(fdcState => {
+                const {value, extra} = fetcher(fdcState);
+                valueNode.hidden = value === undefined;
+                valueNode.textContent = value ?? "";
+                extraNode.hidden = extra === undefined;
+                extraNode.textContent = extra ?? "";
+            });
+        };
+
+        // Create a new row, flipping between the two columns.
+        let leftSide = true;
+        const addRowToColumn = (label: string, fetcher: Fetcher) => {
+            addRowToContainer(leftSide ? leftColumn : rightColumn, label, fetcher);
+            leftSide = !leftSide;
+        };
+
+        addRowToColumn("Status", fdcState => ({
+            value: toHexByte(fdcState.status) + "h",
+        }));
+        addRowToColumn("Side", fdcState => ({
+            value: fdcState.side === Side.FRONT ? "Front" : "Back",
+        }));
+        addRowToColumn("Track", fdcState => ({
+            value: toHexByte(fdcState.track) + "h",
+            extra: "(" + fdcState.track + ")",
+        }));
+        addRowToColumn("Density", fdcState => ({
+            value: fdcState.doubleDensity ? "Double" : "Single",
+        }));
+        addRowToColumn("Sector", fdcState => ({
+            value: toHexByte(fdcState.sector) + "h",
+            extra: "(" + fdcState.sector + ")",
+        }));
+        addRowToColumn("Drive", fdcState => ({
+            value: fdcState.currentDrive.toString(),
+        }));
+        addRowToColumn("Data", fdcState => ({
+            value: toHexByte(fdcState.data) + "h",
+            extra: fdcState.data >= 32 && fdcState.data < 127 ? `'${String.fromCodePoint(fdcState.data)}'` : "",
+        }));
+        addRowToColumn("Motor", fdcState => ({
+            value: fdcState.motorOn ? "On" : "Off",
+        }));
+        addRowToColumn("Command", fdcState => ({
+            value: toHexByte(fdcState.currentCommand) + "h",
+        }));
+        addRowToContainer(bottomSection, "Status", fdcState => ({
+            extra: fdcState.getStatusDescription(),
+        }));
+        addRowToContainer(bottomSection, "Command", fdcState => ({
+            extra: fdcState.getCommandDescription(),
+        }));
+
+        // Update all values.
+        const update = () => {
+            const fdcState = this.trs80.getFdcState();
+
+            for (const updater of updaters) {
+                updater(fdcState);
+            }
+        };
+
+        this.debugPc.subscribe(pc => {
+            if (pc === undefined) {
+                // Not single-stepping, don't bother.
+                return;
+            }
+            update();
+        });
+
+        return node;
+    }
+
+    /**
+     * Show or hide the FDC inspector.
+     */
+    public showFdcInspector(show: boolean) {
+        this.settings.fdcInspector = show;
+        this.updateBodyDataset();
+        saveSettings(this.settings);
     }
 }

@@ -540,7 +540,6 @@ export class UserInterface {
                         hotkey: "Cmd-R",
                     },
                     {
-                        id: "auto-run",
                         text: "Auto-run",
                         checked: editor.autoRun,
                         action: (menuCommand: MenuCommand) => {
@@ -601,6 +600,29 @@ export class UserInterface {
                     },
                     {
                         separator: true,
+                    },
+                    {
+                        text: "Inspectors",
+                        menu: [
+                            {
+                                text: "Z80 CPU",
+                                checked: settings.z80Inspector,
+                                action: (menuCommand: MenuCommand) => {
+                                    const enabled = !menuCommand.checked;
+                                    menuCommand.setChecked?.(enabled);
+                                    emulator.showZ80Inspector(enabled);
+                                },
+                            },
+                            {
+                                text: "Floppy Disk Controller",
+                                checked: settings.fdcInspector,
+                                action: (menuCommand: MenuCommand) => {
+                                    const enabled = !menuCommand.checked;
+                                    menuCommand.setChecked?.(enabled);
+                                    emulator.showFdcInspector(enabled);
+                                },
+                            },
+                        ],
                     },
                     {
                         id: "cpu-speed",
@@ -762,7 +784,8 @@ export class UserInterface {
         const rightPane = document.createElement("div");
         rightPane.classList.add("right-pane");
         const z80Inspector = emulator.createZ80Inspector();
-        rightPane.append(emulator.getNode(), z80Inspector);
+        const fdcInspector = emulator.createFdcInspector();
+        rightPane.append(emulator.getNode(), z80Inspector, fdcInspector);
 
         content.append(leftPane, rightPane);
     }
