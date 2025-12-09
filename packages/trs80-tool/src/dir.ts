@@ -30,10 +30,7 @@ function dirFile(inFilename: string, showSystemFiles: boolean): void {
 
         for (const inFile of inFiles) {
             const filename = inFile.filename;
-            // We show the decoded size, but we could instead show the binary size. Not sure
-            // which is most useful. Let's default to the decoded size, and add a flag if someone
-            // wants to see the binary size.
-            const size = inFile.trs80File.binary.length;
+            const size = inFile.binary.length;
             const parts = [
                 filename.padEnd(maxFilenameLength),
                 withCommas(size).padStart(8) + " ",
