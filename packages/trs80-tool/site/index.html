@@ -46,6 +46,14 @@
                 <li><a href="https://www.my-trs-80.com/trs80-tool/windows/trs80-tool.exe" rel="nofollow">trs80-tool for Windows 8.1+</a></li>
             </ul>
 
+            <p>On Linux and macOS you’ll need to make the file executable:</p>
+
+            <div><pre><code>% chmod +x trs80-tool</code></pre></div>
+
+            <p>On macOS you’ll additionally have to remove the quarantine:</p>
+
+            <div><pre><code>% xattr -d -r com.apple.quarantine trs80-tool</code></pre></div>
+
             <h2 id="file-formats">File formats</h2>
 
             <p>The <code>trs80-tool</code> program supports these file formats:</p>
