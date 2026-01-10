@@ -82,7 +82,17 @@ export class Level1Program extends AbstractTrs80File {
      * Get the data without the header or checksum.
      */
     public getData(): Uint8Array {
-        return this.binary.subarray(4, this.binary.length - 1);
+        return this.binary.subarray(4, 4 + this.endAddress - this.startAddress);
+    }
+
+    /**
+     * Convert an address in memory to the original byte offset in the binary.
+     * Returns undefined if invalid.
+     */
+    public addressToByteOffset(address: number): number | undefined {
+        return address < this.startAddress || address >= this.endAddress
+            ? undefined
+            : address - this.startAddress + 4;
     }
 }
 
@@ -93,24 +103,32 @@ export class Level1Program extends AbstractTrs80File {
  */
 export function decodeLevel1Program(binary: Uint8Array): Level1Program | undefined {
     if (binary.length < 5) {
-        // Need start/end address and checksum.
+        // Need start/end addresses and checksum.
         return undefined;
     }
 
+    // Big endian:
     const startAddress = word(binary[0], binary[1]);
-    const endAddress = word(binary[2], binary[3]);
-    const checksum = binary[binary.length - 1];
+    const endAddress = word(binary[2], binary[3]); // exclusive
     let entryPointAddress: number | undefined;
 
     // Check sanity of addresses.
-    if (binary.length !== endAddress - startAddress + 5) {
+    let programSize = endAddress - startAddress;
+    let expectedBinarySize = programSize + 5;
+    // Allow some blank bytes at the end.
+    if (startAddress < 0x4000 || programSize < 0 ||
+        binary.length < expectedBinarySize || binary.length > expectedBinarySize + 32) {
+
         // Addresses don't match, probably not Level 1 program.
         return undefined;
     }
 
     // Check checksum.
+
+    let checksumLocation = expectedBinarySize - 1;
+    const checksum = binary[checksumLocation];
     let sum = 0;
-    for (let i = 4; i < binary.length; i++) {
+    for (let i = 4; i <= checksumLocation; i++) {
         sum += binary[i];
     }
     sum &= 0xFF;
@@ -125,10 +143,13 @@ export function decodeLevel1Program(binary: Uint8Array): Level1Program | undefin
     // Heuristic for common system programs.
     if (startAddress === 0x41FE) {
         entryPointAddress = word(binary[5], binary[4]);
-        annotations.push(new ProgramAnnotation(`Jump address (0x${toHexWord(entryPointAddress)})`, 4, 6));
+        annotations.push(new ProgramAnnotation(`Entry point (0x${toHexWord(entryPointAddress)})`, 4, 6));
     }
     annotations.push(new ProgramAnnotation("Checksum" + (checksumValid ? "" : " (invalid)"),
-        binary.length - 1, binary.length));
+        checksumLocation, checksumLocation + 1));
+    if (checksumLocation < binary.length - 1) {
+        annotations.push(new ProgramAnnotation("Junk", checksumLocation + 1, binary.length));
+    }
 
     return new Level1Program(binary, checksumValid ? undefined : "bad checksum", annotations,
         startAddress, endAddress, checksum, entryPointAddress);

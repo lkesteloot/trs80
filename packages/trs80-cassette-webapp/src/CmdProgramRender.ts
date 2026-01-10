@@ -179,7 +179,7 @@ export function toDiv(cmdProgram: CmdProgram, out: HTMLElement): [Highlightable[
 
             const line = document.createElement("div");
             out.appendChild(line);
-            add(line, toHexWord(instruction.address), classes.address);
+            add(line, toHexWord(address), classes.address);
             add(line, "  ", classes.space);
             add(line, subbytesText, classes.hex);
             if (address === instruction.address) {

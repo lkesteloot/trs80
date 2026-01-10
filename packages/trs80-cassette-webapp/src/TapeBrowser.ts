@@ -1,6 +1,7 @@
 import * as BasicRender from "./BasicRender";
 import * as SystemProgramRender from "./SystemProgramRender";
 import * as CmdProgramRender from "./CmdProgramRender";
+import * as Level1ProgramRender from "./Level1ProgramRender";
 import * as Hexdump from "./Hexdump";
 import {CassettePlayer, Config, RunningState, Trs80} from "trs80-emulator";
 import {
@@ -24,7 +25,9 @@ import {
     CmdProgram,
     decodeBasicProgram,
     decodeCmdProgram,
+    decodeLevel1Program,
     decodeSystemProgram,
+    Level1Program,
     SystemProgram,
     TRS80_SCREEN_BEGIN,
     TRS80_SCREEN_SIZE,
@@ -702,6 +705,38 @@ export class TapeBrowser {
         return pane;
     }
 
+    private makeLevel1Pane(program: Program, level1Program: Level1Program): Pane | undefined {
+        const div = document.createElement("div");
+        div.classList.add("program");
+        div.classList.add("level1-program");
+
+        const [highlightables, annotations] = Level1ProgramRender.toDiv(level1Program, div);
+        const highlighter = new Highlighter(this, program, div);
+        highlighter.addHighlightables(highlightables);
+        if (program.annotations === undefined) {
+            program.annotations = [];
+        }
+        program.annotations.push(...level1Program.annotations, ...annotations);
+
+        this.onHighlight.subscribe(highlight => {
+            highlighter.highlight(highlight, program, Level1ProgramRender.highlightClassName);
+        });
+        this.onSelection.subscribe(selection => {
+            highlighter.select(selection, program, Level1ProgramRender.selectClassName);
+        });
+        this.onDoneSelecting.subscribe(source => {
+            if (source !== highlighter) {
+                highlighter.doneSelecting();
+            }
+        });
+
+        let pane = new Pane(div);
+        pane.didShow = () => {
+            highlighter.didShow();
+        };
+        return pane;
+    }
+
     private makeScreenshotPane(program: Program, screenshot: Uint8Array): Pane {
         const div = document.createElement("div");
 
@@ -924,6 +959,7 @@ export class TapeBrowser {
             const basicProgram = decodeBasicProgram(program.binary);
             const systemProgram = decodeSystemProgram(program.binary, false);
             const cmdProgram = decodeCmdProgram(program.binary);
+            const level1Program = decodeLevel1Program(program.binary);
             const screenshot = basicProgram === undefined && systemProgram === undefined &&
                 cmdProgram === undefined ? decodeScreenshot(program.binary) : undefined;
 
@@ -932,6 +968,7 @@ export class TapeBrowser {
             const systemPane = systemProgram !== undefined ? this.makeSystemPane(program, systemProgram) : undefined;
             const edtasmPane = program.isEdtasmProgram() ? this.makeEdtasmPane(program) : undefined;
             const cmdPane = cmdProgram !== undefined ? this.makeCmdPane(program, cmdProgram) : undefined;
+            const level1Pane = level1Program !== undefined ? this.makeLevel1Pane(program, level1Program) : undefined;
             const screenshotPane = screenshot !== undefined ? this.makeScreenshotPane(program, screenshot) : undefined;
 
             // Metadata pane.
@@ -969,6 +1006,9 @@ export class TapeBrowser {
             }
             if (cmdPane !== undefined) {
                 addPane("CMD program" + (cmdPane.programName ? " (" + cmdPane.programName + ")" : ""), cmdPane);
+            }
+            if (level1Pane !== undefined) {
+                addPane("Level 1 program", level1Pane);
             }
             if (edtasmPane !== undefined) {
                 addPane("Assembly" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""), edtasmPane);
