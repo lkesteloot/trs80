@@ -1,6 +1,6 @@
 import {Trs80WebScreen} from "./Trs80WebScreen.js";
 import {MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
-import {CGChip, Config, DisplayType, ModelType, Phosphor, Trs80ScreenState} from "trs80-emulator";
+import {CGChip, Config, Configurable, DisplayType, ModelType, Phosphor, Trs80ScreenState} from "trs80-emulator";
 import {toHexByte} from "z80-base";
 import {
     TRS80_CHAR_HEIGHT,
@@ -1475,7 +1475,7 @@ const DEFAULT_CANVAS_SCREEN_OPTIONS = {
 /**
  * TRS-80 screen based on an HTML canvas element.
  */
-export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, ScreenSizeProvider {
+export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, ScreenSizeProvider, Configurable {
     public scale: number;
     private readonly devicePixelRatio: number;
     private readonly node: HTMLElement;
@@ -1718,9 +1718,13 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         }
     }
 
-    setConfig(config: Config): void {
+    public setConfig(config: Config): void {
         this.config = config;
         this.updateFromConfig();
+    }
+
+    public getConfig(): Config {
+        return this.config;
     }
 
     /**

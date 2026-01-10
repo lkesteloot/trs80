@@ -1,5 +1,5 @@
 import {adjustColor, CSS_PREFIX, rgbToCss} from "./Utils.js";
-import {BasicLevel, CGChip, Config, DisplayType, InkColor, ModelType, Phosphor, PrinterModel, RamSize} from "trs80-emulator";
+import {BasicLevel, CGChip, Config, Configurable, DisplayType, InkColor, ModelType, Phosphor, PrinterModel, RamSize} from "trs80-emulator";
 import {Trs80} from "trs80-emulator";
 import { inkColorToRgb } from "./WebPrinter.js";
 
@@ -456,14 +456,14 @@ export class SettingsPanel {
     private onOpen: (() => void) | undefined;
     private onClose: (() => void) | undefined;
     public readonly panelType: PanelType;
-    private readonly trs80: Trs80;
+    private readonly configurable: Configurable;
     private readonly panelNode: HTMLElement;
     private readonly displayedOptions: DisplayedOption<any>[] = [];
     private readonly acceptButton: HTMLElement;
 
-    constructor(screenNode: HTMLElement, trs80: Trs80, panelType: PanelType) {
+    constructor(screenNode: HTMLElement, configurable: Configurable, panelType: PanelType) {
         this.panelType = panelType;
-        this.trs80 = trs80;
+        this.configurable = configurable;
 
         // Make global CSS if necessary.
         SettingsPanel.configureStyle();
@@ -530,7 +530,7 @@ export class SettingsPanel {
             this.accept();
         });
         buttonsDiv.appendChild(this.acceptButton);
-        this.configureAcceptButton(this.trs80.getConfig());
+        this.configureAcceptButton(this.configurable.getConfig());
 
         const cancelButton = document.createElement("a");
         cancelButton.innerText = "Cancel";
@@ -569,7 +569,7 @@ export class SettingsPanel {
 
         // Configure options.
         for (const displayedOption of this.displayedOptions) {
-            displayedOption.input.checked = displayedOption.block.isChecked(displayedOption.option.value, this.trs80.getConfig());
+            displayedOption.input.checked = displayedOption.block.isChecked(displayedOption.option.value, this.configurable.getConfig());
         }
         this.updateEnabledOptions();
 
@@ -609,7 +609,7 @@ export class SettingsPanel {
      * Accept the changes, configure the machine, and close the dialog box.
      */
     private accept(): void {
-        this.trs80.setConfig(this.getConfig());
+        this.configurable.setConfig(this.getConfig());
         this.close();
     }
 
@@ -641,7 +641,7 @@ export class SettingsPanel {
      * Set the accept button to be OK or Reboot.
      */
     private configureAcceptButton(config: Config) {
-        if (config.needsReboot(this.trs80.getConfig())) {
+        if (config.needsReboot(this.configurable.getConfig())) {
             this.acceptButton.classList.add(gRebootButtonCssClass);
             this.acceptButton.innerText = "Reboot";
         } else {
@@ -654,7 +654,7 @@ export class SettingsPanel {
      * Make a new config from the user's currently selected options.
      */
     private getConfig(): Config {
-        let config = this.trs80.getConfig();
+        let config = this.configurable.getConfig();
 
         for (const displayedOption of this.displayedOptions) {
             if (displayedOption.input.checked) {

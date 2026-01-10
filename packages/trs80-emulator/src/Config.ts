@@ -453,3 +453,11 @@ export class ConfigBuilder {
         return this;
     }
 }
+
+/**
+ * Interface for objects that can be configured.
+ */
+export interface Configurable {
+    getConfig(): Config;
+    setConfig(config: Config): void;
+}

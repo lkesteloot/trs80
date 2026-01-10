@@ -26,10 +26,20 @@ import {
     decodeCmdProgram,
     decodeSystemProgram,
     SystemProgram,
+    TRS80_SCREEN_BEGIN,
+    TRS80_SCREEN_SIZE,
     Trs80File
 } from "trs80-base";
 import {BitType, DEFAULT_SAMPLE_RATE, DisplaySamples, frameToTimestamp, Program, Tape} from "trs80-cassette";
 import {WebSoundPlayer} from "../../trs80-emulator-web/dist/WebSoundPlayer";
+
+/**
+ * See if the "program" is actually a 1024-byte screenshot. We've only seen this once,
+ * but it's great to decode it when it happens.
+ */
+function decodeScreenshot(binary: Uint8Array): Uint8Array | undefined {
+    return binary.length === TRS80_SCREEN_SIZE ? binary : undefined;
+}
 
 /**
  * Generic cassette that reads from a Int16Array.
@@ -692,6 +702,25 @@ export class TapeBrowser {
         return pane;
     }
 
+    private makeScreenshotPane(program: Program, screenshot: Uint8Array): Pane {
+        const div = document.createElement("div");
+
+        const screenDiv = document.createElement("div");
+        div.appendChild(screenDiv);
+
+        const screen = new CanvasScreen();
+        for (let i = 0; i < screenshot.length; i++) {
+            screen.writeChar(TRS80_SCREEN_BEGIN + i, screenshot[i]);
+        }
+        screenDiv.append(screen.getNode());
+
+        const viewPanel = new SettingsPanel(screen.getNode(), screen, PanelType.VIEW);
+        const controlPanel = new ControlPanel(screen.getNode());
+        controlPanel.addSettingsButton(viewPanel);
+
+        return new Pane(div);
+    }
+
     private makeEdtasmPane(program: Program): Pane {
         const div = document.createElement("div");
         div.classList.add("program");
@@ -895,12 +924,15 @@ export class TapeBrowser {
             const basicProgram = decodeBasicProgram(program.binary);
             const systemProgram = decodeSystemProgram(program.binary, false);
             const cmdProgram = decodeCmdProgram(program.binary);
+            const screenshot = basicProgram === undefined && systemProgram === undefined &&
+                cmdProgram === undefined ? decodeScreenshot(program.binary) : undefined;
 
             // Make these panes here so they're accessible from the metadata page.
             const basicPane = basicProgram !== undefined ? this.makeBasicPane(program, basicProgram) : undefined;
             const systemPane = systemProgram !== undefined ? this.makeSystemPane(program, systemProgram) : undefined;
             const edtasmPane = program.isEdtasmProgram() ? this.makeEdtasmPane(program) : undefined;
             const cmdPane = cmdProgram !== undefined ? this.makeCmdPane(program, cmdProgram) : undefined;
+            const screenshotPane = screenshot !== undefined ? this.makeScreenshotPane(program, screenshot) : undefined;
 
             // Metadata pane.
             let metadataLabel = frameToTimestamp(program.startFrame, this.tape.sampleRate, true) + " to " +
@@ -925,6 +957,9 @@ export class TapeBrowser {
                 this.makeHexdumpPane(program));
             if (program.reconstructedSamples !== undefined) {
                 addPane("Reconstructed", this.makeReconstructedPane(program.reconstructedSamples));
+            }
+            if (screenshotPane !== undefined) {
+                addPane("Screenshot", screenshotPane);
             }
             if (basicPane !== undefined) {
                 addPane("Basic program", basicPane);

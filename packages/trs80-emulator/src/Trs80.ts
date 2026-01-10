@@ -7,7 +7,7 @@ import {model1Level2Rom} from "./Model1Level2Rom.js";
 import {model3Rom} from "./Model3Rom.js";
 import {model4Rom} from "./Model4Rom.js";
 import {Trs80Screen, Trs80ScreenState} from "./Trs80Screen.js";
-import {BasicLevel, CGChip, Config, ModelType} from "./Config.js";
+import {BasicLevel, CGChip, Config, Configurable, ModelType} from "./Config.js";
 import {
     BASIC_HEADER_BYTE,
     BasicProgram,
@@ -147,7 +147,7 @@ interface ConfigChange {
 /**
  * HAL for the TRS-80 Model III.
  */
-export class Trs80 implements Hal, Machine {
+export class Trs80 implements Hal, Machine, Configurable {
     private config: Config;
     private timerHz = M3_TIMER_HZ;
     public clockHz = M3_CLOCK_HZ;
