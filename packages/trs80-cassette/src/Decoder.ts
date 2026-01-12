@@ -8,7 +8,7 @@ import {TapeDecoder} from "./TapeDecoder.js";
 import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder.js";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder.js";
 import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder.js";
-import { CassetteSpeed } from "trs80-base";
+import {CassetteEncoding, CassetteSpeed } from "trs80-base";
 
 class Transition {
     public candidate: Program;
@@ -122,7 +122,7 @@ export class Decoder {
                 }
                 candidate.trackNumber = trackNumber;
                 candidate.copyNumber = copyNumber;
-                candidate.setReconstructedSamples(this.reencode(candidate.binary));
+                candidate.setReconstructedSamples(this.reencode(candidate));
                 this.tape.addProgram(candidate);
 
                 endOfLastProgram = candidate.endFrame;
@@ -131,13 +131,14 @@ export class Decoder {
     }
 
     /**
-     * Re-encodes a binary as a clean low-speed audio.
+     * Re-encodes a binary as clean audio.
      */
-    private reencode(binary: Uint8Array): Int16Array {
-        // Here we could re-encode in either low speed or high speed. Do low speed so that
-        // the audio is usable on a Model I.
-        if (true) { // TODO fix this
-            return encodeLowSpeed(wrapLowSpeed(binary), this.tape.sampleRate, CassetteSpeed.LOW);
+    private reencode(program: Program): Int16Array {
+        const binary = program.binary;
+        const speed = program.speed;
+
+        if (speed.encoding === CassetteEncoding.FM) {
+            return encodeLowSpeed(wrapLowSpeed(binary), this.tape.sampleRate, speed);
         } else {
             // Low-speed programs end in two 0x00, but high-speed programs
             // end in three 0x00. Add the additional 0x00 since we're

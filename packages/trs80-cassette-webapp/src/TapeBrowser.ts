@@ -597,7 +597,7 @@ export class TapeBrowser {
 
         this.makeWaveforms(div, new WaveformDisplay(this.tape.sampleRate), false, [
             {
-                label: "Reconstructed low-speed waveform:",
+                label: "Reconstructed waveform:",
                 samples: samples,
             }
         ]);
@@ -1021,7 +1021,7 @@ export class TapeBrowser {
                     new TapeCassette(this.tape, program),
                     Config.makeDefault()));
                 if (program.reconstructedSamples !== undefined) {
-                    addPane("Emulator (reconstructed, low speed)",
+                    addPane("Emulator (reconstructed)",
                         this.makeEmulatorPane(program,
                             new ReconstructedCassette(program.reconstructedSamples, this.tape.sampleRate),
                             Config.makeDefault()));
@@ -1036,6 +1036,12 @@ export class TapeBrowser {
                 addPane(emulatorLabel, this.makeEmulatorPane(program,
                     new TapeCassette(this.tape, program),
                     config));
+                if (program.reconstructedSamples !== undefined) {
+                    addPane("Emulator (reconstructed)",
+                        this.makeEmulatorPane(program,
+                            new ReconstructedCassette(program.reconstructedSamples, this.tape.sampleRate),
+                            config));
+                }
             }
 
             const trs80File = systemProgram ?? cmdProgram ?? basicProgram;
