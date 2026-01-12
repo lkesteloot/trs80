@@ -110,7 +110,8 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
             }
         }
         this.baud = baud;
-        this.period = Math.round(tape.sampleRate/baud);
+        const effectiveBaud = baud === 250 ? 280 : baud;
+        this.period = Math.round(tape.sampleRate/effectiveBaud);
         this.halfPeriod = Math.round(this.period / 2);
         this.quarterPeriod = Math.round(this.period / 4);
         this.clockPulseSearchRadius = Math.round(this.period * 0.3);
