@@ -142,6 +142,7 @@ export function toDiv(level1Program: Level1Program, out: HTMLElement): [Highligh
                 add(line, lines, classes.error);
             } else {
                 for (const line of lines) {
+                    // We should create Highlightable instances here.
                     const lineDiv = document.createElement("div");
                     out.appendChild(lineDiv);
                     add(lineDiv, line.lineNumber.toString(), classes.address);

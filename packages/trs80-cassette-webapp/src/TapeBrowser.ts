@@ -3,7 +3,7 @@ import * as SystemProgramRender from "./SystemProgramRender";
 import * as CmdProgramRender from "./CmdProgramRender";
 import * as Level1ProgramRender from "./Level1ProgramRender";
 import * as Hexdump from "./Hexdump";
-import {CassettePlayer, Config, RunningState, Trs80} from "trs80-emulator";
+import {BasicLevel, CassettePlayer, Config, ModelType, RunningState, Trs80} from "trs80-emulator";
 import {
     CanvasScreen,
     ControlPanel,
@@ -708,7 +708,6 @@ export class TapeBrowser {
     private makeLevel1Pane(program: Program, level1Program: Level1Program): Pane | undefined {
         const div = document.createElement("div");
         div.classList.add("program");
-        div.classList.add("level1-program");
 
         const [highlightables, annotations] = Level1ProgramRender.toDiv(level1Program, div);
         const highlighter = new Highlighter(this, program, div);
@@ -788,13 +787,16 @@ export class TapeBrowser {
     /**
      * Create a pane with an emulator pointing at the cassette and program.
      */
-    private makeEmulatorPane(program: Program | undefined, cassette: Int16Cassette | undefined, trs80File?: Trs80File): Pane {
+    private makeEmulatorPane(program: Program | undefined,
+                             cassette: Int16Cassette | undefined,
+                             config: Config,
+                             trs80File?: Trs80File): Pane {
+
         const div = document.createElement("div");
 
         const screenDiv = document.createElement("div");
         div.appendChild(screenDiv);
 
-        const config = Config.makeDefault();
         const screen = new CanvasScreen();
         screenDiv.append(screen.getNode());
         const keyboard = new WebKeyboard();
@@ -925,7 +927,9 @@ export class TapeBrowser {
             (program) => {
                 screenshotClickAction.get(program)?.();
             }));
-        addPane("Emulator", this.makeEmulatorPane(undefined, new TapeCassette(this.tape, undefined)));
+        addPane("Emulator", this.makeEmulatorPane(undefined,
+            new TapeCassette(this.tape, undefined),
+            Config.makeDefault()));
 
         // Section for each program.
         for (const program of this.tape.programs) {
@@ -1014,17 +1018,32 @@ export class TapeBrowser {
                 addPane("Assembly" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""), edtasmPane);
             }
             if (basicPane !== undefined || systemPane !== undefined) {
-                let emulatorLabel = "Emulator (original, " + (program.decoder.isHighSpeed() ? "high" : "low") + " speed)";
-                addPane(emulatorLabel, this.makeEmulatorPane(program, new TapeCassette(this.tape, program)));
+                const emulatorLabel = "Emulator (original, " + (program.decoder.isHighSpeed() ? "high" : "low") + " speed)";
+                addPane(emulatorLabel, this.makeEmulatorPane(program,
+                    new TapeCassette(this.tape, program),
+                    Config.makeDefault()));
                 if (program.reconstructedSamples !== undefined) {
                     addPane("Emulator (reconstructed, low speed)",
-                        this.makeEmulatorPane(program, new ReconstructedCassette(program.reconstructedSamples, this.tape.sampleRate)));
+                        this.makeEmulatorPane(program,
+                            new ReconstructedCassette(program.reconstructedSamples, this.tape.sampleRate),
+                            Config.makeDefault()));
                 }
+            }
+            if (level1Pane !== undefined) {
+                const emulatorLabel = "Emulator (original)";
+                const config = Config.makeDefault().edit()
+                    .withModelType(ModelType.MODEL1)
+                    .withBasicLevel(BasicLevel.LEVEL1)
+                    .build();
+                addPane(emulatorLabel, this.makeEmulatorPane(program,
+                    new TapeCassette(this.tape, program),
+                    config));
             }
 
             const trs80File = systemProgram ?? cmdProgram ?? basicProgram;
             if (trs80File !== undefined) {
-                addPane("Emulator (auto-run)", this.makeEmulatorPane(program, undefined, trs80File));
+                addPane("Emulator (auto-run)", this.makeEmulatorPane(program,
+                    undefined, Config.makeDefault(), trs80File));
             }
         }
 
