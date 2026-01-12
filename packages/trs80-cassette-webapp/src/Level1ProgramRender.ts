@@ -109,13 +109,11 @@ export function toDiv(level1Program: Level1Program, out: HTMLElement): [Highligh
         add(line, "End address: ", classes.label);
         add(line, toHexWord(level1Program.endAddress), classes.address);
     }
-    {
+    if (level1Program.entryPointAddress !== undefined) {
         const line = document.createElement("div");
         out.appendChild(line);
         add(line, "Entry point: ", classes.label);
-        add(line, level1Program.entryPointAddress === undefined
-            ? "Unknown"
-            : toHexWord(level1Program.entryPointAddress), classes.address);
+        add(line, toHexWord(level1Program.entryPointAddress), classes.address);
     }
     if (level1Program.error !== undefined) {
         const line = document.createElement("div");
@@ -136,10 +134,21 @@ export function toDiv(level1Program: Level1Program, out: HTMLElement): [Highligh
             h1.innerText = "Listing";
             out.appendChild(h1);
 
-            // Not handled because I don't have a sample program.
-            const line = document.createElement("div");
-            out.appendChild(line);
-            add(line, "Level 1 BASIC programs are not yet displayed. Ask Lawrence to add this feature.", classes.address);
+            const lines = level1Program.decodeBasic();
+            if (typeof lines === "string") {
+                // Decode error.
+                const line = document.createElement("div");
+                out.appendChild(line);
+                add(line, lines, classes.error);
+            } else {
+                for (const line of lines) {
+                    const lineDiv = document.createElement("div");
+                    out.appendChild(lineDiv);
+                    add(lineDiv, line.lineNumber.toString(), classes.address);
+                    add(lineDiv, " ", classes.space);
+                    add(lineDiv, line.code, classes.opcodes);
+                }
+            }
             break;
         }
         case Level1Type.SYSTEM: {

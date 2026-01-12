@@ -16,21 +16,31 @@ function level1TypeToString(type: Level1Type): string {
 }
 
 /**
- * Guess the kind of program this is, based on the load address.
+ * Guess the kind of program this is, based on the start address.
  *
- * https://www.trs-80.com/wordpress/tips/formats/#l1basictape
+ * https://www.trs-80.com/sub-tips-file-formats.htm#l1basictape
  */
 function guessLevel1Type(startAddress: number): Level1Type {
-    switch (hi(startAddress)) {
-        case 0x40:
-        case 0x41:
-            return Level1Type.SYSTEM;
+    if (startAddress === 0x4200) {
+        return Level1Type.BASIC;
+    }
 
-        case 0x42:
-            return Level1Type.BASIC;
+    const page = hi(startAddress);
+    return page === 0x40 || page === 0x41
+        ? Level1Type.SYSTEM
+        : Level1Type.UNKNOWN;
+}
 
-        default:
-            return Level1Type.UNKNOWN;
+/**
+ * A single line of Level 1 Basic.
+ */
+export class Level1BasicLine {
+    public readonly lineNumber: number;
+    public readonly code: string;
+
+    constructor(lineNumber: number, text: string) {
+        this.lineNumber = lineNumber;
+        this.code = text;
     }
 }
 
@@ -41,7 +51,7 @@ function guessLevel1Type(startAddress: number): Level1Type {
  * These can be either Basic or machine language, and the start address can be used
  * to guess.
  *
- * https://www.trs-80.com/wordpress/tips/formats/#l1basictape
+ * https://www.trs-80.com/sub-tips-file-formats.htm#l1basictape
  */
 export class Level1Program extends AbstractTrs80File {
     public readonly className = "Level1Program";
@@ -94,6 +104,43 @@ export class Level1Program extends AbstractTrs80File {
             ? undefined
             : address - this.startAddress + 4;
     }
+
+    /**
+     * Decodes the Basic program, or returns an error.
+     */
+    public decodeBasic(): Level1BasicLine[] | string {
+        if (this.guessLevel1Type() !== Level1Type.BASIC) {
+            return "not a Basic program";
+        }
+
+        const decoder = new TextDecoder("ASCII");
+        const lines: Level1BasicLine[] = [];
+        const data = this.getData();
+        let i = 0;
+        while (i < data.length) {
+            // Need two bytes for line number and carriage return.
+            if (i + 2 >= data.length) {
+                return "truncated Basic program";
+            }
+            const lineNumberLow = data[i++];
+            const lineNumberHigh = data[i++];
+            const lineNumber = word(lineNumberHigh, lineNumberLow);
+            const codeBegin = i;
+            while (i < data.length && data[i] !== 0x0D) {
+                i++;
+            }
+            if (i === data.length) {
+                return "Basic program missing carrage return at end of line " + lineNumber;
+            }
+            const codeEnd = i;
+
+            const code = decoder.decode(data.subarray(codeBegin, codeEnd));
+            lines.push(new Level1BasicLine(lineNumber, code));
+            // Skip carriage return.
+            i++;
+        }
+        return lines;
+    }
 }
 
 /**
@@ -110,11 +157,17 @@ export function decodeLevel1Program(binary: Uint8Array): Level1Program | undefin
     // Big endian:
     const startAddress = word(binary[0], binary[1]);
     const endAddress = word(binary[2], binary[3]); // exclusive
-    let entryPointAddress: number | undefined;
 
     // Check sanity of addresses.
     let programSize = endAddress - startAddress;
     let expectedBinarySize = programSize + 5;
+    if (false) {
+        console.log("startAddress = " + startAddress);
+        console.log("endAddress = " + endAddress);
+        console.log("programSize = " + programSize);
+        console.log("expectedBinarySize = " + expectedBinarySize);
+        console.log("binary.length = " + binary.length);
+    }
     // Allow some blank bytes at the end.
     if (startAddress < 0x4000 || programSize < 0 ||
         binary.length < expectedBinarySize || binary.length > expectedBinarySize + 32) {
@@ -141,6 +194,7 @@ export function decodeLevel1Program(binary: Uint8Array): Level1Program | undefin
     annotations.push(new ProgramAnnotation(`Start address (0x${toHexWord(startAddress)})`, 0, 2));
     annotations.push(new ProgramAnnotation(`End address (0x${toHexWord(endAddress)})`, 2, 4));
     // Heuristic for common system programs.
+    let entryPointAddress: number | undefined;
     if (startAddress === 0x41FE) {
         entryPointAddress = word(binary[5], binary[4]);
         annotations.push(new ProgramAnnotation(`Entry point (0x${toHexWord(entryPointAddress)})`, 4, 6));

@@ -1,5 +1,5 @@
 
-// Tools for decoding Basic programs.
+// Tools for decoding Level 2 Basic programs.
 
 import {ByteReader, concatByteArrays, EOF} from "teamten-ts-utils";
 import {hi, lo, toHexWord} from "z80-base";
