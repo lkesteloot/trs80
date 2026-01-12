@@ -44,13 +44,17 @@ export class AudioFileCassettePlayer extends CassettePlayer {
             let samples: Int16Array;
 
             switch (cassetteFile.speed) {
-                case CassetteSpeed.LOW_SPEED:
-                    samples = encodeLowSpeed(wrapLowSpeed(cassetteFile.file.binary), samplesPerSecond, 500);
+                case CassetteSpeed.VERY_LOW:
+                case CassetteSpeed.LOW:
+                    samples = encodeLowSpeed(wrapLowSpeed(cassetteFile.file.binary), samplesPerSecond, cassetteFile.speed);
                     break;
 
-                case CassetteSpeed.HIGH_SPEED:
+                case CassetteSpeed.HIGH:
                     samples = encodeHighSpeed(wrapHighSpeed(cassetteFile.file.binary), samplesPerSecond);
                     break;
+
+                default:
+                    throw new Error("Unsupported speed: " + cassetteFile.speed.nominalBaud);
             }
 
             // Skip to this file.

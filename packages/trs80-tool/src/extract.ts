@@ -53,7 +53,7 @@ export function extract(infile: string, outfile: string): void {
                         programData.copyNumber = program.copyNumber;
                         programData.startFrame = program.startFrame;
                         programData.endFrame = program.endFrame;
-                        programData.speed = program.baud;
+                        programData.speed = program.speed;
                         programData.length = program.binary.length;
 
                         // Decode various formats.

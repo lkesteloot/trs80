@@ -6,7 +6,7 @@ import {Editor} from "./Editor";
 import {wolf} from "./wolf";
 import {fileOpen, fileSave} from "browser-fs-access"
 import {binaryAsCasFile, casAsAudio, DEFAULT_SAMPLE_RATE, writeWavFile} from "trs80-cassette";
-import {decodeTrs80File, isFloppy} from "trs80-base";
+import {CassetteEncoding, CassetteSpeed, decodeTrs80File, isFloppy} from "trs80-base";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build";
 import {Settings} from "./Settings";
 import {SCREEN_SIZES} from "./ScreenSize";
@@ -260,7 +260,7 @@ export class UserInterface {
                                     let binary = editor.makeSystemFile();
                                     if (binary !== undefined) {
                                         // Convert to CAS.
-                                        binary = binaryAsCasFile(binary, 500);
+                                        binary = binaryAsCasFile(binary, CassetteSpeed.LOW);
                                         this.exportFile(binary, editor.getName(), "cas");
                                     }
                                 },
@@ -282,13 +282,13 @@ export class UserInterface {
                             {
                                 text: "Cassette Audio (.wav, low speed)",
                                 action: () => {
-                                    this.exportWav(editor, 500);
+                                    this.exportWav(editor, CassetteSpeed.LOW);
                                 },
                             },
                             {
                                 text: "Cassette Audio (.wav, high speed)",
                                 action: () => {
-                                    this.exportWav(editor, 1500);
+                                    this.exportWav(editor, CassetteSpeed.HIGH);
                                 },
                             },
                         ],
@@ -299,13 +299,13 @@ export class UserInterface {
                             {
                                 text: "Low Speed",
                                 action: () => {
-                                    this.playWav(editor, 500);
+                                    this.playWav(editor, CassetteSpeed.LOW);
                                 },
                             },
                             {
                                 text: "High Speed",
                                 action: () => {
-                                    this.playWav(editor, 1500);
+                                    this.playWav(editor, CassetteSpeed.HIGH);
                                 },
                             },
                         ],
@@ -935,16 +935,16 @@ export class UserInterface {
     }
 
     /**
-     * Trigger download of a WAV file at the specified baud rate.
+     * Trigger download of a WAV file at the specified speed.
      */
-    private exportWav(editor: Editor, baud: number) {
+    private exportWav(editor: Editor, speed: CassetteSpeed) {
         let binary = editor.makeSystemFile();
         if (binary !== undefined) {
             // Convert to CAS.
-            binary = binaryAsCasFile(binary, baud);
+            binary = binaryAsCasFile(binary, speed);
 
             // Convert to WAV.
-            const audio = casAsAudio(binary, baud, DEFAULT_SAMPLE_RATE);
+            const audio = casAsAudio(binary, speed, DEFAULT_SAMPLE_RATE);
             binary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
 
             this.exportFile(binary, editor.getName(), "wav");
@@ -993,23 +993,23 @@ export class UserInterface {
     }
 
     /**
-     * Show dialog box for playing the WAV file at the specified baud rate.
+     * Show dialog box for playing the WAV file at the specified speed.
      */
-    private playWav(editor: Editor, baud: number) {
+    private playWav(editor: Editor, speed: CassetteSpeed) {
         let binary = editor.makeSystemFile();
         if (binary === undefined) {
             return;
         }
 
         // Convert to CAS.
-        binary = binaryAsCasFile(binary, baud);
+        binary = binaryAsCasFile(binary, speed);
 
         // Convert to WAV.
-        const audio = casAsAudio(binary, baud, DEFAULT_SAMPLE_RATE);
+        const audio = casAsAudio(binary, speed, DEFAULT_SAMPLE_RATE);
         binary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
 
         // Dialog box contents.
-        const cass = baud <= 1000 ? "L" : "H";
+        const cass = speed.encoding === CassetteEncoding.FM ? "L" : "H";
         const nameLetter = (editor.getName()[0] ?? "A").toUpperCase();
         const src = this.arrayToBlobUrl(binary, "wav");
 

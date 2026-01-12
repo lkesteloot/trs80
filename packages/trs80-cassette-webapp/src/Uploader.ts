@@ -1,12 +1,12 @@
 
 // Handles uploading WAV files and decoding them.
+import { CassetteSpeed } from "trs80-base";
 import {
     AudioFile,
     DEFAULT_SAMPLE_RATE,
     encodeHighSpeed,
     encodeLowSpeed,
     readWavFile,
-    wrapLowSpeed
 } from "trs80-cassette";
 
 export class Uploader {
@@ -98,7 +98,7 @@ export class Uploader {
             const highSpeed = bytes.length > 0 && bytes[0] === 0x55;
             const audio = highSpeed
                 ? encodeHighSpeed(bytes, DEFAULT_SAMPLE_RATE)
-                : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE, 500);
+                : encodeLowSpeed(bytes, DEFAULT_SAMPLE_RATE, CassetteSpeed.LOW);
             audioFile = new AudioFile(DEFAULT_SAMPLE_RATE, audio);
         } else {
             audioFile = readWavFile(arrayBuffer);

@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import {
     CassetteFile,
+    CassetteSpeed,
     Trs80File,
     Trsdos, TrsdosDirEntry, decodeTrs80CassetteFile, decodeTrs80File, decodeTrsdos, getTrs80FileExtension, isFloppy, trsdosProtectionLevelToString } from "trs80-base";
 import {Decoder, Program, Tape, readWavFile } from "trs80-cassette";
@@ -31,9 +32,9 @@ export class InputFile {
     }
 
     /**
-     * Optional baud rate, if applicable.
+     * Optional cassette speed, if applicable.
      */
-    public getBaud(): number | undefined {
+    public getSpeed(): CassetteSpeed | undefined {
         return undefined;
     }
 
@@ -67,12 +68,12 @@ export class WavInputFile extends InputFile {
 
     public override getDirExtras(): string[] {
         return [
-            this.program.baud + " baud",
+            this.program.speed.nominalBaud + " baud",
         ];
     }
 
-    public override getBaud(): number | undefined {
-        return this.program.baud;
+    public override getSpeed(): CassetteSpeed | undefined {
+        return this.program.speed;
     }
 }
 
@@ -89,12 +90,12 @@ export class CasInputFile extends InputFile {
 
     public override getDirExtras(): string[] {
         return [
-            this.cassetteFile.getBaud() + " baud",
+            this.cassetteFile.speed.nominalBaud + " baud",
         ];
     }
 
-    public override getBaud(): number | undefined {
-        return this.cassetteFile.getBaud();
+    public override getSpeed(): CassetteSpeed | undefined {
+        return this.cassetteFile.speed;
     }
 }
 

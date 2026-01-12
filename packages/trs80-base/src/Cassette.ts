@@ -24,9 +24,55 @@ const HIGH_SPEED_DETECT =
 const MIN_STRICT_HEADER_LENGTH = 200;
 const MIN_LAX_HEADER_LENGTH = 100;
 
-export enum CassetteSpeed {
-    LOW_SPEED,
-    HIGH_SPEED,
+/**
+ * The two encodings used on TRS-80 cassettes.
+ */
+export class CassetteEncoding {
+    // Used for 250 and 500 baud:
+    public static readonly FM = new CassetteEncoding(8);
+    // Used for 1500 baud:
+    public static readonly FSK = new CassetteEncoding(9);
+    public readonly bitsPerByte: number;
+
+    private constructor(bitsPerByte: number) {
+        this.bitsPerByte = bitsPerByte;
+    }
+}
+
+/**
+ * Represents the various speeds used on TRS-80 cassettes.
+ */
+export class CassetteSpeed {
+    public static readonly VERY_LOW = new CassetteSpeed(CassetteEncoding.FM,
+        250, 280, "low");
+    public static readonly LOW = new CassetteSpeed(CassetteEncoding.FM,
+        500, 500, "low");
+    public static readonly HIGH = new CassetteSpeed(CassetteEncoding.FSK,
+        1500, 1500, "high");
+    public readonly encoding: CassetteEncoding;
+    public readonly nominalBaud: number;
+    public readonly actualBaud: number;
+    public readonly name: string;
+
+    private constructor(encoding: CassetteEncoding, nominalBaud: number, actualBaud: number, name: string) {
+        this.encoding = encoding;
+        this.nominalBaud = nominalBaud;
+        this.actualBaud = actualBaud;
+        this.name = name;
+    }
+
+    /**
+     * Return the speed corresponding to the given nominal baud rate, or undefined if not recognized.
+     * @param nominalBaud 250, 500, or 1500.
+     */
+    public static fromNominalBaud(nominalBaud: number): CassetteSpeed | undefined {
+        switch (nominalBaud) {
+            case 250: return CassetteSpeed.VERY_LOW;
+            case 500: return CassetteSpeed.LOW;
+            case 1500: return CassetteSpeed.HIGH;
+            default: return undefined;
+        }
+    }
 }
 
 /**
@@ -70,22 +116,6 @@ export class CassetteFile {
     public adjustedAnnotations(): ProgramAnnotation[] {
         return this.file.annotations.map(annotation => annotation.adjusted(this.offset));
     }
-
-    /**
-     * Get the (guessed) baud rate.
-     */
-    public getBaud(): number {
-        switch (this.speed) {
-            case CassetteSpeed.LOW_SPEED:
-                return this.file.className === "Level1Program" ? 250 : 500;
-
-            case CassetteSpeed.HIGH_SPEED:
-                return 1500;
-
-            default:
-                throw new Error("unknown speed " + this.speed);
-        }
-    }
 }
 
 /**
@@ -107,7 +137,7 @@ export class Cassette extends AbstractTrs80File {
         } else if (this.files.length === 1) {
             const cassetteFile = this.files[0];
             return cassetteFile.file.getDescription() + " on a " +
-                (cassetteFile.speed === CassetteSpeed.LOW_SPEED ? "low" : "high") + " speed cassette";
+                cassetteFile.speed.name + " speed cassette";
         } else {
             return "Cassette with " + this.files.length + " files";
         }
@@ -233,7 +263,7 @@ function findHeader(binary: Uint8Array, start: number, strict: boolean): Header 
                     throw new Error("We don't yet handle low-speed cassettes with bit offsets of " + lowSpeedBitOffset);
                 }
 
-                return new Header(headerStartIndex, i + 1, 0, CassetteSpeed.LOW_SPEED, [
+                return new Header(headerStartIndex, i + 1, 0, CassetteSpeed.LOW, [
                     new ProgramAnnotation("Low speed header", headerStartIndex, i),
                     new ProgramAnnotation("Low speed sync byte", i, i + 1),
                 ]);
@@ -246,7 +276,7 @@ function findHeader(binary: Uint8Array, start: number, strict: boolean): Header 
             const headerStartIndex = findStartOfHeader(binary, i - 2);
             const programStartIndex = i + (highSpeedBitOffset === 0 ? 1 : 0);
             if (i - headerStartIndex >= minHeaderLength) {
-                return new Header(headerStartIndex, programStartIndex, shift, CassetteSpeed.HIGH_SPEED, [
+                return new Header(headerStartIndex, programStartIndex, shift, CassetteSpeed.HIGH, [
                     new ProgramAnnotation("High speed header", headerStartIndex, i),
                     new ProgramAnnotation("High speed sync byte", i, i + 1),
                 ]);
@@ -305,7 +335,7 @@ export function decodeCassette(binary: Uint8Array, strict: boolean, disassemble:
         // Pull out binary.
         const end = i === headers.length - 1 ? binary.length : headers[i + 1].programPosition;
         let fileBinary = shiftLeft(binary.subarray(header.programPosition, end), header.shift);
-        if (header.speed === CassetteSpeed.HIGH_SPEED) {
+        if (header.speed === CassetteSpeed.HIGH) {
             fileBinary = stripStartBits(fileBinary);
         }
 

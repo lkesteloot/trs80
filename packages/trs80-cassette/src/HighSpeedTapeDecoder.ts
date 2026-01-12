@@ -6,6 +6,7 @@ import {TapeDecoderState} from "./TapeDecoderState.js";
 import {ByteData} from "./ByteData.js";
 import {Program} from "./Program.js";
 import {LabelAnnotation, WaveformAnnotation} from "./Annotations.js";
+import { CassetteSpeed } from "trs80-base";
 
 // What distance away from 0 counts as "positive" (or, when negative, "negative").
 const THRESHOLD = 500;
@@ -32,8 +33,8 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
         return "1500 baud";
     }
 
-    public isHighSpeed(): boolean {
-        return true;
+    public getSpeed(): CassetteSpeed {
+        return CassetteSpeed.HIGH;
     }
 
     public findNextProgram(startFrame: number, waveformAnnotations: WaveformAnnotation[]): Program | undefined {
@@ -105,7 +106,7 @@ export class HighSpeedTapeDecoder implements TapeDecoder {
             return undefined;
         }
 
-        return new Program(0, 0, programStartFrame, startFrame, this, 1500,
+        return new Program(0, 0, programStartFrame, startFrame, this, CassetteSpeed.HIGH,
             this.getBinary(), this.getBitData(), this.getByteData());
     }
 

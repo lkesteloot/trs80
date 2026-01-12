@@ -6,7 +6,7 @@ import {Z80_KNOWN_LABELS, toHex, toHexWord } from "z80-base";
 import { asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary } from "trs80-asm";
 import {Asm, FileSystem} from "z80-asm";
 import {DEFAULT_SAMPLE_RATE, binaryAsCasFile, casAsAudio, writeWavFile } from "trs80-cassette";
-import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base";
+import {CassetteSpeed, TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS } from "trs80-base";
 
 const TIME_ASM = false;
 
@@ -42,7 +42,7 @@ class FileSystemImpl implements FileSystem {
 /**
  * Handle the "asm" command.
  */
-export function asm(srcPathname: string, outPathname: string, baud: number, lstPathname: string | undefined): void {
+export function asm(srcPathname: string, outPathname: string, speed: CassetteSpeed, lstPathname: string | undefined): void {
     const { name } = path.parse(srcPathname);
 
     if (TIME_ASM) {
@@ -148,11 +148,11 @@ export function asm(srcPathname: string, outPathname: string, baud: number, lstP
 
             if (extension === ".CAS" || extension === ".WAV") {
                 // Convert to CAS.
-                binary = binaryAsCasFile(binary, baud);
+                binary = binaryAsCasFile(binary, speed);
 
                 if (extension === ".WAV") {
                     // Convert to WAV.
-                    const audio = casAsAudio(binary, baud, DEFAULT_SAMPLE_RATE);
+                    const audio = casAsAudio(binary, speed, DEFAULT_SAMPLE_RATE);
                     binary = writeWavFile(audio, DEFAULT_SAMPLE_RATE);
                 }
             }

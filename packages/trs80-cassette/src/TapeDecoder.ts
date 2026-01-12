@@ -6,6 +6,7 @@ import {TapeDecoderState} from "./TapeDecoderState.js";
 import {ByteData} from "./ByteData.js";
 import {Program} from "./Program.js";
 import {WaveformAnnotation} from "./Annotations.js";
+import { CassetteSpeed } from "trs80-base";
 
 export interface TapeDecoder {
     /**
@@ -14,9 +15,9 @@ export interface TapeDecoder {
     getName(): string;
 
     /**
-     * Whether this is a high speed (1500 baud) or low speed (500 baud) decoder.
+     * Speed used by this decoder.
      */
-    isHighSpeed(): boolean;
+    getSpeed(): CassetteSpeed;
 
     /**
      * Find the next program starting at "startFrame".

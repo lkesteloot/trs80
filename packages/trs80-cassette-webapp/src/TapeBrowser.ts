@@ -460,8 +460,7 @@ export class TapeBrowser {
             input.classList.add("name");
             program.onName.subscribe(name => input.value = name);
             input.value = program.name;
-            // Spec says "off", but Chrome ignores that, so use "chrome-off".
-            input.autocomplete = "chrome-off";
+            input.autocomplete = "off";
             td.appendChild(input);
 
             addKeyElement("Name", td);
@@ -481,8 +480,7 @@ export class TapeBrowser {
             input.rows = 5;
             program.onNotes.subscribe(notes => input.value = notes);
             input.value = program.notes;
-            // Spec says "off", but Chrome ignores that, so use "chrome-off".
-            input.autocomplete = "chrome-off";
+            input.autocomplete = "off";
             td.appendChild(input);
 
             const keyElement = addKeyElement("Notes", td);
@@ -1018,7 +1016,7 @@ export class TapeBrowser {
                 addPane("Assembly" + (edtasmPane.programName ? " (" + edtasmPane.programName + ")" : ""), edtasmPane);
             }
             if (basicPane !== undefined || systemPane !== undefined) {
-                const emulatorLabel = "Emulator (original, " + (program.decoder.isHighSpeed() ? "high" : "low") + " speed)";
+                const emulatorLabel = "Emulator (original, " + program.decoder.getSpeed().name + " speed)";
                 addPane(emulatorLabel, this.makeEmulatorPane(program,
                     new TapeCassette(this.tape, program),
                     Config.makeDefault()));

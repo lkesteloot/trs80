@@ -11,7 +11,7 @@ import {SimpleEventDispatcher} from "strongly-typed-events";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder.js";
 import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile.js";
 import {concatByteArrays} from "teamten-ts-utils";
-import {Cassette, CassetteSpeed} from "trs80-base";
+import {Cassette, CassetteEncoding, CassetteSpeed} from "trs80-base";
 import {HighSpeedTapeDecoder} from "./HighSpeedTapeDecoder.js";
 import {ByteData} from "./ByteData.js";
 import {BitData} from "./BitData.js";
@@ -76,20 +76,20 @@ export class Tape {
         let lastOffset = 0;
         let lastFrame = 0;
         for (const file of cas.files) {
-            const baud = file.speed === CassetteSpeed.LOW_SPEED ? 500 : 1500;
-            const bitsPerByte = file.speed === CassetteSpeed.LOW_SPEED ? 8 : 9;
+            const baud = file.speed.actualBaud;
+            const bitsPerByte = file.speed.encoding.bitsPerByte;
             const startFrame = Math.round(lastFrame + (file.offset - lastOffset)*bitsPerByte/baud*DEFAULT_SAMPLE_RATE);
             const endOffset = file.offset + file.file.binary.length;
             const endFrame = Math.round(lastFrame + (endOffset - lastOffset)*bitsPerByte/baud*DEFAULT_SAMPLE_RATE);
             lastOffset = endOffset;
             lastFrame = endFrame;
-            const decoder = file.speed === CassetteSpeed.LOW_SPEED
-                ? new LowSpeedTapeDecoder(tape, baud)
+            const decoder = file.speed.encoding === CassetteEncoding.FM
+                ? new LowSpeedTapeDecoder(tape, file.speed)
                 : new HighSpeedTapeDecoder(tape);
             const bitData: BitData[] = [];
             const byteData: ByteData[] = [];
 
-            const program = new Program(track, 1, startFrame, endFrame, decoder, baud,
+            const program = new Program(track, 1, startFrame, endFrame, decoder, file.speed,
                 file.file.binary, bitData, byteData);
 
             tape.addProgram(program);

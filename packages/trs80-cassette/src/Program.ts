@@ -7,22 +7,22 @@ import {TapeDecoder} from "./TapeDecoder.js";
 import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder.js";
 import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder.js";
 import {DEFAULT_SAMPLE_RATE, writeWavFile} from "./WavFile.js";
-import {ProgramAnnotation, isEdtasmProgram} from "trs80-base";
+import {CassetteEncoding, CassetteSpeed, ProgramAnnotation, isEdtasmProgram} from "trs80-base";
 
 /**
  * Get the binary wrapped in a CAS.
  */
-export function binaryAsCasFile(binary: Uint8Array, baud: number): Uint8Array {
-    return baud >= 1500 ? wrapHighSpeed(binary) : wrapLowSpeed(binary);
+export function binaryAsCasFile(binary: Uint8Array, speed: CassetteSpeed): Uint8Array {
+    return speed.encoding === CassetteEncoding.FSK ? wrapHighSpeed(binary) : wrapLowSpeed(binary);
 }
 
 /**
  * Get the audio for a CAS binary (not including the WAV header).
  */
-export function casAsAudio(cas: Uint8Array, baud: number, sampleRate: number): Int16Array {
-    return baud === 1500
+export function casAsAudio(cas: Uint8Array, speed: CassetteSpeed, sampleRate: number): Int16Array {
+    return speed.encoding === CassetteEncoding.FSK
         ? encodeHighSpeed(cas, sampleRate)
-        : encodeLowSpeed(cas, sampleRate, baud);
+        : encodeLowSpeed(cas, sampleRate, speed);
 }
 
 /**
@@ -34,7 +34,7 @@ export class Program {
     public startFrame: number;
     public endFrame: number;
     public decoder: TapeDecoder;
-    public readonly baud: number;
+    public readonly speed: CassetteSpeed;
     public binary: Uint8Array;
     public bitData: BitData[];
     // Index by byte index in the "binary" array.
@@ -50,14 +50,15 @@ export class Program {
     public readonly onScreenshot = new SimpleEventDispatcher<string>();
 
     constructor(trackNumber: number, copyNumber: number, startFrame: number, endFrame: number,
-                decoder: TapeDecoder, baud: number, binary: Uint8Array, bitData: BitData[], byteData: ByteData[]) {
+                decoder: TapeDecoder, speed: CassetteSpeed, binary: Uint8Array,
+                bitData: BitData[], byteData: ByteData[]) {
 
         this.trackNumber = trackNumber;
         this.copyNumber = copyNumber;
         this.startFrame = startFrame;
         this.endFrame = endFrame;
         this.decoder = decoder;
-        this.baud = baud;
+        this.speed = speed;
         this.binary = binary;
         this.bitData = bitData;
         this.byteData = byteData;
@@ -176,26 +177,21 @@ export class Program {
     /**
      * Return a .cas file version of the binary.
      *
-     * @param baud the baud rate, or undefined to use the original. 1500 is considered high speed,
-     * anything below that is considered low speed.
+     * @param speed the speed, or undefined to use the original.
      */
-    public asCasFile(baud?: number): Uint8Array {
-        if (baud === undefined) {
-            baud = this.decoder.isHighSpeed() ? 1500 : 500;
-        }
-        return binaryAsCasFile(this.binary, baud);
+    public asCasFile(speed?: CassetteSpeed): Uint8Array {
+        speed ??= this.decoder.getSpeed();
+        return binaryAsCasFile(this.binary, speed);
     }
 
     /**
      * Return just the audio portion of a WAV file for this program.
      *
-     * @param baud the output baud rate, or undefined to use the original.
+     * @param speed the output speed, or undefined to use the original.
      */
-    public asAudio(baud?: number): Int16Array {
-        if (baud === undefined) {
-            baud = this.decoder.isHighSpeed() ? 1500 : 500;
-        }
-        return casAsAudio(this.asCasFile(baud), baud, DEFAULT_SAMPLE_RATE);
+    public asAudio(speed?: CassetteSpeed): Int16Array {
+        speed ??= this.decoder.getSpeed();
+        return casAsAudio(this.asCasFile(speed), speed, DEFAULT_SAMPLE_RATE);
     }
 
     /**

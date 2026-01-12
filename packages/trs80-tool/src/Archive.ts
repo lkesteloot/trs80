@@ -49,7 +49,7 @@ export class WavFile extends ArchiveFile {
     public getDirString(): string {
         return this.filename.padEnd(12) + " " +
             withCommas(this.program.binary.length).padStart(8) + "  " +
-            this.program.baud + " baud";
+            this.program.speed.nominalBaud + " baud";
     }
 
     public getBinary(): Uint8Array {
@@ -75,7 +75,7 @@ export class CasFile extends ArchiveFile {
     getDirString(): string {
         return this.filename.padEnd(14) + " " +
             withCommas(this.cassetteFile.file.binary.length).padStart(8) + "  " +
-            (this.cassetteFile.speed === CassetteSpeed.HIGH_SPEED ? "1500" : "500") + " baud";
+            this.cassetteFile.speed.nominalBaud + " baud";
     }
 }
 

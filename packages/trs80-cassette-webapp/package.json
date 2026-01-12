@@ -8,7 +8,7 @@
   "scripts": {
     "start": "vite",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && vite build --base=/cassette/",
+    "build": "npm run updateBuildInfo && tsc --noEmit && vite build --base=/cassette/",
     "clean": "rm -rf dist"
   },
   "repository": "https://github.com/lkesteloot/trs80.git",

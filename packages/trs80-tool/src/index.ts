@@ -16,6 +16,7 @@ import {repl} from "./repl.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {mount} from "./mount.js";
 import {LogLevel, LogSink, TRS80_MAIN_SINK, TRS80_MODULE_NAME_TO_LOGGER} from "trs80-logger";
+import { CassetteSpeed } from "trs80-base";
 
 const HELP_TEXT = `
 See this page for full documentation: https://my-trs-80.com/tool
@@ -103,6 +104,23 @@ function makeFileLogSink(pathname: string): LogSink {
     };
 }
 
+/**
+ * Parse a baud rate string into a speed.
+ */
+function parseBaud(baudString: string | undefined): CassetteSpeed | undefined {
+    if (baudString === undefined) {
+        return undefined;
+    }
+    const baud = parseInt(baudString);
+    const speed = CassetteSpeed.fromNominalBaud(baud);
+    if (speed === undefined) {
+        console.log("Baud rate must be 250, 500, or 1500: " + baud);
+        process.exit(1);
+    }
+
+    return speed;
+}
+
 function main() {
     TRS80_MAIN_SINK.delegatedSinks.splice(0);
     // Important that this is first, we might replace it in the run() command. Don't use
@@ -158,11 +176,11 @@ function main() {
             infile: "WAV, CAS, CMD, 3BN, or BAS file", // TODO these aren't used.
             outfile: "WAV, CAS, CMD, 3BN, BAS, ASM, or LST file",
         })
-        .option("--baud <baud>", "output baud rate (250, 500, 1000, or 1500)")
+        .option("--baud <baud>", "output baud rate (250, 500, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
         .option("--entry <addresses>", "add entry points of binary (comma-separated), for ASM or LST output")
         .action((files, options) => {
-            const baud = options.baud !== undefined ? parseInt(options.baud) : undefined;
+            const speed = parseBaud(options.baud);
             const start = options.start !== undefined ? options.start === "auto" ? "auto" : parseInt(options.start) : undefined;
             const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
             if (files.length < 2) {
@@ -171,7 +189,7 @@ function main() {
             }
             const infiles = files.slice(0, files.length - 1);
             const outfile = files[files.length - 1];
-            convert(infiles, outfile, baud, start, entryPoints);
+            convert(infiles, outfile, speed, start, entryPoints);
         });
     if (2 > 3) {
         program
@@ -211,15 +229,11 @@ function main() {
             infile: "ASM file",
             outfile: "CMD, 3BN, CAS, WAV, BIN, or HEX file",
         })
-        .option("--baud <baud>", "baud rate for CAS and WAV file (250, 500, 1000, 1500), defaults to 500")
+        .option("--baud <baud>", "baud rate for CAS and WAV file (250, 500, 1500), defaults to 500")
         .option("--listing <filename>", "generate listing file")
         .action((infile, outfile, options) => {
-            const baud = options.baud === undefined ? 500 : parseInt(options.baud);
-            if (baud !== 250 && baud !== 500 && baud !== 1000 && baud !== 1500) {
-                console.log("Invalid baud rate: " + options.baud);
-                process.exit(1);
-            }
-            asm(infile, outfile, baud, options.listing);
+            const speed = parseBaud(options.baud) ?? CassetteSpeed.LOW;
+            asm(infile, outfile, speed, options.listing);
         });
     program
         .command("disasm <infile>")

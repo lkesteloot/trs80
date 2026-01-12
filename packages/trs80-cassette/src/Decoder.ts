@@ -8,6 +8,7 @@ import {TapeDecoder} from "./TapeDecoder.js";
 import {encodeHighSpeed, wrapHighSpeed} from "./HighSpeedTapeEncoder.js";
 import {LowSpeedTapeDecoder} from "./LowSpeedTapeDecoder.js";
 import {encodeLowSpeed, wrapLowSpeed} from "./LowSpeedTapeEncoder.js";
+import { CassetteSpeed } from "trs80-base";
 
 class Transition {
     public candidate: Program;
@@ -38,9 +39,10 @@ export class Decoder {
         // All decoders we're interested in. We use factories because they're created
         // multiple times, once for each program found.
         let tapeDecoderFactories: (() => TapeDecoder)[] = [
-            () => new LowSpeedTapeDecoder(this.tape, 250),
-            () => new LowSpeedTapeDecoder(this.tape, 500),
-            () => new LowSpeedTapeDecoder(this.tape, 1000),
+            () => new LowSpeedTapeDecoder(this.tape, CassetteSpeed.VERY_LOW),
+            () => new LowSpeedTapeDecoder(this.tape, CassetteSpeed.LOW),
+            // Disabling this, I don't have any samples:
+            // () => new LowSpeedTapeDecoder(this.tape, 1000),
             () => new HighSpeedTapeDecoder(this.tape),
         ];
 
@@ -135,7 +137,7 @@ export class Decoder {
         // Here we could re-encode in either low speed or high speed. Do low speed so that
         // the audio is usable on a Model I.
         if (true) { // TODO fix this
-            return encodeLowSpeed(wrapLowSpeed(binary), this.tape.sampleRate, 500);
+            return encodeLowSpeed(wrapLowSpeed(binary), this.tape.sampleRate, CassetteSpeed.LOW);
         } else {
             // Low-speed programs end in two 0x00, but high-speed programs
             // end in three 0x00. Add the additional 0x00 since we're

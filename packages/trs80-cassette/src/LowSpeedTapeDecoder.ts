@@ -15,6 +15,7 @@ import {
 } from "./Annotations.js";
 import {clampToInt16, highPassFilter} from "./AudioUtils.js";
 import {withCommas} from "teamten-ts-utils";
+import { CassetteSpeed } from "trs80-base";
 
 const SYNC_BYTE = 0xA5;
 
@@ -88,7 +89,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
 
     public static DEFAULT_THRESHOLD = 3000;
     private readonly samples: Int16Array;
-    private readonly baud: number;
+    private readonly speed: CassetteSpeed;
     // Distance between two clock pulses.
     private readonly period: number;
     private readonly halfPeriod: number;
@@ -98,7 +99,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     private state: TapeDecoderState = TapeDecoderState.UNDECIDED;
     private peakThreshold = LowSpeedTapeDecoder.DEFAULT_THRESHOLD;
 
-    constructor(tape: Tape, baud: number) {
+    constructor(tape: Tape, speed: CassetteSpeed) {
         const samples = tape.lowSpeedSamples.samplesList[0];
         if (true) {
             this.samples = samples;
@@ -109,9 +110,8 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
                 this.samples[i] = -samples[i];
             }
         }
-        this.baud = baud;
-        const effectiveBaud = baud === 250 ? 280 : baud;
-        this.period = Math.round(tape.sampleRate/effectiveBaud);
+        this.speed = speed;
+        this.period = Math.round(tape.sampleRate/speed.actualBaud);
         this.halfPeriod = Math.round(this.period / 2);
         this.quarterPeriod = Math.round(this.period / 4);
         this.clockPulseSearchRadius = Math.round(this.period * 0.3);
@@ -278,7 +278,7 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
         }
 
         return new Program(0, 0, startFrame, frame,
-            this, this.baud, new Uint8Array(binary), bitData, byteData);
+            this, this.speed, new Uint8Array(binary), bitData, byteData);
     }
 
     /**
@@ -524,11 +524,11 @@ export class LowSpeedTapeDecoder implements TapeDecoder {
     }
 
     getName(): string {
-        return `${this.baud} baud`;
+        return `${this.speed.nominalBaud} baud`;
     }
 
-    public isHighSpeed(): boolean {
-        return false;
+    getSpeed(): CassetteSpeed {
+        return this.speed;
     }
 
     getState(): TapeDecoderState {
