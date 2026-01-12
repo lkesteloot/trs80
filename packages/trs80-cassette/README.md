@@ -73,7 +73,7 @@ This sample encodes the sequence `10011110`:
 
 References:
 
-* [Story behind "1500" baud decisions](http://www.vcfed.org/forum/archive/index.php/t-56618.html)
+* [Story behind "1500" baud decisions](https://forum.vcfed.org/index.php?threads/story-behind-1500-baud-decisions.57410/)
 * [U.S. Patent 4443883, "Data synchronization apparatus"](https://patents.google.com/patent/US4443883)
 
 # 1500 baud mystery
