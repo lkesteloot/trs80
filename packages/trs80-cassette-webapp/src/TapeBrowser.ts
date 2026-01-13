@@ -795,7 +795,9 @@ export class TapeBrowser {
         const screenDiv = document.createElement("div");
         div.appendChild(screenDiv);
 
-        const screen = new CanvasScreen();
+        const screen = new CanvasScreen({
+            initiallyVisible: false,
+        });
         screenDiv.append(screen.getNode());
         const keyboard = new WebKeyboard();
         const soundPlayer = new WebSoundPlayer();
@@ -842,8 +844,14 @@ export class TapeBrowser {
         reboot();
 
         const pane = new Pane(div);
-        pane.didShow = () => trs80.setRunningState(RunningState.STARTED);
-        pane.didHide = () => trs80.setRunningState(RunningState.STOPPED);
+        pane.didShow = () => {
+            trs80.setRunningState(RunningState.STARTED);
+            screen.setVisible(true);
+        };
+        pane.didHide = () => {
+            trs80.setRunningState(RunningState.STOPPED);
+            screen.setVisible(false);
+        };
         return pane;
     }
 
@@ -853,7 +861,7 @@ export class TapeBrowser {
     private showPane(pane: Pane): void {
         // Hide all others.
         for (const otherPane of this.panes) {
-            if (otherPane !== pane) {
+            if (otherPane !== pane && !otherPane.element.classList.contains("hidden")) {
                 otherPane.willHide?.();
                 otherPane.element.classList.add("hidden");
                 otherPane.row?.classList.remove("selected");

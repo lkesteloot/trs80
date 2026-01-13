@@ -1459,17 +1459,21 @@ class ConfiguredCanvas {
 
 // Options for configuring the canvas screen.
 type CanvasScreenOptions = {
-    // Scaling up the resulting canvas.
+    // Scaling up the resulting canvas. Defaults to 1.
     scale: number;
 
     // Whether to render at a higher ratio for things like retina screen. Set this to true
     // when directly displaying the screen, but false when generating image (asImageAsync())
-    // or the image will be too large.
+    // or the image will be too large. Defaults to true.
     useDevicePixelRatio: boolean;
+
+    // Whether the screen is initially visible (see setVisible()). Defaults to true.
+    initiallyVisible: boolean;
 };
 const DEFAULT_CANVAS_SCREEN_OPTIONS = {
     scale: 1,
     useDevicePixelRatio: true,
+    initiallyVisible: true,
 } satisfies CanvasScreenOptions;
 
 /**
@@ -1477,9 +1481,10 @@ const DEFAULT_CANVAS_SCREEN_OPTIONS = {
  */
 export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, ScreenSizeProvider, Configurable {
     public scale: number;
+    private visible: boolean;
     private readonly devicePixelRatio: number;
     private readonly node: HTMLElement;
-    private configuredCanvas: ConfiguredCanvas;
+    private configuredCanvas: ConfiguredCanvas | undefined;
     private readonly memory: Uint8Array = new Uint8Array(TRS80_SCREEN_SIZE);
     public readonly mouseActivity = new SimpleEventDispatcher<ScreenMouseEvent>();
     private readonly onScreenSize = new SimpleEventDispatcher<ScreenSize>();
@@ -1507,6 +1512,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         } satisfies CanvasScreenOptions;
 
         this.scale = fullOptions.scale;
+        this.visible = fullOptions.initiallyVisible;
+
         // TODO maybe set this to 1 for simple mode? may not be buying us anything.
         // Or at least check if it would help, like if it would make the canvas
         // size at least as large as the TRS-80 pixel resolution. Though also maybe
@@ -1521,12 +1528,16 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         // displayed in the canvas.
         this.node.style.maxWidth = "max-content";
 
-        this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.devicePixelRatio,
-            this.memory, this.isExpandedCharacters(), this.isAlternateCharacters());
-        this.node.append(this.configuredCanvas.canvas);
-        this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
-        this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
-        this.configuredCanvas.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
+        if (this.visible) {
+            this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.devicePixelRatio,
+                this.memory, this.isExpandedCharacters(), this.isAlternateCharacters());
+            this.node.append(this.configuredCanvas.canvas);
+            this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
+            this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
+            this.configuredCanvas.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
+        } else {
+            this.configuredCanvas = undefined;
+        }
 
         // We don't have a good way to unsubscribe from these two. We could add some kind of close() method.
         // We could also check in the callback that the canvas's ancestor is window.
@@ -1553,6 +1564,19 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                     : DisplayType.SIMPLE;
                 this.setConfig(this.config.edit().withDisplayType(newDisplayType).build());
             }, 5000);
+        }
+    }
+
+    /**
+     * Set whether this screen is visible to the user. When made invisible,
+     * the WebGL context is destroyed and the screen is blank. This is useful
+     * if there are many screens on a page (too many for Chrome to display)
+     * but they're not all visible at the same time.
+     */
+    public setVisible(visible: boolean): void {
+        if (visible !== this.visible) {
+            this.visible = visible;
+            this.updateFromConfig(true);
         }
     }
 
@@ -1592,6 +1616,11 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Update the overlay canvas given the overlay options and the config.
      */
     private updateOverlay(): void {
+        let configuredCanvas = this.configuredCanvas;
+        if (configuredCanvas === undefined) {
+            return;
+        }
+
         const options = {
             ... this.overlayOptions,
             ... (this.config.grid ? {
@@ -1604,8 +1633,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
         const showOverlay = options.showPixelGrid || options.showCharGrid ||
             options.showHighlight !== undefined || options.showCursor || showSelection;
         if (showOverlay) {
-            const width = this.configuredCanvas.canvas.width;
-            const height = this.configuredCanvas.canvas.height;
+            const width = configuredCanvas.canvas.width;
+            const height = configuredCanvas.canvas.height;
 
             // Create overlay canvas if necessary.
             let overlayCanvas = this.overlayCanvas;
@@ -1618,8 +1647,8 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
                 this.listenForScreenSize(screenSize => {
                     validOverlayCanvas.style.width = `${screenSize.width}px`;
                     validOverlayCanvas.style.height = `${screenSize.height}px`;
-                    validOverlayCanvas.width = this.configuredCanvas.canvas.width;
-                    validOverlayCanvas.height = this.configuredCanvas.canvas.height;
+                    validOverlayCanvas.width = configuredCanvas.canvas.width;
+                    validOverlayCanvas.height = configuredCanvas.canvas.height;
                 });
                 overlayCanvas.style.pointerEvents = "none";
                 this.node.append(overlayCanvas);
@@ -1636,7 +1665,7 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
             const ctx = overlayCanvas.getContext("2d")!;
             ctx.save();
             ctx.clearRect(0, 0, width, height);
-            const cssPixelsPadding = this.configuredCanvas.getCssPixelsPadding();
+            const cssPixelsPadding = configuredCanvas.getCssPixelsPadding();
             ctx.translate(cssPixelsPadding, cssPixelsPadding);
 
             // Draw columns.
@@ -1731,6 +1760,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Convert curved (by CRT curvature) XY position to the original rectangular position.
      */
     private curvedPosToStraightPos(x: number, y: number): {x: number, y: number} {
+        if (this.configuredCanvas === undefined) {
+            throw new Error("Screen is not visible");
+        }
         // Correct for CRT curvature.
         const width = TRS80_PIXEL_WIDTH*GRAPHIC_TO_CRT_PIXEL_WIDTH*this.scale;
         const height = TRS80_PIXEL_HEIGHT*GRAPHIC_TO_CRT_PIXEL_HEIGHT*this.scale;
@@ -1750,6 +1782,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Convert rectangular XY position to curved (by CRT curvature) position, both in CSS pixels.
      */
     private straightPosToCurvedPos(x: number, y: number): {x: number, y: number} {
+        if (this.configuredCanvas === undefined) {
+            throw new Error("Screen is not visible");
+        }
         const devicePixelRatio = this.devicePixelRatio;
         x *= devicePixelRatio;
         y *= devicePixelRatio;
@@ -1847,6 +1882,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Send a new mouse event to listeners.
      */
     private emitMouseActivity(type: ScreenMouseEventType, event: MouseEvent, shiftKey: boolean): void {
+        if (this.configuredCanvas === undefined) {
+            return;
+        }
         // Screen pixel, relative to upper-left.
         const cssPixelsPadding = this.configuredCanvas.getCssPixelsPadding();
         const {x, y} = this.curvedPosToStraightPos(
@@ -1864,6 +1902,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Handle a new mouse event.
      */
     private onMouseEvent(type: ScreenMouseEventType, event: MouseEvent): void {
+        if (this.configuredCanvas === undefined) {
+            return;
+        }
         if (type === "mousemove" &&
             this.lastMouseEvent !== undefined &&
             (this.lastMouseEvent.buttons & 1) !== 0 &&
@@ -1886,6 +1927,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Handle a new keyboard events.
      */
     private onKeyEvent(event: KeyboardEvent): void {
+        if (this.configuredCanvas === undefined) {
+            return;
+        }
         if (this.lastMouseEvent !== undefined) {
             // Only shift keys really matter.
             this.emitMouseActivity("mousemove", this.lastMouseEvent, event.shiftKey);
@@ -1914,6 +1958,10 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     }
 
     private setDemoModeParameter(demoMode: DemoMode, value: number) {
+        if (this.configuredCanvas === undefined) {
+            return;
+        }
+
         switch (demoMode) {
             case DemoMode.OFF:
                 // Do nothing.
@@ -1981,46 +2029,65 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Update the screen from the config and other state.
      */
     private updateFromConfig(force?: boolean): void {
-        // Remember old values.
-        const oldCanvas = this.configuredCanvas.canvas;
-        const oldScreenSize = this.getScreenSize();
-        const oldScreenColor = this.getScreenColor();
+        if (this.visible) {
+            // Remember old values.
+            const oldScreenSize = this.configuredCanvas === undefined ? undefined : this.getScreenSize();
+            const oldScreenColor = this.configuredCanvas === undefined ? undefined : this.getScreenColor();
 
-        if (!this.configuredCanvas.config.equals(this.config) || force) {
-            // Make a new configured canvas.
-            this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.devicePixelRatio,
-                this.memory, this.isExpandedCharacters(), this.isAlternateCharacters());
-            oldCanvas.replaceWith(this.configuredCanvas.canvas);
-            this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
-            this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
-            this.configuredCanvas.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
-        }
+            if (force ||
+                this.configuredCanvas === undefined ||
+                !this.configuredCanvas.config.equals(this.config)) {
 
-        // Update grid.
-        this.updateOverlay();
+                // Make a new configured canvas.
+                const oldCanvas = this.configuredCanvas?.canvas;
+                this.configuredCanvas = new ConfiguredCanvas(this.config, this.scale, this.devicePixelRatio,
+                    this.memory, this.isExpandedCharacters(), this.isAlternateCharacters());
+                if (oldCanvas !== undefined) {
+                    oldCanvas.replaceWith(this.configuredCanvas.canvas);
+                } else {
+                    this.node.append(this.configuredCanvas.canvas);
+                }
+                this.configuredCanvas.canvas.addEventListener("mousemove", (event) => this.onMouseEvent("mousemove", event));
+                this.configuredCanvas.canvas.addEventListener("mousedown", (event) => this.onMouseEvent("mousedown", event));
+                this.configuredCanvas.canvas.addEventListener("mouseup", (event) => this.onMouseEvent("mouseup", event));
+            }
 
-        // Call listeners.
-        const newScreenSize = this.getScreenSize();
-        if (!oldScreenSize.equals(newScreenSize)) {
-            this.invalidateStraightPosToCurvedPosMap();
-            this.onScreenSize.dispatch(newScreenSize);
-        }
-        const newScreenColor = this.getScreenColor();
-        if (!oldScreenColor.equals(newScreenColor)) {
-            this.onScreenColor.dispatch(newScreenColor);
+            // Update grid.
+            this.updateOverlay();
+
+            // Call listeners.
+            const newScreenSize = this.getScreenSize();
+            if (oldScreenSize === undefined || !oldScreenSize.equals(newScreenSize)) {
+                this.invalidateStraightPosToCurvedPosMap();
+                this.onScreenSize.dispatch(newScreenSize);
+            }
+            const newScreenColor = this.getScreenColor();
+            if (oldScreenColor === undefined || !oldScreenColor.equals(newScreenColor)) {
+                this.onScreenColor.dispatch(newScreenColor);
+            }
+        } else {
+            if (this.configuredCanvas !== undefined) {
+                this.configuredCanvas.canvas.remove();
+                this.configuredCanvas = undefined;
+            }
         }
     }
 
     writeChar(address: number, value: number): void {
         const offset = address - TRS80_SCREEN_BEGIN;
         this.memory[offset] = value;
-        this.configuredCanvas.needRedraw = true;
+        if (this.configuredCanvas !== undefined) {
+            this.configuredCanvas.needRedraw = true;
+        }
     }
 
     /**
      * Get the foreground color as a CSS color based on the current config.
      */
     public getForegroundColor(): string {
+        if (this.configuredCanvas === undefined) {
+            throw new Error("Screen is not visible");
+        }
         // The brightest color actually looks a bit wrong when used in CSS
         // (it's too desaturated), so use nearly the brightest color.
         const FRACTION = 0.8;
@@ -2035,6 +2102,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Get the background color as a CSS color based on the current config.
      */
     public getBackgroundColor(): string {
+        if (this.configuredCanvas === undefined) {
+            throw new Error("Screen is not visible");
+        }
         const color = this.configuredCanvas.colorMap.subarray(0, 3);
         return "#" + toHexByte(color[0]) + toHexByte(color[1]) + toHexByte(color[2]);
     }
@@ -2053,14 +2123,14 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
     setExpandedCharacters(expanded: boolean): void {
         if (expanded !== this.isExpandedCharacters()) {
             super.setExpandedCharacters(expanded);
-            this.configuredCanvas.setExpandedCharacters(expanded);
+            this.configuredCanvas?.setExpandedCharacters(expanded);
         }
     }
 
     setAlternateCharacters(alternate: boolean): void {
         if (alternate !== this.isAlternateCharacters()) {
             super.setAlternateCharacters(alternate);
-            this.configuredCanvas.setAlternateCharacters(alternate);
+            this.configuredCanvas?.setAlternateCharacters(alternate);
         }
     }
 
@@ -2074,6 +2144,9 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * "async" name, there's still some synchronous work, about 13ms.
      */
     public asImageAsync(): Promise<HTMLImageElement> {
+        if (this.configuredCanvas === undefined) {
+            return Promise.reject(new Error("Screen is not visible"));
+        }
         return this.configuredCanvas.asImageAsync();
     }
 
@@ -2081,10 +2154,16 @@ export class CanvasScreen extends Trs80WebScreen implements FlipCardSide, Screen
      * Make a canvas from the sub-rectangle section.
      */
     public makeSelectionCanvas(selection: Selection): HTMLCanvasElement {
+        if (this.configuredCanvas === undefined) {
+            throw new Error("Screen is not visible");
+        }
         return this.configuredCanvas.makeSelectionCanvas(selection);
     }
 
-    public getScreenSize() {
+    public getScreenSize(): ScreenSize {
+        if (this.configuredCanvas === undefined) {
+            throw new Error("Screen is not visible");
+        }
         return this.configuredCanvas.getScreenSize();
     }
 
