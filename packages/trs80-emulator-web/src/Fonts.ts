@@ -646,7 +646,7 @@ export class Font {
         const canvas = document.createElement("canvas");
         let expandedMultiplier = expanded ? 2 : 1;
         canvas.width = this.width*expandedMultiplier;
-        canvas.height = this.height*2;
+        canvas.height = this.height;
 
         const ctx = canvas.getContext("2d");
         if (ctx === null) {
@@ -700,22 +700,22 @@ export class Font {
 
     /**
      * Make a sheet with all the characters laid out horizontally (0-255). Each takes
-     * 8 entries across, for 2048 numbers for each row, and 24 rows. The values will
-     * be 0 for off and 255 for on.
+     * 6 or 8 entries across, for 1536 or 2048 numbers for each row, and 24 rows.
+     * The values are 0 for off and 255 for on.
      */
     public makeFontSheet(): number[] {
         const sheet: number[] = [];
 
         for (let y = 0; y < 24; y++) {
             for (let ch = 0; ch < 256; ch++) {
-                for (let x = 0; x < 8; x++) {
-                    const bankOffset = this.banks[Math.floor(ch/64)];
+                const bankOffset = this.banks[Math.floor(ch/64)];
+                for (let x = 0; x < this.width; x++) {
                     let pixel: boolean;
                     if (bankOffset === -1) {
                         // Graphical character.
                         const byte = ch%64;
                         const py = Math.floor(y/8);
-                        const px = Math.floor(x/4);
+                        const px = Math.floor(x/(this.width/2));
                         const bit = py*2 + px;
                         pixel = (byte & (1 << bit)) !== 0;
                     } else {
@@ -736,10 +736,10 @@ export class Font {
 }
 
 // Original Model I.
-export const MODEL1A_FONT = new Font(GLYPH_CG1, 6, 12, [0, 64, -1, -1]);
+export const MODEL1A_FONT = new Font(GLYPH_CG1, 6, 24, [0, 64, -1, -1]);
 // Model I with lower case mod.
-export const MODEL1B_FONT = new Font(GLYPH_CG2, 6, 12, [0, 64, -1, -1]);
+export const MODEL1B_FONT = new Font(GLYPH_CG2, 6, 24, [0, 64, -1, -1]);
 // Original Model III, with special symbols.
-export const MODEL3_FONT = new Font(GLYPH_CG4, 8, 12, [0, 64, -1, 128]);
+export const MODEL3_FONT = new Font(GLYPH_CG4, 8, 24, [0, 64, -1, 128]);
 // Original Model III, with Katakana.
-export const MODEL3_ALT_FONT = new Font(GLYPH_CG4, 8, 12, [0, 64, -1, 192]);
+export const MODEL3_ALT_FONT = new Font(GLYPH_CG4, 8, 24, [0, 64, -1, 192]);

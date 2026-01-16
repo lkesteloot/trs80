@@ -132,8 +132,12 @@ void main() {
 /**
  * The first pass shader, used by both simple mode and authentic mode. Draws the
  * characters from the memory map to a plain bitmap.
+ *
+ * @param charPixelWidth Width of a character in CRT pixels.
+ * @param charPixelHeight Height of a character in CRT pixels.
  */
-const DRAW_CHARS_FRAGMENT_SHADER_SOURCE = `#version 300 es
+function DRAW_CHARS_FRAGMENT_SHADER_SOURCE(charPixelWidth: number, charPixelHeight: number) {
+    return `#version 300 es
  
 precision highp float;
 precision highp usampler2D;
@@ -147,7 +151,7 @@ in vec2 v_texcoord;
 out vec4 outColor;
 
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
-const ivec2 g_charCrtPixelSize = ivec2(${CHAR_TO_CRT_PIXEL_WIDTH}, ${CHAR_TO_CRT_PIXEL_HEIGHT});
+const ivec2 g_charCrtPixelSize = ivec2(${charPixelWidth}, ${charPixelHeight});
 
 void main() {
     // Integer texel coordinate.
@@ -156,7 +160,7 @@ void main() {
     // Remove black border.
     t -= 1;
     
-    // Expanded mode.
+    // Expanded mode, double each pixel.
     if (u_expanded) {
         t.x = int(floor(float(t.x) / 2.0));
     }
@@ -164,14 +168,14 @@ void main() {
     // Character position.
     ivec2 c = ivec2(floor(vec2(t)/vec2(g_charCrtPixelSize)));
 
+    // Every other memory location for expanded mode.
+    if (u_expanded) {
+        c.x *= 2;
+    }
+
     if (c.x >= 0 && c.x < g_charSize.x && c.y >= 0 && c.y < g_charSize.y) {
         // Character sub-position.
         ivec2 s = t % g_charCrtPixelSize;
-        
-        // Every other memory location for expanded mode.
-        if (u_expanded) {
-            c.x *= 2;
-        }
 
         // Character to draw.
         vec2 memoryCoord = vec2(ivec2(c.x, g_charSize.y - 1 - c.y))/vec2(u_memoryTextureSize);
@@ -190,6 +194,7 @@ void main() {
     }
 }
 `;
+}
 
 /**
  * Second (and final) pass for the simple display. Scales up to device resolution;
@@ -202,7 +207,6 @@ precision highp usampler2D;
 
 uniform sampler2D u_inputTexture;
 uniform sampler2D u_colorMapTexture;
-uniform ivec2 u_inputTextureSize;
 uniform float u_padding; // TRS-80 CRT coordinates.
 uniform float u_scale; // CRT to device.
 uniform float u_radius; // In device pixels.
@@ -213,16 +217,17 @@ out vec4 outColor;
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
 const ivec2 g_charCrtPixelSize = ivec2(${CHAR_TO_CRT_PIXEL_WIDTH}, ${CHAR_TO_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
+const vec2 g_sizeWithBorder = g_size + 2.0;
 
 void main() {
     // Convert device coordinates to CRT.
     vec2 p = v_texcoord/u_scale - u_padding;
 
-    // Text area.
-    vec2 t = p;
+    // Text area (add border)
+    vec2 t = p + 1.0;
 
-    float c = t.x >= -1.0 && t.y >= -1.0 && t.x < g_size.x + 1.0 && t.y < g_size.y + 1.0
-        ? texture(u_inputTexture, (t + 1.0)/vec2(u_inputTextureSize)).r
+    float c = t.x >= 0.0 && t.y >= 0.0 && t.x < g_sizeWithBorder.x && t.y < g_sizeWithBorder.y
+        ? texture(u_inputTexture, t/g_sizeWithBorder).r
         : 0.0;
 
     // Phosphor and background color.
@@ -244,7 +249,6 @@ precision highp float;
 precision highp usampler2D;
 
 uniform sampler2D u_inputTexture;
-uniform ivec2 u_inputTextureSize;
 uniform float u_time; // Seconds.
 uniform float u_padding;
 uniform float u_scale;
@@ -257,6 +261,7 @@ out vec4 outColor;
 const ivec2 g_charSize = ivec2(${TRS80_CHAR_WIDTH}, ${TRS80_CHAR_HEIGHT});
 const ivec2 g_charCrtPixelSize = ivec2(${CHAR_TO_CRT_PIXEL_WIDTH}, ${CHAR_TO_CRT_PIXEL_HEIGHT});
 const vec2 g_size = vec2(g_charSize*g_charCrtPixelSize);
+const vec2 g_sizeWithBorder = g_size + 2.0;
 const float PI = ${Math.PI};
 const float SCANLINE_WIDTH = 0.2;
 
@@ -282,8 +287,10 @@ void main() {
     float scanline = pow(abs(sin(t.y*PI/2.0)), 1.0/SCANLINE_WIDTH);
     scanline = (1.0 - u_scanlines) + u_scanlines*scanline;
 
-    float brightness = t.x >= -1.0 && t.y >= -1.0 && t.x < g_size.x + 1.0 && t.y < g_size.y + 1.0
-        ? texture(u_inputTexture, (t + 1.0)/vec2(u_inputTextureSize)).r
+    // Add border.
+    t += 1.0;
+    float brightness = t.x >= 0.0 && t.y >= 0.0 && t.x < g_sizeWithBorder.x && t.y < g_sizeWithBorder.y
+        ? texture(u_inputTexture, t/g_sizeWithBorder).r
         : 0.0;
 
     // Scanline bloom.
@@ -1000,11 +1007,12 @@ class ConfiguredCanvas {
         }
 
         const gl = this.getContext();
+        const font = this.getFont(alternateCharacters);
 
         // Textures to pass between rendering passes.
         // Add a 1-pixel black border to help with antialiasing.
-        const rawWidth = SCREEN_CRT_PIXEL_WIDTH + 2;
-        const rawHeight = SCREEN_CRT_PIXEL_HEIGHT + 2;
+        const rawWidth = TRS80_CHAR_WIDTH*font.width + 2;
+        const rawHeight = TRS80_CHAR_HEIGHT*font.height + 2;
         const rawScreenTexture = createIntermediateTexture(gl, rawWidth, rawHeight);
         const renderedTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
         const horizontallyBlurredTexture = createIntermediateTexture(gl, this.canvas.width, this.canvas.height);
@@ -1014,11 +1022,11 @@ class ConfiguredCanvas {
         const blurredReflectionTexture = createIntermediateTexture(gl, 512, 512);
 
         // Make the font texture.
-        this.fontTexture = SizedTexture.create(gl, 256 * 8, 24);
+        this.fontTexture = SizedTexture.create(gl, 256 * font.width, font.height);
         gl.bindTexture(gl.TEXTURE_2D, this.fontTexture.texture);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, this.fontTexture.width, this.fontTexture.height, 0,
-            gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(this.getFont(alternateCharacters).makeFontSheet()));
+            gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(font.makeFontSheet()));
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -1086,7 +1094,7 @@ class ConfiguredCanvas {
         if (this.config.displayType === DisplayType.SIMPLE) {
             this.renderPasses = [
                 // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
-                new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
+                new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE(font.width, font.height), [
                     new NamedTexture("u_fontTexture", this.fontTexture),
                     new NamedTexture("u_memoryTexture", this.memoryTexture),
                 ], [
@@ -1106,7 +1114,7 @@ class ConfiguredCanvas {
         } else {
             this.renderPasses = [
                 // Renders video memory (64x16 chars) to a simple on/off pixel grid (with one-pixel padding).
-                new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE, [
+                new RenderPass(gl, DRAW_CHARS_FRAGMENT_SHADER_SOURCE(font.width, font.height), [
                     new NamedTexture("u_fontTexture", this.fontTexture),
                     new NamedTexture("u_memoryTexture", this.memoryTexture),
                 ], [
