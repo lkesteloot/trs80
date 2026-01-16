@@ -91,6 +91,15 @@ Instead of a jump from 500 baud (on the Model I) to 1500 baud, they could have
 claimed nearly 2500 baud! If anyone knows why they made this decision, please
 let me know.
 
+[George Phillips](http://www.48k.ca/) has a theory for why the start bit must
+be the long variant: Each byte is individually written by the ROM, then control
+is passed back to the program to call again for the next byte. This results in
+an intra-byte gap that's out of the ROM's control. You want the very next bit
+to be the long one because stretching it out still makes it long. If the start
+bit were short (or if there were no start bit and the first data bit were
+short), stretching it out might get it misinterpreted as long. This reasoning
+does not apply to low-speed encoding, because it is self-clocked.
+
 # License
 
 Copyright &copy; Lawrence Kesteloot, [MIT license](LICENSE).
