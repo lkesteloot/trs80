@@ -676,15 +676,23 @@ export class UserInterface {
                         action: makeLink("https://clrhome.org/table/"),
                     },
                     {
-                        text: "16-bit Shifts",
+                        text: "Z80 16-bit Shifts",
                         action: makeLink("https://www.chilliant.com/z80shift.html"),
+                    },
+                    {
+                        text: "Z80 Flags and Shifts",
+                        action: makeLink("https://lkesteloot.github.io/trs80/z80/"),
                     },
                     {
                         separator: true,
                     },
                     {
-                        text: "Github",
+                        text: "GitHub",
                         action: makeLink("https://github.com/lkesteloot/trs80/tree/master/packages/trs80-ide"),
+                    },
+                    {
+                        text: "Report Bug",
+                        action: makeLink("https://github.com/lkesteloot/trs80/issues"),
                     },
                     {
                         text: "Feedback",

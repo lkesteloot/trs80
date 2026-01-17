@@ -57,10 +57,14 @@ h2 {
     margin-bottom: 0.5em;
 }
 
+b {
+    color: var(--yellow);
+}
+
 pre {
     font-size: 14pt;
     padding: 2em;
-    color: var(--foreground-emphasized);
+    color: var(--yellow);
     background-color: var(--background-highlights);
     border-radius: 1em;
 }
@@ -68,7 +72,7 @@ pre {
 tt {
     font-size: 17pt;
     padding: 0 0.3em;
-    color: var(--foreground-emphasized);
+    color: var(--yellow);
     background-color: var(--background-highlights);
     border-radius: .3em;
 }

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Z80 Flags and Conditions</title>
+        <link href="../style.css" rel="stylesheet">
+    </head>
+    <body class="dark-mode">
+        <section>
+            <h1>Z80 Flags and Conditions</h1>
+
+            <p>Some Z80 instructions set flags to indicate something about
+            the result of the operation. For example, when subtracting a value
+            from the <tt>A</tt> register, the <tt>Z</tt> flag will be set if
+            the resulting value is zero. The flags are stored in the <tt>F</tt>
+            register. This register can't be directly accessed, but can be read by using
+            the <tt>push af</tt> instruction.</p>
+
+            <p>Load instructions and some 16-bit math instructions don't set
+            the flag. Check the docs for the instruction.</p>
+
+            <ul>
+                <li><b><tt>S</tt> (Sign):</b> Copy of the most
+                    significant bit of the result. If the value is intended
+                    to be interpreted as a signed value, then the <tt>S</tt>
+                    flag indicates a negative value. (But don't confuse
+                    with the <tt>N</tt> register below.)</li>
+
+                <li><b><tt>Z</tt> (Zero):</b> Set if the entire result is zero.</li>
+
+                <li><b><tt>H</tt> (Half carry):</b> Set if the right nibble overflows,
+                    in other words, if there's a carry from bit 3 to bit 4. This
+                    is only used by the <tt>dda</tt> instruction that adjusts for
+                    BCD arithmetic.</li>
+
+                <li><b><tt>P/V</tt> (Parity or oVerflow):</b>
+                    <ul>
+                        <li><b>Logical instructions</b> (<tt>and</tt>, shifts, etc.) set
+                            this to 1 if the result has an even number of bits set.</li>
+                        <li><b>Arithmetic instructions</b> (<tt>add</tt>, <tt>neg</tt>, etc.)
+                            set this if the 2's complement result does not fit in the register
+                            (<i>i.e.,</i> in the range -128 to 127).
+                            Overflow is different from carry in that the carry flag assumes
+                            the operands are unsigned, whereas overflow assumes they're signed.
+                            <ul>
+                                <li>For <b>addition</b>: Different operand
+                                    signs never overflow. Same operand signs
+                                    cause overflow if result has different
+                                    sign.</li>
+                                <li>For <b>subtraction</b>: Same operand signs
+                                    never overflow. Different operand signs
+                                    overflow if result has different size than
+                                    the first operand (the one being subtracted
+                                    from).</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+
+                <li><b><tt>N</tt> (Negative):</b> Set if the last instruction was
+                    a subtraction. This includes <tt>cp</tt>, which internally
+                    is a subtraction. This is only used by the <tt>daa</tt> instruction
+                    that adjusts for BCD arithmetic. You probably don't need this,
+                    and don't confuse it with <tt>S</tt>. This flag can only be checked
+                    by pushing the flags on the stack with <tt>push af</tt>.</li>
+
+                <li><b><tt>C</tt> (Carry):</b> After an arithmetic instruction, this
+                    flag holds the carry from the arithmetic done on bit 7.
+                    Assuming unsigned operands, this indicates that the result
+                    didn't fit in the register (<i>i.e.,</i> it's outside the
+                    range 0 to 255). For addition, this means the result was
+                    greater than 255, and for subtraction it means the result
+                    was less than zero. This flag is also set by other
+                    instructions, such as <a href="shifts-and-rotates.html">rotates</a>, and
+                    by the <tt>scf</tt> and <tt>ccf</tt> (set and complement carry
+                    flag) instructions.</li>
+            </ul>
+
+            <p>Yes, the flag that indicates a negative result should have been labeled
+            <tt>N</tt> and that one that indicates a subtraction should have been
+            labeled <tt>S</tt>, but it's the reverse of that.</p>
+
+            <p>To <em>use</em> the flags, the most direct way is to jump only when
+            a flag is set or reset. To jump if the result is zero:</p>
+
+            <pre>jp z,foo</pre>
+
+            <p>Of the six flags above, four can be used this way:</p>
+
+            <ul>
+                <li><b><tt>z</tt></b>: Jump if the <tt>Z</tt> flag is set, i.e.,
+                    the result is zero. Also useful to test the results of
+                    the <tt>bit</tt> instructions. Subroutines that return
+                    a boolean often use the <tt>Z</tt> flag as well, perhaps
+                    to indicate success or failure.</li>
+                <li><b><tt>nz</tt></b>: Jump if the <tt>Z</tt> flag is reset, i.e.,
+                    the result is non-zero.</li>
+                <li><b><tt>c</tt></b>: Jump if the <tt>C</tt> flag is set, i.e.,
+                    if there was a carry out of bit 8. The straightforward use is to see
+                    if an unsigned addition overflowed, but many instruction use carries
+                    as inputs or outputs, such as the
+                    <a href="shifts-and-rotates.html">shifts and rotates</a>.</li>
+                <li><b><tt>nc</tt></b>: Jump if the <tt>C</tt> flag is reset, i.e.,
+                    there was no carry.</li>
+                <li><b><tt>pe</tt></b>: Jump if the <tt>P</tt> flag is set, i.e.,
+                    there was even parity out of logical instructions. Also called
+                    <b><tt>v</tt></b> to test overflow after signed arithmetic
+                    operations.</li>
+                <li><b><tt>po</tt></b>: Jump if the <tt>P</tt> flag is reset, i.e.,
+                    there was odd parity out of logical instructions. Also called
+                    <b><tt>nv</tt></b> to test lack of overflow after signed
+                    arithmetic operations.</li>
+                <li><b><tt>m</tt></b>: Jump if the <tt>S</tt> flag is set, i.e.,
+                    the result is negative (assuming it's a signed value).
+                    Mnemonic is "minus".</li>
+                <li><b><tt>p</tt></b>: Jump if the <tt>S</tt> flag is reset, i.e.,
+                    the result is non-negative (assuming it's a signed value).
+                    Mnemonic is "plus" or "positive", though it also includes
+                    zero. Don't confuse this with the <tt>P/V</tt> flag.</li>
+            </ul>
+
+            <p>Which flags to use depends on the operation and the signedness
+            of the values. For <tt>cp a,b</tt> and unsigned numbers:</p>
+
+            <pre><b>To test</b>               <b>Check</b>
+A = B                 z
+A &ne; B                 nz
+A &lt; B                 c
+A &le; B                 c | z 
+A &ge; B                 nc
+A &gt; B                 nc &amp; nz
+</pre>
+
+            <p>For <tt>cp a,b</tt> and signed numbers:</p>
+
+            <pre><b>To test</b>               <b>Check</b>
+A = B                 z
+A &ne; B                 nz
+A &lt; B                 m
+A &le; B                 m | z 
+A &ge; B                 p
+A &gt; B                 p &amp; nz
+</pre>
+
+            <p>Instructions <tt>jp</tt>, <tt>call</tt>, and
+            <tt>ret</tt> all optionally take these conditions. The
+            <tt>jr</tt> instruction only supports the <tt>z</tt>,
+            <tt>nz</tt>, <tt>c</tt>, and <tt>nc</tt> conditions.</p>
+
+            <p>There are other ways to use these flags. The <tt>adc</tt> (add-with-carry)
+            instruction will add the value of the carry flag to the result,
+            for example. Several variants of the
+            <a href="shifts-and-rotates.html">shift and rotate instructions</a>
+            will use the carry flag as the input bit.</p>
+
+            <p>References:</p>
+
+            <ul>
+                <li><a href="https://jnz.dk/z80/flags.html">Pretty good explanations</a></li>
+                <li><a href="http://www.z80.info/z80sflag.htm">Terse explanations</a></li>
+            </ul>
+
+        </section>
+    </body>
+</html>
