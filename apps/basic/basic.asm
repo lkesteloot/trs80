@@ -5,6 +5,7 @@ SCREEN_SIZE equ SCREEN_WIDTH*SCREEN_HEIGHT
 SCREEN_END equ SCREEN_BEGIN+SCREEN_SIZE
 CURSOR_CHAR equ 128+16+32
 CLEAR_CHAR equ 32
+NL equ 10
 INPUT_BUFFER_SIZE equ 64
 KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
@@ -84,6 +85,11 @@ prompt_loop:
 	ld hl,input_buffer
 	ld b,INPUT_BUFFER_SIZE
 	call read_text
+	call tokenize
+	ld hl,tokenized_test
+	call detokenize
+	ld a,NL
+	call write_char
 
 	jp prompt_loop
 
@@ -98,6 +104,7 @@ cls:
 	call disable_cursor
 	
 	ld hl,SCREEN_BEGIN
+	ld (cursor),hl
 	ld (hl),CLEAR_CHAR
 	ld de,SCREEN_BEGIN+1
 	ld bc,SCREEN_SIZE-1
@@ -108,10 +115,65 @@ cls:
 	pop de
 	pop hl
 
-	ld hl,SCREEN_BEGIN
-	ld (cursor),hl
 	call enable_cursor
 	
+	ret
+#endlocal
+
+; Tokenize the string at HL in-place, nul-terminating the result.
+tokenize:
+#local
+	; See if HL starts with any token in the token list, case-insensitively.
+	; If so, replace with token.
+	; Otherwise use as-is.
+	ret
+#endlocal
+
+; Write the detokenized version of the string at HL.
+detokenize:
+#local
+	push hl
+	push bc
+loop:
+	ld a,(hl)			; Fetch token or character.
+	or a,a				; See what we got.
+	jp z,done			; Nul indicates end of string.
+	jp p,plain_char			; High bit not set, it's a regular character.
+	ld bc,tokens			; BC will walk through token list.
+	and a,0x7F			; The 0-based index of token.
+token_loop:
+	jp z,found_token		; A has reached zero, we found it.
+	push af
+token_skip:
+	inc bc				; Skip over the bad token.
+	ld a,(bc)
+	or a,a
+	jp p,token_skip 		; Until we find a char with high bit set.
+	; TODO handle going past last token
+	pop af
+	dec a				; Decrement token index.
+	jp token_loop
+
+found_token:
+	ld a,(bc)
+print_token_loop:
+	and a,0x7F			; Clear high bit.
+	call write_char
+	inc bc
+	ld a,(bc)
+	or a,a
+	jp p,print_token_loop		; Until we reach start of next token.
+	inc hl				; Next input char.
+	jp loop
+
+plain_char:
+	call write_char			; Write plain char.
+	inc hl				; Next input char.
+	jp loop
+
+done:
+	pop bc
+	pop hl
 	ret
 #endlocal
 
@@ -122,7 +184,7 @@ write_text:
 #local
 	push de
 	call disable_cursor
-	ld de,(cursor)
+	ld de,(cursor) ; where we're writing to
 
 loop:
 	ld a,(hl)
@@ -130,11 +192,11 @@ loop:
 	or a
 	jp z,end_loop
 
-	cp a,10
+	cp a,NL
 	jp z,newline
 
 	ld (de),a
-	inc de
+	inc de ; TODO check end of screen
 	jp loop
 
 newline:
@@ -187,7 +249,7 @@ loop:
 	or a
 	jp z,loop
 
-	cp a,10
+	cp a,NL
 	jp z,done
 
 	cp a,8
@@ -232,43 +294,32 @@ done:
 
 ; Returns in A the ASCII value of the key currently
 ; being pressed, or 0 if no key is pressed.
-; Shift is not included. If multiple keys are
-; being pressed, the one most recently pressed
-; is returned.
+; If multiple keys are being pressed, the one most
+; recently pressed is returned.
 poll_keyboard:
 #local
-	; TODO remove these?
 	push hl
 	push bc
 	push de
 
-	; Pointer to the keyboard matrix.
-	ld bc,KEYBOARD_BEGIN+0x01
-	; Pointer into the keyboard buffer.
-	ld hl,keyboard_buffer
-	; The row we're on.
-	ld d,0
+	; We need to keep track of which keys are currently being held down, so
+	; that we know when a new key is pressed. We keep track of this in the
+	; keyboard_buffer array, which parallels the keyboard matrix.
+	ld bc,KEYBOARD_BEGIN+0x01	; Pointer to the keyboard matrix.
+	ld hl,keyboard_buffer		; Pointer into the keyboard buffer.
+	ld d,0				; The row we're on.
 byte_loop:
-	; Load byte from keyboard matrix.
-	ld a,(bc)
-	; Save it.
-	ld e,a
-	; See what's changed since last time.
-	xor a,(hl)
-	; Save new value.
-	ld (hl),e
-	; See what's pressed since last time.
-	and a,e
-	; If anything has been pressed, handle it.
-	jr nz,found_key
-	; Next row.
-	inc d
+	ld a,(bc)			; Load byte from keyboard matrix.
+	ld e,a				; Save it.
+	xor a,(hl)			; See what's changed since last time.
+	ld (hl),e			; Save new value.
+	and a,e				; See what's pressed since last time.
+	jr nz,found_key			; If anything has been pressed, handle it.
+	inc d				; Next row.
 	inc hl
 	rlc c
-	; If bit 8 isn't set, then there's more to do.
-	jp p,byte_loop
-	; Done checking all rows.
-	xor a,a
+	jp p,byte_loop			; If bit 8 isn't set, then there's more to do.
+	xor a,a				; Done checking all rows, no key was pressed.
 	jp done
 
 found_key:
@@ -397,22 +448,152 @@ handle_maskable_interrupt:
 #local
 	push af
 	call blink_cursor
-	in (0xec) ; Reset timer latch.
+	in a,(0xEC) ; Reset timer latch.
 	pop af
 	ret
 #endlocal
 	
 boot_message:
-	db "BASIC Compiler", 10, 0
+	db "Model III Basic Compiler", NL
+	db "(c) '26 Lawrence Kesteloot", NL, 0
 ready_prompt:
-	db "Ready", 10, 0
+	db "Ready", NL, 0
 line_prompt:
 	db ">", 0
 keyboard_matrix_unshifted:
-	db "@abcdefghijklmnopqrstuvwxyz     0123456789:;,-./", 10, 0, 27, 0, 0, 8, 9, 32
+	db "@abcdefghijklmnopqrstuvwxyz     0123456789:;,-./", NL, 0, 27, 0, 0, 8, 9, 32
 keyboard_matrix_shifted:
-	db "`ABCDEFGHIJKLMNOPQRSTUVWXYZ     _!", 34, "#$%&'()*+<=>?", 10, 0, 27, 0, 0, 8, 9, 32
+	db "`ABCDEFGHIJKLMNOPQRSTUVWXYZ     _!", 34, "#$%&'()*+<=>?", NL, 0, 27, 0, 0, 8, 9, 32
+tokens:
+	; This list was generated by make_token_list.py.
+	db 'E'|0x80,"ND" ; END (0x80)
+	db 'F'|0x80,"OR" ; FOR (0x81)
+	db 'R'|0x80,"ESET" ; RESET (0x82)
+	db 'S'|0x80,"ET" ; SET (0x83)
+	db 'C'|0x80,"LS" ; CLS (0x84)
+	db 'C'|0x80,"MD" ; CMD (0x85)
+	db 'R'|0x80,"ANDOM" ; RANDOM (0x86)
+	db 'N'|0x80,"EXT" ; NEXT (0x87)
+	db 'D'|0x80,"ATA" ; DATA (0x88)
+	db 'I'|0x80,"NPUT" ; INPUT (0x89)
+	db 'D'|0x80,"IM" ; DIM (0x8A)
+	db 'R'|0x80,"EAD" ; READ (0x8B)
+	db 'L'|0x80,"ET" ; LET (0x8C)
+	db 'G'|0x80,"OTO" ; GOTO (0x8D)
+	db 'R'|0x80,"UN" ; RUN (0x8E)
+	db 'I'|0x80,"F" ; IF (0x8F)
+	db 'R'|0x80,"ESTORE" ; RESTORE (0x90)
+	db 'G'|0x80,"OSUB" ; GOSUB (0x91)
+	db 'R'|0x80,"ETURN" ; RETURN (0x92)
+	db 'R'|0x80,"EM" ; REM (0x93)
+	db 'S'|0x80,"TOP" ; STOP (0x94)
+	db 'E'|0x80,"LSE" ; ELSE (0x95)
+	db 'T'|0x80,"RON" ; TRON (0x96)
+	db 'T'|0x80,"ROFF" ; TROFF (0x97)
+	db 'D'|0x80,"EFSTR" ; DEFSTR (0x98)
+	db 'D'|0x80,"EFINT" ; DEFINT (0x99)
+	db 'D'|0x80,"EFSNG" ; DEFSNG (0x9A)
+	db 'D'|0x80,"EFDBL" ; DEFDBL (0x9B)
+	db 'L'|0x80,"INE" ; LINE (0x9C)
+	db 'E'|0x80,"DIT" ; EDIT (0x9D)
+	db 'E'|0x80,"RROR" ; ERROR (0x9E)
+	db 'R'|0x80,"ESUME" ; RESUME (0x9F)
+	db 'O'|0x80,"UT" ; OUT (0xA0)
+	db 'O'|0x80,"N" ; ON (0xA1)
+	db 'O'|0x80,"PEN" ; OPEN (0xA2)
+	db 'F'|0x80,"IELD" ; FIELD (0xA3)
+	db 'G'|0x80,"ET" ; GET (0xA4)
+	db 'P'|0x80,"UT" ; PUT (0xA5)
+	db 'C'|0x80,"LOSE" ; CLOSE (0xA6)
+	db 'L'|0x80,"OAD" ; LOAD (0xA7)
+	db 'M'|0x80,"ERGE" ; MERGE (0xA8)
+	db 'N'|0x80,"AME" ; NAME (0xA9)
+	db 'K'|0x80,"ILL" ; KILL (0xAA)
+	db 'L'|0x80,"SET" ; LSET (0xAB)
+	db 'R'|0x80,"SET" ; RSET (0xAC)
+	db 'S'|0x80,"AVE" ; SAVE (0xAD)
+	db 'S'|0x80,"YSTEM" ; SYSTEM (0xAE)
+	db 'L'|0x80,"PRINT" ; LPRINT (0xAF)
+	db 'D'|0x80,"EF" ; DEF (0xB0)
+	db 'P'|0x80,"OKE" ; POKE (0xB1)
+	db 'P'|0x80,"RINT" ; PRINT (0xB2)
+	db 'C'|0x80,"ONT" ; CONT (0xB3)
+	db 'L'|0x80,"IST" ; LIST (0xB4)
+	db 'L'|0x80,"LIST" ; LLIST (0xB5)
+	db 'D'|0x80,"ELETE" ; DELETE (0xB6)
+	db 'A'|0x80,"UTO" ; AUTO (0xB7)
+	db 'C'|0x80,"LEAR" ; CLEAR (0xB8)
+	db 'C'|0x80,"LOAD" ; CLOAD (0xB9)
+	db 'C'|0x80,"SAVE" ; CSAVE (0xBA)
+	db 'N'|0x80,"EW" ; NEW (0xBB)
+	db 'T'|0x80,"AB(" ; TAB( (0xBC)
+	db 'T'|0x80,"O" ; TO (0xBD)
+	db 'F'|0x80,"N" ; FN (0xBE)
+	db 'U'|0x80,"SING" ; USING (0xBF)
+	db 'V'|0x80,"ARPTR" ; VARPTR (0xC0)
+	db 'U'|0x80,"SR" ; USR (0xC1)
+	db 'E'|0x80,"RL" ; ERL (0xC2)
+	db 'E'|0x80,"RR" ; ERR (0xC3)
+	db 'S'|0x80,"TRING$" ; STRING$ (0xC4)
+	db 'I'|0x80,"NSTR" ; INSTR (0xC5)
+	db 'P'|0x80,"OINT" ; POINT (0xC6)
+	db 'T'|0x80,"IME$" ; TIME$ (0xC7)
+	db 'M'|0x80,"EM" ; MEM (0xC8)
+	db 'I'|0x80,"NKEY$" ; INKEY$ (0xC9)
+	db 'T'|0x80,"HEN" ; THEN (0xCA)
+	db 'N'|0x80,"OT" ; NOT (0xCB)
+	db 'S'|0x80,"TEP" ; STEP (0xCC)
+	db '+'|0x80,"" ; + (0xCD)
+	db '-'|0x80,"" ; - (0xCE)
+	db '*'|0x80,"" ; * (0xCF)
+	db '/'|0x80,"" ; / (0xD0)
+	db '['|0x80,"" ; [ (0xD1)
+	db 'A'|0x80,"ND" ; AND (0xD2)
+	db 'O'|0x80,"R" ; OR (0xD3)
+	db '>'|0x80,"" ; > (0xD4)
+	db '='|0x80,"" ; = (0xD5)
+	db '<'|0x80,"" ; < (0xD6)
+	db 'S'|0x80,"GN" ; SGN (0xD7)
+	db 'I'|0x80,"NT" ; INT (0xD8)
+	db 'A'|0x80,"BS" ; ABS (0xD9)
+	db 'F'|0x80,"RE" ; FRE (0xDA)
+	db 'I'|0x80,"NP" ; INP (0xDB)
+	db 'P'|0x80,"OS" ; POS (0xDC)
+	db 'S'|0x80,"QR" ; SQR (0xDD)
+	db 'R'|0x80,"ND" ; RND (0xDE)
+	db 'L'|0x80,"OG" ; LOG (0xDF)
+	db 'E'|0x80,"XP" ; EXP (0xE0)
+	db 'C'|0x80,"OS" ; COS (0xE1)
+	db 'S'|0x80,"IN" ; SIN (0xE2)
+	db 'T'|0x80,"AN" ; TAN (0xE3)
+	db 'A'|0x80,"TN" ; ATN (0xE4)
+	db 'P'|0x80,"EEK" ; PEEK (0xE5)
+	db 'C'|0x80,"VI" ; CVI (0xE6)
+	db 'C'|0x80,"VS" ; CVS (0xE7)
+	db 'C'|0x80,"VD" ; CVD (0xE8)
+	db 'E'|0x80,"OF" ; EOF (0xE9)
+	db 'L'|0x80,"OC" ; LOC (0xEA)
+	db 'L'|0x80,"OF" ; LOF (0xEB)
+	db 'M'|0x80,"KI$" ; MKI$ (0xEC)
+	db 'M'|0x80,"KS$" ; MKS$ (0xED)
+	db 'M'|0x80,"KD$" ; MKD$ (0xEE)
+	db 'C'|0x80,"INT" ; CINT (0xEF)
+	db 'C'|0x80,"SNG" ; CSNG (0xF0)
+	db 'C'|0x80,"DBL" ; CDBL (0xF1)
+	db 'F'|0x80,"IX" ; FIX (0xF2)
+	db 'L'|0x80,"EN" ; LEN (0xF3)
+	db 'S'|0x80,"TR$" ; STR$ (0xF4)
+	db 'V'|0x80,"AL" ; VAL (0xF5)
+	db 'A'|0x80,"SC" ; ASC (0xF6)
+	db 'C'|0x80,"HR$" ; CHR$ (0xF7)
+	db 'L'|0x80,"EFT$" ; LEFT$ (0xF8)
+	db 'R'|0x80,"IGHT$" ; RIGHT$ (0xF9)
+	db 'M'|0x80,"ID$" ; MID$ (0xFA)
 
+	; For testing only:
+tokenized_test:
+	db 0xB2,' "Hello",',0xDD,'(5)',0
+	
 ; Variables in RAM.
 	.org 0x4000
 

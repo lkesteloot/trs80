@@ -80,29 +80,44 @@
                     the result is non-zero.</li>
                 <li><b><tt>c</tt></b>: Jump if the <tt>C</tt> flag is set, i.e.,
                     if there was a carry out of bit 8. The straightforward use is to see
-                    if an addition overflowed, but many instruction use carries
+                    if an unsigned addition overflowed, but many instruction use carries
                     as inputs or outputs, such as the shifts and rotates.</li>
                 <li><b><tt>nc</tt></b>: Jump if the <tt>C</tt> flag is reset, i.e.,
                     there was no carry.</li>
                 <li><b><tt>pe</tt></b>: Jump if the <tt>P</tt> flag is set, i.e.,
-                    there was even parity out of logical instructions. Also used
-                    to test the overflow flag.</li>
+                    there was even parity out of logical instructions. Also called
+                    <b><tt>v</tt></b> to test overflow, when two signed values
+                    of the same sign had a result with a different sign.</li>
                 <li><b><tt>po</tt></b>: Jump if the <tt>P</tt> flag is reset, i.e.,
-                    there was odd parity out of logical instructions. Also used
-                    to test the overflow flag.</li>
+                    there was odd parity out of logical instructions. Also called
+                    <b><tt>nv</tt></b> to test lack of overflow, when two
+                    signed values of the same sign had a result with that same
+                sign.</li>
                 <li><b><tt>m</tt></b>: Jump if the <tt>S</tt> flag is set, i.e.,
                     the result is negative (assuming it's a signed value).
                     Mnemonic is "minus".</li>
                 <li><b><tt>p</tt></b>: Jump if the <tt>S</tt> flag is reset, i.e.,
                     the result is non-negative (assuming it's a signed value).
-                    Mnemonic is "positive", though it also includes zero.</li>
+                    Mnemonic is "positive", though it also includes zero. Don't
+                    confuse this with the <tt>P/V</tt> flag.</li>
             </ul>
 
             <p>It can be tricky to think through how to use these. For example,
-            after <tt>cp 5</tt>, how do you jump if <tt>A</tt> is less than 5?
+            after <tt>cp a,5</tt>, how do you jump if <tt>A</tt> is less than 5?
             The value 5 is subtracted from <tt>A</tt>, so <tt>A &lt; 5</tt> is
             the same as <tt>A &minus; 5 &lt; 0</tt>, which means we can use the
-            <tt>m</tt> test condition.</p>
+            <tt>m</tt> test condition. Here's a summary of how <tt>cp a,b</tt>
+            can be tested (remember, the result is <tt>A - B</tt>):</p>
+
+            <pre>z        A = B
+nz       A &ne; B
+c        A &lt; B
+nc       A &ge; B
+v        A - B is outside the range -128 to 127
+nv       A - B is in the range -128 to 127
+m        A &lt; B
+p        A &ge; B
+</pre>
 
             <p>Instructions <tt>JP</tt>, <tt>CALL</tt>, and
             <tt>RET</tt> all optionally take these conditions. The
@@ -116,8 +131,6 @@
 
             <h2>Shifts and Rotates</h2>
 
-            (this page does a good job of this, with diagrams: http://www.chebucto.ns.ca/~af380/z-80-g.htm)
-
             <p>Quick reference of the various shift and rotate instructions.
             The number 7 means existing bit 7, C means carry flag, and 0
             and 1 mean the bit values 0 and 1.</p>
@@ -130,7 +143,10 @@ SLA     C&lt;-REG&lt;-0   Shift Left Arithmetic
 SLL     C&lt;-REG&lt;-1   Shift Left Logical (undocumented)
 RL      C&lt;-REG&lt;-C   Rotate Left
 RLC     C&lt;-REG&lt;-C   Rotate Left Circular
-            </pre>
+</pre>
+
+            <a href="http://www.chebucto.ns.ca/~af380/z-80-g.htm">This page</a>
+            does a good job of this, with diagrams.
 
         </section>
     </body>
