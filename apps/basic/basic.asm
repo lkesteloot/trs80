@@ -86,7 +86,6 @@ prompt_loop:
 	ld b,INPUT_BUFFER_SIZE
 	call read_text
 	call tokenize
-	ld hl,tokenized_test
 	call detokenize
 	ld a,NL
 	call write_char
@@ -121,11 +120,102 @@ cls:
 #endlocal
 
 ; Tokenize the string at HL in-place, nul-terminating the result.
+; TODO this routine is *much* slower than the TRS-80's. Compare it to theirs.
+; Maybe: Skip spaces and digits. (But not symbols.)
 tokenize:
 #local
+	push hl
+	push bc
+	ld bc,hl			; BC = output pointer.
+loop:
+	ld a,(hl)			; See if we're done with string.
+	or a,a
+	jp z,done
+
 	; See if HL starts with any token in the token list, case-insensitively.
-	; If so, replace with token.
-	; Otherwise use as-is.
+	call find_token
+	or a,a
+	jp z,not_token
+	ld (bc),a
+	inc bc
+	jp loop
+
+not_token:
+	; TODO check for string and comment.
+	; TODO anything outside of that, convert to upper case.
+	ld a,(hl)
+	ld (bc),a
+	inc hl
+	inc bc
+	jp loop
+
+done:
+	ld (bc),a			; Nul-terminate BC (A is zero here).
+	pop bc
+	pop hl
+	ret	
+#endlocal
+
+; If HL points to a string that starts with any token string (case-insensitively),
+; return that token's value in A and advance HL to the end of the token string.
+; Otherwise return 0 in A.
+find_token:
+#local
+	push bc
+	push hl
+	push de
+
+	ld bc,tokens			; Pointer into tokens.
+	ld e,0x80			; Token counter.
+token_loop:
+	; Test one token.
+	push hl				; Save start of input string.
+	ld a,(bc)			; Load first token char.
+	and a,0x7F			; Strip high bit.
+cmp_loop:
+	ld d,a				; Save token char.
+	ld a,(hl)			; Load input char.
+	cp a,'a'			; Check if lower case.
+	jr c,not_lower_case
+	cp a,'z'+1
+	jr nc,not_lower_case
+	and a,0xDF			; Convert to lower case (remove 0x20 bit).
+not_lower_case:
+	cp a,d				; See if we have a match.
+	jr nz,skip_loop			; Not this token.
+	inc bc				; This char matched, bump pointers.
+	inc hl
+	ld a,(bc)			; Load next token char.
+	or a,a
+	jp p,cmp_loop			; Not end of token, keep comparing.
+	; We found a match!
+	ld a,e				; Token counter.
+	pop bc				; This was HL but we want to keep our HL.
+	pop de
+	pop bc				; This was HL but we want to keep our HL.
+	pop bc
+	ret
+
+skip_loop:
+	; No match, skip rest of token.
+	inc bc
+	ld a,(bc)
+	or a,a
+	jp p,skip_loop
+	pop hl				; Restore input pointer.
+	and a,0x7F			; Drop high bit.
+	jr z,end_of_tokens		; It's zero, end of tokens.
+	ld a,e				; Bump token counter.
+	inc a
+	ld e,a
+	jp token_loop
+
+end_of_tokens:
+	ld a,0				; "Not found"
+
+	pop de
+	pop hl
+	pop bc
 	ret
 #endlocal
 
@@ -589,10 +679,7 @@ tokens:
 	db 'L'|0x80,"EFT$" ; LEFT$ (0xF8)
 	db 'R'|0x80,"IGHT$" ; RIGHT$ (0xF9)
 	db 'M'|0x80,"ID$" ; MID$ (0xFA)
-
-	; For testing only:
-tokenized_test:
-	db 0xB2,' "Hello",',0xDD,'(5)',0
+	db 0x80 ; End of token list.
 	
 ; Variables in RAM.
 	.org 0x4000
