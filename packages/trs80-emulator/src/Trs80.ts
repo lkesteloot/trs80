@@ -309,6 +309,7 @@ export class Trs80 implements Hal, Machine, Configurable {
      * Restore the complete state of the machine, saved by {@link #save()}.
      */
     public restore(state: Trs80State): void {
+        this.reset();
         this.config = state.config;
         this.z80.restore(state.z80State);
 
@@ -411,6 +412,7 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.setNmiMask(0);
         this.resetCassette();
         this.keyboard.clearKeyboard();
+        this.memory.fill(0);
         this.setTimerInterrupt(false);
         this.z80.reset();
     }

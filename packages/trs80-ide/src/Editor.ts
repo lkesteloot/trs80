@@ -355,6 +355,7 @@ export class Editor {
             // Take another snapshot, after letting the ROM a chance to start.
             if (!configChange.oldConfig.equals(configChange.newConfig)) {
                 this.emulator.trs80State = undefined;
+                // TODO this should be in Z80 time, not real-world time:
                 setTimeout(() => this.reassemble(), POST_BOOT_DELAY);
             }
         });
