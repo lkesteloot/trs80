@@ -20,7 +20,33 @@ TOKENS = [
     "LEFT$", "RIGHT$", "MID$",
 ]
 
+SYMBOL_TO_NAME = {
+        "+": "OP_ADD",
+        "-": "OP_SUB",
+        "*": "OP_MUL",
+        "/": "OP_DIV",
+        "[": "OP_BRACKET",
+        ">": "OP_GT",
+        "=": "OP_EQU",
+        "<": "OP_LT",
+}
+
+# Make token identifier-safe.
+def clean(token):
+    token = token.replace("$", "_STR")
+    token = token.replace("(", "_PAREN")
+
+    name = SYMBOL_TO_NAME.get(token)
+    if name is not None:
+        token = name
+
+    return token
+
 for i, token in enumerate(TOKENS):
     # First character has the high bit set.
     print("\tdb '%s'|0x80,\"%s\" ; %s (0x%02X)" % (token[0], token[1:], token, i | 0x80))
+
+for i, token in enumerate(TOKENS):
+    # First character has the high bit set.
+    print("T_%s equ 0x%02X" % (clean(token), i | 0x80))
 

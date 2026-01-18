@@ -8,9 +8,137 @@ CLEAR_CHAR equ 32
 BS equ 8
 NL equ 10
 INPUT_BUFFER_SIZE equ 64		; Including nul.
+BINARY_SIZE equ 1024			; Compiled code.
 KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
+; Z80 instructions.
+I_RET equ 0xC9
+I_CALL equ 0xCD
+; Basic tokens.
+T_END equ 0x80
+T_FOR equ 0x81
+T_RESET equ 0x82
+T_SET equ 0x83
+T_CLS equ 0x84
+T_CMD equ 0x85
+T_RANDOM equ 0x86
+T_NEXT equ 0x87
+T_DATA equ 0x88
+T_INPUT equ 0x89
+T_DIM equ 0x8A
+T_READ equ 0x8B
+T_LET equ 0x8C
+T_GOTO equ 0x8D
+T_RUN equ 0x8E
+T_IF equ 0x8F
+T_RESTORE equ 0x90
+T_GOSUB equ 0x91
+T_RETURN equ 0x92
+T_REM equ 0x93
+T_STOP equ 0x94
+T_ELSE equ 0x95
+T_TRON equ 0x96
+T_TROFF equ 0x97
+T_DEFSTR equ 0x98
+T_DEFINT equ 0x99
+T_DEFSNG equ 0x9A
+T_DEFDBL equ 0x9B
+T_LINE equ 0x9C
+T_EDIT equ 0x9D
+T_ERROR equ 0x9E
+T_RESUME equ 0x9F
+T_OUT equ 0xA0
+T_ON equ 0xA1
+T_OPEN equ 0xA2
+T_FIELD equ 0xA3
+T_GET equ 0xA4
+T_PUT equ 0xA5
+T_CLOSE equ 0xA6
+T_LOAD equ 0xA7
+T_MERGE equ 0xA8
+T_NAME equ 0xA9
+T_KILL equ 0xAA
+T_LSET equ 0xAB
+T_RSET equ 0xAC
+T_SAVE equ 0xAD
+T_SYSTEM equ 0xAE
+T_LPRINT equ 0xAF
+T_DEF equ 0xB0
+T_POKE equ 0xB1
+T_PRINT equ 0xB2
+T_CONT equ 0xB3
+T_LIST equ 0xB4
+T_LLIST equ 0xB5
+T_DELETE equ 0xB6
+T_AUTO equ 0xB7
+T_CLEAR equ 0xB8
+T_CLOAD equ 0xB9
+T_CSAVE equ 0xBA
+T_NEW equ 0xBB
+T_TAB_PAREN equ 0xBC
+T_TO equ 0xBD
+T_FN equ 0xBE
+T_USING equ 0xBF
+T_VARPTR equ 0xC0
+T_USR equ 0xC1
+T_ERL equ 0xC2
+T_ERR equ 0xC3
+T_STRING_STR equ 0xC4
+T_INSTR equ 0xC5
+T_POINT equ 0xC6
+T_TIME_STR equ 0xC7
+T_MEM equ 0xC8
+T_INKEY_STR equ 0xC9
+T_THEN equ 0xCA
+T_NOT equ 0xCB
+T_STEP equ 0xCC
+T_OP_ADD equ 0xCD
+T_OP_SUB equ 0xCE
+T_OP_MUL equ 0xCF
+T_OP_DIV equ 0xD0
+T_OP_BRACKET equ 0xD1
+T_AND equ 0xD2
+T_OR equ 0xD3
+T_OP_GT equ 0xD4
+T_OP_EQU equ 0xD5
+T_OP_LT equ 0xD6
+T_SGN equ 0xD7
+T_INT equ 0xD8
+T_ABS equ 0xD9
+T_FRE equ 0xDA
+T_INP equ 0xDB
+T_POS equ 0xDC
+T_SQR equ 0xDD
+T_RND equ 0xDE
+T_LOG equ 0xDF
+T_EXP equ 0xE0
+T_COS equ 0xE1
+T_SIN equ 0xE2
+T_TAN equ 0xE3
+T_ATN equ 0xE4
+T_PEEK equ 0xE5
+T_CVI equ 0xE6
+T_CVS equ 0xE7
+T_CVD equ 0xE8
+T_EOF equ 0xE9
+T_LOC equ 0xEA
+T_LOF equ 0xEB
+T_MKI_STR equ 0xEC
+T_MKS_STR equ 0xED
+T_MKD_STR equ 0xEE
+T_CINT equ 0xEF
+T_CSNG equ 0xF0
+T_CDBL equ 0xF1
+T_FIX equ 0xF2
+T_LEN equ 0xF3
+T_STR_STR equ 0xF4
+T_VAL equ 0xF5
+T_ASC equ 0xF6
+T_CHR_STR equ 0xF7
+T_LEFT_STR equ 0xF8
+T_RIGHT_STR equ 0xF9
+T_MID_STR equ 0xFA
 
 	.org 0x0000
 	di
@@ -45,28 +173,23 @@ soft_boot:
 	; Configure stack.
 	ld sp,0x0000
 
+	; Clear BSS.
+	ld hl,bss_start
+	ld de,bss_start+1
+	ld bc,bss_end-bss_start-1
+	ld (hl),0
+	ldir
+
 	; Configure cursor.
 	ld hl,SCREEN_BEGIN
 	ld (cursor),hl
 	ld hl,cursor_counter
 	ld (hl),CURSOR_DISABLED
 
-	; Initialize other variables.
-	ld a,0
-	ld (write_char_buffer+1),a
-	ld ix,keyboard_buffer
-	ld (ix+0),a
-	ld (ix+1),a
-	ld (ix+2),a
-	ld (ix+3),a
-	ld (ix+4),a
-	ld (ix+5),a
-	ld (ix+6),a
-
 	; Configure and enable interrupts.
-	im 1 ; rst 38 on maskable interrupt
+	im 1 				; rst 38 on maskable interrupt.
 	ld a,0x04
-	out (0xe0),a ; enable timer interrupt
+	out (0xe0),a 			; Enable timer interrupt.
 	ei
 
 	; Clear the screen; home cursor.
@@ -76,10 +199,10 @@ soft_boot:
 	ld hl,boot_message
 	call write_text
 
+prompt_loop:
 	ld hl,ready_prompt
 	call write_text
 
-prompt_loop:
 	ld hl,line_prompt
 	call write_text
 
@@ -90,7 +213,12 @@ prompt_loop:
 	call detokenize
 	ld a,NL
 	call write_char
-
+	ld de,hl			; Address of tokenized program.
+	ld hl,binary
+	call compile
+	ld (hl),I_RET
+	inc hl
+	call binary
 	jp prompt_loop
 
 ; Clear the screen and reset the cursor
@@ -287,6 +415,32 @@ to_upper:
 	cp a,'z'+1
 	ret nc
 	and a,0xDF			; Convert to lower case (remove 0x20 bit).
+	ret
+#endlocal
+
+; Compile the nul-terminated tokenized code at DE to a binary buffer at HL.
+; Restores DE but keeps HL just past the last byte that was written.
+compile:
+#local
+	push de
+loop:
+	ld a,(de)
+	inc de
+	or a,a
+	jp z,done
+	cp a,T_CLS
+	jp nz,done			; TODO error
+	ld (hl),I_CALL
+	inc hl
+	ld (hl),lo(cls)
+	inc hl
+	ld (hl),hi(cls)
+	inc hl
+	; TODO Check if overrunning compile buffer.
+	jp loop
+
+done:
+	pop de
 	ret
 #endlocal
 
@@ -756,6 +910,7 @@ tokens:
 	
 ; Variables in RAM.
 	.org 0x4000
+bss_start:
 
 ; Cursor blink counter. Equal to CURSOR_DISABLED if the cursor is disabled.
 cursor_counter: ds 1
@@ -775,5 +930,11 @@ write_char_buffer:
 keyboard_buffer:
 	ds 7
 
+; Where the program is compiled to.
+binary:
+	ds BINARY_SIZE
+
+; Mark where our variables end.
+bss_end:
+
 	end 0x0000
-	
