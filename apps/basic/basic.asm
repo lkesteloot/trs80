@@ -142,12 +142,24 @@ loop:
 	jp loop
 
 not_token:
-	; TODO check for string and comment.
-	; TODO anything outside of that, convert to upper case.
+	; TODO check for comment.
 	ld a,(hl)
+	call to_upper
 	ld (bc),a
 	inc hl
 	inc bc
+	cp a,'"'			; See if it's a string.
+	jp nz,loop
+string_loop:
+	; It's a string, copy to end of string or line (no embedded quotes).
+	ld a,(hl)
+	or a,a
+	jp z,done			; End of line.
+	ld (bc),a
+	inc hl
+	inc bc
+	cp a,'"'			; Check end of string.
+	jp nz,string_loop
 	jp loop
 
 done:
@@ -176,12 +188,7 @@ token_loop:
 cmp_loop:
 	ld d,a				; Save token char.
 	ld a,(hl)			; Load input char.
-	cp a,'a'			; Check if lower case.
-	jr c,not_lower_case
-	cp a,'z'+1
-	jr nc,not_lower_case
-	and a,0xDF			; Convert to lower case (remove 0x20 bit).
-not_lower_case:
+	call to_upper			; Convert to upper case.
 	cp a,d				; See if we have a match.
 	jr nz,skip_loop			; Not this token.
 	inc bc				; This char matched, bump pointers.
@@ -246,7 +253,9 @@ token_skip:
 	jp token_loop
 
 found_token:
-	ld a,(bc)
+	ld a,'{'
+	call write_char
+	ld a,(bc)			; Read the token.
 print_token_loop:
 	and a,0x7F			; Clear high bit.
 	call write_char
@@ -254,6 +263,8 @@ print_token_loop:
 	ld a,(bc)
 	or a,a
 	jp p,print_token_loop		; Until we reach start of next token.
+	ld a,'}'
+	call write_char
 	inc hl				; Next input char.
 	jp loop
 
@@ -265,6 +276,17 @@ plain_char:
 done:
 	pop bc
 	pop hl
+	ret
+#endlocal
+
+; Convert A to upper case.
+to_upper:
+#local
+	cp a,'a'
+	ret c
+	cp a,'z'+1
+	ret nc
+	and a,0xDF			; Convert to lower case (remove 0x20 bit).
 	ret
 #endlocal
 
