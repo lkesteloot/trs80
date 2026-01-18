@@ -5,8 +5,9 @@ SCREEN_SIZE equ SCREEN_WIDTH*SCREEN_HEIGHT
 SCREEN_END equ SCREEN_BEGIN+SCREEN_SIZE
 CURSOR_CHAR equ 128+16+32
 CLEAR_CHAR equ 32
+BS equ 8
 NL equ 10
-INPUT_BUFFER_SIZE equ 64
+INPUT_BUFFER_SIZE equ 64		; Including nul.
 KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
@@ -384,7 +385,7 @@ loop:
 	cp a,NL
 	jp z,done
 
-	cp a,8
+	cp a,BS
 	jp nz,regular_char
 
 	; Backspace.
@@ -402,12 +403,20 @@ loop:
 	jp loop
 
 regular_char:
-	; TODO check C against B.
+	; See if we're run out of space.
+	push de				; We need D for temporary.
+	ld d,a				; Save A.
+	ld a,c				; Compare C + 1 to B.
+	inc a
+	cp a,b
+	ld a,d				; Restore A.
+	pop de
+	jp z,loop			; They're equal, we're out of space.
 
+	; Write the character.
 	ld (hl),a
 	inc hl
 	inc c
-
 	call write_char
 	jp loop
 
