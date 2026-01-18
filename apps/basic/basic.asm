@@ -209,16 +209,44 @@ prompt_loop:
 	ld hl,input_buffer
 	ld b,INPUT_BUFFER_SIZE
 	call read_text
+	ld a,(KEYBOARD_BEGIN + 128)	; See if Shift-Enter was pressed.
+	and a,0x03			; Either shift.
+	ld (debug_output),a		; Save whether to print debugging output.	
 	call tokenize
 	call detokenize
 	ld a,NL
 	call write_char
 	ld de,hl			; Address of tokenized program.
 	ld hl,binary
-	call compile
+	call compile_line
 	ld (hl),I_RET
 	inc hl
+	ld a,(debug_output)
+	or a,a
+	jp nz,print_binary
 	call binary
+	jp prompt_loop
+
+; Print the contents of the binary. It starts at "binary" and ends at "hl".
+print_binary:
+	ld de,hl			; Save end of buffer.
+	ld hl,binary
+print_binary_loop:
+	ld a,(hl)
+	call write_hex_byte
+	ld a,' '
+	call write_char
+	inc hl
+	; Loop if HL != DE.
+	ld a,h
+	cp a,d
+	jp nz,print_binary_loop
+	ld a,l
+	cp a,e
+	jp nz,print_binary_loop
+	; End of debug print.
+	ld a,NL
+	call write_char
 	jp prompt_loop
 
 ; Clear the screen and reset the cursor
@@ -420,16 +448,18 @@ to_upper:
 
 ; Compile the nul-terminated tokenized code at DE to a binary buffer at HL.
 ; Restores DE but keeps HL just past the last byte that was written.
-compile:
+compile_line:
 #local
 	push de
 loop:
 	ld a,(de)
 	inc de
-	or a,a
+	or a,a				; See if we're done with the buffer.
 	jp z,done
+	cp a,' '			; Skip spaces.
+	jp z,loop
 	cp a,T_CLS
-	jp nz,done			; TODO error
+	jp nz,done			; TODO Generate compile error.
 	ld (hl),I_CALL
 	inc hl
 	ld (hl),lo(cls)
@@ -513,6 +543,35 @@ write_char:
 	ld (hl),a
 	call write_text
 	pop hl
+	ret
+#endlocal
+
+; Write in hex the byte in A, just two upper-case characters.
+write_hex_byte:
+#local
+	push af
+	srl a
+	srl a
+	srl a
+	srl a
+	call write_hex_nibble
+	pop af
+	call write_hex_nibble
+	ret
+#endlocal
+
+; Write in hex the nibble in the low four bits of A, just one upper-case character.
+write_hex_nibble:
+#local
+	and a,0x0F
+	cp a,10
+	jp c,less_than_ten
+	add a,'A'-10
+	call write_char
+	ret
+less_than_ten:
+	add a,'0'
+	call write_char
 	ret
 #endlocal
 
@@ -929,6 +988,10 @@ write_char_buffer:
 ; Keyboard buffer to remember what's pressed.
 keyboard_buffer:
 	ds 7
+
+; Non-zero if we should print debugging output.
+debug_output:
+	ds 1
 
 ; Where the program is compiled to.
 binary:
