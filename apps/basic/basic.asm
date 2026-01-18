@@ -16,6 +16,7 @@ CURSOR_DISABLED equ 0xFF
 I_LD_DE_IMM equ 0x11
 I_RET equ 0xC9
 I_CALL equ 0xCD
+I_POP_DE equ 0xD1
 ; Basic tokens.
 T_END equ 0x80
 T_FOR equ 0x81
@@ -474,6 +475,7 @@ to_upper:
 compile_line:
 #local
 	push de
+	push bc
 loop:
 	ld a,(de)
 	inc de
@@ -499,12 +501,9 @@ compile_cls:
 compile_set:
 	ld a,'('			; Skip open parenthesis.
 	call expect_and_skip
-	ld (hl),I_LD_DE_IMM
-	inc hl
-	ld (hl),0xFF
-	inc hl
-	ld (hl),0x03
-	inc hl
+	call parse_expression		; Parse coordinate.
+	ld a,')'			; Skip close parenthesis.
+	call expect_and_skip
 	ld (hl),I_CALL
 	inc hl
 	ld (hl),lo(set_pixel)
@@ -514,6 +513,7 @@ compile_set:
 	jp loop
 
 done:
+	pop bc
 	pop de
 	ret
 
@@ -535,6 +535,59 @@ skip_whitespace:
 	ret nz
 	inc de
 	jp skip_whitespace
+
+; Parse the expression at DE into the binary buffer at HL.
+parse_expression:
+#local
+	call skip_whitespace
+	call parse_expression_numeric_literal
+	ret
+#endlocal
+
+; Parse the numeric literal at DE into the binary buffer at HL.
+parse_expression_numeric_literal:
+#local
+	push bc
+	call read_numeric_literal
+	ld (hl),I_LD_DE_IMM
+	inc hl
+	ld (hl),c
+	inc hl
+	ld (hl),b
+	inc hl
+	pop bc
+	ret
+#endlocal
+
+#endlocal				; End compile_line local block.
+
+; Parse the numeric literal at DE and return it in BC, advancing DE.
+; TODO return error if no digits are read.
+read_numeric_literal:
+#local
+	ld bc,0
+loop:
+	ld a,(de)
+	cp a,'0'
+	ret c				; We're done if it's less than '0'.
+	cp a,'9'+1
+	ret nc				; We're done if it's greater than '9'.
+	push hl
+	ld hl,bc			; BC *= 10
+	add hl,hl
+	add hl,hl
+	add hl,bc
+	add hl,hl
+	ld bc,hl
+	pop hl
+	sub a,'0'
+	add a,c				; BC += A
+	ld c,a
+	ld a,0
+	adc a,b
+	ld b,a
+	inc de
+	jp loop
 #endlocal
 
 ; Write the nul-terminated string at HL
