@@ -286,20 +286,39 @@ loop:
 	jp z,newline
 
 	ld (de),a
-	inc de ; TODO check end of screen
+	inc de
+	; Check end of screen
+	ld a,d
+	cp a,0x40
+	jp nz,loop			; Not at end of screen, loop.
+	call scroll_up
+	ld de,SCREEN_END-SCREEN_WIDTH
 	jp loop
 
 newline:
+	; See if we're on the last line and should scroll.
+	ld a,d
+	cp a,0x3F			; Last (256-byte) block of screen.
+	jp nz,actual_newline
+	ld a,e
+	cp a,0xC0			; Fourth line of last block.
+	jp c,actual_newline
+	; We're on the last line. Scroll up.
+	call scroll_up
+	jp go_to_start_of_line
+
+actual_newline:
+	; Add SCREEN_WIDTH to DE.
 	ld a,e
 	add a,SCREEN_WIDTH
 	ld e,a
 	ld a,d
 	adc 0
 	ld d,a
+go_to_start_of_line:
 	ld a,e
 	and a,~(SCREEN_WIDTH-1)
 	ld e,a
-	; TODO scroll when past the bottom of the screen.
 	jp loop	
 
 end_loop:
@@ -316,6 +335,29 @@ write_char:
 	ld hl,write_char_buffer
 	ld (hl),a
 	call write_text
+	pop hl
+	ret
+#endlocal
+
+; Scroll the screen up one line and write a blank line at the bottom.
+scroll_up:
+#local
+	push hl
+	push bc
+	push de
+	; Scroll screen up.
+	ld hl,SCREEN_BEGIN+SCREEN_WIDTH
+	ld de,SCREEN_BEGIN
+	ld bc,SCREEN_SIZE-SCREEN_WIDTH
+	ldir
+	; Blank out bottom line.
+	ld hl,SCREEN_END-SCREEN_WIDTH
+	ld de,SCREEN_END-SCREEN_WIDTH+1
+	ld bc,SCREEN_WIDTH-1
+	ld (hl),CLEAR_CHAR
+	ldir
+	pop de
+	pop bc
 	pop hl
 	ret
 #endlocal
