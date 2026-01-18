@@ -13,6 +13,7 @@ KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
 ; Z80 instructions.
+I_LD_DE_IMM equ 0x11
 I_RET equ 0xC9
 I_CALL equ 0xCD
 ; Basic tokens.
@@ -216,6 +217,7 @@ prompt_loop:
 	call detokenize
 	ld a,NL
 	call write_char
+	ld (compile_stack_location),sp	; Save stack for unwinding on errors.
 	ld de,hl			; Address of tokenized program.
 	ld hl,binary
 	call compile_line
@@ -247,6 +249,20 @@ print_binary_loop:
 	; End of debug print.
 	ld a,NL
 	call write_char
+	jp prompt_loop
+
+; Jump here on a parse/compile error. DE should point to the
+; location in the tokenized program where the error occurred.
+; Only call this downstack of the "compile" routine.
+compile_error:
+	; TODO handle DE being at the end of the buffer (pointing to nul).
+	ld hl,syntax_error_msg_part1
+	call write_text
+	ld a,(de)
+	call detokenize_char
+	ld hl,syntax_error_msg_part2
+	call write_text
+	ld sp,(compile_stack_location)
 	jp prompt_loop
 
 ; Clear the screen and reset the cursor
@@ -392,6 +408,20 @@ loop:
 	ld a,(hl)			; Fetch token or character.
 	or a,a				; See what we got.
 	jp z,done			; Nul indicates end of string.
+	call detokenize_char
+	inc hl
+	jp loop
+done:
+	pop bc
+	pop hl
+	ret
+#endlocal
+
+; Write the detokenized version of the character in A.
+; Destroys BC.
+detokenize_char:
+#local
+	or a,a				; See what we got.
 	jp p,plain_char			; High bit not set, it's a regular character.
 	ld bc,tokens			; BC will walk through token list.
 	and a,0x7F			; The 0-based index of token.
@@ -421,17 +451,10 @@ print_token_loop:
 	jp p,print_token_loop		; Until we reach start of next token.
 	ld a,'}'
 	call write_char
-	inc hl				; Next input char.
-	jp loop
+	ret
 
 plain_char:
 	call write_char			; Write plain char.
-	inc hl				; Next input char.
-	jp loop
-
-done:
-	pop bc
-	pop hl
 	ret
 #endlocal
 
@@ -459,7 +482,12 @@ loop:
 	cp a,' '			; Skip spaces.
 	jp z,loop
 	cp a,T_CLS
-	jp nz,done			; TODO Generate compile error.
+	jp z,compile_cls
+	cp a,T_SET
+	jp z,compile_set
+	dec de				; Point to the bad token.
+	jp compile_error
+compile_cls:
 	ld (hl),I_CALL
 	inc hl
 	ld (hl),lo(cls)
@@ -468,10 +496,45 @@ loop:
 	inc hl
 	; TODO Check if overrunning compile buffer.
 	jp loop
+compile_set:
+	ld a,'('			; Skip open parenthesis.
+	call expect_and_skip
+	ld (hl),I_LD_DE_IMM
+	inc hl
+	ld (hl),0xFF
+	inc hl
+	ld (hl),0x03
+	inc hl
+	ld (hl),I_CALL
+	inc hl
+	ld (hl),lo(set_pixel)
+	inc hl
+	ld (hl),hi(set_pixel)
+	inc hl
+	jp loop
 
 done:
 	pop de
 	ret
+
+; Skip whitespace, expect the character in A, and skip it.
+expect_and_skip:
+	push bc
+	ld b,a
+	call skip_whitespace
+	ld a,(de)
+	cp a,b
+	jp nz,compile_error
+	inc de
+	pop bc
+	ret
+
+skip_whitespace:
+	ld a,(de)
+	cp a,' '
+	ret nz
+	inc de
+	jp skip_whitespace
 #endlocal
 
 ; Write the nul-terminated string at HL
@@ -595,6 +658,20 @@ scroll_up:
 	pop de
 	pop bc
 	pop hl
+	ret
+#endlocal
+
+; Set the pixel at X location D (0-127) and Y location E (0-47).
+; Actually for now just draw a square at character location DE (0-1023).
+set_pixel:
+#local
+	push de
+	ld a,d
+	add a,hi(SCREEN_BEGIN)
+	ld d,a
+	ld a,191
+	ld (de),a
+	pop de
 	ret
 #endlocal
 
@@ -836,6 +913,10 @@ ready_prompt:
 	db "Ready", NL, 0
 line_prompt:
 	db ">", 0
+syntax_error_msg_part1:
+	db "Syntax error at '", 0
+syntax_error_msg_part2:
+	db "'", NL, 0
 keyboard_matrix_unshifted:
 	db "@abcdefghijklmnopqrstuvwxyz     0123456789:;,-./", NL, 0, 27, 0, 0, 8, 9, 32
 keyboard_matrix_shifted:
@@ -992,6 +1073,11 @@ keyboard_buffer:
 ; Non-zero if we should print debugging output.
 debug_output:
 	ds 1
+
+; Location of the stack just before we start compiling,
+; to unwind it all at once if there's a parse error.
+compile_stack_location:
+	ds 2
 
 ; Where the program is compiled to.
 binary:
