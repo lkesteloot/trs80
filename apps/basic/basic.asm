@@ -293,6 +293,39 @@ cls:
 	ret
 #endlocal
 
+; Detokenize and write the contents of the program.
+list:
+#local
+	push hl
+	ld hl,program
+loop:
+	ld e,(hl)			; Grab address of next line.
+	inc hl
+	ld d,(hl)
+	inc hl
+	ld a,e				; See if it's null.
+	or a,d
+	jp z,done			; Null next pointer means no line here.
+	ld c,(hl)			; Grab line number.
+	inc hl
+	ld b,(hl)
+	inc hl
+	push hl
+	ld hl,bc
+	call write_decimal_word		; Write the line number.
+	pop hl
+	ld a,' '
+	call write_char
+	call detokenize			; Write the line.
+	ld a,NL
+	call write_char
+	ld hl,de
+	jp loop
+done:
+	pop hl
+	ret
+#endlocal
+
 ; Tokenize the string at HL in-place, nul-terminating the result.
 ; TODO this routine is *much* slower than the TRS-80's. Compare it to theirs.
 ; Maybe: Skip spaces and digits. (But not symbols.)
@@ -487,6 +520,8 @@ loop:
 	jp z,compile_cls
 	cp a,T_SET
 	jp z,compile_set
+	cp a,T_LIST
+	jp z,compile_list
 	dec de				; Point to the bad token.
 	jp compile_error
 compile_cls:
@@ -498,10 +533,18 @@ compile_cls:
 	inc hl
 	; TODO Check if overrunning compile buffer.
 	jp loop
+compile_list:
+	ld (hl),I_CALL
+	inc hl
+	ld (hl),lo(list)
+	inc hl
+	ld (hl),hi(list)
+	inc hl
+	jp loop
 compile_set:
 	ld a,'('			; Skip open parenthesis.
 	call expect_and_skip
-	call parse_expression		; Parse coordinate.
+	call compile_expression		; Parse coordinate.
 	ld a,')'			; Skip close parenthesis.
 	call expect_and_skip
 	ld (hl),I_CALL
@@ -537,15 +580,15 @@ skip_whitespace:
 	jp skip_whitespace
 
 ; Parse the expression at DE into the binary buffer at HL.
-parse_expression:
+compile_expression:
 #local
 	call skip_whitespace
-	call parse_expression_numeric_literal
+	call compile_numeric_literal
 	ret
 #endlocal
 
 ; Parse the numeric literal at DE into the binary buffer at HL.
-parse_expression_numeric_literal:
+compile_numeric_literal:
 #local
 	push bc
 	call read_numeric_literal
@@ -688,6 +731,37 @@ write_hex_nibble:
 less_than_ten:
 	add a,'0'
 	call write_char
+	ret
+#endlocal
+
+; Write in decimal the unsigned word in HL.
+write_decimal_word:
+#local
+	push iy
+	push hl
+	push de
+	ld iy, pow10			; Tables for powers of ten.
+digit_loop:
+	ld a,'0'			; Digit to print.
+	ld d,(iy+1)			; Load power of ten.
+	ld e,(iy+0)
+	or a,a				; Clear carry.
+count_loop:
+	sbc hl,de			; Subtract the power of ten.
+	jr c,went_negative		; Ooops went too far.
+	inc a				; It fit, increase the count.
+	jr count_loop
+went_negative:
+	add hl,de			; Undo last subtraction, went too far.
+	call write_char
+	inc iy				; Next power of ten.
+	inc iy
+	ld a,e
+	cp a,1				; See if that was the last one.
+	jp nz,digit_loop
+	pop de
+	pop hl
+	pop iy
 	ret
 #endlocal
 
@@ -1100,6 +1174,7 @@ tokens:
 	db 'R'|0x80,"IGHT$" ; RIGHT$ (0xF9)
 	db 'M'|0x80,"ID$" ; MID$ (0xFA)
 	db 0x80 ; End of token list.
+pow10:  dw 10000, 1000, 100, 10, 1	; Powers of 10 for write_decimal_word.
 	
 ; Variables in RAM.
 	.org 0x4000
@@ -1138,5 +1213,10 @@ binary:
 
 ; Mark where our variables end.
 bss_end:
+
+program:
+line10:	db lo(line20), hi(line20), lo(10), hi(10), T_CLS, 0
+line20: db lo(line30), hi(line30), lo(20), hi(20), T_SET, '(500)', 0
+line30: db 0, 0
 
 	end 0x0000
