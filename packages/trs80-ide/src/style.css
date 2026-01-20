@@ -440,15 +440,18 @@ body.presentation-mode {
 .gutter-addresses {
     /* "XXXX " = 5 characters */
     width: 5ch;
-    color: var(--cyan);
-}
+    cursor: default;
+    color: rgb(from var(--cyan) r g b / 0.6);
 
-.gutter-addresses .gutter-address {
-    cursor: pointer;
-}
-
-.gutter-addresses .gutter-address.gutter-breakpoint {
-    color: var(--red);
+    .gutter-address {
+        &.gutter-can-be-breakpoint {
+            cursor: pointer;
+            color: var(--cyan);
+        }
+        &.gutter-breakpoint {
+            color: var(--red);
+        }
+    }
 }
 
 .gutter-bytecode {

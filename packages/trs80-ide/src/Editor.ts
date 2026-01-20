@@ -59,7 +59,7 @@ import {
     selectNextOccurrence,
 } from "@codemirror/search"
 import {Diagnostic, setDiagnostics} from "@codemirror/lint"
-import {Asm, SourceFile, SymbolAppearance} from "z80-asm";
+import {Asm, AssembledLine, SourceFile, SymbolAppearance} from "z80-asm";
 import {toHexByte, toHexWord, Z80_KNOWN_LABELS} from "z80-base";
 import {TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS, TRS80_MODEL_III_KNOWN_LABELS} from "trs80-base";
 import {ScreenshotSection} from "./ScreenshotSection";
@@ -1339,16 +1339,40 @@ export class Editor {
      * Gutter to show each line's address.
      */
     private makeAddressesGutter() {
+        function showLineNumber(assembledLine: AssembledLine | undefined): boolean {
+            if (assembledLine === undefined) {
+                return false;
+            }
+            if (assembledLine.rolledUpBinary.length > 0) {
+                return true;
+            }
+            if (assembledLine.symbolsDefined.length > 0) {
+                const s = assembledLine.symbolsDefined[0];
+                if (s.symbol.value === assembledLine.address) {
+                    // This is a heuristic to catch labels that are on their own line and (say) point
+                    // to a .ds, so no code is generated. I still want to know their address. This could
+                    // accidentally catch an equ constant definition that happens to define a value that's
+                    // the same as the address. This is most likely to happen in ROMs with a bunch of constants
+                    // at the top, where one of the values happens to be zero. If this is a problem we can
+                    // keep better track of whether a symbol is an equ (and should never have its address
+                    // displayed).
+                    return true;
+                }
+            }
+            return false;
+        }
         return gutter({
             class: "gutter-addresses hidable-gutter",
             lineMarker: (view: EditorView, line: BlockInfo) => {
                 const results = this.getAssemblyResults(view.state);
                 const lineNumber = view.state.doc.lineAt(line.from).number;
                 const assembledLine = results.sourceFile.assembledLines[lineNumber - 1];
-                if (assembledLine !== undefined && assembledLine.rolledUpBinary.length > 0) {
+                if (showLineNumber(assembledLine)) {
                     const hasBreakpoint = this.posHasBreakpoint(view, line.from);
+                    const canBeBreakpoint = assembledLine.rolledUpBinary.length > 0;
                     return new InfoGutter(toHexWord(assembledLine.address), [
                         "gutter-address",
+                        ... (canBeBreakpoint ? ["gutter-can-be-breakpoint"] : []),
                         ... (hasBreakpoint ? ["gutter-breakpoint"] : []),
                     ]);
                 }
