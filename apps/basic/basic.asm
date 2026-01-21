@@ -15,6 +15,8 @@ CURSOR_DISABLED equ 0xFF
 
 ; Z80 opcodes.
 I_LD_DE_IMM equ 0x11
+I_LD_D_H equ 0x54
+I_LD_E_L equ 0x5D
 I_JP equ 0xC3
 I_RET equ 0xC9
 I_CALL equ 0xCD
@@ -192,6 +194,10 @@ soft_boot:
 	ld (cursor),hl
 	ld hl,cursor_counter
 	ld (hl),CURSOR_DISABLED
+
+	; Configure the random number generator.
+	ld a,1				; Any non-zero number is fine.
+	ld (rnd_seed),a
 
 	; Configure and enable interrupts.
 	im 1 				; rst 38 on maskable interrupt.
@@ -664,7 +670,28 @@ skip_whitespace:
 compile_expression:
 #local
 	call skip_whitespace
+	ld a,(de)
+	cp a,'0'			; See if it's a number.
+	jr c,not_number
+	cp a,'9'+1
+	jr nc,not_number
 	call compile_numeric_literal
+	ret
+not_number:
+	cp a,T_RND
+	jp nz,compile_error
+	; Compile the RND function.
+	inc de
+	ld (hl),I_CALL
+	inc hl
+	ld (hl),lo(rnd)
+	inc hl
+	ld (hl),hi(rnd)
+	inc hl
+	ld (hl),I_LD_D_H		; RND returns in HL.
+	inc hl
+	ld (hl),I_LD_E_L
+	inc hl
 	ret
 #endlocal
 
@@ -750,8 +777,8 @@ compile_command_dispatch:
 	
 #endlocal				; End compile_line local block.
 
-; Parse the numeric literal at DE and return it in BC, advancing DE.
-; TODO return error if no digits are read.
+; Parse the decimal literal at DE and return it in BC, advancing DE.
+; TODO error if no digits are read. Or maybe not? Always called when we see a digit?
 read_numeric_literal:
 #local
 	ld bc,0
@@ -855,10 +882,10 @@ write_char:
 write_hex_byte:
 #local
 	push af
-	srl a
-	srl a
-	srl a
-	srl a
+	rrca
+	rrca
+	rrca
+	rrca
 	call write_hex_nibble
 	pop af
 	call write_hex_nibble
@@ -869,13 +896,11 @@ write_hex_byte:
 write_hex_nibble:
 #local
 	and a,0x0F
-	cp a,10
-	jp c,less_than_ten
-	add a,'A'-10
-	call write_char
-	ret
-less_than_ten:
 	add a,'0'
+	cp a,'0'+10
+	jr c,less_than_ten
+	add a,'A'-'0'-10
+less_than_ten:
 	call write_char
 	ret
 #endlocal
@@ -940,7 +965,8 @@ set_pixel:
 #local
 	push de
 	ld a,d
-	add a,hi(SCREEN_BEGIN)
+	and a,0x03			; DE %= 1024
+	add a,hi(SCREEN_BEGIN)		; DE += SCREEN_BEGIN
 	ld d,a
 	ld a,191
 	ld (de),a
@@ -1178,6 +1204,35 @@ handle_maskable_interrupt:
 	pop af
 	ret
 #endlocal
+
+; Generate a random 16-bit number, returning it in HL.
+rnd:
+#local
+	; 16-bit xorshift pseudorandom number generator by John Metcalf.
+	; hl ^= hl << 7
+	; hl ^= hl >> 9
+	; hl ^= hl << 8
+	; From https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Random
+	ld hl,(rnd_seed)
+	
+	ld a,h
+	rra
+	ld a,l
+	rra
+	xor h
+	ld h,a
+	ld a,l
+	rra
+	ld a,h
+	rra
+	xor l
+	ld l,a
+	xor h
+	ld h,a
+
+	ld (rnd_seed),hl
+	ret
+#endlocal
 	
 boot_message:
 	db "Model III Basic Compiler", NL
@@ -1357,6 +1412,10 @@ tron_flag:
 ; Location of the stack just before we show the ready prompt,
 ; to unwind it all on error or end of program.
 ready_prompt_sp:
+	ds 2
+
+; Seed for the random number generator. Must not be zero.
+rnd_seed:
 	ds 2
 
 ; Where the program is compiled to.
