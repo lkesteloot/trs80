@@ -14,6 +14,7 @@ CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
 ; Z80 instructions.
 I_LD_DE_IMM equ 0x11
+I_JP equ 0xC3
 I_RET equ 0xC9
 I_CALL equ 0xCD
 I_POP_DE equ 0xD1
@@ -172,7 +173,7 @@ T_MID_STR equ 0xFA
 	reti
 
 soft_boot:
-	; Configure stack.
+	; Configure stack. Assume 48 kB of RAM.
 	ld sp,0x0000
 
 	; Clear BSS.
@@ -191,7 +192,7 @@ soft_boot:
 	; Configure and enable interrupts.
 	im 1 				; rst 38 on maskable interrupt.
 	ld a,0x04
-	out (0xe0),a 			; Enable timer interrupt.
+	out (0xE0),a 			; Enable timer interrupt.
 	ei
 
 	; Clear the screen; home cursor.
@@ -202,6 +203,8 @@ soft_boot:
 	call write_text
 
 prompt_loop:
+	ld (ready_prompt_sp),sp		; Save stack for unwinding.
+
 	ld hl,ready_prompt
 	call write_text
 
@@ -215,10 +218,9 @@ prompt_loop:
 	and a,0x03			; Either shift.
 	ld (debug_output),a		; Save whether to print debugging output.	
 	call tokenize
-	call detokenize
-	ld a,NL
-	call write_char
-	ld (compile_stack_location),sp	; Save stack for unwinding on errors.
+	; call detokenize
+	; ld a,NL
+	; call write_char
 	ld de,hl			; Address of tokenized program.
 	ld hl,binary
 	call compile_line
@@ -254,7 +256,6 @@ print_binary_loop:
 
 ; Jump here on a parse/compile error. DE should point to the
 ; location in the tokenized program where the error occurred.
-; Only call this downstack of the "compile" routine.
 compile_error:
 	; TODO handle DE being at the end of the buffer (pointing to nul).
 	ld hl,syntax_error_msg_part1
@@ -263,7 +264,11 @@ compile_error:
 	call detokenize_char
 	ld hl,syntax_error_msg_part2
 	call write_text
-	ld sp,(compile_stack_location)
+	; Fallthrough
+
+; Jump here from END token or when we run off the end of the program.
+end:
+	ld sp,(ready_prompt_sp)
 	jp prompt_loop
 
 ; Clear the screen and reset the cursor
@@ -322,6 +327,50 @@ loop:
 	ld hl,de
 	jp loop
 done:
+	pop hl
+	ret
+#endlocal
+
+; Compile the stored program and run it.
+run:
+#local
+	push hl
+	push bc
+	push de
+	push ix
+	ld ix,program
+	ld hl,binary + 30		; TODO
+loop:
+	ld c,(ix)			; Grab address of next line.
+	inc ix
+	ld b,(ix)
+	inc ix
+	ld a,b				; See if it's null.
+	or a,c
+	jp z,done			; Null next pointer means no line here.
+	push bc				; Push address of next line.
+	inc ix				; Skip line number.
+	inc ix
+	ld e,ixl			; Compile wants source in DE.
+	ld d,ixh
+	call compile_line		; Writes to HL.
+	pop ix				; Pop address of next line (was pushed as BC).
+	jp loop
+done:
+	; Clean up the stack and return to the ready prompt.
+	ld (hl),I_JP
+	inc hl
+	ld (hl),lo(end)
+	inc hl
+	ld (hl),hi(end)
+	inc hl
+	ld a,(tron_flag)
+	or a,a
+	jp nz,print_binary
+	call binary + 30 ; TODO
+	pop ix
+	pop de
+	pop bc
 	pop hl
 	ret
 #endlocal
@@ -473,8 +522,8 @@ token_skip:
 	jp token_loop
 
 found_token:
-	ld a,'{'
-	call write_char
+	; ld a,'{'
+	; call write_char
 	ld a,(bc)			; Read the token.
 print_token_loop:
 	and a,0x7F			; Clear high bit.
@@ -483,8 +532,8 @@ print_token_loop:
 	ld a,(bc)
 	or a,a
 	jp p,print_token_loop		; Until we reach start of next token.
-	ld a,'}'
-	call write_char
+	; ld a,'}'
+	; call write_char
 	ret
 
 plain_char:
@@ -522,6 +571,10 @@ loop:
 	jp z,compile_set
 	cp a,T_LIST
 	jp z,compile_list
+	cp a,T_RUN
+	jp z,compile_run
+	cp a,T_END
+	jp z,compile_end
 	dec de				; Point to the bad token.
 	jp compile_error
 compile_cls:
@@ -539,6 +592,22 @@ compile_list:
 	ld (hl),lo(list)
 	inc hl
 	ld (hl),hi(list)
+	inc hl
+	jp loop
+compile_run:
+	ld (hl),I_CALL
+	inc hl
+	ld (hl),lo(run)
+	inc hl
+	ld (hl),hi(run)
+	inc hl
+	jp loop
+compile_end:
+	ld (hl),I_JP
+	inc hl
+	ld (hl),lo(end)
+	inc hl
+	ld (hl),hi(end)
 	inc hl
 	jp loop
 compile_set:
@@ -1202,9 +1271,13 @@ keyboard_buffer:
 debug_output:
 	ds 1
 
-; Location of the stack just before we start compiling,
-; to unwind it all at once if there's a parse error.
-compile_stack_location:
+; Whether TRON has been enabled.
+tron_flag:
+	ds 1
+
+; Location of the stack just before we show the ready prompt,
+; to unwind it all on error or end of program.
+ready_prompt_sp:
 	ds 2
 
 ; Where the program is compiled to.
@@ -1216,7 +1289,8 @@ bss_end:
 
 program:
 line10:	db lo(line20), hi(line20), lo(10), hi(10), T_CLS, 0
-line20: db lo(line30), hi(line30), lo(20), hi(20), T_SET, '(500)', 0
-line30: db 0, 0
+line20: db lo(line30), hi(line30), lo(20), hi(20), T_CLS, 0
+line30: db lo(line40), hi(line40), lo(30), hi(30), T_SET, '(500)', 0
+line40: db 0, 0
 
 	end 0x0000
