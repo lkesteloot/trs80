@@ -287,8 +287,6 @@ cls:
 	push hl
 	push de
 	push bc
-
-	call disable_cursor
 	
 	ld hl,SCREEN_BEGIN
 	ld (cursor),hl
@@ -301,8 +299,6 @@ cls:
 	pop bc
 	pop de
 	pop hl
-
-	call enable_cursor
 	
 	ret
 #endlocal
@@ -882,7 +878,6 @@ loop:
 write_text:
 #local
 	push de
-	call disable_cursor
 	ld de,(cursor) ; where we're writing to
 
 loop:
@@ -932,7 +927,6 @@ go_to_start_of_line:
 
 end_loop:
 	ld (cursor),de
-	call enable_cursor
 	pop de
 	ret
 #endlocal
@@ -1059,9 +1053,11 @@ read_text:
 	ld c,0
 
 loop:
+	call enable_cursor
 	call poll_keyboard
 	or a
 	jp z,loop
+	call disable_cursor
 
 	cp a,NL
 	jp z,done
@@ -1076,11 +1072,9 @@ loop:
 
 	dec hl
 	dec c
-	call disable_cursor
 	ld de,(cursor)
 	dec de
 	ld (cursor),de
-	call enable_cursor
 	jp loop
 
 regular_char:
