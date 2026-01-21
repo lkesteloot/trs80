@@ -378,6 +378,22 @@ done:
 	ret
 #endlocal
 
+; Enable debug mode.
+tron:
+#local
+	ld a,1
+	ld (tron_flag),a
+	ret
+#endlocal
+
+; Disable debug mode.
+troff:
+#local
+	xor a
+	ld (tron_flag),a
+	ret
+#endlocal
+
 ; Tokenize the string at HL in-place, nul-terminating the result.
 ; TODO this routine is *much* slower than the TRS-80's. Compare it to theirs (CRUNCH).
 ; Maybe: Skip spaces and digits. (But not symbols.)
@@ -693,8 +709,8 @@ compile_command_dispatch:
 	dw 0 ; REM (0x93)
 	dw 0 ; STOP (0x94)
 	dw 0 ; ELSE (0x95)
-	dw 0 ; TRON (0x96)
-	dw 0 ; TROFF (0x97)
+	dw tron | 0x8000 ; TRON (0x96)
+	dw troff | 0x8000 ; TROFF (0x97)
 	dw 0 ; DEFSTR (0x98)
 	dw 0 ; DEFINT (0x99)
 	dw 0 ; DEFSNG (0x9A)
