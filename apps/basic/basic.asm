@@ -12,14 +12,17 @@ BINARY_SIZE equ 1024			; Compiled code.
 KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
-; Z80 instructions.
+
+; Z80 opcodes.
 I_LD_DE_IMM equ 0x11
 I_JP equ 0xC3
 I_RET equ 0xC9
 I_CALL equ 0xCD
 I_POP_DE equ 0xD1
+
 ; Basic tokens.
 T_END equ 0x80
+T_FIRST_STMT equ T_END 			; First statement.
 T_FOR equ 0x81
 T_RESET equ 0x82
 T_SET equ 0x83
@@ -79,6 +82,7 @@ T_CLEAR equ 0xB8
 T_CLOAD equ 0xB9
 T_CSAVE equ 0xBA
 T_NEW equ 0xBB
+T_LAST_STMT equ T_NEW 			; Last statement.
 T_TAB_PAREN equ 0xBC
 T_TO equ 0xBD
 T_FN equ 0xBE
@@ -271,8 +275,7 @@ end:
 	ld sp,(ready_prompt_sp)
 	jp prompt_loop
 
-; Clear the screen and reset the cursor
-; to the top-left corner.
+; Clear the screen and reset the cursor to the top-left corner.
 cls:
 #local
 	push hl
@@ -376,7 +379,7 @@ done:
 #endlocal
 
 ; Tokenize the string at HL in-place, nul-terminating the result.
-; TODO this routine is *much* slower than the TRS-80's. Compare it to theirs.
+; TODO this routine is *much* slower than the TRS-80's. Compare it to theirs (CRUNCH).
 ; Maybe: Skip spaces and digits. (But not symbols.)
 tokenize:
 #local
@@ -561,55 +564,48 @@ compile_line:
 loop:
 	ld a,(de)
 	inc de
-	or a,a				; See if we're done with the buffer.
-	jp z,done
 	cp a,' '			; Skip spaces.
 	jp z,loop
-	cp a,T_CLS
-	jp z,compile_cls
-	cp a,T_SET
-	jp z,compile_set
-	cp a,T_LIST
-	jp z,compile_list
-	cp a,T_RUN
-	jp z,compile_run
-	cp a,T_END
-	jp z,compile_end
+	or a,a
+	jp z,done			; Nul byte is end of the buffer.
+	jp m,compile_token		; High bit is set, see if it's a statement.
+back_up_and_error:
 	dec de				; Point to the bad token.
 	jp compile_error
-compile_cls:
-	ld (hl),I_CALL
+compile_token:
+	cp a,T_LAST_STMT+1		; Just past the end of statements.
+	jp nc,back_up_and_error		; Not a statement.
+	sub a,T_FIRST_STMT		; 0-based index.
+	rlca				; Double A, two bytes per entry.
+	ld c,a				; BC = offset
+	ld b,0
+	push hl
+	ld hl,compile_command_dispatch	; Look up dispatch in table.
+	add hl,bc
+	ld c,(hl)			; Get address in table.
 	inc hl
-	ld (hl),lo(cls)
+	ld b,(hl)
+	pop hl
+	ld a,b				; See if it's zero.
+	or a,c
+	jp z,back_up_and_error		; Unimplemented statement.
+	ld a,b				; See if we should compile a CALL to that address.
+	or a,a
+	jp m,compile_call		; High bit means to just compile a CALL.
+	push bc				; Jump to BC by pushing and returning.
+	ret				; ... since we want to keep HL intact.
+
+compile_call:
+	and a,0x7F			; Clear high bit of address.
+	ld (hl),I_CALL			; Compile a CALL to it.
 	inc hl
-	ld (hl),hi(cls)
+	ld (hl),c
+	inc hl
+	ld (hl),a
 	inc hl
 	; TODO Check if overrunning compile buffer.
 	jp loop
-compile_list:
-	ld (hl),I_CALL
-	inc hl
-	ld (hl),lo(list)
-	inc hl
-	ld (hl),hi(list)
-	inc hl
-	jp loop
-compile_run:
-	ld (hl),I_CALL
-	inc hl
-	ld (hl),lo(run)
-	inc hl
-	ld (hl),hi(run)
-	inc hl
-	jp loop
-compile_end:
-	ld (hl),I_JP
-	inc hl
-	ld (hl),lo(end)
-	inc hl
-	ld (hl),hi(end)
-	inc hl
-	jp loop
+
 compile_set:
 	ld a,'('			; Skip open parenthesis.
 	call expect_and_skip
@@ -671,6 +667,71 @@ compile_numeric_literal:
 	ret
 #endlocal
 
+; Tokens from 0x80 to 0xBB are commands. These are the routines to call
+; to compile each token. If the address has the high bit set (0x8000),
+; end a CALL to that address is compiled.
+compile_command_dispatch:
+	dw end | 0x8000 ; END (0x80)
+	dw 0 ; FOR (0x81)
+	dw 0 ; RESET (0x82)
+	dw compile_set ; SET (0x83)
+	dw cls | 0x8000 ; CLS (0x84)
+	dw 0 ; CMD (0x85)
+	dw 0 ; RANDOM (0x86)
+	dw 0 ; NEXT (0x87)
+	dw 0 ; DATA (0x88)
+	dw 0 ; INPUT (0x89)
+	dw 0 ; DIM (0x8A)
+	dw 0 ; READ (0x8B)
+	dw 0 ; LET (0x8C)
+	dw 0 ; GOTO (0x8D)
+	dw run | 0x8000 ; RUN (0x8E)
+	dw 0 ; IF (0x8F)
+	dw 0 ; RESTORE (0x90)
+	dw 0 ; GOSUB (0x91)
+	dw 0 ; RETURN (0x92)
+	dw 0 ; REM (0x93)
+	dw 0 ; STOP (0x94)
+	dw 0 ; ELSE (0x95)
+	dw 0 ; TRON (0x96)
+	dw 0 ; TROFF (0x97)
+	dw 0 ; DEFSTR (0x98)
+	dw 0 ; DEFINT (0x99)
+	dw 0 ; DEFSNG (0x9A)
+	dw 0 ; DEFDBL (0x9B)
+	dw 0 ; LINE (0x9C)
+	dw 0 ; EDIT (0x9D)
+	dw 0 ; ERROR (0x9E)
+	dw 0 ; RESUME (0x9F)
+	dw 0 ; OUT (0xA0)
+	dw 0 ; ON (0xA1)
+	dw 0 ; OPEN (0xA2)
+	dw 0 ; FIELD (0xA3)
+	dw 0 ; GET (0xA4)
+	dw 0 ; PUT (0xA5)
+	dw 0 ; CLOSE (0xA6)
+	dw 0 ; LOAD (0xA7)
+	dw 0 ; MERGE (0xA8)
+	dw 0 ; NAME (0xA9)
+	dw 0 ; KILL (0xAA)
+	dw 0 ; LSET (0xAB)
+	dw 0 ; RSET (0xAC)
+	dw 0 ; SAVE (0xAD)
+	dw 0 ; SYSTEM (0xAE)
+	dw 0 ; LPRINT (0xAF)
+	dw 0 ; DEF (0xB0)
+	dw 0 ; POKE (0xB1)
+	dw 0 ; PRINT (0xB2)
+	dw 0 ; CONT (0xB3)
+	dw list | 0x8000 ; LIST (0xB4)
+	dw 0 ; LLIST (0xB5)
+	dw 0 ; DELETE (0xB6)
+	dw 0 ; AUTO (0xB7)
+	dw 0 ; CLEAR (0xB8)
+	dw 0 ; CLOAD (0xB9)
+	dw 0 ; CSAVE (0xBA)
+	dw 0 ; NEW (0xBB)
+	
 #endlocal				; End compile_line local block.
 
 ; Parse the numeric literal at DE and return it in BC, advancing DE.
@@ -1243,7 +1304,9 @@ tokens:
 	db 'R'|0x80,"IGHT$" ; RIGHT$ (0xF9)
 	db 'M'|0x80,"ID$" ; MID$ (0xFA)
 	db 0x80 ; End of token list.
-pow10:  dw 10000, 1000, 100, 10, 1	; Powers of 10 for write_decimal_word.
+
+; Powers of 10 for write_decimal_word.
+pow10:  dw 10000, 1000, 100, 10, 1
 	
 ; Variables in RAM.
 	.org 0x4000
