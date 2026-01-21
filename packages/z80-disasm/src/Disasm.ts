@@ -475,7 +475,7 @@ export class Disasm {
                     break;
                 }
             }
-            if (this.entryPoints.length === 0) {
+            if (addressesToDecode.size === 0) {
                 throw new Error("no binary content was specified");
             }
         } else {

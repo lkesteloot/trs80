@@ -50,6 +50,8 @@ export function instructionsToText(disasm: Disasm,
 
     let expectedAddress = undefined;
     const listingIndent = makeListing ? showBinary ? LISTING_INDENT : ADDRESS_INDENT : "";
+    let executableCount = 0;
+    let nonExecutableCount = 0;
 
     for (const instruction of instructions) {
         let address = instruction.address;
@@ -60,6 +62,12 @@ export function instructionsToText(disasm: Disasm,
             expectedAddress = address;
         }
         expectedAddress += bytes.length;
+
+        if (instruction.isExecutable) {
+            executableCount++;
+        } else {
+            nonExecutableCount++;
+        }
 
         if (instruction.label !== undefined) {
             lines.push(listingIndent + xform(instruction.label) + ":");
@@ -91,6 +99,14 @@ export function instructionsToText(disasm: Disasm,
         endLine += " " + label;
     }
     lines.push(endLine);
+
+    if (false) {
+        // Statistics.
+        lines.push("");
+        lines.push("Disassembly statistics:");
+        lines.push("    Executable instructions: " + executableCount);
+        lines.push("    Non-executable instructions: " + nonExecutableCount);
+    }
 
     return lines;
 }
