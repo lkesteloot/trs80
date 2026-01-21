@@ -324,6 +324,8 @@ loop:
 	inc hl
 	ld b,(hl)
 	inc hl
+	inc hl				; Skip compile pointer.
+	inc hl
 	push hl
 	ld hl,bc
 	call write_decimal_word		; Write the line number.
@@ -337,6 +339,40 @@ loop:
 	jp loop
 done:
 	pop hl
+	ret
+#endlocal
+
+; Find the line with the line number BC, returning it in HL and setting carry.
+; If not found, carry is reset and HL points to the final line (with no content).
+find_line_number:
+#local
+	push de
+	ld hl,program
+loop:
+	push hl				; Push address of this line.
+	ld e,(hl)			; Grab address of next line (DE).
+	inc hl
+	ld d,(hl)
+	inc hl
+	ld a,e				; See if it's null.
+	or a,d
+	jp z,done			; Null next pointer means no line here.
+	push de				; Push next pointer.
+	ld a,(hl)			; Grab line number into HL.
+	inc hl
+	ld h,(hl)
+	ld l,a
+	sbc hl,bc			; Carry is zero from OR above.
+	jp z,found			; Line numbers match.
+	pop hl				; Pop next pointer (pushed as DE).
+	pop de				; Discard "this line" pointer (pushed as HL).
+	jp loop
+found:
+	pop hl				; Discard "next line" pointer (pushed as DE).
+	pop hl				; Restore "this line" pointer.
+	scf				; Indicate that the line was found.
+done:					; If we jump directly here, carry is reset.
+	pop de
 	ret
 #endlocal
 
@@ -359,6 +395,10 @@ loop:
 	jp z,done			; Null next pointer means no line here.
 	push bc				; Push address of next line.
 	inc ix				; Skip line number.
+	inc ix
+	ld (ix),l			; Record compile address for this line.
+	inc ix
+	ld (ix),h
 	inc ix
 	ld e,ixl			; Compile wants source in DE.
 	ld d,ixh
@@ -642,6 +682,36 @@ compile_set:
 	inc hl
 	jp loop
 
+compile_goto:
+	; TODO can't call this from immediate mode, program isn't compiled.
+	; maybe have a global flag for whether the compile is valid, set after
+	; compile and reset after any code modification.
+	call skip_whitespace
+	ld a,(de)
+	cp a,'0'			; Verify that we have a number.
+	jp c,compile_error
+	cp a,'9'+1
+	jp nc,compile_error
+	call read_numeric_literal	; BC has the line number.
+	push hl				; Save write pointer.
+	call find_line_number		; HL has address of line.
+	jp nc,compile_error		; Line number not found. TODO better error
+	inc hl				; Skip next pointer.
+	inc hl
+	inc hl				; Skip line number.
+	inc hl
+	ld c,(hl)			; Read compile address.
+	inc hl
+	ld b,(hl)
+	pop hl				; Restore write pointer.
+	ld (hl),I_JP			; Jump to line's compile address.
+	inc hl
+	ld (hl),c
+	inc hl
+	ld (hl),b
+	inc hl
+	jp loop
+
 done:
 	pop bc
 	pop de
@@ -727,7 +797,7 @@ compile_command_dispatch:
 	dw 0 ; DIM (0x8A)
 	dw 0 ; READ (0x8B)
 	dw 0 ; LET (0x8C)
-	dw 0 ; GOTO (0x8D)
+	dw compile_goto ; GOTO (0x8D)
 	dw run | 0x8000 ; RUN (0x8E)
 	dw 0 ; IF (0x8F)
 	dw 0 ; RESTORE (0x90)
@@ -1426,9 +1496,9 @@ binary:
 bss_end:
 
 program:
-line10:	db lo(line20), hi(line20), lo(10), hi(10), T_CLS, 0
-line20: db lo(line30), hi(line30), lo(20), hi(20), T_CLS, 0
-line30: db lo(line40), hi(line40), lo(30), hi(30), T_SET, '(500)', 0
-line40: db 0, 0
+line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, T_CLS, 0
+line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_SET, '(', T_RND, ')', 0
+line30: db lo(line40), hi(line40), lo(30), hi(30), 0, 0, T_GOTO, ' 20', 0
+line40: db 0, 0, 0, 0, 0, 0
 
 	end 0x0000
