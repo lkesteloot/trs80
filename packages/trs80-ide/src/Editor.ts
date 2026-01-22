@@ -1344,9 +1344,11 @@ export class Editor {
                 return false;
             }
             if (assembledLine.rolledUpBinary.length > 0) {
+                // There's code here.
                 return true;
             }
             if (assembledLine.symbolsDefined.length > 0) {
+                // There's a label here.
                 const s = assembledLine.symbolsDefined[0];
                 if (s.symbol.value === assembledLine.address) {
                     // This is a heuristic to catch labels that are on their own line and (say) point
@@ -1545,13 +1547,16 @@ export class Editor {
 
                 dom.replaceChildren(...joinNodes(nodesLists, "; selection: "));
             };
-            updateStats(this.view.state);
-
             return {
+                // Show it at the bottom.
                 top: false,
                 dom: dom,
+                mount: () => {
+                    updateStats(v.state);
+                },
                 update: viewUpdate => {
-                    if (viewUpdate.docChanged || viewUpdate.selectionSet) {
+                    const asmChanged = this.getAssemblyResults(viewUpdate.state) !== this.getAssemblyResults(viewUpdate.startState);
+                    if (viewUpdate.docChanged || viewUpdate.selectionSet || asmChanged) {
                         updateStats(viewUpdate.state);
                     }
                 },
