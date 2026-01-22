@@ -1,3 +1,20 @@
+	;
+	; Replacement ROM for the TRS-80 Model III.
+	; (c) Lawrence Kesteloot 2026
+	;
+	; This ROM provides a normal Basic environment, but compiles
+	; the program instead of interpreting it.
+	;
+	; Conventions:
+	;
+	; While compiling, DE points to the source tokenized Basic and
+	; HL points to the compiled binary buffer.
+	;
+	; In the compiled program, while evaluating an expression,
+	; DE is the top of the stack, then the real stack contains
+	; additional values.
+	;
+
 SCREEN_WIDTH equ 64
 SCREEN_HEIGHT equ 16
 SCREEN_BEGIN equ 0x3C00
@@ -15,6 +32,8 @@ CURSOR_DISABLED equ 0xFF
 
 ; Z80 opcodes.
 I_LD_DE_IMM equ 0x11
+I_LD_B_E equ 0x43
+I_LD_C_E equ 0x4B
 I_LD_D_H equ 0x54
 I_LD_E_L equ 0x5D
 I_JP equ 0xC3
@@ -667,7 +686,14 @@ compile_call:
 compile_set:
 	ld a,'('			; Skip open parenthesis.
 	call expect_and_skip
-	call compile_expression		; Parse coordinate.
+	call compile_expression		; Read X coordinate into DE.
+	ld (hl),I_LD_B_E		; X to B.
+	inc hl
+	ld a,','			; Skip comma.
+	call expect_and_skip
+	call compile_expression		; Read Y coordinate into DE.
+	ld (hl),I_LD_C_E		; Y to C.
+	inc hl
 	ld a,')'			; Skip close parenthesis.
 	call expect_and_skip
 	ld (hl),I_CALL
@@ -732,7 +758,8 @@ skip_whitespace:
 	inc de
 	jp skip_whitespace
 
-; Parse the expression at DE into the binary buffer at HL.
+; Parse the expression at DE into the binary buffer at HL. The compiled
+; code leaves the result in DE.
 compile_expression:
 #local
 	call skip_whitespace
@@ -746,7 +773,7 @@ compile_expression:
 not_number:
 	cp a,T_RND
 	jp nz,compile_error
-	; Compile the RND function.
+	; Compile the RND function, puts the result in DE.
 	inc de
 	ld (hl),I_CALL
 	inc hl
@@ -762,6 +789,7 @@ not_number:
 #endlocal
 
 ; Parse the numeric literal at DE into the binary buffer at HL.
+; The compiled code puts the number in DE.
 compile_numeric_literal:
 #local
 	push bc
@@ -1041,21 +1069,6 @@ scroll_up:
 	ret
 #endlocal
 
-; Set the pixel at X location D (0-127) and Y location E (0-47).
-; Actually for now just draw a square at character location DE (0-1023).
-set_pixel:
-#local
-	push de
-	ld a,d
-	and a,0x03			; DE %= 1024
-	add a,hi(SCREEN_BEGIN)		; DE += SCREEN_BEGIN
-	ld d,a
-	ld a,191
-	ld (de),a
-	pop de
-	ret
-#endlocal
-
 ; Read a line of text from the keyboard and put
 ; it in the B-length buffer pointed to by HL.
 ; The line will be nul-terminated. At most B-1
@@ -1315,7 +1328,89 @@ rnd:
 	ld (rnd_seed),hl
 	ret
 #endlocal
-	
+
+; Set the pixel at X location B (0-127) and Y location C (0-47).
+set_pixel:
+#local
+	push de
+
+	ld a,b				; Keep X within bounds.
+	and a,0x7F			; TODO runtime error instead.
+	ld b,a
+
+	; TODO keep Y within bounds.
+	ld a,c				; Keep X within bounds.
+	and a,0x1F			; TODO runtime error instead.
+	ld c,a
+
+	; First, we have to compute D=Y/3 and C=Y%3. We do both at once with
+	; repeated subtraction of 3.
+	ld d,255			; Start counter at -1, it's pre-incremented.
+	ld a,c				; Put Y into A.
+divmod3:
+	inc d				; Count number of times we can subtract 3.
+	sub a,3
+	jr nc,divmod3			; Keep subtracting until we're negative.
+	add a,3
+	ld c,a				; C = Y%3
+
+	; Next we want to compute the index location on the screen
+	; and put that in DE. The computation is (Y/3)*64 + X/2.
+	; We've already computed Y/3. The approach here is to start
+	; with Y/3 in the high byte of DE and X*2 in the low byte.
+	; This is equal to (Y/3)*256 + X*2, which is four times too
+	; high. Do two passes of double-RRA (16-bit right rotate)
+	; to get the correct value, and leave carry to hold the
+	; original least significant bit of X.
+	ld a,b				; Put X into A.
+	add a,a				; A = 2*X
+	ld e,a				; E = 2*X
+	ld b,2				; Run this loop twice.
+rr_de:
+	ld a,d				; 16-bit right rotate DE.
+	rra
+	ld d,a
+	ld a,e
+	rra
+	ld e,a
+	djnz rr_de
+
+	; DE now has the index into the screen location, and
+	; carry has the least significant bit of the X location.
+	; We now calculate the bit number (0-5) for the pixel within
+	; the byte, and raise 2 to that power to get the bit pattern.
+	ld a,c				; Y%3
+	adc a,a				; Y%3 + X%2
+	inc a				; djnz loops can't have zero iterations.
+	ld b,a				; Load djnz counter.
+	xor a,a				; Start with zero.
+	scf				; And load the carry from the right.
+power2:
+	adc a,a				; First iteration becomes 1, then doubles.
+	djnz power2
+
+	; Now A is one of 1, 2, 4, 8, 16, or 32.
+	ld c,a				; Stash it in C.
+
+	; Fix up the address so it points to memory.
+	ld a,d				; High byte of index.
+	or a,hi(SCREEN_BEGIN)		; Position it on the screen.
+	ld d,a
+
+	; See what's there already.
+	ld a,(de)
+	or a,a
+	; Copy the bug in the original ROM that doesn't check >= 192.
+	jp m,byte_okay
+	ld a,0x80
+byte_okay:
+	or a,c				; Set the pixel.
+	ld (de),a			; And write it back to memory.
+
+	pop de
+	ret
+#endlocal
+
 boot_message:
 	db "Model III Basic Compiler", NL
 	db "(c) '26 Lawrence Kesteloot", NL, 0
@@ -1509,7 +1604,7 @@ bss_end:
 
 program:
 line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, T_CLS, 0
-line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_SET, '(', T_RND, ')', 0
+line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_SET, '(', T_RND, ',', T_RND, ')', 0
 line30: db lo(line40), hi(line40), lo(30), hi(30), 0, 0, T_GOTO, ' 20', 0
 line40: db 0, 0, 0, 0, 0, 0
 
