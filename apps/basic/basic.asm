@@ -974,7 +974,9 @@ write_decimal_word:
 #local
 	push iy
 	push hl
+	push bc
 	push de
+	ld b,0				; Whether we've printed anything yet.
 	ld iy, pow10			; Tables for powers of ten.
 digit_loop:
 	ld a,'0'			; Digit to print.
@@ -988,13 +990,29 @@ count_loop:
 	jr count_loop
 went_negative:
 	add hl,de			; Undo last subtraction, went too far.
+	; Here we omit leading zeros:
+	cp a,'0'			; Write any non-zero digit.
+	jr nz,write_the_digit
+	ld c,a				; Save A.
+	ld a,b				; See if we've written any digit yet.
+	or a,a
+	ld a,c				; Restore A.
+	jr nz,write_the_digit
+	ld a,e				; See if we're on the last digit.
+	cp a,1
+	ld a,c				; Restore A.
+	jr nz,skip_the_digit
+write_the_digit:
 	call write_char
+	ld b,1				; Record that we've written any digit.
+skip_the_digit:
 	inc iy				; Next power of ten.
 	inc iy
 	ld a,e
 	cp a,1				; See if that was the last one.
 	jp nz,digit_loop
 	pop de
+	pop bc
 	pop hl
 	pop iy
 	ret
