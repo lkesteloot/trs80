@@ -32,6 +32,8 @@ CURSOR_DISABLED equ 0xFF
 
 ; Z80 opcodes.
 I_LD_DE_IMM equ 0x11
+I_INC_DE equ 0x13
+I_LD_B_D equ 0x42
 I_LD_B_E equ 0x43
 I_LD_C_E equ 0x4B
 I_LD_D_H equ 0x54
@@ -40,6 +42,7 @@ I_JP equ 0xC3
 I_RET equ 0xC9
 I_CALL equ 0xCD
 I_POP_DE equ 0xD1
+I_PUSH_DE equ 0xD5
 
 ; Basic tokens.
 T_END equ 0x80
@@ -230,19 +233,6 @@ soft_boot:
 	; Write boot message.
 	ld hl,boot_message
 	call write_text
-
-	ld bc,12345
-	ld de,48
-	call bc_div_de
-	ld b,a
-	call write_decimal_word
-	ld a,NL
-	call write_char
-	ld hl,bc
-	call write_decimal_word
-	ld a,NL
-	call write_char
-	
 
 prompt_loop:
 	ld (ready_prompt_sp),sp		; Save stack for unwinding.
@@ -704,12 +694,16 @@ compile_set:
 	ld a,'('			; Skip open parenthesis.
 	call expect_and_skip
 	call compile_expression		; Read X coordinate into DE.
-	ld (hl),I_LD_B_E		; X to B.
+	ld (hl),I_PUSH_DE		; Save X coordinate.
 	inc hl
 	ld a,','			; Skip comma.
 	call expect_and_skip
 	call compile_expression		; Read Y coordinate into DE.
 	ld (hl),I_LD_C_E		; Y to C.
+	inc hl
+	ld (hl),I_POP_DE		; Restore X.
+	inc hl
+	ld (hl),I_LD_B_E		; X to B.
 	inc hl
 	ld a,')'			; Skip close parenthesis.
 	call expect_and_skip
@@ -792,11 +786,36 @@ not_number:
 	jp nz,compile_error
 	; Compile the RND function, puts the result in DE.
 	inc de
-	ld (hl),I_CALL
+	ld a,'('
+	call expect_and_skip
+	call compile_expression		; In DE.
+	ld a,')'
+	call expect_and_skip
+	ld (hl),I_PUSH_DE		; Push range.
+	inc hl
+	ld (hl),I_CALL			; Generate random number.
 	inc hl
 	ld (hl),lo(rnd)
 	inc hl
 	ld (hl),hi(rnd)
+	inc hl
+	ld (hl),I_LD_B_D		; Random number in BC.
+	inc hl
+	ld (hl),I_LD_C_E
+	inc hl
+	ld (hl),I_POP_DE		; Restore range.
+	inc hl
+	ld (hl),I_CALL			; Compute random % range into HL.
+	inc hl
+	ld (hl),lo(bc_div_de)
+	inc hl
+	ld (hl),hi(bc_div_de)
+	inc hl
+	ld (hl),I_LD_D_H		; Result into DE.
+	inc hl
+	ld (hl),I_LD_E_L
+	inc hl
+	ld (hl),I_INC_DE		; Result is 1 to N.
 	inc hl
 	ret
 #endlocal
@@ -1649,7 +1668,7 @@ bss_end:
 
 program:
 line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, T_CLS, 0
-line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_SET, '(', T_RND, ',', T_RND, ')', 0
+line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '(127),', T_RND, '(47))', 0
 line30: db lo(line40), hi(line40), lo(30), hi(30), 0, 0, T_GOTO, ' 20', 0
 line40: db 0, 0, 0, 0, 0, 0
 
