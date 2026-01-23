@@ -259,7 +259,16 @@ prompt_loop:
 	or a,a
 	jp nz,print_binary
 	call binary
-	jp prompt_loop
+; Jump here from END token or from any error condition.
+end:
+	ld sp,(ready_prompt_sp)
+	jr prompt_loop
+
+; Show a runtime error message and return to the Ready prompt.
+runtime_error:
+	ld hl,runtime_error_msg
+	call write_text
+	jr end
 
 ; Print the contents of the binary. It starts at "binary" and ends at "hl".
 print_binary:
@@ -293,12 +302,7 @@ compile_error:
 	call detokenize_char
 	ld hl,syntax_error_msg_part2
 	call write_text
-	; Fallthrough
-
-; Jump here from END token or when we run off the end of the program.
-end:
-	ld sp,(ready_prompt_sp)
-	jp prompt_loop
+	jp end
 
 ; Clear the screen and reset the cursor to the top-left corner.
 cls:
@@ -1330,14 +1334,12 @@ set_pixel:
 #local
 	push de
 
-	ld a,b				; Keep X within bounds.
-	and a,0x7F			; TODO runtime error instead.
-	ld b,a
-
-	; TODO keep Y within bounds.
-	ld a,c				; Keep X within bounds.
-	and a,0x1F			; TODO runtime error instead.
-	ld c,a
+	ld a,b				; Make sure X is within bounds.
+	cp a,128
+	jp nc,runtime_error
+	ld a,c				; Make sure Y is within bounds.
+	cp a,48
+	jp nc,runtime_error
 
 	; First, we have to compute D=Y/3 and C=Y%3. We do both at once with
 	; repeated subtraction of 3.
@@ -1418,6 +1420,8 @@ syntax_error_msg_part1:
 	db "Syntax error at '", 0
 syntax_error_msg_part2:
 	db "'", NL, 0
+runtime_error_msg:
+	db "Runtime error", NL, 0
 keyboard_matrix_unshifted:
 	db "@abcdefghijklmnopqrstuvwxyz     0123456789:;,-./", NL, 0, 27, 0, 0, 8, 9, 32
 keyboard_matrix_shifted:
