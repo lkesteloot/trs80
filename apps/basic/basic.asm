@@ -781,10 +781,6 @@ not_number:
 	inc hl
 	ld (hl),hi(rnd)
 	inc hl
-	ld (hl),I_LD_D_H		; RND returns in HL.
-	inc hl
-	ld (hl),I_LD_E_L
-	inc hl
 	ret
 #endlocal
 
@@ -1300,32 +1296,32 @@ handle_maskable_interrupt:
 	ret
 #endlocal
 
-; Generate a random 16-bit number, returning it in HL.
+; Generate a random 16-bit number, returning it in DE.
 rnd:
 #local
 	; 16-bit xorshift pseudorandom number generator by John Metcalf.
-	; hl ^= hl << 7
-	; hl ^= hl >> 9
-	; hl ^= hl << 8
+	; de ^= de << 7
+	; de ^= de >> 9
+	; de ^= de << 8
 	; From https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Random
-	ld hl,(rnd_seed)
+	ld de,(rnd_seed)
 	
-	ld a,h
+	ld a,d
 	rra
-	ld a,l
+	ld a,e
 	rra
-	xor h
-	ld h,a
-	ld a,l
+	xor d
+	ld d,a
+	ld a,e
 	rra
-	ld a,h
+	ld a,d
 	rra
-	xor l
-	ld l,a
-	xor h
-	ld h,a
+	xor e
+	ld e,a
+	xor d
+	ld d,a
 
-	ld (rnd_seed),hl
+	ld (rnd_seed),de
 	ret
 #endlocal
 
