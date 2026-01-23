@@ -175,9 +175,14 @@ T_RIGHT_STR equ 0xF9
 T_MID_STR equ 0xFA
 
 ; Macro to add a byte to the compiled binary.
-m_add	macro value
-	ld (hl),&value
+	macro m_add value
+	ld (hl),\value
 	inc hl
+	endm
+; Add a word constant to the compiled binary in little endian order.
+	macro m_add_word value
+	m_add lo(\value)
+	m_add hi(\value)
 	endm
 
 	.org 0x0000
@@ -438,8 +443,7 @@ loop:
 done:
 	; Clean up the stack and return to the ready prompt.
 	m_add I_JP
-	m_add lo(end)
-	m_add hi(end)
+	m_add_word end
 	ld a,(tron_flag)
 	or a,a
 	jp nz,print_binary
@@ -707,8 +711,7 @@ compile_set:
 	ld a,')'			; Skip close parenthesis.
 	call expect_and_skip
 	m_add I_CALL
-	m_add lo(set_pixel)
-	m_add hi(set_pixel)
+	m_add_word set_pixel
 	jp loop
 
 compile_goto:
@@ -743,13 +746,11 @@ compile_print:
 	m_add I_LD_H_D			; Move to HL for write_decimal_word.
 	m_add I_LD_L_E
 	m_add I_CALL
-	m_add lo(write_decimal_word)
-	m_add hi(write_decimal_word)
+	m_add_word write_decimal_word
 	m_add I_LD_A_N
 	m_add NL
 	m_add I_CALL
-	m_add lo(write_char)
-	m_add hi(write_char)
+	m_add_word write_char
 	jp loop
 
 done:
@@ -800,14 +801,12 @@ not_number:
 	call expect_and_skip
 	m_add I_PUSH_DE		        ; Push range.
 	m_add I_CALL			; Generate random number.
-	m_add lo(rnd)
-	m_add hi(rnd)
+	m_add_word rnd
 	m_add I_LD_B_D		        ; Random number in BC.
 	m_add I_LD_C_E
 	m_add I_POP_DE		        ; Restore range.
 	m_add I_CALL			; Compute random % range into HL.
-	m_add lo(bc_div_de)
-	m_add hi(bc_div_de)
+	m_add_word bc_div_de
 	m_add I_LD_D_H		        ; Result into DE.
 	m_add I_LD_E_L
 	m_add I_INC_DE		        ; Result is 1 to N.
