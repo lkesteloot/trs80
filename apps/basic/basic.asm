@@ -231,6 +231,19 @@ soft_boot:
 	ld hl,boot_message
 	call write_text
 
+	ld bc,12345
+	ld de,48
+	call bc_div_de
+	ld b,a
+	call write_decimal_word
+	ld a,NL
+	call write_char
+	ld hl,bc
+	call write_decimal_word
+	ld a,NL
+	call write_char
+	
+
 prompt_loop:
 	ld (ready_prompt_sp),sp		; Save stack for unwinding.
 
@@ -1406,6 +1419,38 @@ byte_okay:
 	ld (de),a			; And write it back to memory.
 
 	pop de
+	ret
+#endlocal
+
+; Divides BC by DE, putting quotient in AC and remainder in HL.
+;
+; This is a normal long division algorithm, where for each bit we
+; see if the divisor can be subtracted, and if it can, we do so
+; and record a 1 in the quotient. Whatever's left is the remainder.
+;
+; Algorithm:
+; HL = 0                Remainder.
+; AC = BC               Divisor.
+; For 16 iterations:
+;     HL <- AC <- 1     Shift 1 in because it's easy here.
+;     If HL >= DE:
+;         HL -= DE
+;         AC -= 1	Remove the 1 we shifted in earlier.
+bc_div_de:
+#local
+	ld hl,0				; Clear remainder.
+	ld a,b				; Put dividend in AC.
+	ld b,16				; Number of iterations (16 bits to process).
+loop:
+	sll c				; Stream divident out to carry, and
+	rla				; ... stream in a 1 bit (might fix below).
+	adc hl,hl			; Stream dividend into HL.
+	sbc hl,de			; Subtract divisor, there's never a borrow.
+	jr nc,continue			; See if we went below zero.
+	add hl,de			; We did, put it back.
+	dec c				; And remove the +1 we added at the top.
+continue:
+	djnz loop
 	ret
 #endlocal
 
