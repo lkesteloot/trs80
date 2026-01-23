@@ -171,6 +171,12 @@ T_LEFT_STR equ 0xF8
 T_RIGHT_STR equ 0xF9
 T_MID_STR equ 0xFA
 
+; Macro to add a byte to the compiled binary.
+m_add	macro value
+	ld (hl),&value
+	inc hl
+	endm
+
 	.org 0x0000
 	di
 	jp soft_boot
@@ -256,8 +262,7 @@ prompt_loop:
 	ld de,hl			; Address of tokenized program.
 	ld hl,binary
 	call compile_line
-	ld (hl),I_RET
-	inc hl
+        m_add I_RET
 	ld a,(debug_output)
 	or a,a
 	jp nz,print_binary
@@ -429,12 +434,9 @@ loop:
 	jp loop
 done:
 	; Clean up the stack and return to the ready prompt.
-	ld (hl),I_JP
-	inc hl
-	ld (hl),lo(end)
-	inc hl
-	ld (hl),hi(end)
-	inc hl
+	m_add I_JP
+	m_add lo(end)
+	m_add hi(end)
 	ld a,(tron_flag)
 	or a,a
 	jp nz,print_binary
@@ -679,14 +681,12 @@ compile_token:
 	push bc				; Jump to BC by pushing and returning.
 	ret				; ... since we want to keep HL intact.
 
+        ; Compile a call to AC.
 compile_call:
 	and a,0x7F			; Clear high bit of address.
-	ld (hl),I_CALL			; Compile a CALL to it.
-	inc hl
-	ld (hl),c
-	inc hl
-	ld (hl),a
-	inc hl
+	m_add I_CALL			; Compile a CALL to it.
+	m_add c
+	m_add a
 	; TODO Check if overrunning compile buffer.
 	jp loop
 
@@ -694,25 +694,18 @@ compile_set:
 	ld a,'('			; Skip open parenthesis.
 	call expect_and_skip
 	call compile_expression		; Read X coordinate into DE.
-	ld (hl),I_PUSH_DE		; Save X coordinate.
-	inc hl
+	m_add I_PUSH_DE		        ; Save X coordinate.
 	ld a,','			; Skip comma.
 	call expect_and_skip
 	call compile_expression		; Read Y coordinate into DE.
-	ld (hl),I_LD_C_E		; Y to C.
-	inc hl
-	ld (hl),I_POP_DE		; Restore X.
-	inc hl
-	ld (hl),I_LD_B_E		; X to B.
-	inc hl
+	m_add I_LD_C_E		        ; Y to C.
+	m_add I_POP_DE		        ; Restore X.
+	m_add I_LD_B_E		        ; X to B.
 	ld a,')'			; Skip close parenthesis.
 	call expect_and_skip
-	ld (hl),I_CALL
-	inc hl
-	ld (hl),lo(set_pixel)
-	inc hl
-	ld (hl),hi(set_pixel)
-	inc hl
+	m_add I_CALL
+	m_add lo(set_pixel)
+	m_add hi(set_pixel)
 	jp loop
 
 compile_goto:
@@ -737,12 +730,9 @@ compile_goto:
 	inc hl
 	ld b,(hl)
 	pop hl				; Restore write pointer.
-	ld (hl),I_JP			; Jump to line's compile address.
-	inc hl
-	ld (hl),c
-	inc hl
-	ld (hl),b
-	inc hl
+	m_add I_JP			; Jump to line's compile address.
+	m_add c
+	m_add b
 	jp loop
 
 done:
@@ -791,32 +781,19 @@ not_number:
 	call compile_expression		; In DE.
 	ld a,')'
 	call expect_and_skip
-	ld (hl),I_PUSH_DE		; Push range.
-	inc hl
-	ld (hl),I_CALL			; Generate random number.
-	inc hl
-	ld (hl),lo(rnd)
-	inc hl
-	ld (hl),hi(rnd)
-	inc hl
-	ld (hl),I_LD_B_D		; Random number in BC.
-	inc hl
-	ld (hl),I_LD_C_E
-	inc hl
-	ld (hl),I_POP_DE		; Restore range.
-	inc hl
-	ld (hl),I_CALL			; Compute random % range into HL.
-	inc hl
-	ld (hl),lo(bc_div_de)
-	inc hl
-	ld (hl),hi(bc_div_de)
-	inc hl
-	ld (hl),I_LD_D_H		; Result into DE.
-	inc hl
-	ld (hl),I_LD_E_L
-	inc hl
-	ld (hl),I_INC_DE		; Result is 1 to N.
-	inc hl
+	m_add I_PUSH_DE		        ; Push range.
+	m_add I_CALL			; Generate random number.
+	m_add lo(rnd)
+	m_add hi(rnd)
+	m_add I_LD_B_D		        ; Random number in BC.
+	m_add I_LD_C_E
+	m_add I_POP_DE		        ; Restore range.
+	m_add I_CALL			; Compute random % range into HL.
+	m_add lo(bc_div_de)
+	m_add hi(bc_div_de)
+	m_add I_LD_D_H		        ; Result into DE.
+	m_add I_LD_E_L
+	m_add I_INC_DE		        ; Result is 1 to N.
 	ret
 #endlocal
 
@@ -826,12 +803,9 @@ compile_numeric_literal:
 #local
 	push bc
 	call read_numeric_literal
-	ld (hl),I_LD_DE_IMM
-	inc hl
-	ld (hl),c
-	inc hl
-	ld (hl),b
-	inc hl
+	m_add I_LD_DE_IMM
+	m_add c
+	m_add b
 	pop bc
 	ret
 #endlocal
@@ -1152,8 +1126,7 @@ regular_char:
 	jp z,loop			; They're equal, we're out of space.
 
 	; Write the character.
-	ld (hl),a
-	inc hl
+	m_add a
 	inc c
 	call write_char
 	jp loop
