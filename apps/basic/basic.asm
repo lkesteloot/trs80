@@ -33,11 +33,14 @@ CURSOR_DISABLED equ 0xFF
 ; Z80 opcodes.
 I_LD_DE_IMM equ 0x11
 I_INC_DE equ 0x13
+I_LD_A_N equ 0x3E
 I_LD_B_D equ 0x42
 I_LD_B_E equ 0x43
 I_LD_C_E equ 0x4B
 I_LD_D_H equ 0x54
 I_LD_E_L equ 0x5D
+I_LD_H_D equ 0x62
+I_LD_L_E equ 0x6B
 I_JP equ 0xC3
 I_RET equ 0xC9
 I_CALL equ 0xCD
@@ -735,6 +738,20 @@ compile_goto:
 	m_add b
 	jp loop
 
+compile_print:
+	call compile_expression		; Into DE.
+	m_add I_LD_H_D			; Move to HL for write_decimal_word.
+	m_add I_LD_L_E
+	m_add I_CALL
+	m_add lo(write_decimal_word)
+	m_add hi(write_decimal_word)
+	m_add I_LD_A_N
+	m_add NL
+	m_add I_CALL
+	m_add lo(write_char)
+	m_add hi(write_char)
+	jp loop
+
 done:
 	pop bc
 	pop de
@@ -864,7 +881,7 @@ compile_command_dispatch:
 	dw 0 ; LPRINT (0xAF)
 	dw 0 ; DEF (0xB0)
 	dw 0 ; POKE (0xB1)
-	dw 0 ; PRINT (0xB2)
+	dw compile_print ; PRINT (0xB2)
 	dw 0 ; CONT (0xB3)
 	dw list | 0x8000 ; LIST (0xB4)
 	dw 0 ; LLIST (0xB5)
