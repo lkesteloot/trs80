@@ -29,17 +29,22 @@ BINARY_SIZE equ 1024			; Compiled code.
 KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
+MAX_VARS equ 32
 
 ; Z80 opcodes.
 I_LD_DE_IMM equ 0x11
 I_LD_DE_A equ 0x12
 I_INC_DE equ 0x13
+I_LD_HL_IMM equ 0x21
+I_INC_HL equ 0x23
 I_LD_A_IMM equ 0x3E
 I_LD_B_D equ 0x42
 I_LD_B_E equ 0x43
 I_LD_C_E equ 0x4B
 I_LD_D_H equ 0x54
+I_LD_D_HL equ 0x56
 I_LD_E_L equ 0x5D
+I_LD_E_HL equ 0x5E
 I_LD_H_D equ 0x62
 I_LD_L_E equ 0x6B
 I_LD_A_D equ 0x7A
@@ -671,6 +676,8 @@ compile_line:
 	ld ix,eol_ref			; Clear our eol_ref.
 	ld (ix),0
 	ld (ix+1),0
+	ld ix,variables			; Clear variables.
+	ld (ix),0
 loop:
 	call skip_whitespace
 	inc de				; Skip token (it's in A).
@@ -850,7 +857,7 @@ expr_loop:
 	ret
 not_number:
 	cp a,T_RND
-	jp nz,compile_error
+	jr nz,not_rnd
 	; Compile the RND function, puts the result in DE.
 	inc de
 	ld a,'('
@@ -869,6 +876,22 @@ not_number:
 	m_add I_LD_D_H		        ; Result into DE.
 	m_add I_LD_E_L
 	m_add I_INC_DE		        ; Result is 1 to N.
+	ret
+not_rnd:
+	cp a,'A'			; See if it's a variable.
+	jp c,compile_error
+	cp a,'Z'+1
+	jp nc,compile_error
+	ld b,a				; Put variable name in BC.
+	ld c,0
+	inc de
+	call find_variable		; Variable address in BC.
+	m_add I_LD_HL_IMM		; Variable address in HL.
+	m_add c
+	m_add b
+	m_add I_LD_E_HL			; Variable value in DE.
+	m_add I_INC_HL
+	m_add I_LD_D_HL
 	ret
 #endlocal
 
@@ -952,6 +975,44 @@ compile_command_dispatch:
 	
 #endlocal				; End compile_line local block.
 
+; Given the name of the variable in BC (B is the first letter, C is the
+; optional second letter, or zero), get the address of that variable's value
+; in BC.
+find_variable:
+#local
+	push hl
+	ld hl,variables
+loop:
+	ld a,(hl)			; Check the first letter.
+	or a,a
+	jr z,not_found			; Nul if end of list.
+	inc hl				; Skip first letter.
+	cp a,b
+	jr nz,not_match
+	ld a,(hl)			; Check the second letter.
+	inc hl				; Skip second letter.
+	cp a,c
+	jr z,found
+not_match:
+	inc hl				; Skip value.
+	inc hl
+	jp loop				; TODO check if end of array.
+found:
+	ld bc,hl			; Found it, return address in BC.
+	pop hl
+	ret
+not_found:
+	ld (hl),b			; Write name.
+	inc hl
+	ld (hl),c
+	inc hl
+	ld (hl),0			; Initialize value.
+	inc hl
+	ld (hl),0
+	dec hl				; Go back to value.
+	jr found
+#endlocal
+	
 ; Parse the decimal literal at DE and return it in BC, advancing DE.
 ; TODO error if no digits are read. Or maybe not? Always called when we see a digit?
 read_numeric_literal:
@@ -1718,6 +1779,12 @@ op_stack_size:
 ; Forward reference to the end of the line.
 eol_ref:
 	ds 2
+
+; Variables. Each variable is the name of the variable (one char, then
+; a second optional char or nul), then the two-byte value. If the first
+; byte of the name is zero, then this and all following entries are unused.
+variables:
+	ds MAX_VARS*4
 
 ; Where the program is compiled to.
 binary:
