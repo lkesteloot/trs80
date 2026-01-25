@@ -32,8 +32,9 @@ CURSOR_DISABLED equ 0xFF
 
 ; Z80 opcodes.
 I_LD_DE_IMM equ 0x11
+I_LD_DE_A equ 0x12
 I_INC_DE equ 0x13
-I_LD_A_N equ 0x3E
+I_LD_A_IMM equ 0x3E
 I_LD_B_D equ 0x42
 I_LD_B_E equ 0x43
 I_LD_C_E equ 0x4B
@@ -41,6 +42,7 @@ I_LD_D_H equ 0x54
 I_LD_E_L equ 0x5D
 I_LD_H_D equ 0x62
 I_LD_L_E equ 0x6B
+I_LD_A_E equ 0x7B
 I_JP equ 0xC3
 I_RET equ 0xC9
 I_CALL equ 0xCD
@@ -173,6 +175,15 @@ T_CHR_STR equ 0xF7
 T_LEFT_STR equ 0xF8
 T_RIGHT_STR equ 0xF9
 T_MID_STR equ 0xFA
+
+; Operators. These encode both the operator (high nibble) and the precedence
+; (low nibble). Lower precedence has a lower low nibble value. For example,
+; OP_ADD (0x99) and OP_SUB (0xA9) have the same precedence (9). By convention
+; the precedence is the value of the lowest-valued operator in its class
+; (OP_ADD = 0x99), but only the relative values of precedence matter. All
+; of these are left-associative
+MAX_OP_STACK_SIZE equ 16
+OP_ADD equ 0x99
 
 ; Macro to add a byte to the compiled binary.
 	macro m_add value
@@ -741,13 +752,24 @@ compile_goto:
 	m_add b
 	jp loop
 
+compile_poke:
+	call compile_expression		; Into DE.
+	m_add I_PUSH_DE
+	ld a,','
+	call expect_and_skip
+	call compile_expression		; Into DE.
+	m_add I_LD_A_E
+	m_add I_POP_DE
+	m_add I_LD_DE_A
+	jp loop
+
 compile_print:
 	call compile_expression		; Into DE.
 	m_add I_LD_H_D			; Move to HL for write_decimal_word.
 	m_add I_LD_L_E
 	m_add I_CALL
 	m_add_word write_decimal_word
-	m_add I_LD_A_N
+	m_add I_LD_A_IMM
 	m_add NL
 	m_add I_CALL
 	m_add_word write_char
@@ -781,6 +803,7 @@ skip_whitespace:
 ; code leaves the result in DE.
 compile_expression:
 #local
+expr_loop:
 	call skip_whitespace
 	ld a,(de)
 	cp a,'0'			; See if it's a number.
@@ -879,7 +902,7 @@ compile_command_dispatch:
 	dw 0 ; SYSTEM (0xAE)
 	dw 0 ; LPRINT (0xAF)
 	dw 0 ; DEF (0xB0)
-	dw 0 ; POKE (0xB1)
+	dw compile_poke ; POKE (0xB1)
 	dw compile_print ; PRINT (0xB2)
 	dw 0 ; CONT (0xB3)
 	dw list | 0x8000 ; LIST (0xB4)
@@ -1647,6 +1670,13 @@ ready_prompt_sp:
 ; Seed for the random number generator. Must not be zero.
 rnd_seed:
 	ds 2
+
+; Operator stack.
+op_stack:
+	ds MAX_OP_STACK_SIZE
+
+op_stack_size:
+	ds 1
 
 ; Where the program is compiled to.
 binary:
