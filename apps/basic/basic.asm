@@ -42,7 +42,10 @@ I_LD_D_H equ 0x54
 I_LD_E_L equ 0x5D
 I_LD_H_D equ 0x62
 I_LD_L_E equ 0x6B
+I_LD_A_D equ 0x7A
 I_LD_A_E equ 0x7B
+I_OR_A_E equ 0xB3
+I_JP_Z_ADDR equ 0xCA
 I_JP equ 0xC3
 I_RET equ 0xC9
 I_CALL equ 0xCD
@@ -665,17 +668,35 @@ compile_line:
 #local
 	push de
 	push bc
+	ld ix,eol_ref			; Clear our eol_ref.
+	ld (ix),0
+	ld (ix+1),0
 loop:
-	ld a,(de)
-	inc de
-	cp a,' '			; Skip spaces.
-	jp z,loop
+	call skip_whitespace
+	inc de				; Skip token (it's in A).
 	or a,a
-	jp z,done			; Nul byte is end of the buffer.
+	jp z,eol			; Nul byte is end of the buffer.
 	jp m,compile_token		; High bit is set, see if it's a statement.
 back_up_and_error:
-	dec de				; Point to the bad token.
+	dec de				; Back up to bad byte.
 	jp compile_error
+eol:
+	; Do end-of-line processing.
+	push de
+	ld ix,eol_ref			; Check eol_ref.
+	ld e,(ix)
+	ld d,(ix+1)
+	ld a,e				; See if we saved an address there.
+	or a,d
+	jr z,no_eol_ref
+	ld a,l				; Write our compile buffer address there.
+	ld (de),a
+	inc de
+	ld a,h
+	ld (de),a
+no_eol_ref:
+	pop de
+	jp done
 compile_token:
 	cp a,T_LAST_STMT+1		; Just past the end of statements.
 	jp nc,back_up_and_error		; Not a statement.
@@ -752,12 +773,26 @@ compile_goto:
 	m_add b
 	jp loop
 
+compile_if:
+	call compile_expression		; Conditional into DE.
+	ld a,T_THEN
+	call expect_and_skip
+	m_add I_LD_A_D			; See if conditional is zero.
+	m_add I_OR_A_E
+	m_add I_JP_Z_ADDR		; Skip rest of line if false.
+	ld ix,eol_ref			; Save compile location in eol_eof
+	ld (ix),l
+	ld (ix+1),h
+	m_add 0				; To be filled in later, see "eol".
+	m_add 0
+	jp loop
+
 compile_poke:
-	call compile_expression		; Into DE.
+	call compile_expression		; Address into DE.
 	m_add I_PUSH_DE
 	ld a,','
 	call expect_and_skip
-	call compile_expression		; Into DE.
+	call compile_expression		; Value into DE.
 	m_add I_LD_A_E
 	m_add I_POP_DE
 	m_add I_LD_DE_A
@@ -792,6 +827,7 @@ expect_and_skip:
 	pop bc
 	ret
 
+; Skip the whitespace at DE, leaving the next found character in A.
 skip_whitespace:
 	ld a,(de)
 	cp a,' '
@@ -868,7 +904,7 @@ compile_command_dispatch:
 	dw 0 ; LET (0x8C)
 	dw compile_goto ; GOTO (0x8D)
 	dw run | 0x8000 ; RUN (0x8E)
-	dw 0 ; IF (0x8F)
+	dw compile_if ; IF (0x8F)
 	dw 0 ; RESTORE (0x90)
 	dw 0 ; GOSUB (0x91)
 	dw 0 ; RETURN (0x92)
@@ -1675,8 +1711,13 @@ rnd_seed:
 op_stack:
 	ds MAX_OP_STACK_SIZE
 
+; Number of operators in the op_stack.
 op_stack_size:
 	ds 1
+
+; Forward reference to the end of the line.
+eol_ref:
+	ds 2
 
 ; Where the program is compiled to.
 binary:
