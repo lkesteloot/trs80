@@ -47,6 +47,8 @@ I_LD_E_L equ 0x5D
 I_LD_E_HL equ 0x5E
 I_LD_H_D equ 0x62
 I_LD_L_E equ 0x6B
+I_LD_HL_D equ 0x72
+I_LD_HL_E equ 0x73
 I_LD_A_D equ 0x7A
 I_LD_A_E equ 0x7B
 I_OR_A_E equ 0xB3
@@ -56,6 +58,8 @@ I_RET equ 0xC9
 I_CALL equ 0xCD
 I_POP_DE equ 0xD1
 I_PUSH_DE equ 0xD5
+I_POP_HL equ 0xE1
+I_PUSH_HL equ 0xE5
 
 ; Basic tokens.
 T_END equ 0x80
@@ -437,6 +441,8 @@ run:
 	push bc
 	push de
 	push ix
+	ld ix,variables			; Clear variables.
+	ld (ix),0
 	ld ix,program
 	ld hl,binary + 30		; TODO
 loop:
@@ -673,17 +679,33 @@ compile_line:
 #local
 	push de
 	push bc
+	; Prepare state.
 	ld ix,eol_ref			; Clear our eol_ref.
 	ld (ix),0
 	ld (ix+1),0
-	ld ix,variables			; Clear variables.
-	ld (ix),0
 loop:
 	call skip_whitespace
 	inc de				; Skip token (it's in A).
 	or a,a
 	jp z,eol			; Nul byte is end of the buffer.
 	jp m,compile_token		; High bit is set, see if it's a statement.
+	cp a,'A'			; See if it's a variable assignment
+	jp c,compile_error
+	cp a,'Z'+1
+	jp nc,compile_error
+	ld b,a				; Put variable name in BC.
+	ld c,0				; Don't yet support two-letter variable names.
+	call find_variable		; Variable address in BC.
+	m_add I_LD_HL_IMM		; Variable address in HL.
+	m_add c
+	m_add b
+	ld a,T_OP_EQU
+	call expect_and_skip
+	call compile_expression		; Evaluate RHS in DE.
+	m_add I_LD_HL_E			; Write DE to variable.
+	m_add I_INC_HL
+	m_add I_LD_HL_D
+	jp loop
 back_up_and_error:
 	dec de				; Back up to bad byte.
 	jp compile_error
@@ -822,7 +844,7 @@ done:
 	pop de
 	ret
 
-; Skip whitespace, expect the character in A, and skip it.
+; Skip whitespace at DE, expect the character in A, and skip it.
 expect_and_skip:
 	push bc
 	ld b,a
@@ -871,11 +893,13 @@ not_number:
 	m_add I_LD_B_D		        ; Random number in BC.
 	m_add I_LD_C_E
 	m_add I_POP_DE		        ; Restore range.
+	m_add I_PUSH_HL
 	m_add I_CALL			; Compute random % range into HL.
 	m_add_word bc_div_de
 	m_add I_LD_D_H		        ; Result into DE.
 	m_add I_LD_E_L
 	m_add I_INC_DE		        ; Result is 1 to N.
+	m_add I_POP_HL
 	ret
 not_rnd:
 	cp a,'A'			; See if it's a variable.
@@ -883,15 +907,17 @@ not_rnd:
 	cp a,'Z'+1
 	jp nc,compile_error
 	ld b,a				; Put variable name in BC.
-	ld c,0
+	ld c,0				; Don't yet support two-letter variable names.
 	inc de
 	call find_variable		; Variable address in BC.
+	m_add I_PUSH_HL
 	m_add I_LD_HL_IMM		; Variable address in HL.
 	m_add c
 	m_add b
 	m_add I_LD_E_HL			; Variable value in DE.
 	m_add I_INC_HL
 	m_add I_LD_D_HL
+	m_add I_POP_HL
 	ret
 #endlocal
 
@@ -990,18 +1016,21 @@ loop:
 	cp a,b
 	jr nz,not_match
 	ld a,(hl)			; Check the second letter.
-	inc hl				; Skip second letter.
 	cp a,c
 	jr z,found
 not_match:
+	inc hl				; Skip second letter.
 	inc hl				; Skip value.
 	inc hl
 	jp loop				; TODO check if end of array.
 found:
+	inc hl				; Skip second letter.
+done:
 	ld bc,hl			; Found it, return address in BC.
 	pop hl
 	ret
 not_found:
+	; TODO check out of variable space.
 	ld (hl),b			; Write name.
 	inc hl
 	ld (hl),c
@@ -1010,7 +1039,7 @@ not_found:
 	inc hl
 	ld (hl),0
 	dec hl				; Go back to value.
-	jr found
+	jr done
 #endlocal
 	
 ; Parse the decimal literal at DE and return it in BC, advancing DE.
@@ -1497,22 +1526,15 @@ divmod3:
 	; and put that in DE. The computation is (Y/3)*64 + X/2.
 	; We've already computed Y/3. The approach here is to start
 	; with Y/3 in the high byte of DE and X*2 in the low byte.
-	; This is equal to (Y/3)*256 + X*2, which is four times too
-	; high. Do two passes of double-RRA (16-bit right rotate)
-	; to get the correct value, and leave carry to hold the
-	; original least significant bit of X.
-	ld a,b				; Put X into A.
-	add a,a				; A = 2*X
-	ld e,a				; E = 2*X
-	ld b,2				; Run this loop twice.
-rr_de:
-	ld a,d				; 16-bit right rotate DE.
-	rra
-	ld d,a
-	ld a,e
-	rra
-	ld e,a
-	djnz rr_de
+	; This is equal to (Y/3)*256 + X*2, which is four times too high.
+	; Do two 16-bit right shifts to get the correct value, and leave
+	; the carry to hold the original least significant bit of X.
+	ld e,b				; Original X value.
+	sla e				; DE = (Y/3)*256 + X*2
+	srl d				; DE >>= 1
+	rr e				; DE = (Y/3)*128 + X
+	srl d				; DE >>= 1
+	rr e				; DE = (Y/3)*64 + X/2
 
 	; DE now has the index into the screen location, and
 	; carry has the least significant bit of the X location.
