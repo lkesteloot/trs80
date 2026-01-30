@@ -9,7 +9,7 @@ import {HexdumpGenerator} from "trs80-base";
  */
 class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLElement, HTMLElement> {
     constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
-        super(binary, collapse, annotations);
+        super(binary, { collapse, annotations });
     }
 
     protected newLine(): HTMLElement {

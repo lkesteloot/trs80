@@ -1,9 +1,6 @@
 import {toHex, toHexByte} from "z80-base";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
-// Number of bytes per row.
-const STRIDE = 16;
-
 // Unicode for a vertical ellipsis.
 const VERTICAL_ELLIPSIS = 0x22EE;
 
@@ -31,21 +28,24 @@ function segmentsEqual(binary: Uint8Array, start1: number, start2: number, lengt
 }
 
 /**
- * Count consecutive bytes that are around "addr".
+ * Count consecutive bytes of the same value that are around "addr".
  */
-function countConsecutive(binary: Uint8Array, addr: number) {
+function countConsecutive(binary: Uint8Array, addr: number, beginAddr: number, endAddr: number): number {
     const value = binary[addr];
 
-    let startAddr = addr;
-    while (startAddr > 0 && binary[startAddr - 1] === value) {
-        startAddr--;
+    // Find first same byte value.
+    let firstAddr = addr;
+    while (firstAddr > beginAddr && binary[firstAddr - 1] === value) {
+        firstAddr--;
     }
 
-    while (addr < binary.length - 1 && binary[addr + 1] === value) {
-        addr++;
+    // Find last same byte value.
+    let lastAddr = addr;
+    while (lastAddr < endAddr - 1 && binary[addr + 1] === value) {
+        lastAddr++;
     }
 
-    return addr - startAddr + 1;
+    return lastAddr - firstAddr + 1;
 }
 
 /**
@@ -61,6 +61,31 @@ function allSameByte(binary: Uint8Array, addr: number, length: number): boolean 
     return true;
 }
 
+export type HexdumpOptions = {
+    /**
+     * If sequential rows are identical, collapse them into one.
+     */
+    collapse: boolean,
+    /**
+     * Annotations to show to the right of the hexdump.
+     */
+    annotations: ProgramAnnotation[],
+    /**
+     * Whether to generate an extra line with just the end address.
+     */
+    showEndAddress: boolean,
+    /**
+     * Number of bytes to show per row.
+     */
+    stride: number,
+};
+const DEFAULT_OPTIONS = {
+    collapse: true,
+    annotations: [],
+    showEndAddress: false,
+    stride: 16,
+} as const satisfies HexdumpOptions;
+
 /**
  * Generates a hexdump for the given binary.
  *
@@ -68,13 +93,20 @@ function allSameByte(binary: Uint8Array, addr: number, length: number): boolean 
  */
 export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
     private readonly binary: Uint8Array;
-    private readonly collapse: boolean;
-    private readonly annotations: ProgramAnnotation[];
+    private readonly options: HexdumpOptions;
+    private readonly addrDigits: number;
+    private readonly addrSpaces: string;
 
-    protected constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
+    protected constructor(binary: Uint8Array, options?: Partial<HexdumpOptions>) {
         this.binary = binary;
-        this.collapse = collapse;
-        this.annotations = annotations;
+        this.options = {
+            ... DEFAULT_OPTIONS,
+            ... options,
+        };
+
+        // Figure out the number of digits in the address: 4 or 6.
+        this.addrDigits = this.binary.length < (2 << 16) ? 4 : 6;
+        this.addrSpaces = "".padStart(this.addrDigits, " ");
     }
 
     /**
@@ -160,25 +192,27 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
     }
 
     /**
-     * Generate all HTML elements for this binary.
+     * Generate all line elements for this binary.
      */
     public *generate(): Generator<LINE_TYPE, void, void> {
-        const binary = this.binary;
+        yield* this.generateAnnotations(0, this.binary.length, this.options.annotations);
 
-        const [addrDigits, addrSpaces] = this.computeAddressSize();
-
-        yield* this.generateAnnotations(binary, 0, binary.length, addrDigits, this.annotations);
-
-        // Final address (with no data) to show where file ends.
-        const finalLine = this.newLine();
-        this.newSpan(finalLine, toHex(binary.length, addrDigits), "address");
-        yield finalLine;
+        if (this.options.showEndAddress) {
+            // Final address (with no data) to show where the file ends.
+            const finalLine = this.newLine();
+            this.newSpan(finalLine, toHex(this.binary.length, this.addrDigits), "address");
+            yield finalLine;
+        }
     }
 
-    private *generateAnnotations(binary: Uint8Array, addr: number, endAddr: number, addrDigits: number,
+    /**
+     * Generate the lines for the given annotations. Creates blank annotations to fill the space
+     * between the provided annotations.
+     */
+    private *generateAnnotations(addr: number, endAddr: number,
                                  annotations: ProgramAnnotation[]): Generator<LINE_TYPE, void, void> {
 
-        // Sort in case they were generated out of order.
+        // Sort by start address in case they were generated out of order.
         annotations.sort((a, b) => a.begin - b.begin);
 
         for (const annotation of annotations) {
@@ -200,8 +234,7 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
 
                 if (expandNestedAnnotations) {
                     this.beginExpanded();
-                    yield* this.generateAnnotations(binary, annotation.begin, annotation.end,
-                        addrDigits, annotation.nestedAnnotations);
+                    yield* this.generateAnnotations(annotation.begin, annotation.end, annotation.nestedAnnotations);
                     this.endExpanded();
                 }
             }
@@ -216,32 +249,35 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
 
     /**
      * Generate all the lines for an annotation.
-     * @param annotation the annotation to generate.
      */
     private *generateAnnotation(annotation: ProgramAnnotation): Generator<LINE_TYPE, void, void> {
         const binary = this.binary;
 
-        const [addrDigits, addrSpaces] = this.computeAddressSize();
-
-        const beginAddr = Math.floor(annotation.begin/STRIDE)*STRIDE;
-        // If the annotation is zero-length and a multiple of STRIDE, push it to the next STRIDE
-        // above beginAddr. Otherwise no row will be generated. (This is for empty annotations
+        const stride = this.options.stride;
+        const firstLineAddr = Math.floor(annotation.begin/stride)*stride;
+        const firstFullLineAddr = Math.ceil(annotation.begin/stride)*stride;
+        // If the annotation is zero-length and starts at a multiple of STRIDE, push it to the next STRIDE
+        // above firstLineAddr. Otherwise no row will be generated. (This is for empty annotations
         // at the beginning of nested annotation lists.)
-        const endAddr = Math.min(Math.max(
-            Math.ceil(annotation.end/STRIDE)*STRIDE, beginAddr + STRIDE), binary.length);
-        let lastAddr: number | undefined = undefined;
-        for (let addr = beginAddr; addr < endAddr; addr += STRIDE) {
-            if (this.collapse && lastAddr !== undefined &&
-                binary.length - addr >= STRIDE && segmentsEqual(binary, lastAddr, addr, STRIDE)) {
+        const endAddr = Math.max(Math.ceil(annotation.end/stride)*stride, firstLineAddr + stride);
+        const lastLineAddr = endAddr - stride;
+        let previousAddr: number | undefined = undefined;
+        for (let addr = firstLineAddr; addr < endAddr; addr += stride) {
+            if (this.options.collapse &&                                    // User wants duplicate lines collapsed.
+                addr !== firstLineAddr &&                                   // Never the first line, full or partial.
+                addr !== firstFullLineAddr &&                               // Never the first full line.
+                !(addr === lastLineAddr && endAddr !== annotation.end) &&   // Never the last partial line.
+                previousAddr !== undefined &&
+                segmentsEqual(binary, previousAddr, addr, stride)) {
 
                 // Collapsed section. See if we want to print the text for it this time.
-                if (addr === lastAddr + STRIDE) {
+                if (addr === previousAddr + stride) {
                     const line = this.newLine();
 
-                    if (allSameByte(binary, addr, STRIDE)) {
-                        // Lots of the same byte repeated. Say many there are.
-                        const count = countConsecutive(binary, addr);
-                        this.newSpan(line, addrSpaces + "   ... ", "address");
+                    if (allSameByte(binary, addr, stride)) {
+                        // Lots of the same byte repeated. Say how many there are.
+                        const count = countConsecutive(binary, addr, annotation.begin, annotation.end);
+                        this.newSpan(line, this.addrSpaces + "   ... ", "address");
                         this.newSpan(line, count.toString(), "ascii");
                         this.newSpan(line, " (", "address");
                         this.newSpan(line, "0x" + count.toString(16).toUpperCase(), "ascii");
@@ -251,24 +287,25 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
                     } else {
                         // A repeating pattern, but not all the same byte. Say how many times repeated.
                         let count = 1;
-                        for (let otherAddr = addr + STRIDE; otherAddr <= binary.length - STRIDE; otherAddr += STRIDE) {
-                            if (segmentsEqual(binary, lastAddr, otherAddr, STRIDE)) {
+                        for (let otherAddr = addr + stride; otherAddr <= binary.length - stride; otherAddr += stride) {
+                            if (segmentsEqual(binary, previousAddr, otherAddr, stride)) {
                                 count += 1;
                             } else {
                                 break;
                             }
                         }
-                        this.newSpan(line, addrSpaces + "  ... ", "address");
+                        this.newSpan(line, this.addrSpaces + "  ... ", "address");
                         this.newSpan(line, count.toString(), "ascii");
                         const plural = count === 1 ? "" : "s";
                         this.newSpan(line, ` repetition${plural} of previous row ...`, "address");
                     }
 
                     // Draw vertical ellipsis.
-                    if (annotation.text !== "" && addr !== beginAddr) {
+                    if (annotation.text !== "" && addr !== firstLineAddr) {
                         const lineText = this.getLineText(line);
-                        const width = addrDigits + STRIDE*4 + 10;
-                        const label = String.fromCodePoint(VERTICAL_ELLIPSIS).padStart(width - lineText.length, " ");
+                        const indent = this.addrDigits + stride*4 + 7 + (annotation.text.length - 1)/2;
+                        const spaces = Math.max(indent - lineText.length, 0);
+                        const label = " ".repeat(spaces) + String.fromCodePoint(VERTICAL_ELLIPSIS);
                         this.newSpan(line, label, "annotation");
                     }
 
@@ -276,18 +313,19 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
                 }
             } else {
                 // Non-collapsed row.
-                lastAddr = addr;
+                previousAddr = addr;
 
                 let label: string = "";
                 if (annotation.text !== "") {
-                    if (addr === beginAddr) {
+                    if (addr === firstLineAddr) {
                         label = annotation.text;
                     } else {
-                        label = "  " + String.fromCodePoint(VERTICAL_ELLIPSIS);
+                        const spaces = (annotation.text.length - 1)/2;
+                        label = " ".repeat(spaces) + String.fromCodePoint(VERTICAL_ELLIPSIS);
                     }
                 }
 
-                yield this.generateRow(addr, addrDigits, annotation.begin, annotation.end, label);
+                yield this.generateRow(addr, annotation.begin, annotation.end, label);
             }
         }
     }
@@ -295,23 +333,21 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
     /**
      * Generates a single row of hex and ASCII.
      * @param addr address for the line.
-     * @param addrDigits the number of digits in the address.
      * @param beginAddr the first address of this annotation (inclusive).
      * @param endAddr this last address of this annotation (exclusive).
      * @param label the label to show on this row.
      * @return the created row.
      */
-    private generateRow(addr: number, addrDigits: number,
-                        beginAddr: number, endAddr: number, label: string): LINE_TYPE {
-
+    private generateRow(addr: number, beginAddr: number, endAddr: number, label: string): LINE_TYPE {
         const binary = this.binary;
+        const stride = this.options.stride;
 
         const line = this.newLine();
         const cssClass = ["address"];
         if (addr < beginAddr) {
             cssClass.push("outside-annotation");
         }
-        this.newSpan(line, toHex(addr, addrDigits) + "  ", ...cssClass);
+        this.newSpan(line, toHex(addr, this.addrDigits) + "  ", ...cssClass);
 
         // Utility function for adding text to a line, minimizing the number of needless spans.
         let currentCssClass: string[] | undefined = undefined;
@@ -327,7 +363,7 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
 
         // Hex.
         let subAddr: number;
-        for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
+        for (subAddr = addr; subAddr < binary.length && subAddr < addr + stride; subAddr++) {
             const cssClass = ["hex"];
             const outside = subAddr < beginAddr || subAddr >= endAddr;
             if (outside) {
@@ -343,15 +379,15 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
             }
 
             // Spacing.
-            const halfWay = subAddr == addr + STRIDE/2 - 1;
+            const halfWay = subAddr == addr + stride/2 - 1;
             const spacing = halfWay ? "  " : " ";
             addText(spacing, ...cssClass);
         }
-        const numBytesSkipped = addr + STRIDE - subAddr;
-        addText("".padStart(numBytesSkipped*3 + (numBytesSkipped > STRIDE/2 ? 1 : 0) + 2, " "), "hex");
+        const numBytesSkipped = addr + stride - subAddr;
+        addText("".padStart(numBytesSkipped*3 + (numBytesSkipped > stride/2 ? 1 : 0) + 2, " "), "hex");
 
         // ASCII.
-        for (subAddr = addr; subAddr < binary.length && subAddr < addr + STRIDE; subAddr++) {
+        for (subAddr = addr; subAddr < binary.length && subAddr < addr + stride; subAddr++) {
             const c = binary[subAddr];
             const cssClass = ["hex"];
             let char;
@@ -375,20 +411,9 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
             }
         }
         if (label !== "") {
-            addText("".padStart(addr + STRIDE - subAddr + 2, " ") + label, "annotation");
+            addText("".padStart(addr + stride - subAddr + 2, " ") + label, "annotation");
         }
 
         return line;
-    }
-
-    /**
-     * Computes the number of hex digits in the displayed address, and the spaces this represents.
-     */
-    private computeAddressSize(): [number, string] {
-        // Figure out the number of digits in the address: 4 or 6.
-        const addrDigits = this.binary.length < (2 << 16) ? 4 : 6;
-        const addrSpaces = "".padStart(addrDigits, " ");
-
-        return [addrDigits, addrSpaces];
     }
 }

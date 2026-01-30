@@ -144,8 +144,12 @@ function assemble(code: string[]): AssemblyResults {
         }
     });
     asm.addKnownLabels(Z80_KNOWN_LABELS);
-    asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
-    asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
+    if (false) {
+        // Disable this while I'm developing the ROM. I'm not sure anyone else uses it.
+        // TODO use the Model 1 addresses if the emulator is in Model 1 mode.
+        asm.addKnownLabels(TRS80_MODEL_III_KNOWN_LABELS);
+        asm.addKnownLabels(TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS);
+    }
     const sourceFile = asm.assembleFile("current.asm");
     if (sourceFile === undefined) {
         // Can't happen?

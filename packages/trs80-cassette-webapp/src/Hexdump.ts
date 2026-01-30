@@ -72,10 +72,10 @@ class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLDivElement, HTMLSpanElem
     constructor(binary: Uint8Array, collapse: boolean,
                 annotations: ProgramAnnotation[], parent: HTMLElement, classes: Classes) {
 
-        super(binary, collapse, annotations);
+        super(binary, { collapse, annotations });
         this.parent = parent;
         this.classes = classes;
-        HtmlHexdumpGenerator.classCounter += 1;
+        HtmlHexdumpGenerator.classCounter += 1; // TODO Uh I think this is a bug, not fixing it now.
     }
 
     protected newLine(): HTMLDivElement {

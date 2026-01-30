@@ -1,5 +1,5 @@
 import {EditorView} from '@codemirror/view';
-import {CassettePlayer, FdcState, RunningState, Trs80, Trs80State} from 'trs80-emulator';
+import {CassettePlayer, FdcState, RunningState, Trs80, TRS80_KEYBOARD_BEGIN, TRS80_KEYBOARD_END, Trs80State} from 'trs80-emulator';
 import {
     CanvasScreen,
     ControlPanel,
@@ -16,9 +16,11 @@ import {ScreenEditor} from './ScreenEditor';
 import {AssemblyResults} from './AssemblyResults';
 import {SimpleEventDispatcher} from 'strongly-typed-events';
 import {Flag, hi, inc16, lo, RegisterSet, toHexByte} from 'z80-base';
-import {disasmForTrs80, Side, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from 'trs80-base';
+import {disasmForTrs80, HexdumpGenerator, ProgramAnnotation, Side, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from 'trs80-base';
 import {saveSettings, Settings} from "./Settings";
 import {DEFAULT_SCREEN_SIZE, SCREEN_SIZES_MAP, ScreenSize} from "./ScreenSize";
+import {Editor} from "./Editor";
+import { SymbolType } from "z80-asm";
 
 const LOCAL_STORAGE_CONFIG_KEY = "trs80-ide-config";
 
@@ -58,6 +60,7 @@ export class Emulator {
     private readonly screen: CanvasScreen;
     public readonly trs80: Trs80;
     private readonly controlPanel: ControlPanel;
+    private editor: Editor | undefined = undefined;
     private screenEditor: ScreenEditor | undefined = undefined;
     public trs80State: Trs80State | undefined = undefined;
     public readonly debugPc = new SimpleEventDispatcher<number | undefined>();
@@ -112,6 +115,10 @@ export class Emulator {
         this.updateBodyDataset();
     }
 
+    public setEditor(editor: Editor) {
+        this.editor = editor;
+    }
+
     public getNode(): HTMLElement {
         return this.screen.getNode();
     }
@@ -121,6 +128,7 @@ export class Emulator {
      */
     private updateBodyDataset() {
         document.body.dataset.z80Inspector = this.settings.z80Inspector ? "visible" : "hidden";
+        document.body.dataset.memoryInspector = this.settings.memoryInspector ? "visible" : "hidden";
         document.body.dataset.fdcInspector = this.settings.fdcInspector ? "visible" : "hidden";
         document.body.dataset.screenSize = this.settings.screenSize;
     }
@@ -604,6 +612,96 @@ export class Emulator {
     }
 
     /**
+     * Create the panel for inspecting memory state.
+     */
+    public createMemoryInspector(): HTMLElement {
+        /**
+         * Hexdump generator for HTML output.
+         */
+        class HtmlHexdumpGenerator extends HexdumpGenerator<HTMLElement, HTMLElement> {
+            constructor(binary: Uint8Array, collapse: boolean, annotations: ProgramAnnotation[]) {
+                super(binary, {
+                    collapse,
+                    annotations,
+                    showEndAddress: false,
+                    stride: 8,
+                });
+            }
+
+            protected newLine(): HTMLElement {
+                return document.createElement("div");
+            }
+
+            protected getLineText(line: HTMLElement): string {
+                return line.textContent ?? "";
+            }
+
+            protected newSpan(line: HTMLElement, text: string, ...cssClass: string[]): HTMLElement {
+                const e = document.createElement("span");
+                e.classList.add(... cssClass.map(c => "memory-inspector-" + c));
+                e.innerText = text;
+                line.append(e);
+                return e;
+            }
+
+            protected addTextToSpan(span: HTMLElement, text: string): void {
+                span.innerText += text;
+            }
+        }
+
+        const node = document.createElement("div");
+        node.classList.add("memory-inspector", "inspector");
+
+        const rowsNode = document.createElement("div");
+        rowsNode.classList.add("memory-inspector-rows");
+        node.append(rowsNode);
+
+        const update = () => {
+            const memSize = 64*1024;
+            const binary = new Uint8Array(memSize);
+            for (let addr = 0; addr < binary.length; addr++) {
+                binary[addr] = this.trs80.readMemory(addr);
+            }
+
+            const annotations: ProgramAnnotation[] = [];
+            if (this.editor != undefined) {
+                const assemblyResults = this.editor.getAssemblyResults();
+                assemblyResults.variableDefinitions.forEach(def => {
+                    const symbol = def.symbol;
+                    console.log(symbol.type, symbol.name);
+                    if (symbol.type !== SymbolType.UNKNOWN && symbol.type !== SymbolType.CONSTANT) {
+                        annotations.push(
+                            new ProgramAnnotation(symbol.name, symbol.value, symbol.value + symbol.size));
+                    }
+                });
+                // Show screen and keyboard.
+                annotations.push(new ProgramAnnotation("Screen", TRS80_SCREEN_BEGIN, TRS80_SCREEN_END));
+                annotations.push(new ProgramAnnotation("Keyboard", TRS80_KEYBOARD_BEGIN, TRS80_KEYBOARD_END));
+                // Show stack if near the end of memory.
+                const sp = this.trs80.z80.regs.sp;
+                if (sp >= memSize - 1024) {
+                    annotations.push(new ProgramAnnotation("Stack", sp, memSize));
+                }
+            }
+
+            const hexdumpGenerator = new HtmlHexdumpGenerator(binary, true, annotations);
+            const lineGenerator = hexdumpGenerator.generate();
+
+            rowsNode.replaceChildren(...lineGenerator);
+        };
+
+        this.debugPc.subscribe(pc => {
+            if (pc === undefined) {
+                // Not single-stepping, don't bother.
+                return;
+            }
+            update();
+        });
+
+        return node;
+    }
+
+    /**
      * Create the panel for inspecting Floppy Disk Controller state.
      */
     public createFdcInspector(): HTMLElement {
@@ -718,6 +816,15 @@ export class Emulator {
         });
 
         return node;
+    }
+
+    /**
+     * Show or hide the memory inspector.
+     */
+    public showMemoryInspector(show: boolean) {
+        this.settings.memoryInspector = show;
+        this.updateBodyDataset();
+        saveSettings(this.settings);
     }
 
     /**

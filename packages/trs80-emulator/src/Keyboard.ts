@@ -6,8 +6,8 @@
 // Keyboard is in several identical (mirrored) banks.
 const BANK_SIZE = 0x100;
 const BANK_COUNT = 4;
-const BEGIN_ADDR = 0x3800;
-const END_ADDR = BEGIN_ADDR + BANK_SIZE*BANK_COUNT;
+export const TRS80_KEYBOARD_BEGIN = 0x3800;
+export const TRS80_KEYBOARD_END = TRS80_KEYBOARD_BEGIN + BANK_SIZE*BANK_COUNT;
 const KEY_DELAY_CLOCK_CYCLES = 50000;
 
 // Whether to force a Shift key, and how.
@@ -150,7 +150,7 @@ keyMap.set("Shift", new KeyInfo(7, 0, ShiftState.NEUTRAL));
 
 export class Keyboard {
     public static isInRange(address: number): boolean {
-        return address >= BEGIN_ADDR && address < END_ADDR;
+        return address >= TRS80_KEYBOARD_BEGIN && address < TRS80_KEYBOARD_END;
     }
 
     // We queue up keystrokes so that we don't overwhelm the ROM polling routines.
@@ -172,7 +172,7 @@ export class Keyboard {
     // addresses to read more than one byte at a time. For the last byte we fake
     // the Shift key if necessary.
     public readKeyboard(addr: number, clock: number): number {
-        addr = (addr - BEGIN_ADDR) % BANK_SIZE;
+        addr = (addr - TRS80_KEYBOARD_BEGIN) % BANK_SIZE;
         let b = 0;
 
         // Dequeue if necessary.

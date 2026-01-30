@@ -408,7 +408,7 @@ export class TapeBrowser {
                     type = "application/octet-stream";
                 }
 
-                const blob = new Blob([contents], {type: type});
+                const blob = new Blob([new Uint8Array(contents)], {type: type});
                 a.href = window.URL.createObjectURL(blob);
 
                 a.download = (this.tape.name + "-" + program.getShortLabel()).replace(/ /g, "-") + extension;
@@ -443,7 +443,7 @@ export class TapeBrowser {
                     type = "audio/wav";
                 }
 
-                const blob = new Blob([contents], {type: type});
+                const blob = new Blob([new Uint8Array(contents)], {type: type});
                 a.href = window.URL.createObjectURL(blob);
                 a.download = (this.tape.name).replace(/ /g, "-") + extension;
                 a.click();

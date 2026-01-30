@@ -32,6 +32,8 @@ export class AssemblyResults {
     public readonly addressToLineMap = new Map<number, number>();
     // All variable symbol references (not jump/code references).
     public readonly variableReferences: SymbolAppearance[] = [];
+    // All variable symbol definitions (not jump/code references).
+    public readonly variableDefinitions: SymbolAppearance[] = [];
 
     constructor(asm: Asm, sourceFile: SourceFile, screenshotSections: ScreenshotSection[]) {
         this.asm = asm;
@@ -85,6 +87,23 @@ export class AssemblyResults {
                     case SymbolType.WORD:
                     case SymbolType.ARRAY:
                         this.variableReferences.push(ref);
+                        break;
+                }
+            }
+
+            // Append to list of all definitions.
+            for (const ref of line.symbolsDefined) {
+                switch (ref.symbol.type) {
+                    case SymbolType.UNKNOWN:
+                    case SymbolType.CODE:
+                    default:
+                        // Skip it.
+                        break;
+
+                    case SymbolType.BYTE:
+                    case SymbolType.WORD:
+                    case SymbolType.ARRAY:
+                        this.variableDefinitions.push(ref);
                         break;
                 }
             }

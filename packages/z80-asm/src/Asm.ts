@@ -204,6 +204,8 @@ export class SymbolAppearance {
 export enum SymbolType {
     // We don't know, not yet analyzed.
     UNKNOWN,
+    // This is a constant ("equ"), it doesn't refer to a memory location.
+    CONSTANT,
     // Next byte in memory is an opcode.
     CODE,
     // Next symbol is one byte away.
@@ -220,9 +222,15 @@ export class SymbolInfo {
     public readonly name: string;
     // How it was originally written the first time we saw it:
     public readonly originalSpelling: string;
+    // Value of this symbol. This is usually an address.
     public value: number;
+    // Guessed size of symbol.
+    public size: number = 0;
+    // Guessed type of symbol.
     public type: SymbolType = SymbolType.UNKNOWN;
+    // All definitions of this symbol.
     public definitions: SymbolAppearance[] = [];
+    // All references to this symbol.
     public references: SymbolAppearance[] = [];
     // If it has multiple definitions with different values.
     public changesValue = false;
@@ -327,7 +335,14 @@ export class AssembledLine {
 
     get nextAddress(): number {
         // Return explicit if provided, otherwise compute.
-        return this.specifiedNextAddress ?? (this.address + this.binary.length);
+        return this.specifiedNextAddress ?? this.endAddress();
+    }
+
+    /**
+     * One past the last address used by this line.
+     */
+    public endAddress(): number {
+        return this.address + this.binary.length;
     }
 
     /**
@@ -719,15 +734,28 @@ export class Asm {
         // Find type of each symbol.
         for (let i = 0; i < this.symbols.length; i++) {
             const symbol = this.symbols[i];
-            if (codeAddresses.has(symbol.value)) {
-                symbol.type = SymbolType.CODE;
-            } else {
-                // Because of the fill instructions, which can just leave space, we can't really
-                // check the data addresses. We just assume anything not code is data.
-                if (i + 1 < this.symbols.length) {
-                    const nextSymbol = this.symbols[i + 1];
-                    const size = nextSymbol.value - symbol.value;
-                    switch (size) {
+            if (symbol.type === SymbolType.UNKNOWN) {
+                if (codeAddresses.has(symbol.value)) {
+                    symbol.type = SymbolType.CODE;
+                } else {
+                    // Because of the fill instructions, which can just leave space, we can't really
+                    // check the data addresses. We just assume anything not code is data.
+                    let nextAddress: number;
+                    if (i + 1 < this.symbols.length) {
+                        nextAddress = this.symbols[i + 1].value;
+                        if (symbol.name === "tokens") {
+                            console.log("next symbol", this.symbols[i + 1]);
+                        }
+                    } else {
+                        // Last symbol, assume it goes to the end of the file.
+                        nextAddress = Math.max(...this.assembledLines.map(line => line.endAddress()));
+                        console.log("last symbol", nextAddress);
+                    }
+                    symbol.size = nextAddress - symbol.value;
+                    if (symbol.name === "tokens") {
+                        console.log(nextAddress, symbol);
+                    }
+                    switch (symbol.size) {
                         case 0:
                             symbol.type = SymbolType.UNKNOWN;
                             break;
@@ -744,9 +772,6 @@ export class Asm {
                             symbol.type = SymbolType.ARRAY;
                             break;
                     }
-                } else {
-                    // Last symbol, dunno.
-                    symbol.type = SymbolType.ARRAY;
                 }
             }
         }
@@ -1030,6 +1055,9 @@ class LineParser {
         // What value to assign to the label we parse, if any.
         let labelValue: number | undefined;
 
+        // Type of the symbol we're defining, if any.
+        let symbolType = SymbolType.UNKNOWN;
+
         // Look for compiler directive.
         if (enabledLine && this.tokenizer.found("#")) {
             this.parseDirective();
@@ -1188,6 +1216,7 @@ class LineParser {
                 } else {
                     // Remember constant.
                     labelValue = value;
+                    symbolType = SymbolType.CONSTANT;
                 }
             } else if (PSEUDO_ORG.has(mnemonic)) {
                 this.assembledLine.nextAddress = this.readExpression();
@@ -1404,6 +1433,9 @@ class LineParser {
                 symbolInfo.value = labelValue;
             } else {
                 symbolInfo = new SymbolInfo(label, originalSpelling, labelValue);
+                if (symbolType !== SymbolType.UNKNOWN) {
+                    symbolInfo.type = symbolType;
+                }
                 scope.set(symbolInfo);
             }
             if (this.pass.passNumber === 1) {

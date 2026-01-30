@@ -310,25 +310,6 @@ export class UserInterface {
                             },
                         ],
                     },
-                    // Disable this, was only for demo.
-                    /*
-                    {
-                        text: "Upload to RetroStore",
-                        action: async () => {
-                            const assemblyResults = editor.getAssemblyResults();
-                            await uploadToRetroStore(assemblyResults);
-                        },
-                    },
-                    {
-                        text: "Download from RetroStore",
-                        action: async () => {
-                            const code = await downloadFromRetroStore();
-                            if (code !== undefined) {
-                                emulator.closeScreenEditor();
-                                editor.setCode(code);
-                            }
-                        },
-                    },*/
                 ],
             },
             {
@@ -614,6 +595,15 @@ export class UserInterface {
                                 },
                             },
                             {
+                                text: "Memory",
+                                checked: settings.memoryInspector,
+                                action: (menuCommand: MenuCommand) => {
+                                    const enabled = !menuCommand.checked;
+                                    menuCommand.setChecked?.(enabled);
+                                    emulator.showMemoryInspector(enabled);
+                                },
+                            },
+                            {
                                 text: "Floppy Disk Controller",
                                 checked: settings.fdcInspector,
                                 action: (menuCommand: MenuCommand) => {
@@ -792,8 +782,9 @@ export class UserInterface {
         const rightPane = document.createElement("div");
         rightPane.classList.add("right-pane");
         const z80Inspector = emulator.createZ80Inspector();
+        const memoryInspector = emulator.createMemoryInspector();
         const fdcInspector = emulator.createFdcInspector();
-        rightPane.append(emulator.getNode(), z80Inspector, fdcInspector);
+        rightPane.append(emulator.getNode(), z80Inspector, memoryInspector, fdcInspector);
 
         content.append(leftPane, rightPane);
     }
@@ -965,7 +956,7 @@ export class UserInterface {
      * @param contents the data to encode.
      * @param extension the file extension, not including the period.
      */
-    private arrayToBlobUrl(contents: ArrayBuffer, extension: string): string {
+    private arrayToBlobUrl(contents: Uint8Array, extension: string): string {
         let type: string;
         switch (extension.toLowerCase()) {
             case "wav":
@@ -981,7 +972,8 @@ export class UserInterface {
                 break;
         }
 
-        const blob = new Blob([contents], {type});
+        // Have to create a new Uint8Array because "contents" might have the wrong underlying buffer type.
+        const blob = new Blob([new Uint8Array(contents)], {type});
 
         return window.URL.createObjectURL(blob);
     }
@@ -993,7 +985,7 @@ export class UserInterface {
      * @param name name of the program (no extension).
      * @param extension the file extension, not including the period.
      */
-    private exportFile(contents: ArrayBuffer, name: string, extension: string) {
+    private exportFile(contents: Uint8Array, name: string, extension: string) {
         const a = document.createElement("a");
         a.href = this.arrayToBlobUrl(contents, extension);
         a.download = name + "." + extension.toLowerCase();

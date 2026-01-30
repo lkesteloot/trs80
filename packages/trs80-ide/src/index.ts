@@ -11,4 +11,5 @@ console.log("Build date: " + new Date(BUILD_DATE*1000));
 const gSettings = loadSettings();
 const gEmulator = new Emulator(gSettings);
 const gEditor = new Editor(gSettings, gEmulator);
+gEmulator.setEditor(gEditor);
 const gUserInterface = new UserInterface(gSettings, gEmulator, gEditor);

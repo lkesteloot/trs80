@@ -179,6 +179,44 @@ body.presentation-mode {
 
 /* ------------------------------------------------------------------------- */
 
+.memory-inspector {
+    body[data-memory-inspector="hidden"] & {
+        display: none;
+    }
+
+    .memory-inspector-rows {
+        max-height: 100px;
+        overflow-y: scroll;
+        white-space: pre;
+
+        .memory-inspector-address {
+            color: var(--cyan);
+        }
+
+        .memory-inspector-hex {
+            color: var(--blue);
+        }
+
+        .memory-inspector-ascii {
+            color: var(--yellow);
+        }
+
+        .memory-inspector-ascii-unprintable {
+            color: var(--foreground-secondary);
+        }
+
+        .memory-inspector-annotation {
+            color: var(--violet);
+        }
+
+        .memory-inspector-outside-annotation {
+            opacity: 0.2;
+        }
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+
 .fdc-inspector {
     display: grid;
     grid-template-columns: 1fr 1fr;
