@@ -884,22 +884,30 @@ not_number:
 	inc de
 	ld a,'('
 	call expect_and_skip
+	call skip_whitespace
+	cp a,')'
+	jr z,no_rnd_expression		; Immediate close parenthesis, no range parameter.
 	call compile_expression		; In DE.
 	ld a,')'
 	call expect_and_skip
 	m_add I_PUSH_DE		        ; Push range.
-	m_add I_CALL			; Generate random number.
+	m_add I_CALL			; Generate random number in DE.
 	m_add_word rnd
 	m_add I_LD_B_D		        ; Random number in BC.
 	m_add I_LD_C_E
 	m_add I_POP_DE		        ; Restore range.
 	m_add I_PUSH_HL
-	m_add I_CALL			; Compute random % range into HL.
+	m_add I_CALL			; Compute rnd (BC) % range (DE) into HL.
 	m_add_word bc_div_de
 	m_add I_LD_D_H		        ; Result into DE.
 	m_add I_LD_E_L
 	m_add I_INC_DE		        ; Result is 1 to N.
 	m_add I_POP_HL
+	ret
+no_rnd_expression:
+	call expect_and_skip		; Skip ')'.
+	m_add I_CALL			; Generate random number in DE.
+	m_add_word rnd
 	ret
 not_rnd:
 	cp a,'A'			; See if it's a variable.
@@ -1479,7 +1487,7 @@ rnd:
 	; de ^= de << 8
 	; From https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Random
 	ld de,(rnd_seed)
-	
+
 	ld a,d
 	rra
 	ld a,e
