@@ -10,9 +10,7 @@
 	; While compiling, DE points to the source tokenized Basic and
 	; HL points to the compiled binary buffer.
 	;
-	; In the compiled program, while evaluating an expression,
-	; DE is the top of the stack, then the real stack contains
-	; additional values.
+	; In the compiled program, expressions are put on the stack.
 	;
 
 SCREEN_WIDTH equ 64
@@ -701,7 +699,8 @@ loop:
 	m_add b
 	ld a,T_OP_EQU
 	call expect_and_skip
-	call compile_expression		; Evaluate RHS in DE.
+	call compile_expression		; Evaluate RHS.
+	m_add I_POP_DE
 	m_add I_LD_HL_E			; Write DE to variable.
 	m_add I_INC_HL
 	m_add I_LD_HL_D
@@ -761,11 +760,11 @@ compile_call:
 compile_set:
 	ld a,'('			; Skip open parenthesis.
 	call expect_and_skip
-	call compile_expression		; Read X coordinate into DE.
-	m_add I_PUSH_DE		        ; Save X coordinate.
+	call compile_expression		; Read X coordinate onto the stack.
 	ld a,','			; Skip comma.
 	call expect_and_skip
-	call compile_expression		; Read Y coordinate into DE.
+	call compile_expression		; Read Y coordinate onto the stack.
+	m_add I_POP_DE			; Restore Y.
 	m_add I_LD_C_E		        ; Y to C.
 	m_add I_POP_DE		        ; Restore X.
 	m_add I_LD_B_E		        ; X to B.
@@ -803,13 +802,14 @@ compile_goto:
 	jp loop
 
 compile_if:
-	call compile_expression		; Conditional into DE.
+	call compile_expression		; Conditional onto the stack.
 	ld a,T_THEN
 	call expect_and_skip
+	m_add I_POP_DE
 	m_add I_LD_A_D			; See if conditional is zero.
 	m_add I_OR_A_E
 	m_add I_JP_Z_ADDR		; Skip rest of line if false.
-	ld ix,eol_ref			; Save compile location in eol_eof
+	ld ix,eol_ref			; Save compile location in eol_ref.
 	ld (ix),l
 	ld (ix+1),h
 	m_add 0				; To be filled in later, see "eol".
@@ -817,20 +817,19 @@ compile_if:
 	jp loop
 
 compile_poke:
-	call compile_expression		; Address into DE.
-	m_add I_PUSH_DE
+	call compile_expression		; Address onto the stack.
 	ld a,','
 	call expect_and_skip
-	call compile_expression		; Value into DE.
+	call compile_expression		; Value onto the stack.
+	m_add I_POP_DE			; Value.
 	m_add I_LD_A_E
-	m_add I_POP_DE
+	m_add I_POP_DE			; Address.
 	m_add I_LD_DE_A
 	jp loop
 
 compile_print:
-	call compile_expression		; Into DE.
-	m_add I_LD_H_D			; Move to HL for write_decimal_word.
-	m_add I_LD_L_E
+	call compile_expression		; Onto the stack.
+	m_add I_POP_HL			; Move to HL for write_decimal_word.
 	m_add I_CALL
 	m_add_word write_decimal_word
 	m_add I_LD_A_IMM
@@ -865,7 +864,7 @@ skip_whitespace:
 	jp skip_whitespace
 
 ; Parse the expression at DE into the binary buffer at HL. The compiled
-; code leaves the result in DE.
+; code leaves the result on the stack.
 compile_expression:
 #local
 expr_loop:
@@ -880,17 +879,16 @@ expr_loop:
 not_number:
 	cp a,T_RND
 	jr nz,not_rnd
-	; Compile the RND function, puts the result in DE.
+	; Compile the RND function, puts the result onto the stack.
 	inc de
 	ld a,'('
 	call expect_and_skip
 	call skip_whitespace
 	cp a,')'
 	jr z,no_rnd_expression		; Immediate close parenthesis, no range parameter.
-	call compile_expression		; In DE.
+	call compile_expression		; Onto the stack.
 	ld a,')'
 	call expect_and_skip
-	m_add I_PUSH_DE		        ; Push range.
 	m_add I_CALL			; Generate random number in DE.
 	m_add_word rnd
 	m_add I_LD_B_D		        ; Random number in BC.
@@ -903,11 +901,13 @@ not_number:
 	m_add I_LD_E_L
 	m_add I_INC_DE		        ; Result is 1 to N.
 	m_add I_POP_HL
+	m_add I_PUSH_DE			; Push result.
 	ret
 no_rnd_expression:
 	call expect_and_skip		; Skip ')'.
 	m_add I_CALL			; Generate random number in DE.
 	m_add_word rnd
+	m_add I_PUSH_DE			; Push result.
 	ret
 not_rnd:
 	cp a,'A'			; See if it's a variable.
@@ -926,18 +926,20 @@ not_rnd:
 	m_add I_INC_HL
 	m_add I_LD_D_HL
 	m_add I_POP_HL
+	m_add I_PUSH_DE			; Push result.
 	ret
 #endlocal
 
 ; Parse the numeric literal at DE into the binary buffer at HL.
-; The compiled code puts the number in DE.
+; The compiled code puts the number on the stack.
 compile_numeric_literal:
 #local
 	push bc
-	call read_numeric_literal
+	call read_numeric_literal	; Into BC.
 	m_add I_LD_DE_IMM
 	m_add c
 	m_add b
+	m_add I_PUSH_DE
 	pop bc
 	ret
 #endlocal
