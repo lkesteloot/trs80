@@ -8,9 +8,12 @@
 	; Conventions:
 	;
 	; While compiling, DE points to the source tokenized Basic and
-	; HL points to the compiled binary buffer.
+	; HL points to the compiled binary buffer. While compiling an
+	; expression, IY points to the operator stack.
 	;
-	; In the compiled program, expressions are put on the stack.
+	; In the compiled program, expression results are put on the stack.
+	; All registers are scratch and must be saved if calling a function
+	; that trashes them.
 	;
 
 SCREEN_WIDTH equ 64
@@ -33,6 +36,7 @@ MAX_VARS equ 32
 I_LD_DE_IMM equ 0x11
 I_LD_DE_A equ 0x12
 I_INC_DE equ 0x13
+I_ADD_HL_DE equ 0x19
 I_LD_HL_IMM equ 0x21
 I_INC_HL equ 0x23
 I_LD_A_IMM equ 0x3E
@@ -191,7 +195,10 @@ T_MID_STR equ 0xFA
 ; OP_ADD (0x99) and OP_SUB (0xA9) have the same precedence (9). By convention
 ; the precedence is the value of the lowest-valued operator in its class
 ; (OP_ADD = 0x99), but only the relative values of precedence matter. All
-; of these are left-associative
+; of these are left-associative.
+; TODO explain the second-to-last sentence above.
+; TODO make exponentiation right-associative, like in TRS-80 Basic.
+; TODO can we use a macro to extract the precedence?
 MAX_OP_STACK_SIZE equ 16
 OP_ADD equ 0x99
 
@@ -694,13 +701,15 @@ loop:
 	ld b,a				; Put variable name in BC.
 	ld c,0				; Don't yet support two-letter variable names.
 	call find_variable		; Variable address in BC.
+	push bc				; Save address.
+	ld a,T_OP_EQU
+	call expect_and_skip
+	call compile_expression		; Evaluate RHS, result on stack.
+	pop bc				; Restore address.
+	call add_pop_de
 	m_add I_LD_HL_IMM		; Variable address in HL.
 	m_add c
 	m_add b
-	ld a,T_OP_EQU
-	call expect_and_skip
-	call compile_expression		; Evaluate RHS.
-	m_add I_POP_DE
 	m_add I_LD_HL_E			; Write DE to variable.
 	m_add I_INC_HL
 	m_add I_LD_HL_D
@@ -764,7 +773,7 @@ compile_set:
 	ld a,','			; Skip comma.
 	call expect_and_skip
 	call compile_expression		; Read Y coordinate onto the stack.
-	m_add I_POP_DE			; Restore Y.
+	call add_pop_de			; Restore Y.
 	m_add I_LD_C_E		        ; Y to C.
 	m_add I_POP_DE		        ; Restore X.
 	m_add I_LD_B_E		        ; X to B.
@@ -805,7 +814,7 @@ compile_if:
 	call compile_expression		; Conditional onto the stack.
 	ld a,T_THEN
 	call expect_and_skip
-	m_add I_POP_DE
+	call add_pop_de
 	m_add I_LD_A_D			; See if conditional is zero.
 	m_add I_OR_A_E
 	m_add I_JP_Z_ADDR		; Skip rest of line if false.
@@ -821,7 +830,7 @@ compile_poke:
 	ld a,','
 	call expect_and_skip
 	call compile_expression		; Value onto the stack.
-	m_add I_POP_DE			; Value.
+	call add_pop_de			; Value.
 	m_add I_LD_A_E
 	m_add I_POP_DE			; Address.
 	m_add I_LD_DE_A
@@ -867,6 +876,7 @@ skip_whitespace:
 ; code leaves the result on the stack.
 compile_expression:
 #local
+	ld iy,op_stack-1		; IY is pre-incremented.
 expr_loop:
 	call skip_whitespace
 	ld a,(de)
@@ -875,8 +885,17 @@ expr_loop:
 	cp a,'9'+1
 	jr nc,not_number
 	call compile_numeric_literal
-	ret
+	jp expr_loop
 not_number:
+	cp a,T_OP_ADD
+	jp nz,not_add
+	; TODO check op stack overflow.
+	ld a,OP_ADD
+	inc iy
+	ld (iy),a
+	inc de
+	jp expr_loop
+not_add:
 	cp a,T_RND
 	jr nz,not_rnd
 	; Compile the RND function, puts the result onto the stack.
@@ -902,18 +921,18 @@ not_number:
 	m_add I_INC_DE		        ; Result is 1 to N.
 	m_add I_POP_HL
 	m_add I_PUSH_DE			; Push result.
-	ret
+	jp expr_loop
 no_rnd_expression:
 	call expect_and_skip		; Skip ')'.
 	m_add I_CALL			; Generate random number in DE.
 	m_add_word rnd
 	m_add I_PUSH_DE			; Push result.
-	ret
+	jp expr_loop
 not_rnd:
 	cp a,'A'			; See if it's a variable.
-	jp c,compile_error
+	jp c,end_of_expression
 	cp a,'Z'+1
-	jp nc,compile_error
+	jp nc,end_of_expression
 	ld b,a				; Put variable name in BC.
 	ld c,0				; Don't yet support two-letter variable names.
 	inc de
@@ -927,6 +946,35 @@ not_rnd:
 	m_add I_LD_D_HL
 	m_add I_POP_HL
 	m_add I_PUSH_DE			; Push result.
+	jp expr_loop
+
+end_of_expression:
+pop_loop:
+	push hl				; Save HL.
+	push iy				; Put op stack pointer into HL.
+	pop hl
+	ld bc,op_stack			; Put start of op_stack in BC.
+	scf
+	ccf
+	push hl
+	sbc hl,bc			; We're done if HL < op_stack.
+	pop hl
+	jp c,done_popping
+	ld a,(hl)			; Get the operator.
+	dec hl
+	push hl				; Put op stack pointer back in IY.
+	pop iy
+	pop hl				; Restore compile pointer.
+	cp a,OP_ADD
+	jp nz,compile_error		; TODO it's actually internal compiler error.
+	call add_pop_de			; Second operand.
+	m_add I_POP_HL			; First operand.
+	m_add I_ADD_HL_DE
+	m_add I_PUSH_HL
+	jp pop_loop
+
+done_popping:
+	pop hl
 	ret
 #endlocal
 
@@ -941,6 +989,20 @@ compile_numeric_literal:
 	m_add b
 	m_add I_PUSH_DE
 	pop bc
+	ret
+#endlocal
+
+; Add a I_POP_DE instruction, unless the previous instruction was I_PUSH_DE,
+; in which case that instruction is removed. Destroys A.
+add_pop_de:
+#local
+	dec hl
+	ld a,(hl)
+	cp a,I_PUSH_DE			; See if previous instruction was I_PUSH_DE.
+	ret z				; If so, remove it (leave HL one less).
+	inc hl				; Restore HL.
+	ld (hl),I_POP_DE		; And actually add the pop.
+	inc hl
 	ret
 #endlocal
 
