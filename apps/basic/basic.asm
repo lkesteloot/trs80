@@ -36,23 +36,30 @@ MAX_VARS equ 32
 I_LD_DE_IMM equ 0x11
 I_LD_DE_A equ 0x12
 I_INC_DE equ 0x13
+I_RLA equ 0x17
 I_ADD_HL_DE equ 0x19
 I_LD_HL_IMM equ 0x21
 I_INC_HL equ 0x23
+I_DEC_A equ 0x3D
 I_LD_A_IMM equ 0x3E
+I_CCF equ 0x3F
 I_LD_B_D equ 0x42
 I_LD_B_E equ 0x43
 I_LD_C_E equ 0x4B
+I_SBC_HL_DE_2 equ 0x52
 I_LD_D_H equ 0x54
 I_LD_D_HL equ 0x56
+I_LD_D_A equ 0x57
 I_LD_E_L equ 0x5D
 I_LD_E_HL equ 0x5E
+I_LD_E_A equ 0x5F
 I_LD_H_D equ 0x62
 I_LD_L_E equ 0x6B
 I_LD_HL_D equ 0x72
 I_LD_HL_E equ 0x73
 I_LD_A_D equ 0x7A
 I_LD_A_E equ 0x7B
+I_XOR_A_A equ 0xAF
 I_OR_A_E equ 0xB3
 I_JP_Z_ADDR equ 0xCA
 I_JP equ 0xC3
@@ -62,6 +69,7 @@ I_POP_DE equ 0xD1
 I_PUSH_DE equ 0xD5
 I_POP_HL equ 0xE1
 I_PUSH_HL equ 0xE5
+I_SBC_HL_DE_1 equ 0xED
 
 ; Basic tokens.
 T_END equ 0x80
@@ -199,7 +207,9 @@ T_MID_STR equ 0xFA
 ; TODO explain the second-to-last sentence above.
 ; TODO make exponentiation right-associative, like in TRS-80 Basic.
 ; TODO can we use a macro to extract the precedence?
+; TODO look these up in the Basic manual.
 MAX_OP_STACK_SIZE equ 16
+OP_LT equ 0x75
 OP_ADD equ 0x99
 
 ; Macro to add a byte to the compiled binary.
@@ -896,6 +906,15 @@ not_number:
 	inc de
 	jp expr_loop
 not_add:
+	cp a,T_OP_LT
+	jp nz,not_lt
+	; TODO check op stack overflow.
+	ld a,OP_LT
+	inc iy
+	ld (iy),a
+	inc de
+	jp expr_loop
+not_lt:
 	cp a,T_RND
 	jr nz,not_rnd
 	; Compile the RND function, puts the result onto the stack.
@@ -953,7 +972,7 @@ pop_loop:
 	push hl				; Save HL.
 	push iy				; Put op stack pointer into HL.
 	pop hl
-	ld bc,op_stack			; Put start of op_stack in BC.
+	ld bc,op_stack			; Put start of op_stack in BC. TODO use sentinel
 	scf
 	ccf
 	push hl
@@ -966,11 +985,26 @@ pop_loop:
 	pop iy
 	pop hl				; Restore compile pointer.
 	cp a,OP_ADD
-	jp nz,compile_error		; TODO it's actually internal compiler error.
+	jp nz,not_op_add
 	call add_pop_de			; Second operand.
 	m_add I_POP_HL			; First operand.
 	m_add I_ADD_HL_DE
 	m_add I_PUSH_HL
+	jp pop_loop
+not_op_add:
+	cp a,OP_LT
+	jp nz,compile_error		; TODO it's actually internal compiler error.
+	call add_pop_de			; Second operand.
+	m_add I_POP_HL			; First operand.
+	m_add I_XOR_A_A			; Clear A and carry.
+	m_add I_SBC_HL_DE_1		; If (HL < DE) carry = 1 else carry = 0.
+	m_add I_SBC_HL_DE_2
+	m_add I_CCF			; If (HL < DE) carry = 0 else carry = 1.
+	m_add I_RLA			; If (HL < DE) A = 0x00 else A = 0x01.
+	m_add I_DEC_A			; If (HL < DE) A = 0xFF else A = 0x00.
+	m_add I_LD_E_A			; If (HL < DE) DE = 0xFFFF else DE = 0x0000.
+	m_add I_LD_D_A
+	m_add I_PUSH_DE
 	jp pop_loop
 
 done_popping:
@@ -1888,9 +1922,18 @@ binary:
 bss_end:
 
 program:
-line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, T_CLS, 0
-line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '(127),', T_RND, '(47))', 0
-line30: db lo(line40), hi(line40), lo(30), hi(30), 0, 0, T_GOTO, ' 20', 0
-line40: db 0, 0, 0, 0, 0, 0
+; Random pixels on the screen.
+; line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, T_CLS, 0
+; line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '(127),', T_RND, '(47))', 0
+; line30: db lo(line_end), hi(line_end), lo(30), hi(30), 0, 0, T_GOTO, ' 20', 0
+
+; Fill screen with characters.
+line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, 'I', T_OP_EQU, '15360', 0
+line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_POKE, ' I,191', 0
+line30: db lo(line40), hi(line40), lo(30), hi(30), 0, 0, 'I', T_OP_EQU, 'I', T_OP_ADD, '1', 0
+line40: db lo(line_end), hi(line_end), lo(40), hi(40), 0, 0, T_IF, ' I', T_OP_LT, '16384 ', T_THEN, ' ', T_GOTO, ' 20', 0
+
+
+line_end: db 0, 0, 0, 0, 0, 0
 
 	end 0x0000
