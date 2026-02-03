@@ -211,6 +211,7 @@ T_MID_STR equ 0xFA
 MAX_OP_STACK_SIZE equ 16
 OP_LT equ 0x75
 OP_ADD equ 0x99
+OP_INVALID equ 0xFF
 
 ; Macro to add a byte to the compiled binary.
 	macro m_add value
@@ -886,7 +887,8 @@ skip_whitespace:
 ; code leaves the result on the stack.
 compile_expression:
 #local
-	ld iy,op_stack-1		; IY is pre-incremented.
+	ld iy,op_stack			; IY is pre-incremented.
+	ld (iy),OP_INVALID		; Sentinel value.
 expr_loop:
 	call skip_whitespace
 	ld a,(de)
@@ -969,21 +971,10 @@ not_rnd:
 
 end_of_expression:
 pop_loop:
-	push hl				; Save HL.
-	push iy				; Put op stack pointer into HL.
-	pop hl
-	ld bc,op_stack			; Put start of op_stack in BC. TODO use sentinel
-	scf
-	ccf
-	push hl
-	sbc hl,bc			; We're done if HL < op_stack.
-	pop hl
-	jp c,done_popping
-	ld a,(hl)			; Get the operator.
-	dec hl
-	push hl				; Put op stack pointer back in IY.
-	pop iy
-	pop hl				; Restore compile pointer.
+	ld a,(iy)			; Get the operator.
+	cp a,OP_INVALID			; Sentinel value.
+	ret z
+	dec iy				; Pointer is post-decremented.
 	cp a,OP_ADD
 	jp nz,not_op_add
 	call add_pop_de			; Second operand.
@@ -1006,10 +997,6 @@ not_op_add:
 	m_add I_LD_D_A
 	m_add I_PUSH_DE
 	jp pop_loop
-
-done_popping:
-	pop hl
-	ret
 #endlocal
 
 ; Parse the numeric literal at DE into the binary buffer at HL.
