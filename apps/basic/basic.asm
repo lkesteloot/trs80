@@ -46,6 +46,7 @@ I_LD_A_IMM equ 0x3E
 I_CCF equ 0x3F
 I_LD_B_D equ 0x42
 I_LD_B_E equ 0x43
+I_LD_B_A equ 0x47
 I_LD_C_E equ 0x4B
 I_LD_D_H equ 0x54
 I_LD_D_HL equ 0x56
@@ -61,9 +62,11 @@ I_LD_A_D equ 0x7A
 I_LD_A_E equ 0x7B
 I_XOR_A_A equ 0xAF
 I_OR_A_E equ 0xB3
-I_JP_Z_ADDR equ 0xCA
+I_POP_BC equ 0xC1
 I_JP equ 0xC3
+I_PUSH_BC equ 0xC5
 I_RET equ 0xC9
+I_JP_Z_ADDR equ 0xCA
 I_CALL equ 0xCD
 I_POP_DE equ 0xD1
 I_PUSH_DE equ 0xD5
@@ -207,12 +210,13 @@ T_MID_STR equ 0xFA
 ; of these are left-associative.
 ; TODO explain the second-to-last sentence above.
 ; TODO make exponentiation right-associative, like in TRS-80 Basic.
-; TODO can we use a macro to extract the precedence?
 ; TODO look these up in the Basic manual.
 MAX_OP_STACK_SIZE equ 16
 OP_LT equ 0x75
 OP_ADD equ 0x99
 OP_SUB equ 0xA9
+OP_MUL equ 0xBB
+OP_DIV equ 0xCB
 OP_CLOSE_PARENS equ 0xFD		; Never on the stack.
 OP_OPEN_PARENS equ 0xFE			; Ignore precedence.
 OP_INVALID equ 0xFF			; For errors and sentinel.
@@ -907,6 +911,10 @@ not_number:
 	jr z,push_op_add
 	cp a,T_OP_SUB
 	jr z,push_op_sub
+	cp a,T_OP_MUL
+	jr z,push_op_mul
+	cp a,T_OP_DIV
+	jr z,push_op_div
 	cp a,T_OP_LT
 	jr z,push_op_lt
 	jr not_op
@@ -915,6 +923,12 @@ push_op_add:
 	jr push_op_stack
 push_op_sub:
 	ld a,OP_SUB
+	jr push_op_stack
+push_op_mul:
+	ld a,OP_MUL
+	jr push_op_stack
+push_op_div:
+	ld a,OP_DIV
 	jr push_op_stack
 push_op_lt:
 	ld a,OP_LT
@@ -1017,6 +1031,10 @@ pop_op_stack:
 	jr z,compile_op_add
 	cp a,OP_SUB
 	jr z,compile_op_sub
+	cp a,OP_MUL
+	jr z,compile_op_mul
+	cp a,OP_DIV
+	jr z,compile_op_div
 	cp a,OP_LT
 	jr z,compile_op_lt
 	jp compile_error		; TODO it's actually internal compiler error.
@@ -1033,6 +1051,20 @@ compile_op_sub:
 	m_add I_SBC_HL_DE_1
 	m_add I_SBC_HL_DE_2
 	m_add I_PUSH_HL
+	ret
+compile_op_mul:
+	call add_pop_de			; Second operand.
+	m_add I_POP_HL			; First operand.
+	; TODO
+	m_add I_PUSH_HL
+	ret
+compile_op_div:
+	call add_pop_de			; Second operand.
+	m_add I_POP_BC			; First operand.
+	m_add I_CALL
+	m_add_word bc_div_de		; AC = BC / DE.
+	m_add I_LD_B_A
+	m_add I_PUSH_BC
 	ret
 compile_op_lt:
 	call add_pop_de			; Second operand.
