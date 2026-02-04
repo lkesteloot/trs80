@@ -213,7 +213,9 @@ MAX_OP_STACK_SIZE equ 16
 OP_LT equ 0x75
 OP_ADD equ 0x99
 OP_SUB equ 0xA9
-OP_INVALID equ 0xFF
+OP_CLOSE_PARENS equ 0xFD		; Never on the stack.
+OP_OPEN_PARENS equ 0xFE			; Ignore precedence.
+OP_INVALID equ 0xFF			; For errors and sentinel.
 
 ; Macro to add a byte to the compiled binary.
 	macro m_add value
@@ -910,18 +912,40 @@ not_number:
 	jr not_op
 push_op_add:
 	ld a,OP_ADD
-	jp finish_push_op
+	jr push_op_stack
 push_op_sub:
 	ld a,OP_SUB
-	jp finish_push_op
+	jr push_op_stack
 push_op_lt:
 	ld a,OP_LT
-	jp finish_push_op
-finish_push_op:
+	jr push_op_stack
+push_op_stack:
+	; Before we can push an operator, we may have to pop some.
+	push af				; Save op we're pushing.
+	and a,0x0F			; Grab precedence of op we're pushing.
+	ld b,a				; Save precedence in B.
+	; TODO don't pop if we're adding unary.
+	cp a,OP_OPEN_PARENS
+	jr z,done_push_popping		; Don't pop if we're pushing open parenthesis.
+push_pop_loop:
+	ld a,(iy)			; Load operator at top of stack.
+	cp a,OP_INVALID
+	jr z,done_push_popping		; Nothing on stack to pop.
+	cp a,OP_OPEN_PARENS
+	jr z,done_push_popping		; Don't pop open parens.
+	ld c,a				; Save operator at top of stack.
+	and a,0x0F			; Get precedence of top of stack.
+	cp a,b				; See if it's lower precedence.
+	jr c,done_push_popping		; Top of stack is lower, don't pop.
+	ld a,c				; Restore operator at top of stack.
+	call pop_op_stack		; Compile op at top of stack.
+	jr push_pop_loop
+done_push_popping:
+	pop af				; Restore operator we're pushing.
 	; TODO check op stack overflow, maybe use sentinel.
-	inc iy
-	ld (iy),a
-	inc de
+	inc iy				; Pre-increment.
+	ld (iy),a			; Push operator.
+	inc de				; Advance source pointer.
 	jp expr_loop
 not_op:
 	cp a,T_RND
@@ -981,20 +1005,27 @@ pop_loop:
 	ld a,(iy)			; Get the operator.
 	cp a,OP_INVALID			; Sentinel value.
 	ret z
+	call pop_op_stack
+	jr pop_loop
+
+; Pop one operator off the op stack and compile it, then return. The operator
+; must already be in A.
+pop_op_stack:
+	; TODO perhaps move the calls to add_pop_de here.
 	dec iy				; Pointer is post-decremented.
 	cp a,OP_ADD
-	jp z,compile_op_add
+	jr z,compile_op_add
 	cp a,OP_SUB
-	jp z,compile_op_sub
+	jr z,compile_op_sub
 	cp a,OP_LT
-	jp z,compile_op_lt
+	jr z,compile_op_lt
 	jp compile_error		; TODO it's actually internal compiler error.
 compile_op_add:
 	call add_pop_de			; Second operand.
 	m_add I_POP_HL			; First operand.
 	m_add I_ADD_HL_DE
 	m_add I_PUSH_HL
-	jp pop_loop
+	ret
 compile_op_sub:
 	call add_pop_de			; Second operand.
 	m_add I_POP_HL			; First operand.
@@ -1002,7 +1033,7 @@ compile_op_sub:
 	m_add I_SBC_HL_DE_1
 	m_add I_SBC_HL_DE_2
 	m_add I_PUSH_HL
-	jp pop_loop
+	ret
 compile_op_lt:
 	call add_pop_de			; Second operand.
 	m_add I_POP_HL			; First operand.
@@ -1015,7 +1046,7 @@ compile_op_lt:
 	m_add I_LD_E_A			; If (HL < DE) DE = 0xFFFF else DE = 0x0000.
 	m_add I_LD_D_A
 	m_add I_PUSH_DE
-	jp pop_loop
+	ret
 #endlocal
 
 ; Parse the numeric literal at DE into the binary buffer at HL.
