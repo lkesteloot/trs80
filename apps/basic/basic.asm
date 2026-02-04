@@ -40,13 +40,13 @@ I_RLA equ 0x17
 I_ADD_HL_DE equ 0x19
 I_LD_HL_IMM equ 0x21
 I_INC_HL equ 0x23
+I_SCF equ 0x37
 I_DEC_A equ 0x3D
 I_LD_A_IMM equ 0x3E
 I_CCF equ 0x3F
 I_LD_B_D equ 0x42
 I_LD_B_E equ 0x43
 I_LD_C_E equ 0x4B
-I_SBC_HL_DE_2 equ 0x52
 I_LD_D_H equ 0x54
 I_LD_D_HL equ 0x56
 I_LD_D_A equ 0x57
@@ -70,6 +70,7 @@ I_PUSH_DE equ 0xD5
 I_POP_HL equ 0xE1
 I_PUSH_HL equ 0xE5
 I_SBC_HL_DE_1 equ 0xED
+I_SBC_HL_DE_2 equ 0x52
 
 ; Basic tokens.
 T_END equ 0x80
@@ -211,6 +212,7 @@ T_MID_STR equ 0xFA
 MAX_OP_STACK_SIZE equ 16
 OP_LT equ 0x75
 OP_ADD equ 0x99
+OP_SUB equ 0xA9
 OP_INVALID equ 0xFF
 
 ; Macro to add a byte to the compiled binary.
@@ -900,23 +902,28 @@ expr_loop:
 	jp expr_loop
 not_number:
 	cp a,T_OP_ADD
-	jp nz,not_add
-	; TODO check op stack overflow.
-	ld a,OP_ADD
-	inc iy
-	ld (iy),a
-	inc de
-	jp expr_loop
-not_add:
+	jr z,push_op_add
+	cp a,T_OP_SUB
+	jr z,push_op_sub
 	cp a,T_OP_LT
-	jp nz,not_lt
-	; TODO check op stack overflow.
+	jr z,push_op_lt
+	jr not_op
+push_op_add:
+	ld a,OP_ADD
+	jp finish_push_op
+push_op_sub:
+	ld a,OP_SUB
+	jp finish_push_op
+push_op_lt:
 	ld a,OP_LT
+	jp finish_push_op
+finish_push_op:
+	; TODO check op stack overflow, maybe use sentinel.
 	inc iy
 	ld (iy),a
 	inc de
 	jp expr_loop
-not_lt:
+not_op:
 	cp a,T_RND
 	jr nz,not_rnd
 	; Compile the RND function, puts the result onto the stack.
@@ -976,15 +983,27 @@ pop_loop:
 	ret z
 	dec iy				; Pointer is post-decremented.
 	cp a,OP_ADD
-	jp nz,not_op_add
+	jp z,compile_op_add
+	cp a,OP_SUB
+	jp z,compile_op_sub
+	cp a,OP_LT
+	jp z,compile_op_lt
+	jp compile_error		; TODO it's actually internal compiler error.
+compile_op_add:
 	call add_pop_de			; Second operand.
 	m_add I_POP_HL			; First operand.
 	m_add I_ADD_HL_DE
 	m_add I_PUSH_HL
 	jp pop_loop
-not_op_add:
-	cp a,OP_LT
-	jp nz,compile_error		; TODO it's actually internal compiler error.
+compile_op_sub:
+	call add_pop_de			; Second operand.
+	m_add I_POP_HL			; First operand.
+	m_add I_XOR_A_A			; Clear carry (don't care about A).
+	m_add I_SBC_HL_DE_1
+	m_add I_SBC_HL_DE_2
+	m_add I_PUSH_HL
+	jp pop_loop
+compile_op_lt:
 	call add_pop_de			; Second operand.
 	m_add I_POP_HL			; First operand.
 	m_add I_XOR_A_A			; Clear A and carry.
