@@ -208,9 +208,17 @@ T_MID_STR equ 0xFA
 ; the precedence is the value of the lowest-valued operator in its class
 ; (OP_ADD = 0x99), but only the relative values of precedence matter. All
 ; of these are left-associative.
-; TODO explain the second-to-last sentence above.
-; TODO make exponentiation right-associative, like in TRS-80 Basic.
-; TODO look these up in the Basic manual.
+; TODO clarify or remove the second-to-last sentence above.
+; See page 120 of the "TRS-80 Model III Operation and BASIC Language
+; Reference Manual."
+; [ (exp)
+; Posivie, Negative
+; * /
+; + -
+; Relational < > <= >= = <>
+; NOT
+; AND
+; OR
 MAX_OP_STACK_SIZE equ 16
 OP_LT equ 0x75
 OP_ADD equ 0x99
@@ -410,7 +418,7 @@ loop:
 	inc hl
 	push hl
 	ld hl,bc
-	call write_decimal_word		; Write the line number.
+	call write_unsigned_decimal_word; Write the line number.
 	pop hl
 	ld a,' '
 	call write_char
@@ -859,7 +867,7 @@ compile_print:
 	call compile_expression		; Onto the stack.
 	m_add I_POP_HL			; Move to HL for write_decimal_word.
 	m_add I_CALL
-	m_add_word write_decimal_word
+	m_add_word write_signed_decimal_word
 	m_add I_LD_A_IMM
 	m_add NL
 	m_add I_CALL
@@ -1345,7 +1353,7 @@ less_than_ten:
 #endlocal
 
 ; Write in decimal the unsigned word in HL.
-write_decimal_word:
+write_unsigned_decimal_word:
 #local
 	push iy
 	push hl
@@ -1391,6 +1399,24 @@ skip_the_digit:
 	pop hl
 	pop iy
 	ret
+#endlocal
+
+; Write in decimal the signed word in HL. Destroys HL.
+; TODO perhaps accept DE since that's what will be on the
+; stack after an expression.
+write_signed_decimal_word:
+#local
+	bit 7,h
+	jp z,write_unsigned_decimal_word
+	xor a,a				; Negate HL: First clear A.
+	sub a,l
+	ld l,a				; L = -L, carry iff L != 0.
+	sbc a,a				; A = orig L == 0 ? 0 : -1.
+	sub a,h
+	ld h,a				; H = -H with borrow from L.
+	ld a,'-'
+	call write_char
+	jp write_unsigned_decimal_word
 #endlocal
 
 ; Scroll the screen up one line and write a blank line at the bottom.
