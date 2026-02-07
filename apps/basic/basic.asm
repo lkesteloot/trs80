@@ -956,7 +956,7 @@ not_number:
 	jr z,push_op_div
 	cp a,T_OP_LT
 	jr z,push_op_lt
-	jr not_an_op
+	jp not_an_op
 push_op_add_or_pos:
 	ld a,(expect_unary)
 	or a,a
@@ -981,6 +981,22 @@ push_op_lt:
 	ld a,OP_LT
 	jr push_op_stack
 push_op_stack:
+	; We have our operator in A. Check that it's valid here. If we're expecting
+	; unary, then the operator must be unary, so reject expressions like "*5".
+	ld b,a				; Save op.
+	ld a,(expect_unary)		; See if we're expecting unary.
+	or a,a
+	ld a,b				; Restore op.
+	jp z,unary_check_passed
+	cp a,OP_NO_OP
+	jp z,unary_check_passed
+	cp a,OP_NEG
+	jp z,unary_check_passed
+	cp a,OP_NOT
+	jp z,unary_check_passed
+	cp a,OP_OPEN_PARENS
+	jp nz,compile_error
+unary_check_passed:
 	; Before we can push an operator, we may have to pop some.
 	push af				; Save op we're pushing.
 	; Don't pop if we're adding unary or open parens.
@@ -1017,6 +1033,7 @@ done_push_popping:
 	inc iy				; Pre-increment.
 	ld (iy),a			; Push operator.
 skip_pushing_op:
+	; Update "expect_unary".
 	cp a,OP_CLOSE_PARENS		; Expect unary operator after operators
 	ld a,1				; ... or open parens.
 	jp nz,not_close_parens
@@ -2099,7 +2116,7 @@ rnd_seed:
 op_stack:
 	ds MAX_OP_STACK_SIZE
 
-; Whether to expect a unary operator next (0x00 or 0x01).
+; Whether to expect a unary operator next (0 or 1).
 expect_unary:
 	ds 1
 
