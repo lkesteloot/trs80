@@ -9,11 +9,11 @@
 	;
 	; While compiling, DE points to the source tokenized Basic and
 	; HL points to the compiled binary buffer. While compiling an
-	; expression, IY points to the operator stack.
+	; expression, IY points to top of the operator stack.
 	;
 	; In the compiled program, expression results are put on the stack.
 	; All registers are scratch and must be saved if calling a function
-	; that trashes them.
+	; that trashes them. All run-time numbers are signed words.
 	;
 
 SCREEN_WIDTH equ 64
@@ -60,6 +60,9 @@ I_LD_HL_D equ 0x72
 I_LD_HL_E equ 0x73
 I_LD_A_D equ 0x7A
 I_LD_A_E equ 0x7B
+I_SUB_A_D equ 0x92
+I_SUB_A_E equ 0x93
+I_SBC_A_A equ 0x9F
 I_XOR_A_A equ 0xAF
 I_OR_A_E equ 0xB3
 I_POP_BC equ 0xC1
@@ -204,27 +207,26 @@ T_MID_STR equ 0xFA
 
 ; Operators. These encode both the operator (high nibble) and the precedence
 ; (low nibble). Lower precedence has a lower low nibble value. For example,
-; OP_ADD (0x99) and OP_SUB (0xA9) have the same precedence (9). By convention
-; the precedence is the value of the lowest-valued operator in its class
-; (OP_ADD = 0x99), but only the relative values of precedence matter. All
+; OP_ADD (0x99) and OP_SUB (0xA9) have the same precedence (9). All
 ; of these are left-associative.
-; TODO clarify or remove the second-to-last sentence above.
+;
 ; See page 120 of the "TRS-80 Model III Operation and BASIC Language
 ; Reference Manual."
-; [ (exp)
-; Posivie, Negative
-; * /
-; + -
-; Relational < > <= >= = <>
-; NOT
-; AND
-; OR
 MAX_OP_STACK_SIZE equ 16
-OP_LT equ 0x75
+OP_OR equ 0x00
+OP_AND equ 0x11
+OP_NOT equ 0x22
+OP_LTE equ 0x33
+OP_GTE equ 0x43
+OP_EQ equ 0x53
+OP_NEQ equ 0x63
+OP_LT equ 0x73
+OP_GT equ 0x83
 OP_ADD equ 0x99
 OP_SUB equ 0xA9
 OP_MUL equ 0xBB
 OP_DIV equ 0xCB
+OP_NEG equ 0xDD
 OP_CLOSE_PARENS equ 0xFD		; Never on the stack.
 OP_OPEN_PARENS equ 0xFE			; Ignore precedence.
 OP_INVALID equ 0xFF			; For errors and sentinel.
@@ -372,6 +374,10 @@ compile_error:
 	ld a,(de)
 	call detokenize_char
 	ld hl,syntax_error_msg_part2
+	call write_text
+	jp end
+internal_error:
+	ld hl,internal_error_msg
 	call write_text
 	jp end
 
@@ -918,7 +924,7 @@ not_number:
 	cp a,T_OP_ADD
 	jr z,push_op_add
 	cp a,T_OP_SUB
-	jr z,push_op_sub
+	jr z,push_op_sub_or_neg
 	cp a,T_OP_MUL
 	jr z,push_op_mul
 	cp a,T_OP_DIV
@@ -929,8 +935,8 @@ not_number:
 push_op_add:
 	ld a,OP_ADD
 	jr push_op_stack
-push_op_sub:
-	ld a,OP_SUB
+push_op_sub_or_neg:
+	ld a,OP_NEG
 	jr push_op_stack
 push_op_mul:
 	ld a,OP_MUL
@@ -944,11 +950,15 @@ push_op_lt:
 push_op_stack:
 	; Before we can push an operator, we may have to pop some.
 	push af				; Save op we're pushing.
-	and a,0x0F			; Grab precedence of op we're pushing.
-	ld b,a				; Save precedence in B.
-	; TODO don't pop if we're adding unary.
+	; Don't pop if we're adding unary or open parens.
+	cp a,OP_NEG
+	jp z,done_push_popping
+	cp a,OP_NOT
+	jp z,done_push_popping
 	cp a,OP_OPEN_PARENS
 	jr z,done_push_popping		; Don't pop if we're pushing open parenthesis.
+	and a,0x0F			; Grab precedence of op we're pushing.
+	ld b,a				; Save precedence in B.
 push_pop_loop:
 	ld a,(iy)			; Load operator at top of stack.
 	cp a,OP_INVALID
@@ -1043,9 +1053,11 @@ pop_op_stack:
 	jr z,compile_op_mul
 	cp a,OP_DIV
 	jr z,compile_op_div
+	cp a,OP_NEG
+	jr z,compile_op_neg
 	cp a,OP_LT
 	jr z,compile_op_lt
-	jp compile_error		; TODO it's actually internal compiler error.
+	jp internal_error
 compile_op_add:
 	call add_pop_de			; Second operand.
 	m_add I_POP_HL			; First operand.
@@ -1074,6 +1086,16 @@ compile_op_div:
 	m_add_word bc_div_de		; AC = BC / DE.
 	m_add I_LD_B_A
 	m_add I_PUSH_BC
+	ret
+compile_op_neg:
+	call add_pop_de			; Operand.
+	m_add I_XOR_A_A			; Negate DE: First clear A.
+	m_add I_SUB_A_E
+	m_add I_LD_E_A			; E = -E, carry iff E != 0.
+	m_add I_SBC_A_A			; A = orig E == 0 ? 0 : -1.
+	m_add I_SUB_A_D
+	m_add I_LD_D_A			; D = -D with borrow from E.
+	m_add I_PUSH_DE
 	ret
 compile_op_lt:
 	call add_pop_de			; Second operand.
@@ -1836,6 +1858,8 @@ syntax_error_msg_part2:
 	db "'", NL, 0
 runtime_error_msg:
 	db "Runtime error", NL, 0
+internal_error_msg: ; TODO remove if we need to save space.
+	db "Internal compiler error", NL, 0
 keyboard_matrix_unshifted:
 	db "@abcdefghijklmnopqrstuvwxyz     0123456789:;,-./", NL, 0, 27, 0, 0, 8, 9, 32
 keyboard_matrix_shifted:
