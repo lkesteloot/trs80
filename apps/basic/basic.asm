@@ -1806,35 +1806,17 @@ continue:
 	ret
 #endlocal
 
-; 16-bit signed multiply. DEHL = BC*DE
-; https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Multiplication#16.2A16_multiplication_2
+; 16-bit signed or unsigned multiply. HL = BC*DE
 bc_mul_de:
 #local
-	xor a				; Clear A and carry (for SBC).
-	ld h,a				; Clear HL.
-	ld l,a
-	; Here we pre-subtract the eventual high word of the result (which starts
-	; in HL). If DE is negative, pre-subtract BC, and vice versa, then just
-	; do an unsigned multiply. This is because if DE is negative, then it's
-	; 65536 too high, so our result is 65536*BC too high. By pre-subtracting
-	; the high word by BC we subtract out that 65536*BC. (And vice-versa.)
-	bit 7,d				; See if DE is negative.
-	jr z,de_positive		; Skip if not.
-	sbc hl,bc			; HL -= BC.
-de_positive:
-	or b				; See if BC is negative.
-	jp p,bc_positive		; Skip if not.
-	sbc hl,de			; HL -= DE.
-bc_positive:
+	ld hl,0				; Clear HL.
 	ld a,16				; 16 iterations of the loop.
 loop:
 	add hl,hl			; HL <<= 1, shift in 0, carry out.
 	rl e				; DE <<= 1, shift in carry.
 	rl d				; Shift out MSB of DE.
-	jr nc,skip			; Skip if 0 MSB.
+	jr nc,skip			; If carry shifted out...
 	add hl,bc			; HL += BC.
-	jr nc,skip			; Skip if HL didn't carry.
-	inc de				; Add carry to DE.
 skip:
 	dec a				; Next loop iteration.
 	jr nz,loop
