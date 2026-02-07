@@ -984,6 +984,8 @@ push_op_stack:
 	; Before we can push an operator, we may have to pop some.
 	push af				; Save op we're pushing.
 	; Don't pop if we're adding unary or open parens.
+	cp a,OP_NO_OP
+	jp z,done_push_popping
 	cp a,OP_NEG
 	jp z,done_push_popping
 	cp a,OP_NOT
