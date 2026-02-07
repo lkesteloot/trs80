@@ -1910,17 +1910,17 @@ continue:
 ; 16-bit signed or unsigned multiply. HL = BC*DE
 bc_mul_de:
 #local
-	ld hl,0				; Clear HL.
-	ld a,16				; 16 iterations of the loop.
+	ld hl,0				; Clear result.
+	ld a,b				; AC = BC.
+	ld b,16				; 16 iterations of the loop.
 loop:
-	add hl,hl			; HL <<= 1, shift in 0, carry out.
-	rl e				; DE <<= 1, shift in carry.
-	rl d				; Shift out MSB of DE.
-	jr nc,skip			; If carry shifted out...
-	add hl,bc			; HL += BC.
+	add hl,hl			; HL <<= 1.
+	sla c				; AC <<= 1.
+	rla				; Shift out MSB of AC.
+	jr nc,skip			; If MSB was 1...
+	add hl,de			; HL += DE.
 skip:
-	dec a				; Next loop iteration.
-	jr nz,loop
+	djnz loop
 	ret
 #endlocal
 
