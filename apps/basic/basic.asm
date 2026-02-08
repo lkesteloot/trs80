@@ -567,8 +567,6 @@ troff:
 #endlocal
 
 ; Tokenize the string at HL in-place, nul-terminating the result.
-; TODO this routine is *much* slower than the TRS-80's. Compare it to theirs (CRUNCH).
-; Maybe: Skip spaces and digits. (But not symbols.)
 tokenize:
 #local
 	push hl
@@ -873,7 +871,7 @@ compile_goto:
 	inc hl
 	inc hl				; Skip line number.
 	inc hl
-	ld c,(hl)			; Read compile address.
+	ld c,(hl)			; Read compile address into BC.
 	inc hl
 	ld b,(hl)
 	pop hl				; Restore write pointer.
@@ -884,8 +882,12 @@ compile_goto:
 
 compile_if:
 	call compile_expression		; Conditional onto the stack.
-	ld a,T_THEN
-	call expect_and_skip
+	call skip_whitespace
+	ld a,(de)			; Skip optional THEN.
+	cp a,T_THEN
+	jp nz,not_then
+	inc de
+not_then:
 	call add_pop_de
 	m_add I_LD_A_D			; See if conditional is zero.
 	m_add I_OR_A_E
@@ -942,7 +944,7 @@ skip_whitespace:
 	cp a,' '
 	ret nz
 	inc de
-	jp skip_whitespace
+	jr skip_whitespace
 
 ; Parse the expression at DE into the binary buffer at HL. The compiled
 ; code leaves the result on the stack.
@@ -1362,8 +1364,8 @@ not_found:
 	jr done
 #endlocal
 	
-; Parse the decimal literal at DE and return it in BC, advancing DE.
-; TODO error if no digits are read. Or maybe not? Always called when we see a digit?
+; Parse the decimal literal at DE (which must be pointing at a digit) and
+; return it in BC, advancing DE.
 read_numeric_literal:
 #local
 	ld bc,0
