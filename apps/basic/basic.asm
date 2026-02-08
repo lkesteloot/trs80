@@ -1127,12 +1127,16 @@ not_an_op:
 	m_add I_INC_DE		        ; Result is 1 to N.
 	m_add I_POP_HL
 	m_add I_PUSH_DE			; Push result.
+	ld a,0
+	ld (expect_unary),a		; Expect binary operator after operand.
 	jp expr_loop
 no_rnd_expression:
 	call expect_and_skip		; Skip ')'.
 	m_add I_CALL			; Generate random number in DE.
 	m_add_word rnd
 	m_add I_PUSH_DE			; Push result.
+	ld a,0
+	ld (expect_unary),a		; Expect binary operator after operand.
 	jp expr_loop
 not_rnd:
 	cp a,'A'			; See if it's a variable.
@@ -2232,10 +2236,12 @@ bss_end:
 
 program:
 ; Random pixels on the screen.
-; line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, T_CLS, 0
-; line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '(127),', T_RND, '(47))', 0
-; line30: db lo(line_end), hi(line_end), lo(30), hi(30), 0, 0, T_GOTO, ' 20', 0
-; line_end: db 0, 0, 0, 0, 0, 0
+	db 1, 0, lo(10), hi(10), 0, 0, T_CLS, 0
+	; db 1, 0, lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '(128)', T_OP_SUB, '1,', T_RND, '(47))', 0
+	db 1, 0, lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '()', T_AND, '127,', T_RND, '(48)', T_OP_SUB, '1)', 0
+	; db 1, 0, lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '()', T_AND, '127,', T_RND, '()', T_AND, '31)', 0
+	db 1, 0, lo(30), hi(30), 0, 0, T_GOTO, ' 20', 0
+	db 0, 0, 0, 0, 0, 0
 
 ; Fill screen with characters.
 ; line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, 'I', T_OP_EQU, '15360', 0
