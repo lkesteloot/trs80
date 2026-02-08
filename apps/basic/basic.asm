@@ -242,6 +242,15 @@ OP_INVALID equ 0xFF			; For errors and sentinel.
 	m_add lo(\value)
 	m_add hi(\value)
 	endm
+; Macro to negate a 16-bit value. Pass the high and low registers.
+	macro m_neg_16 high, low
+	xor a,a
+	sub a,\low
+	ld \low,a
+	sbc a,a
+	sub a,\high
+	ld \high,a
+	endm
 
 	.org 0x0000
 	di
@@ -1148,8 +1157,7 @@ compile_op_div:
 	call add_pop_de			; Second operand.
 	m_add I_POP_BC			; First operand.
 	m_add I_CALL
-	m_add_word bc_div_de		; AC = BC / DE.
-	m_add I_LD_B_A
+	m_add_word bc_div_de_signed	; BC = BC / DE.
 	m_add I_PUSH_BC
 	ret
 compile_op_neg:
@@ -1895,8 +1903,8 @@ bc_div_de:
 	ld a,b				; Put dividend in AC.
 	ld b,16				; Number of iterations (16 bits to process).
 loop:
-	sll c				; Stream divident out to carry, and
-	rla				; ... stream in a 1 bit (might fix below).
+	sll c				; Carry << AC << 1 (might fix 1 below).
+	rla
 	adc hl,hl			; Stream dividend into HL.
 	sbc hl,de			; Subtract divisor, there's never a borrow.
 	jr nc,continue			; See if we went below zero.
@@ -1904,6 +1912,28 @@ loop:
 	dec c				; And remove the +1 we added at the top.
 continue:
 	djnz loop
+	ret
+#endlocal
+
+; Signed BC = BC / DE
+bc_div_de_signed:
+#local
+	ld a,b				; See if result should be negative.
+	xor a,d
+	push af				; Put M/P flag on stack.
+	xor a,d				; Just check BC now.
+	jp p,bc_positive
+	m_neg_16 b, c			; Negate BC.
+bc_positive:
+	bit 7,d				; Just check DE now.
+	jr z,de_positive
+	m_neg_16 d, e			; Negate DE.
+de_positive:
+	call bc_div_de			; Result in AC.
+	ld b,a				; Result in BC.
+	pop af				; See if we need to negate it.
+	ret p
+	m_neg_16 b, c			; Negate BC.
 	ret
 #endlocal
 
