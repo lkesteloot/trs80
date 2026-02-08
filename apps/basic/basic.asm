@@ -26,11 +26,12 @@ CLEAR_CHAR equ 32
 BS equ 8
 NL equ 10
 INPUT_BUFFER_SIZE equ 64		; Including nul.
-BINARY_SIZE equ 1024			; Compiled code.
+BINARY_SIZE equ 10240			; Compiled code.
 KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
 MAX_VARS equ 32
+MAX_OP_STACK_SIZE equ 16
 
 ; Z80 opcodes.
 I_LD_DE_IMM equ 0x11
@@ -214,7 +215,6 @@ T_MID_STR equ 0xFA
 ;
 ; See page 120 of the "TRS-80 Model III Operation and BASIC Language
 ; Reference Manual."
-MAX_OP_STACK_SIZE equ 16
 OP_OR equ 0x00
 OP_AND equ 0x11
 OP_NOT equ 0x22
@@ -2194,10 +2194,53 @@ program:
 ; line30: db lo(line_end), hi(line_end), lo(30), hi(30), 0, 0, T_GOTO, ' 20', 0
 
 ; Fill screen with characters.
-line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, 'I', T_OP_EQU, '15360', 0
-line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_POKE, ' I,191', 0
-line30: db lo(line40), hi(line40), lo(30), hi(30), 0, 0, 'I', T_OP_EQU, 'I', T_OP_ADD, '1', 0
-line40: db lo(line_end), hi(line_end), lo(40), hi(40), 0, 0, T_IF, ' I', T_OP_LT, '16384 ', T_THEN, ' ', T_GOTO, ' 20', 0
+; line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, 'I', T_OP_EQU, '15360', 0
+; line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_POKE, ' I,191', 0
+; line30: db lo(line40), hi(line40), lo(30), hi(30), 0, 0, 'I', T_OP_EQU, 'I', T_OP_ADD, '1', 0
+; line40: db lo(line_end), hi(line_end), lo(40), hi(40), 0, 0, T_IF, ' I', T_OP_LT, '16384 ', T_THEN, ' ', T_GOTO, ' 20', 0
+
+line5: db lo(line10), hi(line10), lo(5), hi(5), 0, 0, T_CLS, 0
+line10: db lo(line11), hi(line11), lo(10), hi(10), 0, 0, 'A ', T_OP_EQU, ' 64', 0
+line11: db lo(line12), hi(line12), lo(11), hi(11), 0, 0, 'B ', T_OP_EQU, ' 8', 0
+line12: db lo(line20), hi(line20), lo(12), hi(12), 0, 0, 'C ', T_OP_EQU, ' 8', 0
+line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, 'D ', T_OP_EQU, ' 4', T_OP_MUL, 'A', 0
+line30: db lo(line40), hi(line40), lo(30), hi(30), 0, 0, 'E ', T_OP_EQU, ' 128', 0
+line40: db lo(line50), hi(line50), lo(40), hi(40), 0, 0, 'F ', T_OP_EQU, ' 48', 0
+line50: db lo(line60), hi(line60), lo(50), hi(50), 0, 0, 'G ', T_OP_EQU, ' 15', 0
+line60: db lo(line70), hi(line70), lo(60), hi(60), 0, 0, 'H ', T_OP_EQU, ' ', T_OP_SUB, '2', T_OP_MUL, 'A', 0
+line70: db lo(line80), hi(line80), lo(70), hi(70), 0, 0, 'J ', T_OP_EQU, ' 1', T_OP_MUL, 'A', 0
+line80: db lo(line90), hi(line90), lo(80), hi(80), 0, 0, 'K ', T_OP_EQU, ' ', T_OP_SUB, '5', T_OP_MUL, 'A', T_OP_DIV, '4', 0
+line90: db lo(line98), hi(line98), lo(90), hi(90), 0, 0, 'L ', T_OP_EQU, ' 5', T_OP_MUL, 'A', T_OP_DIV, '4', 0
+line98: db lo(line99), hi(line99), lo(98), hi(98), 0, 0, 'P ', T_OP_EQU, ' J ', T_OP_SUB, ' H', 0
+line99: db lo(line100), hi(line100), lo(99), hi(99), 0, 0, 'Q ', T_OP_EQU, ' E ', T_OP_SUB, ' 1', 0
+line100: db lo(line108), hi(line108), lo(100), hi(100), 0, 0, 'M ', T_OP_EQU, ' P', T_OP_DIV, 'Q', 0
+line108: db lo(line109), hi(line109), lo(108), hi(108), 0, 0, 'P ', T_OP_EQU, ' L ', T_OP_SUB, ' K', 0
+line109: db lo(line110), hi(line110), lo(109), hi(109), 0, 0, 'Q ', T_OP_EQU, ' F ', T_OP_SUB, ' 1', 0
+line110: db lo(line120), hi(line120), lo(110), hi(110), 0, 0, 'N ', T_OP_EQU, ' P', T_OP_DIV, 'Q', 0
+line120: db lo(line130), hi(line130), lo(120), hi(120), 0, 0, 'I ', T_OP_EQU, ' K', 0
+line130: db lo(line140), hi(line140), lo(130), hi(130), 0, 0, 'Y ', T_OP_EQU, ' 0', 0
+line140: db lo(line150), hi(line150), lo(140), hi(140), 0, 0, '    R ', T_OP_EQU, ' H', 0
+line150: db lo(line160), hi(line160), lo(150), hi(150), 0, 0, '    X ', T_OP_EQU, ' 0', 0
+line160: db lo(line170), hi(line170), lo(160), hi(160), 0, 0, '        O ', T_OP_EQU, ' 0', 0
+line170: db lo(line180), hi(line180), lo(170), hi(170), 0, 0, '        P ', T_OP_EQU, ' 0', 0
+line180: db lo(line190), hi(line190), lo(180), hi(180), 0, 0, '        Q ', T_OP_EQU, ' 0', 0
+line190: db lo(line200), hi(line200), lo(190), hi(190), 0, 0, '        S ', T_OP_EQU, ' 0', 0
+line200: db lo(line220), hi(line220), lo(200), hi(200), 0, 0, '        T ', T_OP_EQU, ' 0', 0
+line220: db lo(line230), hi(line230), lo(220), hi(220), 0, 0, '            U ', T_OP_EQU, ' S ', T_OP_SUB, ' T ', T_OP_ADD, ' R', 0
+line230: db lo(line240), hi(line240), lo(230), hi(230), 0, 0, '            V ', T_OP_EQU, ' O', T_OP_MUL, '2', T_OP_DIV, 'B', T_OP_MUL, 'P', T_OP_DIV, 'C ', T_OP_ADD, ' I', 0
+line240: db lo(line250), hi(line250), lo(240), hi(240), 0, 0, '            O ', T_OP_EQU, ' U', 0
+line250: db lo(line260), hi(line260), lo(250), hi(250), 0, 0, '            P ', T_OP_EQU, ' V', 0
+line260: db lo(line270), hi(line270), lo(260), hi(260), 0, 0, '            S ', T_OP_EQU, ' O', T_OP_DIV, 'B', T_OP_MUL, 'O', T_OP_DIV, 'C', 0
+line270: db lo(line280), hi(line280), lo(270), hi(270), 0, 0, '            T ', T_OP_EQU, ' P', T_OP_DIV, 'B', T_OP_MUL, 'P', T_OP_DIV, 'C', 0
+line280: db lo(line290), hi(line290), lo(280), hi(280), 0, 0, '            Q ', T_OP_EQU, ' Q ', T_OP_ADD, ' 1', 0
+line290: db lo(line300), hi(line300), lo(290), hi(290), 0, 0, '        ', T_IF, ' Q ', T_OP_LT, ' G ', T_AND, ' S ', T_OP_ADD, ' T ', T_OP_LT, ' D ', T_THEN, ' ', T_GOTO, ' 220', 0
+line300: db lo(line310), hi(line310), lo(300), hi(300), 0, 0, '        ', T_IF, ' Q ', T_AND, ' 1 ', T_THEN, ' ', T_SET, '(X,Y)', 0
+line310: db lo(line320), hi(line320), lo(310), hi(310), 0, 0, '        R ', T_OP_EQU, ' R ', T_OP_ADD, ' M', 0
+line320: db lo(line321), hi(line321), lo(320), hi(320), 0, 0, '    X ', T_OP_EQU, ' X ', T_OP_ADD, ' 1', 0
+line321: db lo(line340), hi(line340), lo(321), hi(321), 0, 0, '    ', T_IF, ' X ', T_OP_LT, ' E ', T_THEN, ' ', T_GOTO, ' 160', 0
+line340: db lo(line350), hi(line350), lo(340), hi(340), 0, 0, '    I ', T_OP_EQU, ' I ', T_OP_ADD, ' N', 0
+line350: db lo(line351), hi(line351), lo(350), hi(350), 0, 0, 'Y ', T_OP_EQU, ' Y ', T_OP_ADD, ' 1', 0
+line351: db lo(line_end), hi(line_end), lo(351), hi(351), 0, 0, T_IF, ' Y ', T_OP_LT, ' F ', T_THEN, ' ', T_GOTO, ' 140', 0
 
 
 line_end: db 0, 0, 0, 0, 0, 0
