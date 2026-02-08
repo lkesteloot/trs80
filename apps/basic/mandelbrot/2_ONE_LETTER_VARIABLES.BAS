@@ -36,3 +36,4 @@
 340     I = I + N
 350 Y = Y + 1
 351 IF Y < F THEN GOTO 140
+360 GOTO 360

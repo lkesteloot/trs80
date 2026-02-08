@@ -8,7 +8,7 @@ def parse_line(line):
     line = line[i+1:]
     return line_number, line
 
-lines = [parse_line(line) for line in open("NO_PARENS.BAS")]
+lines = [parse_line(line) for line in open("4_DIV_LAST.BAS")]
 
 for i in range(len(lines)):
     line_number, line = lines[i]

@@ -26,13 +26,13 @@
 190         S = 0
 200         T = 0
 220             U = S - T + R
-230             V = O*2/B*P/C + I
+230             V = O*2*P/B/C + I
 240             O = U
 250             P = V
-260             S = O/B*O/C
-270             T = P/B*P/C
+260             S = O*O/B/C
+270             T = P*P/B/C
 280             Q = Q + 1
-290         IF Q < G AND S + T < D GOTO 220
+290         IF Q < G AND S + T < D THEN GOTO 220
 300         IF Q AND 1 THEN SET(X,Y)
 310         R = R + M
 320     X = X + 1
@@ -40,3 +40,4 @@
 340     I = I + N
 350 Y = Y + 1
 351 IF Y < F THEN GOTO 140
+360 GOTO 360

@@ -34,3 +34,4 @@
 320     NEXT X
 340     I = I + ID
 350 NEXT Y
+360 GOTO 360

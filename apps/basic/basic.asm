@@ -2234,11 +2234,11 @@ line180: db lo(line190), hi(line190), lo(180), hi(180), 0, 0, '        Q ', T_OP
 line190: db lo(line200), hi(line200), lo(190), hi(190), 0, 0, '        S ', T_OP_EQU, ' 0', 0
 line200: db lo(line220), hi(line220), lo(200), hi(200), 0, 0, '        T ', T_OP_EQU, ' 0', 0
 line220: db lo(line230), hi(line230), lo(220), hi(220), 0, 0, '            U ', T_OP_EQU, ' S ', T_OP_SUB, ' T ', T_OP_ADD, ' R', 0
-line230: db lo(line240), hi(line240), lo(230), hi(230), 0, 0, '            V ', T_OP_EQU, ' O', T_OP_MUL, '2', T_OP_DIV, 'B', T_OP_MUL, 'P', T_OP_DIV, 'C ', T_OP_ADD, ' I', 0
+line230: db lo(line240), hi(line240), lo(230), hi(230), 0, 0, '            V ', T_OP_EQU, ' O', T_OP_MUL, '2', T_OP_MUL, 'P', T_OP_DIV, 'B', T_OP_DIV, 'C ', T_OP_ADD, ' I', 0
 line240: db lo(line250), hi(line250), lo(240), hi(240), 0, 0, '            O ', T_OP_EQU, ' U', 0
 line250: db lo(line260), hi(line260), lo(250), hi(250), 0, 0, '            P ', T_OP_EQU, ' V', 0
-line260: db lo(line270), hi(line270), lo(260), hi(260), 0, 0, '            S ', T_OP_EQU, ' O', T_OP_DIV, 'B', T_OP_MUL, 'O', T_OP_DIV, 'C', 0
-line270: db lo(line280), hi(line280), lo(270), hi(270), 0, 0, '            T ', T_OP_EQU, ' P', T_OP_DIV, 'B', T_OP_MUL, 'P', T_OP_DIV, 'C', 0
+line260: db lo(line270), hi(line270), lo(260), hi(260), 0, 0, '            S ', T_OP_EQU, ' O', T_OP_MUL, 'O', T_OP_DIV, 'B', T_OP_DIV, 'C', 0
+line270: db lo(line280), hi(line280), lo(270), hi(270), 0, 0, '            T ', T_OP_EQU, ' P', T_OP_MUL, 'P', T_OP_DIV, 'B', T_OP_DIV, 'C', 0
 line280: db lo(line290), hi(line290), lo(280), hi(280), 0, 0, '            Q ', T_OP_EQU, ' Q ', T_OP_ADD, ' 1', 0
 line290: db lo(line300), hi(line300), lo(290), hi(290), 0, 0, '        ', T_IF, ' Q ', T_OP_LT, ' G ', T_AND, ' S ', T_OP_ADD, ' T ', T_OP_LT, ' D ', T_THEN, ' ', T_GOTO, ' 220', 0
 line300: db lo(line310), hi(line310), lo(300), hi(300), 0, 0, '        ', T_IF, ' Q ', T_AND, ' 1 ', T_THEN, ' ', T_SET, '(X,Y)', 0
