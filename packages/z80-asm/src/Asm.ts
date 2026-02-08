@@ -743,18 +743,11 @@ export class Asm {
                     let nextAddress: number;
                     if (i + 1 < this.symbols.length) {
                         nextAddress = this.symbols[i + 1].value;
-                        if (symbol.name === "tokens") {
-                            console.log("next symbol", this.symbols[i + 1]);
-                        }
                     } else {
                         // Last symbol, assume it goes to the end of the file.
                         nextAddress = Math.max(...this.assembledLines.map(line => line.endAddress()));
-                        console.log("last symbol", nextAddress);
                     }
                     symbol.size = nextAddress - symbol.value;
-                    if (symbol.name === "tokens") {
-                        console.log(nextAddress, symbol);
-                    }
                     switch (symbol.size) {
                         case 0:
                             symbol.type = SymbolType.UNKNOWN;
@@ -1722,14 +1715,15 @@ class LineParser {
         }
 
         // See if it's a Z80 mnemonic.
-        let trie = getAsmInstructionTrie().tokens.get(mnemonic);
-        if (trie === undefined) {
+        const trieOrUndefined = getAsmInstructionTrie().tokens.get(mnemonic);
+        if (trieOrUndefined === undefined) {
             this.assembledLine.error = "unknown mnemonic \"" + mnemonic + "\"";
             if (this.tokenizer.matches(":")) {
                 this.assembledLine.error += " (if it's a label, unindent it)";
             }
             return;
         }
+        let trie = trieOrUndefined;
 
         // Map from template operand like "nnnn" to the value of the expression we parsed at that location.
         const args = new Map<OpcodeTemplateOperand, number>();
@@ -1829,10 +1823,11 @@ class LineParser {
                                         this.assembledLine.error += "; use jp";
                                     }
                                 }
-                                this.assembledLine.binary = [];
-                                return;
+                                // Continue or the assembled code is mangled.
+                                value = 0;
+                            } else {
+                                value = offset;
                             }
-                            value = offset;
                         }
                         args.set(trie.expression.expr, value);
                         trie = trie.expression.trieNode;
