@@ -63,6 +63,8 @@ I_LD_A_E equ 0x7B
 I_SUB_A_D equ 0x92
 I_SUB_A_E equ 0x93
 I_SBC_A_A equ 0x9F
+I_AND_A_H equ 0xA4
+I_AND_A_L equ 0xA5
 I_XOR_A_A equ 0xAF
 I_OR_A_E equ 0xB3
 I_POP_BC equ 0xC1
@@ -965,6 +967,8 @@ not_number:
 	jr z,push_op_div
 	cp a,T_OP_LT
 	jr z,push_op_lt
+	cp a,T_AND
+	jr z,push_op_and
 	jp not_an_op
 push_op_add_or_pos:
 	ld a,(expect_unary)
@@ -988,6 +992,9 @@ push_op_div:
 	jr push_op_stack
 push_op_lt:
 	ld a,OP_LT
+	jr push_op_stack
+push_op_and:
+	ld a,OP_AND
 	jr push_op_stack
 push_op_stack:
 	; We have our operator in A. Check that it's valid here. If we're expecting
@@ -1131,6 +1138,8 @@ pop_op_stack:
 	jr z,compile_op_neg
 	cp a,OP_LT
 	jr z,compile_op_lt
+	cp a,OP_AND
+	jp z,compile_op_and
 	jp internal_error
 compile_op_add:
 	call add_pop_de			; Second operand.
@@ -1180,6 +1189,17 @@ compile_op_lt:
 	m_add I_RLA			; If (HL < DE) A = 0x00 else A = 0x01.
 	m_add I_DEC_A			; If (HL < DE) A = 0xFF else A = 0x00.
 	m_add I_LD_E_A			; If (HL < DE) DE = 0xFFFF else DE = 0x0000.
+	m_add I_LD_D_A
+	m_add I_PUSH_DE
+	ret
+compile_op_and:
+	call add_pop_de			; Second operand.
+	call add_pop_hl			; First operand.
+	m_add I_LD_A_E			; Bit-wise AND.
+	m_add I_AND_A_L
+	m_add I_LD_E_A
+	m_add I_LD_A_D
+	m_add I_AND_A_H
 	m_add I_LD_D_A
 	m_add I_PUSH_DE
 	ret
