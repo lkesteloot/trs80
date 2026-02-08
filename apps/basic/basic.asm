@@ -575,22 +575,29 @@ tokenize:
 	push bc
 	ld bc,hl			; BC = output pointer.
 loop:
-	ld a,(hl)			; See if we're done with string.
-	or a,a
+	ld a,(hl)
+	or a,a				; See if we're done with string.
 	jp z,done
-
+	cp a,' '			; See if it's a space.
+	jr z,not_token_or_alpha		; Just add it.
+	cp a,'0'
+	jr c,not_digit			; Less than '0', must check for token.
+	cp a,'9'+1
+	jr c,not_token_or_alpha		; It's a digit, just add it.
+not_digit:
 	; See if HL starts with any token in the token list, case-insensitively.
-	call find_token
+	call find_token			; Token in A, or 0.
 	or a,a
 	jp z,not_token
-	ld (bc),a
-	inc bc
+	ld (bc),a			; Write token in-place.
+	inc bc				; HL has been advanced by find_token.
 	jp loop
 
 not_token:
 	; TODO check for comment.
 	ld a,(hl)
 	call to_upper
+not_token_or_alpha:
 	ld (bc),a
 	inc hl
 	inc bc
