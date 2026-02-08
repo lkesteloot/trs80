@@ -10,11 +10,7 @@ def parse_line(line):
 
 lines = [parse_line(line) for line in open("4_DIV_LAST.BAS")]
 
-for i in range(len(lines)):
-    line_number, line = lines[i]
-    next_line_number = lines[i + 1][0] if i < len(lines) - 1 else None
-    this_label = "line%d" % line_number
-    next_label = ("line%d" % next_line_number) if next_line_number is not None else "line_end"
+for line_number, line in lines:
     asm = "'" + line + "'"
     asm = asm.replace(":DEFINT A-Z", "")
     asm = asm.replace("CLS", "', T_CLS, '")
@@ -32,6 +28,9 @@ for i in range(len(lines)):
     asm = asm.replace("'', ", "")
     asm = asm.replace(", ''", "")
 
-    print("%s: db lo(%s), hi(%s), lo(%d), hi(%d), 0, 0, %s, 0" %
-          (this_label, next_label, next_label, line_number, line_number, asm))
+    # Use any non-zero "next" pointer to mean that this is a valid line.
+    print("\tdb 1, 0, lo(%d), hi(%d), 0, 0, %s, 0" % (line_number, line_number, asm))
+
+print("\tdb 0, 0, 0, 0, 0, 0")
+
 

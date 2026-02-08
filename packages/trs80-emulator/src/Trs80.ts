@@ -1,4 +1,4 @@
-import {hi, lo, toHex, toHexByte, toHexWord} from "z80-base";
+import {hi, lo, toHex, toHexByte, toHexWord, word} from "z80-base";
 import {Hal, Z80, Z80State} from "z80-emulator";
 import {CassettePlayer} from "./CassettePlayer.js";
 import {Keyboard} from "./Keyboard.js";
@@ -1432,7 +1432,7 @@ export class Trs80 implements Hal, Machine, Configurable {
      * Get the address of the first line of the Basic program, or a string explaining the error.
      */
     private getBasicAddress(): number | string {
-        const addr = this.readMemory(0x40A4) + (this.readMemory(0x40A5) << 8);
+        const addr = word(this.readMemory(0x40A5), this.readMemory(0x40A4));
         if (addr < 0x4200) {
             return `Basic load address is uninitialized (0x${toHexWord(addr)})`;
         }
@@ -1450,7 +1450,7 @@ export class Trs80 implements Hal, Machine, Configurable {
             console.error(addrOrError);
             return;
         }
-        let addr = addrOrError as number;
+        let addr = addrOrError;
 
         // Terminate current line (if any) and set up the new one.
         let lineStart: number | undefined;
