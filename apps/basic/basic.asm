@@ -143,7 +143,7 @@ T_CLEAR equ 0xB8
 T_CLOAD equ 0xB9
 T_CSAVE equ 0xBA
 T_NEW equ 0xBB
-T_LAST_STMT equ T_NEW 			; Last statement.
+T_LAST_STMT equ T_NEW 			; Below are connectors, operators, functions
 T_TAB_PAREN equ 0xBC
 T_TO equ 0xBD
 T_FN equ 0xBE
@@ -214,7 +214,7 @@ T_MID_STR equ 0xFA
 ; of these are left-associative.
 ;
 ; See page 120 of the "TRS-80 Model III Operation and BASIC Language
-; Reference Manual."
+; Reference Manual".
 OP_OR equ 0x00
 OP_AND equ 0x11
 OP_NOT equ 0x22
@@ -987,8 +987,9 @@ compile_expression:
 	ld iy,op_stack			; IY is pre-incremented.
 	ld (iy),OP_INVALID		; Sentinel value.
 	ld a,1
-	ld (expect_unary),a		; Expect unary at start of expression.
 expr_loop:
+	; At the top of this loop, A must contain whether we expect a unary operator (0 or 1).
+	ld (expect_unary),a		; Expect unary at start of expression.
 	call skip_whitespace
 	ld a,(de)
 	cp a,'0'			; See if it's a number.
@@ -996,8 +997,7 @@ expr_loop:
 	cp a,'9'+1
 	jr nc,not_number
 	call compile_numeric_literal
-	ld a,0
-	ld (expect_unary),a		; Expect binary operator after operand.
+	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
 not_number:
 	cp a,T_OP_ADD
@@ -1012,94 +1012,84 @@ not_number:
 	jr z,push_op_lt
 	cp a,T_AND
 	jr z,push_op_and
+	cp a,'('
+	jr z,push_open_parens
+	cp a,')'
+	jr z,push_close_parens
 	jp not_an_op
 push_op_add_or_pos:
 	ld a,(expect_unary)
 	or a,a
 	ld a,OP_NO_OP
-	jr nz,push_op_stack
+	jr nz,process_op
 	ld a,OP_ADD
-	jr push_op_stack
+	jr process_op
 push_op_sub_or_neg:
 	ld a,(expect_unary)
 	or a,a
 	ld a,OP_NEG
-	jr nz,push_op_stack
+	jr nz,process_op
 	ld a,OP_SUB
-	jr push_op_stack
+	jr process_op
 push_op_mul:
 	ld a,OP_MUL
-	jr push_op_stack
+	jr process_op
 push_op_div:
 	ld a,OP_DIV
-	jr push_op_stack
+	jr process_op
 push_op_lt:
 	ld a,OP_LT
-	jr push_op_stack
+	jr process_op
 push_op_and:
 	ld a,OP_AND
-	jr push_op_stack
-push_op_stack:
+	jr process_op
+push_open_parens:
+	ld a,OP_OPEN_PARENS
+	jr process_op
+push_close_parens:
+#local
+pop_loop:				; Pop ops until matching open parenthesis.
+	ld a,(iy)			; Load operator at top of stack.
+	cp a,OP_INVALID			; See if there's no matching open parens.
+	ret z				; Assume end of function call, end expression.
+	push af				; Save operator.
+	call pop_operator_stack		; Compile op at top of stack.
+	pop af				; Restore operator.
+	cp a,OP_OPEN_PARENS		; See if it was the matching parenthesis.
+	jr nz,pop_loop			; If not, keep going.
+	ld a,OP_CLOSE_PARENS
+	jr process_op
+#endlocal
+process_op:
 	; We have our operator in A. Check that it's valid here. If we're expecting
 	; unary, then the operator must be unary, so reject expressions like "*5".
 	ld b,a				; Save op.
 	ld a,(expect_unary)		; See if we're expecting unary.
 	or a,a
 	ld a,b				; Restore op.
-	jp z,unary_check_passed
+	jp z,unary_check_passed		; Not expecting unary.
 	cp a,OP_NO_OP
-	jp z,unary_check_passed
+	jp z,unary_check_passed		; Probably +5, that's unary.
 	cp a,OP_NEG
-	jp z,unary_check_passed
+	jp z,unary_check_passed		; -5, that's unary.
 	cp a,OP_NOT
-	jp z,unary_check_passed
+	jp z,unary_check_passed		; NOT, that's unary.
 	cp a,OP_OPEN_PARENS
-	jp nz,compile_error
+	jp nz,compile_error		; Got binary operator when expected unary.
 unary_check_passed:
-	; Before we can push an operator, we may have to pop some.
-	push af				; Save op we're pushing.
-	; Don't pop if we're adding unary or open parens.
-	cp a,OP_NO_OP
-	jp z,done_push_popping
-	cp a,OP_NEG
-	jp z,done_push_popping
-	cp a,OP_NOT
-	jp z,done_push_popping
-	cp a,OP_OPEN_PARENS
-	jr z,done_push_popping		; Don't pop if we're pushing open parenthesis.
-	and a,0x0F			; Grab precedence of op we're pushing.
-	ld b,a				; Save precedence in B.
-push_pop_loop:
-	ld a,(iy)			; Load operator at top of stack.
-	cp a,OP_INVALID
-	jr z,done_push_popping		; Nothing on stack to pop.
-	cp a,OP_OPEN_PARENS
-	jr z,done_push_popping		; Don't pop open parens.
-	ld c,a				; Save operator at top of stack.
-	and a,0x0F			; Get precedence of top of stack.
-	cp a,b				; See if it's lower precedence.
-	jr c,done_push_popping		; Top of stack is lower, don't pop.
-	ld a,c				; Restore operator at top of stack.
-	call pop_op_stack		; Compile op at top of stack.
-	jr push_pop_loop
-done_push_popping:
-	pop af				; Restore operator we're pushing.
+	; See if we should push this particular operator.
 	cp a,OP_CLOSE_PARENS		; These are not on the op stack.
 	jr z,skip_pushing_op
 	cp a,OP_NO_OP
 	jr z,skip_pushing_op
-	; TODO check op stack overflow, maybe use sentinel.
-	inc iy				; Pre-increment.
-	ld (iy),a			; Push operator.
+	call push_operator_stack	; Push this operator on the stack.
 skip_pushing_op:
-	; Update "expect_unary".
-	cp a,OP_CLOSE_PARENS		; Expect unary operator after operators
-	ld a,1				; ... or open parens.
+	inc de				; Advance source pointer.
+	cp a,OP_CLOSE_PARENS		; Update "expect_unary".
+	ld a,1				; Expect unary operator after operators or close parens.
 	jp nz,not_close_parens
 	ld a,0				; Expect binary operator after close parens.
 not_close_parens:
-	ld (expect_unary),a
-	inc de				; Advance source pointer.
 	jp expr_loop
 not_an_op:
 	cp a,T_RND
@@ -1127,16 +1117,14 @@ not_an_op:
 	m_add I_INC_DE		        ; Result is 1 to N.
 	m_add I_POP_HL
 	m_add I_PUSH_DE			; Push result.
-	ld a,0
-	ld (expect_unary),a		; Expect binary operator after operand.
+	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
 no_rnd_expression:
 	call expect_and_skip		; Skip ')'.
 	m_add I_CALL			; Generate random number in DE.
 	m_add_word rnd
 	m_add I_PUSH_DE			; Push result.
-	ld a,0
-	ld (expect_unary),a		; Expect binary operator after operand.
+	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
 not_rnd:
 	cp a,'A'			; See if it's a variable.
@@ -1156,8 +1144,7 @@ not_rnd:
 	m_add I_LD_D_HL
 	m_add I_POP_HL
 	m_add I_PUSH_DE			; Push result.
-	ld a,0
-	ld (expect_unary),a		; Expect binary operator after operand.
+	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
 
 end_of_expression:
@@ -1165,12 +1152,58 @@ pop_loop:
 	ld a,(iy)			; Get the operator.
 	cp a,OP_INVALID			; Sentinel value.
 	ret z
-	call pop_op_stack
+	cp a,OP_OPEN_PARENS
+	jp z,compile_error		; Extra open parenthesis.
+	call pop_operator_stack
 	jr pop_loop
+#endlocal
 
-; Pop one operator off the op stack and compile it, then return. The operator
+; Push the operator in A onto the operator stack. Follow the Shunting-yard
+; algorithm so that higher-precedence operators are performed
+; first. Leaves the operator in A.
+;
+; https://en.wikipedia.org/wiki/Shunting-yard_algorithm
+; http://wcipeg.com/wiki/Shunting_yard_algorithm
+push_operator_stack:
+#local
+	; Before we can push an operator, we may have to pop some.
+	push af				; Save op we're pushing.
+	; Don't pop if we're adding unary or open parens.
+	cp a,OP_NO_OP
+	jp z,done_popping
+	cp a,OP_NEG
+	jp z,done_popping
+	cp a,OP_NOT
+	jp z,done_popping
+	cp a,OP_OPEN_PARENS
+	jr z,done_popping		; Don't pop if we're pushing open parenthesis.
+	and a,0x0F			; Grab precedence of op we're pushing.
+	ld b,a				; Save precedence in B.
+pop_loop:
+	ld a,(iy)			; Load operator at top of stack.
+	cp a,OP_INVALID
+	jr z,done_popping		; Nothing on stack to pop.
+	cp a,OP_OPEN_PARENS
+	jr z,done_popping		; Don't pop open parens.
+	ld c,a				; Save operator at top of stack.
+	and a,0x0F			; Get precedence of top of stack.
+	cp a,b				; See if it's lower precedence.
+	jr c,done_popping		; Top of stack is lower, don't pop.
+	ld a,c				; Restore operator at top of stack.
+	call pop_operator_stack		; Compile op at top of stack.
+	jr pop_loop
+done_popping:
+	pop af				; Restore operator we're pushing.
+	; TODO check op stack overflow, maybe use sentinel.
+	inc iy				; Pre-increment.
+	ld (iy),a			; Push operator.
+	ret
+#endlocal
+
+; Pop one operator off the op stack and compile it. The operator
 ; must already be in A.
-pop_op_stack:
+pop_operator_stack:
+#local
 	; TODO perhaps move the calls to add_pop_de here.
 	dec iy				; Pointer is post-decremented.
 	cp a,OP_ADD
@@ -1187,6 +1220,8 @@ pop_op_stack:
 	jr z,compile_op_lt
 	cp a,OP_AND
 	jp z,compile_op_and
+	cp a,OP_OPEN_PARENS
+	jp z,compile_open_parens
 	jp internal_error
 compile_op_add:
 	call add_pop_de			; Second operand.
@@ -1250,6 +1285,8 @@ compile_op_and:
 	m_add I_LD_D_A
 	m_add I_PUSH_DE
 	ret
+compile_open_parens:
+	ret				; No-op.
 #endlocal
 
 ; Parse the numeric literal at DE into the binary buffer at HL.
