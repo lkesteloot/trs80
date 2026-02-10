@@ -380,6 +380,7 @@ print_binary_loop:
 	call write_char
 	; Now disassemble.
 	ld hl,binary
+	ld b,SCREEN_HEIGHT-1		; Show this many lines at a time.
 disasm_loop:
 	ld a,h				; If HL = DE, we're done.
 	cp a,d
@@ -390,12 +391,21 @@ disasm_loop:
 do_disasm:
 	push de				; Save end of buffer.
 	ld de,disasm_buffer		; Where to disassemble into.
-	call z80dis
+	push bc				; Save line counter.
+	call z80dis			; Disassemble one instructions.
+	pop bc
 	push hl				; Save binary pointer.
+	push bc				; Line counter.
 	ld hl,disasm_buffer		; Write assembly.
 	call write_text
 	ld a,NL
 	call write_char
+	pop bc				; Check if we've written a full screen.
+	dec b
+	jp nz,not_pausing
+	call pause
+	ld b,SCREEN_HEIGHT-1		; Show this many lines at a time.
+not_pausing:
 	pop hl				; Restore binary pointer.
 	pop de				; Restore end of buffer.
 	jp disasm_loop
@@ -1655,6 +1665,18 @@ scroll_up:
 	ret
 #endlocal
 
+; Pause until a key is pressed.
+pause:
+#local
+	call enable_cursor
+loop:
+	call poll_keyboard
+	or a,a
+	jr z,loop
+	call disable_cursor
+	ret
+#endlocal
+
 ; Read a line of text from the keyboard and put
 ; it in the B-length buffer pointed to by HL.
 ; The line will be nul-terminated. At most B-1
@@ -1683,14 +1705,16 @@ loop:
 	jp nz,regular_char
 
 	; Backspace.
-	ld a,c
+	ld a,c				; Character count.
 	or a
-	jp z,loop ; Empty string, nothing to backspace over.
+	jp z,loop 			; Empty string, nothing to backspace over.
 
-	dec hl
+	dec hl				; Back up and erase character.
 	dec c
 	ld de,(cursor)
 	dec de
+	ld a,' '
+	ld (de),a
 	ld (cursor),de
 	jp loop
 
