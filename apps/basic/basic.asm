@@ -991,15 +991,21 @@ skip_whitespace:
 	jr skip_whitespace
 
 ; Parse the expression at DE into the binary buffer at HL. The compiled
-; code leaves the result on the stack.
+; code leaves the result on the runtime stack.
 compile_expression:
 #local
-	ld iy,op_stack			; IY is pre-incremented.
+	; This function is called recursively, so we must save global state.
+	ld a,(expect_unary)		; Save expect_unary.
+	push af
+	push iy				; Save op stack pointer.
+	ld iy,-MAX_OP_STACK_SIZE	; Space for op stack.
+	add iy,sp
+	ld sp,iy
 	ld (iy),OP_INVALID		; Sentinel value.
-	ld a,1
+	ld a,1				; Expect unary initially.
 expr_loop:
 	; At the top of this loop, A must contain whether we expect a unary operator (0 or 1).
-	ld (expect_unary),a		; Expect unary at start of expression.
+	ld (expect_unary),a		; Whether to expect unary.
 	call skip_whitespace
 	ld a,(de)
 	cp a,'0'			; See if it's a number.
@@ -1061,7 +1067,7 @@ push_close_parens:
 pop_loop:				; Pop ops until matching open parenthesis.
 	ld a,(iy)			; Load operator at top of stack.
 	cp a,OP_INVALID			; See if there's no matching open parens.
-	ret z				; Assume end of function call, end expression.
+	jp z,end_compile_expression	; Assume end of function call, end expression.
 	push af				; Save operator.
 	call pop_operator_stack		; Compile op at top of stack.
 	pop af				; Restore operator.
@@ -1119,13 +1125,13 @@ not_an_op:
 	m_add I_LD_B_D		        ; Random number in BC.
 	m_add I_LD_C_E
 	m_add I_POP_DE		        ; Restore range.
-	m_add I_PUSH_HL
+	m_add I_PUSH_HL			; Save HL.
 	m_add I_CALL			; Compute rnd (BC) % range (DE) into HL.
 	m_add_word bc_div_de
 	m_add I_LD_D_H		        ; Result into DE.
 	m_add I_LD_E_L
 	m_add I_INC_DE		        ; Result is 1 to N.
-	m_add I_POP_HL
+	m_add I_POP_HL			; Restore HL.
 	m_add I_PUSH_DE			; Push result.
 	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
@@ -1161,11 +1167,20 @@ end_of_expression:
 pop_loop:
 	ld a,(iy)			; Get the operator.
 	cp a,OP_INVALID			; Sentinel value.
-	ret z
+	jr z,end_compile_expression
 	cp a,OP_OPEN_PARENS
 	jp z,compile_error		; Extra open parenthesis.
 	call pop_operator_stack
 	jr pop_loop
+end_compile_expression:
+	; Restore global state from recursive call.
+	ld iy,MAX_OP_STACK_SIZE		; Space for op stack.
+	add iy,sp
+	ld sp,iy
+	pop iy				; Restore op stack pointer.
+	pop af
+	ld (expect_unary),a		; Restore expect_unary.
+	ret
 #endlocal
 
 ; Push the operator in A onto the operator stack. Follow the Shunting-yard
@@ -2269,10 +2284,6 @@ ready_prompt_sp:
 ; Seed for the random number generator. Must not be zero.
 rnd_seed:
 	ds 2
-
-; Operator stack.
-op_stack:
-	ds MAX_OP_STACK_SIZE
 
 ; Whether to expect a unary operator next (0 or 1).
 expect_unary:
