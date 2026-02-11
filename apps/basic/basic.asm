@@ -327,12 +327,17 @@ soft_boot:
 	call write_text
 
 ready_prompt_loop:
+	call clear_current_line
 	ld hl,ready_prompt
 	call write_text
 
 prompt_loop:
+	call clear_current_line
 	ld hl,line_prompt
 	call write_text
+
+	xor a,a
+	ld (running),a			; Not running.
 
 	ld (ready_prompt_sp),sp		; Save stack for unwinding.
 
@@ -357,6 +362,8 @@ prompt_loop:
 	ld a,(debug_output)
 	or a,a
 	jp nz,print_binary
+	ld a,1
+	ld (running),a			; Running.
 	call binary
 ; Jump here from END token or from any error condition.
 end:
@@ -436,6 +443,10 @@ internal_error:
 	ld hl,internal_error_msg
 	call write_text
 	jp end
+break_pressed:
+	ld hl,break_msg
+	call write_text
+	jp end
 
 ; Clear the screen and reset the cursor to the top-left corner.
 cls:
@@ -480,6 +491,7 @@ loop:
 	inc hl
 	push hl
 	ld hl,bc
+	call clear_current_line
 	call write_unsigned_decimal_word; Write the line number.
 	pop hl
 	ld a,' '
@@ -1504,13 +1516,36 @@ loop:
 	jp loop
 #endlocal
 
+; Clear the line that the cursor is on with spaces. Does not move the cursor.
+clear_current_line:
+#local
+	push de
+	push hl
+	push bc
+
+	ld de,(cursor)			; Memory location of cursor.
+	ld a,e				; Find start of line.
+	and a,~(SCREEN_WIDTH-1)
+	ld e,a
+	ld hl,de			; Source of ldir.
+	inc de				; Destination of ldir.
+	ld bc,SCREEN_WIDTH-1		; Number of bytes to copy.
+	ld (hl),' '			; Fill byte.
+	ldir
+
+	pop bc
+	pop hl
+	pop de
+	ret
+#endlocal
+
 ; Write the nul-terminated string at HL
 ; to the cursor position. Leaves HL
 ; one past the nul.
 write_text:
 #local
 	push de
-	ld de,(cursor) ; where we're writing to
+	ld de,(cursor)			; Where we're writing to.
 
 loop:
 	ld a,(hl)
@@ -1939,10 +1974,14 @@ handle_maskable_interrupt:
 #local
 	push af
 	call blink_cursor
-	in a,(0xEC)				; Reset timer latch.
-	; ld a,(KEYBOARD_BEGIN+0x40)		; Check BREAK key.
-	; and a,0x04	; xxx
-	; jp nz,compile_error
+	in a,(0xEC)			; Reset timer latch.
+	ld a,(running)			; See if we're running a binary.
+	or a,a
+	jr z,skip_break_check
+	call poll_keyboard		; Check if BREAK is pressed.
+	cp a,BREAK
+	jp z,break_pressed		; Stop program.
+skip_break_check:
 	pop af
 	ret
 #endlocal
@@ -2135,6 +2174,8 @@ runtime_error_msg:
 	db "Runtime error", NL, 0
 internal_error_msg: ; TODO remove if we need to save space.
 	db "Internal compiler error", NL, 0
+break_msg:
+	db "Break", NL, 0
 keyboard_matrix_unshifted:
 	db "@abcdefghijklmnopqrstuvwxyz     0123456789:;,-./", NL, 0, BREAK, 0, 0, 8, 9, 32
 keyboard_matrix_shifted:
@@ -2321,6 +2362,10 @@ eol_ref:
 ; byte of the name is zero, then this and all following entries are unused.
 variables:
 	ds MAX_VARS*4
+
+; Whether running a binary right now (0 or 1).
+running:
+	ds 1
 
 ; Where the program is compiled to.
 binary:
