@@ -518,8 +518,8 @@ export class FloppyDiskController {
                 break;
 
             default:
-                // Might be okay, not sure.
-                throw new Error("Unhandled case in readData()");
+                // Not sure what do here. Just return data unmodified.
+                break;
         }
 
         return this.data;
