@@ -13,7 +13,7 @@
 	;
 	; In the compiled program, expression results are put on the stack.
 	; All registers are scratch and must be saved if calling a function
-	; that trashes them. All run-time numbers are signed words.
+	; that trashes them. All run-time variables are signed words.
 	;
 
 SCREEN_WIDTH equ 64
@@ -348,16 +348,19 @@ prompt_loop:
 	and a,0x03			; Either shift.
 	ld (debug_output),a		; Save whether to print debugging output.	
 	call tokenize
-	; call detokenize
-	; ld a,NL
-	; call write_char
-	ld de,hl			; Address of tokenized program.
+	if 0
+	call detokenize			; For debugging the tokenize/detokenize routine.
+	ld a,NL
+	call write_char
+	endif
+	ld de,hl			; Address of tokenized line.
 	call skip_whitespace
-	ld a,(de)			; See if we got an empty line, or BREAK.
-	or a,a
+	or a,a				; See if we got an empty line, or BREAK.
 	jp z,prompt_loop
+	call is_digit			; See if it's a line number.
+	jp nc,has_line_number		; Process a line number, not immediate mode.
 	ld hl,binary
-	call compile_line
+	call compile_line		; Compile the command line.
         m_add I_RET
 	ld a,(debug_output)
 	or a,a
@@ -369,6 +372,16 @@ prompt_loop:
 end:
 	ld sp,(ready_prompt_sp)
 	jr ready_prompt_loop
+
+; The entered line has a line number. Add it to our program.
+has_line_number:
+	call read_numeric_literal	; BC has line number.
+	call delete_line		; Delete the line with that line number.
+	call skip_whitespace		; Whitespace after line number.
+	or a,a
+	jr z,end			; End of line, nothing more to do.
+	; TODO Insert code into the program.
+	jr end
 
 ; Show a runtime error message and return to the Ready prompt.
 runtime_error:
@@ -506,6 +519,35 @@ done:
 	ret
 #endlocal
 
+; Delete the line with line number BC.
+delete_line:
+#local
+	push hl
+	push bc
+	push de
+	call find_line_number		; Pointer into HL.
+	jr nc,done			; Line not found, do nothing (no error message).
+	ld e,(hl)			; Grab address of next line.
+	inc hl
+	ld d,(hl)
+	dec hl
+	ex de,hl			; Copy from next line to current line.
+	ld bc,(program_end)		; BC = program_end - HL
+	ld a,c
+	sub a,l
+	ld c,a
+	ld a,b
+	sbc a,h
+	ld b,a
+	ldir				; Delete the line.
+	call fix_program_pointers	; Fix up all internal pointers.
+done:
+	pop de
+	pop bc
+	pop hl
+	ret
+#endlocal
+
 ; Go through the program at "program" and set the next-line pointers at the
 ; beginning of each line. They must all already be non-null, except for
 ; the final line, which must be null (and will remain so).
@@ -513,18 +555,18 @@ fix_program_pointers:
 #local
 	ld hl,program
 loop:
-	ld a,(hl)			; See if it's the last (null) line.
-	inc hl
-	or a,(hl)
-	ret z				; We're done.
-	dec hl				; HL points to a non-null valid line.
-	ld de,hl			; DE is next line.
+	ld de,hl			; DE will walk to the next line.
 	inc de				; Skip pointer.
 	inc de
 	inc de				; Skip line number.
 	inc de
 	inc de				; Skip compile pointer.
 	inc de
+	ld a,(hl)			; See if it's the last (null) line.
+	inc hl
+	or a,(hl)
+	jr z,done			; We're done.
+	dec hl				; HL points to a non-null valid line.
 find_nul:				; Find the nul end-of-line byte.
 	ld a,(de)
 	or a,a
@@ -535,6 +577,9 @@ find_nul:				; Find the nul end-of-line byte.
 	ld (hl),d
 	ld hl,de
 	jr loop
+done:
+	ld (program_end),de		; Store end-of-program pointer.
+	ret
 #endlocal
 
 ; Find the line with the line number BC, returning it in HL and setting carry.
@@ -564,9 +609,9 @@ loop:
 	jp loop
 found:
 	pop hl				; Discard "next line" pointer (pushed as DE).
-	pop hl				; Restore "this line" pointer.
 	scf				; Indicate that the line was found.
 done:					; If we jump directly here, carry is reset.
+	pop hl				; Restore "this line" pointer.
 	pop de
 	ret
 #endlocal
@@ -643,12 +688,10 @@ loop:
 	ld a,(hl)
 	or a,a				; See if we're done with string.
 	jp z,done
-	cp a,' '			; See if it's a space.
-	jr z,not_token_or_alpha		; Just add it.
-	cp a,'0'
-	jr c,not_digit			; Less than '0', must check for token.
-	cp a,'9'+1
-	jr c,not_token_or_alpha		; It's a digit, just add it.
+	cp a,' '
+	jr z,not_token_or_alpha		; It's a space, just add it.
+	call is_digit
+	jr nc,not_token_or_alpha	; It's a digit, just add it.
 not_digit:
 	; See if HL starts with any token in the token list, case-insensitively.
 	call find_token			; Token in A, or 0.
@@ -815,6 +858,14 @@ to_upper:
 	ret
 #endlocal
 
+; Clear carry if A is a digit (0-9).
+is_digit:
+	cp a,'0'
+	ret c
+	cp a,'9'+1
+	ccf
+	ret
+
 ; Skip the whitespace at DE, leaving the next found character in A.
 skip_whitespace:
 	ld a,(de)
@@ -934,10 +985,8 @@ compile_goto:
 	; compile and reset after any code modification.
 	call skip_whitespace
 	ld a,(de)
-	cp a,'0'			; Verify that we have a number.
-	jp c,compile_error
-	cp a,'9'+1
-	jp nc,compile_error
+	call is_digit
+	jp c,compile_error		; Verify that we have a number.
 	call read_numeric_literal	; BC has the line number.
 	push hl				; Save write pointer.
 	call find_line_number		; HL has address of line.
@@ -1031,10 +1080,8 @@ expr_loop:
 	ld (expect_unary),a		; Whether to expect unary.
 	call skip_whitespace
 	ld a,(de)
-	cp a,'0'			; See if it's a number.
+	call is_digit			; See if it's a number.
 	jr c,not_number
-	cp a,'9'+1
-	jr nc,not_number
 	call compile_numeric_literal
 	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
@@ -1494,10 +1541,8 @@ read_numeric_literal:
 	ld bc,0
 loop:
 	ld a,(de)
-	cp a,'0'
-	ret c				; We're done if it's less than '0'.
-	cp a,'9'+1
-	ret nc				; We're done if it's greater than '9'.
+	call is_digit
+	ret c				; We're done if it's not a digit.
 	push hl
 	ld hl,bc			; BC *= 10
 	add hl,hl
@@ -1516,7 +1561,7 @@ loop:
 	jp loop
 #endlocal
 
-; Clear the line that the cursor is on with spaces. Does not move the cursor.
+; Clear the line that the cursor is on. Does not move the cursor.
 clear_current_line:
 #local
 	push de
@@ -1530,7 +1575,7 @@ clear_current_line:
 	ld hl,de			; Source of ldir.
 	inc de				; Destination of ldir.
 	ld bc,SCREEN_WIDTH-1		; Number of bytes to copy.
-	ld (hl),' '			; Fill byte.
+	ld (hl),CLEAR_CHAR		; Fill byte.
 	ldir
 
 	pop bc
@@ -2357,6 +2402,10 @@ expect_unary:
 eol_ref:
 	ds 2
 
+; Pointer just past the end of the very last (null) line of the program.
+program_end:
+	ds 2
+
 ; Variables. Each variable is the name of the variable (one char, then
 ; a second optional char or nul), then the two-byte value. If the first
 ; byte of the name is zero, then this and all following entries are unused.
@@ -2435,6 +2484,7 @@ program:
 	db 1, 0, lo(360), hi(360), 0, 0, T_GOTO, ' 360', 0
 	db 0, 0, 0, 0, 0, 0
 
+; Scratch space for the disassembler.
 disasm_buffer:
 	ds 16
 
