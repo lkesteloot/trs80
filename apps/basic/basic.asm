@@ -15,6 +15,18 @@
 	; All registers are scratch and must be saved if calling a function
 	; that trashes them. All run-time variables are signed words.
 	;
+	; The source code is store tokenized, with each line following this
+	; format:
+	;
+	; - Address of next line, or null.
+	; - Line number (unsigned word).
+	; - Address of compiled code, or null if not yet compiled.
+	; - (Later) Head of linked list of addresses of forward GOTOs to this line.
+	; - Tokens.
+	; - Nul byte.
+	;
+	; The last source line points to a null line composed of six zero bytes.
+	;
 
 SCREEN_WIDTH equ 64
 SCREEN_HEIGHT equ 16
