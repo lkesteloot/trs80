@@ -16,6 +16,15 @@ export class Z80 {
      */
     public hal: Hal;
     /**
+     * Address of the last instruction executed.
+     */
+    public instructionAddress: number = 0;
+    /**
+     * Address of instruction that pushed the data on the stack at this address. If a word
+     * is pushed, only the final stack address is recorded, not the intermediate byte address.
+     */
+    public readonly pushInstructionAddress = new Uint16Array(64*1024);
+    /**
      * Tables for computing flags. Public so that the decoding function
      * can access them.
      */
@@ -54,6 +63,7 @@ export class Z80 {
      * Execute one instruction.
      */
     public step(): void {
+        this.instructionAddress = this.regs.pc;
         decode(this);
     }
 
@@ -145,6 +155,9 @@ export class Z80 {
     public pushWord(value: number): void {
         this.pushByte(hi(value));
         this.pushByte(lo(value));
+
+        // Record that this instruction pushed this word.
+        this.pushInstructionAddress[this.regs.sp] = this.instructionAddress;
     }
 
     /**

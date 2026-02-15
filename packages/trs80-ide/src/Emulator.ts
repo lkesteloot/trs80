@@ -1,5 +1,13 @@
 import {EditorView} from '@codemirror/view';
-import {CassettePlayer, FdcState, RunningState, Trs80, TRS80_KEYBOARD_BEGIN, TRS80_KEYBOARD_END, Trs80State} from 'trs80-emulator';
+import {
+    CassettePlayer,
+    FdcState,
+    RunningState,
+    Trs80,
+    TRS80_KEYBOARD_BEGIN,
+    TRS80_KEYBOARD_END,
+    Trs80State
+} from 'trs80-emulator';
 import {
     CanvasScreen,
     ControlPanel,
@@ -15,12 +23,19 @@ import {
 import {ScreenEditor} from './ScreenEditor';
 import {AssemblyResults} from './AssemblyResults';
 import {SimpleEventDispatcher} from 'strongly-typed-events';
-import {Flag, hi, inc16, lo, RegisterSet, toHexByte} from 'z80-base';
-import {disasmForTrs80, HexdumpGenerator, ProgramAnnotation, Side, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from 'trs80-base';
+import {Flag, hi, inc16, lo, RegisterSet, toHexByte, toHexWord, word} from 'z80-base';
+import {
+    disasmForTrs80,
+    HexdumpGenerator,
+    ProgramAnnotation,
+    Side,
+    TRS80_SCREEN_BEGIN,
+    TRS80_SCREEN_END
+} from 'trs80-base';
 import {saveSettings, Settings} from "./Settings";
 import {DEFAULT_SCREEN_SIZE, SCREEN_SIZES_MAP, ScreenSize} from "./ScreenSize";
 import {Editor} from "./Editor";
-import { SymbolType } from "z80-asm";
+import {SymbolType} from "z80-asm";
 
 const LOCAL_STORAGE_CONFIG_KEY = "trs80-ide-config";
 
@@ -30,11 +45,31 @@ const RUNNING_STATE_TO_LABEL = new Map([
     [RunningState.PAUSED, "paused"],
 ]);
 
+// Register pair that was pushed by the instruction at this address, or undefined
+// if the instruction is not a push. (Calls don't count here, only explicit pushes.)
+function pushedRegisterPair(trs80: Trs80, address: number): String | undefined {
+    switch (trs80.readMemory(address)) {
+        case 0xC5: return "bc";
+        case 0xD5: return "de";
+        case 0xE5: return "hl";
+        case 0xF5: return "af";
+        case 0xDD: return trs80.readMemory(address + 1) == 0xE5 ? "ix" : undefined;
+        case 0xFD: return trs80.readMemory(address + 1) == 0xE5 ? "iy" : undefined;
+        default: return undefined;
+    }
+}
+
+// Whether the specified opcode is a CALL opcode, with or without the flag.
+function isCallOpcode(opcode: number): boolean {
+    // Flag is in bits 3 to 5.
+    return opcode === 0xCD || (opcode & 0b11000111) === 0b11000100;
+}
+
 // Given two instruction bytes, whether we want to continue until the next
 // instruction, and if so how long the current instruction is.
 function getSkipLength(b1: number, b2: number): number | undefined {
-    // Regular CALL or variant with flag. Flag is in bits 3 to 5.
-    if (b1 === 0xCD || (b1 & 0b11000111) === 0b11000100) {
+    // Regular CALL or variant with flag.
+    if (isCallOpcode(b1)) {
         // CALLs are always 3 bytes.
         return 3;
     }
@@ -129,6 +164,7 @@ export class Emulator {
     private updateBodyDataset() {
         document.body.dataset.z80Inspector = this.settings.z80Inspector ? "visible" : "hidden";
         document.body.dataset.memoryInspector = this.settings.memoryInspector ? "visible" : "hidden";
+        document.body.dataset.stackInspector = this.settings.stackInspector ? "visible" : "hidden";
         document.body.dataset.fdcInspector = this.settings.fdcInspector ? "visible" : "hidden";
         document.body.dataset.screenSize = this.settings.screenSize;
     }
@@ -668,7 +704,6 @@ export class Emulator {
                 const assemblyResults = this.editor.getAssemblyResults();
                 assemblyResults.variableDefinitions.forEach(def => {
                     const symbol = def.symbol;
-                    console.log(symbol.type, symbol.name);
                     if (symbol.type !== SymbolType.UNKNOWN && symbol.type !== SymbolType.CONSTANT) {
                         annotations.push(
                             new ProgramAnnotation(symbol.name, symbol.value, symbol.value + symbol.size));
@@ -688,6 +723,158 @@ export class Emulator {
             const lineGenerator = hexdumpGenerator.generate();
 
             rowsNode.replaceChildren(...lineGenerator);
+        };
+
+        this.debugPc.subscribe(pc => {
+            if (pc === undefined) {
+                // Not single-stepping, don't bother.
+                return;
+            }
+            update();
+        });
+
+        return node;
+    }
+    /**
+     * Create the panel for inspecting the stack.
+     */
+    public createStackInspector(): HTMLElement {
+        const MAX_ROWS = 10;
+
+        const node = document.createElement("div");
+        node.classList.add("stack-inspector", "inspector");
+
+        // Same of the symbol with an optional offset.
+        const symbolWithOffset = (symbol: string, offset: number): string => {
+            return offset === 0 ? symbol : symbol + " + " + offset;
+        };
+
+        // The note for a stack entry.
+        const stackAnnotation = (assemblyResults: AssemblyResults | undefined,
+                                 value: number,
+                                 callAddress: number | undefined,
+                                 instructionAddress: number): string => {
+
+            const register = pushedRegisterPair(this.trs80, instructionAddress);
+            const lineNumber = assemblyResults?.addressToLineMap?.get(instructionAddress);
+
+            // Basic information about the value (register it came from, what function was called).
+            let s = "";
+            if (register !== undefined) {
+                s = register.toUpperCase();
+            } else if (assemblyResults !== undefined) {
+                if (callAddress !== undefined) {
+                    const symbolInfos = assemblyResults.valueToSymbols.get(callAddress);
+                    if (symbolInfos !== undefined) {
+                        for (const symbolInfo of symbolInfos) {
+                            if (symbolInfo.type === SymbolType.CODE) {
+                                s = "call to " + symbolInfo.name;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Aux info about the location itself (symbols it's relative to).
+            let location = "";
+            if (value >= TRS80_SCREEN_BEGIN && value < TRS80_SCREEN_END) {
+                location = symbolWithOffset("screen", value - TRS80_SCREEN_BEGIN);
+            } else if (value >= TRS80_KEYBOARD_BEGIN && value < TRS80_KEYBOARD_END) {
+                location = symbolWithOffset("keyboard", value - TRS80_KEYBOARD_BEGIN);
+            } else if (assemblyResults !== undefined) {
+                for (const def of assemblyResults.variableDefinitions) {
+                    const symbol = def.symbol;
+                    if (symbol.type !== SymbolType.UNKNOWN && symbol.type !== SymbolType.CONSTANT) {
+                        if (value >= symbol.value && value < symbol.value + symbol.size) {
+                            location = symbolWithOffset(symbol.name, value - symbol.value);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Look up a comment on the push line if it's useful.
+            if (location === "" && lineNumber !== undefined && assemblyResults !== undefined && callAddress === undefined) {
+                const line = assemblyResults.lineMap.get(lineNumber);
+                if (line !== undefined) {
+                    const lineText = line.line;
+                    const i = lineText.indexOf(";");
+                    if (i >= 0) {
+                        location = lineText.substring(i + 1).trim();
+                        if (location.endsWith(".")) {
+                            location = location.substring(0, location.length - 1);
+                        }
+                    }
+                }
+            }
+
+            if (s !== "" && location !== "") {
+                s += " (" + location + ")";
+            } else if (location !== "") {
+                s = location;
+            }
+
+            if (lineNumber !== undefined) {
+                if (s !== "") {
+                    s += " ";
+                }
+                s += "at line " + lineNumber;
+            }
+
+            return s;
+        };
+
+        // Guess whether a value on the stack is the result of a CALL, and if so, return the
+        // address that was called.
+        const determineCallAddress = (value: number): number | undefined => {
+            if (value >= 3 && isCallOpcode(this.trs80.readMemory(value - 3))) {
+                return word(this.trs80.readMemory(value - 1), this.trs80.readMemory(value - 2));
+            } else {
+                return undefined;
+            }
+        };
+
+        const update = () => {
+            const sp = this.trs80.z80.regs.sp;
+            const assemblyResults = this.editor?.getAssemblyResults();
+
+            const nodes: HTMLElement[] = [];
+            let row = 0;
+            for (let addr = sp; addr != 0 && addr < 0x10000 && addr < sp + 2*MAX_ROWS; addr += 2, row++) {
+                const value = word(this.trs80.readMemory(addr + 1), this.trs80.readMemory(addr));
+                const instructionAddress = this.trs80.z80.pushInstructionAddress[addr];
+
+                const rowNode = document.createElement("div");
+                rowNode.classList.add("stack-inspector-row");
+                rowNode.style.opacity = (1 - row*0.08).toString();
+                const callAddress = determineCallAddress(value);
+                if (callAddress !== undefined) {
+                    rowNode.classList.add("stack-inspector-call");
+                }
+                nodes.push(rowNode);
+
+                const addrNode = document.createElement("div");
+                addrNode.classList.add("stack-inspector-address");
+                addrNode.textContent = toHexWord(addr);
+                rowNode.append(addrNode);
+
+                const valueNode = document.createElement("div");
+                valueNode.classList.add("stack-inspector-hex-value");
+                valueNode.textContent = toHexWord(value);
+                rowNode.append(valueNode);
+
+                const decimalNode = document.createElement("div");
+                decimalNode.classList.add("stack-inspector-decimal-value");
+                decimalNode.textContent = value.toString();
+                rowNode.append(decimalNode);
+
+                const noteNode = document.createElement("div");
+                noteNode.classList.add("stack-inspector-note");
+                noteNode.textContent = stackAnnotation(assemblyResults, value, callAddress, instructionAddress);
+                rowNode.append(noteNode);
+            }
+            node.replaceChildren(...nodes);
         };
 
         this.debugPc.subscribe(pc => {
@@ -823,6 +1010,15 @@ export class Emulator {
      */
     public showMemoryInspector(show: boolean) {
         this.settings.memoryInspector = show;
+        this.updateBodyDataset();
+        saveSettings(this.settings);
+    }
+
+    /**
+     * Show or hide the stack inspector.
+     */
+    public showStackInspector(show: boolean) {
+        this.settings.stackInspector = show;
         this.updateBodyDataset();
         saveSettings(this.settings);
     }

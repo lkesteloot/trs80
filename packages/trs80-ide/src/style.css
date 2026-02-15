@@ -217,6 +217,44 @@ body.presentation-mode {
 
 /* ------------------------------------------------------------------------- */
 
+.stack-inspector {
+    display: grid;
+    grid-template-columns: auto auto 5ch 1fr;
+    column-gap: 10px;
+
+    body[data-stack-inspector="hidden"] & {
+        display: none;
+    }
+
+    .stack-inspector-row {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: subgrid;
+
+        &.stack-inspector-call {
+            border-bottom: 1px dashed var(--foreground-secondary);
+        }
+
+        .stack-inspector-address {
+            color: var(--cyan);
+        }
+
+        .stack-inspector-hex-value {
+            color: var(--blue);
+        }
+
+        .stack-inspector-decimal-value {
+            color: var(--blue);
+        }
+
+        .stack-inspector-note {
+            color: var(--yellow);
+        }
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+
 .fdc-inspector {
     display: grid;
     grid-template-columns: 1fr 1fr;

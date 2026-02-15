@@ -15,6 +15,7 @@ export type Settings = {
     screenSize: string,
     z80Inspector: boolean,
     memoryInspector: boolean,
+    stackInspector: boolean,
     fdcInspector: boolean,
 };
 const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS: Settings = {
     screenSize: DEFAULT_SCREEN_SIZE.label,
     z80Inspector: true,
     memoryInspector: false,
+    stackInspector: false,
     fdcInspector: false,
 };
 

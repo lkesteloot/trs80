@@ -604,6 +604,15 @@ export class UserInterface {
                                 },
                             },
                             {
+                                text: "Stack",
+                                checked: settings.stackInspector,
+                                action: (menuCommand: MenuCommand) => {
+                                    const enabled = !menuCommand.checked;
+                                    menuCommand.setChecked?.(enabled);
+                                    emulator.showStackInspector(enabled);
+                                },
+                            },
+                            {
                                 text: "Floppy Disk Controller",
                                 checked: settings.fdcInspector,
                                 action: (menuCommand: MenuCommand) => {
@@ -783,8 +792,9 @@ export class UserInterface {
         rightPane.classList.add("right-pane");
         const z80Inspector = emulator.createZ80Inspector();
         const memoryInspector = emulator.createMemoryInspector();
+        const stackInspector = emulator.createStackInspector();
         const fdcInspector = emulator.createFdcInspector();
-        rightPane.append(emulator.getNode(), z80Inspector, memoryInspector, fdcInspector);
+        rightPane.append(emulator.getNode(), z80Inspector, memoryInspector, stackInspector, fdcInspector);
 
         content.append(leftPane, rightPane);
     }

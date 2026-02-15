@@ -128,7 +128,7 @@ export class RegisterSet {
      * Increment the lower 7 bits of the R register. Bit 7 is untouched.
      */
     public bumpR(): void {
-        this.r = (this.r & 0x80) + (((this.r & 0x7F) + 1) & 0x7F);
+        this.r = (this.r & 0x80) | (((this.r & 0x7F) + 1) & 0x7F);
     }
 
     /**

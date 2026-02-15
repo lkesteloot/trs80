@@ -30,7 +30,7 @@ export function toHexLong(value: number): string {
 
     // Convert two's complement negative numbers to positive numbers.
     if (value < 0) {
-        value += 0x100000000;
+        value += 0x1_0000_0000;
     }
 
     return toHex(value, 8);

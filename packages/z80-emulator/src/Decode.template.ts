@@ -40,7 +40,7 @@ const decodeMapFDCB = new Map<number, OpcodeFunc>();
 function fetchInstruction(z80: Z80): number {
     z80.incTStateCount(4);
     const inst = z80.readByteInternal(z80.regs.pc);
-    z80.regs.pc = (z80.regs.pc + 1) & 0xFFFF;
+    z80.regs.pc = inc16(z80.regs.pc);
     z80.regs.bumpR();
 
     return inst;
