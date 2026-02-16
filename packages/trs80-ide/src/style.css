@@ -19,6 +19,8 @@
     --green:     #859900;
 
     --very-dark: #00212A;
+
+    --arrow-color: rgb(255 255 255 / 12%);
 }
 
 .light-mode {

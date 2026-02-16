@@ -49,7 +49,7 @@ import {
     Transaction
 } from "@codemirror/state"
 import {indentUnit, StreamLanguage,} from "@codemirror/language"
-import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap, CompletionContext} from "@codemirror/autocomplete"
+import {autocompletion, closeBracketsKeymap, CompletionContext, completionKeymap} from "@codemirror/autocomplete"
 import {
     findNext,
     findPrevious,
@@ -73,7 +73,8 @@ import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
 import {solarizedDark} from 'cm6-theme-solarized-dark'
 import {asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary} from "trs80-asm"
 import {variablePillPlugin} from "./VariablePillPlugin";
-import {loadSettings, saveSettings, Settings} from "./Settings";
+import {saveSettings, Settings} from "./Settings";
+import { Trs80 } from "trs80-emulator"
 
 // Keys for local storage.
 const LOCAL_STORAGE_CODE_KEY = "trs80-ide-code";
@@ -91,6 +92,24 @@ const AUTOCOMPLETE_KEY_WITHOUT_TAB = keymap.of(completionKeymap
     .filter(m => m.key !== "Enter"));
 const AUTOCOMPLETE_KEY_WITH_TAB = keymap.of(completionKeymap
     .map(m => ({ ...m, key: m.key === "Enter" ? "Tab" : m.key })));
+
+/**
+ * Whether the instruction at the given address is a pop instruction.
+ */
+function isPopInstruction(trs80: Trs80, addr: number): boolean {
+    switch (trs80.readMemory(addr)) {
+        case 0xC1:
+        case 0xD1:
+        case 0xE1:
+        case 0xF1:
+            return true;
+        case 0xDD:
+        case 0xFD:
+            return trs80.readMemory(addr + 1) === 0xE1;
+    }
+
+    return false;
+}
 
 /**
  * Gutter to show info about the line (address, bytecode, etc.).
@@ -1245,18 +1264,19 @@ export class Editor {
             },
         });
 
-        // Get position of start of line where PC is.
-        const getPcLinePos = (state: EditorState): number | undefined => {
-            const pc = state.field(currentPcState);
-            if (pc !== undefined) {
-                const assemblyResults = this.getAssemblyResults();
-                const lineNumber = assemblyResults.addressToLineMap.get(pc);
-                if (lineNumber !== undefined) {
-                    return state.doc.line(lineNumber).from;
-                }
-            }
+        const getAddrLineNumber = (addr: number | undefined): number | undefined => {
+            return addr === undefined ? undefined : this.getAssemblyResults().addressToLineMap.get(addr);
+        };
 
-            return undefined;
+        // Get the line number (1-based) where the PC is, or undefined if not debugging.
+        const getPcLineNumber = (state: EditorState): number | undefined => {
+            return getAddrLineNumber(state.field(currentPcState));
+        };
+
+        // Get position of start of line where PC is, or undefined if not debugging.
+        const getPcLinePos = (state: EditorState): number | undefined => {
+            const lineNumber = getPcLineNumber(state);
+            return lineNumber === undefined ? undefined : state.doc.line(lineNumber).from;
         };
 
         // Gutter marker for gutter highlighting.
@@ -1322,10 +1342,132 @@ export class Editor {
             decorations: v => v.decorations,
         })
 
+        const trs80 = this.emulator.trs80;
+        const pushPopArrow = ViewPlugin.fromClass(class {
+            private readonly svg: SVGSVGElement;
+
+            constructor(view: EditorView) {
+                this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                this.svg.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
+                    overflow: visible;
+                    z-index: 1;
+                `;
+                // Insert into scrollDOM so it scrolls with content
+                view.scrollDOM.insertBefore(this.svg, view.contentDOM);
+                this.drawArrow(view);
+            }
+
+            update(update: ViewUpdate) {
+                // Redraw when PC changes, doc changes, or geometry changes (scroll, resize)
+                const pcChanged = update.state.field(currentPcState) !==
+                                  update.startState.field(currentPcState);
+                if (update.docChanged || update.geometryChanged || pcChanged) {
+                    this.drawArrow(update.view);
+                }
+            }
+
+            private drawArrow(view: EditorView) {
+                this.svg.replaceChildren();
+
+                // Source of arrow.
+                const pc = view.state.field(currentPcState);
+                if (pc === undefined) {
+                    return;
+                }
+                if (!isPopInstruction(trs80, pc)) {
+                    return;
+                }
+                const fromLineNumber = getAddrLineNumber(pc);
+                if (fromLineNumber === undefined) {
+                    return;
+                }
+
+                // Destination of arrow.
+                const instructionAddress = trs80.z80.pushInstructionAddress[trs80.z80.regs.sp];
+                const toLineNumber = getAddrLineNumber(instructionAddress);
+                if (toLineNumber === undefined || toLineNumber === fromLineNumber) {
+                    return;
+                }
+
+                // Get line geometry.
+                const fromLine = view.lineBlockAt(view.state.doc.line(fromLineNumber).from);
+                const toLine = view.lineBlockAt(view.state.doc.line(toLineNumber).from);
+
+                // Position at the opcode column (after label indentation).
+                // Use defaultCharacterWidth for a stable "ch" measurement.
+                // Offset by gutter width since SVG is in scrollDOM which includes gutters.
+                const gutters = view.scrollDOM.querySelector(".cm-gutters") as HTMLElement | null;
+                const gutterWidth = gutters?.offsetWidth ?? 0;
+                const content = view.scrollDOM.querySelector(".cm-content") as HTMLElement | null;
+                const topPadding = content === null ? 0 : parseFloat(window.getComputedStyle(content).paddingTop);
+                const indentChars = 8;
+                const x = gutterWidth + view.defaultCharacterWidth * indentChars;
+                const y1 = fromLine.top + fromLine.height / 2 + topPadding;
+                const y2 = toLine.top + toLine.height / 2 + topPadding;
+                const color = "var(--arrow-color)";
+                const curveOffset = 60;
+                const strokeWidth = 2;
+                const arrowLength = 10; // In units of "strokeWidth".
+                const arrowWidth = 7; // In units of "strokeWidth".
+                const sx = x;
+                const sy = y1;
+                const cx1 = x - curveOffset;
+                const cy1 = y1 - 20;
+                const cx2 = x - curveOffset;
+                const cy2 = y2 + 20;
+                const ex = x;
+                const ey = y2;
+                // Offset the arrow head.
+                const dx = ex - cx2;
+                const dy = ey - cy2;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const newEx = ex - (dx / len) * arrowLength * strokeWidth;
+                const newEy = ey - (dy / len) * arrowLength * strokeWidth;
+
+                // Add arrowhead marker definition
+                const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+                const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+                marker.setAttribute("id", "pc-arrowhead");
+                marker.setAttribute("markerWidth", `${arrowLength}`);
+                marker.setAttribute("markerHeight", `${arrowWidth}`);
+                marker.setAttribute("refX", "0");
+                marker.setAttribute("refY", `${arrowWidth/2}`);
+                marker.setAttribute("orient", "auto");
+                const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                polygon.setAttribute("points", `0 0, ${arrowLength} ${arrowWidth/2}, 0 ${arrowWidth}`);
+                polygon.setAttribute("fill", color);
+                marker.appendChild(polygon);
+                defs.appendChild(marker);
+                this.svg.appendChild(defs);
+
+                // Draw curved path from source to target (curving outward to the left)
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d",
+                    `M ${sx} ${sy} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${newEx} ${newEy}`
+                );
+                path.setAttribute("stroke", color);
+                path.setAttribute("stroke-width", `${strokeWidth}`);
+                path.setAttribute("fill", "none");
+                path.setAttribute("marker-end", "url(#pc-arrowhead)");
+                this.svg.appendChild(path);
+            }
+
+            destroy() {
+                this.svg.remove();
+            }
+        });
+
         return [
             currentPcState,
             currentPcGutterHighlighter,
             currentPcHighlighter,
+            pushPopArrow,
         ];
     }
 
