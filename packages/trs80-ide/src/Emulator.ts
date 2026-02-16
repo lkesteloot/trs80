@@ -65,6 +65,11 @@ function isCallOpcode(opcode: number): boolean {
     return opcode === 0xCD || (opcode & 0b11000111) === 0b11000100;
 }
 
+// Whether the specified opcode is an RST opcode.
+function isRstOpcode(opcode: number): boolean {
+    return (opcode & 0b11000111) === 0b11000111;
+}
+
 // Given two instruction bytes, whether we want to continue until the next
 // instruction, and if so how long the current instruction is.
 function getSkipLength(b1: number, b2: number): number | undefined {
@@ -72,6 +77,11 @@ function getSkipLength(b1: number, b2: number): number | undefined {
     if (isCallOpcode(b1)) {
         // CALLs are always 3 bytes.
         return 3;
+    }
+
+    // RST.
+    if (isRstOpcode(b1)) {
+        return 1;
     }
 
     if (b1 === 0xED && (b2 & 0b11110100) === 0b10110000) {
@@ -764,6 +774,8 @@ export class Emulator {
                 s = register.toUpperCase();
             } else if (assemblyResults !== undefined) {
                 if (callAddress !== undefined) {
+                    // Default to hex value.
+                    s = "call to " + toHexWord(callAddress);
                     const symbolInfos = assemblyResults.valueToSymbols.get(callAddress);
                     if (symbolInfos !== undefined) {
                         for (const symbolInfo of symbolInfos) {
@@ -830,9 +842,14 @@ export class Emulator {
         const determineCallAddress = (value: number): number | undefined => {
             if (value >= 3 && isCallOpcode(this.trs80.readMemory(value - 3))) {
                 return word(this.trs80.readMemory(value - 1), this.trs80.readMemory(value - 2));
-            } else {
-                return undefined;
             }
+            if (value >= 1) {
+                const opcode = this.trs80.readMemory(value - 1);
+                if (isRstOpcode(opcode)) {
+                    return opcode - 0xC7;
+                }
+            }
+            return undefined;
         };
 
         const update = () => {
@@ -873,6 +890,12 @@ export class Emulator {
                 noteNode.classList.add("stack-inspector-note");
                 noteNode.textContent = stackAnnotation(assemblyResults, value, callAddress, instructionAddress);
                 rowNode.append(noteNode);
+            }
+            if (row === 0) {
+                const emptyNode = document.createElement("div");
+                emptyNode.classList.add("stack-inspector-empty");
+                emptyNode.textContent = "The stack is empty";
+                nodes.push(emptyNode);
             }
             node.replaceChildren(...nodes);
         };

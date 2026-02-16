@@ -226,6 +226,11 @@ body.presentation-mode {
         display: none;
     }
 
+    .stack-inspector-empty {
+        color: var(--foreground-secondary);
+        font-style: italic;
+    }
+
     .stack-inspector-row {
         display: grid;
         grid-column: 1 / -1;
