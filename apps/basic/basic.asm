@@ -385,15 +385,24 @@ end:
 	ld sp,(ready_prompt_sp)
 	jr ready_prompt_loop
 
-; The entered line has a line number. Add it to our program.
+; The entered line (DE) has a line number. Add it to our program.
 has_line_number:
+#local
 	call read_numeric_literal	; BC has line number.
 	call delete_line		; Delete the line with that line number.
-	call skip_whitespace		; Whitespace after line number.
+	push de
+	call skip_whitespace		; See if the code is all whitespace.
+	pop de
 	or a,a
-	jr z,end			; End of line, nothing more to do.
-	; TODO Insert code into the program.
+	jr z,end			; It is, nothing left to do.
+	ld a,(de)			; Skip at most one space.
+	cp a,' '
+	jr nz,not_space
+	inc de
+not_space:
+	call insert_line		; Insert the line into the program.
 	jr end
+#endlocal
 
 ; Show a runtime error message and return to the Ready prompt.
 runtime_error:
@@ -560,6 +569,68 @@ done:
 	ret
 #endlocal
 
+; Insert the nul-terminated tokenized code at DE into the program at line
+; number BC. This line must not already exist.
+insert_line:
+#local
+	push bc				; Save line number.
+	call find_line_number		; HL = line after BC.
+	jp c,internal_error		; Shouldn't already be there.
+	push hl				; Push next line address.
+
+	push de				; Save tokenized buffer address.
+
+	push hl
+	ld hl,de
+	call strlen			; Get length of tokenized buffer.
+	pop hl
+	push bc				; Save length for later.
+	push bc				; Twice.
+
+	; Make room for new line.
+	; Given:
+	;   - NEXT: The line after the line number. We know our
+	;     line number doesn't exist, so the line after is 
+	;     fine, and could be null line.
+	;   - program_end: One past the program.
+	;   - LEN: The length of the new line, not including nul or header.
+	; We compute:
+	;   - BC = program_end - NEXT (number bytes to copy).
+	ld de,(program_end)		; One past end of program.
+	ex de,hl			; HL = program_end, DE = next line.
+	or a,a				; Clear carry.
+	sbc hl,de			; HL = number of bytes to copy.
+	ld bc,hl			; BC = number of bytes to copy.
+	;   - HL = program_end - 1 (source of copy).
+	ld hl,(program_end)
+	dec hl				; HL = last byte to copy from.
+	;   - DE = program_end - 1 + LEN + 1 + 6 (destination of copy).
+	pop de				; Restore line length (pushed as BC).
+	push hl				; Stash source address.
+	add hl,de			; Plus line length.
+	ld de,7				; Line header + nul.
+	add hl,de
+	pop hl				; Restore source address.
+	lddr				; Copy to make space for line.
+
+	; Copy tokenized buffer.
+	pop ix				; Tokenized line length.
+	pop de				; Tokenized buffer address.
+	pop hl				; Next line address.
+	pop bc				; Line number.
+	m_add_word 0			; Write next line address.
+	m_add c				; Line number.
+	m_add b
+	m_add_word 0			; Compile address.
+	push ix
+	pop bc				; Line length.
+	inc bc				; Include nul in copy.
+	ex de,hl			; Swap source and destination.
+	ldir				; Copy tokenized buffer and nul.
+	call fix_program_pointers
+	ret
+#endlocal
+
 ; Go through the program at "program" and set the next-line pointers at the
 ; beginning of each line. They must all already be non-null, except for
 ; the final line, which must be null (and will remain so).
@@ -595,7 +666,7 @@ done:
 #endlocal
 
 ; Find the line with the line number BC, returning it in HL and setting carry.
-; If not found, carry is reset and HL points to the final line (with no content).
+; If not found, carry is reset and HL points to the next line.
 find_line_number:
 #local
 	push de
@@ -608,21 +679,22 @@ loop:
 	inc hl
 	ld a,e				; See if it's null.
 	or a,d
-	jp z,done			; Null next pointer means no line here.
+	jp z,not_found			; Null next pointer means no line here.
 	push de				; Push next pointer.
 	ld a,(hl)			; Grab line number into HL.
 	inc hl
 	ld h,(hl)
 	ld l,a
 	sbc hl,bc			; Carry is zero from OR above.
-	jp z,found			; Line numbers match.
+	jr z,found			; Line numbers match.
 	pop hl				; Pop next pointer (pushed as DE).
+	jr nc,not_found			; HL >= BC, we've passed it.
 	pop de				; Discard "this line" pointer (pushed as HL).
 	jp loop
 found:
 	pop hl				; Discard "next line" pointer (pushed as DE).
 	scf				; Indicate that the line was found.
-done:					; If we jump directly here, carry is reset.
+not_found:				; If we jump directly here, carry is reset.
 	pop hl				; Restore "this line" pointer.
 	pop de
 	ret
@@ -885,6 +957,22 @@ skip_whitespace:
 	ret nz
 	inc de
 	jr skip_whitespace
+
+; Compute the length of the nul-terminated string at HL into BC.
+strlen:
+#local
+	push hl
+	xor a,a				; We're looking for nul.
+	ld b,a				; Clear BC.
+	ld c,a
+	cpir				; Look for nul.
+	ld hl,0xFFFF			; Start with -1, BC is incremented on nul.
+	or a,a				; Clear carry.
+	sbc hl,bc			; Negate BC.
+	ld bc,hl
+	pop hl
+	ret
+#endlocal
 
 ; Compile the nul-terminated tokenized code at DE to a binary buffer at HL.
 ; Restores DE but keeps HL just past the last byte that was written.
