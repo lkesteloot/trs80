@@ -40,6 +40,11 @@ export interface MenuCommand extends MenuEntry {
     // Optional, hotkey used on the Mac. If not specified, uses hotkey.
     macHotkey?: string;
 
+    // Optional, whether checked. This takes precedence over the checked
+    // field below. If you use this, don't use the checked field or
+    // the setChecked() method.
+    isChecked?: () => boolean;
+
     // Optional, whether checked. Defaults to false.
     checked?: boolean;
 
@@ -69,6 +74,9 @@ export interface MenuParent extends MenuEntry {
 
     // Menu items, must be non-empty.
     menu: Menu;
+
+    // Sub-menu node.
+    subNode?: HTMLElement;
 }
 
 // Whether this menu entry is a sub-menu.
@@ -263,6 +271,20 @@ function dispatchHotkey(e: KeyboardEvent): boolean {
     return false;
 }
 
+// Make checkmarks visible/invisible for every item in the menu.
+function syncMenuChecked(menu: Menu, node: HTMLElement) {
+    let anyChecked = false;
+    for (const menuEntry of menu) {
+        if (isMenuCommand(menuEntry)) {
+            const isChecked = menuEntry.isChecked?.() ?? menuEntry.checked ?? false;
+            anyChecked ||= isChecked;
+            menuEntry.node?.classList.toggle("menubar-checked", isChecked);
+        }
+    }
+
+    node.classList.toggle("menubar-any-checked", anyChecked);
+}
+
 // Create an HTML node for this menu and its sub-menus. A depth of 0 means
 // the top level, 1 is the level below that, etc.
 function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): HTMLElement {
@@ -276,20 +298,6 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
     node.classList.add("menubar-depth-" + depth);
     if (depth === 0) {
         node.classList.add("menubar-open");
-    }
-
-    // Make checkmarks visible/invisible for every item in the menu.
-    function syncMenuChecked() {
-        let anyChecked = false;
-        for (const menuEntry of menu) {
-            if (isMenuCommand(menuEntry)) {
-                const isChecked = menuEntry.checked ?? false;
-                anyChecked ||= isChecked;
-                menuEntry.node?.classList.toggle("menubar-checked", isChecked);
-            }
-        }
-
-        node.classList.toggle("menubar-any-checked", anyChecked);
     }
 
     // Add each entry.
@@ -319,7 +327,7 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
             // Inject function to set whether checked.
             menuEntry.setChecked = (checked: boolean) => {
                 menuEntry.checked = checked;
-                syncMenuChecked();
+                syncMenuChecked(menu, node);
             };
 
             // Handle action click.
@@ -365,6 +373,7 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
             // Create sub-menu.
             const subNode = createNode(menuEntry.menu, depth + 1, menuEntry);
             entryNode.append(subNode);
+            menuEntry.subNode = subNode;
 
             // Hook up click on entry.
             entryNode.addEventListener("click", e => {
@@ -375,6 +384,7 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
                 if (!alreadyOpen || depth === 0) {
                     closeToDepth(depth);
                     if (!alreadyOpen) {
+                        syncMenuChecked(menuEntry.menu, subNode);
                         entryNode.classList.add("menubar-open");
                     }
                 }
@@ -391,6 +401,9 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
                         gOpenTimerHandler = undefined;
                         closeToDepth(depth);
                         if (isMenuParent(menuEntry)) {
+                            if (menuEntry.subNode !== undefined) {
+                                syncMenuChecked(menuEntry.menu, menuEntry.subNode);
+                            }
                             entryNode.classList.add("menubar-open");
                         }
                     }, OPEN_TIMEOUT_MS);
@@ -404,7 +417,7 @@ function createNode(menu: Menu, depth: number, parent: MenuEntry | undefined): H
         node.append(entryNode);
     }
 
-    syncMenuChecked();
+    syncMenuChecked(menu, node);
 
     return node;
 }

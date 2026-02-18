@@ -170,6 +170,10 @@ body.presentation-mode {
     white-space: pre-wrap;
 }
 
+.z80-inspector-value {
+    cursor:pointer;
+}
+
 .z80-inspector-extra {
     color: var(--yellow);
     white-space: pre-wrap;
@@ -190,6 +194,10 @@ body.presentation-mode {
         max-height: 100px;
         overflow-y: scroll;
         white-space: pre;
+
+        .memory-inspector-highlight {
+            background: var(--background-highlights);
+        }
 
         .memory-inspector-address {
             color: var(--cyan);
@@ -248,6 +256,7 @@ body.presentation-mode {
 
         .stack-inspector-hex-value {
             color: var(--blue);
+            cursor: pointer;
         }
 
         .stack-inspector-decimal-value {
@@ -407,6 +416,7 @@ body.presentation-mode {
 .menubar-arrow {
     font-size: 7pt;
     padding-left: 30px;
+    align-self: center;
 }
 
 /* ------------------------------------------------------------------------- */

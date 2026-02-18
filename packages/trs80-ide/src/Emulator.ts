@@ -45,6 +45,13 @@ const RUNNING_STATE_TO_LABEL = new Map([
     [RunningState.PAUSED, "paused"],
 ]);
 
+/**
+ * Sleep for the specified number of milliseconds.
+ */
+async function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Register pair that was pushed by the instruction at this address, or undefined
 // if the instruction is not a push. (Calls don't count here, only explicit pushes.)
 function pushedRegisterPair(trs80: Trs80, address: number): String | undefined {
@@ -90,13 +97,6 @@ function getSkipLength(b1: number, b2: number): number | undefined {
     }
 
     return undefined;
-}
-
-// Remove all children from this node.
-function emptyNode(node: HTMLElement): void {
-    while (node.firstChild !== null) {
-        node.firstChild.remove();
-    }
 }
 
 // Encapsulates the emulator and methods for it.
@@ -364,7 +364,7 @@ export class Emulator {
             public readonly hiValueNode = document.createElement("span");
             public readonly loValueNode = document.createElement("span");
             public readonly extraNode = document.createElement("span");
-            public oldValue: number | undefined = undefined;
+            public value: number | undefined = undefined;
             public constructor(public readonly label: string,
                                public readonly get: (regs: RegisterSet) => number,
                                public readonly isSplit: boolean,
@@ -566,8 +566,16 @@ export class Emulator {
 
             const hiValueNode = spec.hiValueNode;
             hiValueNode.classList.add("z80-inspector-value");
+            const scrollToAddress = () => {
+                if (spec.value !== undefined) {
+                    this.showMemoryInspector(true);
+                    this.scrollMemoryInspectorTo(spec.value);
+                }
+            };
+            hiValueNode.addEventListener("click", scrollToAddress);
             const loValueNode = spec.loValueNode;
             loValueNode.classList.add("z80-inspector-value");
+            loValueNode.addEventListener("click", scrollToAddress);
 
             const extraNode = spec.extraNode;
             extraNode.classList.add("z80-inspector-extra");
@@ -613,7 +621,7 @@ export class Emulator {
             const regs = this.trs80.z80.regs;
             for (const spec of regsSpecs) {
                 const value = spec.get(regs);
-                const oldValue = spec.oldValue ?? value;
+                const oldValue = spec.value ?? value;
 
                 const changed = value !== oldValue;
                 const hiChanged = spec.isSplit ? hi(value) !== hi(oldValue) : changed;
@@ -624,10 +632,9 @@ export class Emulator {
                 spec.loValueNode.textContent = toHexByte(lo(value)) + " ";
                 spec.loValueNode.classList.toggle("z80-inspector-changed", loChanged);
 
-                emptyNode(spec.extraNode);
-                spec.extraNode.append(spec.extra?.(value, oldValue));
+                spec.extraNode.replaceChildren(spec.extra?.(value, oldValue));
 
-                spec.oldValue = value;
+                spec.value = value;
             }
 
             const clock = this.trs80.tStateCount;
@@ -657,10 +664,44 @@ export class Emulator {
         saveSettings(this.settings);
     }
 
+    // Array of 65536 HTML elements in the memory inspector corresponding to the index memory address.
+    private memoryInspectorElements: HTMLElement[] = [];
+
+    /**
+     * Scroll the memory inspector to the given address.
+     */
+    private scrollMemoryInspectorTo(address: number) {
+        if (address < this.memoryInspectorElements.length) {
+            const row = this.memoryInspectorElements[address];
+            const container = document.querySelector(".memory-inspector-rows") as HTMLElement;
+            container.addEventListener("scrollend", async () => {
+                // Briefly flash the row.
+                for (let i = 0; i < 3; i++) {
+                    row.classList.add("memory-inspector-highlight");
+                    await sleep(200);
+                    row.classList.remove("memory-inspector-highlight");
+                    await sleep(200);
+                }
+            }, { once: true });
+            row.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    }
+
     /**
      * Create the panel for inspecting memory state.
      */
     public createMemoryInspector(): HTMLElement {
+        const self = this;
+        // Extend until the elements go up to but not including addr.
+        const extendMemoryInspectorElements = (addr: number) => {
+            if (this.memoryInspectorElements.length > 0) {
+                const lastRow = this.memoryInspectorElements[this.memoryInspectorElements.length - 1];
+                while (this.memoryInspectorElements.length < addr) {
+                    this.memoryInspectorElements.push(lastRow);
+                }
+            }
+        };
+
         /**
          * Hexdump generator for HTML output.
          */
@@ -674,8 +715,11 @@ export class Emulator {
                 });
             }
 
-            protected newLine(): HTMLElement {
-                return document.createElement("div");
+            protected newLine(addr: number): HTMLElement {
+                const div = document.createElement("div");
+                extendMemoryInspectorElements(addr);
+                self.memoryInspectorElements.push(div);
+                return div;
             }
 
             protected getLineText(line: HTMLElement): string {
@@ -703,6 +747,8 @@ export class Emulator {
         node.append(rowsNode);
 
         const update = () => {
+            this.memoryInspectorElements = [];
+
             const memSize = 64*1024;
             const binary = new Uint8Array(memSize);
             for (let addr = 0; addr < binary.length; addr++) {
@@ -730,9 +776,9 @@ export class Emulator {
             }
 
             const hexdumpGenerator = new HtmlHexdumpGenerator(binary, true, annotations);
-            const lineGenerator = hexdumpGenerator.generate();
+            rowsNode.replaceChildren(... hexdumpGenerator.generate());
 
-            rowsNode.replaceChildren(...lineGenerator);
+            extendMemoryInspectorElements(memSize);
         };
 
         this.debugPc.subscribe(pc => {
@@ -879,6 +925,11 @@ export class Emulator {
                 const valueNode = document.createElement("div");
                 valueNode.classList.add("stack-inspector-hex-value");
                 valueNode.textContent = toHexWord(value);
+                valueNode.addEventListener("click", () => {
+                    this.showMemoryInspector(true);
+                    this.scrollMemoryInspectorTo(value);
+                });
+
                 rowNode.append(valueNode);
 
                 const decimalNode = document.createElement("div");
@@ -1035,6 +1086,13 @@ export class Emulator {
         this.settings.memoryInspector = show;
         this.updateBodyDataset();
         saveSettings(this.settings);
+    }
+
+    /**
+     * Whether the memory inspector is currently visible.
+     */
+    public isMemoryInspectorShowing(): boolean {
+        return this.settings.memoryInspector;
     }
 
     /**

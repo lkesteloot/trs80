@@ -596,12 +596,8 @@ export class UserInterface {
                             },
                             {
                                 text: "Memory",
-                                checked: settings.memoryInspector,
-                                action: (menuCommand: MenuCommand) => {
-                                    const enabled = !menuCommand.checked;
-                                    menuCommand.setChecked?.(enabled);
-                                    emulator.showMemoryInspector(enabled);
-                                },
+                                isChecked: () => emulator.isMemoryInspectorShowing(),
+                                action: () => emulator.showMemoryInspector(!emulator.isMemoryInspectorShowing()),
                             },
                             {
                                 text: "Stack",

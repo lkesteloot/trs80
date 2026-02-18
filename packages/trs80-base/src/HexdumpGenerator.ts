@@ -6,9 +6,6 @@ const VERTICAL_ELLIPSIS = 0x22EE;
 
 /**
  * Returns whether two string arrays are the same.
- *
- * Lodash has isEqual(), but it adds about 15 kB after minimization! (It's a deep comparison
- * that has to deal with all sorts of data types.)
  */
 export function isSameStringArray(a: string[], b: string[]): boolean {
     return a.length === b.length && a.every((value, index) => value === b[index]);
@@ -111,8 +108,10 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
 
     /**
      * Create a new line object.
+     *
+     * @param addr address for the line.
      */
-    protected abstract newLine(): LINE_TYPE;
+    protected abstract newLine(addr: number): LINE_TYPE;
 
     /**
      * Get the accumulated text for a line.
@@ -199,7 +198,7 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
 
         if (this.options.showEndAddress) {
             // Final address (with no data) to show where the file ends.
-            const finalLine = this.newLine();
+            const finalLine = this.newLine(this.binary.length);
             this.newSpan(finalLine, toHex(this.binary.length, this.addrDigits), "address");
             yield finalLine;
         }
@@ -272,7 +271,7 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
 
                 // Collapsed section. See if we want to print the text for it this time.
                 if (addr === previousAddr + stride) {
-                    const line = this.newLine();
+                    const line = this.newLine(addr);
 
                     if (allSameByte(binary, addr, stride)) {
                         // Lots of the same byte repeated. Say how many there are.
@@ -342,7 +341,7 @@ export abstract class HexdumpGenerator<LINE_TYPE, SPAN_TYPE> {
         const binary = this.binary;
         const stride = this.options.stride;
 
-        const line = this.newLine();
+        const line = this.newLine(addr);
         const cssClass = ["address"];
         if (addr < beginAddr) {
             cssClass.push("outside-annotation");
