@@ -248,6 +248,7 @@ class OptionalExtension {
     private readonly extension: Extension;
     private readonly offExtension: Extension;
     private readonly compartment = new Compartment();
+    private readonly additionalEffects: StateEffect<any>[] = [];
 
     public constructor(enabled: boolean, extension: Extension, offExtension: Extension = []) {
         this.enabled = enabled;
@@ -264,8 +265,17 @@ class OptionalExtension {
     public setEnabled(view: EditorView, enabled: boolean): void {
         this.enabled = enabled;
         view.dispatch({
-            effects: this.compartment.reconfigure(this.getExtension()),
+            effects: [
+                this.compartment.reconfigure(this.getExtension()),
+                ... this.additionalEffects,
+            ],
         });
+    }
+
+    // Specify additional effects to dispatch when the extension is toggled.
+    public withAdditionalEffects(... additionalEffects: StateEffect<any>[]): this {
+        this.additionalEffects.push(...additionalEffects);
+        return this;
     }
 
     // Get the extension, if enabled.
@@ -364,6 +374,7 @@ export class Editor {
     private readonly timingGutter: OptionalExtension;
     private readonly statisticsPanel: OptionalExtension;
     private readonly autocompleteOnTab: OptionalExtension;
+    private readonly gutterChangeEffect = StateEffect.define();
     public autoRun = true; // TODO: move to settings
     private currentLineNumber = 0; // 1-based.
     private currentLineHasError = false;
@@ -448,10 +459,14 @@ export class Editor {
         // Update the PC while single-stepping.
         this.currentPcEffect = StateEffect.define<number | undefined>({});
 
-        this.lineNumbersGutter = new OptionalExtension(this.settings.showLineNumbers, lineNumbers());
-        this.addressesGutter = new OptionalExtension(this.settings.showAddresses, this.makeAddressesGutter());
-        this.bytecodeGutter = new OptionalExtension(this.settings.showBytecode, this.makeBytecodeGutter());
-        this.timingGutter = new OptionalExtension(this.settings.showTiming, this.makeTimingGutter());
+        this.lineNumbersGutter = new OptionalExtension(this.settings.showLineNumbers, lineNumbers())
+            .withAdditionalEffects(this.gutterChangeEffect.of(null));
+        this.addressesGutter = new OptionalExtension(this.settings.showAddresses, this.makeAddressesGutter())
+            .withAdditionalEffects(this.gutterChangeEffect.of(null));
+        this.bytecodeGutter = new OptionalExtension(this.settings.showBytecode, this.makeBytecodeGutter())
+            .withAdditionalEffects(this.gutterChangeEffect.of(null));
+        this.timingGutter = new OptionalExtension(this.settings.showTiming, this.makeTimingGutter())
+            .withAdditionalEffects(this.gutterChangeEffect.of(null));
         this.statisticsPanel = new OptionalExtension(this.settings.showStatistics, this.makeStatsPanel());
         this.autocompleteOnTab = new OptionalExtension(this.settings.autocompleteOnTab,
             AUTOCOMPLETE_KEY_WITH_TAB, AUTOCOMPLETE_KEY_WITHOUT_TAB);
@@ -1342,6 +1357,7 @@ export class Editor {
             decorations: v => v.decorations,
         })
 
+        const self = this;
         const trs80 = this.emulator.trs80;
         const pushPopArrow = ViewPlugin.fromClass(class {
             private readonly svg: SVGSVGElement;
@@ -1365,9 +1381,17 @@ export class Editor {
 
             update(update: ViewUpdate) {
                 // Redraw when PC changes, doc changes, or geometry changes (scroll, resize)
+                let gutterChanged = false;
+                for (const transaction of update.transactions) {
+                    for (const effect of transaction.effects) {
+                        if (effect.is(self.gutterChangeEffect)) {
+                            gutterChanged = true;
+                        }
+                    }
+                }
                 const pcChanged = update.state.field(currentPcState) !==
                                   update.startState.field(currentPcState);
-                if (update.docChanged || update.geometryChanged || pcChanged) {
+                if (update.docChanged || update.geometryChanged || pcChanged || gutterChanged) {
                     this.drawArrow(update.view);
                 }
             }
