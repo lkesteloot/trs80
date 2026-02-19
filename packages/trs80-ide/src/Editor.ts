@@ -1431,6 +1431,7 @@ export class Editor {
                 const content = view.scrollDOM.querySelector(".cm-content") as HTMLElement | null;
                 const topPadding = content === null ? 0 : parseFloat(window.getComputedStyle(content).paddingTop);
                 const indentChars = 8;
+                const direction = fromLineNumber > toLineNumber ? -1 : 1; // -1 for Backwards, 1 to Forwards.
                 const x = gutterWidth + view.defaultCharacterWidth * indentChars;
                 const y1 = fromLine.top + fromLine.height / 2 + topPadding;
                 const y2 = toLine.top + toLine.height / 2 + topPadding;
@@ -1442,9 +1443,9 @@ export class Editor {
                 const sx = x;
                 const sy = y1;
                 const cx1 = x - curveOffset;
-                const cy1 = y1 - 20;
+                const cy1 = y1 + direction*20;
                 const cx2 = x - curveOffset;
-                const cy2 = y2 + 20;
+                const cy2 = y2 - direction*20;
                 const ex = x;
                 const ey = y2;
                 // Offset the arrow head.
