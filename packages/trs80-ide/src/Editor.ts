@@ -112,6 +112,24 @@ function isPopInstruction(trs80: Trs80, addr: number): boolean {
 }
 
 /**
+ * Return the number of visual positions up until the given position, expanding tab as necessary.
+ */
+function expandTabs(line: string | undefined, position: number | undefined): number | undefined {
+    if (line === undefined || position === undefined) {
+        return undefined;
+    }
+    let column = 0;
+    for (let i = 0; i < position; i++) {
+        if (line[i] === "\t") {
+            column += INDENTATION_SIZE - (column % INDENTATION_SIZE);
+        } else {
+            column += 1;
+        }
+    }
+    return column;
+}
+
+/**
  * Gutter to show info about the line (address, bytecode, etc.).
  */
 class InfoGutter extends GutterMarker {
@@ -1423,6 +1441,13 @@ export class Editor {
                 const fromLine = view.lineBlockAt(view.state.doc.line(fromLineNumber).from);
                 const toLine = view.lineBlockAt(view.state.doc.line(toLineNumber).from);
 
+                // Get assembled line info.
+                const assemblyResults = self.getAssemblyResults();
+                const fromAssembledLine = assemblyResults.lineMap.get(fromLineNumber);
+                const toAssembledLine = assemblyResults.lineMap.get(toLineNumber);
+                const fromIndent = expandTabs(fromAssembledLine?.line, fromAssembledLine?.mnemonicColumn) ?? INDENTATION_SIZE;
+                const toIndent = expandTabs(toAssembledLine?.line, toAssembledLine?.mnemonicColumn) ?? INDENTATION_SIZE;
+
                 // Position at the opcode column (after label indentation).
                 // Use defaultCharacterWidth for a stable "ch" measurement.
                 // Offset by gutter width since SVG is in scrollDOM which includes gutters.
@@ -1430,23 +1455,23 @@ export class Editor {
                 const gutterWidth = gutters?.offsetWidth ?? 0;
                 const content = view.scrollDOM.querySelector(".cm-content") as HTMLElement | null;
                 const topPadding = content === null ? 0 : parseFloat(window.getComputedStyle(content).paddingTop);
-                const indentChars = 8;
                 const direction = fromLineNumber > toLineNumber ? -1 : 1; // -1 for Backwards, 1 to Forwards.
-                const x = gutterWidth + view.defaultCharacterWidth * indentChars;
+                const x1 = gutterWidth + view.defaultCharacterWidth * fromIndent;
                 const y1 = fromLine.top + fromLine.height / 2 + topPadding;
+                const x2 = gutterWidth + view.defaultCharacterWidth * toIndent;
                 const y2 = toLine.top + toLine.height / 2 + topPadding;
                 const color = "var(--arrow-color)";
                 const curveOffset = 60;
                 const strokeWidth = 2;
                 const arrowLength = 10; // In units of "strokeWidth".
                 const arrowWidth = 7; // In units of "strokeWidth".
-                const sx = x;
+                const sx = x1;
                 const sy = y1;
-                const cx1 = x - curveOffset;
+                const cx1 = x1 - curveOffset;
                 const cy1 = y1 + direction*20;
-                const cx2 = x - curveOffset;
+                const cx2 = x2 - curveOffset;
                 const cy2 = y2 - direction*20;
-                const ex = x;
+                const ex = x2;
                 const ey = y2;
                 // Offset the arrow head.
                 const dx = ex - cx2;

@@ -322,6 +322,9 @@ export class AssembledLine {
     // Error rolled up from the expanded lines (say, macro lines). Useful when displaying
     // lines from the source (as opposed to the asm).
     public rolledUpError: string | undefined;
+    // The column where we found the mnemonic, if any. This is in logical columns, so a tab
+    // counts as one column.
+    public mnemonicColumn: number | undefined = undefined;
 
     constructor(fileInfo: FileInfo, lineNumber: number | undefined, line: string) {
         this.fileInfo = fileInfo;
@@ -1091,10 +1094,13 @@ class LineParser {
         const mnemonicInfo = this.tokenizer.readIdentifier(false, PositionRequirement.NOT_FIRST_COLUMN);
         if (mnemonicInfo !== undefined) {
             mnemonic = mnemonicInfo.name;
+            this.assembledLine.mnemonicColumn = mnemonicInfo.column;
         } else {
             // Special check for "=", which is the same as "defl".
-            if (this.tokenizer.getCurrentColumn() > 0 && this.tokenizer.found("=")) {
+            let currentColumn = this.tokenizer.getCurrentColumn();
+            if (currentColumn > 0 && this.tokenizer.found("=")) {
                 mnemonic = "=";
+                this.assembledLine.mnemonicColumn = currentColumn;
             }
         }
         if (mnemonic !== undefined) {
