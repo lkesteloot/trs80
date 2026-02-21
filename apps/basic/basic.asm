@@ -398,14 +398,16 @@ has_line_number:
 	call skip_whitespace		; See if the code is all whitespace.
 	pop de
 	or a,a
-	jr z,end			; It is, nothing left to do.
+	jr z,end_has_line_number	; It is, nothing left to do.
 	ld a,(de)			; Skip at most one space.
 	cp a,' '
 	jr nz,not_space
 	inc de
 not_space:
 	call insert_line		; Insert the line into the program.
-	jr end
+end_has_line_number:
+	ld sp,(ready_prompt_sp)
+	jr prompt_loop
 #endlocal
 
 ; Show a runtime error message and return to the Ready prompt.
