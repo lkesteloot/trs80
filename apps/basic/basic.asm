@@ -1383,6 +1383,10 @@ pop_loop:
 	call pop_operator_stack
 	jr pop_loop
 end_compile_expression:
+	; See if we had a valid expression.
+	ld a,(expect_unary)		; Expect unary implies we're expecting an operand.
+	or a,a
+	jp nz,compile_error
 	; Restore global state from recursive call.
 	ld iy,MAX_OP_STACK_SIZE		; Space for op stack.
 	add iy,sp
