@@ -272,22 +272,22 @@ OP_INVALID equ 0xFF			; For errors and sentinel.
 	jp soft_boot
 
 	.org 0x0008
-	nop
+	ret
 
 	.org 0x0010
-	nop
+	ret
 
 	.org 0x0018
-	nop
+	ret
 
 	.org 0x0020
-	nop
+	ret
 
 	.org 0x0028
-	nop
+	ret
 
 	.org 0x0030
-	nop
+	ret
 
 	; Maskable interrupt routine.
 	.org 0x0038
@@ -577,12 +577,10 @@ insert_line:
 	call find_line_number		; HL = line after BC.
 	jp c,internal_error		; Shouldn't already be there.
 	push hl				; Push next line address.
-
 	push de				; Save tokenized buffer address.
-
-	push hl
+	push hl				; Temporarily save HL.
 	ld hl,de
-	call strlen			; Get length of tokenized buffer.
+	call strlen			; Get length of tokenized buffer into BC.
 	pop hl
 	push bc				; Save length for later.
 	push bc				; Twice.
@@ -610,15 +608,15 @@ insert_line:
 	add hl,de			; Plus line length.
 	ld de,7				; Line header + nul.
 	add hl,de
+	ld de,hl			; Destination into DE.
 	pop hl				; Restore source address.
 	lddr				; Copy to make space for line.
-
 	; Copy tokenized buffer.
 	pop ix				; Tokenized line length.
 	pop de				; Tokenized buffer address.
 	pop hl				; Next line address.
 	pop bc				; Line number.
-	m_add_word 0			; Write next line address.
+	m_add_word 1			; Write next line address (anything non-zero).
 	m_add c				; Line number.
 	m_add b
 	m_add_word 0			; Compile address.
