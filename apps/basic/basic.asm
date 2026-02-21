@@ -38,7 +38,8 @@ CLEAR_CHAR equ 32
 BS equ 8
 NL equ 10
 BREAK equ 27
-INPUT_BUFFER_SIZE equ 64		; Including nul.
+INPUT_BUFFER_SIZE equ 128		; Including nul.
+PROGRAM_SIZE equ 10240			; Tokenized code.
 BINARY_SIZE equ 10240			; Compiled code.
 KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
@@ -328,12 +329,12 @@ soft_boot:
 	out (0xE0),a 			; Enable timer interrupt.
 	ei
 
-	; Fix up next-line pointers in the program.
-	call fix_program_pointers
+	; Set up program area.
+	call new
 
 	; Clear the screen; home cursor.
 	call cls
-	
+
 	; Write boot message.
 	ld hl,boot_message
 	call write_text
@@ -358,8 +359,11 @@ prompt_loop:
 	call read_text
 	ld a,(KEYBOARD_BEGIN+0x80)	; See if Shift-Enter was pressed.
 	and a,0x03			; Either shift.
-	ld (debug_output),a		; Save whether to print debugging output.	
-	call tokenize
+	ld (debug_output),a		; Save whether to print debugging output.
+	ld bc,hl			; Put destination buffer in BC (same as source).
+	push hl				; We want to remember the buffer location.
+	call tokenize			; Tokenize in-place.
+	pop hl
 	if 0
 	call detokenize			; For debugging the tokenize/detokenize routine.
 	ld a,NL
@@ -371,7 +375,7 @@ prompt_loop:
 	jp z,prompt_loop
 	call is_digit			; See if it's a line number.
 	jp nc,has_line_number		; Process a line number, not immediate mode.
-	ld hl,binary
+	ld hl,binary			; Compile to "binary" buffer.
 	call compile_line		; Compile the command line.
         m_add I_RET
 	ld a,(debug_output)
@@ -504,6 +508,29 @@ cls:
 	ret
 #endlocal
 
+; Erase the program in memory.
+new:
+#local
+	push hl
+	ld hl,program
+	xor a,a
+	ld (hl),a			; Next pointer.
+	inc hl
+	ld (hl),a
+	inc hl
+	ld (hl),a			; Line number.
+	inc hl
+	ld (hl),a
+	inc hl
+	ld (hl),a			; Compile pointer.
+	inc hl
+	ld (hl),a
+	inc hl
+	call fix_program_pointers	; Set program_end.
+	pop hl
+	ret
+#endlocal
+
 ; Detokenize and write the contents of the program.
 list:
 #local
@@ -573,6 +600,7 @@ done:
 ; number BC. This line must not already exist.
 insert_line:
 #local
+	push hl
 	push bc				; Save line number.
 	call find_line_number		; HL = line after BC.
 	jp c,internal_error		; Shouldn't already be there.
@@ -626,6 +654,7 @@ insert_line:
 	ex de,hl			; Swap source and destination.
 	ldir				; Copy tokenized buffer and nul.
 	call fix_program_pointers
+	pop hl
 	ret
 #endlocal
 
@@ -634,6 +663,8 @@ insert_line:
 ; the final line, which must be null (and will remain so).
 fix_program_pointers:
 #local
+	push hl
+	push de
 	ld hl,program
 loop:
 	ld de,hl			; DE will walk to the next line.
@@ -660,6 +691,8 @@ find_nul:				; Find the nul end-of-line byte.
 	jr loop
 done:
 	ld (program_end),de		; Store end-of-program pointer.
+	pop de
+	pop hl
 	ret
 #endlocal
 
@@ -760,12 +793,10 @@ troff:
 	ret
 #endlocal
 
-; Tokenize the string at HL in-place, nul-terminating the result.
+; Tokenize the string at HL to BC (which can equal HL), nul-terminating the result.
+; Leaves HL and BC on the nuls.
 tokenize:
 #local
-	push hl
-	push bc
-	ld bc,hl			; BC = output pointer.
 loop:
 	ld a,(hl)
 	or a,a				; See if we're done with string.
@@ -807,8 +838,6 @@ string_loop:
 
 done:
 	ld (bc),a			; Nul-terminate BC (A is zero here).
-	pop bc
-	pop hl
 	ret	
 #endlocal
 
@@ -1060,6 +1089,7 @@ compile_call:
 	; TODO Check if overrunning compile buffer.
 	jp loop
 
+; Compile the SET statement.
 compile_set:
 	ld a,'('			; Skip open parenthesis.
 	call expect_and_skip
@@ -1077,6 +1107,7 @@ compile_set:
 	m_add_word set_pixel
 	jp loop
 
+; Compile the GOTO statement.
 compile_goto:
 	; TODO can't call this from immediate mode, program isn't compiled.
 	; maybe have a global flag for whether the compile is valid, set after
@@ -1102,6 +1133,7 @@ compile_goto:
 	m_add b
 	jp loop
 
+; Compile the IF statement.
 compile_if:
 	call compile_expression		; Conditional onto the stack.
 	call skip_whitespace
@@ -1121,6 +1153,15 @@ not_then:
 	m_add 0
 	jp loop
 
+; Compile the LOAD statement, which we use to load demo code.
+compile_load:
+	call compile_expression		; Program number on the stack.
+	call add_pop_de			; Program number.
+	m_add I_CALL
+	m_add_word load_sample
+	jp loop
+
+; Compile the POKE statement.
 compile_poke:
 	call compile_expression		; Address onto the stack.
 	ld a,','
@@ -1132,6 +1173,7 @@ compile_poke:
 	m_add I_LD_DE_A
 	jp loop
 
+; Compile the PRINT statement.
 compile_print:
 	call compile_expression		; Onto the stack.
 	call add_pop_hl			; Move to HL for write_decimal_word.
@@ -1524,6 +1566,39 @@ add_pop_hl:
 	ret
 #endlocal
 
+; Load the code sample with 1-based number E.
+load_sample:
+#local
+	ld hl,sample_program_list	; Start of table.
+	ld b,e
+table_loop:
+	ld a,(hl)			; See if pointer is null.
+	inc hl
+	or a,(hl)
+	inc hl
+	jp z,runtime_error		; End of table.
+	djnz table_loop
+	call new			; Only new if there was no error.
+	dec hl				; Dereference HL = (HL).
+	ld a,(hl)
+	dec hl
+	ld l,(hl)
+	ld h,a
+line_loop:
+	ld a,(hl)			; See if line is empty.
+	or a,a
+	ret z				; Done with program text.
+	ld bc,input_buffer		; Tokenize to input buffer.
+	call tokenize			; Tokenize HL to BC.
+	inc hl				; Skip past nul.
+	ld de,input_buffer		; Address of tokenized line.
+	call read_numeric_literal	; BC has line number.
+	call delete_line		; Delete the line with that line number.
+	inc de				; Skip exactly one space.
+	call insert_line		; Insert the line into the program.
+	jr line_loop
+#endlocal
+
 ; Tokens from 0x80 to 0xBB are commands. These are the routines to call
 ; to compile each token. If the address has the high bit set (0x8000),
 ; end a CALL to that address is compiled.
@@ -1567,7 +1642,7 @@ compile_command_dispatch:
 	dw 0 ; GET (0xA4)
 	dw 0 ; PUT (0xA5)
 	dw 0 ; CLOSE (0xA6)
-	dw 0 ; LOAD (0xA7)
+	dw compile_load ; LOAD (0xA7)
 	dw 0 ; MERGE (0xA8)
 	dw 0 ; NAME (0xA9)
 	dw 0 ; KILL (0xAA)
@@ -1587,7 +1662,7 @@ compile_command_dispatch:
 	dw 0 ; CLEAR (0xB8)
 	dw 0 ; CLOAD (0xB9)
 	dw 0 ; CSAVE (0xBA)
-	dw 0 ; NEW (0xBB)
+	dw new | 0x8000 ; NEW (0xBB)
 	
 #endlocal				; End compile_line local block.
 
@@ -2522,65 +2597,75 @@ binary:
 bss_end:
 
 program:
+	ds PROGRAM_SIZE
+
+sample_program_list:
+	dw sample_program_1
+	dw sample_program_2
+	dw sample_program_3
+	dw 0
+
 ; Random pixels on the screen.
-	db 1, 0, lo(10), hi(10), 0, 0, T_CLS, 0
-	; db 1, 0, lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '(128)', T_OP_SUB, '1,', T_RND, '(47))', 0
-	db 1, 0, lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '()', T_AND, '127,', T_RND, '(48)', T_OP_SUB, '1)', 0
-	; db 1, 0, lo(20), hi(20), 0, 0, T_SET, '(', T_RND, '()', T_AND, '127,', T_RND, '()', T_AND, '31)', 0
-	db 1, 0, lo(30), hi(30), 0, 0, T_GOTO, ' 20', 0
-	db 0, 0, 0, 0, 0, 0
+sample_program_1:
+	db "10 CLS", 0
+	db "20 SET(RND() AND 127, RND(48) - 1)", 0
+	db "30 GOTO 20", 0
+	db 0
 
 ; Fill screen with characters.
-; line10:	db lo(line20), hi(line20), lo(10), hi(10), 0, 0, 'I', T_OP_EQU, '15360', 0
-; line20: db lo(line30), hi(line30), lo(20), hi(20), 0, 0, T_POKE, ' I,191', 0
-; line30: db lo(line40), hi(line40), lo(30), hi(30), 0, 0, 'I', T_OP_EQU, 'I', T_OP_ADD, '1', 0
-; line40: db lo(line_end), hi(line_end), lo(40), hi(40), 0, 0, T_IF, ' I', T_OP_LT, '16384 ', T_THEN, ' ', T_GOTO, ' 20', 0
-; line_end: db 0, 0, 0, 0, 0, 0
+sample_program_2:
+	db "10 I=15360", 0
+	db "20 POKE I,191", 0
+	db "30 I=I+1", 0
+	db "40 IF I<16384 THEN GOTO 20", 0
+	db 0
 
-	db 1, 0, lo(5), hi(5), 0, 0, T_CLS, 0
-	db 1, 0, lo(10), hi(10), 0, 0, 'A ', T_OP_EQU, ' 64', 0
-	db 1, 0, lo(11), hi(11), 0, 0, 'B ', T_OP_EQU, ' 8', 0
-	db 1, 0, lo(12), hi(12), 0, 0, 'C ', T_OP_EQU, ' 8', 0
-	db 1, 0, lo(20), hi(20), 0, 0, 'D ', T_OP_EQU, ' 4', T_OP_MUL, 'A', 0
-	db 1, 0, lo(30), hi(30), 0, 0, 'E ', T_OP_EQU, ' 128', 0
-	db 1, 0, lo(40), hi(40), 0, 0, 'F ', T_OP_EQU, ' 48', 0
-	db 1, 0, lo(50), hi(50), 0, 0, 'G ', T_OP_EQU, ' 15', 0
-	db 1, 0, lo(60), hi(60), 0, 0, 'H ', T_OP_EQU, ' ', T_OP_SUB, '2', T_OP_MUL, 'A', 0
-	db 1, 0, lo(70), hi(70), 0, 0, 'J ', T_OP_EQU, ' 1', T_OP_MUL, 'A', 0
-	db 1, 0, lo(80), hi(80), 0, 0, 'K ', T_OP_EQU, ' ', T_OP_SUB, '5', T_OP_MUL, 'A', T_OP_DIV, '4', 0
-	db 1, 0, lo(90), hi(90), 0, 0, 'L ', T_OP_EQU, ' 5', T_OP_MUL, 'A', T_OP_DIV, '4', 0
-	db 1, 0, lo(98), hi(98), 0, 0, 'P ', T_OP_EQU, ' J ', T_OP_SUB, ' H', 0
-	db 1, 0, lo(99), hi(99), 0, 0, 'Q ', T_OP_EQU, ' E ', T_OP_SUB, ' 1', 0
-	db 1, 0, lo(100), hi(100), 0, 0, 'M ', T_OP_EQU, ' P', T_OP_DIV, 'Q', 0
-	db 1, 0, lo(108), hi(108), 0, 0, 'P ', T_OP_EQU, ' L ', T_OP_SUB, ' K', 0
-	db 1, 0, lo(109), hi(109), 0, 0, 'Q ', T_OP_EQU, ' F ', T_OP_SUB, ' 1', 0
-	db 1, 0, lo(110), hi(110), 0, 0, 'N ', T_OP_EQU, ' P', T_OP_DIV, 'Q', 0
-	db 1, 0, lo(120), hi(120), 0, 0, 'I ', T_OP_EQU, ' K', 0
-	db 1, 0, lo(130), hi(130), 0, 0, 'Y ', T_OP_EQU, ' 0', 0
-	db 1, 0, lo(140), hi(140), 0, 0, '    R ', T_OP_EQU, ' H', 0
-	db 1, 0, lo(150), hi(150), 0, 0, '    X ', T_OP_EQU, ' 0', 0
-	db 1, 0, lo(160), hi(160), 0, 0, '        O ', T_OP_EQU, ' 0', 0
-	db 1, 0, lo(170), hi(170), 0, 0, '        P ', T_OP_EQU, ' 0', 0
-	db 1, 0, lo(180), hi(180), 0, 0, '        Q ', T_OP_EQU, ' 0', 0
-	db 1, 0, lo(190), hi(190), 0, 0, '        S ', T_OP_EQU, ' 0', 0
-	db 1, 0, lo(200), hi(200), 0, 0, '        T ', T_OP_EQU, ' 0', 0
-	db 1, 0, lo(220), hi(220), 0, 0, '            U ', T_OP_EQU, ' S ', T_OP_SUB, ' T ', T_OP_ADD, ' R', 0
-	db 1, 0, lo(230), hi(230), 0, 0, '            V ', T_OP_EQU, ' O', T_OP_MUL, '2', T_OP_MUL, 'P', T_OP_DIV, 'B', T_OP_DIV, 'C ', T_OP_ADD, ' I', 0
-	db 1, 0, lo(240), hi(240), 0, 0, '            O ', T_OP_EQU, ' U', 0
-	db 1, 0, lo(250), hi(250), 0, 0, '            P ', T_OP_EQU, ' V', 0
-	db 1, 0, lo(260), hi(260), 0, 0, '            S ', T_OP_EQU, ' O', T_OP_MUL, 'O', T_OP_DIV, 'B', T_OP_DIV, 'C', 0
-	db 1, 0, lo(270), hi(270), 0, 0, '            T ', T_OP_EQU, ' P', T_OP_MUL, 'P', T_OP_DIV, 'B', T_OP_DIV, 'C', 0
-	db 1, 0, lo(280), hi(280), 0, 0, '            Q ', T_OP_EQU, ' Q ', T_OP_ADD, ' 1', 0
-	db 1, 0, lo(290), hi(290), 0, 0, '        ', T_IF, ' Q ', T_OP_LT, ' G ', T_AND, ' S ', T_OP_ADD, ' T ', T_OP_LT, ' D ', T_THEN, ' ', T_GOTO, ' 220', 0
-	db 1, 0, lo(300), hi(300), 0, 0, '        ', T_IF, ' Q ', T_AND, ' 1 ', T_THEN, ' ', T_SET, '(X,Y)', 0
-	db 1, 0, lo(310), hi(310), 0, 0, '        R ', T_OP_EQU, ' R ', T_OP_ADD, ' M', 0
-	db 1, 0, lo(320), hi(320), 0, 0, '    X ', T_OP_EQU, ' X ', T_OP_ADD, ' 1', 0
-	db 1, 0, lo(321), hi(321), 0, 0, '    ', T_IF, ' X ', T_OP_LT, ' E ', T_THEN, ' ', T_GOTO, ' 160', 0
-	db 1, 0, lo(340), hi(340), 0, 0, '    I ', T_OP_EQU, ' I ', T_OP_ADD, ' N', 0
-	db 1, 0, lo(350), hi(350), 0, 0, 'Y ', T_OP_EQU, ' Y ', T_OP_ADD, ' 1', 0
-	db 1, 0, lo(351), hi(351), 0, 0, T_IF, ' Y ', T_OP_LT, ' F ', T_THEN, ' ', T_GOTO, ' 140', 0
-	db 1, 0, lo(360), hi(360), 0, 0, T_GOTO, ' 360', 0
-	db 0, 0, 0, 0, 0, 0
+; Mandelbrot set.
+sample_program_3:
+	db "5 CLS", 0
+	db "10 A = 64", 0
+	db "11 B = 8", 0
+	db "12 C = 8", 0
+	db "20 D = 4*A", 0
+	db "30 E = 128", 0
+	db "40 F = 48", 0
+	db "50 G = 15", 0
+	db "60 H = -2*A", 0
+	db "70 J = 1*A", 0
+	db "80 K = -5*A/4", 0
+	db "90 L = 5*A/4", 0
+	db "98 P = J - H", 0
+	db "99 Q = E - 1", 0
+	db "100 M = P/Q", 0
+	db "108 P = L - K", 0
+	db "109 Q = F - 1", 0
+	db "110 N = P/Q", 0
+	db "120 I = K", 0
+	db "130 Y = 0", 0
+	db "140     R = H", 0
+	db "150     X = 0", 0
+	db "160         O = 0", 0
+	db "170         P = 0", 0
+	db "180         Q = 0", 0
+	db "190         S = 0", 0
+	db "200         T = 0", 0
+	db "220             U = S - T + R", 0
+	db "230             V = O*2*P/B/C + I", 0
+	db "240             O = U", 0
+	db "250             P = V", 0
+	db "260             S = O*O/B/C", 0
+	db "270             T = P*P/B/C", 0
+	db "280             Q = Q + 1", 0
+	db "290         IF Q < G AND S + T < D THEN GOTO 220", 0
+	db "300         IF Q AND 1 THEN SET(X,Y)", 0
+	db "310         R = R + M", 0
+	db "320     X = X + 1", 0
+	db "321     IF X < E THEN GOTO 160", 0
+	db "340     I = I + N", 0
+	db "350 Y = Y + 1", 0
+	db "351 IF Y < F THEN GOTO 140", 0
+	db "360 GOTO 360", 0
+	db 0
 
 ; Scratch space for the disassembler.
 disasm_buffer:
