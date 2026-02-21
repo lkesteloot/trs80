@@ -1318,7 +1318,7 @@ export class Editor {
         };
 
         // Extension to highlight gutter of PC.
-        const currentPcGutterHighlighter = gutterLineClass.compute([currentPcState], state => {
+        const currentPcGutterHighlighter = gutterLineClass.compute([currentPcState, "doc"], state => {
             const marks = [];
             const linePos = getPcLinePos(state);
             if (linePos !== undefined) {
