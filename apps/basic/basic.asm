@@ -962,8 +962,6 @@ token_skip:
 	jp token_loop
 
 found_token:
-	; ld a,'{'
-	; call write_char
 	ld a,(bc)			; Read the token.
 print_token_loop:
 	and a,0x7F			; Clear high bit.
@@ -972,8 +970,6 @@ print_token_loop:
 	ld a,(bc)
 	or a,a
 	jp p,print_token_loop		; Until we reach start of next token.
-	; ld a,'}'
-	; call write_char
 	ret
 
 plain_char:
@@ -1024,6 +1020,41 @@ strlen:
 	ret
 #endlocal
 
+; Skips whitespace. Then, if DE points to a variable name, advances DE,
+; puts the variable's address in BC, and clears carry. Otherwise, DE is
+; left after the whitespace, A has the next character, BC is untouched,
+; and carry is set.
+parse_variable_name:
+#local
+	call skip_whitespace
+	cp a,'A'			; Check if valid first letter (A-Z).
+	ret c
+	cp a,'Z'+1
+	jp c,is_variable
+	ccf				; Carry means no variable.
+	ret
+is_variable:
+	ld b,a				; Put the variable name in BC.
+	ld c,0
+	inc de				; Skip the first letter.
+	ld a,(de)
+	cp a,'0'			; Check if valid second letter (A-Z, 0-9).
+	jr c,one_letter
+	cp a,'Z'+1
+	jr nc,one_letter
+	cp a,'9'+1
+	jr c,two_letter
+	cp a,'A'
+	jr c,one_letter
+two_letter:
+	inc de				; Skip the second letter.
+	ld c,a
+one_letter:
+	call find_variable		; Address is in BC.
+	or a,a				; No carry means we found a variable.
+	ret
+#endlocal
+
 ; Compile the nul-terminated tokenized code at DE to a binary buffer at HL.
 ; Restores DE but keeps HL just past the last byte that was written.
 compile_line:
@@ -1035,18 +1066,14 @@ compile_line:
 	ld (ix),0
 	ld (ix+1),0
 loop:
-	call skip_whitespace
-	inc de				; Skip token (it's in A).
-	or a,a
+	call parse_variable_name	; See if it's an assignment.
+	jr nc,found_variable		; Found a variable name.
+	or a,a				; Test token.
 	jp z,eol			; Nul byte is end of the buffer.
-	jp m,compile_token		; High bit is set, see if it's a statement.
-	cp a,'A'			; See if it's a variable assignment
-	jp c,compile_error
-	cp a,'Z'+1
-	jp nc,compile_error
-	ld b,a				; Put variable name in BC.
-	ld c,0				; Don't yet support two-letter variable names.
-	call find_variable		; Variable address in BC.
+	jp p,compile_error		; Not token, it's an error.
+	inc de				; Skip token.
+	jp compile_token
+found_variable:
 	push bc				; Save address.
 	ld a,T_OP_EQU
 	call expect_and_skip
@@ -1132,15 +1159,8 @@ compile_set:
 
 ; Compile the FOR statement.
 compile_for:
-	call skip_whitespace
-	cp a,'A'			; Check for valid variable name.
-	jp c,compile_error
-	cp a,'Z'+1
-	jp nc,compile_error
-	inc de				; Skip variable name.
-	ld b,a				; Put variable name in BC.
-	ld c,0				; Don't yet support two-letter variable names.
-	call find_variable		; Variable address in BC.
+	call parse_variable_name	; Variable address in BC.
+	jp c,compile_error		; Didn't find a variable name.
 	push bc				; Save address.
 	ld a,T_OP_EQU
 	call expect_and_skip		; Skip equal sign.
@@ -1187,10 +1207,11 @@ compile_for:
 
 ; Compile the NEXT statement.
 compile_next:
+	call parse_variable_name	; Skip optional variable name.
+	; TODO check if the same variable.
+	; TODO check if NEXT without FOR.
 	push de				; Source pointer.
 	push hl				; Compile pointer, must be top of stack.
-	; TODO parse variable and check if the same.
-	; TODO check if NEXT without FOR.
 	ld hl,(for_pointer)
 	ld de,hl			; Save in DE.
 	ld c,(hl)			; Address of variable in BC.
@@ -1211,7 +1232,6 @@ compile_next:
 	m_add I_LD_HL_E
 	ex (sp),hl
 
-	; No longer need BC at compile time.
 	ld c,(hl)			; Address of top of loop in BC.
 	inc hl
 	ld b,(hl)
@@ -1492,14 +1512,8 @@ no_rnd_expression:
 	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
 not_rnd:
-	cp a,'A'			; See if it's a variable.
-	jp c,end_of_expression
-	cp a,'Z'+1
-	jp nc,end_of_expression
-	ld b,a				; Put variable name in BC.
-	ld c,0				; Don't yet support two-letter variable names.
-	inc de
-	call find_variable		; Variable address in BC.
+	call parse_variable_name	; See if it's a variable.
+	jp c,end_of_expression		; Nope.
 	m_add I_LD_A_ADDR		; Variable value in DE.
 	m_add c
 	m_add b
@@ -2790,7 +2804,7 @@ sample_program_2:
 sample_program_3:
 	db "10 FOR I=15360 TO 16383", 0
 	db "20 POKE I,191", 0
-	db "30 NEXT", 0
+	db "30 NEXT I", 0
 	db 0
 
 ; Fill screen with pixels (nested FOR loops).
@@ -2798,52 +2812,49 @@ sample_program_4:
 	db "10 FOR Y=0 TO 47", 0
 	db "20   FOR X=0 TO 127", 0
 	db "30     SET(X,Y)", 0
-	db "40   NEXT", 0
-	db "50 NEXT", 0
+	db "40   NEXT X", 0
+	db "50 NEXT Y", 0
 	db 0
 
 ; Mandelbrot set.
 sample_program_5:
 	db "5 CLS", 0
-	db "10 A = 64", 0
-	db "11 B = 8", 0
-	db "12 C = 8", 0
-	db "20 D = 4*A", 0
-	db "30 E = 128", 0
-	db "40 F = 48", 0
-	db "50 G = 15", 0
-	db "60 H = -2*A", 0
-	db "70 J = 1*A", 0
-	db "80 K = -5*A/4", 0
-	db "90 L = 5*A/4", 0
-	db "98 P = J - H", 0
-	db "99 Q = E - 1", 0
-	db "100 M = P/Q", 0
-	db "108 P = L - K", 0
-	db "109 Q = F - 1", 0
-	db "110 N = P/Q", 0
-	db "120 I = K", 0
-	db "130 FOR Y = 0 TO F - 1", 0
-	db "140     R = H", 0
-	db "150     FOR X = 0 TO E - 1", 0
-	db "160         O = 0", 0
-	db "170         P = 0", 0
-	db "180         Q = 0", 0
-	db "190         S = 0", 0
-	db "200         T = 0", 0
-	db "220             U = S - T + R", 0
-	db "230             V = O*2*P/64 + I", 0
-	db "240             O = U", 0
-	db "250             P = V", 0
-	db "260             S = O*O/64", 0
-	db "270             T = P*P/64", 0
-	db "280             Q = Q + 1", 0
-	db "290         IF Q < 15 AND S + T < D THEN GOTO 220", 0
-	db "300         IF Q AND 1 THEN SET(X,Y)", 0
-	db "310         R = R + M", 0
-	db "320     NEXT", 0
-	db "340     I = I + N", 0
-	db "350 NEXT", 0
+	db "10 C1 = 64", 0
+	db "11 CA = 8", 0
+	db "12 CB = 8", 0
+	db "13 AB = CA*CB", 0
+	db "20 C4 = 4*C1", 0
+	db "30 XR = 128", 0
+	db "40 YR = 48", 0
+	db "50 MC = 14", 0
+	db "60 RN = -2*C1", 0
+	db "70 RX = 1*C1", 0
+	db "80 IN = -5*C1/4", 0
+	db "90 IX = 5*C1/4", 0
+	db "100 RD = (RX - RN)/(XR - 1)", 0
+	db "110 ID = (IX - IN)/(YR - 1)", 0
+	db "120 I = IN", 0
+	db "130 FOR Y = 0 TO YR - 1", 0
+	db "140     R = RN", 0
+	db "150     FOR X = 0 TO XR - 1", 0
+	db "160         ZR = 0", 0
+	db "170         ZI = 0", 0
+	db "180         CT = 0", 0
+	db "190         R2 = 0", 0
+	db "200         I2 = 0", 0
+	db "220             TR = R2 - I2 + R", 0
+	db "230             TI = ZR*2*ZI/AB + I", 0
+	db "240             ZR = TR", 0
+	db "250             ZI = TI", 0
+	db "260             R2 = ZR*ZR/AB", 0
+	db "270             I2 = ZI*ZI/AB", 0
+	db "280             CT = CT + 1", 0
+	db "290         IF CT < MC AND R2 + I2 < C4 THEN GOTO 220", 0
+	db "300         IF CT AND 1 THEN SET(X,Y)", 0
+	db "310         R = R + RD", 0
+	db "320     NEXT X", 0
+	db "340     I = I + ID", 0
+	db "350 NEXT Y", 0
 	db "360 GOTO 360", 0
 	db 0
 
