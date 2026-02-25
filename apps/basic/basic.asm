@@ -46,6 +46,7 @@ CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
 MAX_VARS equ 32
 MAX_OP_STACK_SIZE equ 16
+MAX_FORS equ 8
 
 ; Z80 opcodes.
 I_LD_DE_IMM equ 0x11
@@ -53,9 +54,12 @@ I_LD_DE_A equ 0x12
 I_INC_DE equ 0x13
 I_RLA equ 0x17
 I_ADD_HL_DE equ 0x19
+I_DEC_DE equ 0x1B
 I_LD_HL_IMM equ 0x21
 I_INC_HL equ 0x23
+I_DEC_HL equ 0x2B
 I_SCF equ 0x37
+I_LD_A_ADDR equ 0x3A
 I_DEC_A equ 0x3D
 I_LD_A_IMM equ 0x3E
 I_CCF equ 0x3F
@@ -70,7 +74,9 @@ I_LD_E_L equ 0x5D
 I_LD_E_HL equ 0x5E
 I_LD_E_A equ 0x5F
 I_LD_H_D equ 0x62
+I_LD_H_A equ 0x67
 I_LD_L_E equ 0x6B
+I_LD_L_A equ 0x6F
 I_LD_HL_D equ 0x72
 I_LD_HL_E equ 0x73
 I_LD_A_D equ 0x7A
@@ -82,13 +88,15 @@ I_AND_A_H equ 0xA4
 I_AND_A_L equ 0xA5
 I_XOR_A_A equ 0xAF
 I_OR_A_E equ 0xB3
+I_OR_A_A equ 0xB7
 I_POP_BC equ 0xC1
 I_JP equ 0xC3
 I_PUSH_BC equ 0xC5
 I_RET equ 0xC9
-I_JP_Z_ADDR equ 0xCA
+I_JP_Z equ 0xCA
 I_CALL equ 0xCD
 I_POP_DE equ 0xD1
+I_JP_NC equ 0xD2
 I_PUSH_DE equ 0xD5
 I_POP_HL equ 0xE1
 I_PUSH_HL equ 0xE5
@@ -375,11 +383,16 @@ prompt_loop:
 	jp z,prompt_loop
 	call is_digit			; See if it's a line number.
 	jp nc,has_line_number		; Process a line number, not immediate mode.
+	ld hl,for_pointer		; Clear the FOR stack.
+	ld (hl),lo(fors-4)		; It's pre-incremented.
+	inc hl
+	ld (hl),hi(fors-4)
 	ld hl,binary			; Compile to "binary" buffer.
 	call compile_line		; Compile the command line.
         m_add I_RET
 	ld a,(debug_output)
 	or a,a
+	ld de,binary
 	jp nz,print_binary
 	ld a,1
 	ld (running),a			; Running.
@@ -416,10 +429,11 @@ runtime_error:
 	call write_text
 	jr end
 
-; Print the contents of the binary. It starts at "binary" and ends at "hl".
+; Print the contents of the binary. It starts at DE and ends at HL.
 print_binary:
-	ld de,hl			; Save end of buffer.
-	ld hl,binary
+	ex de,hl
+	if 0
+	push hl				; Start of buffer.
 print_binary_loop:
 	ld a,(hl)
 	call write_hex_byte
@@ -437,7 +451,8 @@ print_binary_loop:
 	ld a,NL
 	call write_char
 	; Now disassemble.
-	ld hl,binary
+	pop hl
+	endif
 	ld b,SCREEN_HEIGHT-1		; Show this many lines at a time.
 disasm_loop:
 	ld a,h				; If HL = DE, we're done.
@@ -447,6 +462,11 @@ disasm_loop:
 	cp a,e
 	jp z,ready_prompt_loop
 do_disasm:
+	call write_hex_word		; Write address (HL).
+	ld a,' '
+	call write_char
+	ld a,' '
+	call write_char
 	push de				; Save end of buffer.
 	ld de,disasm_buffer		; Where to disassemble into.
 	push bc				; Save line counter.
@@ -770,6 +790,7 @@ done:
 	m_add_word end
 	ld a,(tron_flag)
 	or a,a
+	ld de,binary + 30 ; TODO
 	jp nz,print_binary
 	call binary + 30 ; TODO
 	pop ix
@@ -1109,6 +1130,122 @@ compile_set:
 	m_add_word set_pixel
 	jp loop
 
+; Compile the FOR statement.
+compile_for:
+	call skip_whitespace
+	cp a,'A'			; Check for valid variable name.
+	jp c,compile_error
+	cp a,'Z'+1
+	jp nc,compile_error
+	inc de				; Skip variable name.
+	ld b,a				; Put variable name in BC.
+	ld c,0				; Don't yet support two-letter variable names.
+	call find_variable		; Variable address in BC.
+	push bc				; Save address.
+	ld a,T_OP_EQU
+	call expect_and_skip		; Skip equal sign.
+	call compile_expression		; Start value is on the stack.
+	pop bc				; Restore variable address.
+	call add_pop_de			; Start value.
+	m_add I_LD_HL_IMM		; Variable address in HL.
+	m_add c
+	m_add b
+	m_add I_LD_HL_E			; Write DE to variable.
+	m_add I_INC_HL
+	m_add I_LD_HL_D
+	ld a,T_TO
+	push bc				; Variable address.
+	call expect_and_skip
+	call compile_expression		; End value is on the stack.
+	ld bc,(for_pointer)
+	inc bc				; Pre-increment to the next entry.
+	inc bc
+	inc bc
+	inc bc
+	ld (for_pointer),bc
+	call add_pop_de			; End value.
+	m_add I_LD_HL_IMM		; Address of end value.
+	m_add c
+	m_add b
+	m_add I_LD_HL_E			; Store end value.
+	m_add I_INC_HL
+	m_add I_LD_HL_D
+	m_add I_INC_HL
+	pop bc				; Variable address.
+	push hl				; Compile pointer.
+	ld hl,(for_pointer)
+	ld (hl),c			; Save BC, address of variable.
+	inc hl
+	ld (hl),b
+	inc hl
+	pop bc				; Pop compile address (pushed as HL).
+	ld (hl),c			; Save BC, address of top of loop.
+	inc hl
+	ld (hl),b
+	ld hl,bc			; Restore compile pointer to HL.
+	jp loop
+
+; Compile the NEXT statement.
+compile_next:
+	push de				; Source pointer.
+	push hl				; Compile pointer, must be top of stack.
+	; TODO parse variable and check if the same.
+	; TODO check if NEXT without FOR.
+	ld hl,(for_pointer)
+	ld de,hl			; Save in DE.
+	ld c,(hl)			; Address of variable in BC.
+	inc hl
+	ld b,(hl)
+	inc hl
+
+	ex (sp),hl
+	m_add I_LD_HL_IMM		; Variable address in HL.
+	m_add c
+	m_add b
+	m_add I_LD_E_HL			; Variable value in DE.
+	m_add I_INC_HL
+	m_add I_LD_D_HL
+	m_add I_INC_DE			; Increment loop variable.
+	m_add I_LD_HL_D			; Save new value.
+	m_add I_DEC_HL
+	m_add I_LD_HL_E
+	ex (sp),hl
+
+	; No longer need BC at compile time.
+	ld c,(hl)			; Address of top of loop in BC.
+	inc hl
+	ld b,(hl)
+	inc hl
+	
+	ex (sp),hl
+	m_add I_LD_A_ADDR		; End value into HL.
+	m_add e
+	m_add d
+	m_add I_LD_L_A
+	inc de
+	m_add I_LD_A_ADDR
+	m_add e
+	m_add d
+	m_add I_LD_H_A
+	m_add I_OR_A_A			; Clear carry.
+	m_add I_SBC_HL_DE_1
+	m_add I_SBC_HL_DE_2
+	m_add I_JP_NC			; Jump if I (DE) <= END (HL).
+	m_add c				; Top of loop.
+	m_add b
+	ex (sp),hl
+
+	ld hl,(for_pointer)		; Pop FOR stack.
+	dec hl
+	dec hl
+	dec hl
+	dec hl
+	ld (for_pointer),hl
+
+	pop hl
+	pop de
+	jp loop
+
 ; Compile the GOTO statement.
 compile_goto:
 	; TODO can't call this from immediate mode, program isn't compiled.
@@ -1147,7 +1284,7 @@ not_then:
 	call add_pop_de
 	m_add I_LD_A_D			; See if conditional is zero.
 	m_add I_OR_A_E
-	m_add I_JP_Z_ADDR		; Skip rest of line if false.
+	m_add I_JP_Z			; Skip rest of line if false.
 	ld ix,eol_ref			; Save compile location in eol_ref.
 	ld (ix),l
 	ld (ix+1),h
@@ -1363,14 +1500,15 @@ not_rnd:
 	ld c,0				; Don't yet support two-letter variable names.
 	inc de
 	call find_variable		; Variable address in BC.
-	m_add I_PUSH_HL
-	m_add I_LD_HL_IMM		; Variable address in HL.
+	m_add I_LD_A_ADDR		; Variable value in DE.
 	m_add c
 	m_add b
-	m_add I_LD_E_HL			; Variable value in DE.
-	m_add I_INC_HL
-	m_add I_LD_D_HL
-	m_add I_POP_HL
+	m_add I_LD_E_A
+	inc bc
+	m_add I_LD_A_ADDR
+	m_add c
+	m_add b
+	m_add I_LD_D_A
 	m_add I_PUSH_DE			; Push result.
 	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
@@ -1473,7 +1611,7 @@ compile_op_add:
 compile_op_sub:
 	call add_pop_de			; Second operand.
 	call add_pop_hl			; First operand.
-	m_add I_XOR_A_A			; Clear carry (don't care about A).
+	m_add I_OR_A_A			; Clear carry.
 	m_add I_SBC_HL_DE_1
 	m_add I_SBC_HL_DE_2
 	m_add I_PUSH_HL
@@ -1610,13 +1748,13 @@ line_loop:
 ; end a CALL to that address is compiled.
 compile_command_dispatch:
 	dw end | 0x8000 ; END (0x80)
-	dw 0 ; FOR (0x81)
+	dw compile_for ; FOR (0x81)
 	dw 0 ; RESET (0x82)
 	dw compile_set ; SET (0x83)
 	dw cls | 0x8000 ; CLS (0x84)
 	dw 0 ; CMD (0x85)
 	dw 0 ; RANDOM (0x86)
-	dw 0 ; NEXT (0x87)
+	dw compile_next ; NEXT (0x87)
 	dw 0 ; DATA (0x88)
 	dw 0 ; INPUT (0x89)
 	dw 0 ; DIM (0x8A)
@@ -1830,6 +1968,16 @@ write_char:
 	ld (hl),a
 	call write_text
 	pop hl
+	ret
+#endlocal
+
+; Write in hex the word in HL, just four upper-case characters.
+write_hex_word:
+#local
+	ld a,h
+	call write_hex_byte
+	ld a,l
+	call write_hex_byte
 	ret
 #endlocal
 
@@ -2591,6 +2739,16 @@ program_end:
 variables:
 	ds MAX_VARS*4
 
+; FOR loops. At compile time, each nested loop has the address of the variable
+; and the address of the top of the loop. At runtime, each nested loop has the
+; end value and the step.
+fors:
+	ds MAX_FORS*4
+
+; Pointer to the current entry in the "fors" array.
+for_pointer:
+	ds 2
+	
 ; Whether running a binary right now (0 or 1).
 running:
 	ds 1
@@ -2609,6 +2767,8 @@ sample_program_list:
 	dw sample_program_1
 	dw sample_program_2
 	dw sample_program_3
+	dw sample_program_4
+	dw sample_program_5
 	dw 0
 
 ; Random pixels on the screen.
@@ -2618,7 +2778,7 @@ sample_program_1:
 	db "30 GOTO 20", 0
 	db 0
 
-; Fill screen with characters.
+; Fill screen with characters (IF/GOTO).
 sample_program_2:
 	db "10 I=15360", 0
 	db "20 POKE I,191", 0
@@ -2626,8 +2786,24 @@ sample_program_2:
 	db "40 IF I<16384 THEN GOTO 20", 0
 	db 0
 
-; Mandelbrot set.
+; Fill screen with characters (FOR loop).
 sample_program_3:
+	db "10 FOR I=15360 TO 16383", 0
+	db "20 POKE I,191", 0
+	db "30 NEXT", 0
+	db 0
+
+; Fill screen with pixels (nested FOR loops).
+sample_program_4:
+	db "10 FOR Y=0 TO 47", 0
+	db "20   FOR X=0 TO 127", 0
+	db "30     SET(X,Y)", 0
+	db "40   NEXT", 0
+	db "50 NEXT", 0
+	db 0
+
+; Mandelbrot set.
+sample_program_5:
 	db "5 CLS", 0
 	db "10 A = 64", 0
 	db "11 B = 8", 0
@@ -2647,29 +2823,27 @@ sample_program_3:
 	db "109 Q = F - 1", 0
 	db "110 N = P/Q", 0
 	db "120 I = K", 0
-	db "130 Y = 0", 0
+	db "130 FOR Y = 0 TO F - 1", 0
 	db "140     R = H", 0
-	db "150     X = 0", 0
+	db "150     FOR X = 0 TO E - 1", 0
 	db "160         O = 0", 0
 	db "170         P = 0", 0
 	db "180         Q = 0", 0
 	db "190         S = 0", 0
 	db "200         T = 0", 0
 	db "220             U = S - T + R", 0
-	db "230             V = O*2*P/B/C + I", 0
+	db "230             V = O*2*P/64 + I", 0
 	db "240             O = U", 0
 	db "250             P = V", 0
-	db "260             S = O*O/B/C", 0
-	db "270             T = P*P/B/C", 0
+	db "260             S = O*O/64", 0
+	db "270             T = P*P/64", 0
 	db "280             Q = Q + 1", 0
-	db "290         IF Q < G AND S + T < D THEN GOTO 220", 0
+	db "290         IF Q < 15 AND S + T < D THEN GOTO 220", 0
 	db "300         IF Q AND 1 THEN SET(X,Y)", 0
 	db "310         R = R + M", 0
-	db "320     X = X + 1", 0
-	db "321     IF X < E THEN GOTO 160", 0
+	db "320     NEXT", 0
 	db "340     I = I + N", 0
-	db "350 Y = Y + 1", 0
-	db "351 IF Y < F THEN GOTO 140", 0
+	db "350 NEXT", 0
 	db "360 GOTO 360", 0
 	db 0
 
