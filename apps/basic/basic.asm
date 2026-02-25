@@ -2828,9 +2828,9 @@ sample_program_5:
 	db "40 YR = 48", 0
 	db "50 MC = 14", 0
 	db "60 RN = -2*C1", 0
-	db "70 RX = 1*C1", 0
-	db "80 IN = -5*C1/4", 0
-	db "90 IX = 5*C1/4", 0
+	db "70 RX = 2*C1", 0
+	db "80 IN = -3*C1/2", 0
+	db "90 IX = 3*C1/2", 0
 	db "100 RD = (RX - RN)/(XR - 1)", 0
 	db "110 ID = (IX - IN)/(YR - 1)", 0
 	db "120 I = IN", 0
