@@ -435,7 +435,7 @@ runtime_error:
 ; Print the contents of the binary. It starts at DE and ends at HL.
 print_binary:
 	ex de,hl
-	if 0
+	if 0				; Don't print binary, not interesting.
 	push hl				; Start of buffer.
 print_binary_loop:
 	ld a,(hl)
@@ -561,6 +561,7 @@ list:
 #local
 	push hl
 	ld hl,program
+	ld b,SCREEN_HEIGHT-1		; Show this many lines at a time.
 loop:
 	ld e,(hl)			; Grab address of next line.
 	inc hl
@@ -569,6 +570,7 @@ loop:
 	ld a,e				; See if it's null.
 	or a,d
 	jp z,done			; Null next pointer means no line here.
+	push bc				; Line counter.
 	ld c,(hl)			; Grab line number.
 	inc hl
 	ld b,(hl)
@@ -585,6 +587,12 @@ loop:
 	call detokenize			; Write the line.
 	ld a,NL
 	call write_char
+	pop bc				; Check if we've written a full screen.
+	dec b
+	jp nz,not_pausing
+	call pause
+	ld b,SCREEN_HEIGHT-1		; Show this many lines at a time.
+not_pausing:
 	ld hl,de
 	jp loop
 done:
@@ -2167,17 +2175,32 @@ scroll_up:
 	ret
 #endlocal
 
-; Pause until a key is pressed.
+; Pause until a key is pressed. Shows a ":" prompt.
 pause:
 #local
+	ld a,':'
+	call write_char
 	call enable_cursor
 loop:
 	call poll_keyboard
 	or a,a
 	jr z,loop
 	call disable_cursor
+	call backspace			; Clear the colon.
 	ret
 #endlocal
+
+; Backspaces over the last character. Does not check that we're not at the
+; beginning of the screen.
+backspace:
+	push hl
+	ld hl,(cursor)
+	dec hl
+	ld a,' '
+	ld (hl),a
+	ld (cursor),hl
+	pop hl
+	ret
 
 ; Read a line of text from the keyboard and put
 ; it in the B-length buffer pointed to by HL.
@@ -2216,11 +2239,7 @@ loop:
 
 	dec hl				; Back up and erase character.
 	dec c
-	ld de,(cursor)
-	dec de
-	ld a,' '
-	ld (de),a
-	ld (cursor),de
+	call backspace
 	jp loop
 
 regular_char:
@@ -2939,13 +2958,13 @@ sample_program_6:
 	db "540 IF X > 58 THEN X = 58", 0
 	db "900 GOTO 100", 0
 	db 0
-; Screenshot
+
+	; Screenshot
         .byte 0x80,0xA0 ; Line 0
         .ds 62,0x80
         .byte 0xB8,0xBF,0xBD,0x90 ; Line 1
         .ds 60,0x80	
-	ds 1024
-; End screenshot
+	; End screenshot
 	
 ; Scratch space for the disassembler.
 disasm_buffer:
