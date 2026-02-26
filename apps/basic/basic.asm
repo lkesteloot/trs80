@@ -1031,10 +1031,31 @@ strlen:
 	ret
 #endlocal
 
-; Skips whitespace. Then, if DE points to a variable name, advances DE,
-; puts the variable's address in BC, and clears carry. Otherwise, DE is
-; left after the whitespace, A has the next character, BC is untouched,
-; and carry is set.
+; Parses a variable name at DE.
+;
+; If DE points to a non-array variable name (such as "XY"):
+;
+;     BC has the variable name (X in B, Y or nul in C).
+;     DE is advanced past the name.
+;     C flag is clear.
+;     Z flag is clear.
+;
+; If DE points to an array variable name (such as "XY("):
+;
+;     BC has the variable name with B's high bit set
+;	(X|0x80 in B, Y or nul in C).
+;     DE is advanced past the open parenthesis.
+;     C flag is clear.
+;     Z flag is set.
+;
+; Otherwise:
+;
+;     DE is advanced past initial whitespace.
+;     BC is untouched.
+;     A has the next character.
+;     C flag is set.
+;     Z flag is unspecified.
+;
 parse_variable_name:
 #local
 	call skip_whitespace
@@ -1061,7 +1082,15 @@ two_letter:
 	inc de				; Skip the second letter.
 	ld c,a
 one_letter:
-	call find_variable		; Address is in BC.
+	call skip_whitespace
+	cp a,'('
+	jr nz,not_array
+	inc de				; Skip parenthesis.
+	ld a,b				; Set high bit of B to indicate array.
+	or a,0x80
+	ld b,a
+	xor a,a				; Set Z to indicate array.
+not_array:
 	or a,a				; No carry means we found a variable.
 	ret
 #endlocal
@@ -1085,6 +1114,7 @@ loop:
 	inc de				; Skip token.
 	jp compile_token
 found_variable:
+	call find_variable		; Address is in BC.
 	push bc				; Save address.
 	ld a,T_OP_EQU
 	call expect_and_skip
@@ -1172,6 +1202,7 @@ compile_set:
 compile_for:
 	call parse_variable_name	; Variable address in BC.
 	jp c,compile_error		; Didn't find a variable name.
+	call find_variable		; Address is in BC.
 	push bc				; Save address.
 	ld a,T_OP_EQU
 	call expect_and_skip		; Skip equal sign.
@@ -1558,6 +1589,7 @@ compile_peek:
 not_function:
 	call parse_variable_name	; See if it's a variable.
 	jp c,end_of_expression		; Nope.
+	call find_variable		; Address is in BC.
 	m_add I_LD_A_ADDR		; Variable value in DE.
 	m_add c
 	m_add b
