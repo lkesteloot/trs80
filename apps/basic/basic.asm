@@ -44,7 +44,7 @@ BINARY_SIZE equ 10240			; Compiled code.
 KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
-MAX_VARS equ 32
+MAX_VAR_STORAGE equ 2048
 MAX_OP_STACK_SIZE equ 16
 MAX_FORS equ 8
 
@@ -1888,11 +1888,12 @@ compile_command_dispatch:
 #endlocal				; End compile_line local block.
 
 ; Given the name of the variable in BC (B is the first letter, C is the
-; optional second letter, or zero), get the address of that variable's value
+; optional second letter, or nul), get the address of that variable's value
 ; in BC.
 find_variable:
 #local
 	push hl
+	push de
 	ld hl,variables
 loop:
 	ld a,(hl)			; Check the first letter.
@@ -1906,26 +1907,39 @@ loop:
 	jr z,found
 not_match:
 	inc hl				; Skip second letter.
-	inc hl				; Skip value.
+	ld e,(hl)			; Read data size into DE.
 	inc hl
-	jp loop				; TODO check if end of array.
+	ld d,(hl)
+	inc hl
+	add hl,de			; Skip data.
+	jp loop
 found:
 	inc hl				; Skip second letter.
-done:
-	ld bc,hl			; Found it, return address in BC.
-	pop hl
-	ret
+	inc hl				; Skip size.
+	inc hl
+	jr done
 not_found:
 	; TODO check out of variable space.
 	ld (hl),b			; Write name.
 	inc hl
 	ld (hl),c
 	inc hl
-	ld (hl),0			; Initialize value.
+	ld (hl),2			; Size (2 bytes for integer).
 	inc hl
 	ld (hl),0
+	inc hl
+	ld (hl),0			; Initialize value to zero.
+	inc hl
+	ld (hl),0
+	inc hl
+	ld (hl),0			; Nul out next variable name.
 	dec hl				; Go back to value.
-	jr done
+	dec hl
+done:
+	ld bc,hl			; Found it, return address in BC.
+	pop de
+	pop hl
+	ret
 #endlocal
 	
 ; Parse the decimal literal at DE (which must be pointing at a digit) and
@@ -2774,7 +2788,7 @@ tokens:
 ; Powers of 10 for write_decimal_word.
 pow10:  dw 10000, 1000, 100, 10, 1
 	
-; Variables in RAM.
+; Data in RAM.
 	.org 0x4000
 bss_start:
 
@@ -2825,11 +2839,13 @@ eol_ref:
 program_end:
 	ds 2
 
-; Variables. Each variable is the name of the variable (one char, then
-; a second optional char or nul), then the two-byte value. If the first
-; byte of the name is zero, then this and all following entries are unused.
+; Variables. Each variable is:
+;     The name of the variable (one char, then a second optional char or nul).
+;     Size in bytes, as a word (only what's left, e.g., 2 for an int).
+;     The data (two bytes for int, count*2 for array).
+; If the first byte of the name is zero, this and all following entries are unused.
 variables:
-	ds MAX_VARS*4
+	ds MAX_VAR_STORAGE
 
 ; FOR loops. At compile time, each nested loop has the address of the variable
 ; and the address of the top of the loop. At runtime, each nested loop has the
