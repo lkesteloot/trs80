@@ -95,6 +95,8 @@ I_JP equ 0xC3
 I_PUSH_BC equ 0xC5
 I_RET equ 0xC9
 I_JP_Z equ 0xCA
+I_SLA_H_1 equ 0xCB
+I_SLA_H_2 equ 0x24
 I_CALL equ 0xCD
 I_POP_DE equ 0xD1
 I_JP_NC equ 0xD2
@@ -1396,6 +1398,8 @@ not_number:
 	jr z,push_op_div
 	cp a,T_OP_LT
 	jr z,push_op_lt
+	cp a,T_OP_GT
+	jr z,push_op_gt
 	cp a,T_AND
 	jr z,push_op_and
 	cp a,'('
@@ -1425,6 +1429,9 @@ push_op_div:
 	jr process_op
 push_op_lt:
 	ld a,OP_LT
+	jr process_op
+push_op_gt:
+	ld a,OP_GT
 	jr process_op
 push_op_and:
 	ld a,OP_AND
@@ -1630,6 +1637,8 @@ pop_operator_stack:
 	jr z,compile_op_neg
 	cp a,OP_LT
 	jr z,compile_op_lt
+	cp a,OP_GT
+	jp z,compile_op_gt
 	cp a,OP_AND
 	jp z,compile_op_and
 	cp a,OP_OPEN_PARENS
@@ -1677,8 +1686,25 @@ compile_op_lt:
 	call add_pop_de			; Second operand.
 	call add_pop_hl			; First operand.
 	m_add I_XOR_A_A			; Clear A and carry.
-	m_add I_SBC_HL_DE_1		; If (HL < DE) carry = 1 else carry = 0.
+	m_add I_SBC_HL_DE_1		; If (HL < DE) sign = 1 else sign = 0.
 	m_add I_SBC_HL_DE_2
+	m_add I_SLA_H_1			; Move sign of HL to carry.
+	m_add I_SLA_H_2			; If (HL < DE) carry = 1 else carry = 0.
+	m_add I_CCF			; If (HL < DE) carry = 0 else carry = 1.
+	m_add I_RLA			; If (HL < DE) A = 0x00 else A = 0x01.
+	m_add I_DEC_A			; If (HL < DE) A = 0xFF else A = 0x00.
+	m_add I_LD_E_A			; If (HL < DE) DE = 0xFFFF else DE = 0x0000.
+	m_add I_LD_D_A
+	m_add I_PUSH_DE
+	ret
+compile_op_gt: ; Same as compile_op_lt, just switching operands.
+	call add_pop_hl			; Second operand.
+	call add_pop_de			; First operand.
+	m_add I_XOR_A_A			; Clear A and carry.
+	m_add I_SBC_HL_DE_1		; If (HL < DE) sign = 1 else sign = 0.
+	m_add I_SBC_HL_DE_2
+	m_add I_SLA_H_1			; Move sign of HL to carry.
+	m_add I_SLA_H_2			; If (HL < DE) carry = 1 else carry = 0.
 	m_add I_CCF			; If (HL < DE) carry = 0 else carry = 1.
 	m_add I_RLA			; If (HL < DE) A = 0x00 else A = 0x01.
 	m_add I_DEC_A			; If (HL < DE) A = 0xFF else A = 0x00.
@@ -2802,6 +2828,7 @@ sample_program_list:
 	dw sample_program_3
 	dw sample_program_4
 	dw sample_program_5
+	dw sample_program_6
 	dw 0
 
 ; Random pixels on the screen.
@@ -2877,6 +2904,35 @@ sample_program_5:
 	db "360 GOTO 360", 0
 	db 0
 
+; Game.
+sample_program_6:
+	db "10 CLS", 0
+	db "20 X = 30", 0
+	db "100 M = 16320 + X", 0
+	db "110 POKE M,128", 0
+	db "120 POKE M+1,184", 0
+	db "130 POKE M-63,128", 0
+	db "140 POKE M+2,191", 0
+	db "150 POKE M-62,160", 0
+	db "160 POKE M+3,189", 0
+	db "170 POKE M-61,128", 0
+	db "180 POKE M+4,144", 0
+	db "190 POKE M+5,128", 0
+	db "500 K = PEEK(14400)", 0
+	db "510 IF K AND 32 THEN X = X - 1", 0
+	db "520 IF K AND 64 THEN X = X + 1", 0
+	db "530 IF X < 0 THEN X = 0", 0
+	db "540 IF X > 58 THEN X = 58", 0
+	db "900 GOTO 100", 0
+	db 0
+; Screenshot
+        .byte 0x80,0xA0 ; Line 0
+        .ds 62,0x80
+        .byte 0xB8,0xBF,0xBD,0x90 ; Line 1
+        .ds 60,0x80	
+	ds 1024
+; End screenshot
+	
 ; Scratch space for the disassembler.
 disasm_buffer:
 	ds 16
