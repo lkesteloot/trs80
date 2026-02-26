@@ -1308,6 +1308,70 @@ compile_next:
 	pop de
 	jp loop
 
+; Compile the DIM statement.
+compile_dim:
+#local
+	push hl
+	call parse_variable_name	; Name in BC.
+	jp c,compile_error		; No variable name.
+	jp nz,compile_error		; Non-array variable name.
+	push bc				; Variable name.
+	call skip_whitespace
+	cp a,'0'			; Make sure we have a number.
+	jp c,compile_error
+	cp a,'9'+1
+	jp nc,compile_error
+	call read_numeric_literal	; Count into BC.
+	ld hl,bc			; Count into HL.
+	add hl,hl			; Size into HL.
+	ld a,')'
+	call expect_and_skip
+	pop bc				; Name in BC.
+	push de				; Source pointer.
+	push hl				; Size.
+	ld hl,variables
+var_search_loop:
+	ld a,(hl)			; Check the first letter.
+	or a,a
+	jr z,not_found			; Nul if end of list.
+	inc hl				; Skip first letter.
+	cp a,b
+	jr nz,not_match
+	ld a,(hl)			; Check the second letter.
+	cp a,c
+	jp z,already_defined		; Variable already defined.
+not_match:
+	inc hl				; Skip second letter.
+	ld e,(hl)			; Read data size into DE.
+	inc hl
+	ld d,(hl)
+	inc hl
+	add hl,de			; Skip data.
+	jp var_search_loop
+not_found:
+	; TODO check out of variable space.
+	ld (hl),b			; Write name.
+	inc hl
+	ld (hl),c
+	inc hl
+	pop bc				; Size
+	ld (hl),c			; Size (Count*2).
+	inc hl
+	ld (hl),b
+	inc hl
+	ld (hl),0			; Initialize value to zero.
+	ld de,hl
+	inc de
+	ldir				; BC is one too high, to nul out next var name.
+	pop de
+	pop hl
+	jp loop
+already_defined:
+	ld hl,array_already_defined_msg
+	call write_text
+	jp end
+#endlocal
+
 ; Compile the GOTO statement.
 compile_goto:
 #local
@@ -1866,7 +1930,7 @@ compile_command_dispatch:
 	dw compile_next ; NEXT (0x87)
 	dw 0 ; DATA (0x88)
 	dw 0 ; INPUT (0x89)
-	dw 0 ; DIM (0x8A)
+	dw compile_dim ; DIM (0x8A)
 	dw 0 ; READ (0x8B)
 	dw 0 ; LET (0x8C)
 	dw compile_goto ; GOTO (0x8D)
@@ -2680,6 +2744,8 @@ line_number_error_msg_part1:
 	db "Line ", 0
 line_number_error_msg_part2:
 	db " not found", NL, 0
+array_already_defined_msg:
+	db "Array already defined", NL, 0
 runtime_error_msg:
 	db "Runtime error", NL, 0
 internal_error_msg: ; TODO remove if we need to save space.
