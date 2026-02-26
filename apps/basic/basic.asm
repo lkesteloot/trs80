@@ -54,6 +54,7 @@ I_LD_DE_A equ 0x12
 I_INC_DE equ 0x13
 I_RLA equ 0x17
 I_ADD_HL_DE equ 0x19
+I_LD_A_DE equ 0x1A
 I_DEC_DE equ 0x1B
 I_LD_HL_IMM equ 0x21
 I_INC_HL equ 0x23
@@ -1478,8 +1479,11 @@ not_close_parens:
 	jp expr_loop
 not_an_op:
 	cp a,T_RND
-	jr nz,not_rnd
-	; Compile the RND function, puts the result onto the stack.
+	jr z,compile_rnd
+	cp a,T_PEEK
+	jr z,compile_peek
+	jp not_function
+compile_rnd:
 	inc de
 	ld a,'('
 	call expect_and_skip
@@ -1511,7 +1515,22 @@ no_rnd_expression:
 	m_add I_PUSH_DE			; Push result.
 	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
-not_rnd:
+compile_peek:
+	inc de
+	ld a,'('
+	call expect_and_skip
+	call compile_expression		; Onto the stack.
+	ld a,')'
+	call expect_and_skip
+	call add_pop_de
+	m_add I_LD_A_DE
+	m_add I_LD_E_A
+	m_add I_XOR_A_A
+	m_add I_LD_D_A
+	m_add I_PUSH_DE
+	ld a,0				; Expect binary operator after operand.
+	jp expr_loop
+not_function:
 	call parse_variable_name	; See if it's a variable.
 	jp c,end_of_expression		; Nope.
 	m_add I_LD_A_ADDR		; Variable value in DE.
