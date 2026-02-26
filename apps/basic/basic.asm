@@ -1271,6 +1271,7 @@ compile_next:
 
 ; Compile the GOTO statement.
 compile_goto:
+#local
 	; TODO can't call this from immediate mode, program isn't compiled.
 	; maybe have a global flag for whether the compile is valid, set after
 	; compile and reset after any code modification.
@@ -1281,7 +1282,7 @@ compile_goto:
 	call read_numeric_literal	; BC has the line number.
 	push hl				; Save write pointer.
 	call find_line_number		; HL has address of line.
-	jp nc,compile_error		; Line number not found. TODO better error
+	jp nc,line_not_found		; Line number not found.
 	inc hl				; Skip next pointer.
 	inc hl
 	inc hl				; Skip line number.
@@ -1294,6 +1295,15 @@ compile_goto:
 	m_add c
 	m_add b
 	jp loop
+line_not_found:
+	ld hl,line_number_error_msg_part1
+	call write_text
+	ld hl,bc
+	call write_unsigned_decimal_word
+	ld hl,line_number_error_msg_part2
+	call write_text
+	jp end
+#endlocal
 
 ; Compile the IF statement.
 compile_if:
@@ -1338,7 +1348,7 @@ compile_poke:
 ; Compile the PRINT statement.
 compile_print:
 	call compile_expression		; Onto the stack.
-	call add_pop_hl			; Move to HL for write_decimal_word.
+	call add_pop_hl			; Move to HL for write_signed_decimal_word.
 	m_add I_CALL
 	m_add_word write_signed_decimal_word
 	m_add I_LD_A_IMM
@@ -2601,6 +2611,10 @@ syntax_error_msg_part1:
 	db "Syntax error at '", 0
 syntax_error_msg_part2:
 	db "'", NL, 0
+line_number_error_msg_part1:
+	db "Line ", 0
+line_number_error_msg_part2:
+	db " not found", NL, 0
 runtime_error_msg:
 	db "Runtime error", NL, 0
 internal_error_msg: ; TODO remove if we need to save space.
