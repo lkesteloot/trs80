@@ -393,6 +393,9 @@ prompt_loop:
 	ld (hl),lo(fors-4)		; It's pre-incremented.
 	inc hl
 	ld (hl),hi(fors-4)
+	ld a,0xFF			; Line number we're compiling (FFFF for command line).
+	ld (compile_line_number),a
+	ld (compile_line_number+1),a
 	ld hl,binary			; Compile to "binary" buffer.
 	call compile_line		; Compile the command line.
         m_add I_RET
@@ -426,7 +429,7 @@ not_space:
 	call insert_line		; Insert the line into the program.
 end_has_line_number:
 	ld sp,(ready_prompt_sp)
-	jr prompt_loop
+	jp prompt_loop
 #endlocal
 
 ; Show a runtime error message and return to the Ready prompt.
@@ -504,14 +507,29 @@ compile_error:
 	call detokenize_char
 	ld hl,syntax_error_msg_part2
 	call write_text
-	jp end
+	jp write_compile_line_number
 internal_error:
 	ld hl,internal_error_msg
 	call write_text
-	jp end
+	jp write_compile_line_number
 break_pressed:
 	ld hl,break_msg
 	call write_text
+	jp end
+write_compile_line_number:
+	ld ix,compile_line_number	; Line number we're compiling.
+	ld a,(ix)			; See if it's 0xFFFF (meaning none).
+	and a,(ix+1)
+	cp a,0xFF
+	jr z,no_compile_line_number
+	ld hl,at_line_msg		; Write message.
+	call write_text
+	ld l,(ix)
+	ld h,(ix+1)
+	call write_unsigned_decimal_word
+no_compile_line_number:
+	ld a,NL
+	call write_char
 	jp end
 
 ; Clear the screen and reset the cursor to the top-left corner.
@@ -787,7 +805,11 @@ loop:
 	or a,c
 	jp z,done			; Null next pointer means no line here.
 	push bc				; Push address of next line.
-	inc ix				; Skip line number.
+	ld a,(ix)			; Line number we're compiling.
+	ld (compile_line_number),a
+	inc ix
+	ld a,(ix)
+	ld (compile_line_number+1),a
 	inc ix
 	ld (ix),l			; Record compile address for this line.
 	inc ix
@@ -802,6 +824,9 @@ done:
 	; Clean up the stack and return to the ready prompt.
 	m_add I_JP
 	m_add_word end
+	ld a,0xFF			; Line number we're compiling (none).
+	ld (compile_line_number),a
+	ld (compile_line_number+1),a
 	ld a,(tron_flag)
 	or a,a
 	ld de,binary + 30 ; TODO
@@ -1087,14 +1112,14 @@ two_letter:
 one_letter:
 	call skip_whitespace
 	cp a,'('
-	jr nz,not_array
+	scf
+	ccf
+	ret nz				; Not array, clear Z and C flags.
 	inc de				; Skip parenthesis.
 	ld a,b				; Set high bit of B to indicate array.
 	or a,0x80
 	ld b,a
-	xor a,a				; Set Z to indicate array.
-not_array:
-	or a,a				; No carry means we found a variable.
+	xor a,a				; Clear C and set Z to indicate array.
 	ret
 #endlocal
 
@@ -1434,7 +1459,7 @@ line_not_found:
 	call write_unsigned_decimal_word
 	ld hl,line_number_error_msg_part2
 	call write_text
-	jp end
+	jp write_compile_line_number
 #endlocal
 
 ; Compile the IF statement.
@@ -2800,17 +2825,19 @@ line_prompt:
 syntax_error_msg_part1:
 	db "Syntax error at '", 0
 syntax_error_msg_part2:
-	db "'", NL, 0
+	db "'", 0
 line_number_error_msg_part1:
 	db "Line ", 0
 line_number_error_msg_part2:
-	db " not found", NL, 0
+	db " not found", 0
 array_already_defined_msg:
 	db "Array already defined", NL, 0
 runtime_error_msg:
 	db "Runtime error", NL, 0
 internal_error_msg: ; TODO remove if we need to save space.
-	db "Internal compiler error", NL, 0
+	db "Internal compiler error", 0
+at_line_msg:
+	db " at line ", 0
 break_msg:
 	db "Break", NL, 0
 keyboard_matrix_unshifted:
@@ -2980,6 +3007,11 @@ tron_flag:
 ; Location of the stack just before we show the ready prompt,
 ; to unwind it all on error or end of program.
 ready_prompt_sp:
+	ds 2
+
+; The number of the line being compiled (for error messages), or 0xFFFF if
+; compiling the command line.
+compile_line_number:
 	ds 2
 
 ; Seed for the random number generator. Must not be zero.
