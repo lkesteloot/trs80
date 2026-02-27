@@ -49,6 +49,8 @@ MAX_OP_STACK_SIZE equ 16
 MAX_FORS equ 8
 
 ; Z80 opcodes.
+I_LD_BC_IMM equ 0x01
+I_ADD_HL_BC equ 0x09
 I_LD_DE_IMM equ 0x11
 I_LD_DE_A equ 0x12
 I_INC_DE equ 0x13
@@ -58,6 +60,7 @@ I_LD_A_DE equ 0x1A
 I_DEC_DE equ 0x1B
 I_LD_HL_IMM equ 0x21
 I_INC_HL equ 0x23
+I_ADD_HL_HL equ 0x29
 I_DEC_HL equ 0x2B
 I_SCF equ 0x37
 I_LD_A_ADDR equ 0x3A
@@ -1114,6 +1117,7 @@ loop:
 	inc de				; Skip token.
 	jp compile_token
 found_variable:
+	jp z,found_array_variable
 	call find_variable		; Address is in BC.
 	push bc				; Save address.
 	ld a,T_OP_EQU
@@ -1128,6 +1132,30 @@ found_variable:
 	m_add I_INC_HL
 	m_add I_LD_HL_D
 	jp loop
+found_array_variable:
+	call find_variable		; Address is in BC. TODO should fail if not defined.
+	push bc				; Base address of array.
+	call compile_expression		; Array index on stack.
+	ld a,')'
+	call expect_and_skip
+	call add_pop_hl			; Get index into HL.
+	m_add I_ADD_HL_HL		; Double HL, two bytes per array entry.
+	pop bc				; Base address.
+	m_add I_LD_BC_IMM		; Load base address.
+	m_add c
+	m_add b
+	m_add I_ADD_HL_BC		; Add offset to base address.
+	m_add I_PUSH_HL			; Element address.
+	ld a,T_OP_EQU
+	call expect_and_skip
+	call compile_expression		; Evaluate RHS, result on stack.
+	call add_pop_de			; Value.
+	m_add I_POP_HL			; Element address.
+	m_add I_LD_HL_E			; Write DE to variable.
+	m_add I_INC_HL
+	m_add I_LD_HL_D
+	jp loop
+
 back_up_and_error:
 	dec de				; Back up to bad byte.
 	jp compile_error
@@ -1322,6 +1350,7 @@ compile_dim:
 	cp a,'9'+1
 	jp nc,compile_error
 	call read_numeric_literal	; Count into BC.
+	inc bc				; Indices 0-N are allowed, so must add one.
 	ld hl,bc			; Count into HL.
 	add hl,hl			; Size into HL.
 	ld a,')'
@@ -1618,7 +1647,7 @@ compile_rnd:
 	m_add I_LD_B_D		        ; Random number in BC.
 	m_add I_LD_C_E
 	m_add I_POP_DE		        ; Restore range.
-	m_add I_PUSH_HL			; Save HL.
+	m_add I_PUSH_HL			; Save HL. TODO is this necessary?
 	m_add I_CALL			; Compute rnd (BC) % range (DE) into HL.
 	m_add_word bc_div_de
 	m_add I_LD_D_H		        ; Result into DE.
@@ -1653,6 +1682,7 @@ compile_peek:
 not_function:
 	call parse_variable_name	; See if it's a variable.
 	jp c,end_of_expression		; Nope.
+	jp z,found_array_variable	; See if it's an array dereference.
 	call find_variable		; Address is in BC.
 	m_add I_LD_A_ADDR		; Variable value in DE.
 	m_add c
@@ -1663,6 +1693,25 @@ not_function:
 	m_add c
 	m_add b
 	m_add I_LD_D_A
+	m_add I_PUSH_DE			; Push result.
+	ld a,0				; Expect binary operator after operand.
+	jp expr_loop
+found_array_variable:
+	call find_variable		; Address is in BC. TODO should fail if not defined.
+	push bc				; Base address of array.
+	call compile_expression		; Array index on stack.
+	ld a,')'
+	call expect_and_skip
+	call add_pop_hl			; Get index into HL.
+	m_add I_ADD_HL_HL		; Double HL, two bytes per array entry.
+	pop bc				; Base address.
+	m_add I_LD_BC_IMM		; Load base address.
+	m_add c
+	m_add b
+	m_add I_ADD_HL_BC		; Add offset to base address.
+	m_add I_LD_E_HL			; Dereference to get value.
+	m_add I_INC_HL
+	m_add I_LD_D_HL
 	m_add I_PUSH_DE			; Push result.
 	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
@@ -1869,16 +1918,28 @@ add_pop_de:
 	ret
 #endlocal
 
-; Add a I_POP_HL instruction, unless the previous instruction was I_PUSH_HL,
+; Add a "pop hl" instruction, unless the previous instruction was "push hl",
 ; in which case that instruction is removed. Destroys A.
+;
+; Note that this is dangerous, the previous byte might map to a "push hl" but
+; actually be a data byte of a longer instruction. This is unlikely
+; the way that this is used.
 add_pop_hl:
 #local
 	dec hl
 	ld a,(hl)
-	cp a,I_PUSH_HL			; See if previous instruction was I_PUSH_HL.
+	cp a,I_PUSH_HL			; See if previous instruction was "push hl".
 	ret z				; If so, remove it (leave HL one less).
+	cp a,I_PUSH_DE			; See if previous instruction was "push de".
+	jr z,was_push_de
 	inc hl				; Restore HL.
 	ld (hl),I_POP_HL		; And actually add the pop.
+	inc hl
+	ret
+was_push_de:
+	ld (hl),I_LD_H_D		; Replace push/pop with a copy.
+	inc hl
+	ld (hl),I_LD_L_E
 	inc hl
 	ret
 #endlocal
