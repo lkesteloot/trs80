@@ -7,6 +7,7 @@ import {wolf} from "./wolf";
 import {fileOpen, fileSave} from "browser-fs-access"
 import {binaryAsCasFile, casAsAudio, DEFAULT_SAMPLE_RATE, writeWavFile} from "trs80-cassette";
 import {CassetteEncoding, CassetteSpeed, decodeTrs80File, isFloppy} from "trs80-base";
+import {RunningState} from "trs80-emulator";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build";
 import {Settings} from "./Settings";
 import {SCREEN_SIZES} from "./ScreenSize";
@@ -527,6 +528,12 @@ export class UserInterface {
                             const autoRun = !menuCommand.checked;
                             menuCommand.setChecked?.(autoRun);
                             editor.autoRun = autoRun;
+                        },
+                    },
+                    {
+                        text: "Stop",
+                        action: () => {
+                            emulator.trs80.setRunningState(RunningState.STOPPED);
                         },
                     },
                 ],
