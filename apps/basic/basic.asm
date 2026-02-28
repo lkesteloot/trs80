@@ -39,8 +39,8 @@ BS equ 8
 NL equ 10
 BREAK equ 27
 INPUT_BUFFER_SIZE equ 128		; Including nul.
-PROGRAM_SIZE equ 10240			; Tokenized code.
-BINARY_SIZE equ 10240			; Compiled code.
+PROGRAM_SIZE equ 1024*10		; Tokenized code.
+BINARY_SIZE equ 1024*10			; Compiled code.
 KEYBOARD_BEGIN equ 0x3800
 CURSOR_HALF_PERIOD equ 7
 CURSOR_DISABLED equ 0xFF
@@ -436,7 +436,7 @@ end_has_line_number:
 runtime_error:
 	ld hl,runtime_error_msg
 	call write_text
-	jr end
+	jp end
 
 ; Print the contents of the binary. It starts at DE and ends at HL.
 print_binary:
@@ -1235,6 +1235,9 @@ compile_call:
 
 ; Compile the SET statement.
 compile_set:
+	ld a,1				; Specify that we want to set.
+	push af
+compile_set_internal:
 	ld a,'('			; Skip open parenthesis.
 	call expect_and_skip
 	call compile_expression		; Read X coordinate onto the stack.
@@ -1247,9 +1250,18 @@ compile_set:
 	m_add I_LD_B_E		        ; X to B.
 	ld a,')'			; Skip close parenthesis.
 	call expect_and_skip
+	pop af				; Whether to set or reset.
+	m_add I_LD_A_IMM
+	m_add a
 	m_add I_CALL
 	m_add_word set_pixel
 	jp loop
+
+; Compile the RESET statement.
+compile_reset:
+	ld a,0				; Specify that we want to reset.
+	push af
+	jr compile_set_internal
 
 ; Compile the FOR statement.
 compile_for:
@@ -1423,7 +1435,7 @@ not_found:
 already_defined:
 	ld hl,array_already_defined_msg
 	call write_text
-	jp end
+	jp write_compile_line_number	; TODO misleading message
 #endlocal
 
 ; Compile the GOTO statement.
@@ -1431,7 +1443,8 @@ compile_goto:
 #local
 	; TODO can't call this from immediate mode, program isn't compiled.
 	; maybe have a global flag for whether the compile is valid, set after
-	; compile and reset after any code modification.
+	; compile and reset after any code modification. Or this could trigger
+	; a compilation first.
 	call skip_whitespace
 	ld a,(de)
 	call is_digit
@@ -2008,7 +2021,7 @@ line_loop:
 compile_command_dispatch:
 	dw end | 0x8000 ; END (0x80)
 	dw compile_for ; FOR (0x81)
-	dw 0 ; RESET (0x82)
+	dw compile_reset ; RESET (0x82)
 	dw compile_set ; SET (0x83)
 	dw cls | 0x8000 ; CLS (0x84)
 	dw 0 ; CMD (0x85)
@@ -2671,10 +2684,12 @@ rnd:
 	ret
 #endlocal
 
-; Set the pixel at X location B (0-127) and Y location C (0-47).
+; Set or reset the pixel at X location B (0-127) and Y location C (0-47).
+; Use A=0 for reset, A!=0 for set. Destroys BC.
 set_pixel:
 #local
 	push de
+	push af				; Set or reset in A.
 
 	ld a,b				; Make sure X is within bounds.
 	cp a,128
@@ -2737,9 +2752,18 @@ power2:
 	jp m,byte_okay
 	ld a,0x80
 byte_okay:
-	or a,c				; Set the pixel.
+	ld b,a				; Save current byte.
+	pop af				; Whether set or reset.
+	or a,a
+	ld a,c				; Bit to set.
+	jp z,resetting
+	or a,b				; OR with original byte.
+	jp done
+resetting:
+	cpl				; Invert bit to get mask.
+	and a,b				; AND with original byte.
+done:
 	ld (de),a			; And write it back to memory.
-
 	pop de
 	ret
 #endlocal
@@ -2831,7 +2855,7 @@ line_number_error_msg_part1:
 line_number_error_msg_part2:
 	db " not found", 0
 array_already_defined_msg:
-	db "Array already defined", NL, 0
+	db "Array already defined", 0
 runtime_error_msg:
 	db "Runtime error", NL, 0
 internal_error_msg: ; TODO remove if we need to save space.
@@ -3146,24 +3170,43 @@ sample_program_5:
 
 ; Game.
 sample_program_6:
-	db "10 CLS", 0
-	db "20 X = 30", 0
-	db "100 M = 16320 + X", 0
-	db "110 POKE M,128", 0
-	db "120 POKE M+1,184", 0
-	db "130 POKE M-63,128", 0
-	db "140 POKE M+2,191", 0
-	db "150 POKE M-62,160", 0
-	db "160 POKE M+3,189", 0
-	db "170 POKE M-61,128", 0
-	db "180 POKE M+4,144", 0
-	db "190 POKE M+5,128", 0
-	db "500 K = PEEK(14400)", 0
-	db "510 IF K AND 32 THEN X = X - 1", 0
-	db "520 IF K AND 64 THEN X = X + 1", 0
-	db "530 IF X < 0 THEN X = 0", 0
-	db "540 IF X > 58 THEN X = 58", 0
-	db "900 GOTO 100", 0
+	db "10 CLS", 0				; Initialize xxx
+	db "20 SX = 30", 0
+	db "30 DIM BX(50)", 0
+	db "40 DIM BY(50)", 0
+	db "50 BN = 0", 0
+	db "1000 M = 16320 + SX", 0		; Draw ship.
+	db "1010 POKE M,128", 0
+	db "1020 POKE M+1,184", 0
+	db "1030 POKE M-63,128", 0
+	db "1040 POKE M+2,191", 0
+	db "1050 POKE M-62,160", 0
+	db "1060 POKE M+3,189", 0
+	db "1070 POKE M-61,128", 0
+	db "1080 POKE M+4,144", 0
+	db "1090 POKE M+5,128", 0
+	db "2000 I = BN - 1", 0			; Draw and update bullets.
+	db "2005 IF I < 0 THEN GOTO 2999", 0 ; TODO replace with backward FOR
+	db "2010 X = BX(I)", 0
+	db "2020 Y = BY(I)", 0
+	db "2030 RESET(X,Y)", 0
+	db "2050 Y = Y - 1", 0
+	db "2060 IF Y < 0 THEN GOTO 2200", 0 ; TODO forward GOTO
+	db "2070 SET(X,Y)", 0
+	db "2080 BY(I) = Y", 0
+	db "2090 GOTO 2990", 0
+	db "2200 BX(I) = BX(BN - 1)", 0
+	db "2210 BY(I) = BY(BN - 1)", 0
+	db "2220 BN = BN - 1", 0
+	db "2990 I = I - 1", 0
+	db "2995 GOTO 2005", 0
+	db "2999 QQ=0", 0 ; TODO Make this a REM
+	db "5000 K = PEEK(14400)", 0		; Keyboard input.
+	db "5010 IF K AND 32 THEN SX = SX - 1", 0
+	db "5020 IF K AND 64 THEN SX = SX + 1", 0
+	db "5030 IF SX < 0 THEN SX = 0", 0
+	db "5040 IF SX > 58 THEN SX = 58", 0
+	db "9000 GOTO 1000", 0
 	db 0
 
 	; Screenshot
