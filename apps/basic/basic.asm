@@ -58,6 +58,7 @@ I_RLA equ 0x17
 I_ADD_HL_DE equ 0x19
 I_LD_A_DE equ 0x1A
 I_DEC_DE equ 0x1B
+I_JR_NZ equ 0x20
 I_LD_HL_IMM equ 0x21
 I_INC_HL equ 0x23
 I_ADD_HL_HL equ 0x29
@@ -1669,6 +1670,8 @@ not_number:
 	jr z,push_op_lt
 	cp a,T_OP_GT
 	jr z,push_op_gt
+	cp a,T_OP_EQU
+	jr z,push_op_equ
 	cp a,T_AND
 	jr z,push_op_and
 	cp a,'('
@@ -1701,6 +1704,9 @@ push_op_lt:
 	jr process_op
 push_op_gt:
 	ld a,OP_GT
+	jr process_op
+push_op_equ:
+	ld a,OP_EQ
 	jr process_op
 push_op_and:
 	ld a,OP_AND
@@ -1929,6 +1935,8 @@ pop_operator_stack:
 	jr z,compile_op_lt
 	cp a,OP_GT
 	jp z,compile_op_gt
+	cp a,OP_EQ
+	jp z,compile_op_eq
 	cp a,OP_AND
 	jp z,compile_op_and
 	cp a,OP_OPEN_PARENS
@@ -1999,6 +2007,19 @@ compile_op_gt: ; Same as compile_op_lt, just switching operands.
 	m_add I_RLA			; If (HL < DE) A = 0x00 else A = 0x01.
 	m_add I_DEC_A			; If (HL < DE) A = 0xFF else A = 0x00.
 	m_add I_LD_E_A			; If (HL < DE) DE = 0xFFFF else DE = 0x0000.
+	m_add I_LD_D_A
+	m_add I_PUSH_DE
+	ret
+compile_op_eq:
+	call add_pop_hl			; Second operand.
+	call add_pop_de			; First operand.
+	m_add I_XOR_A_A			; Clear A and carry.
+	m_add I_SBC_HL_DE_1		; If (HL == DE) z = 1 else z = 0.
+	m_add I_SBC_HL_DE_2
+	m_add I_JR_NZ			; Skip dec if they're different.
+	m_add 1				; Dec is one byte.
+	m_add I_DEC_A			; If (HL = DE) A = 0xFF else A = 0x00.
+	m_add I_LD_E_A			; If (HL = DE) DE = 0xFFFF else DE = 0x0000.
 	m_add I_LD_D_A
 	m_add I_PUSH_DE
 	ret
@@ -3300,13 +3321,13 @@ sample_program_6:
 	db "2995 GOTO 2005", 0
 	db "2999 QQ=0", 0 ; TODO Make this a REM
 	db "3000 T = T + 1", 0
-	db "3010 IF T > 2 THEN T = 0", 0
+	db "3010 IF T = 3 THEN T = 0", 0
 	db "5000 K = PEEK(14400)", 0		; Keyboard input.
 	db "5010 IF K AND 32 THEN SX = SX - 1", 0
 	db "5020 IF K AND 64 THEN SX = SX + 1", 0
 	db "5030 IF SX < 0 THEN SX = 0", 0
 	db "5040 IF SX > 58 THEN SX = 58", 0
-	db "5050 IF (K AND 128) AND T < 1 THEN GOTO 5100", 0 ; TODO add NOT
+	db "5050 IF (K AND 128) AND T = 0 THEN GOTO 5100", 0 ; TODO add NOT
 	db "5060 GOTO 1000", 0
 	db "5100 BX(BN) = SX*2 + 5", 0
 	db "5110 BY(BN) = 43", 0
