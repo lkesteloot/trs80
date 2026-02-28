@@ -440,7 +440,18 @@ runtime_error:
 
 ; Print the contents of the binary. It starts at DE and ends at HL.
 print_binary:
-	ex de,hl
+	push hl				; End of buffer.
+	ld hl,size_of_binary_msg	; Info message about size of binary.
+	call write_text
+	pop hl
+	push hl				; End of buffer.
+	or a,a				; Clear carry.
+	sbc hl,de			; HL = size of binary.
+	call write_unsigned_decimal_word
+	ld a,NL
+	call write_char
+	pop hl
+	ex de,hl			; HL=begin, DE=end.
 	if 0				; Don't print binary, not interesting.
 	push hl				; Start of buffer.
 print_binary_loop:
@@ -462,7 +473,7 @@ print_binary_loop:
 	; Now disassemble.
 	pop hl
 	endif
-	ld b,SCREEN_HEIGHT-1		; Show this many lines at a time.
+	ld b,SCREEN_HEIGHT-2		; Show this many lines at a time. (Already did one.)
 disasm_loop:
 	ld a,h				; If HL = DE, we're done.
 	cp a,d
@@ -490,11 +501,12 @@ do_disasm:
 	pop bc				; Check if we've written a full screen.
 	dec b
 	jp nz,not_pausing
-	call pause
+	call pause			; Z flag for whether to stop.
 	ld b,SCREEN_HEIGHT-1		; Show this many lines at a time.
 not_pausing:
 	pop hl				; Restore binary pointer.
 	pop de				; Restore end of buffer.
+	jp z,ready_prompt_loop		; Stop if user asked to in pause.
 	jp disasm_loop
 
 ; Jump here on a parse/compile error. DE should point to the
@@ -612,6 +624,7 @@ loop:
 	dec b
 	jp nz,not_pausing
 	call pause
+	jr z,done
 	ld b,SCREEN_HEIGHT-1		; Show this many lines at a time.
 not_pausing:
 	ld hl,de
@@ -2460,7 +2473,8 @@ scroll_up:
 	ret
 #endlocal
 
-; Pause until a key is pressed. Shows a ":" prompt.
+; Pause until a key is pressed. Shows a ":" prompt. Upon return Z is set
+; if the user wants to stop the process, reset otherwise.
 pause:
 #local
 	ld a,':'
@@ -2470,8 +2484,13 @@ loop:
 	call poll_keyboard
 	or a,a
 	jr z,loop
+	push af				; Pressed character.
 	call disable_cursor
 	call backspace			; Clear the colon.
+	pop af
+	cp a,BREAK			; See if user wants to stop.
+	ret z
+	cp a,'q'
 	ret
 #endlocal
 
@@ -2940,6 +2959,8 @@ at_line_msg:
 	db " at line ", 0
 break_msg:
 	db "Break", NL, 0
+size_of_binary_msg:
+	db "Size of binary: ", 0
 keyboard_matrix_unshifted:
 	db "@abcdefghijklmnopqrstuvwxyz     0123456789:;,-./", NL, 0, BREAK, 0, 0, 8, 9, 32
 keyboard_matrix_shifted:
