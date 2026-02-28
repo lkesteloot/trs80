@@ -18,12 +18,12 @@
 	; The source code is store tokenized, with each line following this
 	; format:
 	;
-	; - Address of next line, or null.
-	; - Line number (unsigned word).
-	; - Address of compiled code, or null if not yet compiled.
-	; - (Later) Head of linked list of addresses of forward GOTOs to this line.
+	; - 2 bytes: Address of next line, or null.
+	; - 2 bytes: Line number.
+	; - 2 bytes: Before the line is compiled, linked list of forward GOTO
+	;   locations to fill in; after line is compiled, address of compiled code.
 	; - Tokens.
-	; - Nul byte.
+	; - 1 byte: Nul.
 	;
 	; The last source line points to a null line composed of six zero bytes.
 	;
@@ -794,6 +794,7 @@ run:
 	push ix
 	ld ix,variables			; Clear variables.
 	ld (ix),0
+	call clear_compile_pointers	; Reset forward GOTO linked lists.
 	ld ix,program
 	ld hl,binary + 30		; TODO
 loop:
@@ -811,10 +812,23 @@ loop:
 	ld a,(ix)
 	ld (compile_line_number+1),a
 	inc ix
-	ld (ix),l			; Record compile address for this line.
-	inc ix
-	ld (ix),h
-	inc ix
+	push ix				; Address of compile pointer.
+	; We want to write the compile address here, but the existing pointer is
+	; the head of a linked list of forward GOTOs to also fill in. So follow
+	; the linked list and fill them all in with HL (the compile pointer).
+write_to_linked_list_loop:
+	ld e,(ix)			; DE = (IX), read next pointer.
+	ld d,(ix+1)
+	ld (ix),l			; Write compile address.
+	ld (ix+1),h
+	push de				; IX = DE, follow next pointer.
+	pop ix
+	ld a,e				; Check if DE is null.
+	or a,d
+	jp nz,write_to_linked_list_loop	; Loop if not end of linked list.
+	pop ix				; Address of compiler pointer.
+	inc ix				; Skip compile pointer.
+	inc ix	
 	ld e,ixl			; Compile wants source in DE.
 	ld d,ixh
 	call compile_line		; Writes to HL.
@@ -839,6 +853,28 @@ done:
 	ret
 #endlocal
 
+; Clears the compile/goto pointers in the program. Destroys HL and DE.
+clear_compile_pointers:
+#local
+	ld hl,program
+loop:
+	ld e,(hl)			; Grab address of next line.
+	inc hl
+	ld d,(hl)
+	inc hl
+	ld a,e				; See if it's null.
+	or a,d
+	ret z				; Null next pointer means no line here.
+	inc hl				; Skip line number.
+	inc hl
+	xor a,a
+	ld (hl),a			; Null out compile pointer.
+	inc hl
+	ld (hl),a
+	ld hl,de			; Pointer to next line.
+	jp loop
+#endlocal
+	
 ; Enable debug mode.
 tron:
 #local
@@ -1446,9 +1482,8 @@ compile_goto:
 	; compile and reset after any code modification. Or this could trigger
 	; a compilation first.
 	call skip_whitespace
-	ld a,(de)
-	call is_digit
-	jp c,compile_error		; Verify that we have a number.
+	call is_digit			; Verify that we have a number.
+	jp c,compile_error
 	call read_numeric_literal	; BC has the line number.
 	push hl				; Save write pointer.
 	call find_line_number		; HL has address of line.
@@ -1457,13 +1492,34 @@ compile_goto:
 	inc hl
 	inc hl				; Skip line number.
 	inc hl
-	ld c,(hl)			; Read compile address into BC.
+	ld c,(hl)			; Compile address or head of linked list into BC.
 	inc hl
 	ld b,(hl)
-	pop hl				; Restore write pointer.
-	m_add I_JP			; Jump to line's compile address.
-	m_add c
+	dec hl
+	ex (sp),hl			; HL=write pointer, stack=head.
+	m_add I_JP			; Jump to line.
+	m_add c				; This could be the head of linked list too.
 	m_add b
+	ex (sp),hl			; HL=head, stack=write pointer.
+	push hl				; Head.
+	or a,a				; Clear carry
+	sbc hl,de			; Compare to token pointer.
+	pop hl				; Restore head.
+	jp c,backward_goto		; HL (target) < DE (source), skip forward goto stuff.
+	; here HL points to head, BC is scratch, DE points to token, stack
+	; has place to write JP address.
+	pop bc				; Write pointer
+	dec bc				; Back up to address in JP.
+	dec bc
+	ld (hl),c			; Write GOTO address to head of linked list.
+	inc hl
+	ld (hl),b
+	ld hl,bc			; Write pointer.
+	inc hl				; Skip address of JP.
+	inc hl
+	jp loop
+backward_goto:
+	pop hl				; Write pointer.
 	jp loop
 line_not_found:
 	ld hl,line_number_error_msg_part1
