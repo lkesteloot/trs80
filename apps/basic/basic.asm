@@ -3231,6 +3231,7 @@ sample_program_6:
 	db "30 DIM BX(50)", 0
 	db "40 DIM BY(50)", 0
 	db "50 BN = 0", 0
+	db "60 T = 0", 0
 	db "1000 M = 16320 + SX", 0		; Draw ship.
 	db "1010 POKE M,128", 0
 	db "1020 POKE M+1,184", 0
@@ -3257,11 +3258,18 @@ sample_program_6:
 	db "2990 I = I - 1", 0
 	db "2995 GOTO 2005", 0
 	db "2999 QQ=0", 0 ; TODO Make this a REM
+	db "3000 T = T + 1", 0
+	db "3010 IF T > 2 THEN T = 0", 0
 	db "5000 K = PEEK(14400)", 0		; Keyboard input.
 	db "5010 IF K AND 32 THEN SX = SX - 1", 0
 	db "5020 IF K AND 64 THEN SX = SX + 1", 0
 	db "5030 IF SX < 0 THEN SX = 0", 0
 	db "5040 IF SX > 58 THEN SX = 58", 0
+	db "5050 IF (K AND 128) AND T < 1 THEN GOTO 5100", 0 ; TODO add NOT
+	db "5060 GOTO 1000", 0
+	db "5100 BX(BN) = SX*2 + 5", 0
+	db "5110 BY(BN) = 43", 0
+	db "5120 BN = BN + 1", 0
 	db "9000 GOTO 1000", 0
 	db 0
 
