@@ -785,13 +785,9 @@ not_found:				; If we jump directly here, carry is reset.
 	ret
 #endlocal
 
-; Compile the stored program and run it.
-run:
+; Compile the stored program. Trashes every register, caller should save.
+compile_program:
 #local
-	push hl
-	push bc
-	push de
-	push ix
 	ld ix,variables			; Clear variables.
 	ld (ix),0
 	call clear_compile_pointers	; Reset forward GOTO linked lists.
@@ -841,11 +837,35 @@ done:
 	ld a,0xFF			; Line number we're compiling (none).
 	ld (compile_line_number),a
 	ld (compile_line_number+1),a
-	ld a,(tron_flag)
-	or a,a
-	ld de,binary + 30 ; TODO
-	jp nz,print_binary
+	ret
+#endlocal
+
+; Compile the stored program and run it.
+run:
+#local
+	push hl
+	push bc
+	push de
+	push ix
+	call compile_program
 	call binary + 30 ; TODO
+	pop ix
+	pop de
+	pop bc
+	pop hl
+	ret
+#endlocal
+
+; Compile the stored program and display the assembly listing.
+llist:
+#local
+	push hl
+	push bc
+	push de
+	push ix
+	call compile_program
+	ld de,binary + 30 ; TODO
+	jp print_binary
 	pop ix
 	pop de
 	pop bc
@@ -2128,7 +2148,7 @@ compile_command_dispatch:
 	dw compile_print ; PRINT (0xB2)
 	dw 0 ; CONT (0xB3)
 	dw list | 0x8000 ; LIST (0xB4)
-	dw 0 ; LLIST (0xB5)
+	dw llist | 0x8000 ; LLIST (0xB5)
 	dw 0 ; DELETE (0xB6)
 	dw 0 ; AUTO (0xB7)
 	dw 0 ; CLEAR (0xB8)
@@ -3226,7 +3246,7 @@ sample_program_5:
 
 ; Game.
 sample_program_6:
-	db "10 CLS", 0				; Initialize xxx
+	db "10 CLS", 0				; Initialize
 	db "20 SX = 30", 0
 	db "30 DIM BX(50)", 0
 	db "40 DIM BY(50)", 0
@@ -3248,7 +3268,7 @@ sample_program_6:
 	db "2020 Y = BY(I)", 0
 	db "2030 RESET(X,Y)", 0
 	db "2050 Y = Y - 1", 0
-	db "2060 IF Y < 0 THEN GOTO 2200", 0 ; TODO forward GOTO
+	db "2060 IF Y < 0 THEN GOTO 2200", 0
 	db "2070 SET(X,Y)", 0
 	db "2080 BY(I) = Y", 0
 	db "2090 GOTO 2990", 0
