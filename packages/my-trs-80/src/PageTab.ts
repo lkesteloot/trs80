@@ -1,5 +1,3 @@
-import {SimpleEventDispatcher} from "strongly-typed-events";
-
 /**
  * Represents a single page tab and its contents.
  */

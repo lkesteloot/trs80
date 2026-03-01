@@ -12,6 +12,7 @@ import {DisassemblyTab} from "./DisassemblyTab";
 import {SystemProgramTab} from "./SystemProgramTab";
 import {TabbedPanel} from "./TabbedPanel";
 import {DuplicatesTab} from "./DuplicatesTab";
+import { MountTab } from "./MountTab";
 
 /**
  * Head of linked list of displayed file panels.
@@ -51,6 +52,7 @@ export class FilePanel extends TabbedPanel implements IFilePanel {
                 if (trsdos !== undefined) {
                     this.pageTabs.addTab(new TrsdosTab(this, trs80File, trsdos));
                 }
+                this.pageTabs.addTab(new MountTab(this.context, trs80File));
                 break;
 
             case "BasicProgram":

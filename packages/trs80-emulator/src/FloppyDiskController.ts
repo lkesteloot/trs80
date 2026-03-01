@@ -427,6 +427,15 @@ export class FloppyDiskController {
     }
 
     /**
+     * Get the floppy mounted on this (0-based) drive number, or undefined if no floppy is mounted on that drive.
+     */
+    public getFloppyDisk(driveNumber: number): FloppyDisk | undefined {
+        return driveNumber >= 0 && driveNumber < this.drives.length
+            ? this.drives[driveNumber].floppyDisk
+            : undefined;
+    }
+
+    /**
      * Save internal state for restoring with {@link #restore}.
      */
     public save(): FdcState {

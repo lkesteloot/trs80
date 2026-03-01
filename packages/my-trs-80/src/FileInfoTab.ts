@@ -174,7 +174,7 @@ export class FileInfoTab extends PageTab {
             // Download binary.
             const a = document.createElement("a");
             const contents = this.filePanel.file.binary;
-            const blob = new Blob([contents], {type: "application/octet-stream"});
+            const blob = new Blob([new Uint8Array(contents)], {type: "application/octet-stream"});
             a.href = window.URL.createObjectURL(blob);
             a.download = this.filePanel.file.filename;
             a.click();

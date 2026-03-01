@@ -1351,3 +1351,41 @@ body.signed-out .trsdos .dir {
 .duplicates .edit.header {
     border-bottom: 1px solid var(--icon-color);
 }
+
+/* ----------------------------------------------------------------------------------------------------- */
+
+.mount-tab {
+    display: grid;
+    grid-template-rows: 1fr; /* contents */
+
+    background-color: var(--background);
+    padding: var(--side-padding);
+    overflow-y: auto;
+}
+
+.mount-contents {
+    .mount-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: fit-content;
+
+        .mount-radio-button {
+            color: var(--foreground);
+            justify-content: flex-start;
+            padding-left: 7px;
+
+            &:hover {
+                background: var(--background-highlights);
+            }
+
+            &:not(.mount-radio-button-selected) .mount-radio-button-dot {
+                color: var(--foreground-secondary);
+            }
+
+            &.mount-radio-button-selected .mount-radio-button-dot {
+                color: var(--red);
+            }
+        }
+    }
+}

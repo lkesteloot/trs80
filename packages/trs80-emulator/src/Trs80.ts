@@ -1518,6 +1518,13 @@ export class Trs80 implements Hal, Machine, Configurable {
     }
 
     /**
+     * Get the floppy mounted on this (0-based) drive number, or undefined if no floppy is mounted on that drive.
+     */
+    public getFloppyDisk(driveNumber: number): FloppyDisk | undefined {
+        return this.fdc.getFloppyDisk(driveNumber);
+    }
+
+    /**
      * Load a floppy and reboot into it.
      */
     private runFloppyDisk(floppyDisk: FloppyDisk): void {
