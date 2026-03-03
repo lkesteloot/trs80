@@ -63,6 +63,7 @@ I_LD_HL_IMM equ 0x21
 I_INC_HL equ 0x23
 I_ADD_HL_HL equ 0x29
 I_DEC_HL equ 0x2B
+I_CPL equ 0x2F
 I_SCF equ 0x37
 I_LD_A_ADDR equ 0x3A
 I_DEC_A equ 0x3D
@@ -1674,6 +1675,8 @@ not_number:
 	jr z,push_op_equ
 	cp a,T_AND
 	jr z,push_op_and
+	cp a,T_NOT
+	jr z,push_op_not
 	cp a,'('
 	jr z,push_open_parens
 	cp a,')'
@@ -1710,6 +1713,9 @@ push_op_equ:
 	jr process_op
 push_op_and:
 	ld a,OP_AND
+	jr process_op
+push_op_not:
+	ld a,OP_NOT
 	jr process_op
 push_open_parens:
 	ld a,OP_OPEN_PARENS
@@ -1939,6 +1945,8 @@ pop_operator_stack:
 	jp z,compile_op_eq
 	cp a,OP_AND
 	jp z,compile_op_and
+	cp a,OP_NOT
+	jp z,compile_op_not
 	cp a,OP_OPEN_PARENS
 	jp z,compile_open_parens
 	jp internal_error
@@ -2031,6 +2039,16 @@ compile_op_and:
 	m_add I_LD_E_A
 	m_add I_LD_A_D
 	m_add I_AND_A_H
+	m_add I_LD_D_A
+	m_add I_PUSH_DE
+	ret
+compile_op_not:
+	call add_pop_de			; Operand.
+	m_add I_LD_A_E			; Bitwise inversion.
+	m_add I_CPL
+	m_add I_LD_E_A
+	m_add I_LD_A_D
+	m_add I_CPL
 	m_add I_LD_D_A
 	m_add I_PUSH_DE
 	ret
@@ -3327,9 +3345,9 @@ sample_program_6:
 	db "5020 IF K AND 64 THEN SX = SX + 1", 0
 	db "5030 IF SX < 0 THEN SX = 0", 0
 	db "5040 IF SX > 58 THEN SX = 58", 0
-	db "5050 IF (K AND 128) AND T = 0 THEN GOTO 5100", 0 ; TODO add NOT
-	db "5060 GOTO 1000", 0
-	db "5100 BX(BN) = SX*2 + 5", 0
+	db "5050 IF (K AND 128) AND T = 0 THEN GOTO 5100", 0
+	db "5060 GOTO 9000", 0
+	db "5100 BX(BN) = SX*2 + 5", 0		; Shoot.
 	db "5110 BY(BN) = 43", 0
 	db "5120 BN = BN + 1", 0
 	db "9000 GOTO 1000", 0
