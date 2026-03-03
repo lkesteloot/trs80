@@ -1509,8 +1509,9 @@ already_defined:
 	jp write_compile_line_number	; TODO misleading message
 #endlocal
 
-; Compile the GOTO statement.
-compile_goto:
+; Compile the address part of a GOTO or GOSUB statement. The
+; JP or CALL must already have been added.
+compile_goto_gosub:
 #local
 	; TODO can't call this from immediate mode, program isn't compiled.
 	; maybe have a global flag for whether the compile is valid, set after
@@ -1532,7 +1533,6 @@ compile_goto:
 	ld b,(hl)
 	dec hl
 	ex (sp),hl			; HL=write pointer, stack=head.
-	m_add I_JP			; Jump to line.
 	m_add c				; This could be the head of linked list too.
 	m_add b
 	ex (sp),hl			; HL=head, stack=write pointer.
@@ -1565,6 +1565,21 @@ line_not_found:
 	call write_text
 	jp write_compile_line_number
 #endlocal
+
+; Compile the GOTO statement.
+compile_goto:
+	m_add I_JP			; Jump to line.
+	jp compile_goto_gosub
+
+; Compile the GOSUB statement.
+compile_gosub:
+	m_add I_CALL			; Call routine.
+	jp compile_goto_gosub
+
+; Compile the RETURN statement.
+compile_return:
+	m_add I_RET
+	jp loop
 
 ; Compile the IF statement.
 compile_if:
@@ -2164,8 +2179,8 @@ compile_command_dispatch:
 	dw run | 0x8000 ; RUN (0x8E)
 	dw compile_if ; IF (0x8F)
 	dw 0 ; RESTORE (0x90)
-	dw 0 ; GOSUB (0x91)
-	dw 0 ; RETURN (0x92)
+	dw compile_gosub ; GOSUB (0x91)
+	dw compile_return ; RETURN (0x92)
 	dw 0 ; REM (0x93)
 	dw 0 ; STOP (0x94)
 	dw 0 ; ELSE (0x95)
@@ -3345,12 +3360,12 @@ sample_program_6:
 	db "5020 IF K AND 64 THEN SX = SX + 1", 0
 	db "5030 IF SX < 0 THEN SX = 0", 0
 	db "5040 IF SX > 58 THEN SX = 58", 0
-	db "5050 IF (K AND 128) AND T = 0 THEN GOTO 5100", 0
-	db "5060 GOTO 9000", 0
-	db "5100 BX(BN) = SX*2 + 5", 0		; Shoot.
-	db "5110 BY(BN) = 43", 0
-	db "5120 BN = BN + 1", 0
-	db "9000 GOTO 1000", 0
+	db "5050 IF (K AND 128) AND T = 0 THEN GOSUB 6000", 0
+	db "5990 GOTO 1000", 0
+	db "6000 BX(BN) = SX*2 + 5", 0		; Shoot.
+	db "6010 BY(BN) = 43", 0
+	db "6020 BN = BN + 1", 0
+	db "6030 RETURN", 0
 	db 0
 
 	; Screenshot
