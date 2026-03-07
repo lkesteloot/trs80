@@ -247,6 +247,8 @@ function main() {
         .option("--no-known", "do not use labels for known ROM locations")
         .option("--no-binary", "do not show program binary in listing")
         .option("--upper", "generate upper case output")
+        .option("--full", "assume there are only instructions")
+        .option("--data-comment", "add comments for each instruction as ASCII")
         .option("--hex-format <format>", "format for hex numbers: c for 0x12, dollar for $12, and h for 12h",
             "c")
         .action((infile, options) => {
@@ -259,7 +261,7 @@ function main() {
             }
             const hexFormat = hexFormatString === "c" ? HexFormat.C : hexFormatString === "dollar" ? HexFormat.DOLLAR : HexFormat.H;
             disasm(infile, options.listing, org, entryPoints, options.labels, options.known, options.binary, hexFormat,
-                options.upper);
+                options.upper, options.full, options.dataComment);
         });
     program
         .command("run [program]")

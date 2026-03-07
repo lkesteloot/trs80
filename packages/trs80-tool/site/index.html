@@ -314,7 +314,12 @@ C CRC error (ID or data).
             <div><pre><code>% trs80-tool disasm --entry 0x0000,0x3799,0x377B model3.rom</code></pre>
             </div>
             <p>Note that if any entry point is listed, then 0x0000 must be specified again if
-            applicable. The output can be controlled with <code>--no-labels</code> to not create labels
+            applicable. If you wish to disable this “smart” disassembly and just disassemble continuously
+            through the program, specify the <code>--full</code> flag. If you specify this flag, bytes
+            that were originally data will be disassembled too. To make these bytes easier to find,
+            specify the <code>--data-comment</code> flag, which adds a comment to each instruction with
+            the ASCII of the instructions's bytes.</p>
+            <p>The output can be controlled with <code>--no-labels</code> to not create labels
             for jump targets and <code>--no-known</code> to not reference known ROM addresses. The
             <code>--hex-format</code> flag controls the format of hex numbers, which can be <code>c</code>
             for <code>0x12</code> (the default), <code>dollar</code> for <code>$12</code>, or <code>h</code> for <code>12h</code>.</p>

@@ -126,6 +126,13 @@ export class Instruction {
      * eat up additional bytes.
      */
     public continuesAt(): number | undefined {
-        return this.continues() ? this.address + this.bin.length + this.additionalDataLength : undefined;
+        return this.continues() ? this.nextAddress() : undefined;
+    }
+
+    /**
+     * The address of the instruction after this one.
+     */
+    public nextAddress(): number {
+        return this.address + this.bin.length + this.additionalDataLength;
     }
 }

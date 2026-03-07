@@ -90,6 +90,7 @@ export class Disasm {
     private createLabels = true;
     private useKnownLabels = true;
     private hexFormat: HexFormat = HexFormat.C;
+    private fullDisassembly = false;
 
     /**
      * Whether to create labels for destination of jumps. If false, the address is always
@@ -112,6 +113,15 @@ export class Disasm {
      */
     public setHexFormat(hexFormat: HexFormat): void {
         this.hexFormat = hexFormat;
+    }
+
+    /**
+     * If true, then every byte of the binary is considered to be an instruction.
+     * If false, then the logic of the code (starting at entry points) is followed,
+     * and whatever's left is considered data. Defaults to false.
+     */
+    public doFullDisassembly(fullDisassembly: boolean): void {
+        this.fullDisassembly = fullDisassembly;
     }
 
     /**
@@ -505,7 +515,11 @@ export class Disasm {
                 console.log("Warning: Instruction at", toHexWord(address), "is jumping to screen address", toHexWord(instruction.jumpTarget));
             }
             addAddressToDecode(instruction.jumpTarget);
-            addAddressToDecode(instruction.continuesAt());
+            if (this.fullDisassembly) {
+                addAddressToDecode(instruction.nextAddress());
+            } else {
+                addAddressToDecode(instruction.continuesAt());
+            }
         }
 
         // Map from jump target to list of instructions that jump there.

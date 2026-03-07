@@ -17,6 +17,28 @@ export interface InstructionsToTextConfig {
     upperCase?: boolean;
     // Main address to jump to, default unspecified.
     mainEntryPoint?: number | undefined;
+    // Whether to include a comment that has the data of the instruction.
+    dataComment?: boolean;
+}
+
+/**
+ * Converts an array of bytes to an ASCII string, replacing non-printable characters with a period ('.').
+ *
+ * @param {number[]} bytes - An array of numbers representing byte values.
+ * @return {string} The resulting ASCII string where non-printable characters are replaced with '.'.
+ */
+function toAscii(bytes: number[]): string {
+    const chars: string[] = [];
+
+    for (const b of bytes) {
+        if (b >= 32 && b < 127) {
+            chars.push(String.fromCharCode(b));
+        } else {
+            chars.push(".");
+        }
+    }
+
+    return chars.join("");
 }
 
 /**
@@ -39,6 +61,7 @@ export function instructionsToText(disasm: Disasm,
         hexFormat = HexFormat.C,
         upperCase = false,
         mainEntryPoint,
+        dataComment = false,
     } = config;
 
     // Convenience function to transform text.
@@ -73,7 +96,10 @@ export function instructionsToText(disasm: Disasm,
             lines.push(listingIndent + xform(instruction.label) + ":");
         }
 
-        const instructionText = instruction.toText(upperCase);
+        let instructionText = instruction.toText(upperCase);
+        if (dataComment) {
+           instructionText = instructionText.padEnd(32) + "; " + toAscii(bytes);
+        }
         if (makeListing) {
             if (showBinary) {
                 let i = 0;
