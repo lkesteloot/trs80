@@ -2,9 +2,11 @@ import {toHexByte, toHexWord} from "z80-base";
 import {Disasm, HexFormat, toFormattedHex} from "./Disasm.js";
 import {Instruction} from "./Instruction.js";
 
-const INSTRUCTION_INDENT = " ".repeat(8);
-const ADDRESS_INDENT = " ".repeat(5);
-const LISTING_INDENT = ADDRESS_INDENT + " ".repeat(3*4);
+const SPACE_WIDTH = 1;
+const BYTE_WIDTH = 2;
+const WORD_WIDTH = 2*BYTE_WIDTH;
+const LABEL_SPACES = " ".repeat(8*SPACE_WIDTH);
+const ADDRESS_SPACES = " ".repeat(WORD_WIDTH + SPACE_WIDTH);
 
 export interface InstructionsToTextConfig {
     // Make a listing (vs. disassembly), default false.
@@ -19,6 +21,8 @@ export interface InstructionsToTextConfig {
     mainEntryPoint?: number | undefined;
     // Whether to include a comment that has the data of the instruction.
     dataComment?: boolean;
+    // Number of hex bytes to display per line.
+    hexByteCount?: number;
 }
 
 /**
@@ -62,6 +66,7 @@ export function instructionsToText(disasm: Disasm,
         upperCase = false,
         mainEntryPoint,
         dataComment = false,
+        hexByteCount = 3,
     } = config;
 
     // Convenience function to transform text.
@@ -72,7 +77,9 @@ export function instructionsToText(disasm: Disasm,
     const lines: string[] = [];
 
     let expectedAddress = undefined;
-    const listingIndent = makeListing ? showBinary ? LISTING_INDENT : ADDRESS_INDENT : "";
+    const binaryWidth = showBinary ? hexByteCount*(BYTE_WIDTH + SPACE_WIDTH) : 0;
+    // Address and binary.
+    const listingSpaces = makeListing ? (ADDRESS_SPACES + " ".repeat(binaryWidth)) : "";
     let executableCount = 0;
     let nonExecutableCount = 0;
 
@@ -81,7 +88,7 @@ export function instructionsToText(disasm: Disasm,
         const bytes = instruction.bin;
 
         if (address !== expectedAddress) {
-            lines.push(listingIndent + INSTRUCTION_INDENT + xform(".org " + toFormattedHex(address, 4, hexFormat)));
+            lines.push(listingSpaces + LABEL_SPACES + xform(".org " + toFormattedHex(address, 4, hexFormat)));
             expectedAddress = address;
         }
         expectedAddress += bytes.length;
@@ -93,7 +100,7 @@ export function instructionsToText(disasm: Disasm,
         }
 
         if (instruction.label !== undefined) {
-            lines.push(listingIndent + xform(instruction.label) + ":");
+            lines.push(listingSpaces + xform(instruction.label) + ":");
         }
 
         let instructionText = instruction.toText(upperCase);
@@ -104,22 +111,22 @@ export function instructionsToText(disasm: Disasm,
             if (showBinary) {
                 let i = 0;
                 while (i < bytes.length) {
-                    const subbytes = bytes.slice(i, Math.min(i + 3, bytes.length));
+                    const subbytes = bytes.slice(i, Math.min(i + hexByteCount, bytes.length));
                     lines.push(toHexWord(address) + " " +
-                        subbytes.map(toHexByte).join(" ").padEnd(12) +
-                        (address === instruction.address ? INSTRUCTION_INDENT + instructionText : ""));
+                        subbytes.map(toHexByte).join(" ").padEnd(binaryWidth) +
+                        (address === instruction.address ? LABEL_SPACES + instructionText : ""));
                     address += subbytes.length;
                     i += subbytes.length;
                 }
             } else {
-                lines.push(toHexWord(address) + " " + INSTRUCTION_INDENT + instructionText);
+                lines.push(toHexWord(address) + " " + LABEL_SPACES + instructionText);
             }
         } else {
-            lines.push(INSTRUCTION_INDENT + instructionText);
+            lines.push(LABEL_SPACES + instructionText);
         }
     }
 
-    let endLine = listingIndent + INSTRUCTION_INDENT + "end";
+    let endLine = listingSpaces + LABEL_SPACES + "end";
     if (mainEntryPoint !== undefined) {
         const label = disasm.getLabelForAddress(mainEntryPoint) ?? toFormattedHex(mainEntryPoint, 4, hexFormat);
         endLine += " " + label;

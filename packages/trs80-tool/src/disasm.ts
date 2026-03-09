@@ -18,7 +18,10 @@ export function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: 
         disasm.addEntryPoint(entryPoint);
     }
     const instructions = disasm.disassemble()
-    const text = instructionsToText(disasm, instructions, { makeListing }).join("\n") + "\n";
+    const text = instructionsToText(disasm, instructions, {
+        makeListing,
+        hexByteCount: 4,
+    }).join("\n") + "\n";
     const outBinary = new TextEncoder().encode(text);
     const description = "Disassembled " + (trs80File.className === "CmdProgram" ? "CMD program" : "system program");
 
@@ -83,6 +86,14 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
 
     const instructions = disasm.disassemble();
     const text = instructionsToText(disasm, instructions,
-        { makeListing, showBinary, hexFormat, upperCase, mainEntryPoint, dataComment }).join("\n");
+        {
+            makeListing,
+            showBinary,
+            hexFormat,
+            upperCase,
+            mainEntryPoint,
+            dataComment,
+            hexByteCount: 4,
+        }).join("\n");
     console.log(text);
 }
