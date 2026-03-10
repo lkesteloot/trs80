@@ -120,7 +120,7 @@ export class Disasm {
      * If false, then the logic of the code (starting at entry points) is followed,
      * and whatever's left is considered data. Defaults to false.
      */
-    public doFullDisassembly(fullDisassembly: boolean): void {
+    public setFullDisassembly(fullDisassembly: boolean): void {
         this.fullDisassembly = fullDisassembly;
     }
 
@@ -491,6 +491,15 @@ export class Disasm {
         } else {
             for (const address of this.entryPoints) {
                 addressesToDecode.add(address);
+            }
+        }
+
+        // Also, if doing a full disassembly, add the first byte of every disjoint chunk.
+        if (this.fullDisassembly) {
+            for (let i = 0; i < this.hasContent.length; i++) {
+                if (this.hasContent[i] && (i === 0 || !this.hasContent[i - 1])) {
+                    addressesToDecode.add(i);
+                }
             }
         }
 

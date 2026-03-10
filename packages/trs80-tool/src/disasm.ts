@@ -73,7 +73,7 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     disasm.setCreateLabels(createLabels);
     disasm.setUseKnownLabels(useKnownLabels);
     disasm.setHexFormat(hexFormat);
-    disasm.doFullDisassembly(full);
+    disasm.setFullDisassembly(full);
 
     // Add extra entry points, if any.
     for (const entryPoint of entryPoints) {

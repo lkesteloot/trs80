@@ -88,6 +88,9 @@ export function instructionsToText(disasm: Disasm,
         const bytes = instruction.bin;
 
         if (address !== expectedAddress) {
+            if (lines.length > 0) {
+                lines.push("");
+            }
             lines.push(listingSpaces + LABEL_SPACES + xform(".org " + toFormattedHex(address, 4, hexFormat)));
             expectedAddress = address;
         }
@@ -131,7 +134,7 @@ export function instructionsToText(disasm: Disasm,
         const label = disasm.getLabelForAddress(mainEntryPoint) ?? toFormattedHex(mainEntryPoint, 4, hexFormat);
         endLine += " " + label;
     }
-    lines.push(endLine);
+    lines.push(xform(endLine));
 
     if (false) {
         // Statistics.
