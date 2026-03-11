@@ -210,6 +210,21 @@ export class CmdProgram extends AbstractTrs80File {
     }
 
     /**
+     * Does some sanity checks to see if we accidentally parsed this file as CMD.
+     */
+    public isProbablyCmdProgram(): boolean {
+        if (this.error !== undefined) {
+            return false;
+        }
+        for (const chunk of this.chunks) {
+            if (CMD_CHUNK_TYPE_NAME.get(chunk.type) === undefined) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Convert an address in memory to the original byte offset in the binary. Returns undefined if
      * not found in any chunk.
      */

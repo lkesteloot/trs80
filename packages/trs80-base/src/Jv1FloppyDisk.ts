@@ -1,8 +1,16 @@
 import { TRS80_FLOPPY_LOGGER } from "trs80-logger";
-import {Density, FloppyDisk, FloppyDiskGeometry, FloppyWrite, SectorData, Side, TrackGeometry} from "./FloppyDisk.js";
+import {
+    BYTES_PER_SECTOR,
+    Density,
+    FloppyDisk,
+    FloppyDiskGeometry,
+    FloppyWrite,
+    SectorData,
+    Side,
+    TrackGeometry
+} from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
-const BYTES_PER_SECTOR = 256;
 const SECTORS_PER_TRACK = 10;
 const BYTES_PER_TRACK = BYTES_PER_SECTOR * SECTORS_PER_TRACK;
 const DIRECTORY_TRACK = 17;

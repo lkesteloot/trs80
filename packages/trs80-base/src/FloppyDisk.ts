@@ -2,6 +2,9 @@ import { SimpleEventDispatcher } from "strongly-typed-events";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {AbstractTrs80File} from "./Trs80File.js";
 
+// Determined by the floppy controller.
+export const BYTES_PER_SECTOR = 256;
+
 // Side of a floppy disk.
 export enum Side {
     FRONT,

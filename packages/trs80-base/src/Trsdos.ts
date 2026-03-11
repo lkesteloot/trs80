@@ -7,7 +7,15 @@
  */
 
 import {concatByteArrays} from "teamten-ts-utils";
-import {Density, FloppyDisk, FloppyDiskGeometry, numberToSide, SectorPosition, Side} from "./FloppyDisk.js";
+import {
+    BYTES_PER_SECTOR,
+    Density,
+    FloppyDisk,
+    FloppyDiskGeometry,
+    numberToSide,
+    SectorPosition,
+    Side
+} from "./FloppyDisk.js";
 import {toHexByte, word} from "z80-base";
 import {TRS80_BASE_LOGGER} from "trs80-logger";
 
@@ -15,9 +23,6 @@ import {TRS80_BASE_LOGGER} from "trs80-logger";
 // here, so disabling this. Those bits were probably not accessed anyway, so it's probably not out of
 // spec to be wrong.
 const CHECK_GAT_HIGH_BITS = false;
-
-// Apparently this is constant in TRSDOS.
-const BYTES_PER_SECTOR = 256;
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";

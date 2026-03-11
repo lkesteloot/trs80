@@ -9,6 +9,7 @@ import {decodeSystemProgram, SystemProgram} from "./SystemProgram.js";
 import {decodeScpFloppyDisk, ScpFloppyDisk} from "./ScpFloppyDisk.js";
 import {decodeLevel1Program, Level1Program} from "./Level1Program.js";
 import {decodeEdtasmFile, EdtasmFile} from "./EdtasmFile.js";
+import {decodeBootSector, BootSector} from "./BootSector.js";
 
 /**
  * The various floppy formats we support.
@@ -28,7 +29,8 @@ export type Trs80File = BasicProgram |
     CmdProgram |
     RawBinaryFile |
     Level1Program |
-    EdtasmFile;
+    EdtasmFile |
+    BootSector;
 
 const CLASS_NAME_TO_EXTENSION = {
     BasicProgram: ".BAS",
@@ -42,6 +44,7 @@ const CLASS_NAME_TO_EXTENSION = {
     SystemProgram: ".3BN",
     Level1Program: ".L1",
     EdtasmFile: ".ASM",
+    BootSector: ".SYS",
 };
 
 /**
@@ -170,6 +173,14 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
         return decodeCmdProgram(binary) ?? new RawBinaryFile(binary);
     }
 
+    if (extension === ".SYS") {
+        const bootSector = decodeBootSector(binary);
+        if (bootSector !== undefined) {
+            return bootSector;
+        }
+        // Not a boot sector, we'll later check if it's a CMD file.
+    }
+
     // Cassette decoding can be a bit too eager, so be more strict if we don't have the right extension.
     const strictCassetteDecoding = extension !== ".CAS";
     trs80File = decodeCassette(binary, strictCassetteDecoding, disassemble);
@@ -178,7 +189,7 @@ export function decodeTrs80File(binary: Uint8Array, options?: DecodeTrs80FileOpt
     }
 
     trs80File = decodeCmdProgram(binary);
-    if (trs80File !== undefined) {
+    if (trs80File !== undefined && trs80File.isProbablyCmdProgram()) {
         return trs80File;
     }
 

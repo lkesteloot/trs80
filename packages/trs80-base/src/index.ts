@@ -18,3 +18,4 @@ export * from "./Level1Program.js";
 export * from "./EdtasmFile.js";
 export * from "./Disasm.js";
 export * from "./IntelHexFile.js";
+export * from "./BootSector.js";

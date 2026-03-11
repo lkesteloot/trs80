@@ -8,6 +8,7 @@ import {TRS80_MODEL_III_BASIC_TOKENS, TRS80_MODEL_III_BASIC_TOKENS_KNOWN_LABELS}
 import {TRS80_MODEL_III_KNOWN_LABELS} from "./KnownLabels.js";
 import {CmdLoadBlockChunk, CmdProgram, CmdTransferAddressChunk} from "./CmdProgram.js";
 import {Level1Program} from "./Level1Program.js";
+import {BootSector} from "./BootSector.js";
 
 // Whether to try to disassemble this chunk.
 function shouldDisassembleSystemProgramChunk(chunk: SystemChunk): boolean {
@@ -127,11 +128,12 @@ export function disasmForTrs80(): Disasm {
 /**
  * Create and configure a disassembler for the specified program.
  */
-export function disasmForTrs80Program(program: SystemProgram | CmdProgram | Level1Program): Disasm {
+export function disasmForTrs80Program(program: SystemProgram | CmdProgram | Level1Program | BootSector): Disasm {
     const disasm = disasmForTrs80();
 
     if (program.entryPointAddress !== undefined) {
         disasm.addLabel(program.entryPointAddress, "main");
+        disasm.addEntryPoint(program.entryPointAddress);
     }
     if (program.className === "CmdProgram") {
         for (const chunk of program.chunks) {
@@ -154,11 +156,10 @@ export function disasmForTrs80Program(program: SystemProgram | CmdProgram | Leve
         }
     } else if (program.className === "Level1Program") {
         disasm.addChunk(program.getData(), program.startAddress);
+    } else if (program.className === "BootSector") {
+        disasm.addChunk(program.binary, program.org);
     } else {
-        throw new Error("program is not SystemProgram, CmdProgram, or Level1Program");
-    }
-    if (program.entryPointAddress !== undefined) {
-        disasm.addEntryPoint(program.entryPointAddress);
+        throw new Error("program is not SystemProgram, CmdProgram, Level1Program, or BootSector");
     }
 
     return disasm;

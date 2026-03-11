@@ -151,6 +151,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                 case "DmkFloppyDisk":
                 case "ScpFloppyDisk":
                 case "Cassette":
+                case "BootSector":
                     console.log("Files of type \"" + infile.trs80File.getDescription() + "\" are not yet supported");
                     process.exit(1);
                     break;
@@ -346,6 +347,7 @@ export function convert(inFilenames: string[], outFilename: string, speed: Casse
                         case "DmkFloppyDisk":
                         case "ScpFloppyDisk":
                         case "Cassette":
+                        case "BootSector":
                             // Shouldn't happen, we split up archives.
                             console.log(`Can't put ${inFile.trs80File.getDescription()} into a ${outExt.toUpperCase()} file`);
                             process.exit(1);

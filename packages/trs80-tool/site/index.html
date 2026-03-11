@@ -85,7 +85,8 @@
 
                 <dt><strong><code>.SYS</code></strong></dt>
                 <dd>The same format as <code>.CMD</code>, but is meant to store system code
-                    in a disk operating system.</dd>
+                    in a disk operating system. Can also store the boot sector, in which
+                    case it's not in <code>.CMD</code> format, it's just the raw bytes.</dd>
 
                 <dt><strong><code>.3BN</code></strong></dt>
                 <dd>A machine language program as stored on a cassette. The name comes
@@ -389,6 +390,19 @@ C CRC error (ID or data).
             (<a href="https://www.my-trs-80.com/">My TRS-80</a>,
             the <a href="https://www.my-trs-80.com/ide/">IDE</a>,
             and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).</p>
+
+            <h3 id="v2.8.6">2.8.6 <span class="release-date">Mar 10, 2026</span></h3>
+
+            <ul>
+                <li><code>trs80-tool</code>:
+                    <ul>
+                        <li>Handle <code>.SYS</code> files that are raw dumps
+                            of floppy boot sectors. These work with the
+                            <code>info</code>, <code>hexdump</code>, and
+                            <code>disasm</code> commands.</li>
+                    </ul>
+                </li>
+            </ul>
 
             <h3 id="v2.8.2">2.8.3 <span class="release-date">Mar 6, 2026</span></h3>
 

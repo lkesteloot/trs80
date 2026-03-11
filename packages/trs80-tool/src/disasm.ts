@@ -51,7 +51,9 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
         const trs80File = decodeTrs80File(buffer, { filename });
         if (trs80File.className !== "CmdProgram"
             && trs80File.className !== "SystemProgram"
-            && trs80File.className !== "Level1Program") {
+            && trs80File.className !== "Level1Program"
+            && trs80File.className !== "BootSector") {
+
             console.log("Can't parse program in " + filename);
             return;
         }
