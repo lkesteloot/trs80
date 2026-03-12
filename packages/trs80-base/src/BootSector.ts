@@ -26,15 +26,21 @@ export class BootSector extends AbstractTrs80File {
     }
 }
 
+/**
+ * Since there's little to detect here, this should only be called with files that have
+ * a .SYS extension.
+ */
 export function decodeBootSector(binary: Uint8Array): BootSector | undefined {
-    if (binary.length < 256 || binary[0] !== 0x00 || binary[1] !== 0xFE) {
+    if (binary.length < BYTES_PER_SECTOR || binary[0] !== 0x00 || binary[1] !== 0xFE) {
         return undefined;
     }
 
-    const annotations: ProgramAnnotation[] = [];
-    annotations.push(new ProgramAnnotation("Magic number", 0, 2));
-    annotations.push(new ProgramAnnotation("Directory track", 2, 3));
-    annotations.push(new ProgramAnnotation("Boot code", 3, Math.min(binary.length, BYTES_PER_SECTOR)));
+    const directoryTrack = binary[2];
+    const annotations = [
+        new ProgramAnnotation("Magic number", 0, 2),
+        new ProgramAnnotation("Directory track (" + directoryTrack + ")", 2, 3),
+        new ProgramAnnotation("Boot code", 3, Math.min(binary.length, BYTES_PER_SECTOR)),
+    ];
 
     return new BootSector(binary, annotations);
 }
