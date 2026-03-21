@@ -132,7 +132,7 @@ function readString(s: string, pos: number): { value: string, end: number, error
  * Reads a numeric constant, like 1234, and returns its value. Handles the
  * following formats:
  *
- * Decimal: 1234
+ * Decimal: 1234, 1234d
  * Binary: 0b1010, 1010b (and %1010 if SUPPORT_PERCENT_BINARY is set)
  * Octal: 0o1234, 1234o
  * Hex: 0x1234, 1234h, $1234
@@ -273,6 +273,12 @@ function readNumericLiteral(s: string): { value: number, end: number, error: str
             // Check for programmer errors.
             if (base !== 2) {
                 error = "found B at end of non-binary number: " + s.substring(0, pos + 1);
+            } else {
+                pos++;
+            }
+        } else if (baseChar === "D") {
+            if (base !== 10) {
+                error = "found D at end of non-decimal number: " + s.substring(0, pos + 1);
             } else {
                 pos++;
             }

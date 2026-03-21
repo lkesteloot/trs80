@@ -357,10 +357,12 @@ describe("expressions", () => {
         [ '5', 5 ],
         [ '123', 123 ],
         [ '0123', 123 ], // 0 prefix is not octal.
+        [ '123D', 123 ], // Obscure D suffix.
 
         // Hex.
         [ '$AB', 0xAB ],
         [ '0xAB', 0xAB ], // Looks like B suffix.
+        [ '0xAD', 0xAD ], // Looks like D suffix.
         [ '0ABH', 0xAB ],
         [ '0B1H', 0xB1 ], // Looks like 0x start.
 
