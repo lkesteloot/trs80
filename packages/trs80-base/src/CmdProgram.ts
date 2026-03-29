@@ -21,6 +21,7 @@ import {TRS80_SCREEN_BEGIN, TRS80_SCREEN_END} from "./Constants.js";
 export const CMD_LOAD_BLOCK = 0x01;
 export const CMD_TRANSFER_ADDRESS = 0x02;
 export const CMD_LOAD_MODULE_HEADER = 0x05;
+export const CMD_YANKED_LOAD_BLOCK = 0x10;
 export const CMD_MAX_TYPE = 0x1F;
 
 export const MAX_CMD_CHUNK_DATA_SIZE = 256;
@@ -340,7 +341,7 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
         }
 
         // Adjust load block length.
-        if (type === CMD_LOAD_BLOCK && length <= 2) {
+        if ((type === CMD_LOAD_BLOCK || type === CMD_YANKED_LOAD_BLOCK) && length <= 2) {
             length += 256;
         } else if (type === CMD_LOAD_MODULE_HEADER && length === 0) {
             length = 256;
@@ -362,6 +363,7 @@ export function decodeCmdProgram(binary: Uint8Array): CmdProgram | undefined {
         let chunk: CmdChunk;
         switch (type) {
             case CMD_LOAD_BLOCK:
+            case CMD_YANKED_LOAD_BLOCK:
                 chunk = new CmdLoadBlockChunk(type, data);
                 break;
 
