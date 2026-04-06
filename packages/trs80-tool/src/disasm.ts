@@ -1,7 +1,87 @@
 import * as fs from "fs";
 import * as path from "path";
-import { CmdProgram, SystemProgram, addModel3RomEntryPoints, decodeTrs80File, disasmForTrs80, disasmForTrs80Program } from "trs80-base";
-import {Disasm, HexFormat, instructionsToText } from "z80-disasm";
+import {
+    BYTES_PER_SECTOR,
+    CMD_END_OF_PDS_MEMBER,
+    CmdIsamDirectoryEntryChunk,
+    CmdLoadBlockChunk, CmdProgram, SystemProgram, addModel3RomEntryPoints, decodeTrs80File, disasmForTrs80, disasmForTrs80Program } from "trs80-base";
+import {toHex, toHexByte } from "z80-base";
+import {Disasm, HexFormat, instructionsToText, InstructionsToTextConfig } from "z80-disasm";
+
+/**
+ * Whether the CMD file is structured as a Partial Data Set. Some LDOS SYS files
+ * are like this, and must be disassembled differently.
+ */
+function isPdsFile(trs80File: CmdProgram): boolean {
+    for (const chunk of trs80File.chunks) {
+        if (chunk.type === CMD_END_OF_PDS_MEMBER) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Partial Data Set (PDS) files include several overlays, each of which must be disassembled separately.
+ * This is used by SYS6.SYS and SYS7.SYS in LDOS/VTOS.
+ */
+function decodePdsFile(trs80File: CmdProgram, createLabels: boolean, useKnownLabels: boolean, hexFormat: HexFormat,
+                       full: boolean, toTextOptions: InstructionsToTextConfig): void {
+    // Map from sector/offset to list of ISAM directory entries.
+    // The key is the sector*256 plus the offset.
+    const offsetToDirEntries: Map<number, CmdIsamDirectoryEntryChunk[]> = new Map();
+
+    for (const chunk of trs80File.chunks) {
+        if (chunk instanceof CmdIsamDirectoryEntryChunk) {
+            const offset = chunk.sectorNumber*BYTES_PER_SECTOR + chunk.offset;
+            const dirEntries = offsetToDirEntries.get(offset);
+            if (dirEntries === undefined) {
+                offsetToDirEntries.set(offset, [chunk]);
+            } else {
+                dirEntries.push(chunk);
+            }
+        }
+    }
+
+    // Sort the entries by offset.
+    const offsets = Array.from(offsetToDirEntries.keys()).sort((a, b) => a - b);
+
+    for (const offset of offsets) {
+        const disasm = disasmForTrs80();
+
+        disasm.setCreateLabels(createLabels);
+        disasm.setUseKnownLabels(useKnownLabels);
+        disasm.setHexFormat(hexFormat);
+        disasm.setFullDisassembly(full);
+
+        // Add binary.
+        for (const chunk of trs80File.chunks) {
+            if (chunk.offset >= offset) {
+                if (chunk instanceof CmdLoadBlockChunk) {
+                    disasm.addChunk(chunk.loadData, chunk.address);
+                } else if (chunk.type === CMD_END_OF_PDS_MEMBER) {
+                    break;
+                }
+            }
+        }
+
+        // Add labels for the various entry points.
+        const dirEntries = offsetToDirEntries.get(offset)!!;
+        for (const dirEntry of dirEntries) {
+            const key = dirEntry.key;
+            const transferAddress = dirEntry.transferAddress;
+            disasm.addLabel(transferAddress, "isam_" + toHexByte(key));
+            disasm.addEntryPoint(transferAddress);
+        }
+
+        const instructions = disasm.disassemble();
+        const text = instructionsToText(disasm, instructions, toTextOptions).join("\n");
+        console.log("; Overlay at offset 0x" + toHex(offset, 6) + ":");
+        console.log(text);
+        console.log("");
+    }
+}
 
 /**
  * Disassemble a program.
@@ -34,6 +114,16 @@ export function disassemble(trs80File: CmdProgram | SystemProgram, entryPoints: 
 export function disasm(filename: string, makeListing: boolean, org: number | undefined, entryPoints: number[],
                        createLabels: boolean, useKnownLabels: boolean, showBinary: boolean, hexFormat: HexFormat,
                        upperCase: boolean, full: boolean, dataComment: boolean) {
+
+    const toTextOptions: InstructionsToTextConfig = {
+        makeListing,
+        showBinary,
+        hexFormat,
+        upperCase,
+        dataComment,
+        hexByteCount: 4,
+    };
+
     // Read the file.
     let buffer;
     try {
@@ -48,13 +138,18 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     let mainEntryPoint: number | undefined = undefined;
     const ext = path.extname(filename).toUpperCase();
     if (ext === ".CMD" || ext === ".3BN" || ext === ".SYS" || ext === ".L1") {
-        const trs80File = decodeTrs80File(buffer, { filename });
+        const trs80File = decodeTrs80File(buffer, {filename});
         if (trs80File.className !== "CmdProgram"
             && trs80File.className !== "SystemProgram"
             && trs80File.className !== "Level1Program"
             && trs80File.className !== "BootSector") {
 
             console.log("Can't parse program in " + filename);
+            return;
+        }
+        // Special case to handle SYS6.SYS and SYS7.SYS in LDOS/VTOS.
+        if (trs80File.className === "CmdProgram" && isPdsFile(trs80File)) {
+            decodePdsFile(trs80File, createLabels, useKnownLabels, hexFormat, full, toTextOptions);
             return;
         }
         disasm = disasmForTrs80Program(trs80File);
@@ -87,15 +182,10 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     }
 
     const instructions = disasm.disassemble();
-    const text = instructionsToText(disasm, instructions,
-        {
-            makeListing,
-            showBinary,
-            hexFormat,
-            upperCase,
+    const text = instructionsToText(disasm, instructions, {
+            ... toTextOptions,
             mainEntryPoint,
-            dataComment,
-            hexByteCount: 4,
-        }).join("\n");
+        }
+    ).join("\n");
     console.log(text);
 }

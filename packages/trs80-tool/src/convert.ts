@@ -16,14 +16,15 @@ import {disassemble} from "./disasm.js";
  * @param speed optional new cassette speed.
  * @param start optional start address of system file.
  * @param entryPoints additional entry points in binary.
+ * @param includeSystemFiles whether to include system files from floppies.
  */
 export function convert(inFilenames: string[], outFilename: string, speed: CassetteSpeed | undefined,
-                 start: number | "auto" | undefined, entryPoints: number[]): void {
+                 start: number | "auto" | undefined, entryPoints: number[], includeSystemFiles: boolean): void {
 
     const outputIsDirectory = fs.existsSync(outFilename) && fs.statSync(outFilename).isDirectory();
 
     // Read all input files into an internal data structure, expanding archives like cassettes and floppies.
-    const inFiles = inFilenames.flatMap(filename => expandFile(filename, false));
+    const inFiles = inFilenames.flatMap(filename => expandFile(filename, includeSystemFiles));
 
     // Update start address if requested.
     if (start !== undefined) {

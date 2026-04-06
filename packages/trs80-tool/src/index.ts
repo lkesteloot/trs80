@@ -179,17 +179,19 @@ function main() {
         .option("--baud <baud>", "output baud rate (250, 500, or 1500)")
         .option("--start <address>", "new start address of system program, or \"auto\" to guess")
         .option("--entry <addresses>", "add entry points of binary (comma-separated), for ASM or LST output")
+        .option("--system", "include system files from source floppies")
         .action((files, options) => {
             const speed = parseBaud(options.baud);
             const start = options.start !== undefined ? options.start === "auto" ? "auto" : parseInt(options.start) : undefined;
             const entryPoints = options.entry !== undefined ? (options.entry as string).split(",").map(x => parseInt(x)) : [];
+            const includeSystemFiles = options.system;
             if (files.length < 2) {
                 console.log("Must specify at least one infile and exactly one outfile");
                 process.exit(1);
             }
             const infiles = files.slice(0, files.length - 1);
             const outfile = files[files.length - 1];
-            convert(infiles, outfile, speed, start, entryPoints);
+            convert(infiles, outfile, speed, start, entryPoints, includeSystemFiles);
         });
     if (2 > 3) {
         program

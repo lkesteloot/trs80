@@ -210,7 +210,8 @@
 % trs80-tool convert in.cas out
 % trs80-tool convert in.dmk out</code></pre>
             </div>
-            <p>Archive files can be converted to other archive formats:</p>
+            <p>Use the <code>--system</code> flag to include system files from floppies.
+            Archive files can be converted to other archive formats:</p>
             <div><pre><code>% trs80-tool convert in.dmk out.wav
 % trs80-tool convert in.wav out.cas</code></pre>
             </div>
@@ -390,6 +391,20 @@ C CRC error (ID or data).
             (<a href="https://www.my-trs-80.com/">My TRS-80</a>,
             the <a href="https://www.my-trs-80.com/ide/">IDE</a>,
             and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).</p>
+
+            <h3 id="v2.8.8">2.8.8 <span class="release-date">Apr 5, 2026</span></h3>
+
+            <ul>
+                <li><code>trs80-tool</code>:
+                    <ul>
+                        <li>Added <code>--system</code> flag to the <code>convert</code> command
+                            to extract system files from floppies.</li>
+                        <li>The <code>disasm</code> command understands LDOS-style PDS files for
+                            <code>SYS6.SYS</code> and <code>SYS7.SYS</code>, disassembling each
+                            overlay separately.</li>
+                    </ul>
+                </li>
+            </ul>
 
             <h3 id="v2.8.7">2.8.7 <span class="release-date">Mar 28, 2026</span></h3>
 
