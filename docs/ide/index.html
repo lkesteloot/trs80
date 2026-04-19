@@ -82,6 +82,33 @@ stop:
             <p>The program has infinite undo/redo, so don't be afraid to
             experiment!</p>
 
+            <h2 id="folding">Folding</h2>
+
+            <p>Entire sections of your source code can be folded, meaning visually
+            collapsed so it's no longer visible in the editor. This is useful when
+            you're working on a large program and want to focus on a smaller part
+            of it.</p>
+
+            <p>To tell the editor where each foldable section begins, put a comment
+            at the beginning of the line followed by three hyphens, followed by
+            a description of that section:</p>
+
+            <pre>;--- Constants.
+SCREEN_WIDTH equ 64
+SCREEN_HEIGHT equ 16
+
+;--- Main entry point.
+        .org 5200h
+main:
+        di
+        ...</pre>
+
+            <p>Each such line will show a little arrow to the left of it. Click the
+            arrow to collapse and expand that section. The <tt>Code</tt> menu has
+            a <tt>Folding</tt> sub-menu with useful folding-related commands that
+            collapse all sections, expand all sections, and toggle the expansion
+            of the section you're in.</p>
+
             <h2>Assembler</h2>
 
             <p>The assembler attempts to handle the union of all past Z80 assembler

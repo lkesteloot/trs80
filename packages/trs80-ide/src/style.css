@@ -572,6 +572,11 @@ body.presentation-mode {
     background-color: rgba(255, 255, 255, 0.2) !important;
 }
 
+.cm-line:has(.cm-foldPlaceholder) {
+    color: white;
+    background-color: var(--blue);
+}
+
 .hover-tooltip {
     color: rgba(256, 256, 256, 0.8);
     background-color: var(--blue);

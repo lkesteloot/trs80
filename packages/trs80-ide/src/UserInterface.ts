@@ -360,36 +360,6 @@ export class UserInterface {
                         hotkey: "Cmd-A",
                         action: () => editor.selectAll(),
                     },
-                    {
-                        separator: true,
-                    },
-                    {
-                        text: "Toggle Comment",
-                        hotkey: "Cmd-/",
-                        action: () => editor.toggleCommentAndMoveDown(),
-                    },
-                    {
-                        text: "Move Line Up",
-                        hotkey: "Alt-ArrowUp",
-                        action: () => editor.moveLineUp(),
-                    },
-                    {
-                        text: "Move Line Down",
-                        hotkey: "Alt-ArrowDown",
-                        action: () => editor.moveLineDown(),
-                    },
-                    {
-                        separator: true,
-                    },
-                    {
-                        text: "Auto-complete on Tab",
-                        checked: settings.autocompleteOnTab,
-                        action: (menuCommand: MenuCommand) => {
-                            const enabled = !(menuCommand.checked ?? false);
-                            editor.setAutocompleteOnTab(enabled);
-                            menuCommand.setChecked?.(enabled);
-                        },
-                    },
                 ],
             },
             {
@@ -507,6 +477,68 @@ export class UserInterface {
                         text: "Previous Error",
                         action: () => editor.prevError(),
                         hotkey: "Shift-F2",
+                    },
+                ],
+            },
+            {
+                text: "Code",
+                menu: [
+                    {
+                        text: "Toggle Comment",
+                        hotkey: "Cmd-/",
+                        action: () => editor.toggleCommentAndMoveDown(),
+                    },
+                    {
+                        text: "Move Line Up",
+                        hotkey: "Alt-ArrowUp",
+                        action: () => editor.moveLineUp(),
+                    },
+                    {
+                        text: "Move Line Down",
+                        hotkey: "Alt-ArrowDown",
+                        action: () => editor.moveLineDown(),
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Folding",
+                        menu: [
+                            {
+                                text: "Expand All",
+                                action: () => editor.unfoldAll(),
+                            },
+                            {
+                                text: "Collapse All",
+                                action: () => editor.foldAll(),
+                            },
+                            {
+                                separator: true,
+                            },
+                            {
+                                text: "Toggle Folding",
+                                action: () => editor.toggleFolding(),
+                            },
+                            {
+                                separator: true,
+                            },
+                            {
+                                text: "Folding Help",
+                                action: makeLink("https://lkesteloot.github.io/trs80/ide/#folding"),
+                            },
+                        ],
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Auto-complete on Tab",
+                        checked: settings.autocompleteOnTab,
+                        action: (menuCommand: MenuCommand) => {
+                            const enabled = !(menuCommand.checked ?? false);
+                            editor.setAutocompleteOnTab(enabled);
+                            menuCommand.setChecked?.(enabled);
+                        },
                     },
                 ],
             },

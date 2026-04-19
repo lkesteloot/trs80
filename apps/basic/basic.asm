@@ -1,3 +1,4 @@
+;--- Compiled BASIC.
 	;
 	; Replacement ROM for the TRS-80 Model III.
 	; (c) Lawrence Kesteloot 2026
@@ -28,6 +29,7 @@
 	; The last source line points to a null line composed of six zero bytes.
 	;
 
+;--- Constants.
 SCREEN_WIDTH equ 64
 SCREEN_HEIGHT equ 16
 SCREEN_BEGIN equ 0x3C00
@@ -48,7 +50,7 @@ MAX_VAR_STORAGE equ 2048
 MAX_OP_STACK_SIZE equ 16
 MAX_FORS equ 8
 
-; Z80 opcodes.
+;--- Z80 opcodes.
 I_LD_BC_IMM equ 0x01
 I_ADD_HL_BC equ 0x09
 I_LD_DE_IMM equ 0x11
@@ -111,7 +113,7 @@ I_PUSH_HL equ 0xE5
 I_SBC_HL_DE_1 equ 0xED
 I_SBC_HL_DE_2 equ 0x52
 
-; Basic tokens.
+;--- Basic tokens.
 T_END equ 0x80
 T_FIRST_STMT equ T_END 			; First statement.
 T_FOR equ 0x81
@@ -238,7 +240,8 @@ T_LEFT_STR equ 0xF8
 T_RIGHT_STR equ 0xF9
 T_MID_STR equ 0xFA
 
-; Operators. These encode both the operator (high nibble) and the precedence
+;--- Operators
+; These encode both the operator (high nibble) and the precedence
 ; (low nibble). Lower precedence has a lower low nibble value. For example,
 ; OP_ADD (0x99) and OP_SUB (0xA9) have the same precedence (9). All
 ; of these are left-associative.
@@ -264,16 +267,19 @@ OP_CLOSE_PARENS equ 0xFD		; Never on the stack.
 OP_OPEN_PARENS equ 0xFE			; Ignore precedence.
 OP_INVALID equ 0xFF			; For errors and sentinel.
 
+;--- Macros.
 ; Macro to add a byte to the compiled binary.
 	macro m_add value
 	ld (hl),\value
 	inc hl
 	endm
+
 ; Add a word constant to the compiled binary in little endian order.
 	macro m_add_word value
 	m_add lo(\value)
 	m_add hi(\value)
 	endm
+
 ; Macro to negate a 16-bit value. Pass the high and low registers.
 	macro m_neg_16 high, low
 	xor a,a
@@ -284,6 +290,7 @@ OP_INVALID equ 0xFF			; For errors and sentinel.
 	ld \high,a
 	endm
 
+;--- Start of the program.
 	.org 0x0000
 	di
 	jp soft_boot
@@ -3149,7 +3156,7 @@ tokens:
 ; Powers of 10 for write_decimal_word.
 pow10:  dw 10000, 1000, 100, 10, 1
 	
-; Data in RAM.
+;--- Data in RAM.
 	.org 0x4000
 bss_start:
 
@@ -3237,6 +3244,7 @@ bss_end:
 program:
 	ds PROGRAM_SIZE
 
+;--- Sample programs.
 sample_program_list:
 	dw sample_program_1
 	dw sample_program_2
@@ -3379,6 +3387,7 @@ sample_program_6:
 disasm_buffer:
 	ds 16
 
+;--- Disassembler.
 ; Below is Matt Boytim's disassembler, for debugging the output of the compiler.
 ; I've replace rst with call. HL points to the binary on entry and just past the
 ; instruction on exit. Disassembly goes to a 16-byte buffer pointed to by DE.
@@ -3998,4 +4007,5 @@ nothl   call    out_str_ind
         defb    '('-32,'I'-32,'Y'-32,'>'-32,')'-32+128
 #endlocal ; End disassembler, see z80dis
 
+;--- End of program
 	end 0x0000

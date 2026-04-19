@@ -48,7 +48,7 @@ import {
     Text,
     Transaction
 } from "@codemirror/state"
-import {indentUnit, StreamLanguage,} from "@codemirror/language"
+import {indentUnit, StreamLanguage, toggleFold, foldAll, unfoldAll} from "@codemirror/language"
 import {autocompletion, closeBracketsKeymap, CompletionContext, completionKeymap} from "@codemirror/autocomplete"
 import {
     findNext,
@@ -68,13 +68,14 @@ import {screenshotPlugin} from "./ScreenshotPlugin";
 import {customCompletions} from "./AutoComplete";
 import {Emulator} from "./Emulator";
 import {getDefaultExample} from "./UserInterface";
-import {getInitialSpaceCount} from "./utils";
+import {getInitialSpaceCount, pluralize} from "./utils";
 import {INDENTATION_SIZE, z80StreamParser} from "./Z80Parser";
 import {solarizedDark} from 'cm6-theme-solarized-dark'
 import {asmToCmdBinary, asmToIntelHex, asmToRawBinary, asmToSystemBinary} from "trs80-asm"
 import {variablePillPlugin} from "./VariablePillPlugin";
 import {saveSettings, Settings} from "./Settings";
 import { Trs80 } from "trs80-emulator"
+import {foldingExtensions} from "./Folding";
 
 // Keys for local storage.
 const LOCAL_STORAGE_CODE_KEY = "trs80-ide-code";
@@ -412,9 +413,7 @@ export class Editor {
             }
         });
 
-        /**
-         * State field for keeping the assembly results.
-         */
+        // State field for keeping the assembly results.
         this.assemblyResultsStateEffect = StateEffect.define<AssemblyResults>();
         this.assemblyResultsStateField = StateField.define<AssemblyResults>({
             create: () => {
@@ -498,7 +497,6 @@ export class Editor {
             highlightActiveLineGutter(),
             highlightSpecialChars(),
             history(),
-            // foldGutter(),
             drawSelection(),
             // dropCursor(),
             EditorState.allowMultipleSelections.of(true),
@@ -521,7 +519,6 @@ export class Editor {
                 ...defaultKeymap,
                 ...searchKeymap,
                 ...historyKeymap,
-                // ...foldKeymap,
                 // Opens a lint panel, seems kinda broken:
                 // ...lintKeymap,
                 fancyTab,
@@ -628,6 +625,7 @@ export class Editor {
             this.name.field,
             this.memory.field,
             StreamLanguage.define(z80StreamParser),
+            foldingExtensions(),
         ];
 
         // Load saved doc.
@@ -755,6 +753,21 @@ export class Editor {
     // Move the current line down.
     public moveLineDown() {
         moveLineDown(this.view);
+    }
+
+    // Open or close the current section.
+    public toggleFolding() {
+        toggleFold(this.view);
+    }
+
+    // Collapse all sections.
+    public foldAll() {
+        foldAll(this.view);
+    }
+
+    // Expand all sections.
+    public unfoldAll() {
+        unfoldAll(this.view);
     }
 
     // Specify whether to show line numbers.
@@ -1672,10 +1685,6 @@ export class Editor {
                 labelNode.textContent = label;
 
                 return [sizeNode, labelNode];
-            }
-
-            function pluralize(count: number, s: string) {
-                return s + (count === 1 ? "" : "s");
             }
 
             /**
