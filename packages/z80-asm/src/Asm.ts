@@ -859,6 +859,8 @@ class Pass {
     public readonly conditionals: Conditional[] = [];
     // Counter for automatically-generated labels in macros.
     public labelCounter = 1;
+    // Whether between #insert (without filename) and #endinsert.
+    public inserting = false;
 
     constructor(asm: Asm, passNumber: number) {
         this.asm = asm;
@@ -902,6 +904,14 @@ class Pass {
         // Make sure if/endif are balanced.
         for (const c of this.conditionals) {
             c.line.error = "missing endif for if";
+        }
+
+        // Make sure #insert and #endinsert are balanced.
+        if (this.inserting) {
+            const lines = this.asm.assembledLines;
+            if (lines.length > 0 && lines[lines.length - 1].error === undefined) {
+                lines[lines.length - 1].error = "missing #endinsert";
+            }
         }
 
         const after = Date.now();
@@ -1034,6 +1044,18 @@ class LineParser {
     }
 
     private assembleOrThrow(): void {
+        // See if we're #inserting.
+        if (this.pass.inserting && !this.assembledLine.line.startsWith("#endinsert")) {
+            this.assembledLine.binary.length = 0;
+            const s = this.assembledLine.line;
+            for (let i = 0; i < s.length; i++) {
+                this.assembledLine.binary.push(s.charCodeAt(i));
+            }
+            // Newline:
+            this.assembledLine.binary.push(10);
+            return;
+        }
+
         // Convenience.
         const thisAddress = this.assembledLine.address;
 
@@ -1630,6 +1652,12 @@ class LineParser {
                 break;
 
             case "insert": {
+                // If we're missing a filename, then it's the start of an insert section, which ends with #endinsert.
+                if (this.tokenizer.isEndOfLine()) {
+                    this.pass.inserting = true;
+                    break;
+                }
+
                 // Must specify pathname as string.
                 const pathname = this.readString();
                 if (pathname === undefined) {
@@ -1652,6 +1680,14 @@ class LineParser {
                 this.assembledLine.binary.push(...binary);
                 break;
             }
+
+            case "endinsert":
+                if (this.pass.inserting) {
+                    this.pass.inserting = false;
+                } else {
+                    this.assembledLine.error = "#endinsert without #insert";
+                }
+                break;
 
             default:
                 this.assembledLine.error = "unknown directive #" + directive;

@@ -934,12 +934,14 @@ troff:
 #endlocal
 
 ; Tokenize the string at HL to BC (which can equal HL), nul-terminating the result.
-; Leaves HL and BC on the nuls.
+; Leaves HL and BC on the nuls. HL can also be newline-terminated.
 tokenize:
 #local
 loop:
 	ld a,(hl)
 	or a,a				; See if we're done with string.
+	jp z,done
+	cp a,NL
 	jp z,done
 	cp a,' '
 	jr z,not_token_or_alpha		; It's a space, just add it.
@@ -977,7 +979,8 @@ string_loop:
 	jp loop
 
 done:
-	ld (bc),a			; Nul-terminate BC (A is zero here).
+	xor a,a				; Nul-terminate BC.
+	ld (bc),a
 	ret	
 #endlocal
 
@@ -2156,7 +2159,7 @@ line_loop:
 	ret z				; Done with program text.
 	ld bc,input_buffer		; Tokenize to input buffer.
 	call tokenize			; Tokenize HL to BC.
-	inc hl				; Skip past nul.
+	inc hl				; Skip past nul or newline.
 	ld de,input_buffer		; Address of tokenized line.
 	call read_numeric_literal	; BC has line number.
 	call delete_line		; Delete the line with that line number.
@@ -3256,124 +3259,136 @@ sample_program_list:
 
 ; Random pixels on the screen.
 sample_program_1:
-	db "10 CLS", 0
-	db "20 SET(RND() AND 127, RND(48) - 1)", 0
-	db "30 GOTO 20", 0
+#insert
+10 CLS
+20 SET(RND() AND 127, RND(48) - 1)
+30 GOTO 20
+#endinsert
 	db 0
 
 ; Fill screen with characters (IF/GOTO).
 sample_program_2:
-	db "10 I=15360", 0
-	db "20 POKE I,191", 0
-	db "30 I=I+1", 0
-	db "40 IF I<16384 THEN GOTO 20", 0
+#insert
+10 I=15360
+20 POKE I,191
+30 I=I+1
+40 IF I<16384 THEN GOTO 20
+#endinsert
 	db 0
 
 ; Fill screen with characters (FOR loop).
 sample_program_3:
-	db "10 FOR I=15360 TO 16383", 0
-	db "20 POKE I,191", 0
-	db "30 NEXT I", 0
+#insert
+10 FOR I=15360 TO 16383
+20 POKE I,191
+30 NEXT I
+#endinsert
 	db 0
 
 ; Fill screen with pixels (nested FOR loops).
 sample_program_4:
-	db "10 FOR Y=0 TO 47", 0
-	db "20   FOR X=0 TO 127", 0
-	db "30     SET(X,Y)", 0
-	db "40   NEXT X", 0
-	db "50 NEXT Y", 0
+#insert
+10 FOR Y=0 TO 47
+20   FOR X=0 TO 127
+30     SET(X,Y)
+40   NEXT X
+50 NEXT Y
+#endinsert
 	db 0
 
 ; Mandelbrot set.
 sample_program_5:
-	db "5 CLS", 0
-	db "10 C1 = 64", 0
-	db "11 CA = 8", 0
-	db "12 CB = 8", 0
-	db "13 AB = CA*CB", 0
-	db "20 C4 = 4*C1", 0
-	db "30 XR = 128", 0
-	db "40 YR = 48", 0
-	db "50 MC = 14", 0
-	db "60 RN = -2*C1", 0
-	db "70 RX = 2*C1", 0
-	db "80 IN = -3*C1/2", 0
-	db "90 IX = 3*C1/2", 0
-	db "100 RD = (RX - RN)/(XR - 1)", 0
-	db "110 ID = (IX - IN)/(YR - 1)", 0
-	db "120 I = IN", 0
-	db "130 FOR Y = 0 TO YR - 1", 0
-	db "140     R = RN", 0
-	db "150     FOR X = 0 TO XR - 1", 0
-	db "160         ZR = 0", 0
-	db "170         ZI = 0", 0
-	db "180         CT = 0", 0
-	db "190         R2 = 0", 0
-	db "200         I2 = 0", 0
-	db "220             TR = R2 - I2 + R", 0
-	db "230             TI = ZR*2*ZI/AB + I", 0
-	db "240             ZR = TR", 0
-	db "250             ZI = TI", 0
-	db "260             R2 = ZR*ZR/AB", 0
-	db "270             I2 = ZI*ZI/AB", 0
-	db "280             CT = CT + 1", 0
-	db "290         IF CT < MC AND R2 + I2 < C4 THEN GOTO 220", 0
-	db "300         IF CT AND 1 THEN SET(X,Y)", 0
-	db "310         R = R + RD", 0
-	db "320     NEXT X", 0
-	db "340     I = I + ID", 0
-	db "350 NEXT Y", 0
-	db "360 GOTO 360", 0
+#insert
+5 CLS
+10 C1 = 64
+11 CA = 8
+12 CB = 8
+13 AB = CA*CB
+20 C4 = 4*C1
+30 XR = 128
+40 YR = 48
+50 MC = 14
+60 RN = -2*C1
+70 RX = 2*C1
+80 IN = -3*C1/2
+90 IX = 3*C1/2
+100 RD = (RX - RN)/(XR - 1)
+110 ID = (IX - IN)/(YR - 1)
+120 I = IN
+130 FOR Y = 0 TO YR - 1
+140     R = RN
+150     FOR X = 0 TO XR - 1
+160         ZR = 0
+170         ZI = 0
+180         CT = 0
+190         R2 = 0
+200         I2 = 0
+220             TR = R2 - I2 + R
+230             TI = ZR*2*ZI/AB + I
+240             ZR = TR
+250             ZI = TI
+260             R2 = ZR*ZR/AB
+270             I2 = ZI*ZI/AB
+280             CT = CT + 1
+290         IF CT < MC AND R2 + I2 < C4 THEN GOTO 220
+300         IF CT AND 1 THEN SET(X,Y)
+310         R = R + RD
+320     NEXT X
+340     I = I + ID
+350 NEXT Y
+360 GOTO 360
+#endinsert
 	db 0
 
 ; Game.
 sample_program_6:
-	db "10 CLS", 0				; Initialize
-	db "20 SX = 30", 0
-	db "30 DIM BX(50)", 0
-	db "40 DIM BY(50)", 0
-	db "50 BN = 0", 0
-	db "60 T = 0", 0
-	db "1000 M = 16320 + SX", 0		; Draw ship.
-	db "1010 POKE M,128", 0
-	db "1020 POKE M+1,184", 0
-	db "1030 POKE M-63,128", 0
-	db "1040 POKE M+2,191", 0
-	db "1050 POKE M-62,160", 0
-	db "1060 POKE M+3,189", 0
-	db "1070 POKE M-61,128", 0
-	db "1080 POKE M+4,144", 0
-	db "1090 POKE M+5,128", 0
-	db "2000 I = BN - 1", 0			; Draw and update bullets.
-	db "2005 IF I < 0 THEN GOTO 2999", 0 ; TODO replace with backward FOR
-	db "2010 X = BX(I)", 0
-	db "2020 Y = BY(I)", 0
-	db "2030 RESET(X,Y)", 0
-	db "2050 Y = Y - 1", 0
-	db "2060 IF Y < 0 THEN GOTO 2200", 0
-	db "2070 SET(X,Y)", 0
-	db "2080 BY(I) = Y", 0
-	db "2090 GOTO 2990", 0
-	db "2200 BX(I) = BX(BN - 1)", 0
-	db "2210 BY(I) = BY(BN - 1)", 0
-	db "2220 BN = BN - 1", 0
-	db "2990 I = I - 1", 0
-	db "2995 GOTO 2005", 0
-	db "2999 QQ=0", 0 ; TODO Make this a REM
-	db "3000 T = T + 1", 0
-	db "3010 IF T = 3 THEN T = 0", 0
-	db "5000 K = PEEK(14400)", 0		; Keyboard input.
-	db "5010 IF K AND 32 THEN SX = SX - 1", 0
-	db "5020 IF K AND 64 THEN SX = SX + 1", 0
-	db "5030 IF SX < 0 THEN SX = 0", 0
-	db "5040 IF SX > 58 THEN SX = 58", 0
-	db "5050 IF (K AND 128) AND T = 0 THEN GOSUB 6000", 0
-	db "5990 GOTO 1000", 0
-	db "6000 BX(BN) = SX*2 + 5", 0		; Shoot.
-	db "6010 BY(BN) = 43", 0
-	db "6020 BN = BN + 1", 0
-	db "6030 RETURN", 0
+#insert
+10 CLS                          ' Initialize
+20 SX = 30
+30 DIM BX(50)
+40 DIM BY(50)
+50 BN = 0
+60 T = 0
+1000 M = 16320 + SX		' Draw ship.
+1010 POKE M,128
+1020 POKE M+1,184
+1030 POKE M-63,128
+1040 POKE M+2,191
+1050 POKE M-62,160
+1060 POKE M+3,189
+1070 POKE M-61,128
+1080 POKE M+4,144
+1090 POKE M+5,128
+2000 I = BN - 1			' Draw and update bullets.
+2005 IF I < 0 THEN GOTO 2999    ' TODO replace with backward FOR
+2010 X = BX(I)
+2020 Y = BY(I)
+2030 RESET(X,Y)
+2050 Y = Y - 1
+2060 IF Y < 0 THEN GOTO 2200
+2070 SET(X,Y)
+2080 BY(I) = Y
+2090 GOTO 2990
+2200 BX(I) = BX(BN - 1)
+2210 BY(I) = BY(BN - 1)
+2220 BN = BN - 1
+2990 I = I - 1
+2995 GOTO 2005
+2999 QQ=0                       ' TODO Make this a REM
+3000 T = T + 1
+3010 IF T = 3 THEN T = 0
+5000 K = PEEK(14400)		' Keyboard input.
+5010 IF K AND 32 THEN SX = SX - 1
+5020 IF K AND 64 THEN SX = SX + 1
+5030 IF SX < 0 THEN SX = 0
+5040 IF SX > 58 THEN SX = 58
+5050 IF (K AND 128) AND T = 0 THEN GOSUB 6000
+5990 GOTO 1000
+6000 BX(BN) = SX*2 + 5		' Shoot.
+6010 BY(BN) = 43
+6020 BN = BN + 1
+6030 RETURN
+#endinsert
 	db 0
 
 	; Screenshot
