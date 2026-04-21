@@ -38,6 +38,7 @@ SCREEN_END equ SCREEN_BEGIN+SCREEN_SIZE
 CURSOR_CHAR equ 128+16+32
 CLEAR_CHAR equ 32
 BS equ 8
+TAB equ 9
 NL equ 10
 BREAK equ 27
 INPUT_BUFFER_SIZE equ 128		; Including nul.
@@ -622,7 +623,7 @@ loop:
 	push hl
 	ld hl,bc
 	call clear_current_line
-	call write_unsigned_decimal_word; Write the line number.
+	call write_unsigned_decimal_word; Write the line number (HL).
 	pop hl
 	ld a,' '
 	call write_char
@@ -1119,10 +1120,13 @@ is_digit:
 ; Skip the whitespace at DE, leaving the next found character in A.
 skip_whitespace:
 	ld a,(de)
-	cp a,' '
-	ret nz
 	inc de
-	jr skip_whitespace
+	cp a,' '
+	jr z,skip_whitespace
+	cp a,TAB
+	jr z,skip_whitespace
+	dec de
+	ret
 
 ; Compute the length of the nul-terminated string at HL into BC.
 strlen:
@@ -2357,16 +2361,28 @@ loop:
 	cp a,NL
 	jp z,newline
 
+	cp a,TAB
+	jp z,expand_tab
+
 	ld (de),a
 	inc de
-	; Check end of screen
-	ld a,d
+check_end_of_screen:
+	ld a,d				; Check end of screen.
 	cp a,0x40
 	jp nz,loop			; Not at end of screen, loop.
 	call scroll_up
 	ld de,SCREEN_END-SCREEN_WIDTH
 	jp loop
 
+expand_tab:
+	ld a,' '
+	ld (de),a
+	inc de
+	ld a,e				; Check tab boundary.
+	and a,0x07
+	jr nz,expand_tab		; Expand more of this tab.
+	jr check_end_of_screen
+	
 newline:
 	; See if we're on the last line and should scroll.
 	ld a,d
@@ -3340,7 +3356,7 @@ sample_program_5:
 #endinsert
 	db 0
 
-; Game.
+;--- Game.
 sample_program_6:
 #insert
 10 CLS                          ' Initialize
