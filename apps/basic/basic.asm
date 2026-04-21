@@ -1218,22 +1218,30 @@ compile_line:
 	ld ix,eol_ref			; Clear our eol_ref.
 	ld (ix),0
 	ld (ix+1),0
-loop:
+
+start_of_statement:
 	call parse_variable_name	; See if it's an assignment.
 	jr nc,found_variable		; Found a variable name.
 	or a,a				; Test token.
+	jp m,compile_token		; High bit is set, it's a token.
+	; Fallthrough, assume empty statement.
+
+end_of_statement:			; Process stuff after statement.
+	call skip_whitespace
+	or a,a
 	jp z,eol			; Nul byte is end of the buffer.
-	jp p,compile_error		; Not token, it's an error.
-	inc de				; Skip token.
-	jp compile_token
+	cp a,':'			; Statement separator.
+	call expect_and_skip
+	jp start_of_statement
+
 found_variable:
 	jp z,found_array_variable
 	call find_variable		; Address is in BC.
-	push bc				; Save address.
+	push bc				; Save address of variable.
 	ld a,T_OP_EQU
 	call expect_and_skip
 	call compile_expression		; Evaluate RHS, result on stack.
-	pop bc				; Restore address.
+	pop bc				; Restore address of variable.
 	call add_pop_de
 	m_add I_LD_HL_IMM		; Variable address in HL.
 	m_add c
@@ -1241,7 +1249,7 @@ found_variable:
 	m_add I_LD_HL_E			; Write DE to variable.
 	m_add I_INC_HL
 	m_add I_LD_HL_D
-	jp loop
+	jp end_of_statement
 found_array_variable:
 	call find_variable		; Address is in BC. TODO should fail if not defined.
 	push bc				; Base address of array.
@@ -1264,7 +1272,7 @@ found_array_variable:
 	m_add I_LD_HL_E			; Write DE to variable.
 	m_add I_INC_HL
 	m_add I_LD_HL_D
-	jp loop
+	jp end_of_statement
 
 back_up_and_error:
 	dec de				; Back up to bad byte.
@@ -1287,6 +1295,7 @@ no_eol_ref:
 	pop de
 	jp done
 compile_token:
+	inc de				; Skip token.
 	cp a,T_LAST_STMT+1		; Just past the end of statements.
 	jp nc,back_up_and_error		; Not a statement.
 	sub a,T_FIRST_STMT		; 0-based index.
@@ -1316,7 +1325,7 @@ compile_call:
 	m_add c
 	m_add a
 	; TODO Check if overrunning compile buffer.
-	jp loop
+	jp end_of_statement
 
 ; Compile the SET statement.
 compile_set:
@@ -1340,7 +1349,7 @@ compile_set_internal:
 	m_add a
 	m_add I_CALL
 	m_add_word set_pixel
-	jp loop
+	jp end_of_statement
 
 ; Compile the RESET statement.
 compile_reset:
@@ -1395,7 +1404,7 @@ compile_for:
 	inc hl
 	ld (hl),b
 	ld hl,bc			; Restore compile pointer to HL.
-	jp loop
+	jp end_of_statement
 
 ; Compile the NEXT statement.
 compile_next:
@@ -1456,7 +1465,7 @@ compile_next:
 
 	pop hl
 	pop de
-	jp loop
+	jp end_of_statement
 
 ; Compile the DIM statement.
 compile_dim:
@@ -1481,7 +1490,7 @@ compile_dim:
 	push de				; Source pointer.
 	push hl				; Size.
 	ld hl,variables
-var_search_loop:
+loop:
 	ld a,(hl)			; Check the first letter.
 	or a,a
 	jr z,not_found			; Nul if end of list.
@@ -1498,7 +1507,7 @@ not_match:
 	ld d,(hl)
 	inc hl
 	add hl,de			; Skip data.
-	jp var_search_loop
+	jp loop
 not_found:
 	; TODO check out of variable space.
 	ld (hl),b			; Write name.
@@ -1516,7 +1525,7 @@ not_found:
 	ldir				; BC is one too high, to nul out next var name.
 	pop de
 	pop hl
-	jp loop
+	jp end_of_statement
 already_defined:
 	ld hl,array_already_defined_msg
 	call write_text
@@ -1566,10 +1575,10 @@ compile_goto_gosub:
 	ld hl,bc			; Write pointer.
 	inc hl				; Skip address of JP.
 	inc hl
-	jp loop
+	jp end_of_statement
 backward_goto:
 	pop hl				; Write pointer.
-	jp loop
+	jp end_of_statement
 line_not_found:
 	ld hl,line_number_error_msg_part1
 	call write_text
@@ -1593,7 +1602,7 @@ compile_gosub:
 ; Compile the RETURN statement.
 compile_return:
 	m_add I_RET
-	jp loop
+	jp end_of_statement
 
 ; Compile the IF statement.
 compile_if:
@@ -1613,7 +1622,7 @@ not_then:
 	ld (ix+1),h
 	m_add 0				; To be filled in later, see "eol".
 	m_add 0
-	jp loop
+	jp start_of_statement		; Compile conditional statement.
 
 ; Compile the LOAD statement, which we use to load demo code.
 compile_load:
@@ -1621,7 +1630,7 @@ compile_load:
 	call add_pop_de			; Program number.
 	m_add I_CALL
 	m_add_word load_sample
-	jp loop
+	jp end_of_statement
 
 ; Compile the POKE statement.
 compile_poke:
@@ -1633,7 +1642,7 @@ compile_poke:
 	m_add I_LD_A_E
 	m_add I_POP_DE			; Address.
 	m_add I_LD_DE_A
-	jp loop
+	jp end_of_statement
 
 ; Compile the PRINT statement.
 compile_print:
@@ -1645,7 +1654,7 @@ compile_print:
 	m_add NL
 	m_add I_CALL
 	m_add_word write_char
-	jp loop
+	jp end_of_statement
 
 done:
 	pop bc
