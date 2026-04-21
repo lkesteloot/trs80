@@ -955,6 +955,8 @@ not_digit:
 	jp z,not_token
 	ld (bc),a			; Write token in-place.
 	inc bc				; HL has been advanced by find_token.
+	cp a,T_REM			; See if it was a REM token.
+	jr z,comment_loop		; If so skip rest of line.
 	jp loop
 
 not_token:
@@ -966,18 +968,33 @@ not_token_or_alpha:
 	inc hl
 	inc bc
 	cp a,'"'			; See if it's a string.
-	jp nz,loop
+	jp z,string_loop
+	cp a,"'"			; See if it's a comment.
+	jp z,comment_loop
+	jp loop
 string_loop:
 	; It's a string, copy to end of string or line (no embedded quotes).
 	ld a,(hl)
 	or a,a
 	jp z,done			; End of line.
+	cp a,NL
+	jp z,done			; Newline.
 	ld (bc),a
 	inc hl
 	inc bc
 	cp a,'"'			; Check end of string.
 	jp nz,string_loop
 	jp loop
+comment_loop:
+	ld a,(hl)
+	or a,a
+	jp z,done			; End of line.
+	cp a,NL
+	jp z,done			; Newline.
+	ld (bc),a
+	inc hl
+	inc bc
+	jr comment_loop
 
 done:
 	xor a,a				; Nul-terminate BC.
@@ -1230,6 +1247,8 @@ end_of_statement:			; Process stuff after statement.
 	call skip_whitespace
 	or a,a
 	jp z,eol			; Nul byte is end of the buffer.
+	cp a,"'"			; Check if comment.
+	jp z,compile_rem		; Skip it.
 	cp a,':'			; Statement separator.
 	call expect_and_skip
 	jp start_of_statement
@@ -1603,6 +1622,14 @@ compile_gosub:
 compile_return:
 	m_add I_RET
 	jp end_of_statement
+
+; Compile the REM statement.
+compile_rem:
+	ld a,(de)			; Skip rest of line.
+	or a,a
+	jp z,end_of_statement
+	inc de
+	jr compile_rem
 
 ; Compile the IF statement.
 compile_if:
@@ -2204,7 +2231,7 @@ compile_command_dispatch:
 	dw 0 ; RESTORE (0x90)
 	dw compile_gosub ; GOSUB (0x91)
 	dw compile_return ; RETURN (0x92)
-	dw 0 ; REM (0x93)
+	dw compile_rem ; REM (0x93)
 	dw 0 ; STOP (0x94)
 	dw 0 ; ELSE (0x95)
 	dw tron | 0x8000 ; TRON (0x96)
@@ -3399,7 +3426,7 @@ sample_program_6:
 2220 BN = BN - 1
 2990 I = I - 1
 2995 GOTO 2005
-2999 QQ=0                       ' TODO Make this a REM
+2999 ' End of loop
 3000 T = T + 1
 3010 IF T = 3 THEN T = 0
 5000 K = PEEK(14400)		' Keyboard input.
