@@ -3395,13 +3395,15 @@ sample_program_5:
 ;--- Game.
 sample_program_6:
 #insert
-10 CLS                          ' Initialize
-20 SX = 30
-30 DIM BX(50)
-40 DIM BY(50)
-50 BN = 0
-60 T = 0
-1000 M = 16320 + SX		' Draw ship.
+10 ' ---- Initialize ----
+20 CLS
+30 SX = 30			' X position of ship in chars.
+40 DIM BX(50)			' X position of bullets in pixels.
+50 DIM BY(50)			' Y position of bullets in pixels.
+60 BN = 0			' Number of bullets.
+70 T = 0			' Time.
+1000 ' ---- Draw ship ----
+1005 M = 16320 + SX
 1010 POKE M,128
 1020 POKE M+1,184
 1030 POKE M-63,128
@@ -3411,8 +3413,9 @@ sample_program_6:
 1070 POKE M-61,128
 1080 POKE M+4,144
 1090 POKE M+5,128
-2000 I = BN - 1			' Draw and update bullets.
-2005 IF I < 0 THEN GOTO 2999    ' TODO replace with backward FOR
+2000 ' ---- Draw and move bullets ----
+2003 I = BN - 1
+2005 IF I < 0 THEN GOTO 3000    ' TODO replace with backward FOR
 2010 X = BX(I)
 2020 Y = BY(I)
 2030 RESET(X,Y)
@@ -3426,20 +3429,22 @@ sample_program_6:
 2220 BN = BN - 1
 2990 I = I - 1
 2995 GOTO 2005
-2999 ' End of loop
-3000 T = T + 1
-3010 IF T = 3 THEN T = 0
-5000 K = PEEK(14400)		' Keyboard input.
+3000 ' ---- Update time ----
+3010 T = T + 1
+3020 IF T = 3 THEN T = 0
+5000 ' ---- Keyboard input ----
+5005 K = PEEK(14400)
 5010 IF K AND 32 THEN SX = SX - 1
 5020 IF K AND 64 THEN SX = SX + 1
-5030 IF SX < 0 THEN SX = 0
+5030 IF SX < 0 THEN SX = 0    ' TODO put in IF above
 5040 IF SX > 58 THEN SX = 58
 5050 IF (K AND 128) AND T = 0 THEN GOSUB 6000
 5990 GOTO 1000
-6000 BX(BN) = SX*2 + 5		' Shoot.
-6010 BY(BN) = 43
-6020 BN = BN + 1
-6030 RETURN
+6000 ' ---- Shoot ----
+6010 BX(BN) = SX*2 + 5
+6020 BY(BN) = 43
+6030 BN = BN + 1
+6040 RETURN
 #endinsert
 	db 0
 
