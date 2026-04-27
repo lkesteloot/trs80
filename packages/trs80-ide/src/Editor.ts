@@ -818,6 +818,11 @@ export class Editor {
         saveSettings(this.settings);
     }
 
+    public setAutoSave(enabled: boolean): void {
+        this.settings.autoSave = enabled;
+        saveSettings(this.settings);
+    }
+
     // Load the code of an example into the editor.
     public setCode(code: string, name?: string, handle?: FileSystemFileHandle | undefined) {
         name = name ?? DEFAULT_FILE_NAME;
@@ -886,10 +891,11 @@ export class Editor {
         return this.getCode() !== this.origCode;
     }
 
-    // Indicate that the file was just saved, so the orig code is now
-    // the current contents of the editor.
-    public fileWasSaved() {
-        this.setOrigCode(this.getCode());
+    // Indicate that the file was just saved. Pass the exact text that was
+    // written to disk — using getCode() here would race with edits that
+    // landed during the await of the write.
+    public fileWasSaved(savedCode: string) {
+        this.setOrigCode(savedCode);
     }
 
     // Update the original code that we compare with when deciding whether

@@ -7,6 +7,7 @@ const LOCAL_STORAGE_SETTINGS_KEY = "trs80-ide-settings";
  */
 export type Settings = {
     autocompleteOnTab: boolean,
+    autoSave: boolean,
     showLineNumbers: boolean,
     showAddresses: boolean,
     showBytecode: boolean,
@@ -20,6 +21,7 @@ export type Settings = {
 };
 const DEFAULT_SETTINGS: Settings = {
     autocompleteOnTab: true,
+    autoSave: true,
     showLineNumbers: true,
     showAddresses: true,
     showBytecode: true,

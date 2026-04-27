@@ -12,6 +12,13 @@ import {BUILD_DATE, BUILD_GIT_HASH} from "./build";
 import {Settings} from "./Settings";
 import {SCREEN_SIZES} from "./ScreenSize";
 
+// File System Access API permission methods (WICG, not yet in TS DOM lib).
+declare global {
+    interface FileSystemHandle {
+        queryPermission?(descriptor: {mode: "read" | "readwrite"}): Promise<"granted" | "denied" | "prompt">;
+    }
+}
+
 // ID so that the user agent can have a different default or current directory for each.
 const ASSEMBLY_LANGUAGE_FILES_DIR_ID = "asm_files";
 const FLOPPY_FILES_DIR_ID = "floppy_files";
@@ -204,7 +211,13 @@ function showAboutDialogBox() {
 
 // Everything related to the menus and the top-level UI.
 export class UserInterface {
+    private readonly settings: Settings;
+    private autoSaveInFlight = false;
+
     public constructor(settings: Settings, emulator: Emulator, editor: Editor) {
+        this.settings = settings;
+        window.addEventListener("blur", () => this.runAutoSave(editor));
+
         // Pull-down menu.
         const menu: Menu = [
             {
@@ -242,6 +255,21 @@ export class UserInterface {
                         action: async () => {
                             await this.saveFile(editor, true);
                         },
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
+                        text: "Auto-Save",
+                        checked: settings.autoSave,
+                        action: (menuCommand: MenuCommand) => {
+                            const enabled = !(menuCommand.checked ?? false);
+                            editor.setAutoSave(enabled);
+                            menuCommand.setChecked?.(enabled);
+                        },
+                    },
+                    {
+                        separator: true,
                     },
                     {
                         text: "Export",
@@ -973,8 +1001,45 @@ export class UserInterface {
         } else {
             editor.setName(stripExtension(newHandle.name));
             editor.setHandle(newHandle);
-            editor.fileWasSaved();
+            editor.fileWasSaved(text);
             return true;
+        }
+    }
+
+    /**
+     * Auto-save to the existing file handle, but only if the user has already
+     * granted write permission so we never trigger a permission prompt.
+     */
+    private async runAutoSave(editor: Editor): Promise<void> {
+        // Drop overlapping invocations: another runAutoSave is already
+        // looping below and will pick up any new edits before it exits.
+        if (this.autoSaveInFlight) {
+            return;
+        }
+        // Reserve the slot before any await, so a blur that fires during
+        // the queryPermission round-trip can't slip past the guard above.
+        this.autoSaveInFlight = true;
+        try {
+            while (true) {
+                // Re-check on every iteration so a mid-save toggle-off,
+                // permission revocation, or settings change is honored.
+                if (!this.settings.autoSave) break;
+                const handle = editor.getFileHandle();
+                // No handle means the user hasn't done a manual Save yet
+                // this session; auto-save can't pick a destination silently.
+                if (handle === undefined || typeof handle.queryPermission !== "function") break;
+                // queryPermission only inspects state — it never prompts.
+                // requestPermission would prompt, which is exactly what we're avoiding.
+                if (await handle.queryPermission({mode: "readwrite"}) !== "granted") break;
+                // Nothing new to write; we're caught up. Done.
+                if (!editor.fileHasBeenModified()) break;
+                // Saves the buffer at the moment saveFile() captures it. If
+                // the user keeps typing during the await, fileHasBeenModified()
+                // will be true again next iteration and we'll save once more.
+                await this.saveFile(editor, false);
+            }
+        } finally {
+            this.autoSaveInFlight = false;
         }
     }
 
