@@ -64,9 +64,6 @@ export const z80StreamParser: StreamParser<Z80State> = {
         stream.next();
         return "punctuation";
     },
-    indent: function() {
-        return INDENTATION_SIZE;
-    },
     languageData: {
         commentTokens: {
             line: ";",

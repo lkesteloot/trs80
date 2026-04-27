@@ -48,7 +48,7 @@ import {
     Text,
     Transaction
 } from "@codemirror/state"
-import {indentUnit, StreamLanguage, toggleFold, foldAll, unfoldAll} from "@codemirror/language"
+import {indentService, indentUnit, StreamLanguage, toggleFold, foldAll, unfoldAll} from "@codemirror/language"
 import {autocompletion, closeBracketsKeymap, CompletionContext, completionKeymap} from "@codemirror/autocomplete"
 import {
     findNext,
@@ -571,6 +571,12 @@ export class Editor {
             // indentUnit.of(" ".repeat(INDENTATION_SIZE)),
             indentUnit.of("\t"),
             EditorState.tabSize.of(INDENTATION_SIZE),
+            indentService.of((context, pos) => {
+                if (context.state.field(this.assemblyResultsStateField).isInsertLine(context.state, pos)) {
+                    return null;
+                }
+                return INDENTATION_SIZE;
+            }),
             gBaseThemeConfig.of(gBaseTheme),
             EditorView.theme({
                 // Override theme, which uses an opaque color for the active line, and this hides

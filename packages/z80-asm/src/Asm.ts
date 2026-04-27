@@ -325,6 +325,9 @@ export class AssembledLine {
     // The column where we found the mnemonic, if any. This is in logical columns, so a tab
     // counts as one column.
     public mnemonicColumn: number | undefined = undefined;
+    // Whether this line sits between #insert (filename-less) and #endinsert markers.
+    // The marker lines themselves are not flagged.
+    public insideInsert = false;
 
     constructor(fileInfo: FileInfo, lineNumber: number | undefined, line: string) {
         this.fileInfo = fileInfo;
@@ -1044,8 +1047,11 @@ class LineParser {
     }
 
     private assembleOrThrow(): void {
+        this.assembledLine.insideInsert = false;
+
         // See if we're #inserting.
         if (this.pass.inserting && !this.assembledLine.line.startsWith("#endinsert")) {
+            this.assembledLine.insideInsert = true;
             this.assembledLine.binary.length = 0;
             const s = this.assembledLine.line;
             for (let i = 0; i < s.length; i++) {

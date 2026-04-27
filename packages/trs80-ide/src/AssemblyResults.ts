@@ -1,4 +1,5 @@
 
+import {EditorState} from "@codemirror/state";
 import {Asm, AssembledLine, SourceFile, SymbolAppearance, SymbolInfo, SymbolType} from "z80-asm";
 import {ScreenshotSection} from "./ScreenshotSection";
 import {SymbolHit} from "./SymbolHit";
@@ -123,6 +124,11 @@ export class AssemblyResults {
 
         this.errorLines = errorLines;
         this.errorLineNumbers = errorLineNumbers;
+    }
+
+    // Whether the line containing pos sits between #insert/#endinsert markers.
+    public isInsertLine(state: EditorState, pos: number): boolean {
+        return this.lineMap.get(state.doc.lineAt(pos).number)?.insideInsert ?? false;
     }
 
     // Find symbol usage at a location, or undefined if we're not on a symbol.

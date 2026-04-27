@@ -580,6 +580,11 @@ export function customCompletions(context: CompletionContext, assemblyResultsSta
     // Assembly results are useful for symbol completion.
     const assemblyResults = context.state.field(assemblyResultsStateField);
 
+    // Skip completions inside #insert/#endinsert blocks — that content is raw data.
+    if (assemblyResults.isInsertLine(context.state, context.pos)) {
+        return null;
+    }
+
     // Grab entire line.
     const word = context.matchBefore(/.*/);
     if (word === null) {
