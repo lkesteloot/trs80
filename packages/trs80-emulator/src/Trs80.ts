@@ -701,6 +701,10 @@ export class Trs80 implements Hal, Machine, Configurable {
                     }
                 } else {
                     value = this.modeImage & 0x7E;
+                    if (this.config.modelType === ModelType.MODEL3) {
+                        // No speed latch on Model III.
+                        value |= 0x40;
+                    }
                 }
                 value |= this.getCassetteByte();
                 break;
