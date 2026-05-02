@@ -1334,7 +1334,7 @@ export class Editor {
         // Get position of start of line where PC is, or undefined if not debugging.
         const getPcLinePos = (state: EditorState): number | undefined => {
             const lineNumber = getPcLineNumber(state);
-            return lineNumber === undefined ? undefined : state.doc.line(lineNumber).from;
+            return lineNumber === undefined || lineNumber > state.doc.lines ? undefined : state.doc.line(lineNumber).from;
         };
 
         // Gutter marker for gutter highlighting.
