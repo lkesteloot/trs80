@@ -97,6 +97,8 @@ I_AND_A_H equ 0xA4
 I_AND_A_L equ 0xA5
 I_XOR_A_A equ 0xAF
 I_OR_A_E equ 0xB3
+I_OR_A_H equ 0xB4
+I_OR_A_L equ 0xB5
 I_OR_A_A equ 0xB7
 I_POP_BC equ 0xC1
 I_JP equ 0xC3
@@ -113,6 +115,7 @@ I_POP_HL equ 0xE1
 I_PUSH_HL equ 0xE5
 I_SBC_HL_DE_1 equ 0xED
 I_SBC_HL_DE_2 equ 0x52
+I_JP_P equ 0xF2
 
 ;--- Basic tokens.
 T_END equ 0x80
@@ -1470,7 +1473,7 @@ compile_next:
 	m_add I_OR_A_A			; Clear carry.
 	m_add I_SBC_HL_DE_1
 	m_add I_SBC_HL_DE_2
-	m_add I_JP_NC			; Jump if I (DE) <= END (HL).
+	m_add I_JP_P			; Jump if I (DE) <= END (HL).
 	m_add c				; Top of loop.
 	m_add b
 	ex (sp),hl
@@ -1740,6 +1743,8 @@ not_number:
 	jr z,push_op_equ
 	cp a,T_AND
 	jr z,push_op_and
+	cp a,T_OR
+	jr z,push_op_or
 	cp a,T_NOT
 	jr z,push_op_not
 	cp a,'('
@@ -1778,6 +1783,9 @@ push_op_equ:
 	jr process_op
 push_op_and:
 	ld a,OP_AND
+	jr process_op
+push_op_or:
+	ld a,OP_OR
 	jr process_op
 push_op_not:
 	ld a,OP_NOT
@@ -2003,13 +2011,15 @@ pop_operator_stack:
 	cp a,OP_NEG
 	jr z,compile_op_neg
 	cp a,OP_LT
-	jr z,compile_op_lt
+	jp z,compile_op_lt
 	cp a,OP_GT
 	jp z,compile_op_gt
 	cp a,OP_EQ
 	jp z,compile_op_eq
 	cp a,OP_AND
 	jp z,compile_op_and
+	cp a,OP_OR
+	jp z,compile_op_or
 	cp a,OP_NOT
 	jp z,compile_op_not
 	cp a,OP_OPEN_PARENS
@@ -2104,6 +2114,17 @@ compile_op_and:
 	m_add I_LD_E_A
 	m_add I_LD_A_D
 	m_add I_AND_A_H
+	m_add I_LD_D_A
+	m_add I_PUSH_DE
+	ret
+compile_op_or:
+	call add_pop_de			; Second operand.
+	call add_pop_hl			; First operand.
+	m_add I_LD_A_E			; Bit-wise OR.
+	m_add I_OR_A_L
+	m_add I_LD_E_A
+	m_add I_LD_A_D
+	m_add I_OR_A_H
 	m_add I_LD_D_A
 	m_add I_PUSH_DE
 	ret
@@ -3398,10 +3419,16 @@ sample_program_6:
 10 ' ---- Initialize ----
 20 CLS
 30 SX = 30			' X position of ship in chars.
-40 DIM BX(50)			' X position of bullets in pixels.
-50 DIM BY(50)			' Y position of bullets in pixels.
+40 DIM BX(50)			' X position of bullets in pixels (0..BN-1).
+50 DIM BY(50)			' Y position of bullets in pixels (0..BN-1).
 60 BN = 0			' Number of bullets.
 70 T = 0			' Time.
+80 DIM AX(5)			' X position of alien in chars (0..AN-1).
+90 DIM AY(5)			' Y position of alien in rows (0..AN-1).
+100 AN = 0			' Number of aliens.
+500 AN = 1
+510 AX(0) = 29
+520 AY(0) = 0
 1000 ' ---- Draw ship ----
 1005 M = 16320 + SX
 1010 POKE M,128
@@ -3413,9 +3440,22 @@ sample_program_6:
 1070 POKE M-61,128
 1080 POKE M+4,144
 1090 POKE M+5,128
+1200 ' ---- Draw aliens ----
+1205 IF AN = 0 THEN GOTO 1310
+1210 FOR I = 0 TO AN - 1
+1220 M = 15360 + AY(I)*64 + AX(I)
+1230 POKE M,128
+1240 POKE M+1,156
+1250 POKE M+2,183
+1260 POKE M+3,191
+1270 POKE M+4,187
+1280 POKE M+5,172
+1290 POKE M+6,128
+1300 NEXT I
+1310 ' Skip drawing aliens.
 2000 ' ---- Draw and move bullets ----
 2003 I = BN - 1
-2005 IF I < 0 THEN GOTO 3000    ' TODO replace with backward FOR
+2005 IF I < 0 THEN GOTO 2300    ' TODO replace with backward FOR
 2010 X = BX(I)
 2020 Y = BY(I)
 2030 RESET(X,Y)
@@ -3423,12 +3463,26 @@ sample_program_6:
 2060 IF Y < 0 THEN GOTO 2200
 2070 SET(X,Y)
 2080 BY(I) = Y
-2090 GOTO 2990
+2090 GOTO 2230
 2200 BX(I) = BX(BN - 1)
 2210 BY(I) = BY(BN - 1)
 2220 BN = BN - 1
-2990 I = I - 1
-2995 GOTO 2005
+2230 I = I - 1
+2240 GOTO 2005
+2300 ' ---- Move aliens. ----
+2305 IF T < 2 OR AN = 0 THEN GOTO 2499
+2310 FOR I = 0 TO AN - 1
+2320 M = RND() AND 31
+2330 X = AX(I)
+2340 IF M = 0 THEN X = X - 1
+2350 IF M = 1 THEN X = X + 1
+2360 IF X < 0 THEN X = 0
+2370 IF X > 57 THEN X = 57
+2380 AX(I) = X
+2390 IF M = 2 THEN AY(I) = AY(I) + 1
+2400 IF AY(I) = 15 THEN AN = 0
+2410 NEXT I
+2499 '
 3000 ' ---- Update time ----
 3010 T = T + 1
 3020 IF T = 3 THEN T = 0
@@ -3451,8 +3505,9 @@ sample_program_6:
 	; Screenshot
         .byte 0x80,0xA0 ; Line 0
         .ds 62,0x80
-        .byte 0xB8,0xBF,0xBD,0x90 ; Line 1
-        .ds 60,0x80	
+        .byte 0xB8,0xBF,0xBD,0x90,0x80,0x80,0x9C,0xB7 ; Line 1
+        .byte 0xBF,0xBB,0xAC
+        .ds 53,0x80
 	; End screenshot
 	
 ; Scratch space for the disassembler.
