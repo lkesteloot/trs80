@@ -64,6 +64,7 @@ I_DEC_DE equ 0x1B
 I_JR_NZ equ 0x20
 I_LD_HL_IMM equ 0x21
 I_INC_HL equ 0x23
+I_JR_Z equ 0x28
 I_ADD_HL_HL equ 0x29
 I_DEC_HL equ 0x2B
 I_CPL equ 0x2F
@@ -1736,7 +1737,7 @@ not_number:
 	cp a,T_OP_DIV
 	jr z,push_op_div
 	cp a,T_OP_LT
-	jr z,push_op_lt
+	jr z,push_op_lt_or_neq
 	cp a,T_OP_GT
 	jr z,push_op_gt
 	cp a,T_OP_EQU
@@ -1772,8 +1773,19 @@ push_op_mul:
 push_op_div:
 	ld a,OP_DIV
 	jr process_op
-push_op_lt:
+push_op_lt_or_neq:
+	push de				; Save position
+	inc de				; Skip <.
+	call skip_whitespace		; See if it's <> not equal.
+	cp a,T_OP_GT
+	jr z,push_op_neq
+	pop de				; Go back to <.
 	ld a,OP_LT
+	jr process_op
+push_op_neq:
+	inc sp				; Dump saved position.
+	inc sp
+	ld a,OP_NEQ
 	jr process_op
 push_op_gt:
 	ld a,OP_GT
@@ -2016,6 +2028,8 @@ pop_operator_stack:
 	jp z,compile_op_gt
 	cp a,OP_EQ
 	jp z,compile_op_eq
+	cp a,OP_NEQ
+	jp z,compile_op_neq
 	cp a,OP_AND
 	jp z,compile_op_and
 	cp a,OP_OR
@@ -2103,6 +2117,19 @@ compile_op_eq:
 	m_add 1				; Dec is one byte.
 	m_add I_DEC_A			; If (HL = DE) A = 0xFF else A = 0x00.
 	m_add I_LD_E_A			; If (HL = DE) DE = 0xFFFF else DE = 0x0000.
+	m_add I_LD_D_A
+	m_add I_PUSH_DE
+	ret
+compile_op_neq:
+	call add_pop_hl			; Second operand.
+	call add_pop_de			; First operand.
+	m_add I_XOR_A_A			; Clear A and carry.
+	m_add I_SBC_HL_DE_1		; If (HL == DE) z = 1 else z = 0.
+	m_add I_SBC_HL_DE_2
+	m_add I_JR_Z			; Skip dec if they're the same.
+	m_add 1				; Dec is one byte.
+	m_add I_DEC_A			; If (HL <> DE) A = 0xFF else A = 0x00.
+	m_add I_LD_E_A			; If (HL <> DE) DE = 0xFFFF else DE = 0x0000.
 	m_add I_LD_D_A
 	m_add I_PUSH_DE
 	ret
@@ -3479,9 +3506,16 @@ sample_program_6:
 2360 IF X < 0 THEN X = 0
 2370 IF X > 57 THEN X = 57
 2380 AX(I) = X
-2390 IF M = 2 THEN AY(I) = AY(I) + 1
-2400 IF AY(I) = 15 THEN AN = 0
-2410 NEXT I
+2390 IF M <> 2 THEN GOTO 2430
+2400 M = 15360 + AY(I)*64 + AX(I)	' Erase alien.
+2401 POKE M+1,128
+2402 POKE M+2,128
+2403 POKE M+3,128
+2404 POKE M+4,128
+2405 POKE M+5,128
+2410 AY(I) = AY(I) + 1
+2420 IF AY(I) = 15 THEN AN = 0
+2430 NEXT I
 2499 '
 3000 ' ---- Update time ----
 3010 T = T + 1
