@@ -161,7 +161,8 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
             disasm.addEntryPoint(org ?? 0);
         }
         mainEntryPoint = org ?? 0;
-        addModel3RomEntryPoints(disasm);
+        // Do this with a flag, the ROM might not be from a Model 3:
+        // addModel3RomEntryPoints(disasm);
     } else {
         console.log("Can't disassemble files of type " + ext);
         return;

@@ -392,6 +392,21 @@ C CRC error (ID or data).
             the <a href="https://www.my-trs-80.com/ide/">IDE</a>,
             and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).</p>
 
+            <h3 id="v2.8.9">2.8.9 <span class="release-date">May 12, 2026</span></h3>
+
+            <ul>
+                <li><code>trs80-tool</code> improvements to the <code>disasm</code> command:
+                    <ul>
+                        <li>No longer automatically specifies Model III ROM entry points when disassembling
+                            a ROM since the ROM might not be for a Model III.</li>
+                        <li>When specifying the <code>--no-labels</code> flag, jumps to the
+                            current address will list the address and not the <code>$</code> symbol.</li>
+                        <li>Data now uses <code>DEFB</code> instead of <code>.BYTE</code>.</li>
+                        <li>Disassembly warnings are now sent to standard error instead of standard out.</li>
+                    </ul>
+                </li>
+            </ul>
+
             <h3 id="v2.8.8">2.8.8 <span class="release-date">Apr 5, 2026</span></h3>
 
             <ul>

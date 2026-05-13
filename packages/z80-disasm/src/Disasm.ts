@@ -190,7 +190,7 @@ export class Disasm {
             if (value === undefined) {
                 // Unknown instruction, just provide the raw bytes.
                 const stringParams = bytes.map((n) => this.toHexByte(n));
-                instruction = new Instruction(startAddress, bytes, ".byte", stringParams, stringParams, false);
+                instruction = new Instruction(startAddress, bytes, "defb", stringParams, stringParams, false);
             } else if (value instanceof Map) {
                 // Descend to sub-map.
                 map = value;
@@ -367,7 +367,7 @@ export class Disasm {
             }
         } else {
             // Raw bytes.
-            mnemonic = ".byte";
+            mnemonic = "defb";
 
             if (startOfTextChunk !== undefined) {
                 // Stop at start of text chunk.
@@ -510,7 +510,7 @@ export class Disasm {
             addressesToDecode.delete(address);
 
             if (this.isDecoded[address]) {
-                console.log("Warning: Address", toHexWord(address), "has already been decoded");
+                console.warn("Warning: Address", toHexWord(address), "has already been decoded");
                 continue;
             }
             const instruction = this.disassembleOne(address, this.readMemory);
@@ -521,14 +521,10 @@ export class Disasm {
                 instruction.jumpTarget >= 0x3C00 &&
                 instruction.jumpTarget < 0x4000) {
 
-                console.log("Warning: Instruction at", toHexWord(address), "is jumping to screen address", toHexWord(instruction.jumpTarget));
+                console.warn("Warning: Instruction at", toHexWord(address), "is jumping to screen address", toHexWord(instruction.jumpTarget));
             }
             addAddressToDecode(instruction.jumpTarget);
-            if (this.fullDisassembly) {
-                addAddressToDecode(instruction.nextAddress());
-            } else {
-                addAddressToDecode(instruction.continuesAt());
-            }
+            addAddressToDecode(this.fullDisassembly ? instruction.nextAddress() : instruction.continuesAt());
         }
 
         // Map from jump target to list of instructions that jump there.
@@ -621,7 +617,7 @@ export class Disasm {
         if (instruction.jumpTarget !== undefined) {
             let label = this.useKnownLabels ? this.knownLabels.get(instruction.jumpTarget) : undefined;
             if (label === undefined) {
-                label = instruction.jumpTarget === instruction.address ? "$" : this.toHexWord(instruction.jumpTarget);
+                label = instruction.jumpTarget === instruction.address && this.useKnownLabels ? "$" : this.toHexWord(instruction.jumpTarget);
             }
 
             instruction.replaceArgVariable(TARGET, label);
