@@ -694,7 +694,7 @@ export class TapeBrowser {
         });
 
         let pane = new Pane(div);
-        if (cmdProgram.filename !== "") {
+        if (cmdProgram.filename !== undefined && cmdProgram.filename !== "") {
             pane.programName = cmdProgram.filename;
         }
         pane.didShow = () => {

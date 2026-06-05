@@ -115,7 +115,7 @@ export function isFloppy(trs80File: Trs80File): trs80File is Trs80Floppy {
 /**
  * Options for the {@link decodeTrs80File} function.
  */
-interface DecodeTrs80FileOptions {
+export interface DecodeTrs80FileOptions {
     // Optional filename, to help with the decoding. If missing or empty, the type will be
     // inferred entirely from the contents.
     filename?: string;

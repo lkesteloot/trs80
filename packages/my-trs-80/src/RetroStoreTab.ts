@@ -2,7 +2,7 @@ import * as RetroStoreProto from "retrostore-api";
 import {clearElement} from "teamten-ts-utils";
 import {makeIcon, makeIconButton} from "./Utils";
 import {Context} from "./Context";
-import {decodeTrs80File} from "trs80-base";
+import {decodeTrs80File, DecodeTrs80FileOptions} from "trs80-base";
 import {FileBuilder} from "./File";
 import {PageTab} from "./PageTab";
 import { ModelType } from "trs80-emulator";
@@ -287,7 +287,11 @@ export class RetroStoreTab extends PageTab {
         let validMediaImage: RetroStoreProto.MediaImage | undefined = undefined;
         const playButton = makeIconButton(makeIcon("play_arrow"), "Run app", () => {
             if (validMediaImage !== undefined && validMediaImage.data !== undefined) {
-                const cmdProgram = decodeTrs80File(validMediaImage.data, { filename: validMediaImage.filename });
+                const options: DecodeTrs80FileOptions = {};
+                if ("filename" in validMediaImage) {
+                    options.filename = validMediaImage.filename;
+                }
+                const cmdProgram = decodeTrs80File(validMediaImage.data, options);
                 // TODO should set context.runningFile
                 this.context.trs80.runTrs80File(cmdProgram);
                 this.context.panelManager.close();

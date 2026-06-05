@@ -4,6 +4,7 @@
   "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
     "build": "lerna run build",
+    "clean": "lerna run clean",
     "test": "npm run test -w packages/z80-asm -w packages/z80-disasm -w packages/z80-emulator"
   },
   "devDependencies": {

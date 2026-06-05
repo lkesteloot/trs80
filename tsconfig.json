@@ -12,6 +12,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
+    "exactOptionalPropertyTypes": true,
     "incremental": true
   }
 }

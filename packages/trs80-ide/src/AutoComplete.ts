@@ -536,14 +536,18 @@ class Completer {
     private makeOption(label: string, section: CompletionSection, htmlInfo: string | undefined, variant: OpcodeVariant | undefined): Completion {
         let option: CompletionWithVariant = {
             label,
-            info: htmlInfo === undefined ? undefined : () => {
+            section,
+        };
+        if (htmlInfo !== undefined) {
+            option.info = () => {
                 const span = document.createElement("span");
                 span.innerHTML = htmlInfo;
                 return span;
-            },
-            section,
-            variant,
-        };
+            };
+        }
+        if (variant !== undefined) {
+            option.variant = variant;
+        }
 
         // Make template with the constants.
         const template = option.label.replace(/\b(offset|nn|nnnn|dd)\b/g, "#{$&}");

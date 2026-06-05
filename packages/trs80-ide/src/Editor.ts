@@ -92,7 +92,17 @@ const POST_BOOT_DELAY = 500;
 const AUTOCOMPLETE_KEY_WITHOUT_TAB = keymap.of(completionKeymap
     .filter(m => m.key !== "Enter"));
 const AUTOCOMPLETE_KEY_WITH_TAB = keymap.of(completionKeymap
-    .map(m => ({ ...m, key: m.key === "Enter" ? "Tab" : m.key })));
+    .map(m => {
+        if (m.key === "Enter") {
+            return {
+                ...m,
+                key: "Tab",
+            };
+        } else {
+            return m;
+        }
+    }
+    ));
 
 /**
  * Whether the instruction at the given address is a pop instruction.
@@ -317,9 +327,9 @@ interface PillNotice {
     text: string,
     isError: boolean,
     priority: number,
-    onPrevious?: () => void,
-    onClick?: () => void,
-    onNext?: () => void,
+    onPrevious?: (() => void) | undefined,
+    onClick?: (() => void) | undefined,
+    onNext?: (() => void) | undefined,
 }
 
 /**
