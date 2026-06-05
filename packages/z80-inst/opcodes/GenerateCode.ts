@@ -7,7 +7,7 @@ import * as fs from "fs";
 import {toHexByte} from "z80-base";
 import {
     ClrInstruction,
-    isOpcodeTemplateOperand,
+    isOpcodeTemplateOperand, MnemonicInfo,
     Mnemonics,
     OpcodeTemplate,
     OpcodeVariant,
@@ -21,6 +21,11 @@ const TOKENIZING_REGEXP = /([a-z]+)'?|([,+()])|([0-9]+)|(;.*)/g;
 
 // Opcodes field of temporary empty Clr until we have a chance to fix it up.
 const EMPTY_CLR_OPCODES = "empty";
+
+// Mnemonics that need special handling.
+const MNEMONICS_REMOVE_A = new Set(["add", "adc", "sbc"]);
+const MNEMONICS_ADD_A = new Set(["sub", "cp", "and", "xor", "or"]);
+const MNEMONICS_OPTIONAL_PARENS = new Set(["jp", "in", "out"]);
 
 interface ClrFile {
     instructions: ClrInstruction[];
@@ -54,20 +59,6 @@ function findClrInstruction(clr: ClrFile, opcodes: string): ClrInstruction | und
     return undefined;
 }
 
-// If the Clr instruction has a DD or FD IX/IY prefix, but its data is the same as the
-// base (non-prefix) instruction, then it's not useful, that's the default behavior
-// when using the prefix.
-function isClrRedundant(clr: ClrFile, instruction: ClrInstruction): boolean {
-    if (instruction.opcodes.startsWith("DD") || instruction.opcodes.startsWith("FD")) {
-        const base = findClrInstruction(clr, instruction.opcodes.substring(2));
-        if (base !== undefined && base.instruction === instruction.instruction) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 // Capitalize register names.
 function fixClrDescription(desc: string): string {
     return desc
@@ -98,178 +89,150 @@ function fixClrDescription(desc: string): string {
         .replace(/\bA byte\b/g, "a byte")
         .replace(/\bA zero\b/g, "a zero")
         .replace(/\bA one\b/g, "a one")
-        .replace(/\bA non-maskable\b/g, "a non-maskable")
-
+        .replace(/\bA non-maskable\b/g, "a non-maskable");
 }
 
-// Parse the .dat files into the mnemonic map.
-function parseOpcodes(dirname: string, prefix: string, opcodes: OpcodeTemplate[],
-                      mnemonicMap: Mnemonics, clr: ClrFile, clrUsed: Set<string>): void {
+// Returns the array with the parts before the command after the comma swapped.
+function reversedAtComma(parts: string[]): string[] {
+    const i = parts.indexOf(",");
+    if (i === -1) {
+        throw new Error("reversedAtComma([" + parts + "]) does not contain a comma");
+    }
 
-    const pathname = path.join(dirname, "opcodes_" + prefix.toLowerCase() + ".dat");
+    return [... parts.slice(i + 1), ",", ... parts.slice(0, i)];
+}
 
-    let previousLine = "";
-
-    fs.readFileSync(pathname, "utf-8").split(/\r?\n/).reverse().forEach((line: string) => {
-        line = line.trim();
-        if (line.length === 0 || line.startsWith("#")) {
-            // Comment or empty line.
-            return;
-        }
-
-        // For alias lines, reuse rest of previous line.
-        if (line.length === 4) {
-            if (previousLine === "") {
-                throw new Error("no previous line for alias line: " + line);
-            }
-            line += previousLine.substring(4);
-        }
-        previousLine = line;
-
-        // Parse line.
-        const fields = line.split(/\s+/);
-        if (fields.length < 2) {
-            throw new Error("Invalid opcode line: " + line);
-        }
-        const opcodeString = fields[0];
-        const mnemonic = fields[1].toLowerCase();
-        const params = fields.length >= 3 ? fields[2].toLowerCase() : undefined;
-        const extra = fields.length >= 4 ? fields[3].toLowerCase() : undefined;
-        if (fields.length > 4) {
-            throw new Error("Invalid opcode line: " + line);
-        }
-
-        // TODO make this the basis for the above.
-        const newParams = params === undefined
-                ? []
-                : (params + (extra === undefined ? "" : " " + extra)).split(",");
-
-        if (opcodeString.length == 0 || !opcodeString.startsWith("0x")) {
-            throw new Error("Invalid opcode value: " + line);
-        }
-
-        const opcode = parseInt(opcodeString, 16);
-        const tokens = tokenize(params).concat(tokenize(extra));
-
-        // Special case: "RST 10" really means 10 hex, so convert it to decimal.
-        if (mnemonic === "rst") {
-            tokens[0] = parseInt(tokens[0], 16).toString(10);
-        }
-
-        const fullOpcodes: OpcodeTemplate[] = opcodes.concat([opcode]);
-        let opcodeIndex = fullOpcodes.length - 1;
-
-        if (mnemonic === "shift") {
-            // Recurse for shifted instructions.
-            if (params === undefined) {
-                throw new Error("Shift must have params");
-            }
-            parseOpcodes(dirname, params, fullOpcodes, mnemonicMap, clr, clrUsed);
+// Remove parts that are only a parenthesis. From other parts, remove the parenthesis characters.
+function stripParentheses(parts: string[]): string[] {
+    return parts.flatMap(part => {
+        if (part === "(" || part === ")") {
+            return [];
+        } else if (part.startsWith("(") && part.endsWith(")")) {
+            return [part.substring(1, part.length - 1)];
         } else {
-            const fullOpcodesString = fullOpcodes.map(
-                value => typeof value === "number" ? toHexByte(value) : "**").join("");
-            let clrInst = findClrInstruction(clr, fullOpcodesString);
-            if (clrInst === undefined) {
-                // These are aliases that aren't in CLR. Find the official variant and modify its CLR.
-                // Unfortunately we've perhaps not even parsed the official variant yet at this point,
-                // so create a bogus Clr here and fix it later when we look for aliases.
-                clrInst = {
-                    opcodes: EMPTY_CLR_OPCODES,
-                    undocumented: true,
-                    z180: false,
-                    flags: "",
-                    byte_count: 0,
-                    with_jump_clock_count: 0,
-                    without_jump_clock_count: 0,
-                    description: "",
-                    instruction: "",
-                };
-            }
-
-            // Fix up description to convert register names to upper case.
-            clrInst.description = fixClrDescription(clrInst.description);
-
-            // Mark it as used.
-            clrUsed.add(clrInst.opcodes);
-
-            // Add parameters.
-            for (const token of tokens) {
-                if (isOpcodeTemplateOperand(token)) {
-                    // For DDCB and FDCB instructions, the parameter is in the third position, not at the end.
-                    if (fullOpcodes.length === 3 &&
-                        typeof (fullOpcodes[0]) === "number" &&
-                        typeof (fullOpcodes[1]) === "number" &&
-                        isDataThirdByte(fullOpcodes[0], fullOpcodes[1])) {
-
-                        fullOpcodes.splice(2, 0, token);
-                        opcodeIndex += 1;
-                    } else {
-                        fullOpcodes.push(token);
-                    }
-                }
-            }
-
-            // Find mnemonic in map, adding if necessary.
-            let mnemonicInfo = mnemonicMap[mnemonic] as any;
-            if (mnemonicInfo === undefined) {
-                mnemonicInfo = {
-                    variants: [],
-                };
-                mnemonicMap[mnemonic] = mnemonicInfo;
-            }
-
-            // Generate this variant.
-            let variant: OpcodeVariant = {
-                mnemonic: mnemonic,
-                params: newParams,
-                tokens: tokens,
-                opcodes: fullOpcodes,
-                isPseudo: false,
-                aliasOf: undefined,
-                clr: clrInst,
-            };
-            mnemonicInfo.variants.push(variant);
-
-            // For instructions like "ADD A,C", also produce "ADD C" with an implicit "A".
-            if (tokens.length > 2 && tokens[0] === "a" && tokens[1] === ",") {
-                mnemonicInfo.variants.push({
-                    ...variant,
-                    params: variant.params.slice(1),
-                    tokens: variant.tokens.slice(2),
-                    isPseudo: true,
-                });
-            }
-
-            // The canonical instruction is "JP HL" but some people write it as "JP (HP)".
-            if (mnemonic === "jp" && variant.params.length === 1 && ["hl", "ix", "iy"].indexOf(variant.params[0]) >= 0) {
-                const register = variant.params[0];
-                mnemonicInfo.variants.push({
-                    ...variant,
-                    params: ["(" + register + ")"],
-                    tokens: ["(", register, ")"],
-                    isPseudo: true,
-                });
-            }
-
-            // The flags po and pe can also be written nv and v respectively.
-            if (variant.params.length > 0 && variant.params[0] == "po") {
-                mnemonicInfo.variants.push({
-                    ...variant,
-                    params: ["nv", ...variant.params.slice(1)],
-                    tokens: ["nv", ...variant.tokens.slice(1)],
-                    isPseudo: true,
-                });
-            }
-            if (variant.params.length > 0 && variant.params[0] == "pe") {
-                mnemonicInfo.variants.push({
-                    ...variant,
-                    params: ["v", ...variant.params.slice(1)],
-                    tokens: ["v", ...variant.tokens.slice(1)],
-                    isPseudo: true,
-                });
-            }
+            return part;
         }
     });
+}
+
+/**
+ * Generate the mnemonic info from the clr info.
+ */
+function parseClr(clr: ClrFile, mnemonicMap: Mnemonics) {
+    for (const clrInstruction of clr.instructions) {
+        const parts = clrInstruction.instruction.split(" ");
+        if (parts.length > 2) {
+            throw new Error("Too many parts: " + parts);
+        }
+        const mnemonic = parts[0];
+        const params = parts.length === 1 ? [] : parts[1].split(",");
+        const tokens = parts.length === 1 ? [] : tokenize(parts[1]);
+
+        // Construct array of opcodes.
+        const opcodes: OpcodeTemplate[] = [];
+        let opcodeString = clrInstruction.opcodes;
+        for (let i = 0; i < opcodeString.length; i += 2) {
+            opcodes.push(parseInt(opcodeString.substring(i, i + 2), 16));
+        }
+
+        // Add parameters.
+        for (let token of tokens) {
+            if (isOpcodeTemplateOperand(token)) {
+                // For DDCB and FDCB instructions, the parameter is in the third position, not at the end.
+                if (opcodes.length === 3 &&
+                    typeof (opcodes[0]) === "number" &&
+                    typeof (opcodes[1]) === "number" &&
+                    isDataThirdByte(opcodes[0], opcodes[1])) {
+
+                    opcodes.splice(2, 0, token);
+                } else {
+                    opcodes.push(token);
+                }
+            }
+        }
+
+        // Find mnemonic in map, adding if necessary.
+        let mnemonicInfo = mnemonicMap[mnemonic] as (MnemonicInfo | undefined);
+        if (mnemonicInfo === undefined) {
+            mnemonicInfo = {
+                variants: [],
+            };
+            mnemonicMap[mnemonic] = mnemonicInfo;
+        }
+
+        // Generate this variant.
+        let variant: OpcodeVariant = {
+            mnemonic: mnemonic,
+            params: params,
+            tokens: tokens,
+            opcodes: opcodes,
+            isPseudo: false,
+            aliasOf: undefined,
+            clr: clrInstruction,
+        };
+        mnemonicInfo.variants.push(variant);
+
+        // Alternative syntaxes. https://48k.ca/zmac.html#zsyn
+        if (MNEMONICS_REMOVE_A.has(mnemonic) && tokens.length > 2 && tokens[0] === "a" && tokens[1] === ",") {
+            // Add variant without the "a" parameter.
+            mnemonicInfo.variants.push({
+                ...variant,
+                params: params.slice(1),
+                tokens: tokens.slice(2),
+                isPseudo: true,
+            });
+        } else if (MNEMONICS_ADD_A.has(mnemonic)) {
+            // Add variant with the "a" parameter.
+            mnemonicInfo.variants.push({
+                ...variant,
+                params: ["a"].concat(params),
+                tokens: ["a", ","].concat(tokens),
+                isPseudo: true,
+            });
+        } else if ((mnemonic === "in" || mnemonic === "out") && params.indexOf("(c)") >= 0) {
+            // BC is the full 16-bit port, so support that.
+            mnemonicInfo.variants.push({
+                ...variant,
+                params: params.map(param => param === "(c)" ? "(bc)" : param),
+                tokens: tokens.map(token => token === "c" ? "bc" : token),
+                isPseudo: true,
+            });
+        } else if (MNEMONICS_OPTIONAL_PARENS.has(mnemonic) && tokens.indexOf("(") >= 0) {
+            // Make the parentheses optional.
+            mnemonicInfo.variants.push({
+                ...variant,
+                params: stripParentheses(params),
+                tokens: stripParentheses(tokens),
+                isPseudo: true,
+            });
+        } else if (mnemonic === "ex") {
+            // Allow parameter in reverse order.
+            mnemonicInfo.variants.push({
+                ...variant,
+                params: [params[1], params[0]],
+                tokens: reversedAtComma(tokens),
+                isPseudo: true,
+            });
+        }
+
+        // The flags po and pe can also be written nv and v respectively.
+        if (variant.params.length > 0 && variant.params[0] == "po") {
+            mnemonicInfo.variants.push({
+                ...variant,
+                params: ["nv", ...variant.params.slice(1)],
+                tokens: ["nv", ...variant.tokens.slice(1)],
+                isPseudo: true,
+            });
+        }
+        if (variant.params.length > 0 && variant.params[0] == "pe") {
+            mnemonicInfo.variants.push({
+                ...variant,
+                params: ["v", ...variant.params.slice(1)],
+                tokens: ["v", ...variant.tokens.slice(1)],
+                isPseudo: true,
+            });
+        }
+    }
 }
 
 /**
@@ -668,8 +631,9 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
     for (const variant of allVariants) {
         variantCode.push("");
         variantCode.push("// " + opcodeVariantToString(variant));
-        variantCode.push("const " + makeVariantVariableName(variant) + ": OpcodeVariant = " +
-            removeAliasQuotes(JSON.stringify(variant, jsonReplacer, 2)) + ";");
+        variantCode.push("const " + makeVariantVariableName(variant) + " = " +
+            removeAliasQuotes(JSON.stringify(variant, jsonReplacer, 2)) +
+            " as const satisfies OpcodeVariant;");
     }
 
     // Opcode map in different pass.
@@ -688,14 +652,12 @@ function generateOpcodes(): void {
     const scriptDir = dirname(fileURLToPath(import.meta.url));
     const opcodesDir = path.join(scriptDir, "..", "..");
     const clr = JSON.parse(fs.readFileSync(path.join(opcodesDir, "clr.json"), "utf-8")) as ClrFile;
-    // Set of clr opcodes we've used.
-    const clrUsed = new Set<string>();
 
     // Read the opcodes text files and generate all variants.
     const mnemonics: Mnemonics = {
         // To be filled in later.
     };
-    parseOpcodes(opcodesDir, "base", [], mnemonics, clr, clrUsed);
+    parseClr(clr, mnemonics);
     addPseudoInstructions(mnemonics);
     detectAliases(mnemonics);
     checkEmptyClr(mnemonics);
@@ -715,23 +677,6 @@ function generateOpcodes(): void {
     ];
 
     fs.writeFileSync("src/Opcodes.ts", text.join("\n"));
-
-    // Warn about the clr entries we didn't use.
-    let clrUnusedCount = 0;
-    for (const instruction of clr.instructions) {
-        if (!clrUsed.has(instruction.opcodes) && !instruction.z180 && !isClrRedundant(clr, instruction)) {
-            if (clrUnusedCount < 10) {
-                console.log("Warning: Unused CLR instruction: " +
-                            instruction.opcodes + " " + instruction.instruction);
-            }
-            clrUnusedCount += 1;
-        }
-    }
-    if (clrUnusedCount === 0) {
-        console.log("Used all CLR instructions");
-    } else {
-        console.log("Warning: Did not use " + clrUnusedCount + " CLR instructions");
-    }
 }
 
 generateOpcodes();

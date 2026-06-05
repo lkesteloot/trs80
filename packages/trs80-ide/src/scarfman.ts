@@ -100,7 +100,7 @@ label4:
         exx
         inc de
         ld hl,0x3D72
-        rst 0x18
+        rst 18
         jr nz,label4
         call label126
         ld a,0x04
@@ -383,7 +383,7 @@ label28:
         and 0x03
         cp 0x03
         jr z,label29
-        call kbchar
+        call 0x002B ; kbchar
         cp 0x0D
         jr nz,label28
 label29:
@@ -402,7 +402,7 @@ label31:
         djnz label30
         jp label3
 label32:
-        call basic_keyword_CLS
+        call 0x01c9 ; basic_keyword_CLS
         ld hl,0x6A0B
         ld de,0x6A11
         ld bc,0x0006
@@ -424,7 +424,7 @@ label33:
         inc hl
         inc hl
         ld de,0x3D80
-        rst 0x18
+        rst 18
         jr nz,label34
         ld de,0x0040
         add hl,de
@@ -481,7 +481,7 @@ label35:
         jr c,label35
         jr z,label39
         ld de,0x3D80
-        rst 0x18
+        rst 18
         jr z,label35
         ld (hl),0x20
         dec hl
@@ -489,7 +489,7 @@ label35:
         dec hl
         dec hl
         ld de,0x3DFC
-        rst 0x18
+        rst 18
         jr nz,label40
         ld de,0x0040
         or a,a
@@ -503,10 +503,10 @@ label36:
         ld (0x69FF),a
 label37:
         ld de,0x3E28
-        rst 0x18
+        rst 18
         jr z,label38
         ld de,0x3E2C
-        rst 0x18
+        rst 18
         jp z,label3
         ld a,(ix+0x00)
         inc a
@@ -532,7 +532,7 @@ label38:
         jp label35
 label39:
         ld de,0x3E2C
-        rst 0x18
+        rst 18
         jr z,label40
         ld (hl),0x20
         inc hl
@@ -540,7 +540,7 @@ label39:
         inc hl
         inc hl
         ld de,0x3DC0
-        rst 0x18
+        rst 18
         jr nz,label40
         ld de,0x0040
         add hl,de
@@ -552,7 +552,7 @@ label40:
 label41:
         push de
         push iy
-        call kbchar
+        call 0x002B ; kbchar
         pop iy
         pop de
         ret
@@ -1208,7 +1208,7 @@ label113:
         ret z
         push de
         push iy
-        call vdchar
+        call 0x0033 ; vdchar
         pop iy
         pop de
         inc hl

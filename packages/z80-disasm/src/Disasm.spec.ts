@@ -39,6 +39,10 @@ describe("disassemble", () => {
         const result = disasmToText([0xF3]);
         expect(result).to.eql(["di"]);
     });
+    it("rst", () => {
+        const result = disasmToText([0xD7]);
+        expect(result).to.eql(["rst 10"]);
+    });
     it("nop di nop di", () => {
         const result = disasmToText([0x00, 0xF3, 0x00, 0xF3]);
         expect(result).to.eql(["nop", "di", "nop", "di"]);
@@ -99,8 +103,8 @@ describe("label", () => {
     it("jr", () => {
         const result = disasm([0x18, 0x01, 0x00, 0x00]);
         expect(result.map((i) => i.label)).to.eql(["rst00", undefined, "label1"]);
-        expect(result.map((i) => i.toText(false))).to.eql(["jr label1", ".byte 0x00", "nop"]);
-        expect(result.map((i) => i.toText(true))).to.eql(["JR LABEL1", ".BYTE 0X00", "NOP"]);
+        expect(result.map((i) => i.toText(false))).to.eql(["jr label1", "defb 0x00", "nop"]);
+        expect(result.map((i) => i.toText(true))).to.eql(["JR LABEL1", "DEFB 0X00", "NOP"]);
     });
 });
 

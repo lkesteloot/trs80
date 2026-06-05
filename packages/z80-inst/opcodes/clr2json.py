@@ -11,13 +11,31 @@ import json
 # <td   class="undocumented"  >  
 TD_RE = re.compile(r'<td\s+(?:class="(\w+)")?\s+>')
 
+# <var>nn</var>
+VAR_RE = re.compile(r'<var>(\w+)</var>')
+
+# dd
+DD_RE = re.compile(r'\bdd\b')
+
+# Strip out the <dd>...</dd> HTML tags.
 def strip_dd(line):
     line = line.strip()
     assert line.startswith("<dd>") and line.endswith("</dd>")
     return line[4:-5]
 
+# Strip the <var>...</var> HTML tags and their content.
 def strip_vars(line):
     return re.sub(r'<var>\w+</var>', "", line)
+
+# Replace <var>d</var> with <var>dd</var>, duplicating the content so that the
+# variable "d" is not confused with register D.
+def duplicate_vars(line):
+    return VAR_RE.sub(r'<var>\1\1</var>', line)
+
+# Replace <var>d</var> with dd, stripping the markup and duplicating the
+# content, so that the variable "d" is not confused with register D.
+def duplicate_vars_and_strip(line):
+    return VAR_RE.sub(r'\1\1', line)
 
 FLAG_MAP = {
     "as defined": "+",
@@ -40,6 +58,8 @@ instructions = []
 
 lines = list(open(sys.argv[1]).readlines())
 
+z80_count = 0
+
 n = 0
 while n < len(lines):
     line = lines[n]
@@ -53,7 +73,8 @@ while n < len(lines):
         line = lines[n].strip()
         if line.startswith("<a"):
             continue
-        instruction = lines[n].strip().replace("<var>", "").replace("</var>", "").replace("<code>", "").replace("</code>", "")
+        instruction = lines[n].strip().replace("<code>", "").replace("</code>", "")
+        instruction = duplicate_vars_and_strip(instruction)
         n += 1
         # <dl>
         assert lines[n].strip() == "<dl>"
@@ -118,9 +139,23 @@ while n < len(lines):
         flags += convert_flag(lines[n])
         n += 1
         # <dd>Adds one to r.</dd>
-        description = strip_dd(lines[n])
+        description = duplicate_vars(strip_dd(lines[n]).strip())
         n += 1
         # </dl>
+
+        # Replace "dd" with "offset" for relative jumps.
+        parts = instruction.split(" ")
+        mnemonic = parts[0]
+        if mnemonic in ["jr", "djnz"]:
+            description = DD_RE.sub("offset", description)
+            instruction = DD_RE.sub("offset", instruction)
+
+        # Strip "h" from RST.
+        if mnemonic == "rst":
+            if instruction.endswith("h"):
+                instruction = instruction[:-1]
+            else:
+                sys.stderr.write("RST does not end with h: " + instruction)
 
         instructions.append({
             "opcodes": opcodes,
@@ -133,6 +168,9 @@ while n < len(lines):
             "description": description,
             "instruction": instruction,
         })
+
+        if not z180:
+            z80_count += 1
     else:
         n += 1
 
@@ -140,4 +178,4 @@ data = {
     "instructions": instructions,
 }
 json.dump(data, sys.stdout, indent=4)
-sys.stderr.write("Number of instructions: %d\n" % len(instructions))
+sys.stderr.write("Number of instructions: %d (%d Z80)\n" % (len(instructions), z80_count))

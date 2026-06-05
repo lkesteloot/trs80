@@ -187,10 +187,100 @@ describe("assemble", () => {
         ]);
     });
 
-    // Alternative syntax.
+    // Alternative syntaxes. https://48k.ca/zmac.html#zsyn
+    it("add 0x55", () => {
+        runTest([
+            { line: " add 0x55", opcodes: [0xC6, 0x55] },
+        ]);
+    });
+    it("adc 0x55", () => {
+        runTest([
+            { line: " adc 0x55", opcodes: [0xCE, 0x55] },
+        ]);
+    });
+    it("sub a,0x55", () => {
+        runTest([
+            { line: " sub a,0x55", opcodes: [0xD6, 0x55] },
+        ]);
+    });
+    it("sbc 0x55", () => {
+        runTest([
+            { line: " sbc 0x55", opcodes: [0xDE, 0x55] },
+        ]);
+    });
+    it("cp a,0x55", () => {
+        runTest([
+            { line: " cp a,0x55", opcodes: [0xFE, 0x55] },
+        ]);
+    });
+    it("and a,0x55", () => {
+        runTest([
+            { line: " and a,0x55", opcodes: [0xE6, 0x55] },
+        ]);
+    });
+    it("xor a,0x55", () => {
+        runTest([
+            { line: " xor a,0x55", opcodes: [0xEE, 0x55] },
+        ]);
+    });
     it("or a,0x55", () => {
         runTest([
             { line: " or a,0x55", opcodes: [0xF6, 0x55] },
+        ]);
+    });
+    it("jp hl", () => {
+        runTest([
+            { line: " jp hl", opcodes: [0xE9] },
+        ]);
+    });
+    it("jp ix", () => {
+        runTest([
+            { line: " jp ix", opcodes: [0xDD, 0xE9] },
+        ]);
+    });
+    it("jp iy", () => {
+        runTest([
+            { line: " jp iy", opcodes: [0xFD, 0xE9] },
+        ]);
+    });
+    it("ex hl,de", () => {
+        runTest([
+            { line: " ex hl,de", opcodes: [0xEB] },
+        ]);
+    });
+    it("ex hl,(sp)", () => {
+        runTest([
+            { line: " ex hl,(sp)", opcodes: [0xE3] },
+        ]);
+    });
+    it("ex ix,(sp)", () => {
+        runTest([
+            { line: " ex ix,(sp)", opcodes: [0xDD, 0xE3] },
+        ]);
+    });
+    it("ex iy,(sp)", () => {
+        runTest([
+            { line: " ex iy,(sp)", opcodes: [0xFD, 0xE3] },
+        ]);
+    });
+    it("in a,0x55", () => {
+        runTest([
+            { line: " in a,0x55", opcodes: [0xDB, 0x55] },
+        ]);
+    });
+    it("out 0x55,a", () => {
+        runTest([
+            { line: " out 0x55,a", opcodes: [0xD3, 0x55] },
+        ]);
+    });
+    it("in a,(bc)", () => {
+        runTest([
+            { line: " in a,(bc)", opcodes: [0xED, 0x78] },
+        ]);
+    });
+    it("out (bc),a", () => {
+        runTest([
+            { line: " out (bc),a", opcodes: [0xED, 0x79] },
         ]);
     });
 

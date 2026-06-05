@@ -263,11 +263,6 @@ export class Disasm {
                         }
                     } while (changed);
 
-                    // Our data has the hex without the prefix, which breaks the assembler.
-                    if (value.mnemonic === "rst") {
-                        arg = this.toHexByte(parseInt(arg, 16));
-                    }
-
                     args[i] = arg;
                 }
 
