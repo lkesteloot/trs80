@@ -392,6 +392,26 @@ C CRC error (ID or data).
             the <a href="https://www.my-trs-80.com/ide/">IDE</a>,
             and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).</p>
 
+            <h3 id="v2.8.10">2.8.10 <span class="release-date">June 7, 2026</span></h3>
+
+            <ul>
+                <li><code>trs80-tool</code> improvements to the <code>disasm</code> command:
+                    <ul>
+                        <li>Disassembled instructions are now canonical when there are variants.
+                            For example, it will generate <code>or b</code> where it used to
+                            generate <code>or a,b</code>.</li>
+                    </ul>
+                </li>
+                <li><code>trs80-tool</code> improvements to the <code>asm</code> command (and the IDE):
+                    <ul>
+                        <li>The assembler now supports the alternate forms <a
+                                href="https://48k.ca/zmac.html#zsyn">described
+                                in the zmac manual</a>, except for the
+                            <code>rst</code> ones.</li>
+                    </ul>
+                </li>
+            </ul>
+
             <h3 id="v2.8.9">2.8.9 <span class="release-date">May 12, 2026</span></h3>
 
             <ul>
