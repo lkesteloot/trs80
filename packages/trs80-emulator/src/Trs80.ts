@@ -1361,6 +1361,9 @@ export class Trs80 implements Hal, Machine, Configurable {
                 if (chunk.className === "CmdLoadBlockChunk") {
                     this.writeMemoryBlock(chunk.address, chunk.loadData);
                 } else if (chunk.className === "CmdTransferAddressChunk") {
+                    // Play it safe.
+                    this.setStackPointer(0x0000);
+
                     this.startExecutable(chunk.address);
 
                     // Don't load any more after this. I assume on a real machine the jump

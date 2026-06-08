@@ -114,6 +114,8 @@ M_forth_add_code macro func
 #local
 init::
     di
+    ld      sp, 0
+
     ; zero the DATA segment
     ld	    hl, DATA
     ld	    bc, DATA_size
