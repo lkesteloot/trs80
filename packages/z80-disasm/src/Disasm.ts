@@ -518,7 +518,9 @@ export class Disasm {
 
                 console.warn("Warning: Instruction at", toHexWord(address), "is jumping to screen address", toHexWord(instruction.jumpTarget));
             }
-            addAddressToDecode(instruction.jumpTarget);
+            if (!this.fullDisassembly) {
+                addAddressToDecode(instruction.jumpTarget);
+            }
             addAddressToDecode(this.fullDisassembly ? instruction.nextAddress() : instruction.continuesAt());
         }
 
