@@ -534,6 +534,10 @@ compile_error:
 	ld hl,syntax_error_msg_part2
 	call write_text
 	jp write_compile_line_number
+else_without_if:
+	ld hl,else_without_if_msg
+	call write_text
+	jp write_compile_line_number	
 internal_error:
 	ld hl,internal_error_msg
 	call write_text
@@ -839,16 +843,7 @@ loop:
 	; We want to write the compile address here, but the existing pointer is
 	; the head of a linked list of forward GOTOs to also fill in. So follow
 	; the linked list and fill them all in with HL (the compile pointer).
-write_to_linked_list_loop:
-	ld e,(ix)			; DE = (IX), read next pointer.
-	ld d,(ix+1)
-	ld (ix),l			; Write compile address.
-	ld (ix+1),h
-	push de				; IX = DE, follow next pointer.
-	pop ix
-	ld a,e				; Check if DE is null.
-	or a,d
-	jp nz,write_to_linked_list_loop	; Loop if not end of linked list.
+	call write_hl_to_ix_linked_list
 	pop ix				; Address of compiler pointer.
 	inc ix				; Skip compile pointer.
 	inc ix	
@@ -864,6 +859,23 @@ done:
 	ld a,0xFF			; Line number we're compiling (none).
 	ld (compile_line_number),a
 	ld (compile_line_number+1),a
+	ret
+#endlocal
+
+; Write the value of HL to every entry in the linked list pointed to by IX,
+; including in the null slot. Destroys DE and IX.
+write_hl_to_ix_linked_list:
+#local
+loop:
+	ld e,(ix)			; DE = (IX), read next pointer.
+	ld d,(ix+1)
+	ld (ix),l			; Write compile address.
+	ld (ix+1),h
+	push de				; IX = DE, follow next pointer.
+	pop ix
+	ld a,e				; Check if DE is null.
+	or a,d
+	jr nz,loop			; Loop if not end of linked list.
 	ret
 #endlocal
 
@@ -1236,9 +1248,13 @@ compile_line:
 	push de
 	push bc
 	; Prepare state.
-	ld ix,eol_ref			; Clear our eol_ref.
-	ld (ix),0
-	ld (ix+1),0
+	xor a,a
+	ld ix,eol_ptr			; Clear our eol_ptr linked list.
+	ld (ix),a
+	ld (ix+1),a
+	ld ix,else_ptr			; Clear our else_ptr linked list.
+	ld (ix),a
+	ld (ix+1),a
 
 start_of_statement:
 	call parse_variable_name	; See if it's an assignment.
@@ -1300,23 +1316,17 @@ found_array_variable:
 back_up_and_error:
 	dec de				; Back up to bad byte.
 	jp compile_error
+
+; Do end-of-line processing.
 eol:
-	; Do end-of-line processing.
+	call fill_else_ptr		; Insert virtual ELSE.
+	jr nz,eol			; Until they're all done.
 	push de
-	ld ix,eol_ref			; Check eol_ref.
-	ld e,(ix)
-	ld d,(ix+1)
-	ld a,e				; See if we saved an address there.
-	or a,d
-	jr z,no_eol_ref
-	ld a,l				; Write our compile buffer address there.
-	ld (de),a
-	inc de
-	ld a,h
-	ld (de),a
-no_eol_ref:
+	ld ix,eol_ptr			; Fill eol_ptr (ELSE) linked list.
+	call write_hl_to_ix_linked_list
 	pop de
 	jp done
+
 compile_token:
 	inc de				; Skip token.
 	cp a,T_LAST_STMT+1		; Just past the end of statements.
@@ -1578,10 +1588,10 @@ compile_goto_gosub:
 	inc hl
 	ld b,(hl)
 	dec hl
-	ex (sp),hl			; HL=write pointer, stack=head.
+	ex (sp),hl			; HL=write pointer, top of stack=list head.
 	m_add c				; This could be the head of linked list too.
 	m_add b
-	ex (sp),hl			; HL=head, stack=write pointer.
+	ex (sp),hl			; HL=list head, top of stack=write pointer.
 	push hl				; Head.
 	or a,a				; Clear carry
 	sbc hl,de			; Compare to token pointer.
@@ -1600,7 +1610,7 @@ compile_goto_gosub:
 	inc hl
 	jp end_of_statement
 backward_goto:
-	pop hl				; Write pointer.
+	pop hl				; We've written the pointer.
 	jp end_of_statement
 line_not_found:
 	ld hl,line_number_error_msg_part1
@@ -1639,21 +1649,64 @@ compile_rem:
 compile_if:
 	call compile_expression		; Conditional onto the stack.
 	call skip_whitespace
-	ld a,(de)			; Skip optional THEN.
-	cp a,T_THEN
+	cp a,T_THEN			; Skip optional THEN.
 	jp nz,not_then
 	inc de
 not_then:
 	call add_pop_de
 	m_add I_LD_A_D			; See if conditional is zero.
 	m_add I_OR_A_E
-	m_add I_JP_Z			; Skip rest of line if false.
-	ld ix,eol_ref			; Save compile location in eol_ref.
+	m_add I_JP_Z			; Skip rest of line (or to ELSE) if false.
+	ld ix,else_ptr			; Save compile location in else_ptr.
+	ld c,(ix)
+	ld b,(ix+1)
 	ld (ix),l
 	ld (ix+1),h
-	m_add 0				; To be filled in later, see "eol".
-	m_add 0
+	m_add c				; To be filled in later, see "eol".
+	m_add b
 	jp start_of_statement		; Compile conditional statement.
+
+compile_else:
+	m_add I_JP			; Skip rest of line when we reach ELSE.
+	ld ix,eol_ptr			; Insert compile location in eol_ptr list.
+	ld c,(ix)			; Save head of linked list.
+	ld b,(ix+1)
+	ld (ix),l			; Insert our current location.
+	ld (ix+1),h
+	m_add c                         ; To be filled in later, see "eol".
+	m_add b
+	call fill_else_ptr		; Fill JP from IF to here.
+	jp z,else_without_if		; Show error message.
+	jp start_of_statement
+
+; Check if the else_ptr points to something, and fill it if necessary
+; with the contents of HL (binary pointer), updating the linked list
+; and clearing Z. If the linked list is empty, sets Z. Destroys IX.
+fill_else_ptr:	
+#local
+	push de
+	ld ix,else_ptr			; See where else_ptr points to (DE).
+	ld e,(ix)			; DE = *else_ptr
+	ld d,(ix+1)
+	ld a,e				; See if we saved an address there (DE == 0).
+	or a,d
+	jr z,null_else_ptr
+	ld a,(de)			; Save current value back to else_ptr.
+	ld (ix),a			; *else_ptr = *DE
+	inc de
+	ld a,(de)
+	ld (ix+1),a
+	ld a,h				; Write our compile buffer address there (HL).
+	ld (de),a			; *DE = HL
+	dec de
+	ld a,l
+	ld (de),a
+	xor a				; Clear Z flag.
+	inc a
+null_else_ptr:
+	pop de
+	ret
+#endlocal
 
 ; Compile the LOAD statement, which we use to load demo code.
 compile_load:
@@ -2281,7 +2334,7 @@ compile_command_dispatch:
 	dw compile_return ; RETURN (0x92)
 	dw compile_rem ; REM (0x93)
 	dw 0 ; STOP (0x94)
-	dw 0 ; ELSE (0x95)
+	dw compile_else ; ELSE (0x95)
 	dw tron | 0x8000 ; TRON (0x96)
 	dw troff | 0x8000 ; TROFF (0x97)
 	dw 0 ; DEFSTR (0x98)
@@ -3117,6 +3170,8 @@ array_already_defined_msg:
 	db "Array already defined", 0
 runtime_error_msg:
 	db "Runtime error", NL, 0
+else_without_if_msg:
+	db "ELSE without IF", 0
 internal_error_msg: ; TODO remove if we need to save space.
 	db "Internal compiler error", 0
 at_line_msg:
@@ -3307,8 +3362,14 @@ rnd_seed:
 expect_unary:
 	ds 1
 
-; Forward reference to the end of the line.
-eol_ref:
+; Linked list of pointers from IF statements to ELSE statements. The head is
+; for the most recent (nested) IF statement's jump pointer.
+else_ptr:
+	ds 2
+
+; Linked list of pointers from ELSE to the end of the line. This list is
+; extended with each ELSE and filled in with pointers to EOL when it's reached.
+eol_ptr:
 	ds 2
 
 ; Pointer just past the end of the very last (null) line of the program.
@@ -3472,11 +3533,11 @@ sample_program_6:
 1210 FOR I = 0 TO AN - 1
 1220 M = 15360 + AY(I)*64 + AX(I)
 1230 POKE M,128
-1240 POKE M+1,156
+1240 POKE M+1,141'156
 1250 POKE M+2,183
 1260 POKE M+3,191
 1270 POKE M+4,187
-1280 POKE M+5,172
+1280 POKE M+5,142'172
 1290 POKE M+6,128
 1300 NEXT I
 1310 ' Skip drawing aliens.
@@ -3520,12 +3581,11 @@ sample_program_6:
 3000 ' ---- Update time ----
 3010 T = T + 1
 3020 IF T = 3 THEN T = 0
+3030 'POKE 15360+T,peek(15360+T)+1
 5000 ' ---- Keyboard input ----
 5005 K = PEEK(14400)
-5010 IF K AND 32 THEN SX = SX - 1
-5020 IF K AND 64 THEN SX = SX + 1
-5030 IF SX < 0 THEN SX = 0    ' TODO put in IF above
-5040 IF SX > 58 THEN SX = 58
+5010 IF K AND 32 THEN SX = SX - 1:IF SX < 0 THEN SX = 0
+5020 IF K AND 64 THEN SX = SX + 1:IF SX > 58 THEN SX = 58
 5050 IF (K AND 128) AND T = 0 THEN GOSUB 6000
 5990 GOTO 1000
 6000 ' ---- Shoot ----
@@ -3540,8 +3600,8 @@ sample_program_6:
         .byte 0x80,0xA0 ; Line 0
         .ds 62,0x80
         .byte 0xB8,0xBF,0xBD,0x90,0x80,0x80,0x9C,0xB7 ; Line 1
-        .byte 0xBF,0xBB,0xAC
-        .ds 53,0x80
+        .byte 0xBF,0xBB,0xAC,0x80,0x8D,0x80,0x8E
+        .ds 49,0x80
 	; End screenshot
 	
 ; Scratch space for the disassembler.
