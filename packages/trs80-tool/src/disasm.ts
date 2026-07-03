@@ -7,6 +7,8 @@ import {
     CmdLoadBlockChunk, CmdProgram, SystemProgram, addModel3RomEntryPoints, decodeTrs80File, disasmForTrs80, disasmForTrs80Program } from "trs80-base";
 import {toHex, toHexByte } from "z80-base";
 import {Disasm, HexFormat, instructionsToText, InstructionsToTextConfig } from "z80-disasm";
+import {loadFile} from "./utils.js";
+import {expandFile} from "./InputFile.js";
 
 /**
  * Whether the CMD file is structured as a Partial Data Set. Some LDOS SYS files
@@ -125,11 +127,9 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     };
 
     // Read the file.
-    let buffer;
-    try {
-        buffer = fs.readFileSync(filename);
-    } catch (e: any) {
-        console.log("Can't open \"" + filename + "\": " + e.message);
+    const buffer = loadFile(filename);
+    if (typeof buffer === "string") {
+        console.log(buffer);
         return;
     }
 
@@ -137,35 +137,50 @@ export function disasm(filename: string, makeListing: boolean, org: number | und
     let disasm: Disasm;
     let mainEntryPoint: number | undefined = undefined;
     const ext = path.extname(filename).toUpperCase();
-    if (ext === ".CMD" || ext === ".3BN" || ext === ".SYS" || ext === ".L1") {
-        const trs80File = decodeTrs80File(buffer, {filename});
-        if (trs80File.className !== "CmdProgram"
-            && trs80File.className !== "SystemProgram"
-            && trs80File.className !== "Level1Program"
-            && trs80File.className !== "BootSector") {
-
-            console.log("Can't parse program in " + filename);
-            return;
-        }
-        // Special case to handle SYS6.SYS and SYS7.SYS in LDOS/VTOS.
-        if (trs80File.className === "CmdProgram" && isPdsFile(trs80File)) {
-            decodePdsFile(trs80File, createLabels, useKnownLabels, hexFormat, full, toTextOptions);
-            return;
-        }
-        disasm = disasmForTrs80Program(trs80File);
-        mainEntryPoint = trs80File.entryPointAddress;
-    } else if (ext === ".ROM" || ext === ".BIN") {
-        disasm = disasmForTrs80();
-        disasm.addChunk(buffer, org ?? 0);
-        if (org !== undefined || entryPoints.length === 0) {
-            disasm.addEntryPoint(org ?? 0);
-        }
-        mainEntryPoint = org ?? 0;
-        // Do this with a flag, the ROM might not be from a Model 3:
-        // addModel3RomEntryPoints(disasm);
-    } else {
-        console.log("Can't disassemble files of type " + ext);
+    const inputFiles = expandFile(filename, false);
+    if (inputFiles.length === 0) {
+        console.log("No file to disassemble");
         return;
+    }
+    if (inputFiles.length > 1) {
+        console.log("Only disassembling first file");
+    }
+    const inputFile = inputFiles[0];
+    const trs80File = inputFile.trs80File;
+    switch (trs80File.className) {
+        case "CmdProgram":
+            // Special case to handle SYS6.SYS and SYS7.SYS in LDOS/VTOS.
+            if (isPdsFile(trs80File)) {
+                decodePdsFile(trs80File, createLabels, useKnownLabels, hexFormat, full, toTextOptions);
+                return;
+            }
+            // FALLTHROUGH.
+        case "SystemProgram":
+        case "Level1Program":
+        case "BootSector":
+            disasm = disasmForTrs80Program(trs80File);
+            mainEntryPoint = trs80File.entryPointAddress;
+            break;
+
+        case "RawBinaryFile":
+            if (ext === ".ROM" || ext === ".BIN") {
+                disasm = disasmForTrs80();
+                disasm.addChunk(buffer, org ?? 0);
+                if (org !== undefined || entryPoints.length === 0) {
+                    disasm.addEntryPoint(org ?? 0);
+                }
+                mainEntryPoint = org ?? 0;
+                // Do this with a flag, the ROM might not be from a Model 3:
+                // addModel3RomEntryPoints(disasm);
+            } else {
+                console.log("Can't disassemble files of type " + ext);
+                return;
+            }
+            break;
+
+        default:
+            console.log("Can't disassemble files of type " + ext);
+            return;
     }
 
     disasm.setCreateLabels(createLabels);
