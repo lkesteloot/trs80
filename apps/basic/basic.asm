@@ -1774,7 +1774,6 @@ expr_loop:
 	; At the top of this loop, A must contain whether we expect a unary operator (0 or 1).
 	ld (expect_unary),a		; Whether to expect unary.
 	call skip_whitespace
-	ld a,(de)
 	call is_digit			; See if it's a number.
 	jr c,not_number
 	call compile_numeric_literal
@@ -1856,6 +1855,7 @@ push_op_not:
 	ld a,OP_NOT
 	jr process_op
 push_open_parens:
+	call error_if_not_expecting_unary
 	ld a,OP_OPEN_PARENS
 	jr process_op
 push_close_parens:
@@ -1910,6 +1910,7 @@ not_an_op:
 	jr z,compile_peek
 	jp not_function
 compile_rnd:
+	call error_if_not_expecting_unary
 	inc de
 	ld a,'('
 	call expect_and_skip
@@ -1942,6 +1943,7 @@ no_rnd_expression:
 	ld a,0				; Expect binary operator after operand.
 	jp expr_loop
 compile_peek:
+	call error_if_not_expecting_unary
 	inc de
 	ld a,'('
 	call expect_and_skip
@@ -1959,6 +1961,7 @@ compile_peek:
 not_function:
 	call parse_variable_name	; See if it's a variable.
 	jp c,end_of_expression		; Nope.
+	call error_if_not_expecting_unary
 	jp z,found_array_variable	; See if it's an array dereference.
 	call find_variable		; Address is in BC.
 	m_add I_LD_A_ADDR		; Variable value in DE.
@@ -2226,6 +2229,7 @@ compile_open_parens:
 ; The compiled code puts the number on the stack.
 compile_numeric_literal:
 #local
+	call error_if_not_expecting_unary
 	push bc
 	call read_numeric_literal	; Into BC.
 	m_add I_LD_DE_IMM
@@ -2375,6 +2379,19 @@ compile_command_dispatch:
 	dw new | 0x8000 ; NEW (0xBB)
 	
 #endlocal				; End compile_line local block.
+
+; Throws a compile error if we're not currently expecting a unary, in
+; which case we also shouldn't be expecting things like numbereric literals,
+; variables, and open parentheses.
+error_if_not_expecting_unary:
+#local
+	push af
+	ld a,(expect_unary)
+	cp a,0
+	jp z,compile_error
+	pop af
+	ret
+#endlocal
 
 ; Given the name of the variable in BC (B is the first letter, C is the
 ; optional second letter, or nul), get the address of that variable's value
