@@ -392,6 +392,22 @@ C CRC error (ID or data).
             the <a href="https://www.my-trs-80.com/ide/">IDE</a>,
             and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).</p>
 
+            <h3 id="v2.8.12">2.8.12 <span class="release-date">July 29, 2026</span></h3>
+
+            <ul>
+                <li><code>trs80-tool</code> improvements to the <code>disasm</code> command:
+                    <ul>
+                        <li>The input file is detected by its contents, not the
+                            filename extension, so that <code>FLT</code>,
+                            <code>DVR</code>, and <code>OV?</code> files will
+                            be treated like <code>CMD</code> files.</li>
+                        <li><code>CAS</code> and <code>WAV</code> files can be
+                            disassembled directly. If multiple programs are on the
+                            cassette, only the first will be disassembled.</li>
+                    </ul>
+                </li>
+            </ul>
+
             <h3 id="v2.8.11">2.8.11 <span class="release-date">June 9, 2026</span></h3>
 
             <ul>
