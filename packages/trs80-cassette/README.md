@@ -84,12 +84,10 @@ space characters (0x20) have 0 for 7 of their 8 bits; all ASCII characters
 (comments, strings) have their most significant bit as 0; every start bit is a
 zero.
 
-In one Basic program I analyzed, there were 15,472 zero bits and 2960 one bits. That's
-a recording time of 12.2 seconds, or 1508 baud. Had they swapped the meaning of
-the two cycle times, that would have been reduced to 7.4 seconds, or 2489 baud.
-Instead of a jump from 500 baud (on the Model I) to 1500 baud, they could have
-claimed nearly 2500 baud! If anyone knows why they made this decision, please
-let me know.
+In one Basic program I analyzed (`ULTRA_TREK.BAS`), there were 56,339 zero bits
+and 34,189 one bits. That's a recording time of 1400 baud. Had they swapped the
+meaning of the two cycle times, that would have increased to 1700 baud. If
+anyone knows why they made this decision, please let me know.
 
 [George Phillips](http://www.48k.ca/) has a theory for why the start bit must
 be the long variant: Each byte is individually written by the ROM, then control
