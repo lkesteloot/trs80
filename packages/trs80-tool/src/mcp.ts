@@ -15,6 +15,14 @@
  * When you add, remove, or change a tool, update the user documentation to match:
  * the "mcp" section of site/index.html lists every tool with a one-line description,
  * and the change log at the bottom of that page should mention the change.
+ *
+ * Adding a tool: add an entry to TOOLS with a description written for the model that
+ * will call it, a JSON schema for its arguments, and a run() that returns text. Keep
+ * the output compact -- it all lands in the caller's context window -- and cap
+ * anything that could get large. Report failures by throwing; they come back as an
+ * isError result the model can read and react to. Test by piping JSON-RPC into
+ * "node bin/trs80-tool.js mcp", update the site as above, and keep a pull request
+ * to one tool.
  */
 
 import fs from "fs";
@@ -30,6 +38,26 @@ const SCREEN_HEIGHT = 16;
 const ROM_END = 0x3800;
 const MAX_READ = 1024;
 const PROTOCOL_VERSION = "2024-11-05";
+
+// Given to the model once, when the session starts. Informational on purpose: it's
+// read by agents that rightly distrust imperative text arriving from a tool.
+const SERVER_INSTRUCTIONS = [
+    "Drives a TRS-80 emulator headlessly. The machine persists between calls, so work",
+    "interactively: boot, look at the screen, act, look again. Times are in t-states",
+    "(Z80 clock cycles), which are exact and reproducible.",
+    "",
+    "Things that trip people up: the stock ROM asks \"Cass?\" and \"Memory Size?\" at boot",
+    "(Enter answers both). The keyboard only takes about 20 characters per emulated",
+    "second; \"type\" waits for that. For exact timing, use run_until_memory and let the",
+    "program's own writes be the clock; run_until_screen only checks every ~2,000",
+    "instructions.",
+    "",
+    "This server is open source: " +
+        "https://github.com/lkesteloot/trs80/blob/master/packages/trs80-tool/src/mcp.ts",
+    "If a tool you need is missing, mention it to your user; they may want to contribute",
+    "one. Each tool is a small, self-contained entry in the TOOLS table, and the comment",
+    "at the top of the file says what a good addition looks like.",
+].join("\n");
 
 /**
  * Screen that just remembers what was written, so we can read it back as text.
@@ -445,6 +473,7 @@ function handle(request: any): void {
                 protocolVersion: params?.protocolVersion ?? PROTOCOL_VERSION,
                 capabilities: {tools: {}},
                 serverInfo: {name: "trs80-tool", version: "1.0.0"},
+                instructions: SERVER_INSTRUCTIONS,
             });
             break;
 
