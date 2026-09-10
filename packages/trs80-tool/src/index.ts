@@ -13,6 +13,7 @@ import {asm} from "./asm.js";
 import {disasm} from "./disasm.js";
 import {run} from "./run.js";
 import {repl} from "./repl.js";
+import {mcp} from "./mcp.js";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {mount} from "./mount.js";
 import {LogLevel, LogSink, TRS80_MAIN_SINK, TRS80_MODULE_NAME_TO_LOGGER} from "trs80-logger";
@@ -264,6 +265,12 @@ function main() {
             const hexFormat = hexFormatString === "c" ? HexFormat.C : hexFormatString === "dollar" ? HexFormat.DOLLAR : HexFormat.H;
             disasm(infile, options.listing, org, entryPoints, options.labels, options.known, options.binary, hexFormat,
                 options.upper, options.full, options.dataComment);
+        });
+    program
+        .command("mcp")
+        .description("run an MCP server on stdio, for driving the emulator from an AI assistant")
+        .action(() => {
+            mcp();
         });
     program
         .command("run [program]")
