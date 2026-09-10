@@ -11,6 +11,10 @@
  *
  * IMPORTANT: stdout is the protocol channel. Nothing else may write to it, so we
  * redirect console output to stderr below.
+ *
+ * When you add, remove, or change a tool, update the user documentation to match:
+ * the "mcp" section of site/index.html lists every tool with a one-line description,
+ * and the change log at the bottom of that page should mention the change.
  */
 
 import fs from "fs";
@@ -18,6 +22,7 @@ import {
     BasicLevel, CassettePlayer, Config, Keyboard, ModelType, SilentSoundPlayer, Trs80, Trs80Screen,
 } from "trs80-emulator";
 import {decodeTrs80File} from "trs80-base";
+import {Disasm} from "z80-disasm";
 
 const SCREEN_BEGIN = 0x3C00;
 const SCREEN_WIDTH = 64;
@@ -76,6 +81,9 @@ class Machine {
     public readonly trs80: Trs80;
     public readonly screen = new HeadlessScreen();
     public readonly keyboard = new Keyboard();
+    // In the stock Level II ROM, "rst 08" is followed by an inline byte: the
+    // character the syntax checker expects next in the Basic text.
+    public readonly rst8IsSyntaxCheck: boolean;
 
     constructor(cmdPathname: string | undefined, modelType: ModelType, basicLevel: BasicLevel) {
         // A .cmd that replaces the ROM has blocks below ROM_END (the ROM itself) and
@@ -113,6 +121,7 @@ class Machine {
             .withBasicLevel(basicLevel)
             .withCustomRom(customRom)
             .build();
+        this.rst8IsSyntaxCheck = customRom === undefined && basicLevel === BasicLevel.LEVEL2;
         this.trs80 = new Trs80(config, this.screen, this.keyboard,
             new CassettePlayer(), new SilentSoundPlayer());
         this.trs80.reset();
@@ -368,13 +377,15 @@ const TOOLS: Record<string, Tool> = {
 };
 
 TOOLS["type"] = {
-    description: "Type text at the keyboard, as if a person did. Use \\n for Enter. Runs the " +
-        "machine afterwards so the ROM has a chance to consume the keystrokes.",
+    description: "Type text at the keyboard, as if a person did. Runs the machine until the ROM " +
+        "has taken every keystroke (it accepts about 20 characters per emulated second), then " +
+        "a short settle so it can act on the last one. Use \\n for Enter.",
     inputSchema: {
         type: "object",
         properties: {
             text: {type: "string", description: "Text to type. A newline (or the two characters \\n) means Enter."},
-            settleSeconds: {type: "number", description: "Emulated seconds to run after typing, defaults to 1"},
+            settleSeconds: {type: "number", description: "Emulated seconds to run after the last key is taken, defaults to 0.1"},
+            maxSeconds: {type: "number", description: "Give up if the keys aren't all taken within this many emulated seconds, defaults to 60"},
         },
         required: ["text"],
     },
@@ -384,8 +395,29 @@ TOOLS["type"] = {
         // to send either and typing "\\n" at Basic is never what anyone wants.
         const text = args.text.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
         m.keyboard.simulateKeyboardText(text);
-        const used = m.runCycles(Math.round((args.settleSeconds ?? 1)*m.clockHz));
-        return `Typed ${JSON.stringify(text)}, then ran ${used.toLocaleString()} t-states.`;
+
+        // The keyboard hands the ROM one key event every 50,000 t-states, and only
+        // when the ROM polls, so any fixed settle time is a guess. Guess too short and
+        // the leftover keys leak into whatever you do next. Instead run until the
+        // queue is empty.
+        const start = m.tStateCount;
+        const limit = start + Math.round((args.maxSeconds ?? 60)*m.clockHz);
+        while (m.keyboard.keyQueue.length > 0 && m.tStateCount < limit) {
+            m.trs80.step();
+        }
+        const typing = m.tStateCount - start;
+        if (m.keyboard.keyQueue.length > 0) {
+            // Don't leave stale keys behind to corrupt the next step.
+            const left = m.keyboard.keyQueue.length;
+            m.keyboard.keyQueue.length = 0;
+            m.keyboard.clearKeyboard();
+            throw new Error(`Only some of the text was taken after ${typing.toLocaleString()} t-states; ` +
+                `${left} key events were still queued and have been discarded. Is the ROM reading ` +
+                `the keyboard? (A running program that doesn't poll it won't take keys.)`);
+        }
+        const settle = m.runCycles(Math.round((args.settleSeconds ?? 0.1)*m.clockHz));
+        return `Typed ${JSON.stringify(text)}. All keys taken after ${typing.toLocaleString()} t-states ` +
+            `(${(typing/m.clockHz).toFixed(2)}s), then settled ${settle.toLocaleString()} more.`;
     },
 };
 
@@ -507,3 +539,250 @@ export function mcp(): void {
     });
     process.stdin.on("end", () => process.exit(0));
 }
+
+TOOLS["run_until_screen"] = {
+    description: "Run until some text appears on the screen, then report how many t-states it " +
+        "took. This is the way to time a Basic program: have it print something when it's done " +
+        "(or wait for READY) and measure the cycles to get there.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            text: {type: "string", description: "Text to wait for, anywhere on screen"},
+            maxCycles: {type: "integer", description: "Give up after this many t-states"},
+        },
+        required: ["text", "maxCycles"],
+    },
+    run: args => {
+        const m = needMachine();
+        const start = m.tStateCount;
+        const limit = start + args.maxCycles;
+        // Checking the screen after every instruction would dominate the run time,
+        // so only look every so often. The screen doesn't change that fast.
+        const CHECK_EVERY = 2000;
+        let found = false;
+        while (m.tStateCount < limit) {
+            for (let i = 0; i < CHECK_EVERY; i++) {
+                m.trs80.step();
+            }
+            if (m.screen.lines().join("\n").includes(args.text)) {
+                found = true;
+                break;
+            }
+        }
+        const used = m.tStateCount - start;
+        return found
+            ? `Found ${JSON.stringify(args.text)} after ${used.toLocaleString()} t-states ` +
+              `(${(used/m.clockHz).toFixed(3)}s emulated).`
+            : `Did NOT see ${JSON.stringify(args.text)} within ${args.maxCycles.toLocaleString()} t-states.`;
+    },
+};
+
+TOOLS["disassemble"] = {
+    description: "Disassemble instructions straight out of the machine's memory, following the " +
+        "bytes as the CPU would. Works on ROM as well as RAM. On the stock Level II ROM, " +
+        "\"rst 08\" is followed by an inline byte (the character the Basic syntax checker " +
+        "expects), and this shows it as such rather than decoding it as an instruction.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            address: {type: "integer", description: "Address to start at"},
+            count: {type: "integer", description: "How many instructions, defaults to 16, max 200"},
+            rst8Inline: {type: "boolean", description: "Treat the byte after \"rst 08\" as inline data. " +
+                "Defaults to true on the stock Level II ROM and false otherwise."},
+        },
+        required: ["address"],
+    },
+    run: args => {
+        const m = needMachine();
+        const count = Math.min(args.count ?? 16, 200);
+        const rst8Inline = args.rst8Inline ?? m.rst8IsSyntaxCheck;
+        const disasm = new Disasm();
+        const lines: string[] = [];
+        let address = args.address;
+        for (let i = 0; i < count; i++) {
+            const instruction = disasm.disassembleTrace(address, a => m.trs80.readMemory(a));
+            if (instruction === undefined) {
+                break;
+            }
+            if (rst8Inline && instruction.bin.length === 1 && instruction.bin[0] === 0xCF) {
+                const expected = m.trs80.readMemory(address + 1);
+                const shown = expected >= 32 && expected < 127 ? `'${String.fromCharCode(expected)}'` : hex(expected, 2);
+                lines.push(`${hex(address)}  ${("CF " + hex(expected, 2).substring(2)).padEnd(12)}  ` +
+                    `rst 08  ; syntax check, expects ${shown}`);
+                address += 2;
+                continue;
+            }
+            lines.push(`${hex(address)}  ${instruction.binText().padEnd(12)}  ${instruction.toText(false)}`);
+            address += instruction.bin.length;
+        }
+        return lines.join("\n");
+    },
+};
+
+TOOLS["search_memory"] = {
+    description: "Find a byte sequence in memory. Useful for locating a known code idiom in ROM " +
+        "when you don't have a symbol for it.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            bytes: {type: "array", items: {type: "integer"}, description: "Byte sequence to find"},
+            start: {type: "integer", description: "First address to search, defaults to 0"},
+            end: {type: "integer", description: "Last address to search, defaults to 0xFFFF"},
+        },
+        required: ["bytes"],
+    },
+    run: args => {
+        const m = needMachine();
+        const start = args.start ?? 0;
+        const end = Math.min(args.end ?? 0xFFFF, 0xFFFF);
+        const pattern: number[] = args.bytes.map((b: number) => b & 0xFF);
+        const hits: number[] = [];
+        for (let address = start; address + pattern.length - 1 <= end; address++) {
+            let match = true;
+            for (let i = 0; i < pattern.length; i++) {
+                if (m.trs80.readMemory(address + i) !== pattern[i]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                hits.push(address);
+                if (hits.length >= 50) {
+                    break;
+                }
+            }
+        }
+        return hits.length === 0
+            ? "Not found."
+            : `${hits.length} match${hits.length === 1 ? "" : "es"}: ` + hits.map(a => hex(a)).join(", ");
+    },
+};
+
+TOOLS["key"] = {
+    description: "Press or release a single key, and leave it that way. Use this when a program " +
+        "cares that a key is held down, like a game reading the keyboard every frame. Key names " +
+        "are browser style: \"a\", \" \", \"Enter\", \"ArrowLeft\", \"Shift\".",
+    inputSchema: {
+        type: "object",
+        properties: {
+            key: {type: "string", description: "Key name, browser style"},
+            pressed: {type: "boolean", description: "True to press, false to release"},
+        },
+        required: ["key", "pressed"],
+    },
+    run: args => {
+        const m = needMachine();
+        m.keyboard.keyEvent(args.key, args.pressed);
+        return `${args.pressed ? "Pressed" : "Released"} ${JSON.stringify(args.key)}. ` +
+            `It stays that way until you change it; call "run" to let the machine see it.`;
+    },
+};
+
+TOOLS["load_program"] = {
+    description: "Load and start a program file (.cmd, .cas, .bas and so on) on the running " +
+        "machine, the way \"trs80-tool run <program>\" does. For a program that replaces the ROM, " +
+        "use \"boot\" instead.",
+    inputSchema: {
+        type: "object",
+        properties: {path: {type: "string", description: "Path to the program file"}},
+        required: ["path"],
+    },
+    run: args => {
+        const m = needMachine();
+        const file = decodeTrs80File(new Uint8Array(fs.readFileSync(args.path)), {filename: args.path});
+        if ((file as any).error !== undefined) {
+            throw new Error(`Can't read ${args.path}: ${(file as any).error}`);
+        }
+        m.trs80.runTrs80File(file as any);
+        return `Loaded and started ${args.path} (${(file as any).className}).`;
+    },
+};
+
+// Where call_routine's pushed return address points. The routine returning here is
+// how we know it's done; that instruction never actually runs.
+const RETURN_SENTINEL = 0xFFFF;
+const ALL_REGISTERS = ["af", "bc", "de", "hl", "afPrime", "bcPrime", "dePrime", "hlPrime",
+    "ix", "iy", "sp", "pc", "memptr", "i", "r", "iff1", "iff2", "im", "halted"];
+
+TOOLS["call_routine"] = {
+    description: "Call a machine-language routine the way a program would: set registers, push a " +
+        "return address, jump in, and run until it returns. Reports exactly how many t-states the " +
+        "routine took, including its final RET but not the caller's 17-cycle CALL. Interrupts are " +
+        "held off during the call so they don't pollute the count. Afterwards every CPU register is " +
+        "put back, so the machine carries on where it was; memory changes (pixels drawn, " +
+        "variables written) are kept.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            address: {type: "integer", description: "Address of the routine"},
+            a: {type: "integer", description: "Value for A"},
+            bc: {type: "integer"}, de: {type: "integer"}, hl: {type: "integer"},
+            ix: {type: "integer"}, iy: {type: "integer"},
+            push: {type: "array", items: {type: "integer"},
+                description: "16-bit words to push after the return address, in order, so the last " +
+                    "ends up on top. For entering a routine partway through, where it expects things " +
+                    "already on the stack."},
+            maxCycles: {type: "integer", description: "Give up after this many t-states, defaults to 10,000,000"},
+            interrupts: {type: "boolean", description: "Leave interrupts enabled during the call, defaults to false"},
+        },
+        required: ["address"],
+    },
+    run: args => {
+        const m = needMachine();
+        const regs = (m.trs80 as any).z80.regs;
+        const saved: Record<string, number> = {};
+        for (const name of ALL_REGISTERS) {
+            saved[name] = regs[name];
+        }
+        try {
+            if (args.a !== undefined) {
+                regs.af = ((args.a & 0xFF) << 8) | (regs.af & 0xFF);
+            }
+            for (const name of ["bc", "de", "hl", "ix", "iy"]) {
+                if (args[name] !== undefined) {
+                    regs[name] = args[name] & 0xFFFF;
+                }
+            }
+            if (!args.interrupts) {
+                regs.iff1 = 0;
+                regs.iff2 = 0;
+            }
+            regs.halted = 0;
+
+            const push = (word: number) => {
+                regs.sp = (regs.sp - 2) & 0xFFFF;
+                m.trs80.writeMemory(regs.sp, word & 0xFF);
+                m.trs80.writeMemory((regs.sp + 1) & 0xFFFF, (word >> 8) & 0xFF);
+            };
+            // Once the routine has popped everything and returned, SP is back here.
+            // Checking SP as well as PC means a stray jump to the sentinel doesn't count.
+            const returnSp = regs.sp;
+            push(RETURN_SENTINEL);
+            for (const word of args.push ?? []) {
+                push(word);
+            }
+            regs.pc = args.address;
+
+            const start = m.tStateCount;
+            const limit = start + (args.maxCycles ?? 10_000_000);
+            let returned = false;
+            while (m.tStateCount < limit) {
+                m.trs80.step();
+                if (regs.pc === RETURN_SENTINEL && regs.sp === returnSp) {
+                    returned = true;
+                    break;
+                }
+            }
+            const used = m.tStateCount - start;
+            const state = ["af", "bc", "de", "hl", "ix", "iy"].map(r => `${r}=${hex(regs[r])}`).join(" ");
+            return returned
+                ? `Returned after ${used.toLocaleString()} t-states.\nRegisters at return: ${state}`
+                : `Did NOT return within ${used.toLocaleString()} t-states. PC was ${hex(regs.pc)}, ` +
+                  `SP ${hex(regs.sp)}.\nRegisters: ${state}`;
+        } finally {
+            for (const name of ALL_REGISTERS) {
+                regs[name] = saved[name];
+            }
+        }
+    },
+};

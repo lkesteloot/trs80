@@ -30,6 +30,7 @@
                         <li><a href="#disasm"><code>disasm</code></a></li>
                         <li><a href="#run"><code>run</code></a></li>
                         <li><a href="#repl"><code>repl</code></a></li>
+                        <li><a href="#mcp"><code>mcp</code></a></li>
                         <li><a href="#help"><code>help</code></a></li>
                     </ul>
                 </li>
@@ -374,6 +375,63 @@ C CRC error (ID or data).
             its effects on flags and registers. This virtual machine is not in
             a TRS-80 context (it has no ROM or peripherals).</p>
 
+            <h3 id="mcp"><code>mcp</code></h3>
+            <p>Runs an <a href="https://modelcontextprotocol.io/" rel="nofollow">MCP</a> server on
+            stdin/stdout, which lets an AI assistant drive a TRS-80 directly. The assistant can boot
+            a ROM, type at it, run it for an exact number of clock cycles, and inspect the screen,
+            memory, and registers. The machine stays running between requests, so the assistant can
+            explore interactively instead of guessing.</p>
+
+            <p>You don’t run this command yourself. Your AI tool starts it for you, so what you do
+            is tell that tool about it. With
+            <a href="https://claude.com/claude-code" rel="nofollow">Claude Code</a>:</p>
+
+            <div><pre><code>% claude mcp add --scope user trs80 -- trs80-tool mcp</code></pre></div>
+
+            <p>Other MCP clients use a JSON configuration file. The entry looks like this:</p>
+
+            <div><pre><code>{
+    "mcpServers": {
+        "trs80": {
+            "command": "trs80-tool",
+            "args": ["mcp"]
+        }
+    }
+}</code></pre></div>
+
+            <p>In both cases <code>trs80-tool</code> must be on your <code>PATH</code>. If it isn’t,
+            use the full path to the binary instead. MCP servers are started when your AI tool
+            starts, so restart it after adding this.</p>
+
+            <p>These are the tools the assistant gets:</p>
+
+            <ul>
+                <li><code>boot</code> — start a machine, either with the stock Basic ROM or with a
+                    <code>.cmd</code> file that replaces the ROM.</li>
+                <li><code>load_program</code> — load and start a program file on the running machine.</li>
+                <li><code>type</code> — type text at the keyboard, waiting until the ROM has taken every key.</li>
+                <li><code>key</code> — press or release a single key and leave it that way, for
+                    programs that care whether a key is held down.</li>
+                <li><code>run</code> — run for a number of clock cycles or emulated seconds.</li>
+                <li><code>step</code> — single-step the CPU.</li>
+                <li><code>run_until_pc</code> — run until the program counter reaches an address.</li>
+                <li><code>run_until_screen</code> — run until some text appears on the screen, and
+                    report how long it took. This is how you time a Basic program.</li>
+                <li><code>screen</code> — read the screen as text.</li>
+                <li><code>read_memory</code>, <code>write_memory</code>, <code>registers</code>.</li>
+                <li><code>search_memory</code> — find a byte sequence, for locating code in ROM.</li>
+                <li><code>disassemble</code> — disassemble straight out of memory, ROM included.</li>
+                <li><code>profile_pc</code> — run for a while and report where the program counter
+                    spent its time, as a histogram of the hottest addresses.</li>
+                <li><code>call_routine</code> — call a machine-language routine with chosen registers
+                    and report exactly how many clock cycles it took, the way another program calling
+                    it would see it.</li>
+            </ul>
+
+            <p>Timings are reported in Z80 clock cycles (t-states) rather than wall-clock time, so
+            they’re exact and repeatable no matter how fast the emulator happens to run on your
+            machine.</p>
+
             <h3 id="help"><code>help</code></h3>
             <p>The <code>help</code> command shows more specific information about other commands:</p>
             <div><pre><code>% trs80-tool help dir
@@ -391,6 +449,12 @@ C CRC error (ID or data).
             (<a href="https://www.my-trs-80.com/">My TRS-80</a>,
             the <a href="https://www.my-trs-80.com/ide/">IDE</a>,
             and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).</p>
+
+            <h3 id="v2.9.0">2.9.0 <span class="release-date">September 9, 2026</span></h3>
+            <ul>
+                <li>Added the <a href="#mcp"><code>mcp</code></a> command, which runs an MCP server
+                    so that an AI assistant can drive the emulator.</li>
+            </ul>
 
             <h3 id="v2.8.12">2.8.12 <span class="release-date">July 29, 2026</span></h3>
 
