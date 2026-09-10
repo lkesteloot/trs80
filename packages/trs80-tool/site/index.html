@@ -416,7 +416,10 @@ C CRC error (ID or data).
                 <li><code>step</code> — single-step the CPU.</li>
                 <li><code>run_until_pc</code> — run until the program counter reaches an address.</li>
                 <li><code>run_until_screen</code> — run until some text appears on the screen, and
-                    report how long it took. This is how you time a Basic program.</li>
+                    report roughly how long it took.</li>
+                <li><code>run_until_memory</code> — run until a memory location holds a value, and
+                    report exactly how long it took. This is how you time a program precisely, for
+                    example by waiting for the first and last bytes of a screen fill.</li>
                 <li><code>screen</code> — read the screen as text.</li>
                 <li><code>read_memory</code>, <code>write_memory</code>, <code>registers</code>.</li>
                 <li><code>search_memory</code> — find a byte sequence, for locating code in ROM.</li>

@@ -542,13 +542,15 @@ export function mcp(): void {
 
 TOOLS["run_until_screen"] = {
     description: "Run until some text appears on the screen, then report how many t-states it " +
-        "took. This is the way to time a Basic program: have it print something when it's done " +
-        "(or wait for READY) and measure the cycles to get there.",
+        "took. The screen is only checked every checkEvery instructions (default 2,000, roughly " +
+        "10,000-20,000 t-states), so the time can be that much late: fine for runs of millions of " +
+        "t-states, too coarse for short ones. For exact timing use run_until_memory.",
     inputSchema: {
         type: "object",
         properties: {
             text: {type: "string", description: "Text to wait for, anywhere on screen"},
             maxCycles: {type: "integer", description: "Give up after this many t-states"},
+            checkEvery: {type: "integer", description: "Instructions between screen checks, defaults to 2000"},
         },
         required: ["text", "maxCycles"],
     },
@@ -558,7 +560,7 @@ TOOLS["run_until_screen"] = {
         const limit = start + args.maxCycles;
         // Checking the screen after every instruction would dominate the run time,
         // so only look every so often. The screen doesn't change that fast.
-        const CHECK_EVERY = 2000;
+        const CHECK_EVERY = Math.max(1, args.checkEvery ?? 2000);
         let found = false;
         while (m.tStateCount < limit) {
             for (let i = 0; i < CHECK_EVERY; i++) {
@@ -784,5 +786,52 @@ TOOLS["call_routine"] = {
                 regs[name] = saved[name];
             }
         }
+    },
+};
+
+TOOLS["run_until_memory"] = {
+    description: "Run until a memory byte holds a given value, checking after every instruction, and " +
+        "report exactly how many t-states that took. Exact to the instruction, unlike " +
+        "run_until_screen. Good for timing a program by its own work: wait for the first and last " +
+        "bytes of a screen fill to be written, or have the program POKE a flag when it's done.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            address: {type: "integer", description: "Address to watch"},
+            value: {type: "integer", description: "Value to wait for"},
+            mask: {type: "integer", description: "Only compare these bits, defaults to 0xFF"},
+            maxCycles: {type: "integer", description: "Give up after this many t-states"},
+        },
+        required: ["address", "value", "maxCycles"],
+    },
+    run: args => {
+        const m = needMachine();
+        if (args.address >= 0x3800 && args.address < 0x3C00) {
+            // Reading the keyboard matrix feeds queued keys to the machine, so watching
+            // it would change what we're watching.
+            throw new Error("Can't watch the keyboard matrix (0x3800-0x3BFF); reading it consumes keys.");
+        }
+        const mask = (args.mask ?? 0xFF) & 0xFF;
+        const value = args.value & mask;
+        const matches = () => (m.trs80.readMemory(args.address) & mask) === value;
+        if (matches()) {
+            return `${hex(args.address)} already holds ${hex(value, 2)}; ran nothing.`;
+        }
+        const start = m.tStateCount;
+        const limit = start + args.maxCycles;
+        let found = false;
+        while (m.tStateCount < limit) {
+            m.trs80.step();
+            if (matches()) {
+                found = true;
+                break;
+            }
+        }
+        const used = m.tStateCount - start;
+        return found
+            ? `${hex(args.address)} became ${hex(value, 2)} after ${used.toLocaleString()} t-states ` +
+              `(${(used/m.clockHz).toFixed(4)}s emulated).`
+            : `${hex(args.address)} did NOT become ${hex(value, 2)} within ${args.maxCycles.toLocaleString()} ` +
+              `t-states; it holds ${hex(m.trs80.readMemory(args.address), 2)}.`;
     },
 };
