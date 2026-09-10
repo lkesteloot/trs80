@@ -407,8 +407,12 @@ C CRC error (ID or data).
 
             <ul>
                 <li><code>boot</code> — start a machine, either with the stock Basic ROM or with a
-                    <code>.cmd</code> file that replaces the ROM.</li>
+                    <code>.cmd</code> file that replaces the ROM. On the stock ROM it answers the
+                    <code>Cass?</code> and <code>Memory Size?</code> questions and waits for
+                    <code>READY</code>.</li>
                 <li><code>load_program</code> — load and start a program file on the running machine.</li>
+                <li><code>load_basic</code> — put a Basic listing straight into memory on the stock ROM,
+                    much faster than typing it.</li>
                 <li><code>type</code> — type text at the keyboard, waiting until the ROM has taken every key.</li>
                 <li><code>key</code> — press or release a single key and leave it that way, for
                     programs that care whether a key is held down.</li>

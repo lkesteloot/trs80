@@ -29,7 +29,7 @@ import fs from "fs";
 import {
     BasicLevel, CassettePlayer, Config, Keyboard, ModelType, SilentSoundPlayer, Trs80, Trs80Screen,
 } from "trs80-emulator";
-import {decodeTrs80File} from "trs80-base";
+import {decodeBasicProgram, decodeTrs80File, parseBasicText} from "trs80-base";
 import {Disasm} from "z80-disasm";
 
 const SCREEN_BEGIN = 0x3C00;
@@ -46,9 +46,10 @@ const SERVER_INSTRUCTIONS = [
     "interactively: boot, look at the screen, act, look again. Times are in t-states",
     "(Z80 clock cycles), which are exact and reproducible.",
     "",
-    "Things that trip people up: the stock ROM asks \"Cass?\" and \"Memory Size?\" at boot",
-    "(Enter answers both). The keyboard only takes about 20 characters per emulated",
-    "second; \"type\" waits for that. For exact timing, use run_until_memory and let the",
+    "Things that trip people up: the keyboard only takes about 20 characters per emulated",
+    "second (\"type\" waits for that), so on the stock ROM use load_basic, which puts a",
+    "listing straight into memory. (boot answers the stock ROM's Cass? and Memory Size?",
+    "questions itself.) For exact timing, use run_until_memory and let the",
     "program's own writes be the clock; run_until_screen only checks every ~2,000",
     "instructions.",
     "",
@@ -179,6 +180,37 @@ class Machine {
         return this.trs80.tStateCount - start;
     }
 
+    /**
+     * Run until the ROM has taken every queued key, or maxCycles pass. The keyboard
+     * hands over one key event every 50,000 t-states, and only when the ROM polls,
+     * so this is the only reliable way to know typing is finished. Returns whether
+     * the queue emptied.
+     */
+    drainKeyboard(maxCycles: number): boolean {
+        const limit = this.trs80.tStateCount + maxCycles;
+        while (this.keyboard.keyQueue.length > 0 && this.trs80.tStateCount < limit) {
+            this.trs80.step();
+        }
+        return this.keyboard.keyQueue.length === 0;
+    }
+
+    /**
+     * Run until the text appears on screen, checking every few thousand instructions.
+     * Returns whether it appeared within maxCycles.
+     */
+    runUntilScreen(text: string, maxCycles: number, checkEvery = 2000): boolean {
+        const limit = this.trs80.tStateCount + maxCycles;
+        while (this.trs80.tStateCount < limit) {
+            for (let i = 0; i < checkEvery; i++) {
+                this.trs80.step();
+            }
+            if (this.screen.lines().join("\n").includes(text)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     registers(): Record<string, number> {
         const r = (this.trs80 as any).z80.regs;
         return {
@@ -217,16 +249,32 @@ const TOOLS: Record<string, Tool> = {
                 cmd: {type: "string", description: "Path to a .cmd file holding a replacement ROM"},
                 model: {type: "integer", enum: [1, 3, 4], description: "Model, defaults to 3"},
                 level: {type: "integer", enum: [1, 2], description: "Basic level, defaults to 2"},
+                answerPrompts: {type: "boolean", description: "On the stock Level II ROM, answer the " +
+                    "Cass? and Memory Size? questions and run until READY. Defaults to true. Ignored " +
+                    "for a replacement ROM, which is left un-run."},
             },
         },
         run: args => {
             const modelType = args.model === 1 ? ModelType.MODEL1 :
                 args.model === 4 ? ModelType.MODEL4 : ModelType.MODEL3;
             const basicLevel = args.level === 1 ? BasicLevel.LEVEL1 : BasicLevel.LEVEL2;
-            machine = new Machine(args.cmd, modelType, basicLevel);
-            return `Booted model ${args.model ?? 3}, level ${args.level ?? 2}, ` +
-                `${machine.clockHz} Hz` + (args.cmd ? `, ROM from ${args.cmd}` : ", stock ROM") +
-                `.\nNothing has run yet; call "run" to let it boot.`;
+            const m = machine = new Machine(args.cmd, modelType, basicLevel);
+            const booted = `Booted model ${args.model ?? 3}, level ${args.level ?? 2}, ` +
+                `${m.clockHz} Hz` + (args.cmd ? `, ROM from ${args.cmd}` : ", stock ROM") + ".";
+            if (!m.rst8IsSyntaxCheck || args.answerPrompts === false) {
+                return booted + `\nNothing has run yet; call "run" to let it boot.`;
+            }
+            // Same as Trs80.runBasicProgram(): give it a moment to ask Cass?, then answer
+            // that and Memory Size? ("0" means use all of memory).
+            m.runCycles(Math.round(0.1*m.clockHz));
+            m.keyboard.simulateKeyboardText("\n0\n");
+            m.drainKeyboard(Math.round(10*m.clockHz));
+            if (!m.runUntilScreen("READY", Math.round(5*m.clockHz))) {
+                return booted + " Answered Cass? and Memory Size? but never saw READY. Screen:\n" +
+                    m.screen.lines().filter(l => l.trim() !== "").join("\n");
+            }
+            return booted + ` Answered Cass? and Memory Size?; at READY after ` +
+                `${m.tStateCount.toLocaleString()} t-states.`;
         },
     },
 
@@ -429,10 +477,7 @@ TOOLS["type"] = {
         // the leftover keys leak into whatever you do next. Instead run until the
         // queue is empty.
         const start = m.tStateCount;
-        const limit = start + Math.round((args.maxSeconds ?? 60)*m.clockHz);
-        while (m.keyboard.keyQueue.length > 0 && m.tStateCount < limit) {
-            m.trs80.step();
-        }
+        m.drainKeyboard(Math.round((args.maxSeconds ?? 60)*m.clockHz));
         const typing = m.tStateCount - start;
         if (m.keyboard.keyQueue.length > 0) {
             // Don't leave stale keys behind to corrupt the next step.
@@ -862,5 +907,45 @@ TOOLS["run_until_memory"] = {
               `(${(used/m.clockHz).toFixed(4)}s emulated).`
             : `${hex(args.address)} did NOT become ${hex(value, 2)} within ${args.maxCycles.toLocaleString()} ` +
               `t-states; it holds ${hex(m.trs80.readMemory(args.address), 2)}.`;
+    },
+};
+
+TOOLS["load_basic"] = {
+    description: "Put a Basic listing straight into memory on the stock ROM, the way loading it " +
+        "from tape would, instead of typing it. Much faster than \"type\", which manages about " +
+        "20 characters a second. Replaces any program already there and doesn't run it. The " +
+        "machine must be at READY. Stock Level II ROM only; with a replacement ROM, type the " +
+        "program instead.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            text: {type: "string", description: "The listing, one numbered line per line"},
+        },
+        required: ["text"],
+    },
+    run: args => {
+        const m = needMachine();
+        if (!m.rst8IsSyntaxCheck) {
+            throw new Error("load_basic only works with the stock Level II ROM, whose program format " +
+                "it writes. With a replacement ROM, use \"type\".");
+        }
+        // Basic keeps the address of its first program line here once it's set up memory.
+        const start = m.trs80.readMemory(0x40A4) | (m.trs80.readMemory(0x40A5) << 8);
+        if (start < 0x4200) {
+            throw new Error("Basic hasn't set up memory yet. Boot and let it reach READY first.");
+        }
+        const text = args.text.replace(/\\n/g, "\n");
+        const binary = parseBasicText(text);
+        if (typeof binary === "string") {
+            throw new Error("Couldn't parse the listing: " + binary);
+        }
+        const program = decodeBasicProgram(binary);
+        if (program === undefined) {
+            throw new Error("Parsed the listing but couldn't decode the result.");
+        }
+        m.trs80.loadBasicProgram(program);
+        const lines = text.split("\n").filter((l: string) => l.trim() !== "").length;
+        return `Loaded ${lines} line${lines === 1 ? "" : "s"} at ${hex(start)}. Type RUN to run it ` +
+            `(for exact timing, type RUN without the Enter and press Enter with "key").`;
     },
 };
