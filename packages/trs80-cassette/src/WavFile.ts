@@ -219,7 +219,7 @@ class ArrayBufferReader {
 /**
  * Reads a WAV file from a buffer, returning an AudioFile object.
 */
-export function readWavFile(arrayBuffer: ArrayBuffer): AudioFile {
+export function readWavFile(arrayBuffer: ArrayBuffer | Uint8Array): AudioFile {
     const reader = new ArrayBufferReader(arrayBuffer);
 
     const metadata = new Map<string,string>();

@@ -125,7 +125,7 @@ export class Archive {
 
         if (filename.toLowerCase().endsWith(".wav")) {
             // Decode the cassette.
-            const wavFile = readWavFile(buffer.buffer);
+            const wavFile = readWavFile(buffer);
             this.tape = new Tape(filename, wavFile);
             const decoder = new Decoder(this.tape);
             decoder.decode();

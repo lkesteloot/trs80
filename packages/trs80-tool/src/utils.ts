@@ -39,7 +39,8 @@ export function loadFile(filename: string): Uint8Array | string {
         return `Can't open file "${filename}" (${e.message})`;
     }
 
-    return new Uint8Array(buffer.buffer);
+    // A Buffer is a Uint8Array view of (possibly pooled) memory; return it as-is.
+    return buffer;
 }
 
 /**

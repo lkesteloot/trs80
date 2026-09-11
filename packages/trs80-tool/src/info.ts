@@ -36,7 +36,7 @@ function printInfoForFile(filename: string, verbose: boolean): void {
 
     if (ext.toLowerCase() == ".wav") {
         // Parse a cassette WAV file.
-        const wavFile = readWavFile(buffer.buffer);
+        const wavFile = readWavFile(buffer);
         if (verbose) {
             verboseLines.push(...getWavFileMetadata(wavFile));
         }

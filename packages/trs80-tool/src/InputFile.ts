@@ -146,7 +146,7 @@ export function expandFile(inFilename: string, includeSystemFiles: boolean): Inp
 
     if (ext.toLowerCase() == ".wav") {
         // Parse a cassette WAV file.
-        const wavFile = readWavFile(buffer.buffer);
+        const wavFile = readWavFile(buffer);
         const tape = new Tape(base, wavFile);
         const decoder = new Decoder(tape);
         decoder.decode();
