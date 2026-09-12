@@ -4,5 +4,3 @@ node_modules
 tsconfig.tsbuildinfo
 dist
 dist-tests
-build
-.snowpack

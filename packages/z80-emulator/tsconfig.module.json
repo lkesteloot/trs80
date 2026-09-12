@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig",
-  "compilerOptions": {
-    "target": "esnext",
-    "outDir": "dist/module",
-    "tsBuildInfoFile": "${configDir}/dist/module/tsconfig.module.tsbuildinfo",
-    "module": "esnext"
-  }
-}

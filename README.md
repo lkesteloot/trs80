@@ -25,7 +25,7 @@ in TypeScript. The subprojects are:
 
 # Build
 
-This has been tested with `node` version 20 and `npm` version 10. You can
+This has been tested with `node` version 24 and `npm` version 11. You can
 get the latest version from [the node.js website](https://nodejs.org/).
 
 To install dependencies (do this once per clone or pull):
@@ -34,16 +34,16 @@ To install dependencies (do this once per clone or pull):
 npm install
 ```
 
-To do a sequential build:
-
-```sh
-npm run build --workspaces
-```
-
-Or to do a parallel build:
+To build everything:
 
 ```sh
 npm run build
+```
+
+To run the tests:
+
+```sh
+npm test
 ```
 
 If you're getting build errors, try getting a fresh clone, or clean
@@ -52,7 +52,7 @@ up your local installations with:
 ```sh
 rm -rf node_modules packages/*/node_modules
 npm install
-npm run clean --workspaces
+npm run clean
 ```
 
 # License
