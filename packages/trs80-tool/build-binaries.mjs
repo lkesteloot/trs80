@@ -1,7 +1,7 @@
 // Builds stand-alone trs80-tool executables with Node's single executable
 // applications (SEA): https://nodejs.org/api/single-executable-applications.html
 //
-// Run after webpack has written the bundle to binaries/main.js ("npm run buildBinaries"
+// Run after esbuild has written the bundle to binaries/main.js ("npm run buildBinaries"
 // does both). For each target, this downloads the official Node executable (checked
 // against the release's SHA-256 sums and cached in binaries/cache), injects the bundle
 // into a copy of it, and signs it if it's for macOS. Must run on macOS, because the

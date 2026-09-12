@@ -14,9 +14,6 @@
   "repository": "https://github.com/lkesteloot/trs80.git",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
-  "devDependencies": {
-    "source-map-loader": "^5.0.0"
-  },
   "keywords": [
     "trs-80",
     "trs80"
