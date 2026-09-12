@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import {fileURLToPath} from "url";
 import {registerSetFields, toHex} from "z80-base";
 import {CpuEvent} from "./CpuEvent.js";
 import {CpuEventType, parseCpuEventType} from "./CpuEventType.js";
@@ -18,6 +19,26 @@ enum ParserState {
     EXPECTING_REG2,
     EXPECTING_MEMORY,
     EXPECTING_EVENT_OR_REG1,
+}
+
+/**
+ * Find the directory of test files, which is at the root of this package. The
+ * compiled code is one level below it (dist/) when used as a library, but two
+ * levels below (dist-tests/src/) when running this package's own tests.
+ */
+function findTestDir(): string {
+    let dir = path.dirname(fileURLToPath(import.meta.url));
+    while (true) {
+        const testDir = path.join(dir, "z80-tests");
+        if (fs.existsSync(testDir)) {
+            return testDir;
+        }
+        const parentDir = path.dirname(dir);
+        if (parentDir === dir) {
+            throw new Error("Can't find the z80-tests directory");
+        }
+        dir = parentDir;
+    }
 }
 
 /**
@@ -61,9 +82,7 @@ export class Runner {
      * Load tests from the text files.
      */
     public loadTests() {
-        const dirname = path.dirname(new URL(import.meta.url).pathname);
-        const moduleDir = path.join(dirname, "..");
-        const testDir = path.join(moduleDir, "z80-tests");
+        const testDir = findTestDir();
         const inPathname = path.join(testDir, IN_FILENAME);
         const expectedPathname = path.join(testDir, EXPECTED_FILENAME);
 

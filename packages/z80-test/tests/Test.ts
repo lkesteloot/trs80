@@ -39,16 +39,19 @@ class DelegateImpl implements Delegate {
     }
 }
 
-// Demo of how to run the test.
-const delegate = new DelegateImpl();
-const runner = new Runner(delegate);
-// Whether to check that the number of t-states is correct.
-runner.checkTStates = false;
-// Whether to check that the event list is correct.
-runner.checkEvents = false;
-runner.loadTests();
-runner.runAll();
-for (const error of runner.errors) {
-    console.log(error);
+// Check that the test files load and that every test has expected results.
+// Actually running the tests needs a real Z80; z80-emulator's tests use this
+// runner to do that.
+const runner = new Runner(new DelegateImpl());
+runner.loadTests(); // Throws if a file is malformed.
+
+// Every instruction takes at least four t-states, so zero means that the
+// "expected" file had nothing for that test.
+const incomplete = [...runner.tests.values()].filter(test => test.postTStateCount === 0);
+if (runner.tests.size === 0 || incomplete.length > 0) {
+    console.log(`Found ${runner.tests.size} tests, ${incomplete.length} without expected results: ` +
+        incomplete.slice(0, 10).map(test => test.name).join(", "));
+    process.exitCode = 1;
+} else {
+    console.log(`All ${runner.tests.size} tests have expected results`);
 }
-console.log(`Passed ${runner.successfulTests} of ${runner.tests.size} (${Math.round(runner.successfulTests*100/runner.tests.size)}%) with ${runner.errors.length} errors`);

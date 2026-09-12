@@ -5,7 +5,7 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "clean": "npm run clean --workspaces",
-    "test": "npm run test -w packages/z80-asm -w packages/z80-disasm -w packages/z80-emulator"
+    "test": "npm run test -w packages/z80-asm -w packages/z80-disasm -w packages/z80-emulator -w packages/z80-test"
   },
   "devDependencies": {
     "typescript": "^7.0.2"
