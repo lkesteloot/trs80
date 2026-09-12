@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "source-map-loader": "^5.0.0",
-    "ts-loader": "^9.5.2",
     "tslib": "^2.8.1"
   }
 }

@@ -9,13 +9,13 @@
   },
   "devDependencies": {
     "css-loader": "^7.1.2",
+    "esbuild-loader": "^4.5.0",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.0",
     "lerna": "^8.1.9",
     "mini-css-extract-plugin": "^2.6.0",
     "raw-loader": "^4.0.2",
     "ts-essentials": "^10.0.4",
-    "ts-loader": "^9.2.8",
     "vite": "^6.0.11",
     "webpack-dev-server": "^5.2.0"
   },
@@ -42,6 +42,6 @@
     "packages/my-trs-80"
   ],
   "dependencies": {
-    "typescript": "^5.7.3"
+    "typescript": "^7.0.2"
   }
 }

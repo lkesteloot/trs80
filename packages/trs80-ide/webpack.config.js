@@ -17,9 +17,10 @@ const exports = {
                 test: /\.tsx?$/,
                 include: path.resolve(__dirname, 'src'),
                 use: {
-                    loader: "ts-loader",
+                    // Only strips types. The build script type-checks with "tsc --noEmit".
+                    loader: "esbuild-loader",
                     options: {
-                        transpileOnly: false,
+                        target: "es2015",
                     },
                 },
                 exclude: /node_modules/,

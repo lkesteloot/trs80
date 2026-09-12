@@ -2,6 +2,7 @@
   "extends": "./tsconfig",
   "compilerOptions": {
     "target": "ES2018",
+    "rootDir": ".",
     "outDir": "dist-tests"
   },
   "include": [

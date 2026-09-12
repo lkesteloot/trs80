@@ -2,7 +2,9 @@
   "compilerOptions": {
     "target": "ES2019",
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    // Include all @types packages, as TypeScript did by default before 6.0.
+    "types": ["*"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,

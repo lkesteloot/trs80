@@ -4,7 +4,9 @@
     "module": "esnext",
     "outDir": "./dist",
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "types": ["*"],
+    "rootDir": "..",
     "forceConsistentCasingInFileNames": true
   },
   "include": [

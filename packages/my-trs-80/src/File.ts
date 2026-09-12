@@ -282,7 +282,7 @@ export class FileBuilder {
     public screenshots: string[] = [];
     public modelType: ModelType = ModelType.MODEL3;
     public basicLevel: BasicLevel = BasicLevel.LEVEL2;
-    public binary = new Uint8Array(0);
+    public binary: Uint8Array = new Uint8Array(0);
     public addedAt = new Date();
     public modifiedAt = new Date();
 

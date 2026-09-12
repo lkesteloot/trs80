@@ -389,7 +389,7 @@ export function readWavFile(arrayBuffer: ArrayBuffer | Uint8Array): AudioFile {
  *
  * http://soundfile.sapp.org/doc/WaveFormat/
  */
-export function writeWavFile(samples: Int16Array, sampleRate: number): Uint8Array {
+export function writeWavFile(samples: Int16Array, sampleRate: number): Uint8Array<ArrayBuffer> {
     const channelCount = 1;
     const bitDepth = 8;
 

@@ -385,7 +385,8 @@ export class RetroStoreTab extends PageTab {
         };
         const response = await fetch("https://retrostore.org/api/downloadState", {
             method: "POST",
-            body: RetroStoreProto.encodeDownloadSystemStateParams(params),
+            // fetch() needs an ArrayBuffer-backed array, so copy into a fresh one.
+            body: new Uint8Array(RetroStoreProto.encodeDownloadSystemStateParams(params)),
             mode: "cors",
             cache: "no-cache",
             redirect: "follow",
@@ -506,7 +507,8 @@ export class RetroStoreTab extends PageTab {
         console.log(params);
         const response = await fetch("https://retrostore.org/api/uploadState", {
             method: "POST",
-            body: RetroStoreProto.encodeUploadSystemStateParams(params),
+            // fetch() needs an ArrayBuffer-backed array, so copy into a fresh one.
+            body: new Uint8Array(RetroStoreProto.encodeUploadSystemStateParams(params)),
             mode: "cors",
             cache: "no-cache",
             redirect: "follow",
