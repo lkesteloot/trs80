@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2019",
+    // Type definitions for ES2022 built-ins like Array.prototype.at(), which Node 24
+    // and current browsers have. Code is still compiled for ES2019.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "esnext",
     "moduleResolution": "bundler",
     // Include all @types packages, as TypeScript did by default before 6.0.

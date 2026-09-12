@@ -18,7 +18,7 @@
     "z80"
   ],
   "devDependencies": {
-    "@types/node": "^22.13.0"
+    "@types/node": "^24.13.4"
   },
   "dependencies": {
     "z80-base": "^2.0.1"

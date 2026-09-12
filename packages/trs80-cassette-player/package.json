@@ -19,7 +19,7 @@
     "watch": "tsc -p tsconfig.json --watch"
   },
   "devDependencies": {
-    "@types/node": "^22.13.0"
+    "@types/node": "^24.13.4"
   },
   "dependencies": {
     "trs80-base": "^2.3.1",

@@ -19,8 +19,8 @@
   "repository": "https://github.com/lkesteloot/trs80.git",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^22.13.0",
-    "chai": "^5.1.2",
+    "@types/node": "^24.13.4",
+    "chai": "^6.2.2",
     "tsx": "^4.7.0"
   },
   "dependencies": {
