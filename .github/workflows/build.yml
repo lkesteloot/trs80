@@ -1,6 +1,15 @@
 name: Build and publish TRS-80 artifacts
 
-on: [push]
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch cancels the run for the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-all-packages:
@@ -12,6 +21,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
+          cache: npm
       - run: npm clean-install
       - run: npm run build --workspaces
       - run: npm run test
@@ -42,6 +52,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
+          cache: npm
       - run: npm clean-install
       - run: npm run build --workspaces
       - run: npm run buildBinaries -w packages/trs80-tool
