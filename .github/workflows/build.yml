@@ -39,19 +39,6 @@ jobs:
         with:
           name: trs80-ide
           path: packages/trs80-ide/dist/
-      - run: npm run buildBinaries -w packages/trs80-tool
-      - uses: actions/upload-artifact@v6
-        with:
-          name: trs80-tool-linux
-          path: packages/trs80-tool/binaries/trs80-tool/linux/trs80-tool
-      - uses: actions/upload-artifact@v6
-        with:
-          name: trs80-tool-macos
-          path: packages/trs80-tool/binaries/trs80-tool/macos/trs80-tool
-      - uses: actions/upload-artifact@v6
-        with:
-          name: trs80-tool-windows
-          path: packages/trs80-tool/binaries/trs80-tool/windows/trs80-tool.exe
       - uses: actions/upload-artifact@v6
         with:
           name: trs80-tool-site
@@ -73,3 +60,56 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  build-trs80-tool-binaries:
+    # macOS, because the macOS binaries must be signed with codesign. Builds all platforms.
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - run: npm clean-install
+      - run: npm run build --workspaces
+      - run: npm run buildBinaries -w packages/trs80-tool
+      - uses: actions/upload-artifact@v6
+        with:
+          name: trs80-tool-linux
+          path: packages/trs80-tool/binaries/trs80-tool/linux/trs80-tool
+      - uses: actions/upload-artifact@v6
+        with:
+          name: trs80-tool-macos
+          path: packages/trs80-tool/binaries/trs80-tool/macos/trs80-tool
+      - uses: actions/upload-artifact@v6
+        with:
+          name: trs80-tool-macos-arm64
+          path: packages/trs80-tool/binaries/trs80-tool/macos-arm64/trs80-tool
+      - uses: actions/upload-artifact@v6
+        with:
+          name: trs80-tool-windows
+          path: packages/trs80-tool/binaries/trs80-tool/windows/trs80-tool.exe
+
+  test-trs80-tool-binaries:
+    # Run the Linux and Windows binaries on their own platforms, which the build
+    # machine can't do. (The build script already runs the macOS arm64 one.)
+    needs: build-trs80-tool-binaries
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: trs80-tool-linux
+            binary: trs80-tool
+          - os: windows-latest
+            artifact: trs80-tool-windows
+            binary: trs80-tool.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ matrix.artifact }}
+      - shell: bash
+        run: |
+          chmod +x ${{ matrix.binary }}
+          ./${{ matrix.binary }} --version

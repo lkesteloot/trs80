@@ -12,7 +12,7 @@
         "clean": "rm -rf dist",
         "updateVersion": "python3 update_version.py > src/version.ts",
         "prepublishOnly": "npm run build",
-        "buildBinaries": "npm run build && webpack && pkg --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --out-path binaries binaries/main.js && make dist"
+        "buildBinaries": "npm run build && webpack && node build-binaries.mjs"
     },
     "bin": {
         "trs80-tool": "bin/trs80-tool.js"
@@ -36,7 +36,7 @@
         "z80-disasm": "^2.3.0"
     },
     "devDependencies": {
-        "pkg": "^5.1.0",
+        "postject": "^1.0.0-alpha.6",
         "webpack": "^5.37.0",
         "webpack-cli": "^6.0.1"
     }
