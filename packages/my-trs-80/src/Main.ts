@@ -17,9 +17,8 @@ import {
 } from "trs80-emulator-web";
 import {initializeApp} from "firebase/app";
 import {getAnalytics} from "firebase/analytics";
-import {getAuth, GoogleAuthProvider} from "firebase/auth";
-import * as firebaseui from "firebaseui";
-import {makeIcon, makeIconButton, makeTextButton} from "./Utils";
+import {getAuth, GoogleAuthProvider, signInWithPopup} from "firebase/auth";
+import {makeGoogleSignInButton, makeIcon, makeIconButton, makeTextButton} from "./Utils";
 import {PanelManager} from "./PanelManager";
 import {LibraryPanel} from "./LibraryPanel";
 import {Context} from "./Context";
@@ -104,42 +103,28 @@ export function main() {
     });
     const firebaseAnalytics = getAnalytics(firebaseApp);
 
-    // Configuration for Firebase sign-in screen.
-    const uiConfig = {
-        signInSuccessUrl: '/',
-        signInOptions: [
-            // Leave the lines as is for the providers you want to offer your users.
-            GoogleAuthProvider.PROVIDER_ID,
-            // FacebookAuthProvider.PROVIDER_ID,
-            // TwitterAuthProvider.PROVIDER_ID,
-            // GithubAuthProvider.PROVIDER_ID,
-            // EmailAuthProvider.PROVIDER_ID,
-            // PhoneAuthProvider.PROVIDER_ID,
-            // firebaseui.auth.AnonymousAuthProvider.PROVIDER_ID
-        ],
-        // Pop up a browser window for the actual sign-in page:
-        signInFlow: "popup",
-        callbacks: {
-            signInSuccessWithAuthResult: (authResult: any): boolean => {
-                // Don't use stuff here, the user will get passed to onAuthStateChanged().
-                // I don't see much else useful in authResult.
-                // console.log(authResult);
-
-                // Don't redirect, we've taken care of it.
-                return false;
-            },
-        },
-    };
-
     const firebaseAuth = getAuth();
-    const firebaseAuthUi = new firebaseui.auth.AuthUI(firebaseAuth);
 
     const signInDiv = document.createElement("div");
     const signInInstructions = document.createElement("div");
     signInInstructions.classList.add("sign-in-instructions");
     signInInstructions.innerText = "Sign in to My TRS-80 to have a persistent place to store your files.";
-    const signInFirebase = document.createElement("div");
-    signInDiv.append(signInInstructions, signInFirebase);
+    const signInError = document.createElement("div");
+    signInError.classList.add("sign-in-error");
+    const googleSignInButton = makeGoogleSignInButton(() => {
+        signInError.innerText = "";
+        // On success, the user gets passed to onAuthStateChanged() below.
+        signInWithPopup(firebaseAuth, new GoogleAuthProvider()).catch(error => {
+            // Closing the popup, or clicking again while it's open, isn't worth reporting.
+            if (error.code !== "auth/popup-closed-by-user" && error.code !== "auth/cancelled-popup-request") {
+                console.error(error);
+                signInError.innerText = error.code === "auth/popup-blocked"
+                    ? "Your browser blocked the sign-in window."
+                    : "Sign-in failed. Please try again.";
+            }
+        });
+    });
+    signInDiv.append(signInInstructions, googleSignInButton, signInError);
     let signInDialog: DialogBox | undefined = undefined;
 
     const db = new Database(getFirestore(firebaseApp));
@@ -162,9 +147,8 @@ export function main() {
                 signInDialog = undefined;
             }
         } else {
-            // No user signed in, render sign-in UI.
-            firebaseAuthUi.reset();
-            firebaseAuthUi.start(signInFirebase, uiConfig);
+            // No user signed in; clear any error from an earlier attempt.
+            signInError.innerText = "";
 
             context.user = undefined;
         }

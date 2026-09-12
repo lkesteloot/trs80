@@ -1389,3 +1389,44 @@ body.signed-out .trsdos .dir {
         }
     }
 }
+
+/* "Sign in with Google" button, following Google's branding guidelines. */
+.google-sign-in-button {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    width: 100%;
+    max-width: 220px;
+    min-height: 40px;
+    margin: 20px auto 0 auto;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 2px;
+    background-color: #fff;
+    color: #757575;
+    font-family: "Roboto", "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 3px 1px -2px rgba(0, 0, 0, 0.2), 0 1px 5px 0 rgba(0, 0, 0, 0.12);
+}
+
+/* Keep the branded colors, not the generic button hover colors. */
+.google-sign-in-button:hover:not(:disabled) {
+    background-color: #f5f5f5;
+    color: #757575;
+}
+
+.google-sign-in-button svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+.sign-in-error {
+    margin-top: 12px;
+    color: var(--red);
+    text-align: center;
+}
