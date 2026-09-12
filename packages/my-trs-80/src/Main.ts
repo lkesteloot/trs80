@@ -31,7 +31,7 @@ import {isRegisterSetField, toHexWord} from "z80-base";
 import {AudioFileCassettePlayer} from "trs80-cassette-player";
 import {BUILD_DATE, BUILD_GIT_HASH} from "./build.js";
 import {disasmForTrs80} from "trs80-base";
-import {getFirestore} from "firebase/firestore";
+import {getFirestore} from "firebase/firestore/lite";
 
 const LOCAL_STORAGE_CONFIG_KEY = "my-trs-80-config";
 

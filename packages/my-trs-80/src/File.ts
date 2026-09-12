@@ -3,7 +3,7 @@ import * as base64js from "base64-js";
 import {sha1} from "./Sha1";
 import {TagSet} from "./TagSet";
 import {decodeTrs80File, setBasicName} from "trs80-base";
-import {Bytes, DocumentData, DocumentSnapshot, Timestamp } from "firebase/firestore";
+import {Bytes, DocumentData, DocumentSnapshot, Timestamp } from "firebase/firestore/lite";
 import {Writable} from "ts-essentials";
 import {BasicLevel, ModelType } from "trs80-emulator";
 

@@ -1,4 +1,4 @@
-import { DocumentData } from "firebase/firestore";
+import { DocumentData } from "firebase/firestore/lite";
 import { User as FirebaseUser } from "firebase/auth";
 
 /**

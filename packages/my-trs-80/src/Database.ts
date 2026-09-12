@@ -17,7 +17,7 @@ import {
     setDoc,
     Timestamp,
     where
-} from "firebase/firestore";
+} from "firebase/firestore/lite";
 import {AuthUser, User} from "./User";
 
 /**
