@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "base64-js": "^1.5.1",
-    "firebase": "^10.14.1",
+    "firebase": "^12.19.0",
     "jszip": "^3.5.0",
     "lodash": "^4.17.20",
     "retrostore-api": "^1.0.0",
