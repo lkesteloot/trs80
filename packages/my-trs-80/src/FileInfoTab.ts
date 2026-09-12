@@ -1,14 +1,6 @@
 import {Trs80File} from "trs80-base";
 import {PageTab} from "./PageTab";
-import {
-    formatDate,
-    makeIcon,
-    makeIconButton,
-    makeTagCapsule,
-    makeTextButton,
-    TagCapsuleOptions,
-    TRASH_TAG
-} from "./Utils";
+import {formatDate, makeIcon, makeIconButton, makeTagCapsule, makeTextButton, reportError, TagCapsuleOptions, TRASH_TAG} from "./Utils";
 import {LibraryModifyEvent, LibraryRemoveEvent} from "./Library";
 import {clearElement, withCommas} from "teamten-ts-utils";
 import isEmpty from "lodash/isEmpty";
@@ -207,8 +199,7 @@ export class FileInfoTab extends PageTab {
                     this.filePanel.context.panelManager.popPanel();
                 })
                 .catch(error => {
-                    // TODO.
-                    console.error(error);
+                    reportError("Couldn't delete the file.", error);
                 });
         });
         this.undeleteButton = makeTextButton("Undelete File", "restore_from_trash", "delete-button", () => {
@@ -225,8 +216,7 @@ export class FileInfoTab extends PageTab {
                     this.filePanel.context.library.modifyFile(newFile);
                 })
                 .catch(error => {
-                    // TODO.
-                    console.error(error);
+                    reportError("Couldn't restore the file.", error);
                 });
         });
         this.revertButton = makeTextButton("Revert", "undo", "revert-button", undefined);
@@ -320,10 +310,9 @@ export class FileInfoTab extends PageTab {
             })
             .catch(error => {
                 this.saveButton.classList.remove("saving");
-                // TODO show error.
-                // The document probably doesn't exist.
-                console.error("Error updating document: ", error);
-                this.updateUi();
+                // Keep the user's edits so they can try again; just re-enable the buttons.
+                this.updateButtonStatus();
+                reportError("Couldn't save your changes.", error);
             });
     }
 

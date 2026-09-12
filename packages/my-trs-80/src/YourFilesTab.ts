@@ -1,7 +1,7 @@
 import {LibraryAddEvent, LibraryEvent, LibraryModifyEvent, LibraryRemoveEvent} from "./Library.js";
 import {File, FileBuilder} from "./File.js";
 import {logEvent} from "firebase/analytics";
-import {getLabelNodeForTextButton, makeIcon, makeIconButton, makeTagCapsule, makeTextButton, TRASH_TAG} from "./Utils";
+import {getLabelNodeForTextButton, makeIcon, makeIconButton, makeTagCapsule, makeTextButton, reportError, TRASH_TAG} from "./Utils";
 import {clearElement} from "teamten-ts-utils";
 import {Context} from "./Context.js";
 import {PageTab} from "./PageTab.js";
@@ -304,8 +304,7 @@ export class YourFilesTab extends PageTab {
                 }
             })
             .catch(error => {
-                // TODO
-                console.error("Error adding document: ", error);
+                reportError("Couldn't add the file to your library.", error);
             });
     }
 

@@ -18,7 +18,7 @@ import {
 import {initializeApp} from "firebase/app";
 import {getAnalytics} from "firebase/analytics";
 import {getAuth, GoogleAuthProvider, signInWithPopup} from "firebase/auth";
-import {makeGoogleSignInButton, makeIcon, makeIconButton, makeTextButton} from "./Utils";
+import {makeGoogleSignInButton, makeIcon, makeIconButton, makeTextButton, reportError} from "./Utils";
 import {PanelManager} from "./PanelManager";
 import {LibraryPanel} from "./LibraryPanel";
 import {Context} from "./Context";
@@ -138,8 +138,7 @@ export function main() {
             db.userFromAuthUser(authUser)
                 .then(user => context.user = user)
                 .catch(error => {
-                    // TODO.
-                    console.error(error);
+                    reportError("Couldn't load your account. Try signing in again.", error);
                 });
 
             if (signInDialog !== undefined) {
@@ -251,8 +250,7 @@ export function main() {
             context.db.updateFile(context.runningFile, file)
                 .then(() => context.library.modifyFile(file))
                 .catch(error => {
-                    // TODO.
-                    console.error(error);
+                    reportError("Couldn't save the screenshot.", error);
                 });
         }
     });
@@ -364,6 +362,10 @@ export function main() {
                             context.db.updateFile(file, newFile)
                                 .then(() => {
                                     library.modifyFile(newFile);
+                                })
+                                .catch(error => {
+                                    // Not worth bothering the user; it'll be tried again next time.
+                                    console.error("Couldn't update the hash for " + file.name, error);
                                 });
                         }
                     }
@@ -371,12 +373,7 @@ export function main() {
                     library.setInSync(true);
                 })
                 .catch(error => {
-                    // TODO
-                    console.error(error);
-                    if (error.name === "FirebaseError") {
-                        // code can be "permission-denied".
-                        console.error(error.code, error.message);
-                    }
+                    reportError("Couldn't load your files.", error);
                 });
         }
     });
@@ -387,8 +384,8 @@ export function main() {
         if (runFileId !== undefined) {
             try {
                 context.runProgram(await db.getFile(runFileId));
-            } catch (e: any) {
-                // TODO Should probably display error message.
+            } catch (error) {
+                reportError("Couldn't load the program to run.", error);
             }
         }
     });

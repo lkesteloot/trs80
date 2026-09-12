@@ -2,7 +2,7 @@
 import {decodeTrs80File, Trs80File, Trsdos, trsdosProtectionLevelToString} from "trs80-base";
 import {PageTab} from "./PageTab";
 import {withCommas} from "teamten-ts-utils";
-import {makeIcon, makeTextButton} from "./Utils";
+import {makeIcon, makeTextButton, reportError} from "./Utils";
 import {IFilePanel} from "./IFilePanel";
 import {FileBuilder} from "./File";
 import JSZip from "jszip";
@@ -126,8 +126,7 @@ export class TrsdosTab extends PageTab {
                             filePanel.context.openFilePanel(file);
                         })
                         .catch(error => {
-                            // TODO
-                            console.error("Error adding document: ", error);
+                            reportError("Couldn't add the file to your library.", error);
                         });
                 });
                 dirDiv.append(importButton);

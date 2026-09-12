@@ -257,3 +257,11 @@ export function makeGoogleSignInButton(clickCallback: () => void): HTMLButtonEle
 
     return button;
 }
+
+/**
+ * Tell the user that something failed. The details go to the console for debugging.
+ */
+export function reportError(message: string, error: unknown): void {
+    console.error(message, error);
+    alert(message);
+}

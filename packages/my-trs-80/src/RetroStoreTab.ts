@@ -1,6 +1,6 @@
 import * as RetroStoreProto from "retrostore-api";
 import {clearElement} from "teamten-ts-utils";
-import {makeIcon, makeIconButton} from "./Utils";
+import {makeIcon, makeIconButton, reportError} from "./Utils";
 import {Context} from "./Context";
 import {decodeTrs80File, DecodeTrs80FileOptions} from "trs80-base";
 import {FileBuilder} from "./File";
@@ -331,8 +331,7 @@ export class RetroStoreTab extends PageTab {
                         this.context.openFilePanel(file);
                     })
                     .catch(error => {
-                        // TODO
-                        console.error("Error adding document: ", error);
+                        reportError("Couldn't add the file to your library.", error);
                     });
             }
         });
