@@ -16,16 +16,14 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "watch": "tsc -p tsconfig.json --watch",
-    "prepublishOnly": "npm run build"
+    "watch": "tsc -p tsconfig.json --watch"
   },
   "devDependencies": {
     "@types/node": "^22.13.0"
   },
   "dependencies": {
-    "teamten-ts-utils": "^1.0.3",
+    "trs80-base": "^2.3.1",
     "trs80-cassette": "^2.3.1",
-    "trs80-emulator": "^2.3.1",
-    "z80-base": "^2.0.1"
+    "trs80-emulator": "^2.3.1"
   }
 }

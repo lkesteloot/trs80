@@ -8,10 +8,8 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateJson.js",
     "test": "tsx src/Asm.spec.ts",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "z80",

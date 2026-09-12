@@ -8,8 +8,7 @@
     "test": "npm run test -w packages/z80-asm -w packages/z80-disasm -w packages/z80-emulator"
   },
   "devDependencies": {
-    "ts-essentials": "^10.0.4",
-    "vite": "^6.0.11"
+    "typescript": "^7.0.2"
   },
   "workspaces": [
     "packages/fp-215",
@@ -31,8 +30,5 @@
     "packages/trs80-ide",
     "packages/trs80-tool",
     "packages/my-trs-80"
-  ],
-  "dependencies": {
-    "typescript": "^7.0.2"
-  }
+  ]
 }

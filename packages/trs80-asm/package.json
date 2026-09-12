@@ -10,8 +10,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "watch": "tsc -p tsconfig.json --watch",
-    "prepublishOnly": "npm run build"
+    "watch": "tsc -p tsconfig.json --watch"
   },
   "keywords": [
     "trs-80"

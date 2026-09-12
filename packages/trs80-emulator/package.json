@@ -8,8 +8,7 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "trs-80",
@@ -21,12 +20,9 @@
   "license": "MIT",
   "dependencies": {
     "strongly-typed-events": "^3.0.0",
-    "teamten-ts-utils": "^1.0.3",
     "trs80-base": "^2.3.1",
+    "trs80-logger": "^1.0.0",
     "z80-base": "^2.0.1",
     "z80-emulator": "^2.3.0"
-  },
-  "devDependencies": {
-    "tslib": "^2.8.1"
   }
 }

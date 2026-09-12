@@ -14,21 +14,18 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.18.4",
+    "@codemirror/commands": "^6.8.0",
+    "@codemirror/language": "^6.10.8",
+    "@codemirror/lint": "^6.8.4",
+    "@codemirror/search": "^6.5.8",
+    "@codemirror/state": "^6.5.1",
+    "@codemirror/view": "^6.36.2",
     "@lezer/highlight": "^1.1.1",
-    "@types/gtag.js": "^0.0.20",
     "browser-fs-access": "^0.35.0",
-    "cm6-theme-basic-dark": "^0.2.0",
-    "cm6-theme-basic-light": "^0.2.0",
-    "cm6-theme-gruvbox-dark": "^0.2.0",
-    "cm6-theme-gruvbox-light": "^0.2.0",
-    "cm6-theme-material-dark": "^0.2.0",
-    "cm6-theme-nord": "^0.2.0",
     "cm6-theme-solarized-dark": "^0.2.0",
-    "cm6-theme-solarized-light": "^0.2.0",
-    "codemirror": "^6.0.0",
     "retrostore-api": "^1.0.0",
     "strongly-typed-events": "^3.0.0",
-    "teamten-ts-utils": "^1.0.3",
     "trs80-asm": "^2.3.1",
     "trs80-base": "^2.3.1",
     "trs80-cassette": "^2.3.1",
@@ -37,10 +34,10 @@
     "z80-asm": "^2.3.0",
     "z80-base": "^2.0.1",
     "z80-disasm": "^2.3.0",
-    "z80-emulator": "^2.3.0",
     "z80-inst": "^2.0.1"
   },
   "devDependencies": {
-    "prettier": "^3.4.2"
+    "@types/gtag.js": "^0.0.20",
+    "vite": "^6.0.11"
   }
 }

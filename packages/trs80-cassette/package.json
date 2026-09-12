@@ -8,8 +8,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist"
   },
   "repository": "https://github.com/lkesteloot/trs80.git",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
@@ -21,8 +20,6 @@
   "dependencies": {
     "strongly-typed-events": "^3.0.0",
     "teamten-ts-utils": "^1.0.3",
-    "trs80-base": "^2.3.1",
-    "z80-base": "^2.0.1",
-    "z80-disasm": "^2.3.0"
+    "trs80-base": "^2.3.1"
   }
 }

@@ -12,8 +12,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateCode.js",
-    "prepublishOnly": "npm run build"
+    "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateCode.js"
   },
   "keywords": [
     "z80"

@@ -11,8 +11,7 @@
     "build:test": "tsc -p tsconfig.test.json",
     "generate": "tsc --project opcodes && node opcodes/dist/GenerateOpcodes.js",
     "test": "npm run build:test && node dist-tests/tests/Test.js",
-    "clean": "rm -rf dist dist-tests",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist dist-tests"
   },
   "directories": {
     "test": "tests"

@@ -11,9 +11,12 @@
     "build": "tsc",
     "clean": "rm -rf dist",
     "copy-proto": "cp ~/others/retrostore-jvm-sdk/src/main/proto/org/retrostore/client/common/proto/ApiProtos.proto src",
-    "proto": "npx pbjs src/ApiProtos.proto --ts src/RetroStoreProto.ts"
+    "proto": "pbjs src/ApiProtos.proto --ts src/RetroStoreProto.ts"
   },
   "keywords": [],
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "pbjs": "^0.0.14"
+  }
 }

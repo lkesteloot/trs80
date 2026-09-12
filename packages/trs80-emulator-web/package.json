@@ -17,10 +17,11 @@
   "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist"
   },
   "dependencies": {
+    "fp-215": "^1.0.0",
+    "strongly-typed-events": "^3.0.11",
     "trs80-base": "^2.3.1",
     "trs80-cassette-player": "^2.4.1",
     "trs80-emulator": "^2.3.1",

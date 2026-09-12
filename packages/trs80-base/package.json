@@ -10,8 +10,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "watch": "tsc -p tsconfig.json --watch",
-    "prepublishOnly": "npm run build"
+    "watch": "tsc -p tsconfig.json --watch"
   },
   "keywords": [
     "trs-80"
@@ -24,6 +23,7 @@
   "dependencies": {
     "strongly-typed-events": "^3.0.11",
     "teamten-ts-utils": "^1.0.3",
+    "trs80-logger": "^1.0.0",
     "z80-base": "^2.0.1",
     "z80-disasm": "^2.0.1"
   }

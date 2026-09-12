@@ -8,10 +8,8 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateJson.js",
     "test": "tsx src/Disasm.spec.ts",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "z80",
@@ -22,10 +20,10 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.13.0",
+    "chai": "^5.1.2",
     "tsx": "^4.7.0"
   },
   "dependencies": {
-    "chai": "^5.1.2",
     "z80-base": "^2.0.1",
     "z80-inst": "^2.0.1"
   }

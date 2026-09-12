@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/lkesteloot/trs80/issues"
   },
-  "homepage": "https://github.com/lkesteloot/trs80#readme"
+  "homepage": "https://github.com/lkesteloot/trs80#readme",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
 }

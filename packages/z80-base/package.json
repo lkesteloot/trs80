@@ -11,8 +11,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "z80"

@@ -16,9 +16,8 @@
   "license": "MIT",
   "devDependencies": {
     "@types/gtag.js": "^0.0.20",
-    "@types/progress": "^2.0.3",
     "@types/split.js": "^1.4.0",
-    "http-server": "^14.1.1"
+    "vite": "^6.0.11"
   },
   "dependencies": {
     "jss": "^10.0.3",
@@ -28,10 +27,9 @@
     "teamten-ts-utils": "^1.0.3",
     "trs80-base": "^2.3.1",
     "trs80-cassette": "^2.3.1",
+    "trs80-cassette-player": "^2.4.1",
     "trs80-emulator": "^2.3.1",
     "trs80-emulator-web": "^2.3.1",
-    "z80-base": "^2.0.1",
-    "z80-disasm": "^2.3.0",
-    "z80-emulator": "^2.3.0"
+    "z80-base": "^2.0.1"
   }
 }

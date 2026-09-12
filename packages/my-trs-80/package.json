@@ -16,7 +16,8 @@
   "license": "MIT",
   "devDependencies": {
     "@types/lodash": "^4.14.165",
-    "pbjs": "^0.0.14"
+    "ts-essentials": "^10.0.4",
+    "vite": "^6.0.11"
   },
   "dependencies": {
     "base64-js": "^1.5.1",
@@ -28,11 +29,9 @@
     "strongly-typed-events": "^3.0.0",
     "teamten-ts-utils": "^1.0.3",
     "trs80-base": "^2.3.1",
-    "trs80-cassette": "^2.3.1",
+    "trs80-cassette-player": "^2.4.1",
     "trs80-emulator": "^2.3.1",
     "trs80-emulator-web": "^2.3.1",
-    "z80-base": "^2.0.1",
-    "z80-disasm": "^2.3.0",
-    "z80-emulator": "^2.3.0"
+    "z80-base": "^2.0.1"
   }
 }
