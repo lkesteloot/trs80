@@ -9,7 +9,7 @@
     "start": "vite",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
     "build": "npm run updateBuildInfo && tsc --noEmit && vite build",
-    "clean": "rm -rf build"
+    "clean": "rm -rf dist"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": "https://github.com/lkesteloot/trs80.git",
