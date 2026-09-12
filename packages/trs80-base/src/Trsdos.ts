@@ -73,7 +73,7 @@ function hashForFilename(filename: string): number {
 }
 
 // Various TRSDOS versions, labeled after the model they were made for.
-enum TrsdosVersion {
+export enum TrsdosVersion {
     MODEL_1,  // TRSDOS 2.3
     MODEL_3,  // TRSDOS 1.3
     MODEL_4,  // TRSDOS 6 or LDOS
@@ -82,7 +82,7 @@ enum TrsdosVersion {
 /**
  * Convert the enum to a string.
  */
-function trsdosVersionToString(trsdosVersion: TrsdosVersion): string {
+export function trsdosVersionToString(trsdosVersion: TrsdosVersion): string {
     switch (trsdosVersion) {
         case TrsdosVersion.MODEL_1:
             return "Model I";
@@ -1142,19 +1142,41 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
 }
 
 /**
- * Decode a TRSDOS diskette, or return undefined if this does not look like such a diskette.
+ * Why a particular TRSDOS version was rejected when decoding a diskette.
  */
-export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
+export interface TrsdosRejection {
+    version: TrsdosVersion;
+    reason: string;
+}
+
+/**
+ * Decode a TRSDOS diskette, also returning why each version tried before the successful
+ * one (or all versions, if none succeeded) was rejected.
+ */
+export function decodeTrsdosWithRejections(disk: FloppyDisk): {
+    trsdos: Trsdos | undefined,
+    rejections: TrsdosRejection[],
+} {
+    const rejections: TrsdosRejection[] = [];
+
     // Try each one in turn.
     const trsdosVersions = [TrsdosVersion.MODEL_4, TrsdosVersion.MODEL_3, TrsdosVersion.MODEL_1];
     for (const trsdosVersion of trsdosVersions) {
         let trsdos = decodeTrsdosVersion(disk, trsdosVersion);
         if (typeof trsdos !== "string") {
             TRS80_BASE_LOGGER.trace(`Successfully decoded as ${trsdosVersionToString(trsdosVersion)} operating system`);
-            return trsdos;
+            return { trsdos, rejections };
         }
         TRS80_BASE_LOGGER.trace(`Can't decode as ${trsdosVersionToString(trsdosVersion)} operating system: ${trsdos}`);
+        rejections.push({ version: trsdosVersion, reason: trsdos });
     }
 
-    return undefined;
+    return { trsdos: undefined, rejections };
+}
+
+/**
+ * Decode a TRSDOS diskette, or return undefined if this does not look like such a diskette.
+ */
+export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
+    return decodeTrsdosWithRejections(disk).trsdos;
 }

@@ -168,8 +168,9 @@ function main() {
             infiles: "any TRS-80 files",
         })
         .option("--verbose", "output more information about each file")
+        .option("--json", "output a detailed JSON report, for regression testing")
         .action((infiles, options) => {
-            info(infiles, options.verbose);
+            info(infiles, options.verbose, options.json);
         });
     program
         .command("convert <files...>")

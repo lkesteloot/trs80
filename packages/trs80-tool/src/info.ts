@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import {pluralizeWithCount} from "./utils.js";
+import {infoJson} from "./report.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
 import {decodeTrs80File, decodeTrsdos, Density, isFloppy, TrackGeometry} from "trs80-base";
 
@@ -129,7 +130,12 @@ function printInfoForFile(filename: string, verbose: boolean): void {
 /**
  * Handle the "info" command.
  */
-export function info(infiles: string[], verbose: boolean): void {
+export function info(infiles: string[], verbose: boolean, json: boolean): void {
+    if (json) {
+        infoJson(infiles);
+        return;
+    }
+
     for (const infile of infiles) {
         printInfoForFile(infile, verbose);
     }
