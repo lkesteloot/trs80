@@ -8,9 +8,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "start": "webpack serve --open",
+    "start": "vite --open",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && tsc --noEmit && webpack",
+    "build": "npm run updateBuildInfo && tsc --noEmit && vite build --base=./",
     "clean": "rm -rf dist"
   },
   "dependencies": {
