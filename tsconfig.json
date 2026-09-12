@@ -15,6 +15,8 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "exactOptionalPropertyTypes": true,
-    "incremental": true
+    "incremental": true,
+    // Keep incremental state with the output, so "clean" (rm -rf dist) forces a full rebuild.
+    "tsBuildInfoFile": "${configDir}/dist/tsconfig.tsbuildinfo"
   }
 }

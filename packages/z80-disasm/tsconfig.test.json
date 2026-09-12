@@ -4,7 +4,8 @@
     "target": "es6",
     "module": "commonjs",
     "rootDir": ".",
-    "outDir": "dist-tests"
+    "outDir": "dist-tests",
+    "tsBuildInfoFile": "${configDir}/dist-tests/tsconfig.test.tsbuildinfo"
   },
   "include": [
     "src/**/*.ts",

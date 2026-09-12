@@ -4,7 +4,8 @@
     "target": "ES2015",
     "declaration": false,
     "declarationMap": false,
-    "sourceMap": false
+    "sourceMap": false,
+    "tsBuildInfoFile": "${configDir}/tsconfig.tsbuildinfo"
   }
 }
 
