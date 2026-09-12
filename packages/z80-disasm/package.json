@@ -9,7 +9,6 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateJson.js",
-    "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
     "test": "tsx src/Disasm.spec.ts",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
@@ -23,8 +22,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.13.0",
-    "tsx": "^4.7.0",
-    "typedoc": "^0.27.6"
+    "tsx": "^4.7.0"
   },
   "dependencies": {
     "chai": "^5.1.2",

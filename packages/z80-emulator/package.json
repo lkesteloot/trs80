@@ -10,7 +10,6 @@
     "build": "tsc -p tsconfig.json",
     "build:test": "tsc -p tsconfig.test.json",
     "generate": "tsc --project opcodes && node opcodes/dist/GenerateOpcodes.js",
-    "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
     "test": "npm run build:test && node dist-tests/tests/Test.js",
     "clean": "rm -rf dist dist-tests",
     "prepublishOnly": "npm run build"
@@ -28,7 +27,6 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.13.0",
-    "typedoc": "^0.27.6",
     "z80-test": "^2.0.1"
   },
   "dependencies": {

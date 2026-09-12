@@ -9,7 +9,6 @@
   "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
     "clean": "rm -rf dist",
     "watch": "tsc -p tsconfig.json --watch",
     "prepublishOnly": "npm run build"
@@ -20,8 +19,7 @@
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^22.13.0",
-    "typedoc": "^0.27.6"
+    "@types/node": "^22.13.0"
   },
   "dependencies": {
     "strongly-typed-events": "^3.0.11",

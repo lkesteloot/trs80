@@ -11,8 +11,7 @@
     "start": "webpack serve --open",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
     "build": "npm run updateBuildInfo && tsc --noEmit && webpack",
-    "clean": "rm -rf dist",
-    "publish": "npm run build && rsync -a dist/ lk@hitch.headcode.com:my-trs-80-website/ide/"
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@lezer/highlight": "^1.1.1",

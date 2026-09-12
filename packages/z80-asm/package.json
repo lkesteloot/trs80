@@ -9,7 +9,6 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "generate": "tsc --project opcodes && node opcodes/dist/opcodes/GenerateJson.js",
-    "docs": "typedoc -p . --target es6 --excludeNotExported --excludePrivate --out docs src && touch docs/.nojekyll",
     "test": "tsx src/Asm.spec.ts",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
@@ -25,8 +24,7 @@
     "@types/chai": "^5.0.1",
     "@types/node": "^22.13.0",
     "chai": "^5.1.2",
-    "tsx": "^4.7.0",
-    "typedoc": "^0.27.6"
+    "tsx": "^4.7.0"
   },
   "dependencies": {
     "z80-base": "^2.0.1",
