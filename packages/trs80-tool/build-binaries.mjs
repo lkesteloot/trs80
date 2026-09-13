@@ -103,6 +103,7 @@ const hostPlatform = `${process.platform}-${process.arch}`;
 // Generate the blob with the same Node version that we embed. Code cache and
 // snapshots are platform-specific, so they must be off for one blob to work
 // on every platform.
+fs.mkdirSync(BINARIES_DIR, {recursive: true});
 const configPath = path.join(BINARIES_DIR, "sea-config.json");
 const blobPath = path.join(BINARIES_DIR, "sea-prep.blob");
 fs.writeFileSync(configPath, JSON.stringify({
