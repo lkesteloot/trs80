@@ -4,7 +4,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>TRS-80 Tool</title>
         <link href="https://fonts.googleapis.com/css?family=Roboto+Mono|Roboto:100,400,700&display=block" rel="stylesheet">
-        <link href="style.css?v=2" rel="stylesheet">
+        <link href="style.css?v=3" rel="stylesheet">
     </head>
     <body class="light-mode">
         <section>
@@ -456,18 +456,25 @@ C CRC error (ID or data).
             <p>This change log covers the tool and the related web apps
             (<a href="https://www.my-trs-80.com/">My TRS-80</a>,
             the <a href="https://www.my-trs-80.com/ide/">IDE</a>,
-            and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).</p>
+            and the <a href="https://www.my-trs-80.com/cassette/">cassette reader</a>).
+            Changes to <code>trs80-tool</code> list the version they first appeared in;
+            run <code>trs80-tool --version</code> to see which version you have.</p>
 
-            <h3 id="v2.9.0">2.9.0 <span class="release-date">September 9, 2026</span></h3>
+            <!-- New entries go at the top. Each entry's id is its date (YYYY-MM-DD), and the
+                 script at the bottom of the page adds a link icon to it. Start trs80-tool
+                 changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
+                 the app's name ("IDE: ..."), and describe changes to shared parts, like the
+                 assembler, in a plain sentence. -->
+
+            <h3 id="2026-09-09">September 9, 2026</h3>
             <ul>
-                <li>Added the <a href="#mcp"><code>mcp</code></a> command, which runs an MCP server
-                    so that an AI assistant can drive the emulator.</li>
+                <li><code>trs80-tool</code> v2.9.0: Added the <a href="#mcp"><code>mcp</code></a>
+                    command, which runs an MCP server so that an AI assistant can drive the emulator.</li>
             </ul>
 
-            <h3 id="v2.8.12">2.8.12 <span class="release-date">July 29, 2026</span></h3>
-
+            <h3 id="2026-07-29">July 29, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code> improvements to the <code>disasm</code> command:
+                <li><code>trs80-tool</code> v2.8.12: Improvements to the <code>disasm</code> command:
                     <ul>
                         <li>The input file is detected by its contents, not the
                             filename extension, so that <code>FLT</code>,
@@ -480,41 +487,27 @@ C CRC error (ID or data).
                 </li>
             </ul>
 
-            <h3 id="v2.8.11">2.8.11 <span class="release-date">June 9, 2026</span></h3>
-
+            <h3 id="2026-06-09">June 9, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code> improvements to the <code>disasm</code> command:
-                    <ul>
-                        <li>The <code>--full</code> flag now no longer causes jump targets to
-                            be disassembled. The assumption is that all code is sequential.</li>
-                    </ul>
-                </li>
+                <li><code>trs80-tool</code> v2.8.11: The <code>--full</code> flag of the
+                    <code>disasm</code> command no longer causes jump targets to be
+                    disassembled. The assumption is that all code is sequential.</li>
             </ul>
 
-            <h3 id="v2.8.10">2.8.10 <span class="release-date">June 7, 2026</span></h3>
-
+            <h3 id="2026-06-07">June 7, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code> improvements to the <code>disasm</code> command:
-                    <ul>
-                        <li>Disassembled instructions are now canonical when there are variants.
-                            For example, it will generate <code>or b</code> where it used to
-                            generate <code>or a,b</code>.</li>
-                    </ul>
-                </li>
-                <li><code>trs80-tool</code> improvements to the <code>asm</code> command (and the IDE):
-                    <ul>
-                        <li>The assembler now supports the alternate forms <a
-                                href="https://48k.ca/zmac.html#zsyn">described
-                                in the zmac manual</a>, except for the
-                            <code>rst</code> ones.</li>
-                    </ul>
-                </li>
+                <li><code>trs80-tool</code> v2.8.10: Instructions from the <code>disasm</code>
+                    command are now canonical when there are variants. For example, it will
+                    generate <code>or b</code> where it used to generate <code>or a,b</code>.</li>
+                <li>The assembler now supports the alternate forms <a
+                        href="https://48k.ca/zmac.html#zsyn">described
+                        in the zmac manual</a>, except for the
+                    <code>rst</code> ones.</li>
             </ul>
 
-            <h3 id="v2.8.9">2.8.9 <span class="release-date">May 12, 2026</span></h3>
-
+            <h3 id="2026-05-12">May 12, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code> improvements to the <code>disasm</code> command:
+                <li><code>trs80-tool</code> v2.8.9: Improvements to the <code>disasm</code> command:
                     <ul>
                         <li>No longer automatically specifies Model III ROM entry points when disassembling
                             a ROM since the ROM might not be for a Model III.</li>
@@ -526,10 +519,9 @@ C CRC error (ID or data).
                 </li>
             </ul>
 
-            <h3 id="v2.8.8">2.8.8 <span class="release-date">Apr 5, 2026</span></h3>
-
+            <h3 id="2026-04-05">April 5, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code>:
+                <li><code>trs80-tool</code> v2.8.8:
                     <ul>
                         <li>Added <code>--system</code> flag to the <code>convert</code> command
                             to extract system files from floppies.</li>
@@ -540,51 +532,29 @@ C CRC error (ID or data).
                 </li>
             </ul>
 
-            <h3 id="v2.8.7">2.8.7 <span class="release-date">Mar 28, 2026</span></h3>
-
+            <h3 id="2026-03-28">March 28, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code>:
-                    <ul>
-                        <li>Disassemble VTOS <code>.SYS</code> files better by handling the
-                            CMD block type 0x10 (yanked load block) like 0x01 (data).</li>
-                    </ul>
-                </li>
+                <li><code>trs80-tool</code> v2.8.7: Disassemble VTOS <code>.SYS</code> files better
+                    by handling the CMD block type 0x10 (yanked load block) like 0x01 (data).</li>
             </ul>
 
-            <h3 id="v2.8.6">2.8.6 <span class="release-date">Mar 10, 2026</span></h3>
-
+            <h3 id="2026-03-10">March 10, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code>:
-                    <ul>
-                        <li>Handle <code>.SYS</code> files that are raw dumps
-                            of floppy boot sectors. These work with the
-                            <code>info</code>, <code>hexdump</code>, and
-                            <code>disasm</code> commands.</li>
-                    </ul>
-                </li>
+                <li><code>trs80-tool</code> v2.8.6: Handle <code>.SYS</code> files that are raw dumps
+                    of floppy boot sectors. These work with the <code>info</code>,
+                    <code>hexdump</code>, and <code>disasm</code> commands.</li>
             </ul>
 
-            <h3 id="v2.8.2">2.8.3 <span class="release-date">Mar 6, 2026</span></h3>
-
+            <h3 id="2026-03-06">March 6, 2026</h3>
             <ul>
-                <li><code>trs80-tool</code>:
-                    <ul>
-                        <li>Add <code>--full</code> and
-                            <code>--data-comment</code> flags to the
-                            <code>disasm</code> command.</li>
-                    </ul>
-                </li>
+                <li><code>trs80-tool</code> v2.8.3: Add <code>--full</code> and
+                    <code>--data-comment</code> flags to the <code>disasm</code> command.</li>
             </ul>
 
-            <h3 id="v2.8.2">2.8.2 <span class="release-date">Dec 9, 2025</span></h3>
-
+            <h3 id="2025-12-09">December 9, 2025</h3>
             <ul>
-                <li><code>trs80-tool</code>:
-                    <ul>
-                        <li>Fix a bug in the display of file sizes in the
-                            <code>dir</code> command.</li>
-                    </ul>
-                </li>
+                <li><code>trs80-tool</code> v2.8.2: Fix a bug in the display of file sizes in the
+                    <code>dir</code> command.</li>
                 <li>IDE:
                     <ul>
                         <li>The “File” menu has a new “Play Cassette Audio” command
@@ -608,39 +578,30 @@ C CRC error (ID or data).
                 </li>
             </ul>
 
-            <h3 id="v2.8.1">2.8.1 <span class="release-date">Dec 16, 2024</span></h3>
-
+            <h3 id="2024-12-16">December 16, 2024</h3>
             <ul>
-                <li><code>trs80-tool</code>:
-                    <ul>
-                        <li>Suppress some confusing warnings regarding copy-protected
-                            or damaged DMK files.</li>
-                    </ul>
-                </li>
+                <li><code>trs80-tool</code> v2.8.1: Suppress some confusing warnings regarding
+                    copy-protected or damaged DMK files.</li>
             </ul>
 
-            <h3 id="v2.8.0">2.8.0 <span class="release-date">Dec 13, 2024</span></h3>
-
+            <h3 id="2024-12-13">December 13, 2024</h3>
             <ul>
-                <li><code>trs80-tool</code>:
-                    <ul>
-                        <li>The <code>sectors</code> command has a new <code>--bad</code> option
-                            to show only missing or corrupted sectors, as well as which
-                            file (if any) is on each bad sector. Can be combined with
-                            <code>--contents</code> to also show the contents of the
-                            bad sectors.</li>
-                    </ul>
-                </li>
+                <li><code>trs80-tool</code> v2.8.0: The <code>sectors</code> command has a new
+                    <code>--bad</code> option to show only missing or corrupted sectors, as well
+                    as which file (if any) is on each bad sector. Can be combined with
+                    <code>--contents</code> to also show the contents of the bad sectors.</li>
             </ul>
 
-            <h3 id="v2.7.0">2.7.0 <span class="release-date">Apr 12, 2024</span></h3>
-
+            <h3 id="2024-04-12">April 12, 2024</h3>
             <ul>
-                <li>Assembler:
+                <li><code>trs80-tool</code> v2.7.0:
                     <ul>
-                        <li>Always assemble to the documented instruction. (The assembler
-                        used to sometimes assemble to valid but undocumented variants.)</li>
-                        <li>Can generate BIN and Intel HEX files (useful for burning ROMs).</li>
+                        <li>In the <code>run</code> command, if the mounted floppy is modified,
+                            the changes will be written to the underlying virtual floppy file.
+                            Specify the <code>--write-protected</code> option to mount the floppy
+                            write-protected.</li>
+                        <li>The <code>dir</code> command has a new <code>--system</code> option
+                            to show system files.</li>
                     </ul>
                 </li>
                 <li>IDE:
@@ -651,7 +612,14 @@ C CRC error (ID or data).
                             your code will be loaded instead of the system ROM.</li>
                     </ul>
                 </li>
-                <li>Emulator:
+                <li>Assembler improvements:
+                    <ul>
+                        <li>Always assemble to the documented instruction. (The assembler
+                            used to sometimes assemble to valid but undocumented variants.)</li>
+                        <li>Can generate BIN and Intel HEX files (useful for burning ROMs).</li>
+                    </ul>
+                </li>
+                <li>Emulator improvements:
                     <ul>
                         <li>Can show printer output (Epson MX-80).</li>
                         <li>Can show plotter output (FP-215).</li>
@@ -659,23 +627,14 @@ C CRC error (ID or data).
                         <li>Write support for floppies.</li>
                     </ul>
                 </li>
-                <li><code>trs80-tool</code>:
-                    <ul>
-                        <li>In the <code>run</code> command, if the mounted floppy is modified,
-                            the changes will be written to the underlying virtual floppy file.
-                            Specify the <code>--write-protected</code> option to mount the floppy
-                            write-protected.</li>
-                        <li>The <code>dir</code> command has a new <code>--system</code> option
-                            to show system files.</li>
-                    </ul>
-                </li>
             </ul>
 
-            <h3>2.6.0 <span class="release-date">Dec 31, 2023</span></h3>
-
+            <h3 id="2023-12-31">December 31, 2023</h3>
             <ul>
+                <li><code>trs80-tool</code> v2.6.0: Add <code>--upper</code> flag to the
+                    <code>disasm</code> command.</li>
                 <li>Better handling of double-sided disks.</li>
-                <li>Assembler:
+                <li>Assembler improvements:
                     <ul>
                         <li>Full expression support: All the operators in C,
                             with their same precedence.</li>
@@ -688,100 +647,142 @@ C CRC error (ID or data).
                             use <code>1010b</code> or <code>0b1010</code>.</li>
                     </ul>
                 </li>
-                <li>Disassembler: Add <code>--upper</code> flag.</li>
             </ul>
 
-            <h3>2.5.0 <span class="release-date">Oct 4, 2023</span></h3>
-
+            <h3 id="2023-10-04">October 4, 2023</h3>
             <ul>
-                <li>Display WAV metadata for <code>info --version</code>.</li>
-                <li>Handle Level 1 cassette files.</li>
-                <li>Can mount cassettes and floppies in <code>run</code> command.</li>
-                <li>Handle arrow keys and paste in <code>run</code> command.</li>
-                <li>Support EDTASM files (can convert to <code>.ASC</code> file).</li>
-                <li>Stricter parsing of <code>.CAS</code> files to avoid misdetection
-                    of cassette headers.</li>
+                <li><code>trs80-tool</code> v2.5.0:
+                    <ul>
+                        <li>Display WAV metadata for <code>info --verbose</code>.</li>
+                        <li>Handle Level 1 cassette files.</li>
+                        <li>Can mount cassettes and floppies in <code>run</code> command.</li>
+                        <li>Handle arrow keys and paste in <code>run</code> command.</li>
+                        <li>Support EDTASM files (can convert to <code>.ASC</code> file).</li>
+                        <li>Stricter parsing of <code>.CAS</code> files to avoid misdetection
+                            of cassette headers.</li>
+                    </ul>
+                </li>
             </ul>
 
-            <h3>2.4.1</h3>
+            <h3 id="2023-03-14">March 14, 2023</h3>
             <ul>
-                <li>The <code>convert</code> command can go from <code>.ROM</code> and <code>.BIN</code> files to <code>.CMD</code> and
-                    <code>.3BN</code> files. The <code>--start</code> flag specifies the load and start address.</li>
+                <li><code>trs80-tool</code> v2.4.1: The <code>convert</code> command can go from
+                    <code>.ROM</code> and <code>.BIN</code> files to <code>.CMD</code> and
+                    <code>.3BN</code> files. The <code>--start</code> flag specifies the load
+                    and start address.</li>
             </ul>
 
-            <h3>2.4.0</h3>
+            <h3 id="2022-11-03">November 3, 2022</h3>
             <ul>
-                <li>Add <code>repl</code> command.</li>
-                <li>Add <code>--no-labels</code>, <code>--no-known</code>, <code>--hex-format</code>, and <code>--no-binary</code> flags
-                    to the <code>disasm</code> command.</li>
+                <li><code>trs80-tool</code> v2.4.0:
+                    <ul>
+                        <li>Add <code>repl</code> command.</li>
+                        <li>Add <code>--no-labels</code>, <code>--no-known</code>, <code>--hex-format</code>,
+                            and <code>--no-binary</code> flags to the <code>disasm</code> command.</li>
+                    </ul>
+                </li>
             </ul>
 
-            <h3>2.3.1</h3>
+            <h3 id="2022-01-30">January 30, 2022</h3>
             <ul>
-                <li>Use braille for graphics characters.</li>
+                <li><code>trs80-tool</code> v2.3.1: Use braille for graphics characters.</li>
             </ul>
 
-            <h3>2.3.0</h3>
+            <h3 id="2021-11-06">November 6, 2021</h3>
             <ul>
-                <li>Add support for TRSDOS for Model I and 4, and for LDOS.</li>
-                <li>Add <code>run</code> command.</li>
-                <li>Add <code>asm</code> command.</li>
-                <li>Add support for SCP SuperCard Pro raw flux floppy format.</li>
+                <li><code>trs80-tool</code> v2.3.0:
+                    <ul>
+                        <li>Add support for TRSDOS for Model I and 4, and for LDOS.</li>
+                        <li>Add <code>run</code> command.</li>
+                        <li>Add <code>asm</code> command.</li>
+                        <li>Add support for SCP SuperCard Pro raw flux floppy format.</li>
+                    </ul>
+                </li>
             </ul>
 
-            <h3>2.2.0</h3>
+            <h3 id="2021-09-29">September 29, 2021</h3>
             <ul>
-                <li>Add <code>sectors</code> command.</li>
-                <li>Add <code>--verbose</code> flag to <code>info</code> command to display floppy geometry.</li>
-                <li>Add <code>disasm</code> command.</li>
+                <li><code>trs80-tool</code> v2.2.0:
+                    <ul>
+                        <li>Add <code>sectors</code> command.</li>
+                        <li>Add <code>--verbose</code> flag to <code>info</code> command to display
+                            floppy geometry.</li>
+                        <li>Add <code>disasm</code> command.</li>
+                    </ul>
+                </li>
             </ul>
 
-            <h3>2.1.0</h3>
+            <h3 id="2021-09-07">September 7, 2021</h3>
             <ul>
-                <li>Add <code>hexdump</code> command.</li>
+                <li><code>trs80-tool</code> v2.1.0: Add <code>hexdump</code> command.</li>
             </ul>
 
-            <h3>2.0.10</h3>
+            <h3 id="2021-08-29">August 29, 2021</h3>
             <ul>
-                <li>Add <code>--entry</code> flag to help with disassembling programs that relocate themselves.</li>
+                <li><code>trs80-tool</code> v2.0.10: Add <code>--entry</code> flag to help with
+                    disassembling programs that relocate themselves.</li>
             </ul>
 
-            <h3>2.0.8</h3>
+            <h3 id="2021-07-31">July 31, 2021</h3>
             <ul>
-                <li>Can read, dir, and extract CAS files with multiple files.</li>
-                <li>The <code>info</code> command will display a guessed start address for system programs
-                    with no specified start address.</li>
-                <li>Added <code>--start</code> flag to set the start address of system files.</li>
+                <li><code>trs80-tool</code> v2.0.8:
+                    <ul>
+                        <li>Can read, dir, and extract CAS files with multiple files.</li>
+                        <li>The <code>info</code> command will display a guessed start address for
+                            system programs with no specified start address.</li>
+                        <li>Added <code>--start</code> flag to set the start address of system files.</li>
+                    </ul>
+                </li>
             </ul>
 
-            <h3>2.0.7</h3>
+            <h3 id="2021-05-29">May 29, 2021</h3>
             <ul>
-                <li>Can read high-speed CAS files with non-aligned bytes.</li>
+                <li><code>trs80-tool</code> v2.0.7: Can read high-speed CAS files with non-aligned bytes.</li>
             </ul>
 
-            <h3>2.0.6</h3>
+            <h3 id="2021-05-22">May 22, 2021</h3>
             <ul>
-                <li>Add <code>info</code> command.</li>
-                <li>Show more detailed information of output files in <code>convert</code> command.</li>
+                <li><code>trs80-tool</code> v2.0.6:
+                    <ul>
+                        <li>Add <code>info</code> command.</li>
+                        <li>Show more detailed information of output files in <code>convert</code> command.</li>
+                    </ul>
+                </li>
             </ul>
 
-            <h3>2.0.5</h3>
+            <h3 id="2021-05-21">May 21, 2021</h3>
             <ul>
-                <li>Can write multi-file CAS files.</li>
+                <li><code>trs80-tool</code> v2.0.5: Can write multi-file CAS files.</li>
             </ul>
 
-            <h3>2.0.4</h3>
+            <h3 id="2021-05-16">May 16, 2021</h3>
             <ul>
-                <li>Can read and write text (non-tokenized) Basic files.</li>
-                <li>Can convert Basic programs from disk format to cassette format.</li>
-                <li>When extracting files from a TRSDOS floppy, retain original dates.</li>
-                <li>Can generate disassembly listing files from CMD and 3BN files.</li>
+                <li><code>trs80-tool</code> v2.0.4:
+                    <ul>
+                        <li>Can read and write text (non-tokenized) Basic files.</li>
+                        <li>Can convert Basic programs from disk format to cassette format.</li>
+                        <li>When extracting files from a TRSDOS floppy, retain original dates.</li>
+                        <li>Can generate disassembly listing files from CMD and 3BN files.</li>
+                    </ul>
+                </li>
             </ul>
 
-            <h3>2.0.3</h3>
+            <h3 id="2021-05-15">May 15, 2021</h3>
             <ul>
-                <li>Initial release.</li>
+                <li><code>trs80-tool</code> v2.0.3: Initial release.</li>
             </ul>
         </section>
+        <script>
+            // Add a link icon after each change log date, so that a link to that entry
+            // can be copied from the icon's context menu.
+            for (const header of document.querySelectorAll("#change-log ~ h3[id]")) {
+                const link = document.createElement("a");
+                link.className = "anchor";
+                link.href = "#" + header.id;
+                link.title = "Link to this entry";
+                link.setAttribute("aria-label", "Link to this entry");
+                header.append(link);
+            }
+        </script>
     </body>
 </html>
