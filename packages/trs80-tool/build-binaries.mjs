@@ -1,8 +1,8 @@
 // Builds stand-alone trs80-tool executables with Node's single executable
 // applications (SEA): https://nodejs.org/api/single-executable-applications.html
 //
-// Run after esbuild has written the bundle to binaries/main.js ("npm run buildBinaries"
-// does both). For each target, this downloads the official Node executable (checked
+// Run after "npm run build" has bundled the tool into dist/trs80-tool.cjs ("npm run
+// buildBinaries" does both). For each target, this downloads the official Node executable (checked
 // against the release's SHA-256 sums and cached in binaries/cache), injects the bundle
 // into a copy of it, and signs it if it's for macOS. Must run on macOS, because the
 // macOS executables must be signed with codesign.
@@ -20,7 +20,7 @@ const NODE_DIST_URL = `https://nodejs.org/dist/${NODE_VERSION}`;
 
 const PACKAGE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const BINARIES_DIR = path.join(PACKAGE_DIR, "binaries");
-const BUNDLE = path.join(BINARIES_DIR, "main.js");
+const BUNDLE = path.join(PACKAGE_DIR, "dist", "trs80-tool.cjs");
 const CACHE_DIR = path.join(BINARIES_DIR, "cache", NODE_VERSION);
 const DIST_DIR = path.join(BINARIES_DIR, "trs80-tool");
 

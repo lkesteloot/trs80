@@ -34,10 +34,16 @@ To install dependencies (do this once per clone or pull):
 npm install
 ```
 
-To build everything:
+To build everything (this also type-checks all packages):
 
 ```sh
 npm run build
+```
+
+To only type-check:
+
+```sh
+npm run typecheck
 ```
 
 To run the tests:

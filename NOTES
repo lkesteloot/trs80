@@ -5,7 +5,10 @@ To add a dependency:
 
     npm -w packages/OUR_PACKAGE_NAME install --save THEIR_PACKAGE_NAME
 
-This includes our own cross-dependencies.
+For one of our own packages, add it to "dependencies" by hand with the
+version "*", then run "npm install". Our packages export their TypeScript
+source (see "exports" in their package.json), so there is nothing to build
+first: vite, esbuild, and tsx compile it directly.
 
 ---
 

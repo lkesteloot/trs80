@@ -1,14 +1,12 @@
 {
   "name": "trs80-cassette-webapp",
-  "version": "2.3.1",
   "private": true,
   "description": "Web app to process TRS-80 cassettes and clean them up.",
-  "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "vite",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && tsc --noEmit && vite build --base=/cassette/",
+    "build": "npm run updateBuildInfo && vite build --base=/cassette/",
     "clean": "rm -rf dist"
   },
   "repository": "https://github.com/lkesteloot/trs80.git",
@@ -25,11 +23,11 @@
     "split.js": "^1.5.11",
     "strongly-typed-events": "^3.0.0",
     "teamten-ts-utils": "^1.0.3",
-    "trs80-base": "^2.3.1",
-    "trs80-cassette": "^2.3.1",
-    "trs80-cassette-player": "^2.4.1",
-    "trs80-emulator": "^2.3.1",
-    "trs80-emulator-web": "^2.3.1",
-    "z80-base": "^2.0.1"
+    "trs80-base": "*",
+    "trs80-cassette": "*",
+    "trs80-cassette-player": "*",
+    "trs80-emulator": "*",
+    "trs80-emulator-web": "*",
+    "z80-base": "*"
   }
 }

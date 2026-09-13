@@ -34,7 +34,7 @@ import {
     Trs80File
 } from "trs80-base";
 import {BitType, DEFAULT_SAMPLE_RATE, DisplaySamples, frameToTimestamp, Program, Tape} from "trs80-cassette";
-import {WebSoundPlayer} from "../../trs80-emulator-web/dist/WebSoundPlayer";
+import {WebSoundPlayer} from "trs80-emulator-web";
 
 /**
  * See if the "program" is actually a 1024-byte screenshot. We've only seen this once,

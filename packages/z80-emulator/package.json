@@ -1,17 +1,12 @@
 {
   "name": "z80-emulator",
-  "version": "2.3.0",
   "description": "Z80 emulator in TypeScript",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "build:test": "tsc -p tsconfig.test.json",
-    "generate": "tsc --project opcodes && node opcodes/dist/GenerateOpcodes.js",
-    "test": "npm run build:test && node dist-tests/tests/Test.js",
-    "clean": "rm -rf dist dist-tests"
+    "generate": "tsx opcodes/GenerateOpcodes.ts",
+    "test": "tsx tests/Test.ts"
   },
   "directories": {
     "test": "tests"
@@ -26,10 +21,11 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^24.13.4",
-    "z80-test": "^2.0.1"
+    "tsx": "^4.7.0",
+    "z80-test": "*"
   },
   "dependencies": {
-    "z80-base": "^2.0.1",
-    "z80-inst": "^2.0.1"
+    "z80-base": "*",
+    "z80-inst": "*"
   }
 }

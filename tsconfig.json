@@ -1,25 +1,39 @@
 {
+  // The one project for type checking the whole repo ("npm run typecheck"). tsc emits
+  // nothing: vite builds the web apps, esbuild bundles trs80-tool, and tsx runs the tests
+  // and generators, all straight from the TypeScript source.
   "compilerOptions": {
     "target": "ES2019",
     // Type definitions for ES2022 built-ins like Array.prototype.at(), which Node 24
-    // and current browsers have. Code is still compiled for ES2019.
+    // and current browsers have.
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "esnext",
     "moduleResolution": "bundler",
     // Include all @types packages, as TypeScript did by default before 6.0.
     "types": ["*"],
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
+    // Assign class fields in the constructor, as tsc did when it compiled these packages
+    // for ES2019. vite, esbuild, and tsx all follow this setting.
+    "useDefineForClassFields": false,
+    // vite and esbuild compile one file at a time, so every file must make sense on its own;
+    // for example, re-exported types must be marked with "type".
+    "isolatedModules": true,
+    "noEmit": true,
     // Otherwise have build errors with eslint imported by other packages:
     "skipLibCheck": true,
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
-    "exactOptionalPropertyTypes": true,
-    "incremental": true,
-    // Keep incremental state with the output, so "clean" (rm -rf dist) forces a full rebuild.
-    "tsBuildInfoFile": "${configDir}/dist/tsconfig.tsbuildinfo"
-  }
+    "exactOptionalPropertyTypes": true
+  },
+  "include": [
+    "packages/*/src",
+    "packages/*/tests",
+    "packages/*/opcodes",
+    "packages/*/vite.config.ts"
+  ],
+  "exclude": [
+    // Filled in by z80-emulator's opcode generator; not valid TypeScript on its own.
+    "packages/z80-emulator/src/**/*.template.ts"
+  ]
 }

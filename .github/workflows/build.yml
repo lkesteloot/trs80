@@ -23,7 +23,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm clean-install
-      - run: npm run build --workspaces
+      - run: npm run build
       - run: npm run test
       - uses: actions/upload-artifact@v6
         with:
@@ -54,7 +54,6 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm clean-install
-      - run: npm run build --workspaces
       - run: npm run buildBinaries -w packages/trs80-tool
       - uses: actions/upload-artifact@v6
         with:

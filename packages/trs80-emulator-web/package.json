@@ -1,11 +1,9 @@
 {
   "name": "trs80-emulator-web",
-  "version": "2.3.1",
   "description": "Web components for the TRS-80 Model III emulator",
   "type": "module",
   "private": true,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "homepage": "https://github.com/lkesteloot/trs80#readme",
   "license": "MIT",
@@ -15,16 +13,12 @@
     "emulator"
   ],
   "repository": "https://github.com/lkesteloot/trs80.git",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist"
-  },
   "dependencies": {
-    "fp-215": "^1.0.0",
+    "fp-215": "*",
     "strongly-typed-events": "^3.0.11",
-    "trs80-base": "^2.3.1",
-    "trs80-cassette-player": "^2.4.1",
-    "trs80-emulator": "^2.3.1",
-    "z80-base": "^2.0.1"
+    "trs80-base": "*",
+    "trs80-cassette-player": "*",
+    "trs80-emulator": "*",
+    "z80-base": "*"
   }
 }

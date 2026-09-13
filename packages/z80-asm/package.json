@@ -1,15 +1,11 @@
 {
   "name": "z80-asm",
-  "version": "2.3.0",
   "description": "Z80 assembler in TypeScript",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "tsx src/Asm.spec.ts",
-    "clean": "rm -rf dist"
+    "test": "tsx src/Asm.spec.ts"
   },
   "keywords": [
     "z80",
@@ -25,8 +21,8 @@
     "tsx": "^4.7.0"
   },
   "dependencies": {
-    "z80-base": "^2.0.1",
-    "z80-disasm": "^2.3.0",
-    "z80-inst": "^2.0.1"
+    "z80-base": "*",
+    "z80-disasm": "*",
+    "z80-inst": "*"
   }
 }

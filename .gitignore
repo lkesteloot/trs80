@@ -1,6 +1,4 @@
 node_modules
 .idea
 *.iml
-tsconfig.tsbuildinfo
 dist
-dist-tests

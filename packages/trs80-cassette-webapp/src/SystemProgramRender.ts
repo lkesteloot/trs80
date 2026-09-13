@@ -3,7 +3,7 @@ import {toHexByte, toHexWord, word} from "z80-base";
 import {Highlightable} from "./Highlighter";
 import {CanvasScreen} from "trs80-emulator-web";
 import {SystemProgram, TRS80_SCREEN_BEGIN, TRS80_SCREEN_END, disasmForTrs80, disasmForTrs80Program} from "trs80-base";
-import {ProgramAnnotation} from "trs80-base/dist/ProgramAnnotation";
+import {ProgramAnnotation} from "trs80-base";
 
 /**
  * Add text to the line with the specified class.

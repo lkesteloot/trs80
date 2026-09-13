@@ -2,16 +2,15 @@
     "name": "trs80-tool",
     "version": "2.9.0",
     "description": "Command-line tool for manipulating TRS-80 files",
-    "main": "dist/index.js",
     "repository": "https://github.com/lkesteloot/trs80.git",
     "type": "module",
     "private": true,
     "scripts": {
         "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-        "build": "npm run updateVersion && npm run updateBuildInfo && tsc",
+        "build": "npm run updateVersion && npm run updateBuildInfo && esbuild src/index.ts --bundle --platform=node --format=cjs --target=node24 --log-level=warning --outfile=dist/trs80-tool.cjs",
         "clean": "rm -rf dist",
         "updateVersion": "node -p '\"export const version = \" + JSON.stringify(require(\"./package.json\").version) + \";\"' > src/version.ts",
-        "buildBinaries": "npm run build && esbuild dist/index.js --bundle --platform=node --format=cjs --target=node24 --minify --log-level=warning --outfile=binaries/main.js && node build-binaries.mjs"
+        "buildBinaries": "npm run build && node build-binaries.mjs"
     },
     "bin": {
         "trs80-tool": "bin/trs80-tool.js"
@@ -22,17 +21,17 @@
         "chalk": "^6.0.0",
         "commander": "^15.0.0",
         "teamten-ts-utils": "^1.0.3",
-        "trs80-asm": "^2.3.1",
-        "trs80-base": "^2.3.1",
-        "trs80-cassette": "^2.3.1",
-        "trs80-cassette-player": "^2.4.1",
-        "trs80-emulator": "^2.3.1",
-        "trs80-logger": "^1.0.0",
+        "trs80-asm": "*",
+        "trs80-base": "*",
+        "trs80-cassette": "*",
+        "trs80-cassette-player": "*",
+        "trs80-emulator": "*",
+        "trs80-logger": "*",
         "ws": "^8.2.3",
-        "z80-asm": "^2.3.0",
-        "z80-base": "^2.0.1",
-        "z80-disasm": "^2.3.0",
-        "z80-emulator": "^2.3.0"
+        "z80-asm": "*",
+        "z80-base": "*",
+        "z80-disasm": "*",
+        "z80-emulator": "*"
     },
     "devDependencies": {
         "@types/node": "^24.13.4",

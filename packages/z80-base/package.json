@@ -1,18 +1,12 @@
 {
   "name": "z80-base",
-  "version": "2.0.1",
   "description": "Base classes and utilities for Z80 emulation",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "type": "module",
   "private": true,
   "repository": "https://github.com/lkesteloot/trs80.git",
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "license": "MIT",
-  "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist"
-  },
   "keywords": [
     "z80"
   ],

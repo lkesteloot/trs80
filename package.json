@@ -3,9 +3,10 @@
   "private": true,
   "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
-    "build": "npm run build --workspaces",
-    "clean": "npm run clean --workspaces",
-    "test": "npm run test -w packages/z80-asm -w packages/z80-disasm -w packages/z80-emulator -w packages/z80-test"
+    "build": "npm run build --workspaces --if-present && npm run typecheck",
+    "clean": "npm run clean --workspaces --if-present",
+    "test": "npm run test -w packages/z80-asm -w packages/z80-disasm -w packages/z80-emulator -w packages/z80-test",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
     "typescript": "^7.0.2"

@@ -1,15 +1,11 @@
 {
   "name": "fp-215",
-  "version": "1.0.0",
   "description": "Emulator for the FP-215 plotter",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "http-server -c-1 -o /test .",
-    "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist"
+    "start": "vite --open /test/"
   },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": {
@@ -22,6 +18,6 @@
   },
   "homepage": "https://github.com/lkesteloot/trs80#readme",
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "vite": "^8.3.0"
   }
 }

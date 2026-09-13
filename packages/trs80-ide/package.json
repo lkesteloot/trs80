@@ -1,6 +1,5 @@
 {
   "name": "trs80-ide",
-  "version": "2.3.1",
   "private": true,
   "description": "Web app with interactive TRS-80 assembly language IDE.",
   "repository": "https://github.com/lkesteloot/trs80.git",
@@ -10,7 +9,7 @@
   "scripts": {
     "start": "vite --open",
     "updateBuildInfo": "../../printBuildInfo > src/build.ts",
-    "build": "npm run updateBuildInfo && tsc --noEmit && vite build --base=./",
+    "build": "npm run updateBuildInfo && vite build --base=./",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -24,17 +23,17 @@
     "@lezer/highlight": "^1.1.1",
     "browser-fs-access": "^0.35.0",
     "cm6-theme-solarized-dark": "^0.2.0",
-    "retrostore-api": "^1.0.0",
+    "retrostore-api": "*",
     "strongly-typed-events": "^3.0.0",
-    "trs80-asm": "^2.3.1",
-    "trs80-base": "^2.3.1",
-    "trs80-cassette": "^2.3.1",
-    "trs80-emulator": "^2.3.1",
-    "trs80-emulator-web": "^2.3.1",
-    "z80-asm": "^2.3.0",
-    "z80-base": "^2.0.1",
-    "z80-disasm": "^2.3.0",
-    "z80-inst": "^2.0.1"
+    "trs80-asm": "*",
+    "trs80-base": "*",
+    "trs80-cassette": "*",
+    "trs80-emulator": "*",
+    "trs80-emulator-web": "*",
+    "z80-asm": "*",
+    "z80-base": "*",
+    "z80-disasm": "*",
+    "z80-inst": "*"
   },
   "devDependencies": {
     "@types/gtag.js": "^0.0.20",

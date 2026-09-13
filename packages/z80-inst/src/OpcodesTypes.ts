@@ -42,7 +42,7 @@ export interface OpcodeVariant {
     // and DDCBdd47 is an undocumented variant of DDCBdd46. We prefer variants
     // that are documented, have fewer opcodes, or have the numerically lowest
     // opcodes (in that order).
-    aliasOf?: OpcodeVariant;
+    aliasOf?: OpcodeVariant | undefined;
 
     // Clr information.
     clr: ClrInstruction;

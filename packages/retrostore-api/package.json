@@ -1,15 +1,11 @@
 {
   "name": "retrostore-api",
-  "version": "1.0.0",
   "description": "Code for hitting the RetroStore service",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "type": "module",
   "private": true,
   "repository": "https://github.com/lkesteloot/trs80.git",
   "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist",
     "copy-proto": "cp ~/others/retrostore-jvm-sdk/src/main/proto/org/retrostore/client/common/proto/ApiProtos.proto src",
     "proto": "pbjs src/ApiProtos.proto --ts src/RetroStoreProto.ts"
   },

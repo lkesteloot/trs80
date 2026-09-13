@@ -1,4 +1,5 @@
 #!/usr/bin/env node
 
-import "../dist/index.js";
+// The bundle that "npm run build" makes from the TypeScript source.
+import "../dist/trs80-tool.cjs";
 

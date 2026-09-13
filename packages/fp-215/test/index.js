@@ -1,5 +1,5 @@
 
-import { Fp215 } from "../dist/index.js";
+import { Fp215 } from "../src/index.ts";
 
 async function main() {
     const canvas = document.createElement("canvas");

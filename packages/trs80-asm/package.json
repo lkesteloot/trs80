@@ -1,17 +1,10 @@
 {
   "name": "trs80-asm",
-  "version": "2.3.1",
   "description": "Connects z80-asm and trs80-base",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "type": "module",
   "private": true,
   "repository": "https://github.com/lkesteloot/trs80.git",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist",
-    "watch": "tsc -p tsconfig.json --watch"
-  },
   "keywords": [
     "trs-80"
   ],
@@ -21,7 +14,7 @@
     "@types/node": "^24.13.4"
   },
   "dependencies": {
-    "trs80-base": "^2.3.1",
-    "z80-asm": "^2.3.0"
+    "trs80-base": "*",
+    "z80-asm": "*"
   }
 }

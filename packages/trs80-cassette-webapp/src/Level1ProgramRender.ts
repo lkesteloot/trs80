@@ -2,7 +2,7 @@ import jss from './Jss'
 import {toHexByte, toHexWord} from "z80-base";
 import {Highlightable} from "./Highlighter";
 import {disasmForTrs80Program, Level1Program, Level1Type} from "trs80-base";
-import {ProgramAnnotation} from "trs80-base/dist/ProgramAnnotation";
+import {ProgramAnnotation} from "trs80-base";
 
 /**
  * Add text to the line with the specified class.

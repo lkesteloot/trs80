@@ -1,15 +1,11 @@
 {
   "name": "z80-disasm",
-  "version": "2.3.0",
   "description": "Z80 disassembler in TypeScript",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "tsx src/Disasm.spec.ts",
-    "clean": "rm -rf dist"
+    "test": "tsx src/Disasm.spec.ts"
   },
   "keywords": [
     "z80",
@@ -24,7 +20,7 @@
     "tsx": "^4.7.0"
   },
   "dependencies": {
-    "z80-base": "^2.0.1",
-    "z80-inst": "^2.0.1"
+    "z80-base": "*",
+    "z80-inst": "*"
   }
 }

@@ -1,9 +1,7 @@
 {
   "name": "z80-test",
-  "version": "2.0.1",
   "description": "Z80 test suite",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "type": "module",
   "private": true,
   "repository": "https://github.com/lkesteloot/trs80.git",
@@ -13,18 +11,16 @@
     "test": "tests"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "build:test": "tsc -p tsconfig.test.json",
-    "test": "npm run build:test && node dist-tests/tests/Test.js",
-    "clean": "rm -rf dist dist-tests"
+    "test": "tsx tests/Test.ts"
   },
   "keywords": [
     "z80"
   ],
   "devDependencies": {
-    "@types/node": "^24.13.4"
+    "@types/node": "^24.13.4",
+    "tsx": "^4.7.0"
   },
   "dependencies": {
-    "z80-base": "^2.0.1"
+    "z80-base": "*"
   }
 }

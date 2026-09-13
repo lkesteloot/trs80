@@ -650,7 +650,7 @@ function generateCode(mnemonics: Mnemonics): {variantCode: string[], mnemonicMap
  */
 function generateOpcodes(): void {
     const scriptDir = dirname(fileURLToPath(import.meta.url));
-    const opcodesDir = path.join(scriptDir, "..", "..");
+    const opcodesDir = scriptDir;
     const clr = JSON.parse(fs.readFileSync(path.join(opcodesDir, "clr.json"), "utf-8")) as ClrFile;
 
     // Read the opcodes text files and generate all variants.

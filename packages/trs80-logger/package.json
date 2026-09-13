@@ -1,15 +1,9 @@
 {
   "name": "trs80-logger",
-  "version": "1.0.0",
   "description": "Logging system for the TRS-80 libraries and tools",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": "./src/index.ts",
   "type": "module",
   "private": true,
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist"
-  },
   "author": "Lawrence Kesteloot <lk@teamten.com> (https://www.teamten.com/lawrence/)",
   "repository": {
     "type": "git",
