@@ -27593,686 +27593,6 @@ const variant_EC_nnnn_pseudo = {
   }
 } as const satisfies OpcodeVariant;
 
-// in0 b,(nn)
-const variant_ED_00_nn = {
-  "mnemonic": "in0",
-  "params": [
-    "b",
-    "(nn)"
-  ],
-  "tokens": [
-    "b",
-    ",",
-    "(",
-    "nn",
-    ")"
-  ],
-  "opcodes": [
-    237,
-    0,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED00",
-    "undocumented": false,
-    "z180": true,
-    "flags": "-0P0++",
-    "byte_count": 3,
-    "with_jump_clock_count": 12,
-    "without_jump_clock_count": 12,
-    "description": "A byte from the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits is written to B.",
-    "instruction": "in0 b,(nn)"
-  }
-} as const satisfies OpcodeVariant;
-
-// out0 (nn),b
-const variant_ED_01_nn = {
-  "mnemonic": "out0",
-  "params": [
-    "(nn)",
-    "b"
-  ],
-  "tokens": [
-    "(",
-    "nn",
-    ")",
-    ",",
-    "b"
-  ],
-  "opcodes": [
-    237,
-    1,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED01",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 3,
-    "with_jump_clock_count": 13,
-    "without_jump_clock_count": 13,
-    "description": "The value of B is written to the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits.",
-    "instruction": "out0 (nn),b"
-  }
-} as const satisfies OpcodeVariant;
-
-// tst b
-const variant_ED_04 = {
-  "mnemonic": "tst",
-  "params": [
-    "b"
-  ],
-  "tokens": [
-    "b"
-  ],
-  "opcodes": [
-    237,
-    4
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED04",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 2,
-    "with_jump_clock_count": 10,
-    "without_jump_clock_count": 10,
-    "description": "Calculates the bitwise AND of B with A and affects flags according to the result. A is not modified.",
-    "instruction": "tst b"
-  }
-} as const satisfies OpcodeVariant;
-
-// in0 c,(nn)
-const variant_ED_08_nn = {
-  "mnemonic": "in0",
-  "params": [
-    "c",
-    "(nn)"
-  ],
-  "tokens": [
-    "c",
-    ",",
-    "(",
-    "nn",
-    ")"
-  ],
-  "opcodes": [
-    237,
-    8,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED08",
-    "undocumented": false,
-    "z180": true,
-    "flags": "-0P0++",
-    "byte_count": 3,
-    "with_jump_clock_count": 12,
-    "without_jump_clock_count": 12,
-    "description": "A byte from the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits is written to C.",
-    "instruction": "in0 c,(nn)"
-  }
-} as const satisfies OpcodeVariant;
-
-// out0 (nn),c
-const variant_ED_09_nn = {
-  "mnemonic": "out0",
-  "params": [
-    "(nn)",
-    "c"
-  ],
-  "tokens": [
-    "(",
-    "nn",
-    ")",
-    ",",
-    "c"
-  ],
-  "opcodes": [
-    237,
-    9,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED09",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 3,
-    "with_jump_clock_count": 13,
-    "without_jump_clock_count": 13,
-    "description": "The value of C is written to the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits.",
-    "instruction": "out0 (nn),c"
-  }
-} as const satisfies OpcodeVariant;
-
-// tst c
-const variant_ED_0C = {
-  "mnemonic": "tst",
-  "params": [
-    "c"
-  ],
-  "tokens": [
-    "c"
-  ],
-  "opcodes": [
-    237,
-    12
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED0C",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 2,
-    "with_jump_clock_count": 10,
-    "without_jump_clock_count": 10,
-    "description": "Calculates the bitwise AND of C with A and affects flags according to the result. A is not modified.",
-    "instruction": "tst c"
-  }
-} as const satisfies OpcodeVariant;
-
-// in0 d,(nn)
-const variant_ED_10_nn = {
-  "mnemonic": "in0",
-  "params": [
-    "d",
-    "(nn)"
-  ],
-  "tokens": [
-    "d",
-    ",",
-    "(",
-    "nn",
-    ")"
-  ],
-  "opcodes": [
-    237,
-    16,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED10",
-    "undocumented": false,
-    "z180": true,
-    "flags": "-0P0++",
-    "byte_count": 3,
-    "with_jump_clock_count": 12,
-    "without_jump_clock_count": 12,
-    "description": "A byte from the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits is written to D.",
-    "instruction": "in0 d,(nn)"
-  }
-} as const satisfies OpcodeVariant;
-
-// out0 (nn),d
-const variant_ED_11_nn = {
-  "mnemonic": "out0",
-  "params": [
-    "(nn)",
-    "d"
-  ],
-  "tokens": [
-    "(",
-    "nn",
-    ")",
-    ",",
-    "d"
-  ],
-  "opcodes": [
-    237,
-    17,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED11",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 3,
-    "with_jump_clock_count": 13,
-    "without_jump_clock_count": 13,
-    "description": "The value of D is written to the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits.",
-    "instruction": "out0 (nn),d"
-  }
-} as const satisfies OpcodeVariant;
-
-// tst d
-const variant_ED_14 = {
-  "mnemonic": "tst",
-  "params": [
-    "d"
-  ],
-  "tokens": [
-    "d"
-  ],
-  "opcodes": [
-    237,
-    20
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED14",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 2,
-    "with_jump_clock_count": 10,
-    "without_jump_clock_count": 10,
-    "description": "Calculates the bitwise AND of D with A and affects flags according to the result. A is not modified.",
-    "instruction": "tst d"
-  }
-} as const satisfies OpcodeVariant;
-
-// in0 e,(nn)
-const variant_ED_18_nn = {
-  "mnemonic": "in0",
-  "params": [
-    "e",
-    "(nn)"
-  ],
-  "tokens": [
-    "e",
-    ",",
-    "(",
-    "nn",
-    ")"
-  ],
-  "opcodes": [
-    237,
-    24,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED18",
-    "undocumented": false,
-    "z180": true,
-    "flags": "-0P0++",
-    "byte_count": 3,
-    "with_jump_clock_count": 12,
-    "without_jump_clock_count": 12,
-    "description": "A byte from the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits is written to E.",
-    "instruction": "in0 e,(nn)"
-  }
-} as const satisfies OpcodeVariant;
-
-// out0 (nn),e
-const variant_ED_19_nn = {
-  "mnemonic": "out0",
-  "params": [
-    "(nn)",
-    "e"
-  ],
-  "tokens": [
-    "(",
-    "nn",
-    ")",
-    ",",
-    "e"
-  ],
-  "opcodes": [
-    237,
-    25,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED19",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 3,
-    "with_jump_clock_count": 13,
-    "without_jump_clock_count": 13,
-    "description": "The value of E is written to the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits.",
-    "instruction": "out0 (nn),e"
-  }
-} as const satisfies OpcodeVariant;
-
-// tst e
-const variant_ED_1C = {
-  "mnemonic": "tst",
-  "params": [
-    "e"
-  ],
-  "tokens": [
-    "e"
-  ],
-  "opcodes": [
-    237,
-    28
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED1C",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 2,
-    "with_jump_clock_count": 10,
-    "without_jump_clock_count": 10,
-    "description": "Calculates the bitwise AND of E with A and affects flags according to the result. A is not modified.",
-    "instruction": "tst e"
-  }
-} as const satisfies OpcodeVariant;
-
-// in0 h,(nn)
-const variant_ED_20_nn = {
-  "mnemonic": "in0",
-  "params": [
-    "h",
-    "(nn)"
-  ],
-  "tokens": [
-    "h",
-    ",",
-    "(",
-    "nn",
-    ")"
-  ],
-  "opcodes": [
-    237,
-    32,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED20",
-    "undocumented": false,
-    "z180": true,
-    "flags": "-0P0++",
-    "byte_count": 3,
-    "with_jump_clock_count": 12,
-    "without_jump_clock_count": 12,
-    "description": "A byte from the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits is written to H.",
-    "instruction": "in0 h,(nn)"
-  }
-} as const satisfies OpcodeVariant;
-
-// out0 (nn),h
-const variant_ED_21_nn = {
-  "mnemonic": "out0",
-  "params": [
-    "(nn)",
-    "h"
-  ],
-  "tokens": [
-    "(",
-    "nn",
-    ")",
-    ",",
-    "h"
-  ],
-  "opcodes": [
-    237,
-    33,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED21",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 3,
-    "with_jump_clock_count": 13,
-    "without_jump_clock_count": 13,
-    "description": "The value of H is written to the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits.",
-    "instruction": "out0 (nn),h"
-  }
-} as const satisfies OpcodeVariant;
-
-// tst h
-const variant_ED_24 = {
-  "mnemonic": "tst",
-  "params": [
-    "h"
-  ],
-  "tokens": [
-    "h"
-  ],
-  "opcodes": [
-    237,
-    36
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED24",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 2,
-    "with_jump_clock_count": 10,
-    "without_jump_clock_count": 10,
-    "description": "Calculates the bitwise AND of H with A and affects flags according to the result. A is not modified.",
-    "instruction": "tst h"
-  }
-} as const satisfies OpcodeVariant;
-
-// in0 l,(nn)
-const variant_ED_28_nn = {
-  "mnemonic": "in0",
-  "params": [
-    "l",
-    "(nn)"
-  ],
-  "tokens": [
-    "l",
-    ",",
-    "(",
-    "nn",
-    ")"
-  ],
-  "opcodes": [
-    237,
-    40,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED28",
-    "undocumented": false,
-    "z180": true,
-    "flags": "-0P0++",
-    "byte_count": 3,
-    "with_jump_clock_count": 12,
-    "without_jump_clock_count": 12,
-    "description": "A byte from the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits is written to L.",
-    "instruction": "in0 l,(nn)"
-  }
-} as const satisfies OpcodeVariant;
-
-// out0 (nn),l
-const variant_ED_29_nn = {
-  "mnemonic": "out0",
-  "params": [
-    "(nn)",
-    "l"
-  ],
-  "tokens": [
-    "(",
-    "nn",
-    ")",
-    ",",
-    "l"
-  ],
-  "opcodes": [
-    237,
-    41,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED29",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 3,
-    "with_jump_clock_count": 13,
-    "without_jump_clock_count": 13,
-    "description": "The value of L is written to the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits.",
-    "instruction": "out0 (nn),l"
-  }
-} as const satisfies OpcodeVariant;
-
-// tst l
-const variant_ED_2C = {
-  "mnemonic": "tst",
-  "params": [
-    "l"
-  ],
-  "tokens": [
-    "l"
-  ],
-  "opcodes": [
-    237,
-    44
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED2C",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 2,
-    "with_jump_clock_count": 10,
-    "without_jump_clock_count": 10,
-    "description": "Calculates the bitwise AND of L with A and affects flags according to the result. A is not modified.",
-    "instruction": "tst l"
-  }
-} as const satisfies OpcodeVariant;
-
-// tst (hl)
-const variant_ED_34 = {
-  "mnemonic": "tst",
-  "params": [
-    "(hl)"
-  ],
-  "tokens": [
-    "(",
-    "hl",
-    ")"
-  ],
-  "opcodes": [
-    237,
-    52
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED34",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 2,
-    "with_jump_clock_count": 10,
-    "without_jump_clock_count": 10,
-    "description": "Calculates the bitwise AND of (HL) with A and affects flags according to the result. A is not modified.",
-    "instruction": "tst (hl)"
-  }
-} as const satisfies OpcodeVariant;
-
-// in0 a,(nn)
-const variant_ED_38_nn = {
-  "mnemonic": "in0",
-  "params": [
-    "a",
-    "(nn)"
-  ],
-  "tokens": [
-    "a",
-    ",",
-    "(",
-    "nn",
-    ")"
-  ],
-  "opcodes": [
-    237,
-    56,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED38",
-    "undocumented": false,
-    "z180": true,
-    "flags": "-0P0++",
-    "byte_count": 3,
-    "with_jump_clock_count": 12,
-    "without_jump_clock_count": 12,
-    "description": "A byte from the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits is written to A.",
-    "instruction": "in0 a,(nn)"
-  }
-} as const satisfies OpcodeVariant;
-
-// out0 (nn),a
-const variant_ED_39_nn = {
-  "mnemonic": "out0",
-  "params": [
-    "(nn)",
-    "a"
-  ],
-  "tokens": [
-    "(",
-    "nn",
-    ")",
-    ",",
-    "a"
-  ],
-  "opcodes": [
-    237,
-    57,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED39",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 3,
-    "with_jump_clock_count": 13,
-    "without_jump_clock_count": 13,
-    "description": "The value of A is written to the port whose address is formed by 00h in the high bits and <var>nn</var> in the low bits.",
-    "instruction": "out0 (nn),a"
-  }
-} as const satisfies OpcodeVariant;
-
-// tst a
-const variant_ED_3C = {
-  "mnemonic": "tst",
-  "params": [
-    "a"
-  ],
-  "tokens": [
-    "a"
-  ],
-  "opcodes": [
-    237,
-    60
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED3C",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 2,
-    "with_jump_clock_count": 10,
-    "without_jump_clock_count": 10,
-    "description": "Calculates the bitwise AND of A with A and affects flags according to the result. A is not modified.",
-    "instruction": "tst a"
-  }
-} as const satisfies OpcodeVariant;
-
 // in b,(c)
 const variant_ED_40 = {
   "mnemonic": "in",
@@ -28755,33 +28075,6 @@ const variant_ED_4B_nnnn = {
     "without_jump_clock_count": 20,
     "description": "Loads the value pointed to by <var>nnnn</var> into BC.",
     "instruction": "ld bc,(nnnn)"
-  }
-} as const satisfies OpcodeVariant;
-
-// mlt bc
-const variant_ED_4C = {
-  "mnemonic": "mlt",
-  "params": [
-    "bc"
-  ],
-  "tokens": [
-    "bc"
-  ],
-  "opcodes": [
-    237,
-    76
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED4C",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 17,
-    "without_jump_clock_count": 17,
-    "description": "The contents of B and C are multiplied and stored in BC.",
-    "instruction": "mlt bc"
   }
 } as const satisfies OpcodeVariant;
 
@@ -29277,33 +28570,6 @@ const variant_ED_5B_nnnn = {
   }
 } as const satisfies OpcodeVariant;
 
-// mlt de
-const variant_ED_5C = {
-  "mnemonic": "mlt",
-  "params": [
-    "de"
-  ],
-  "tokens": [
-    "de"
-  ],
-  "opcodes": [
-    237,
-    92
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED5C",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 17,
-    "without_jump_clock_count": 17,
-    "description": "The contents of D and E are multiplied and stored in DE.",
-    "instruction": "mlt de"
-  }
-} as const satisfies OpcodeVariant;
-
 // im 2
 const variant_ED_5E = {
   "mnemonic": "im",
@@ -29519,34 +28785,6 @@ const variant_ED_62 = {
   }
 } as const satisfies OpcodeVariant;
 
-// tst nn
-const variant_ED_64_nn = {
-  "mnemonic": "tst",
-  "params": [
-    "nn"
-  ],
-  "tokens": [
-    "nn"
-  ],
-  "opcodes": [
-    237,
-    100,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED64",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 3,
-    "with_jump_clock_count": 10,
-    "without_jump_clock_count": 10,
-    "description": "Calculates the bitwise AND of <var>nn</var> with A and affects flags according to the result. A is not modified.",
-    "instruction": "tst nn"
-  }
-} as const satisfies OpcodeVariant;
-
 // rrd 
 const variant_ED_67 = {
   "mnemonic": "rrd",
@@ -29725,33 +28963,6 @@ const variant_ED_6A = {
     "without_jump_clock_count": 15,
     "description": "Adds HL and the carry flag to HL.",
     "instruction": "adc hl,hl"
-  }
-} as const satisfies OpcodeVariant;
-
-// mlt hl
-const variant_ED_6C = {
-  "mnemonic": "mlt",
-  "params": [
-    "hl"
-  ],
-  "tokens": [
-    "hl"
-  ],
-  "opcodes": [
-    237,
-    108
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED6C",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 17,
-    "without_jump_clock_count": 17,
-    "description": "The contents of H and L are multiplied and stored in HL.",
-    "instruction": "mlt hl"
   }
 } as const satisfies OpcodeVariant;
 
@@ -29963,57 +29174,6 @@ const variant_ED_73_nnnn = {
   }
 } as const satisfies OpcodeVariant;
 
-// tstio nn
-const variant_ED_74_nn = {
-  "mnemonic": "tstio",
-  "params": [
-    "nn"
-  ],
-  "tokens": [
-    "nn"
-  ],
-  "opcodes": [
-    237,
-    116,
-    "nn"
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED74",
-    "undocumented": false,
-    "z180": true,
-    "flags": "00P1++",
-    "byte_count": 3,
-    "with_jump_clock_count": 12,
-    "without_jump_clock_count": 12,
-    "description": "Calculates the bitwise AND of <var>nn</var> with (C) and affects flags according to the result. (C) is not modified.",
-    "instruction": "tstio nn"
-  }
-} as const satisfies OpcodeVariant;
-
-// slp 
-const variant_ED_76 = {
-  "mnemonic": "slp",
-  "params": [],
-  "tokens": [],
-  "opcodes": [
-    237,
-    118
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED76",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 8,
-    "without_jump_clock_count": 8,
-    "description": "The CPU enters SLEEP mode.",
-    "instruction": "slp"
-  }
-} as const satisfies OpcodeVariant;
-
 // in a,(c)
 const variant_ED_78 = {
   "mnemonic": "in",
@@ -30202,125 +29362,6 @@ const variant_ED_7B_nnnn = {
     "without_jump_clock_count": 20,
     "description": "Loads the value pointed to by <var>nnnn</var> into SP.",
     "instruction": "ld sp,(nnnn)"
-  }
-} as const satisfies OpcodeVariant;
-
-// mlt sp
-const variant_ED_7C = {
-  "mnemonic": "mlt",
-  "params": [
-    "sp"
-  ],
-  "tokens": [
-    "sp"
-  ],
-  "opcodes": [
-    237,
-    124
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED7C",
-    "undocumented": false,
-    "z180": true,
-    "flags": "------",
-    "byte_count": 2,
-    "with_jump_clock_count": 17,
-    "without_jump_clock_count": 17,
-    "description": "The contents of SPH and SPL are multiplied and stored in SP.",
-    "instruction": "mlt sp"
-  }
-} as const satisfies OpcodeVariant;
-
-// otim 
-const variant_ED_83 = {
-  "mnemonic": "otim",
-  "params": [],
-  "tokens": [],
-  "opcodes": [
-    237,
-    131
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED83",
-    "undocumented": false,
-    "z180": true,
-    "flags": "+*P+*+",
-    "byte_count": 2,
-    "with_jump_clock_count": 14,
-    "without_jump_clock_count": 14,
-    "description": "B is decremented. A byte from the memory location pointed to by HL is written to the port at the 16-bit address contained in the BC register pair. Then HL and C are incremented.",
-    "instruction": "otim"
-  }
-} as const satisfies OpcodeVariant;
-
-// otdm 
-const variant_ED_8B = {
-  "mnemonic": "otdm",
-  "params": [],
-  "tokens": [],
-  "opcodes": [
-    237,
-    139
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED8B",
-    "undocumented": false,
-    "z180": true,
-    "flags": "+*P+*+",
-    "byte_count": 2,
-    "with_jump_clock_count": 14,
-    "without_jump_clock_count": 14,
-    "description": "B is decremented. A byte from the memory location pointed to by HL is written to the port at the 16-bit address contained in the BC register pair. Then HL and C are decremented.",
-    "instruction": "otdm"
-  }
-} as const satisfies OpcodeVariant;
-
-// otimr 
-const variant_ED_93 = {
-  "mnemonic": "otimr",
-  "params": [],
-  "tokens": [],
-  "opcodes": [
-    237,
-    147
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED93",
-    "undocumented": false,
-    "z180": true,
-    "flags": "0*1010",
-    "byte_count": 2,
-    "with_jump_clock_count": 16,
-    "without_jump_clock_count": 14,
-    "description": "B is decremented. A byte from the memory location pointed to by HL is written to the port at the 16-bit address contained in the BC register pair. Then HL and C are incremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "otimr"
-  }
-} as const satisfies OpcodeVariant;
-
-// otdmr 
-const variant_ED_9B = {
-  "mnemonic": "otdmr",
-  "params": [],
-  "tokens": [],
-  "opcodes": [
-    237,
-    155
-  ],
-  "isPseudo": false,
-  "clr": {
-    "opcodes": "ED9B",
-    "undocumented": false,
-    "z180": true,
-    "flags": "0*1010",
-    "byte_count": 2,
-    "with_jump_clock_count": 16,
-    "without_jump_clock_count": 14,
-    "description": "B is decremented. A byte from the memory location pointed to by HL is written to the port at the 16-bit address contained in the BC register pair. Then HL and C are decremented. If B is not zero, this operation is repeated. Interrupts can trigger while this instruction is processing.",
-    "instruction": "otdmr"
   }
 } as const satisfies OpcodeVariant;
 
@@ -47800,6 +46841,154 @@ const variant_DD_CB_dd_7F = {
   }
 } as const satisfies OpcodeVariant;
 
+// neg 
+const variant_ED_4C = {
+  "mnemonic": "neg",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    76
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_44,
+  "clr": {
+    "opcodes": "ED4C",
+    "undocumented": true,
+    "z180": false,
+    "flags": "+1V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
+    "instruction": "neg"
+  }
+} as const satisfies OpcodeVariant;
+
+// im 0
+const variant_ED_4E = {
+  "mnemonic": "im",
+  "params": [
+    "0"
+  ],
+  "tokens": [
+    "0"
+  ],
+  "opcodes": [
+    237,
+    78
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_46,
+  "clr": {
+    "opcodes": "ED4E",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Sets interrupt mode 0.",
+    "instruction": "im 0"
+  }
+} as const satisfies OpcodeVariant;
+
+// neg 
+const variant_ED_54 = {
+  "mnemonic": "neg",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    84
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_44,
+  "clr": {
+    "opcodes": "ED54",
+    "undocumented": true,
+    "z180": false,
+    "flags": "+1V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
+    "instruction": "neg"
+  }
+} as const satisfies OpcodeVariant;
+
+// retn 
+const variant_ED_55 = {
+  "mnemonic": "retn",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    85
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED55",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
+} as const satisfies OpcodeVariant;
+
+// neg 
+const variant_ED_5C = {
+  "mnemonic": "neg",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    92
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_44,
+  "clr": {
+    "opcodes": "ED5C",
+    "undocumented": true,
+    "z180": false,
+    "flags": "+1V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
+    "instruction": "neg"
+  }
+} as const satisfies OpcodeVariant;
+
+// retn 
+const variant_ED_5D = {
+  "mnemonic": "retn",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    93
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED5D",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
+} as const satisfies OpcodeVariant;
+
 // ld (nnnn),hl
 const variant_ED_63_nnnn = {
   "mnemonic": "ld",
@@ -47834,6 +47023,82 @@ const variant_ED_63_nnnn = {
   }
 } as const satisfies OpcodeVariant;
 
+// neg 
+const variant_ED_64 = {
+  "mnemonic": "neg",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    100
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_44,
+  "clr": {
+    "opcodes": "ED64",
+    "undocumented": true,
+    "z180": false,
+    "flags": "+1V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
+    "instruction": "neg"
+  }
+} as const satisfies OpcodeVariant;
+
+// retn 
+const variant_ED_65 = {
+  "mnemonic": "retn",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    101
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED65",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
+} as const satisfies OpcodeVariant;
+
+// im 0
+const variant_ED_66 = {
+  "mnemonic": "im",
+  "params": [
+    "0"
+  ],
+  "tokens": [
+    "0"
+  ],
+  "opcodes": [
+    237,
+    102
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_46,
+  "clr": {
+    "opcodes": "ED66",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Sets interrupt mode 0.",
+    "instruction": "im 0"
+  }
+} as const satisfies OpcodeVariant;
+
 // ld hl,(nnnn)
 const variant_ED_6B_nnnn = {
   "mnemonic": "ld",
@@ -47865,6 +47130,234 @@ const variant_ED_6B_nnnn = {
     "without_jump_clock_count": 20,
     "description": "Loads the value pointed to by <var>nnnn</var> into HL.",
     "instruction": "ld hl,(nnnn)"
+  }
+} as const satisfies OpcodeVariant;
+
+// neg 
+const variant_ED_6C = {
+  "mnemonic": "neg",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    108
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_44,
+  "clr": {
+    "opcodes": "ED6C",
+    "undocumented": true,
+    "z180": false,
+    "flags": "+1V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
+    "instruction": "neg"
+  }
+} as const satisfies OpcodeVariant;
+
+// retn 
+const variant_ED_6D = {
+  "mnemonic": "retn",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    109
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED6D",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
+} as const satisfies OpcodeVariant;
+
+// im 0
+const variant_ED_6E = {
+  "mnemonic": "im",
+  "params": [
+    "0"
+  ],
+  "tokens": [
+    "0"
+  ],
+  "opcodes": [
+    237,
+    110
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_46,
+  "clr": {
+    "opcodes": "ED6E",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Sets interrupt mode 0.",
+    "instruction": "im 0"
+  }
+} as const satisfies OpcodeVariant;
+
+// neg 
+const variant_ED_74 = {
+  "mnemonic": "neg",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    116
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_44,
+  "clr": {
+    "opcodes": "ED74",
+    "undocumented": true,
+    "z180": false,
+    "flags": "+1V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
+    "instruction": "neg"
+  }
+} as const satisfies OpcodeVariant;
+
+// retn 
+const variant_ED_75 = {
+  "mnemonic": "retn",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    117
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED75",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
+} as const satisfies OpcodeVariant;
+
+// im 1
+const variant_ED_76 = {
+  "mnemonic": "im",
+  "params": [
+    "1"
+  ],
+  "tokens": [
+    "1"
+  ],
+  "opcodes": [
+    237,
+    118
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_56,
+  "clr": {
+    "opcodes": "ED76",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Sets interrupt mode 1.",
+    "instruction": "im 1"
+  }
+} as const satisfies OpcodeVariant;
+
+// neg 
+const variant_ED_7C = {
+  "mnemonic": "neg",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    124
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_44,
+  "clr": {
+    "opcodes": "ED7C",
+    "undocumented": true,
+    "z180": false,
+    "flags": "+1V+++",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "The contents of A are negated (two's complement). Operation is the same as subtracting A from zero.",
+    "instruction": "neg"
+  }
+} as const satisfies OpcodeVariant;
+
+// retn 
+const variant_ED_7D = {
+  "mnemonic": "retn",
+  "params": [],
+  "tokens": [],
+  "opcodes": [
+    237,
+    125
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_45,
+  "clr": {
+    "opcodes": "ED7D",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 14,
+    "without_jump_clock_count": 14,
+    "description": "Used at the end of a non-maskable interrupt service routine (located at 0066h) to pop the top stack entry into PC. The value of IFF2 is copied to IFF1 so that maskable interrupts are allowed to continue as before. NMIs are not enabled on the TI.",
+    "instruction": "retn"
+  }
+} as const satisfies OpcodeVariant;
+
+// im 2
+const variant_ED_7E = {
+  "mnemonic": "im",
+  "params": [
+    "2"
+  ],
+  "tokens": [
+    "2"
+  ],
+  "opcodes": [
+    237,
+    126
+  ],
+  "isPseudo": false,
+  "aliasOf": variant_ED_5E,
+  "clr": {
+    "opcodes": "ED7E",
+    "undocumented": true,
+    "z180": false,
+    "flags": "------",
+    "byte_count": 2,
+    "with_jump_clock_count": 8,
+    "without_jump_clock_count": 8,
+    "description": "Sets interrupt mode 2.",
+    "instruction": "im 2"
   }
 } as const satisfies OpcodeVariant;
 
@@ -53918,18 +53411,6 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
     ],
   ],
   [
-    "in0",
-    [
-      variant_ED_00_nn, // in0 b,(nn)
-      variant_ED_08_nn, // in0 c,(nn)
-      variant_ED_10_nn, // in0 d,(nn)
-      variant_ED_18_nn, // in0 e,(nn)
-      variant_ED_20_nn, // in0 h,(nn)
-      variant_ED_28_nn, // in0 l,(nn)
-      variant_ED_38_nn, // in0 a,(nn)
-    ],
-  ],
-  [
     "inc",
     [
       variant_03, // inc bc
@@ -54232,15 +53713,6 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
     ],
   ],
   [
-    "mlt",
-    [
-      variant_ED_4C, // mlt bc
-      variant_ED_5C, // mlt de
-      variant_ED_6C, // mlt hl
-      variant_ED_7C, // mlt sp
-    ],
-  ],
-  [
     "neg",
     [
       variant_ED_44, // neg 
@@ -54288,33 +53760,9 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
     ],
   ],
   [
-    "otdm",
-    [
-      variant_ED_8B, // otdm 
-    ],
-  ],
-  [
-    "otdmr",
-    [
-      variant_ED_9B, // otdmr 
-    ],
-  ],
-  [
     "otdr",
     [
       variant_ED_BB, // otdr 
-    ],
-  ],
-  [
-    "otim",
-    [
-      variant_ED_83, // otim 
-    ],
-  ],
-  [
-    "otimr",
-    [
-      variant_ED_93, // otimr 
     ],
   ],
   [
@@ -54344,18 +53792,6 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_ED_71_pseudo, // out (bc),0
       variant_ED_79, // out (c),a
       variant_ED_79_pseudo, // out (bc),a
-    ],
-  ],
-  [
-    "out0",
-    [
-      variant_ED_01_nn, // out0 (nn),b
-      variant_ED_09_nn, // out0 (nn),c
-      variant_ED_11_nn, // out0 (nn),d
-      variant_ED_19_nn, // out0 (nn),e
-      variant_ED_21_nn, // out0 (nn),h
-      variant_ED_29_nn, // out0 (nn),l
-      variant_ED_39_nn, // out0 (nn),a
     ],
   ],
   [
@@ -55083,12 +54519,6 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
     ],
   ],
   [
-    "slp",
-    [
-      variant_ED_76, // slp 
-    ],
-  ],
-  [
     "sra",
     [
       variant_CB_28, // sra b
@@ -55179,26 +54609,6 @@ export const mnemonicMap = new Map<string,OpcodeVariant[]>([
       variant_FD_95_pseudo, // sub a,iyl
       variant_FD_96_dd, // sub (iy+dd)
       variant_FD_96_dd_pseudo, // sub a,(iy+dd)
-    ],
-  ],
-  [
-    "tst",
-    [
-      variant_ED_04, // tst b
-      variant_ED_0C, // tst c
-      variant_ED_14, // tst d
-      variant_ED_1C, // tst e
-      variant_ED_24, // tst h
-      variant_ED_2C, // tst l
-      variant_ED_34, // tst (hl)
-      variant_ED_3C, // tst a
-      variant_ED_64_nn, // tst nn
-    ],
-  ],
-  [
-    "tstio",
-    [
-      variant_ED_74_nn, // tstio nn
     ],
   ],
   [
@@ -56159,28 +55569,6 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
   [ 0xEB, variant_EB ], // ex de,hl
   [ 0xEC, variant_EC_nnnn ], // call pe,nnnn
   [ 0xED, new Map<number,OpcodeVariant | OpcodeMap>([
-    [ 0x00, variant_ED_00_nn ], // in0 b,(nn)
-    [ 0x01, variant_ED_01_nn ], // out0 (nn),b
-    [ 0x04, variant_ED_04 ], // tst b
-    [ 0x08, variant_ED_08_nn ], // in0 c,(nn)
-    [ 0x09, variant_ED_09_nn ], // out0 (nn),c
-    [ 0x0C, variant_ED_0C ], // tst c
-    [ 0x10, variant_ED_10_nn ], // in0 d,(nn)
-    [ 0x11, variant_ED_11_nn ], // out0 (nn),d
-    [ 0x14, variant_ED_14 ], // tst d
-    [ 0x18, variant_ED_18_nn ], // in0 e,(nn)
-    [ 0x19, variant_ED_19_nn ], // out0 (nn),e
-    [ 0x1C, variant_ED_1C ], // tst e
-    [ 0x20, variant_ED_20_nn ], // in0 h,(nn)
-    [ 0x21, variant_ED_21_nn ], // out0 (nn),h
-    [ 0x24, variant_ED_24 ], // tst h
-    [ 0x28, variant_ED_28_nn ], // in0 l,(nn)
-    [ 0x29, variant_ED_29_nn ], // out0 (nn),l
-    [ 0x2C, variant_ED_2C ], // tst l
-    [ 0x34, variant_ED_34 ], // tst (hl)
-    [ 0x38, variant_ED_38_nn ], // in0 a,(nn)
-    [ 0x39, variant_ED_39_nn ], // out0 (nn),a
-    [ 0x3C, variant_ED_3C ], // tst a
     [ 0x40, variant_ED_40 ], // in b,(c)
     [ 0x41, variant_ED_41 ], // out (c),b
     [ 0x42, variant_ED_42 ], // sbc hl,bc
@@ -56193,49 +55581,56 @@ export const opcodeMap = new Map<number,OpcodeVariant | OpcodeMap>([
     [ 0x49, variant_ED_49 ], // out (c),c
     [ 0x4A, variant_ED_4A ], // adc hl,bc
     [ 0x4B, variant_ED_4B_nnnn ], // ld bc,(nnnn)
-    [ 0x4C, variant_ED_4C ], // mlt bc
+    [ 0x4C, variant_ED_4C ], // neg  (alias of variant_ED_44)
     [ 0x4D, variant_ED_4D ], // reti 
+    [ 0x4E, variant_ED_4E ], // im 0 (alias of variant_ED_46)
     [ 0x4F, variant_ED_4F ], // ld r,a
     [ 0x50, variant_ED_50 ], // in d,(c)
     [ 0x51, variant_ED_51 ], // out (c),d
     [ 0x52, variant_ED_52 ], // sbc hl,de
     [ 0x53, variant_ED_53_nnnn ], // ld (nnnn),de
+    [ 0x54, variant_ED_54 ], // neg  (alias of variant_ED_44)
+    [ 0x55, variant_ED_55 ], // retn  (alias of variant_ED_45)
     [ 0x56, variant_ED_56 ], // im 1
     [ 0x57, variant_ED_57 ], // ld a,i
     [ 0x58, variant_ED_58 ], // in e,(c)
     [ 0x59, variant_ED_59 ], // out (c),e
     [ 0x5A, variant_ED_5A ], // adc hl,de
     [ 0x5B, variant_ED_5B_nnnn ], // ld de,(nnnn)
-    [ 0x5C, variant_ED_5C ], // mlt de
+    [ 0x5C, variant_ED_5C ], // neg  (alias of variant_ED_44)
+    [ 0x5D, variant_ED_5D ], // retn  (alias of variant_ED_45)
     [ 0x5E, variant_ED_5E ], // im 2
     [ 0x5F, variant_ED_5F ], // ld a,r
     [ 0x60, variant_ED_60 ], // in h,(c)
     [ 0x61, variant_ED_61 ], // out (c),h
     [ 0x62, variant_ED_62 ], // sbc hl,hl
     [ 0x63, variant_ED_63_nnnn ], // ld (nnnn),hl (alias of variant_22_nnnn)
-    [ 0x64, variant_ED_64_nn ], // tst nn
+    [ 0x64, variant_ED_64 ], // neg  (alias of variant_ED_44)
+    [ 0x65, variant_ED_65 ], // retn  (alias of variant_ED_45)
+    [ 0x66, variant_ED_66 ], // im 0 (alias of variant_ED_46)
     [ 0x67, variant_ED_67 ], // rrd 
     [ 0x68, variant_ED_68 ], // in l,(c)
     [ 0x69, variant_ED_69 ], // out (c),l
     [ 0x6A, variant_ED_6A ], // adc hl,hl
     [ 0x6B, variant_ED_6B_nnnn ], // ld hl,(nnnn) (alias of variant_2A_nnnn)
-    [ 0x6C, variant_ED_6C ], // mlt hl
+    [ 0x6C, variant_ED_6C ], // neg  (alias of variant_ED_44)
+    [ 0x6D, variant_ED_6D ], // retn  (alias of variant_ED_45)
+    [ 0x6E, variant_ED_6E ], // im 0 (alias of variant_ED_46)
     [ 0x6F, variant_ED_6F ], // rld 
     [ 0x70, variant_ED_70 ], // in (c)
     [ 0x71, variant_ED_71 ], // out (c),0
     [ 0x72, variant_ED_72 ], // sbc hl,sp
     [ 0x73, variant_ED_73_nnnn ], // ld (nnnn),sp
-    [ 0x74, variant_ED_74_nn ], // tstio nn
-    [ 0x76, variant_ED_76 ], // slp 
+    [ 0x74, variant_ED_74 ], // neg  (alias of variant_ED_44)
+    [ 0x75, variant_ED_75 ], // retn  (alias of variant_ED_45)
+    [ 0x76, variant_ED_76 ], // im 1 (alias of variant_ED_56)
     [ 0x78, variant_ED_78 ], // in a,(c)
     [ 0x79, variant_ED_79 ], // out (c),a
     [ 0x7A, variant_ED_7A ], // adc hl,sp
     [ 0x7B, variant_ED_7B_nnnn ], // ld sp,(nnnn)
-    [ 0x7C, variant_ED_7C ], // mlt sp
-    [ 0x83, variant_ED_83 ], // otim 
-    [ 0x8B, variant_ED_8B ], // otdm 
-    [ 0x93, variant_ED_93 ], // otimr 
-    [ 0x9B, variant_ED_9B ], // otdmr 
+    [ 0x7C, variant_ED_7C ], // neg  (alias of variant_ED_44)
+    [ 0x7D, variant_ED_7D ], // retn  (alias of variant_ED_45)
+    [ 0x7E, variant_ED_7E ], // im 2 (alias of variant_ED_5E)
     [ 0xA0, variant_ED_A0 ], // ldi 
     [ 0xA1, variant_ED_A1 ], // cpi 
     [ 0xA2, variant_ED_A2 ], // ini 

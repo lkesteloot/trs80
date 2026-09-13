@@ -943,12 +943,6 @@ function generateDispatch(opcodeMap: OpcodeMap,
         const hexOpcode = toHex(opcode, 2);
         const setter = mapName + ".set(0x" + hexOpcode + ", ";
 
-        if (!(value instanceof Map) && value.clr?.z180 === true) {
-            // Z180-only instruction (such as IN0 and MLT). The Z80 doesn't have these, so leave
-            // them out, as we did before z80-inst listed them.
-            continue;
-        }
-
         if (!(value instanceof Map) && value.aliasOf !== undefined) {
             // Don't handle aliases here, they're done at the very end.
             aliases.push({
@@ -1352,37 +1346,6 @@ function generateSource(dispatchMap: Map<string, string>,
     fs.writeFileSync("src/Decode.ts", template);
 }
 
-// Undocumented ED opcodes that mirror NEG, RETN, and IM on the Z80. z80-inst doesn't list
-// them (it has the Z180 instructions for some of these opcodes), so map each mirror opcode
-// to the opcode it copies.
-const ED_MIRRORS: [number, number][] = [
-    [0x4C, 0x44], [0x54, 0x44], [0x5C, 0x44], [0x64, 0x44], [0x6C, 0x44], [0x74, 0x44], [0x7C, 0x44], // NEG
-    [0x55, 0x45], [0x5D, 0x45], [0x65, 0x45], [0x6D, 0x45], [0x75, 0x45], [0x7D, 0x45], // RETN
-    [0x4E, 0x46], [0x66, 0x46], [0x6E, 0x46], // IM 0
-    [0x76, 0x56], // IM 1
-    [0x7E, 0x5E], // IM 2
-];
-
-/**
- * Add the undocumented ED mirror opcodes to the list of aliases.
- */
-function addEdMirrors(aliases: ResolvedAlias[]): void {
-    const edMap = opcodeMap.get(0xED);
-    if (!(edMap instanceof Map)) {
-        throw new Error("Can't find ED map");
-    }
-    for (const [mirror, original] of ED_MIRRORS) {
-        const variant = edMap.get(original);
-        if (variant === undefined || variant instanceof Map) {
-            throw new Error("Can't find ED " + toHex(original, 2));
-        }
-        aliases.push({
-            setter: "decodeMapED.set(0x" + toHex(mirror, 2) + ", ",
-            canonicalVariant: variant,
-        });
-    }
-}
-
 /**
  * Create the "Decode.ts" file from all Z80 instructions.
  */
@@ -1395,7 +1358,6 @@ function generateOpcodes(): void {
     const aliases: ResolvedAlias[] = [];
 
     generateDispatch(opcodeMap, dispatchMap, variantMap, aliases, "base");
-    addEdMirrors(aliases);
     generateSource(dispatchMap, generateAliasCode(aliases, variantMap));
 }
 

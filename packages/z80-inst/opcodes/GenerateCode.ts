@@ -480,6 +480,40 @@ function detectAliases(mnemonics: Mnemonics) {
     }
 }
 
+// Undocumented ED opcodes that mirror NEG, RETN, and IM on the Z80. clr.json only lists
+// the documented opcode for each, so we add the others, and detectAliases() makes them
+// aliases of the documented ones.
+const ED_MIRRORS: [number, number][] = [
+    [0x4C, 0x44], [0x54, 0x44], [0x5C, 0x44], [0x64, 0x44], [0x6C, 0x44], [0x74, 0x44], [0x7C, 0x44], // NEG
+    [0x55, 0x45], [0x5D, 0x45], [0x65, 0x45], [0x6D, 0x45], [0x75, 0x45], [0x7D, 0x45], // RETN
+    [0x4E, 0x46], [0x66, 0x46], [0x6E, 0x46], // IM 0
+    [0x76, 0x56], // IM 1
+    [0x7E, 0x5E], // IM 2
+];
+
+/**
+ * Add the undocumented ED opcodes that mirror documented ones.
+ */
+function addEdMirrors(mnemonics: Mnemonics): void {
+    for (const [mirror, original] of ED_MIRRORS) {
+        const variant = Object.values(mnemonics)
+            .flatMap(mnemonicInfo => mnemonicInfo.variants)
+            .find(v => !v.isPseudo && v.opcodes.length === 2 && v.opcodes[0] === 0xED && v.opcodes[1] === original);
+        if (variant === undefined) {
+            throw new Error("Can't find ED " + toHexByte(original));
+        }
+        mnemonics[variant.mnemonic].variants.push({
+            ...variant,
+            opcodes: [0xED, mirror],
+            clr: {
+                ...variant.clr,
+                opcodes: "ED" + toHexByte(mirror),
+                undocumented: true,
+            },
+        });
+    }
+}
+
 /**
  * Make sure that no empty Clr instructions made it through.
  */
@@ -653,11 +687,15 @@ function generateOpcodes(): void {
     const opcodesDir = scriptDir;
     const clr = JSON.parse(fs.readFileSync(path.join(opcodesDir, "clr.json"), "utf-8")) as ClrFile;
 
+    // We only handle the Z80, so drop the Z180's additional instructions.
+    clr.instructions = clr.instructions.filter(instruction => !instruction.z180);
+
     // Read the opcodes text files and generate all variants.
     const mnemonics: Mnemonics = {
         // To be filled in later.
     };
     parseClr(clr, mnemonics);
+    addEdMirrors(mnemonics);
     addPseudoInstructions(mnemonics);
     detectAliases(mnemonics);
     checkEmptyClr(mnemonics);
