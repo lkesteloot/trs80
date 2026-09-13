@@ -59,10 +59,12 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - `trs80-tool/src/version.ts` comes from the tool's `package.json` version and
   is committed.
 - z80-inst's generator (`npm run generate`) writes `src/Opcodes.ts`, which is committed.
-- z80-emulator's generator (`npm run generate`) is broken: it fails with "sub
-  requires two params", probably since z80-inst added shorthand forms like
-  `sub c`. The generated `Decode.ts` is committed and correct, so only fix this
-  if an opcode change needs it.
+- z80-emulator's generator (`npm run generate`) writes `src/Decode.ts` from
+  z80-inst's table, and the result is committed. After regenerating z80-inst,
+  regenerate z80-emulator too.
+- z80-inst only covers the Z80: its generator drops the Z180 instructions in
+  `clr.json`, and adds the undocumented ED mirrors of NEG, RETN, and IM, which
+  `clr.json` lacks.
 - retrostore-api's `copy-proto` script copies from a hard-coded path on the
   user's machine.
 
