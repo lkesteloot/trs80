@@ -184,15 +184,21 @@
             the <code>--system</code> option.</p>
 
             <h3 id="info"><code>info</code></h3>
+
             <p>The <code>info</code> command takes a list of filenames and displays a one-line
             description of the contents of the file, such as its type (system
             program, Basic program) and, if known, the embedded filename.</p>
-            <div><pre><code>% trs80-tool info in1.cmd in2.bas in3.cas in4.wav</code></pre>
-            </div>
+
+            <div><pre><code>% trs80-tool info in1.cmd in2.bas in3.cas in4.wav</code></pre></div>
+
             <p>The <code>--verbose</code> flag displays some information (like floppy geometry) for
             some file types:</p>
-            <div><pre><code>% trs80-tool info --verbose in1.dmk in2.dsk</code></pre>
-            </div>
+
+            <div><pre><code>% trs80-tool info --verbose in1.dmk in2.dsk</code></pre> </div>
+
+            <p>The <code>--json</code> flag dumps (almost) everything we know about the
+            file in JSON format. This is currently used as part of a regressions suite
+            for floppies, but may also be useful to an AI agent.</p>
 
             <h3 id="convert"><code>convert</code></h3>
             <p>The <code>convert</code> command converts a list of input files to an output file or
@@ -464,6 +470,12 @@ C CRC error (ID or data).
                  changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
                  the app's name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
+
+            <h3 id="2026-09-14">September 14, 2026</h3>
+            <ul>
+                <li><code>trs80-tool</code> v2.9.1: Added a <code>--json</code> flag
+                    to the <a href="#info"><code>info</code></a> command.</li>
+            </ul>
 
             <h3 id="2026-09-09">September 9, 2026</h3>
             <ul>
