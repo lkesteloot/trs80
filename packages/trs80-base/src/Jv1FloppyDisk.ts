@@ -1,4 +1,4 @@
-import { TRS80_FLOPPY_LOGGER } from "trs80-logger";
+import {TRS80_FLOPPY_LOGGER} from "trs80-logger";
 import {
     BYTES_PER_SECTOR,
     Density,
@@ -6,17 +6,19 @@ import {
     FloppyDiskGeometry,
     FloppyWrite,
     SectorData,
-    Side,
-    TrackGeometry
+    SectorInfo, SectorPosition,
+    Side
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
 const SECTORS_PER_TRACK = 10;
 const BYTES_PER_TRACK = BYTES_PER_SECTOR * SECTORS_PER_TRACK;
-const DIRECTORY_TRACK = 17;
+const DIRECTORY_CYLINDER = 17;
 
 /**
  * Floppy disk in the JV1 format.
+ *
+ * www.tim-mann.org/trs80/dskspec.html
  */
 export class Jv1FloppyDisk extends FloppyDisk {
     public readonly className = "Jv1FloppyDisk";
@@ -27,39 +29,25 @@ export class Jv1FloppyDisk extends FloppyDisk {
 
         // Figure out geometry.
         const sectorCount = binary.length / BYTES_PER_SECTOR;
-        let sideCount: number;
-        let density: Density;
-        if (sectorCount <= 40*10*1) {
-            // Single sided, 40 tracks, 10 sectors per track.
-            density = Density.SINGLE;
-            sideCount = 1;
-        } else if (sectorCount <= 40*18*1) {
-            // Single sided, 40 tracks, 18 sectors per track.
-            density = Density.DOUBLE;
-            sideCount = 1;
-        } else if (sectorCount <= 40*10*2) {
-            // Double sided, 40 tracks, 10 sectors per track.
-            density = Density.SINGLE;
-            sideCount = 2;
-        } else {
-            // Double sided, 40 tracks, 18 sectors per track.
-            density = Density.DOUBLE;
-            sideCount = 2;
-        }
-        const sectorsPerTrack = density === Density.SINGLE ? 10 : 18;
-        const trackCount = Math.floor(sectorCount / sideCount / sectorsPerTrack);
+        const sideCount = 1;
+        const density = Density.SINGLE;
+        const cylinderCount = Math.floor(sectorCount / sideCount / SECTORS_PER_TRACK);
 
-        this.geometry = new FloppyDiskGeometry(
-            new TrackGeometry(
-                0,
-                0, sideCount - 1,
-                0, sectorsPerTrack - 1,
-                BYTES_PER_SECTOR, density),
-            new TrackGeometry(
-                trackCount - 1,
-                0, sideCount - 1,
-                0, sectorsPerTrack - 1,
-                BYTES_PER_SECTOR, density));
+        const sectorInfos: SectorInfo[] = [];
+        for (let i = 0; i < sectorCount; i++) {
+            const cylinderNumber = Math.floor(i / SECTORS_PER_TRACK);
+            // 0-based on JV1.
+            const sectorNumber = i % SECTORS_PER_TRACK;
+            const sectorPosition = new SectorPosition(cylinderNumber, Side.FRONT, sectorNumber);
+            const sectorInfo = new SectorInfo(sectorPosition, density, BYTES_PER_SECTOR);
+            if (cylinderNumber === DIRECTORY_CYLINDER) {
+                // Directory sectors are marked as deleted in TRSDOS 2.3.
+                sectorInfo.deleted = true;
+            }
+            sectorInfos.push(sectorInfo);
+        }
+
+        this.geometry = new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos);
     }
 
     public getDescription(): string {
@@ -76,54 +64,62 @@ export class Jv1FloppyDisk extends FloppyDisk {
         return this.mountedWriteProtected;
     }
 
-    public readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
-        TRS80_FLOPPY_LOGGER.trace(`JV1: Reading sector ${trackNumber}:${side}:${sectorNumber}`);
-
-        sectorNumber = sectorNumber ?? 0;
+    public readSector(sectorPosition: SectorPosition): SectorData | undefined {
+        TRS80_FLOPPY_LOGGER.trace(`JV1: Reading sector ${sectorPosition.toString()}`);
 
         // Check for errors.
-        if (trackNumber < 0 ||
-            side === Side.BACK ||
-            sectorNumber >= SECTORS_PER_TRACK) {
-
+        if (!this.isValidSectorPosition(sectorPosition)) {
             return undefined;
         }
 
         // Offset straight into data.
-        const offset = (SECTORS_PER_TRACK*trackNumber + sectorNumber)*BYTES_PER_SECTOR;
-        if (offset >= this.binary.length) {
+        const offset = this.getSectorPositionOffset(sectorPosition);
+        if (offset + BYTES_PER_SECTOR > this.binary.length) {
             return undefined;
         }
 
         const data = this.padSector(this.binary.subarray(offset, offset + BYTES_PER_SECTOR), BYTES_PER_SECTOR);
 
-        const sectorData = new SectorData(data, Density.SINGLE, trackNumber, side, sectorNumber);
-        if (trackNumber === DIRECTORY_TRACK) {
-            // Directory sectors are marked as deleted in TRSDOS.
+        const sectorData = new SectorData(data, sectorPosition, Density.SINGLE);
+        if (sectorPosition.cylinderNumber === DIRECTORY_CYLINDER) {
+            // Directory sectors are marked as deleted in TRSDOS 2.3.
             sectorData.deleted = true;
         }
 
         return sectorData;
     }
 
-    public writeSector(trackNumber: number, side: Side,
-                       sectorNumber: number, data: SectorData): void {
-
-        if (trackNumber < 0 ||
-            side === Side.BACK ||
-            sectorNumber >= SECTORS_PER_TRACK ||
-            data.data.length !== BYTES_PER_SECTOR) {
-
+    public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
+        // Check for errors.
+        if (!this.isValidSectorPosition(sectorPosition) || data.data.length !== BYTES_PER_SECTOR) {
             throw new Error("invalid write sector parameter");
         }
 
         // Offset straight into data.
-        const offset = (SECTORS_PER_TRACK*trackNumber + sectorNumber)*BYTES_PER_SECTOR;
-        if (offset > this.binary.length - BYTES_PER_SECTOR) {
+        const offset = this.getSectorPositionOffset(sectorPosition);
+        if (offset + BYTES_PER_SECTOR > this.binary.length) {
             throw new Error("binary too short for sector write");
         }
 
         this.write(new FloppyWrite(data.data, offset));
+    }
+
+    /**
+     * Whether the sector position is within range for this disk.
+     */
+    private isValidSectorPosition(sectorPosition: SectorPosition): boolean {
+        return sectorPosition.cylinderNumber >= 0 &&
+            sectorPosition.cylinderNumber < this.geometry.cylinderCount &&
+            sectorPosition.side === Side.FRONT &&
+            sectorPosition.sectorNumber >= 0 &&
+            sectorPosition.sectorNumber < SECTORS_PER_TRACK;
+    }
+
+    /**
+     * Get the offset within the file of this sector.
+     */
+    private getSectorPositionOffset(sectorPosition: SectorPosition): number {
+        return (SECTORS_PER_TRACK*sectorPosition.cylinderNumber + sectorPosition.sectorNumber)*BYTES_PER_SECTOR;
     }
 }
 
@@ -134,16 +130,16 @@ export function decodeJv1FloppyDisk(binary: Uint8Array): Jv1FloppyDisk | undefin
     const annotations: ProgramAnnotation[] = [];
     const length = binary.length;
 
-    // Magic number check. Length check.
-    if (length < 2 || binary[0] !== 0x00 || binary[1] !== 0xFE || length % BYTES_PER_TRACK !== 0) {
+    // Length check.
+    if (length > 0 && length % BYTES_PER_TRACK !== 0) {
         return undefined;
     }
 
     // Create annotations.
     for (let byteOffset = 0; byteOffset < length; byteOffset += BYTES_PER_SECTOR) {
-        const track = Math.floor(byteOffset/BYTES_PER_TRACK);
-        const sector = (byteOffset - track*BYTES_PER_TRACK)/BYTES_PER_SECTOR;
-        annotations.push(new ProgramAnnotation("Track " + track + ", sector " + sector,
+        const cylinderNumber = Math.floor(byteOffset/BYTES_PER_TRACK);
+        const sectorNumber = (byteOffset - cylinderNumber*BYTES_PER_TRACK)/BYTES_PER_SECTOR;
+        annotations.push(new ProgramAnnotation("Cylinder " + cylinderNumber + ", sector " + sectorNumber,
             byteOffset, Math.min(byteOffset + BYTES_PER_SECTOR, length)));
     }
 

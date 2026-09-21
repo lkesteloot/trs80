@@ -6,7 +6,7 @@
  * https://hansotten.file-hunter.com/technical-info/wd1793/
  */
 
-import {Density, FloppyDisk, SectorData, Side} from "trs80-base";
+import {Density, FloppyDisk, SectorData, SectorPosition, Side} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Machine} from "./Machine.js";
 import {toHexByte} from "z80-base";
@@ -608,7 +608,7 @@ export class FloppyDiskController {
 
                 const sectorData = drive.floppyDisk === undefined
                     ? undefined
-                    : drive.floppyDisk.readSector(drive.physicalTrack, this.side, this.sector);
+                    : drive.floppyDisk.readSector(new SectorPosition(drive.physicalTrack, this.side, this.sector));
 
                 if (sectorData === undefined) {
                     this.machine.eventScheduler.add(EventType.DISK_DONE, this.machine.tStateCount + 512,
@@ -617,7 +617,7 @@ export class FloppyDiskController {
                 } else {
                     let newStatus = 0;
                     // TODO use C flag to also check side if requested.
-                    if (sectorData.trackNumber !== this.track || sectorData.sectorNumber !== this.sector) {
+                    if (sectorData.sectorPosition.cylinderNumber !== this.track || sectorData.sectorPosition.sectorNumber !== this.sector) {
                         newStatus |= STATUS_NOT_FOUND;
                     } else {
                         if (sectorData.deleted) {
@@ -804,8 +804,10 @@ export class FloppyDiskController {
         } else if (drive.physicalTrack !== this.track) {
             this.status |= STATUS_SEEK_ERROR;
         } else {
-            // Make sure a sector exists on this track.
-            const sectorData = drive.floppyDisk.readSector(this.track, Side.FRONT, undefined);
+            // Make sure a sector exists on this track. Sector 1 almost certainly exists. If this causes
+            // problems, we can iterate from 0 to 20 or something.
+            const sectorPosition = new SectorPosition(this.track, Side.FRONT, 1);
+            const sectorData = drive.floppyDisk.readSector(sectorPosition);
             if (sectorData === undefined) {
                 this.status |= STATUS_NOT_FOUND;
             }

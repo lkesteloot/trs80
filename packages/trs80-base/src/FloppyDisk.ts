@@ -43,12 +43,78 @@ export const SIDE_COUNT_TO_SIDES: { [sideCount in 1|2]: Side[] } = {
 };
 
 /**
+ * Generates a string of the form "cylinder:side:sector", like "4:0:9", usable for error messages
+ * or map keys.
+ */
+export function sectorPositionString(cylinderNumber: number, side: Side, sectorNumber: number): string {
+    return `${cylinderNumber}:${side}:${sectorNumber}`;
+}
+
+/**
  * Structure to keep track of a specific sector position on a disk.
  */
-export interface SectorPosition {
-    trackNumber: number,
-    side: Side,
-    sectorNumber: number
+export class SectorPosition {
+    /**
+     * A cylinder is the set of all the tracks that are "on top" of one another. On a floppy, a cylinder
+     * will have 1 or 2 tracks. Cylinder numbering is zero-based.
+     */
+    public readonly cylinderNumber: number;
+    /**
+     * Which side this sector is on.
+     */
+    public readonly side: Side;
+    /**
+     * The sector number within the track. This is numbered from 1 on TRSDOS 1.3-based systems, and from
+     * 0 on the others. (Sectors mark their own numbers on the floppy, so they're labels not indices.)
+     */
+    public readonly sectorNumber: number;
+
+    constructor(cylinderNumber: number, side: Side, sectorNumber: number) {
+        this.cylinderNumber = cylinderNumber;
+        this.side = side;
+        this.sectorNumber = sectorNumber;
+    }
+
+    /**
+     * Whether this position is plausible on a floppy.
+     */
+    public isPlausible(): boolean {
+        // Conservative numbers.
+        return this.cylinderNumber < 100 && this.sectorNumber < 40;
+    }
+
+    /**
+     * Return the next sector in the cylinder, or the first sector on the next cylinder. Does not
+     * check to see if it goes past the last track.
+     *
+     * TODO this uses geometry sides, but we must instead use DOS sides.
+     */
+    /*
+    public next(geometry: FloppyDiskGeometry): SectorPosition {
+        const trackGeometry = geometry.getTrackGeometry(this.cylinderNumber);
+        if (this.sectorNumber >= trackGeometry.lastSector) {
+            if (this.side >= trackGeometry.lastSide) {
+                return geometry.getTrackGeometry(this.cylinderNumber + 1).firstSectorPosition;
+            } else {
+                return new SectorPosition(this.cylinderNumber, this.side + 1, trackGeometry.firstSector);
+            }
+        } else {
+            return new SectorPosition(this.cylinderNumber, this.side, this.sectorNumber + 1);
+        }
+    }*/
+
+    public toString(): string {
+        return sectorPositionString(this.cylinderNumber, this.side, this.sectorNumber);
+    }
+
+    /**
+     * Whether the two sector positions point to the same sector.
+     */
+    public equals(other: SectorPosition): boolean {
+        return this.cylinderNumber === other.cylinderNumber &&
+            this.side === other.side &&
+            this.sectorNumber === other.sectorNumber;
+    }
 }
 
 /**
@@ -105,13 +171,13 @@ export class SectorCrc {
 }
 
 /**
- * Data from a sector that was read from a disk.
+ * Data from a sector that was read from a disk, except the data.
  */
-export class SectorData {
+export class SectorInfo {
     /**
-     * The sector's data.
+     * Cylinder number, side, and sector number stored in the IDAM.
      */
-    public data: Uint8Array;
+    public sectorPosition: SectorPosition;
 
     /**
      * Whether the sector data is invalid. This is indicated on the floppy by having a 0xF8 data
@@ -136,26 +202,29 @@ export class SectorData {
     public density: Density;
 
     /**
-     * Track number stored in the IDAM.
+     * Number of bytes in the sector.
      */
-    public trackNumber: number;
+    public sectorSize: number;
 
-    /**
-     * Side stored in the IDAM.
-     */
-    public side: Side;
-
-    /**
-     * Sector number stored in the IDAM.
-     */
-    public sectorNumber: number;
-
-    constructor(data: Uint8Array, density: Density, trackNumber: number, side: Side, sectorNumber: number) {
-        this.data = data;
+    constructor(sectorPosition: SectorPosition, density: Density, sectorSize: number) {
+        this.sectorPosition = sectorPosition;
         this.density = density;
-        this.trackNumber = trackNumber;
-        this.side = side;
-        this.sectorNumber = sectorNumber;
+        this.sectorSize = sectorSize;
+    }
+}
+
+/**
+ * Data from a sector that was read from a disk.
+ */
+export class SectorData extends SectorInfo {
+    /**
+     * The sector's data.
+     */
+    public data: Uint8Array;
+
+    constructor(data: Uint8Array, sectorPosition: SectorPosition, density: Density) {
+        super(sectorPosition, density, data.length);
+        this.data = data;
     }
 }
 
@@ -171,6 +240,7 @@ export class TrackGeometry {
     public readonly lastSector: number;
     public readonly sectorSize: number;
     public readonly density: Density;
+    public readonly firstSectorPosition: SectorPosition;
 
     constructor(trackNumber: number, firstSide: number, lastSide: number, firstSector: number, lastSector: number,
                 sectorSize: number, density: Density) {
@@ -182,6 +252,7 @@ export class TrackGeometry {
         this.lastSector = lastSector;
         this.sectorSize = sectorSize;
         this.density = density;
+        this.firstSectorPosition = new SectorPosition(this.trackNumber, this.firstSide, this.firstSector);
     }
 
     /**
@@ -291,7 +362,7 @@ export class TrackGeometryBuilder {
  * Describes the geometry of the floppy disk. Sometimes the first track has different geometry than
  * the rest, so these are split out.
  */
-export class FloppyDiskGeometry {
+export class OldFloppyDiskGeometry {
     public readonly firstTrack: TrackGeometry;
     // The track number is that of the last track, but the other parameters apply to all non-first tracks:
     public readonly lastTrack: TrackGeometry;
@@ -337,6 +408,18 @@ export class FloppyDiskGeometry {
     }
 }
 
+export class FloppyDiskGeometry {
+    public readonly cylinderCount: number;
+    public readonly sideCount: number;
+    public readonly sectorInfos: SectorInfo[];
+
+    constructor(cylinderCount: number, sideCount: number, sectorInfos: SectorInfo[]) {
+        this.cylinderCount = cylinderCount;
+        this.sideCount = sideCount;
+        this.sectorInfos = sectorInfos;
+    }
+}
+
 /**
  * Represents a write to an underlying disk file.
  */
@@ -361,7 +444,9 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     public readonly onWrite = new SimpleEventDispatcher<FloppyWrite>();
     protected mountedWriteProtected = false;
 
-    protected constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
+    protected constructor(binary: Uint8Array,
+                          error: string | undefined,
+                          annotations: ProgramAnnotation[],
                           supportsDoubleDensity: boolean) {
 
         super(binary, error, annotations);
@@ -392,23 +477,17 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     }
 
     /**
-     * Read a sector on the specified track, side, and sector.
+     * Read a sector at the specified position.
      *
-     * @param trackNumber the track the sector resides on.
-     * @param side the side the sector resides on.
-     * @param sectorNumber the sector on the track, or undefined to choose any sector on the track.
      * @return the sector, or undefined if an error occurs.
      */
-    public abstract readSector(trackNumber: number, side: Side,
-                               sectorNumber: number | undefined): SectorData | undefined;
+    public abstract readSector(sectorPosition: SectorPosition): SectorData | undefined;
 
     /**
-     * Write a sector to the specified track, side, and sector. Throw an exception
+     * Write a sector to the specified position. Throw an exception
      * if writing is not supported, so check first with isWriteProtected().
      */
-    public writeSector(trackNumber: number, side: Side,
-                       sectorNumber: number, data: SectorData): void {
-
+    public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
         throw new Error(this.className + " does not support writing");
     }
 

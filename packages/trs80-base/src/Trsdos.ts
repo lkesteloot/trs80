@@ -46,12 +46,30 @@ function rotateByteLeft(x: number): number {
     return ((x << 1) | (highBitSet ? 1 : 0)) & 0xFF;
 }
 
-// Compute the one-byte HIT hash for an 11-letter filename. Use spaces to fill in
-// the file or extension if necessary (e.g., "FOO     BAS").
-//
-// Based on the assembly code in TRSDOS:
-//
-// https://www.trs-80.com/wordpress/dos-trsdos-v2-3-disassembled/model-i-trsdos-sys2-sys/#509BH
+interface Evaluation {
+    /**
+     * Integer score for this evaluation. A higher score is better. Evaluations with negative scores
+     * are disqualified completely.
+     */
+    score: number;
+    /**
+     * The reason for the score (one line).
+     */
+    reason: string;
+}
+
+function evaluationToString(evaluation: Evaluation): string {
+    return `${evaluation.score} (${evaluation.reason})`;
+}
+
+/**
+ * Compute the one-byte HIT hash for an 11-letter filename. Use spaces to fill in
+ * the file or extension if necessary (e.g., "FOO     BAS").
+ *
+ * Based on the assembly code in TRSDOS:
+ *
+ * https://www.trs-80.com/wordpress/dos-trsdos-v2-3-disassembled/model-i-trsdos-sys2-sys/#509BH
+ */
 function hashForFilename(filename: string): number {
     let hash = 0;
 
@@ -72,11 +90,11 @@ function hashForFilename(filename: string): number {
     return hash;
 }
 
-// Various TRSDOS versions, labeled after the model they were made for.
+// Various TRSDOS versions. All other TRS-80 DOS formats are variants of one of these.
 export enum TrsdosVersion {
-    MODEL_1,  // TRSDOS 2.3
-    MODEL_3,  // TRSDOS 1.3
-    MODEL_4,  // TRSDOS 6 or LDOS
+    V2_3,  // TRSDOS 2.3
+    V1_3,  // TRSDOS 1.3
+    LDOS,       // LDOS 6?
 }
 
 /**
@@ -84,13 +102,13 @@ export enum TrsdosVersion {
  */
 export function trsdosVersionToString(trsdosVersion: TrsdosVersion): string {
     switch (trsdosVersion) {
-        case TrsdosVersion.MODEL_1:
+        case TrsdosVersion.V2_3:
             return "Model I";
 
-        case TrsdosVersion.MODEL_3:
+        case TrsdosVersion.V1_3:
             return "Model III";
 
-        case TrsdosVersion.MODEL_4:
+        case TrsdosVersion.LDOS:
             return "Model 4";
     }
 }
@@ -100,11 +118,11 @@ export function trsdosVersionToString(trsdosVersion: TrsdosVersion): string {
  */
 function supportsDoubleSidedDisks(trsdosVersion: TrsdosVersion): boolean {
     switch (trsdosVersion) {
-        case TrsdosVersion.MODEL_1:
-        case TrsdosVersion.MODEL_3:
+        case TrsdosVersion.V2_3:
+        case TrsdosVersion.V1_3:
             return false;
 
-        case TrsdosVersion.MODEL_4:
+        case TrsdosVersion.LDOS:
             return true;
     }
 }
@@ -143,13 +161,6 @@ class DirEntryPosition {
     public asKey(): string {
         return this.side + "," + this.sectorIndex + "," + this.dirEntryIndex;
     }
-}
-
-/**
- * The Model III version of TRSDOS is pretty different than the Model I and 4 version.
- */
-function isModel3(version: TrsdosVersion): version is TrsdosVersion.MODEL_3 {
-    return version === TrsdosVersion.MODEL_3;
 }
 
 /**
@@ -202,13 +213,13 @@ export function trsdosProtectionLevelToString(level: TrsdosProtectionLevel, vers
         case TrsdosProtectionLevel.FULL:
             return "FULL";
         case TrsdosProtectionLevel.REMOVE:
-            return isModel3(version) ? "REMOVE" : "KILL";
+            return version === TrsdosVersion.V1_3 ? "REMOVE" : "KILL";
         case TrsdosProtectionLevel.RENAME:
             return "RENAME";
         case TrsdosProtectionLevel.WRITE:
-            return isModel3(version) ? "WRITE" : "UNUSED";
+            return version === TrsdosVersion.V1_3 ? "WRITE" : "UNUSED";
         case TrsdosProtectionLevel.UPDATE:
-            return isModel3(version) ? "UPDATE" : "WRITE";
+            return version === TrsdosVersion.V1_3 ? "UPDATE" : "WRITE";
         case TrsdosProtectionLevel.READ:
             return "READ";
         case TrsdosProtectionLevel.EXEC:
@@ -238,19 +249,21 @@ export class TrsdosExtent {
 /**
  * Decode an array of extents.
  *
- * @param binary byte we'll be pulling the extents from.
+ * @param binary bytes we'll be pulling the extents from.
  * @param begin index of first extent in binary.
  * @param end index past last extent in binary.
  * @param geometry the disk geometry, for error checking.
  * @param version version of TRSDOS.
  * @param trackFirst whether the track comes first or second (the other being the granule byte).
+ * @return the decoded extents, or an error message if any track was out of bounds.
  */
 function decodeExtents(binary: Uint8Array, begin: number, end: number,
                        geometry: FloppyDiskGeometry,
                        version: TrsdosVersion,
-                       trackFirst: boolean): TrsdosExtent[] | undefined {
+                       trackFirst: boolean): TrsdosExtent[] | string {
 
     const extents: TrsdosExtent[] = [];
+    const granuleCountBasis = version === TrsdosVersion.V1_3 ? 0 : 1;
 
     for (let i = begin; i < end; i += 2) {
         // 0xFF means end of extents, 0xFE means extension pointer.
@@ -262,14 +275,13 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
         const trackNumber = binary[trackFirst ? i : i + 1];
         const granuleByte = binary[trackFirst ? i + 1 : i];
         const granuleOffset = granuleByte >> 5;
-        const granuleCount = (granuleByte & 0x1F) + (isModel3(version) ? 0 : 1);
+        const granuleCount = granuleCountBasis + (granuleByte & 0x1F);
 
         if (!geometry.isValidTrackNumber(trackNumber)) {
             // Not a TRSDOS disk.
-            TRS80_BASE_LOGGER.warn("Invalid extent: index " + i + ", track " + trackNumber +
+            return "Invalid extent: index " + i + ", track " + trackNumber +
                 ", granuleByte 0x" + toHexByte(granuleByte) + ", offset " +
-                granuleOffset + ", count " + granuleCount + ", track first " + trackFirst);
-            return undefined;
+                granuleOffset + ", count " + granuleCount + ", track first " + trackFirst;
         }
 
         extents.push(new TrsdosExtent(trackNumber, granuleOffset, granuleCount));
@@ -314,7 +326,7 @@ export class TrsdosGatInfo {
         if (CHECK_GAT_HIGH_BITS) {
             // The mask for the unused bits in the GAT, and the value we expect to see there.
             const mask = (0xFF << granulesPerTrack) & 0xFF;
-            const expectedValue = isModel3(version) ? 0x00 : mask;
+            const expectedValue = version === TrsdosVersion.V1_3 ? 0x00 : mask;
 
             // Top bits don't map to anything, so must be zero (Model 3) or one (Model 1/4).
             let trackNumber = 0;
@@ -334,7 +346,7 @@ export class TrsdosGatInfo {
 }
 
 /**
- * Extra info for TRSDOS 1 and 4.
+ * Extra info for TRSDOS Model 1 and 4.
  */
 export class Trsdos14GatInfo extends TrsdosGatInfo {
     // Encoded in hex, e.g., 0x51 means LDOS 5.1.
@@ -388,7 +400,7 @@ function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
         return "auto command is missing";
     }
 
-    if (isModel3(version)) {
+    if (version === TrsdosVersion.V1_3) {
         return new TrsdosGatInfo(gat, lockOut, password, name, date, autoCommand);
     } else {
         // Additional fields for Model 1 and 4.
@@ -439,19 +451,18 @@ export class TrsdosHitInfo {
 }
 
 /**
- * Decode the Hash Index Table sector, or undefined if we don't think this is a TRSDOS disk.
+ * Decode the Hash Index Table sector, or an error message if we don't think this is a TRSDOS disk.
  */
-function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosHitInfo | undefined {
+function decodeHitInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosHitInfo | string {
     // One byte for each file.
-    const hit = binary.subarray(0, isModel3(version) ? 80 : 256);
+    const hit = binary.subarray(0, version === TrsdosVersion.V1_3 ? 80 : 256);
 
     // There are 16 extents to read for the system files.
-    const systemFiles = isModel3(version)
+    const systemFiles = version === TrsdosVersion.V1_3
         ? decodeExtents(binary, 0xE0, binary.length, geometry, version, false)
         : [];
-    if (systemFiles === undefined) {
-        TRS80_BASE_LOGGER.trace("Extents in HIT are invalid");
-        return undefined;
+    if (typeof systemFiles === "string") {
+        return "system files: " + systemFiles;
     }
 
     return new TrsdosHitInfo(hit, systemFiles);
@@ -612,7 +623,7 @@ export class TrsdosDirEntry {
 
         // On model 1/4, the last sector size byte represents the size of the last sector. On model 3 it's
         // in addition to the sector count.
-        if (!isModel3(this.version) && this.lastSectorSize > 0) {
+        if (this.version !== TrsdosVersion.V1_3 && this.lastSectorSize > 0) {
             size -= BYTES_PER_SECTOR;
         }
 
@@ -648,9 +659,10 @@ export class TrsdosDirEntry {
 }
 
 /**
- * Decodes a directory entry from a 32- or 48-byte chunk, or undefined if the directory entry is not active.
+ * Decodes a directory entry from a 32- or 48-byte chunk, undefined if the directory entry is not active,
+ * an a decoding error.
  */
-function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosDirEntry | undefined {
+function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosDirEntry | undefined | string {
     const flags = binary[0];
     if ((flags & 0x10) === 0) { // TODO merge with isActive().
         // Don't parse an inactive entry, it might be corrupted.
@@ -665,8 +677,8 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     // binary[1] has a few extra bits on Model 1/4 that we don't care about.
 
     // Date info.
-    const day = isModel3(version) ? 0 : binary[2] >> 3;
-    const year = isModel3(version) ? binary[2] + 1900 : (binary[2] & 0x07) + 1980;
+    const day = version === TrsdosVersion.V1_3 ? 0 : binary[2] >> 3;
+    const year = version === TrsdosVersion.V1_3 ? binary[2] + 1900 : (binary[2] & 0x07) + 1980;
 
     // Number of bytes on last sector.
     const lastSectorSize = binary[3];
@@ -675,6 +687,10 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     const lrl = ((binary[4] - 1) & 0xFF) + 1; // 0 -> 256.
 
     const filename = decodeAscii(binary.subarray(5, 16));
+    if (filename === undefined) {
+        return "can't decode directory entry filename";
+    }
+
     // Not sure how to convert these two into a number. Just use big endian.
     const updatePassword = word(binary[16], binary[17]);
     const accessPassword = word(binary[18], binary[19]);
@@ -683,20 +699,19 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
     const sectorCount = word(binary[21], binary[20]);
 
     // Number of extents listed in the directory entry.
-    const extentsCount = isModel3(version) ? 13 : 5;
+    const extentsCount = version === TrsdosVersion.V1_3 ? 13 : 5;
 
     // Byte offsets.
     const extentsStart = 22;
     const extentsEnd = extentsStart + 2*extentsCount; // Two bytes per extent.
     const extents = decodeExtents(binary, extentsStart, extentsEnd, geometry, version, true);
+    if (typeof extents === "string") {
+        // Not a TRSDOS disk.
+        return extents;
+    }
 
     // On model 1/4 bytes 30 and 31 point to extended directory entry, if any.
-    const nextDec = !isModel3(version) && binary[30] === 0xFE ? binary[31] : undefined;
-
-    if (filename === undefined || extents === undefined) {
-        // This signals empty directory, but really should imply a non-TRSDOS disk.
-        return undefined;
-    }
+    const nextDec = !(version === TrsdosVersion.V1_3) && binary[30] === 0xFE ? binary[31] : undefined;
 
     return new TrsdosDirEntry(version, flags, day, month, year, lastSectorSize, lrl, filename, updatePassword,
         accessPassword, sectorCount, prevDec, nextDec, extents);
@@ -706,6 +721,9 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
  * A TRSDOS diskette.
  */
 export class Trsdos {
+    public error: string | undefined = undefined;
+    private cachedEvaluation: Evaluation | undefined = undefined;
+
     constructor(
         public readonly disk: FloppyDisk,
         public readonly geometry: FloppyDiskGeometry,
@@ -721,10 +739,114 @@ export class Trsdos {
         // Nothing.
     }
 
+    public setError(error: string): this {
+        this.error = error;
+        return this;
+    }
+
+    public withMoreInfo(granulesPerTrack: number, sectorsPerGranule: number, dirEntriesPerSector: number): Trsdos {
+        return new Trsdos(
+            this.disk,
+            this.geometry,
+            this.version,
+            this.dirTrackNumber,
+            this.sideCount,
+            this.sectorsPerTrack,
+            granulesPerTrack,
+            sectorsPerGranule,
+            this.dirEntryLength,
+            dirEntriesPerSector);
+    }
+
+    /**
+     * Computer an integer score estimating whether we think this is a valid TRSDOS disk and configuration.
+     * Negative scores mean that we're pretty sure this isn't a TRSDOS disk. Higher scores are better.
+     */
+    public evaluation(): Evaluation {
+        if (this.cachedEvaluation === undefined) {
+            this.cachedEvaluation = this.evaluate();
+        }
+
+        return this.cachedEvaluation;
+    }
+
+    /**
+     * Computer an integer score estimating whether we think this is a valid TRSDOS disk and configuration.
+     * Negative scores mean that we're pretty sure this isn't a TRSDOS disk. Higher scores are better.
+     */
+    private evaluate(): Evaluation {
+        if (this.error !== undefined) {
+            return { score: -1, reason: this.error };
+        }
+
+        const hitInfo = this.getHitInfo();
+        if (typeof hitInfo === "string") {
+            // Should have failed already.
+            return { score: -1, reason: hitInfo };
+        }
+
+        let hashHits = 0;
+        let hashMisses = 0;
+
+        // console.log(`--- Computing score for track ${this.dirTrackNumber}`)
+
+        for (let side = 0; side < this.sideCount; side++) {
+            for (let sectorIndex = 0; sectorIndex < this.sectorsPerTrack; sectorIndex++) {
+                if (side === 0 && sectorIndex < 2) {
+                    // Skip GAT and HIT.
+                    // TODO confirm that the second side does not have GAT/HIT.
+                    continue;
+                }
+
+                const sectorNumber = this.geometry.lastTrack.firstSector + sectorIndex;
+                const dirSector = this.disk.readSector(
+                    this.dirTrackNumber, numberToSide(side), sectorNumber);
+                if (dirSector !== undefined) {
+                    for (let i = 0; i < this.dirEntriesPerSector; i++) {
+                        const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
+                        const dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
+                        // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
+                        if (typeof dirEntry === "string") {
+                            // Not a TRSDOS disk.
+                            return { score: -1, reason: dirEntry };
+                        }
+                        if (dirEntry !== undefined) {
+                            // Don't record deleted entries.
+                            const computedHash = hashForFilename(dirEntry.rawFilename);
+                            // const index = (i << 5) | (sectorIndex - 2);
+                            const index = dirEntryToHitNumber(0, sectorIndex, i, this.version,
+                                this.sectorsPerTrack, this.dirEntriesPerSector);
+                            const hitHash = hitInfo.hit[index];
+                            // console.log(`Comparing hits at ${side}:${sectorIndex}:${i} = ${index}: ${computedHash} vs. ${hitHash} ${dirEntry.rawFilename}`);
+                            if (computedHash === hitHash) {
+                                hashHits += 1;
+                            } else {
+                                hashMisses += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        const score = hashHits - hashMisses;
+        const reason = `${hashHits} hash hits, ${hashMisses} hash misses`;
+
+        return { score, reason };
+    }
+
+    public summary(): string {
+        return `${trsdosVersionToString(this.version)}, dir on track ${this.dirTrackNumber}`;
+    }
+
     public getGatInfo(): TrsdosGatInfo | string {
         return readAndDecodeGatInfo(this.disk, this.geometry, this.version, this.dirTrackNumber);
     }
 
+    /**
+     * Get the HIT information for the disk, or an error message (which typically implies that this
+     * is not a TRSDOS disk).
+     */
     public getHitInfo(): TrsdosHitInfo | string {
         // Decode Hash Index Table sector.
         const hitSector = this.disk.readSector(this.dirTrackNumber,
@@ -734,8 +856,8 @@ export class Trsdos {
             return "Can't read HIT sector";
         }
         const hitInfo = decodeHitInfo(hitSector.data, this.geometry, this.version);
-        if (hitInfo === undefined) {
-            return "Can't decode HIT";
+        if (typeof hitInfo === "string") {
+            return "Can't decode HIT: " + hitInfo;
         }
 
         return hitInfo;
@@ -763,8 +885,10 @@ export class Trsdos {
                         const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
                         const dirEntry = decodeDirEntry(dirEntryBinary, this.geometry, this.version);
                         // console.log({side, sectorIndex, i, filename: dirEntry?.getFilename("/"), system: dirEntry?.isSystemFile()});
-                        // Don't record deleted entries.
-                        if (dirEntry !== undefined) {
+                        if (typeof dirEntry === "string") {
+                            // TODO what to do with this error? Abort this method?
+                        } else if (dirEntry !== undefined) {
+                            // Don't record deleted entries.
                             dirEntries.set(new DirEntryPosition(side, sectorIndex, i).asKey(), dirEntry);
                         }
                     }
@@ -887,7 +1011,7 @@ export class Trsdos {
                             sectorNumber = trackGeometry.firstSector;
                         }
                     }
-                    sectorPositions.push({ trackNumber, side, sectorNumber });
+                    sectorPositions.push({ cylinderNumber: trackNumber, side, sectorNumber });
                 }
             }
 
@@ -905,10 +1029,10 @@ export class Trsdos {
         const sectors: Uint8Array[] = [];
         const sectorPositions = this.getFileSectorPositions(firstDirEntry);
 
-        for (const { trackNumber, side, sectorNumber } of sectorPositions) {
-            const sector = this.disk.readSector(trackNumber, side, sectorNumber);
+        for (const sectorPosition of sectorPositions) {
+            const sector = this.disk.readSector(sectorPosition);
             if (sector === undefined) {
-                TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${trackNumber}, ${sectorNumber}`);
+                TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${sectorPosition.toString()}`);
                 // TODO
             } else {
                 if (sector.crcError) {
@@ -952,7 +1076,7 @@ function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion,
     let sectorIndex: number;
     let dirEntryIndex: number;
 
-    if (isModel3(version)) {
+    if (version === TrsdosVersion.V1_3) {
         // Model 3 TRSDOS is always single-sided.
         side = 0;
         // These are laid out continuously.
@@ -1005,7 +1129,7 @@ function dirEntryToHitNumber(side: number, sectorIndex: number, dirEntryIndex: n
         sectorIndex -= 2;
     }
 
-    if (isModel3(version)) {
+    if (version === TrsdosVersion.V1_3) {
         hitNumber = sectorIndex*dirEntriesPerSector + dirEntryIndex;
     } else {
         // TODO use side
@@ -1027,7 +1151,7 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
     if (bootSector === undefined) {
         return "Can't read boot sector";
     }
-    let dirTrackNumber = bootSector.data[isModel3(version) ? 1 : 2] & 0x7F;
+    let dirTrackNumber = bootSector.data[version === TrsdosVersion.V1_3 ? 1 : 2] & 0x7F;
     if (!geometry.isValidTrackNumber(dirTrackNumber)) {
         return "Invalid directory track number (" + dirTrackNumber + ")";
     }
@@ -1043,7 +1167,7 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
     let dirEntryLength: number;
     let sectorsPerGranule: number;
     let granulesPerTrack: number;
-    if (isModel3(version)) {
+    if (version === TrsdosVersion.V1_3) {
         dirEntryLength = 48;
         sectorsPerGranule = geometry.lastTrack.density === Density.SINGLE ? 2 : 3;
         granulesPerTrack = Math.floor(sectorsPerTrack / sectorsPerGranule);
@@ -1058,7 +1182,7 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
             TRS80_BASE_LOGGER.trace(`Warning: Media sides ${sideCount} doesn't match GAT sides ${gatInfo.sideCount}`);
             // But don't fail loading, keep using media sides.
         }
-        granulesPerTrack = version === TrsdosVersion.MODEL_1
+        granulesPerTrack = version === TrsdosVersion.V2_3
             ? geometry.lastTrack.density === Density.SINGLE ? 2 : 3
             : gatInfo.granulesPerTrack;
         sectorsPerGranule = Math.floor(sectorsPerTrack / granulesPerTrack);
@@ -1079,7 +1203,7 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
         return `Sectors per track ${sectorsPerTrack} is not a multiple of granules per track ${granulesPerTrack}`;
     }
 
-    if (isModel3(version)) {
+    if (version === TrsdosVersion.V1_3) {
         // TODO can we verify sectorsPerGranule for Model III?
     } else {
         if (geometry.lastTrack.density === Density.SINGLE && sectorsPerGranule !== 5 && sectorsPerGranule !== 8) {
@@ -1092,7 +1216,7 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
     }
 
     // Check directory sectors for magic string.
-    if (CHECK_EXPECTED_TANDY && isModel3(version)) {
+    if (CHECK_EXPECTED_TANDY && version === TrsdosVersion.V1_3) {
         let totalDirSectors = 0;
         let dirSectorsWithTandy = 0;
 
@@ -1153,14 +1277,14 @@ export interface TrsdosRejection {
  * Decode a TRSDOS diskette, also returning why each version tried before the successful
  * one (or all versions, if none succeeded) was rejected.
  */
-export function decodeTrsdosWithRejections(disk: FloppyDisk): {
+export function decodeTrsdosWithRejectionsOrig(disk: FloppyDisk): {
     trsdos: Trsdos | undefined,
     rejections: TrsdosRejection[],
 } {
     const rejections: TrsdosRejection[] = [];
 
     // Try each one in turn.
-    const trsdosVersions = [TrsdosVersion.MODEL_4, TrsdosVersion.MODEL_3, TrsdosVersion.MODEL_1];
+    const trsdosVersions = [TrsdosVersion.LDOS, TrsdosVersion.V1_3, TrsdosVersion.V2_3];
     for (const trsdosVersion of trsdosVersions) {
         let trsdos = decodeTrsdosVersion(disk, trsdosVersion);
         if (typeof trsdos !== "string") {
@@ -1174,9 +1298,184 @@ export function decodeTrsdosWithRejections(disk: FloppyDisk): {
     return { trsdos: undefined, rejections };
 }
 
+function generateCandidate(disk: FloppyDisk,
+                             geometry: FloppyDiskGeometry,
+                             version: TrsdosVersion,
+                             dirTrackNumber: number,
+                             sectorsPerTrack: number,
+                             sideCount: number,
+                             dirEntryLength: number): Trsdos {
+
+    let trsdos = new Trsdos(disk, geometry, version, dirTrackNumber, sideCount, sectorsPerTrack,
+        0, 0, dirEntryLength, 0);
+    const gatInfo = readAndDecodeGatInfo(disk, geometry, version, dirTrackNumber);
+    if (typeof gatInfo === "string") {
+        return trsdos.setError(gatInfo);
+    }
+
+    let sectorsPerGranule: number;
+    let granulesPerTrack: number;
+    if (version === TrsdosVersion.V1_3) {
+        sectorsPerGranule = geometry.lastTrack.density === Density.SINGLE ? 2 : 3;
+        granulesPerTrack = Math.floor(sectorsPerTrack / sectorsPerGranule);
+    } else {
+        if (!(gatInfo instanceof Trsdos14GatInfo)) {
+            throw new Error("GAT must be Model 1/4 object");
+        }
+
+        if (sideCount !== gatInfo.sideCount) {
+            // Sanity check.
+            TRS80_BASE_LOGGER.trace(`Warning: Media sides ${sideCount} doesn't match GAT sides ${gatInfo.sideCount}`);
+            // But don't fail loading, keep using media sides.
+        }
+        granulesPerTrack = version === TrsdosVersion.V2_3 // TODO was Model 1
+            ? geometry.lastTrack.density === Density.SINGLE ? 2 : 3
+            : gatInfo.granulesPerTrack;
+        sectorsPerGranule = Math.floor(sectorsPerTrack / granulesPerTrack);
+    }
+
+    const dirEntriesPerSector = Math.floor(geometry.lastTrack.sectorSize / dirEntryLength);
+
+    trsdos = trsdos.withMoreInfo(granulesPerTrack, sectorsPerGranule, dirEntriesPerSector);
+
+    if (!gatInfo.isValid(granulesPerTrack, version)) {
+        return trsdos.setError("GAT is invalid");
+    }
+
+    const granulesPerCylinder = granulesPerTrack * sideCount;
+    if (granulesPerCylinder < 2 || granulesPerCylinder > 8) {
+        return trsdos.setError("Invalid number of granules per cylinder (" + granulesPerCylinder + ")");
+    }
+
+    if (sectorsPerTrack % granulesPerTrack !== 0) {
+        return trsdos.setError(`Sectors per track ${sectorsPerTrack} is not a multiple of granules per track ${granulesPerTrack}`);
+    }
+
+    if (version === TrsdosVersion.V1_3) {
+        // TODO can we verify sectorsPerGranule for Model III?
+    } else {
+        if (geometry.lastTrack.density === Density.SINGLE && sectorsPerGranule !== 5 && sectorsPerGranule !== 8) {
+            return trsdos.setError("Invalid sectors per granule for single density (" + sectorsPerGranule + ")");
+        }
+
+        if (geometry.lastTrack.density === Density.DOUBLE && sectorsPerGranule !== 6 && sectorsPerGranule !== 10) {
+            return trsdos.setError("Invalid sectors per granule for double density (" + sectorsPerGranule + ")");
+        }
+    }
+
+    // Check directory sectors for magic string.
+    if (CHECK_EXPECTED_TANDY && version === TrsdosVersion.V1_3) {
+        let totalDirSectors = 0;
+        let dirSectorsWithTandy = 0;
+
+        for (let side = 0; side < sideCount; side++) {
+            for (let sectorIndex = 0; sectorIndex < sectorsPerTrack; sectorIndex++) {
+                if (side === 0 && sectorIndex < 2) {
+                    // Skip GAT and HIT.
+                    continue;
+                }
+
+                const sectorNumber = geometry.lastTrack.firstSector + sectorIndex;
+                const dirSector = disk.readSector(dirTrackNumber, numberToSide(side), sectorNumber);
+                if (dirSector !== undefined) {
+                    totalDirSectors += 1;
+
+                    const tandy = decodeAscii(dirSector.data.subarray(dirEntriesPerSector * dirEntryLength));
+                    if (tandy === EXPECTED_TANDY) {
+                        dirSectorsWithTandy += 1;
+                    }
+                }
+            }
+        }
+
+        if (totalDirSectors < 5) {
+            return trsdos.setError(`Too few directory sectors (${totalDirSectors})`);
+        }
+
+        // I've seen floppies missing this in some sectors, so as long as at least half
+        // the sectors have it, we can be pretty sure that this was at least originally
+        // a Model 3 disk.
+        if (dirSectorsWithTandy < totalDirSectors / 2) {
+            return trsdos.setError(`Got "${EXPECTED_TANDY}" on too few sectors (${dirSectorsWithTandy} of ${totalDirSectors})`);
+        }
+    }
+
+    // Make sure HIT can be read and parsed.
+    const hitInfo = trsdos.getHitInfo();
+    if (typeof hitInfo === "string") {
+        return trsdos.setError(hitInfo);
+    }
+
+    return trsdos;
+}
+
+function generateCandidates(disk: FloppyDisk, version: TrsdosVersion): Trsdos[] {
+    const candidates: Trsdos[] = [];
+
+    // Load boot sector information.
+    const geometry = disk.getGeometry();
+    /*
+    const bootSector = disk.readSector(geometry.firstTrack.trackNumber,
+        geometry.firstTrack.firstSide, geometry.firstTrack.firstSector);
+    if (bootSector === undefined) {
+        return [];
+        // return "Can't read boot sector"; // TODO
+    }
+    let dirTrackNumber = bootSector.data[version === TrsdosVersion.V1_3 ? 1 : 2] & 0x7F;
+    if (!geometry.isValidTrackNumber(dirTrackNumber)) {
+        return "Invalid directory track number (" + dirTrackNumber + ")";
+    }*/
+
+    const sideCount = getSideCount(geometry, version);
+    const sectorsPerTrack = geometry.lastTrack.numSectors();
+    const dirEntryLength = version === TrsdosVersion.V1_3 ? 48 : 32;
+
+    for (let dirTrackNumber = geometry.firstTrack.trackNumber;
+         dirTrackNumber <= geometry.lastTrack.trackNumber;
+         dirTrackNumber++) {
+
+        candidates.push(generateCandidate(disk, geometry, version, dirTrackNumber, sectorsPerTrack, sideCount, dirEntryLength));
+    }
+
+    return candidates;
+}
+
 /**
  * Decode a TRSDOS diskette, or return undefined if this does not look like such a diskette.
  */
 export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
-    return decodeTrsdosWithRejections(disk).trsdos;
+    // return decodeTrsdosWithRejections(disk).trsdos;
+
+    const candidates: Trsdos[] = [
+        ... generateCandidates(disk, TrsdosVersion.V1_3),
+        ... generateCandidates(disk, TrsdosVersion.LDOS),
+        ... generateCandidates(disk, TrsdosVersion.V2_3),
+    ];
+
+    // Sort by decreasing score.
+    candidates.sort((a, b) => b.evaluation().score - a.evaluation().score);
+
+    for (const trsdos of candidates) {
+        if (trsdos.evaluation().score >= 0) {
+            console.error(`${trsdos.summary()} has ${evaluationToString(trsdos.evaluation())}`);
+        }
+    }
+
+    if (candidates.length > 0 && candidates[0].evaluation().score >= 0) {
+        return candidates[0];
+    } else {
+        return undefined;
+    }
+}
+
+/**
+ * Decode a TRSDOS diskette, also returning why each version tried before the successful
+ * one (or all versions, if none succeeded) was rejected.
+ */
+export function decodeTrsdosWithRejections(disk: FloppyDisk): {
+    trsdos: Trsdos | undefined,
+    rejections: TrsdosRejection[],
+} {
+    const trsdos = decodeTrsdos(disk);
+    return { trsdos, rejections: [] };
 }
