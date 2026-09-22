@@ -9,10 +9,12 @@ import {
     Density,
     FloppyDisk,
     FloppyDiskGeometry,
+    numberToSide,
     SectorCrc,
     SectorData,
+    SectorInfo,
+    SectorPosition,
     Side,
-    TrackGeometryBuilder
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {CRC_16_CCITT} from "./Crc16.js";
@@ -195,45 +197,33 @@ export class ScpFloppyDisk extends FloppyDisk {
 
     getGeometry(): FloppyDiskGeometry {
         if (this.geometry === undefined) {
-            const firstTrackBuilder = new TrackGeometryBuilder();
-            const lastTrackBuilder = new TrackGeometryBuilder();
+            const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.trackNumber)) + 1;
+            const sideCount = Math.max(-1, ... this.tracks.map(track => track.side)) + 1;
 
-            // First compute track span.
-            let firstTrack = 999;
-            let lastTrack = 0;
-            for (const track of this.tracks) {
-                firstTrack = Math.min(firstTrack, track.trackNumber);
-                lastTrack = Math.max(lastTrack, track.trackNumber);
-            }
+            // Where each sector physically is, which is what the geometry describes.
+            const sectorInfos = this.tracks.flatMap(track =>
+                track.revs[DEFAULT_REV_NUMBER].sectors.map(sector =>
+                    new SectorInfo(new SectorPosition(track.trackNumber, track.side, sector.getSectorNumber()),
+                        sector.getDensity(), sector.getLength())));
 
-            // Then other geometry.
-            for (const track of this.tracks) {
-                const builder = track.trackNumber === firstTrack ? firstTrackBuilder : lastTrackBuilder;
-                builder.updateSide(track.side);
-                for (const sector of track.revs[DEFAULT_REV_NUMBER].sectors) {
-                    builder.updateSector(sector.getSectorNumber());
-                    builder.updateSectorSize(sector.getLength());
-                    builder.updateDensity(sector.getDensity());
-                }
-            }
-
-            this.geometry = new FloppyDiskGeometry(
-                firstTrackBuilder.build(firstTrack),
-                lastTrackBuilder.build(lastTrack));
+            this.geometry = new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos);
         }
 
         return this.geometry;
     }
 
-    readSector(trackNumber: number, side: Side, sectorNumber: number | undefined): SectorData | undefined {
+    readSector(sectorPosition: SectorPosition): SectorData | undefined {
         for (const track of this.tracks) {
-            if (track.trackNumber === trackNumber && track.side === side) {
+            if (track.trackNumber === sectorPosition.cylinderNumber && track.side === sectorPosition.side) {
                 const rev = track.revs[DEFAULT_REV_NUMBER];
 
                 for (const sector of rev.sectors) {
-                    if (sectorNumber === undefined || sector.getSectorNumber() === sectorNumber) {
-                        const sectorData = new SectorData(sector.getData(), sector.getDensity(),
-                            sector.getTrackNumber(), sector.getSideNumber(), sector.getSectorNumber());
+                    if (sector.getSectorNumber() === sectorPosition.sectorNumber) {
+                        // What the sector says about itself, which can differ from where it physically is.
+                        const logicalSectorPosition = new SectorPosition(sector.getTrackNumber(),
+                            numberToSide(sector.getSideNumber()) ?? Side.FRONT, sector.getSectorNumber());
+                        const sectorData = new SectorData(sector.getData(), logicalSectorPosition,
+                            sector.getDensity());
                         sectorData.crc = new SectorCrc(
                             new CrcInfo(sector.getIdamCrc(), sector.computeIdamCrc()),
                             new CrcInfo(sector.getDataCrc(), sector.computeDataCrc()));
