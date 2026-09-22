@@ -12,12 +12,15 @@ import {
     CrcInfo,
     Density,
     FloppyDisk,
-    FloppyDiskGeometry, FloppyWrite,
+    FloppyDiskGeometry,
+    FloppyWrite,
     numberToSide,
     SectorCrc,
     SectorData,
-    Side, SIDE_COUNT_TO_SIDES,
-    TrackGeometryBuilder
+    SectorInfo,
+    SectorPosition,
+    Side,
+    SIDE_COUNT_TO_SIDES,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {TRS80_FLOPPY_LOGGER} from "trs80-logger";
@@ -84,6 +87,14 @@ class DmkSector {
      * Index into the sector of the start of the user data, or undefined if there's no DAM.
      */
     public readonly dataIndex: number | undefined;
+    /**
+     * How the sector identifies itself in its IDAM.
+     */
+    public readonly logicalSectorPosition: SectorPosition;
+    /**
+     * Where the sector is physically on the disk.
+     */
+    public readonly physicalSectorPosition: SectorPosition;
 
     constructor(track: DmkTrack, density: Density, alwaysUseStride1: boolean, offset: number) {
         this.track = track;
@@ -91,12 +102,14 @@ class DmkSector {
         this.alwaysUseStride1 = alwaysUseStride1;
         this.offset = offset;
         this.dataIndex = this.findDataIndex();
+        this.logicalSectorPosition = new SectorPosition(this.getCylinderNumber(), this.getSide(), this.getSectorNumber());
+        this.physicalSectorPosition = new SectorPosition(this.track.cylinderNumber, this.track.side, this.getSectorNumber());
     }
 
     /**
-     * Get the cylinder for this sector. This is 0-based.
+     * Get the cylinder number for this sector. This is 0-based.
      */
-    public getCylinder(): number {
+    public getCylinderNumber(): number {
         return this.getByte(1);
     }
 
@@ -104,7 +117,8 @@ class DmkSector {
      * Get the side for this sector.
      */
     public getSide(): Side {
-        return numberToSide(this.getByte(2));
+        // Just make invalid values 0.
+        return numberToSide(this.getByte(2)) ?? Side.FRONT;
     }
 
     /**
@@ -115,31 +129,18 @@ class DmkSector {
     }
 
     /**
-     * Get the sector length in bytes. Does not include the byte stride.
+     * Get the sector size in bytes. Does not include the byte stride.
      */
-    public getLength(): number {
-        if (this.hasValidLength()) {
-            return 128*(1 << this.getByte(4));
+    public getSectorSize(): number {
+        const shift = this.getByte(4);
+
+        // Accept 128, 256, 512, and 1024.
+        if (shift <= 3) {
+            return 128 << shift;
         } else {
             // Fallback on something reasonable.
             return 256;
         }
-    }
-
-    /**
-     * Whether the length byte seems valid.
-     */
-    public hasValidLength(): boolean {
-        const value = this.getByte(4);
-        // Not sure what was valid, but accept 128, 256, and 512.
-        return value <= 2;
-    }
-
-    /**
-     * Get the density of the sector.
-     */
-    public getDensity(): Density {
-        return this.density;
     }
 
     /**
@@ -166,7 +167,7 @@ class DmkSector {
         }
 
         const byteStride = this.getByteStride();
-        const length = this.getLength();
+        const length = this.getSectorSize();
 
         // Begin and end in actual bytes.
         const begin = this.track.offset + this.offset + this.dataIndex*byteStride;
@@ -220,7 +221,7 @@ class DmkSector {
         }
 
         // Big endian.
-        const index = this.dataIndex + this.getLength();
+        const index = this.dataIndex + this.getSectorSize();
         return word(this.getByte(index), this.getByte(index + 1));
     }
 
@@ -237,7 +238,7 @@ class DmkSector {
         const index = this.dataIndex;
         // For double density, include the preceding three 0xA1 bytes.
         const begin = this.density === Density.DOUBLE ? index - 4 : index - 1;
-        const end = index + this.getLength();
+        const end = index + this.getSectorSize();
         for (let i = begin; i < end; i++) {
             crc = CRC_16_CCITT.update(crc, this.getByte(i));
         }
@@ -272,6 +273,50 @@ class DmkSector {
 
         // Normally, 0xFB, but 0xF8 if sector is considered deleted.
         return dam === undefined ? false : (dam & 0x01) === 0;
+    }
+
+    /**
+     * Return the equivalent SectorInfo object using IDAM cylinder and side information.
+     */
+    public toLogicalSectorInfo(): SectorInfo {
+        const sectorInfo = new SectorInfo(this.logicalSectorPosition, this.density, this.getSectorSize());
+        this.fillOutSectorInfo(sectorInfo);
+        return sectorInfo;
+    }
+
+    /**
+     * Return the equivalent SectorInfo object using physical cylinder and side information.
+     */
+    public toPhysicalSectorInfo(): SectorInfo {
+        const sectorInfo = new SectorInfo(this.physicalSectorPosition, this.density, this.getSectorSize());
+        this.fillOutSectorInfo(sectorInfo);
+        return sectorInfo;
+    }
+
+    /**
+     * Return the equivalent SectorData object using IDAM cylinder and side information, or undefined if it has no data.
+     */
+    public toSectorData(): SectorData | undefined {
+        // Pull out the actual data.
+        const data = this.getData();
+        if (data === undefined) {
+            return undefined;
+        }
+
+        const sectorData = new SectorData(data, this.logicalSectorPosition, this.density);
+        this.fillOutSectorInfo(sectorData);
+        return sectorData;
+    }
+
+    /**
+     * Complete the SectorInfo object with what we know about the sector.
+     */
+    private fillOutSectorInfo(sectorInfo: SectorInfo): void {
+        sectorInfo.crc = new SectorCrc(
+            new CrcInfo(this.getIdamCrc(), this.computeIdamCrc()),
+            new CrcInfo(this.getDataCrc() ?? 0, this.computeDataCrc() ?? 0));
+        sectorInfo.crcError = !sectorInfo.crc.valid();
+        sectorInfo.deleted = this.isDeleted();
     }
 
     /**
@@ -314,7 +359,7 @@ class DmkTrack {
      * Disk the track is in.
      */
     public readonly floppyDisk: DmkFloppyDisk;
-    public readonly trackNumber: number;
+    public readonly cylinderNumber: number;
     public readonly side: Side;
     /**
      * Offset of the track (start of its header) in the binary.
@@ -325,9 +370,9 @@ class DmkTrack {
      */
     public readonly sectors: DmkSector[] = [];
 
-    constructor(floppyDisk: DmkFloppyDisk, trackNumber: number, side: Side, offset: number) {
+    constructor(floppyDisk: DmkFloppyDisk, cylinderNumber: number, side: Side, offset: number) {
         this.floppyDisk = floppyDisk;
-        this.trackNumber = trackNumber;
+        this.cylinderNumber = cylinderNumber;
         this.side = side;
         this.offset = offset;
     }
@@ -347,6 +392,8 @@ export class DmkFloppyDisk extends FloppyDisk {
     public readonly flags: number;
     public readonly tracks: DmkTrack[] = [];
     private geometry: FloppyDiskGeometry | undefined = undefined;
+    // Map from physical sector string to its sector.
+    private readonly sectorMap = new Map<string,DmkSector>();
 
     constructor(binary: Uint8Array, error: string | undefined, annotations: ProgramAnnotation[],
                 supportsDoubleDensity: boolean, writeProtected: boolean, trackCount: number,
@@ -359,6 +406,19 @@ export class DmkFloppyDisk extends FloppyDisk {
         this.flags = flags;
     }
 
+    /**
+     * Call this after having finished updating the track array.
+     */
+    public computeSectorMap(): void {
+        this.sectorMap.clear();
+
+        for (const track of this.tracks) {
+            for (const sector of track.sectors) {
+                this.sectorMap.set(sector.physicalSectorPosition.toString(), sector);
+            }
+        }
+    }
+
     public getDescription(): string {
         return "Floppy disk (DMK)";
     }
@@ -369,179 +429,105 @@ export class DmkFloppyDisk extends FloppyDisk {
                 throw new Error("Can't compute geometry without any tracks");
             }
 
-            const firstTrackBuilder = new TrackGeometryBuilder();
-            const lastTrackBuilder = new TrackGeometryBuilder();
+            const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.cylinderNumber)) + 1;
+            const sideCount = Math.max(-1, ... this.tracks.map(track => track.side)) + 1;
 
-            // First compute track span.
-            let firstTrack = 999;
-            let lastTrack = 0;
-            for (const track of this.tracks) {
-                firstTrack = Math.min(firstTrack, track.trackNumber);
-                lastTrack = Math.max(lastTrack, track.trackNumber);
-            }
+            const sectorInfos = this.tracks.flatMap(track =>
+                track.sectors.map(sector => sector.toPhysicalSectorInfo()));
 
-            // Then other geometry.
-            for (const track of this.tracks) {
-                const builder = track.trackNumber === firstTrack ? firstTrackBuilder : lastTrackBuilder;
-                builder.updateSide(track.side);
-                for (const sector of track.sectors) {
-                    builder.updateSector(sector.getSectorNumber());
-                    builder.updateSectorSize(sector.getLength());
-                    builder.updateDensity(sector.getDensity());
-                }
-            }
-
-            this.geometry = new FloppyDiskGeometry(
-                firstTrackBuilder.build(firstTrack),
-                lastTrackBuilder.build(lastTrack));
+            this.geometry = new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos);
         }
 
         return this.geometry;
     }
 
-    public readSector(trackNumber: number, side: Side,
-                      sectorNumber: number | undefined): SectorData | undefined {
+    public readSector(sectorPosition: SectorPosition): SectorData | undefined {
+        TRS80_FLOPPY_LOGGER.trace(`DMK: Reading sector ${sectorPosition.toString()}`);
 
-        TRS80_FLOPPY_LOGGER.trace(`DMK: Reading sector ${trackNumber}:${side}:${sectorNumber}`);
-        for (const track of this.tracks) {
-            if (track.trackNumber === trackNumber && track.side === side) {
-                for (const sector of track.sectors) {
-                    // Note that the sector's side might not match the track side. This happens on
-                    // MultiDOS floppies when it stores a different file system on each side.
-                    // The back side will have sectors with Side = 0. This method should treat the
-                    // "side" parameter like the physical side, not the side the sector thinks it's on.
-                    if (sectorNumber === undefined || sector.getSectorNumber() === sectorNumber) {
-                        // Pull out the actual data.
-                        const data = sector.getData();
-                        if (data === undefined) {
-                            // Sector is missing data.
-                            TRS80_FLOPPY_LOGGER.warn(`DMK: Track ${trackNumber} side ${side} sector ${sectorNumber} has no data`);
-                            return undefined;
-                        }
+        // Note that the sector's side might not match the track side. This happens on
+        // MultiDOS floppies when it stores a different file system on each side.
+        // The back side will have sectors with Side = 0. This method should treat the
+        // "sectorPosition.side" parameter like the physical side, not the side the sector thinks it's on.
+        const sector = this.sectorMap.get(sectorPosition.toString());
+        if (sector === undefined) {
+            // Don't log this, it's noisy for copy-protected disks, gets displayed before anything else
+            // (which is confusing/misleading), and the data is available later anyway.
+            // TRS80_FLOPPY_LOGGER.warn(`DMK: Sector ${sectorPosition.toString()} is missing`);
 
-                        const sectorData = new SectorData(data, sector.getDensity(),
-                            sector.getCylinder(), sector.getSide(), sector.getSectorNumber());
-                        sectorData.crc = new SectorCrc(
-                            new CrcInfo(sector.getIdamCrc(), sector.computeIdamCrc()),
-                            new CrcInfo(sector.getDataCrc() ?? 0, sector.computeDataCrc() ?? 0));
-                        sectorData.crcError = !sectorData.crc.valid();
-                        sectorData.deleted = sector.isDeleted();
-                        // console.log(sectorData);
-                        return sectorData;
-                    }
-                }
-            }
+            return undefined;
         }
 
-        // Don't log this, it's noisy for copy-protected disks, gets displayed before anything else
-        // (which is confusing/misleading), and the data is available later anyway.
-        // TRS80_FLOPPY_LOGGER.warn(`DMK: Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
+        const sectorData = sector.toSectorData();
+        if (sectorData === undefined) {
+            TRS80_FLOPPY_LOGGER.warn(`DMK: Sector ${sectorPosition.toString()} has no data`);
+            return undefined;
+        }
 
-        return undefined;
+        return sectorData;
     }
 
-    public writeSector(trackNumber: number, side: Side,
-                       sectorNumber: number, data: SectorData): void {
+    public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
+        TRS80_FLOPPY_LOGGER.trace(`DMK: Writing sector ${sectorPosition.toString()}`);
 
-        TRS80_FLOPPY_LOGGER.trace(`DMK: Writing sector ${trackNumber}:${side}:${sectorNumber}`);
-
-        for (const track of this.tracks) {
-            if (track.trackNumber === trackNumber && track.side === side) {
-                for (const sector of track.sectors) {
-                    if (sector.getSectorNumber() === sectorNumber) {
-                        // See if we found the DAM.
-                        if (sector.dataIndex === undefined) {
-                            // Not sure what to do here, we can't write it and there's no way to
-                            // register an error.
-                            TRS80_FLOPPY_LOGGER.warn(`DMK: No space for data on ${trackNumber}:${side}:${sectorNumber}`);
-                            return;
-                        }
-
-                        const byteStride = sector.getByteStride();
-                        const length = sector.getLength();
-
-                        // Lay out the bytes, including the CRC (two bytes).
-                        const bytes = new Uint8Array((length + 2)*byteStride);
-
-                        // Compute the new CRC.
-                        let crc = 0xFFFF;
-
-                        // For double density, include the preceding three 0xA1 bytes.
-                        if (sector.density === Density.DOUBLE) {
-                            crc = CRC_16_CCITT.update(crc, 0xA1);
-                            crc = CRC_16_CCITT.update(crc, 0xA1);
-                            crc = CRC_16_CCITT.update(crc, 0xA1);
-                        }
-
-                        // Include DAM (will always be valid).
-                        crc = CRC_16_CCITT.update(crc, sector.getDam() ?? 0);
-
-                        // Write "byte" the correct number of stride times at
-                        // virtual (stride-less) index "index" of the "bytes" array.
-                        const writeData = (index: number, byte: number): void => {
-                            for (let i = 0; i < byteStride; i++) {
-                                bytes[index*byteStride + i] = byte;
-                            }
-                        };
-
-                        // Write the data bytes.
-                        for (let i = 0; i < length; i++) {
-                            const byte = data.data[i];
-                            writeData(i, byte);
-                            crc = CRC_16_CCITT.update(crc, byte);
-                        }
-
-                        // Write CRC big endian.
-                        writeData(length, hi(crc));
-                        writeData(length + 1, lo(crc));
-
-                        const begin = track.offset + sector.offset + sector.dataIndex*byteStride;
-                        this.write(new FloppyWrite(bytes, begin));
-                        return;
-                    }
-                }
+        const sector = this.sectorMap.get(sectorPosition.toString());
+        if (sector === undefined) {
+            TRS80_FLOPPY_LOGGER.warn(`DMK: Sector ${sectorPosition.toString()} is missing`);
+        } else {
+            // See if we found the DAM.
+            if (sector.dataIndex === undefined) {
+                // Not sure what to do here, we can't write it and there's no way to
+                // register an error.
+                TRS80_FLOPPY_LOGGER.warn(`DMK: No space for data on ${sectorPosition.toString()}`);
+                return;
             }
-        }
 
-        TRS80_FLOPPY_LOGGER.warn(`DMK: Track ${trackNumber} side ${side} sector ${sectorNumber} is missing`);
+            const byteStride = sector.getByteStride();
+            const length = sector.getSectorSize();
+
+            // Lay out the bytes, including the CRC (two bytes).
+            const bytes = new Uint8Array((length + 2)*byteStride);
+
+            // Compute the new CRC.
+            let crc = 0xFFFF;
+
+            // For double density, include the preceding three 0xA1 bytes.
+            if (sector.density === Density.DOUBLE) {
+                crc = CRC_16_CCITT.update(crc, 0xA1);
+                crc = CRC_16_CCITT.update(crc, 0xA1);
+                crc = CRC_16_CCITT.update(crc, 0xA1);
+            }
+
+            // Include DAM (will always be valid).
+            crc = CRC_16_CCITT.update(crc, sector.getDam() ?? 0);
+
+            // Write "byte" the correct number of stride times at
+            // virtual (stride-less) index "index" of the "bytes" array.
+            const writeData = (index: number, byte: number): void => {
+                for (let i = 0; i < byteStride; i++) {
+                    bytes[index*byteStride + i] = byte;
+                }
+            };
+
+            // Write the data bytes.
+            for (let i = 0; i < length; i++) {
+                const byte = data.data[i];
+                writeData(i, byte);
+                crc = CRC_16_CCITT.update(crc, byte);
+            }
+
+            // Write CRC big endian.
+            writeData(length, hi(crc));
+            writeData(length + 1, lo(crc));
+
+            const begin = sector.track.offset + sector.offset + sector.dataIndex*byteStride;
+            this.write(new FloppyWrite(bytes, begin));
+        }
     }
 
     public isWriteProtected(): boolean {
         // Our file's state or the mounted state.
         return this.writeProtected || this.mountedWriteProtected;
     }
-}
-
-/**
- * Return true if every sector in the track is single density.
- * @param binary array to inspect.
- * @param trackHeader index of track header.
- */
-function trackIsSingleDensity(binary: Uint8Array, trackHeader: number): boolean {
-    for (let sectorIndex = 0; sectorIndex < TRACK_HEADER_SIZE/2; sectorIndex++) {
-        const sectorInfo = getSectorInfo(binary, trackHeader, sectorIndex);
-        if (sectorInfo !== undefined && sectorInfo.density === Density.DOUBLE) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-/**
- * Returns true iff the interval is only made of doubled bytes.
- * @param binary array to inspect.
- * @param begin begin index, inclusive.
- * @param end end index, exclusive.
- */
-function allBytesDoubled(binary: Uint8Array, begin: number, end: number): boolean {
-    for (let i = begin; i < end; i += 2) {
-        if (binary[i] !== binary[i + 1]) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 /**
@@ -645,13 +631,16 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     if (singleSided) {
         flagParts.push("SS");
     }
-    if ((flags & 0x40) !== 0) {
+    const singleDensity = (flags & 0x40) !== 0;
+    if (singleDensity) {
         flagParts.push("SD");
     }
-    let alwaysUseStride1 = (flags & 0x80) !== 0;
-    if (alwaysUseStride1) {
+    const ignoreDensity = (flags & 0x80) !== 0;
+    if (ignoreDensity) {
         flagParts.push("ignore density");
     }
+    // Either bit means that bytes are never doubled.
+    const alwaysUseStride1 = singleDensity || ignoreDensity;
     annotations.push(new ProgramAnnotation("Flags: [" + flagParts.join(",") + "]", 4, 5));
 
     // Sanity check.
@@ -684,37 +673,8 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     const floppyDisk = new DmkFloppyDisk(binary, error, annotations, true,
         writeProtected, trackCount, trackLength, flags);
 
-    // Some floppies are single density but don't duplicate each byte. They're supposed to set
-    // the alwaysUseStride1 bit, but some don't. Go through the whole disk to look for any
-    // non-duplicated byte.
-    let binaryOffset = FILE_HEADER_SIZE;
-    for (let trackNumber = 0; !alwaysUseStride1 && trackNumber < trackCount; trackNumber++) {
-        for (let side = 0; !alwaysUseStride1 && side < sideCount; side++) {
-            const trackOffset = binaryOffset;
-            if (trackIsSingleDensity(binary, trackOffset)) {
-                for (let sectorIndex = 0; !alwaysUseStride1 && sectorIndex < TRACK_HEADER_SIZE/2; sectorIndex++) {
-                    const sectorInfo = getSectorInfo(binary, trackOffset, sectorIndex);
-                    if (sectorInfo !== undefined) {
-                        if (sectorInfo.density === Density.DOUBLE) {
-                            throw new Error("Found double-density sector in all-single track");
-                        }
-
-                        const sectorOffset = trackOffset + sectorInfo.offset;
-
-                        // Test a handful of bytes, including ID and probably some data.
-                        if (!allBytesDoubled(binary, sectorOffset, sectorOffset + 128)) {
-                            // console.log("Overriding allBytesDoubled", trackNumber, side);
-                            alwaysUseStride1 = true;
-                        }
-                    }
-                }
-            }
-            binaryOffset += trackLength;
-        }
-    }
-
     // Read the tracks.
-    binaryOffset = FILE_HEADER_SIZE;
+    let binaryOffset = FILE_HEADER_SIZE;
     const sides = SIDE_COUNT_TO_SIDES[sideCount];
     for (let trackNumber = 0; trackNumber < trackCount; trackNumber++) {
         for (const side of sides) {
@@ -767,7 +727,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                     i, i + byteStride));
                 i += byteStride;
 
-                annotations.push(new ProgramAnnotation("Cylinder " + sector.getCylinder(),
+                annotations.push(new ProgramAnnotation("Cylinder " + sector.getCylinderNumber(),
                     i, i + byteStride));
                 i += byteStride;
 
@@ -779,7 +739,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                     i, i + byteStride));
                 i += byteStride;
 
-                const sectorLength = sector.getLength();
+                const sectorLength = sector.getSectorSize();
                 annotations.push(new ProgramAnnotation("Length " + sectorLength, i, i + byteStride));
                 i += byteStride;
 
@@ -824,6 +784,8 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
             binaryOffset += trackLength;
         }
     }
+
+    floppyDisk.computeSectorMap();
 
     return floppyDisk;
 }

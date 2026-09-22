@@ -19,9 +19,9 @@ export enum Density {
 
 /**
  * Convert a number to a side, where 0 maps to FRONT and 1 maps to BACK.
- * Other numbers throw an exception.
+ * Other numbers return undefined.
  */
-export function numberToSide(n: number): Side {
+export function numberToSide(n: number): Side | undefined {
     switch (n) {
         case 0:
             return Side.FRONT;
@@ -30,7 +30,7 @@ export function numberToSide(n: number): Side {
             return Side.BACK;
 
         default:
-            throw new Error("Invalid side number " + n);
+            return undefined;
     }
 }
 
