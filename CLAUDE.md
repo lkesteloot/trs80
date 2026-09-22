@@ -80,7 +80,32 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 - **Decoder changes:** after changing floppy decoding (mostly
   `trs80-base/src/Trsdos.ts`), run `node regress.ts run` in that repo. It builds
   this tree first. Accept improvements with `--update`, and commit the snapshots
-  there.
+  there. `--ignore-rejections` hides differences that are only in the reasons
+  each operating system was rejected, which is noisy after rewording them.
+
+## Floppy decoding
+
+- **Format reference:** `packages/trs80-base/FLOPPY_FORMATS.md` holds verified
+  notes on the image formats (JV1, JV3, DMK, SCP), the DOS layouts (TRSDOS 2.3
+  family, TRSDOS 1.3, NEWDOS/80 lumps), the HIT hash and its index layout,
+  cylinder/side conventions, and the quirky disks in the collection. It records
+  what was measured against real disks, so trust it over guesswork.
+- **In-flight refactor:** sector access is moving to a `SectorPosition`
+  (cylinder, side, sector), and `FloppyDiskGeometry` now describes every sector
+  rather than summarizing the first and last track. The four image readers are
+  converted; the remaining type errors are in `Trsdos.ts` and in trs80-tool's
+  `sectors`, `report` and `info` commands plus the emulator's
+  `FloppyDiskController`. Geometry no longer throws on odd disks, which is the
+  point: mixed density and garbage address marks are data, not errors.
+- **Decoding by score:** `decodeTrsdos()` generates candidate interpretations
+  (layout × directory location) and picks the best score rather than taking the
+  first that parses. The score is mainly HIT hash hits minus misses; negative
+  means "not this". Keep a floor so that unrecognized disks stay undecoded
+  instead of getting a garbage directory.
+- **SCP is untested.** There are no SCP images in the suite, so that reader
+  compiles but nothing exercises it.
+- **JV1 deleted marks are synthesized** by our reader for track 17, so they must
+  never count as evidence for locating a directory.
 
 ## CI, releases, and deploys
 
