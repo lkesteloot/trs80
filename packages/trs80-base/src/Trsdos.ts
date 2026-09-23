@@ -135,7 +135,15 @@ function getSideCount(geometry: FloppyDiskGeometry, trsdosVersion: TrsdosVersion
     // floppy only has one side. This might lead us to mis-diagnose a floppy as TRSDOS that we should reject,
     // but it's also important to handle disks that were formatted double-sided, then re-formatted single-sided,
     // and the back side should be ignored.
-    return supportsDoubleSidedDisks(trsdosVersion) ? geometry.lastTrack.numSides() : 1;
+    return supportsDoubleSidedDisks(trsdosVersion) ? geometry.sideCount : 1;
+}
+
+/**
+ * Return the number of the first sector on a track for this version. This might not apply to the very
+ * first track if it's a dual-boot disk.
+ */
+function getFirstSectorNumber(version: TrsdosVersion): number {
+    return version === TrsdosVersion.V1_3 ? 1 : 0;
 }
 
 /**
@@ -277,7 +285,7 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
         const granuleOffset = granuleByte >> 5;
         const granuleCount = granuleCountBasis + (granuleByte & 0x1F);
 
-        if (!geometry.isValidTrackNumber(trackNumber)) {
+        if (trackNumber >= geometry.cylinderCount) {
             // Not a TRSDOS disk.
             return "Invalid extent: index " + i + ", track " + trackNumber +
                 ", granuleByte 0x" + toHexByte(granuleByte) + ", offset " +
@@ -375,11 +383,11 @@ export class Trsdos14GatInfo extends TrsdosGatInfo {
  */
 function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosGatInfo | string {
     // One byte for each track. Each bit is a granule, 0 means free and 1 means used.
-    const gat = binary.subarray(0, geometry.numTracks());
+    const gat = binary.subarray(0, geometry.cylinderCount);
 
     // Lock out table, one byte per track. These are per-track, not per-granule.
     // 0xFF means locked out, 0xFC means available.
-    const lockOut = binary.subarray(0x60, 0x60 + geometry.numTracks());
+    const lockOut = binary.subarray(0x60, 0x60 + geometry.cylinderCount);
 
     // Assume big endian.
     const password = word(binary[0xCE], binary[0xCF]);
@@ -422,8 +430,10 @@ function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version
 function readAndDecodeGatInfo(disk: FloppyDisk, geometry: FloppyDiskGeometry,
                               version: TrsdosVersion, dirTrackNumber: number): TrsdosGatInfo | string {
 
-    const gatSector = disk.readSector(dirTrackNumber,
-        geometry.lastTrack.firstSide, geometry.lastTrack.firstSector);
+    // Should we decide this by the first sector in the geometry, or the sector we know is first in the version?
+    // Probably the latter, to help reject badly-guessed disks.
+    const gatPosition = new SectorPosition(dirTrackNumber, Side.FRONT, getFirstSectorNumber(version));
+    const gatSector = disk.readSector(gatPosition);
     if (gatSector === undefined) {
         return "Can't read GAT sector";
     }
@@ -794,13 +804,12 @@ export class Trsdos {
             for (let sectorIndex = 0; sectorIndex < this.sectorsPerTrack; sectorIndex++) {
                 if (side === 0 && sectorIndex < 2) {
                     // Skip GAT and HIT.
-                    // TODO confirm that the second side does not have GAT/HIT.
                     continue;
                 }
 
-                const sectorNumber = this.geometry.lastTrack.firstSector + sectorIndex;
-                const dirSector = this.disk.readSector(
-                    this.dirTrackNumber, numberToSide(side), sectorNumber);
+                const sectorNumber = getFirstSectorNumber(this.version) + sectorIndex;
+                const dirPosition = new SectorPosition(this.dirTrackNumber, numberToSide(side) ?? 0, sectorNumber);
+                const dirSector = this.disk.readSector(dirPosition);
                 if (dirSector !== undefined) {
                     for (let i = 0; i < this.dirEntriesPerSector; i++) {
                         const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
@@ -849,9 +858,8 @@ export class Trsdos {
      */
     public getHitInfo(): TrsdosHitInfo | string {
         // Decode Hash Index Table sector.
-        const hitSector = this.disk.readSector(this.dirTrackNumber,
-            this.geometry.lastTrack.firstSide,
-            this.geometry.lastTrack.firstSector + 1);
+        const hitPosition = new SectorPosition(this.dirTrackNumber, Side.FRONT, getFirstSectorNumber(this.version) + 1);
+        const hitSector = this.disk.readSector(hitPosition);
         if (hitSector === undefined) {
             return "Can't read HIT sector";
         }
@@ -873,13 +881,12 @@ export class Trsdos {
             for (let sectorIndex = 0; sectorIndex < this.sectorsPerTrack; sectorIndex++) {
                 if (side === 0 && sectorIndex < 2) {
                     // Skip GAT and HIT.
-                    // TODO confirm that the second side does not have GAT/HIT.
                     continue;
                 }
 
-                const sectorNumber = this.geometry.lastTrack.firstSector + sectorIndex;
-                const dirSector = this.disk.readSector(
-                    this.dirTrackNumber, numberToSide(side), sectorNumber);
+                const sectorNumber = getFirstSectorNumber(this.version) + sectorIndex;
+                const dirPosition = new SectorPosition(this.dirTrackNumber, numberToSide(side) ?? 0, sectorNumber);
+                const dirSector = this.disk.readSector(dirPosition);
                 if (dirSector !== undefined) {
                     for (let i = 0; i < this.dirEntriesPerSector; i++) {
                         const dirEntryBinary = dirSector.data.subarray(i * this.dirEntryLength, (i + 1) * this.dirEntryLength);
@@ -1011,7 +1018,7 @@ export class Trsdos {
                             sectorNumber = trackGeometry.firstSector;
                         }
                     }
-                    sectorPositions.push({ cylinderNumber: trackNumber, side, sectorNumber });
+                    sectorPositions.push(new SectorPosition(trackNumber, side, sectorNumber));
                 }
             }
 
@@ -1032,7 +1039,7 @@ export class Trsdos {
         for (const sectorPosition of sectorPositions) {
             const sector = this.disk.readSector(sectorPosition);
             if (sector === undefined) {
-                TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${sectorPosition.toString()}`);
+                TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${sectorPosition.key()}`);
                 // TODO
             } else {
                 if (sector.crcError) {
@@ -1146,14 +1153,14 @@ function dirEntryToHitNumber(side: number, sectorIndex: number, dirEntryIndex: n
 function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos | string {
     // Load boot sector information.
     const geometry = disk.getGeometry();
-    const bootSector = disk.readSector(geometry.firstTrack.trackNumber,
-        geometry.firstTrack.firstSide, geometry.firstTrack.firstSector);
+    const bootPosition = new SectorPosition(0, Side.FRONT, getFirstSectorNumber(version));
+    const bootSector = disk.readSector(bootPosition);
     if (bootSector === undefined) {
         return "Can't read boot sector";
     }
     let dirTrackNumber = bootSector.data[version === TrsdosVersion.V1_3 ? 1 : 2] & 0x7F;
-    if (!geometry.isValidTrackNumber(dirTrackNumber)) {
-        return "Invalid directory track number (" + dirTrackNumber + ")";
+    if (dirTrackNumber >= geometry.cylinderCount) {
+        return "Invalid directory cylinder number (" + dirTrackNumber + ")";
     }
 
     const gatInfo = readAndDecodeGatInfo(disk, geometry, version, dirTrackNumber);
@@ -1227,8 +1234,9 @@ function decodeTrsdosVersion(disk: FloppyDisk, version: TrsdosVersion): Trsdos |
                     continue;
                 }
 
-                const sectorNumber = geometry.lastTrack.firstSector + sectorIndex;
-                const dirSector = disk.readSector(dirTrackNumber, numberToSide(side), sectorNumber);
+                const sectorNumber = getFirstSectorNumber(version) + sectorIndex;
+                const dirPosition = new SectorPosition(dirTrackNumber, numberToSide(side) ?? 0, sectorNumber);
+                const dirSector = disk.readSector(dirPosition);
                 if (dirSector !== undefined) {
                     totalDirSectors += 1;
 
@@ -1375,8 +1383,9 @@ function generateCandidate(disk: FloppyDisk,
                     continue;
                 }
 
-                const sectorNumber = geometry.lastTrack.firstSector + sectorIndex;
-                const dirSector = disk.readSector(dirTrackNumber, numberToSide(side), sectorNumber);
+                const sectorNumber = getFirstSectorNumber(version) + sectorIndex;
+                const dirPosition = new SectorPosition(dirTrackNumber, numberToSide(side) ?? 0, sectorNumber);
+                const dirSector = disk.readSector(dirPosition);
                 if (dirSector !== undefined) {
                     totalDirSectors += 1;
 
@@ -1430,10 +1439,7 @@ function generateCandidates(disk: FloppyDisk, version: TrsdosVersion): Trsdos[] 
     const sectorsPerTrack = geometry.lastTrack.numSectors();
     const dirEntryLength = version === TrsdosVersion.V1_3 ? 48 : 32;
 
-    for (let dirTrackNumber = geometry.firstTrack.trackNumber;
-         dirTrackNumber <= geometry.lastTrack.trackNumber;
-         dirTrackNumber++) {
-
+    for (let dirTrackNumber = 0; dirTrackNumber < geometry.cylinderCount; dirTrackNumber++) {
         candidates.push(generateCandidate(disk, geometry, version, dirTrackNumber, sectorsPerTrack, sideCount, dirEntryLength));
     }
 

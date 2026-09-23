@@ -38,7 +38,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
             const cylinderNumber = Math.floor(i / SECTORS_PER_TRACK);
             // 0-based on JV1.
             const sectorNumber = i % SECTORS_PER_TRACK;
-            const sectorPosition = new SectorPosition(cylinderNumber, Side.FRONT, sectorNumber);
+            const sectorPosition = SectorPosition.make(cylinderNumber, Side.FRONT, sectorNumber);
             const sectorInfo = new SectorInfo(sectorPosition, density, BYTES_PER_SECTOR);
             if (cylinderNumber === DIRECTORY_CYLINDER) {
                 // Directory sectors are marked as deleted in TRSDOS 2.3.
@@ -65,7 +65,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
     }
 
     public readSector(sectorPosition: SectorPosition): SectorData | undefined {
-        TRS80_FLOPPY_LOGGER.trace(`JV1: Reading sector ${sectorPosition.toString()}`);
+        TRS80_FLOPPY_LOGGER.trace(`JV1: Reading sector ${sectorPosition.key()}`);
 
         // Check for errors.
         if (!this.isValidSectorPosition(sectorPosition)) {

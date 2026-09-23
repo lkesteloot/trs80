@@ -20,7 +20,7 @@ import {
     SectorInfo,
     SectorPosition,
     Side,
-    SIDE_COUNT_TO_SIDES,
+    SIDE_COUNT_TO_SIDES, TrackPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {TRS80_FLOPPY_LOGGER} from "trs80-logger";
@@ -102,8 +102,8 @@ class DmkSector {
         this.alwaysUseStride1 = alwaysUseStride1;
         this.offset = offset;
         this.dataIndex = this.findDataIndex();
-        this.logicalSectorPosition = new SectorPosition(this.getCylinderNumber(), this.getSide(), this.getSectorNumber());
-        this.physicalSectorPosition = new SectorPosition(this.track.cylinderNumber, this.track.side, this.getSectorNumber());
+        this.logicalSectorPosition = SectorPosition.make(this.getCylinderNumber(), this.getSide(), this.getSectorNumber());
+        this.physicalSectorPosition = new SectorPosition(this.track.trackPosition, this.getSectorNumber());
     }
 
     /**
@@ -359,8 +359,7 @@ class DmkTrack {
      * Disk the track is in.
      */
     public readonly floppyDisk: DmkFloppyDisk;
-    public readonly cylinderNumber: number;
-    public readonly side: Side;
+    public readonly trackPosition: TrackPosition;
     /**
      * Offset of the track (start of its header) in the binary.
      */
@@ -370,10 +369,9 @@ class DmkTrack {
      */
     public readonly sectors: DmkSector[] = [];
 
-    constructor(floppyDisk: DmkFloppyDisk, cylinderNumber: number, side: Side, offset: number) {
+    constructor(floppyDisk: DmkFloppyDisk, trackPosition: TrackPosition, offset: number) {
         this.floppyDisk = floppyDisk;
-        this.cylinderNumber = cylinderNumber;
-        this.side = side;
+        this.trackPosition = trackPosition;
         this.offset = offset;
     }
 }
@@ -414,7 +412,7 @@ export class DmkFloppyDisk extends FloppyDisk {
 
         for (const track of this.tracks) {
             for (const sector of track.sectors) {
-                this.sectorMap.set(sector.physicalSectorPosition.toString(), sector);
+                this.sectorMap.set(sector.physicalSectorPosition.key(), sector);
             }
         }
     }
@@ -429,8 +427,10 @@ export class DmkFloppyDisk extends FloppyDisk {
                 throw new Error("Can't compute geometry without any tracks");
             }
 
-            const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.cylinderNumber)) + 1;
-            const sideCount = Math.max(-1, ... this.tracks.map(track => track.side)) + 1;
+            const cylinderCount = Math.max(-1, ... this.tracks.map(
+                track => track.trackPosition.cylinderNumber)) + 1;
+            const sideCount = Math.max(-1, ... this.tracks.map(
+                track => track.trackPosition.side)) + 1;
 
             const sectorInfos = this.tracks.flatMap(track =>
                 track.sectors.map(sector => sector.toPhysicalSectorInfo()));
@@ -442,13 +442,13 @@ export class DmkFloppyDisk extends FloppyDisk {
     }
 
     public readSector(sectorPosition: SectorPosition): SectorData | undefined {
-        TRS80_FLOPPY_LOGGER.trace(`DMK: Reading sector ${sectorPosition.toString()}`);
+        TRS80_FLOPPY_LOGGER.trace(`DMK: Reading sector ${sectorPosition.key()}`);
 
         // Note that the sector's side might not match the track side. This happens on
         // MultiDOS floppies when it stores a different file system on each side.
         // The back side will have sectors with Side = 0. This method should treat the
         // "sectorPosition.side" parameter like the physical side, not the side the sector thinks it's on.
-        const sector = this.sectorMap.get(sectorPosition.toString());
+        const sector = this.sectorMap.get(sectorPosition.key());
         if (sector === undefined) {
             // Don't log this, it's noisy for copy-protected disks, gets displayed before anything else
             // (which is confusing/misleading), and the data is available later anyway.
@@ -459,7 +459,7 @@ export class DmkFloppyDisk extends FloppyDisk {
 
         const sectorData = sector.toSectorData();
         if (sectorData === undefined) {
-            TRS80_FLOPPY_LOGGER.warn(`DMK: Sector ${sectorPosition.toString()} has no data`);
+            TRS80_FLOPPY_LOGGER.warn(`DMK: Sector ${sectorPosition.key()} has no data`);
             return undefined;
         }
 
@@ -467,17 +467,17 @@ export class DmkFloppyDisk extends FloppyDisk {
     }
 
     public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
-        TRS80_FLOPPY_LOGGER.trace(`DMK: Writing sector ${sectorPosition.toString()}`);
+        TRS80_FLOPPY_LOGGER.trace(`DMK: Writing sector ${sectorPosition.key()}`);
 
-        const sector = this.sectorMap.get(sectorPosition.toString());
+        const sector = this.sectorMap.get(sectorPosition.key());
         if (sector === undefined) {
-            TRS80_FLOPPY_LOGGER.warn(`DMK: Sector ${sectorPosition.toString()} is missing`);
+            TRS80_FLOPPY_LOGGER.warn(`DMK: Sector ${sectorPosition.key()} is missing`);
         } else {
             // See if we found the DAM.
             if (sector.dataIndex === undefined) {
                 // Not sure what to do here, we can't write it and there's no way to
                 // register an error.
-                TRS80_FLOPPY_LOGGER.warn(`DMK: No space for data on ${sectorPosition.toString()}`);
+                TRS80_FLOPPY_LOGGER.warn(`DMK: No space for data on ${sectorPosition.key()}`);
                 return;
             }
 
@@ -676,10 +676,11 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
     // Read the tracks.
     let binaryOffset = FILE_HEADER_SIZE;
     const sides = SIDE_COUNT_TO_SIDES[sideCount];
-    for (let trackNumber = 0; trackNumber < trackCount; trackNumber++) {
+    for (let trackNumber = 0; trackNumber < trackCount; trackNumber++) { // TODO rename cylinder
         for (const side of sides) {
             const trackOffset = binaryOffset;
-            const track = new DmkTrack(floppyDisk, trackNumber, side, trackOffset);
+            const trackPosition = new TrackPosition(trackNumber, side);
+            const track = new DmkTrack(floppyDisk, trackPosition, trackOffset);
 
             // Read the track header. The term "IDAM" in the comment below refers to the "ID access mark",
             // where "ID" is referring to the sector ID, the few bytes just before the sector data.

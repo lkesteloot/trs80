@@ -14,7 +14,7 @@ import {
     SectorData,
     SectorInfo,
     SectorPosition,
-    Side,
+    Side, TrackPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {CRC_16_CCITT} from "./Crc16.js";
@@ -164,14 +164,12 @@ class ScpRev {
 class ScpTrack {
     // Offset of start of track into binary.
     public readonly offset: number;
-    public readonly trackNumber: number;
-    public readonly side: Side;
+    public readonly trackPosition: TrackPosition;
     public readonly revs: ScpRev[];
 
-    constructor(offset: number, trackNumber: number, side: Side, revs: ScpRev[]) {
+    constructor(offset: number, trackPosition: TrackPosition, revs: ScpRev[]) {
         this.offset = offset;
-        this.trackNumber = trackNumber;
-        this.side = side;
+        this.trackPosition = trackPosition;
         this.revs = revs;
     }
 }
@@ -197,13 +195,13 @@ export class ScpFloppyDisk extends FloppyDisk {
 
     getGeometry(): FloppyDiskGeometry {
         if (this.geometry === undefined) {
-            const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.trackNumber)) + 1;
-            const sideCount = Math.max(-1, ... this.tracks.map(track => track.side)) + 1;
+            const cylinderCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.cylinderNumber)) + 1;
+            const sideCount = Math.max(-1, ... this.tracks.map(track => track.trackPosition.side)) + 1;
 
             // Where each sector physically is, which is what the geometry describes.
             const sectorInfos = this.tracks.flatMap(track =>
                 track.revs[DEFAULT_REV_NUMBER].sectors.map(sector =>
-                    new SectorInfo(new SectorPosition(track.trackNumber, track.side, sector.getSectorNumber()),
+                    new SectorInfo(new SectorPosition(track.trackPosition, sector.getSectorNumber()),
                         sector.getDensity(), sector.getLength())));
 
             this.geometry = new FloppyDiskGeometry(cylinderCount, sideCount, sectorInfos);
@@ -214,13 +212,13 @@ export class ScpFloppyDisk extends FloppyDisk {
 
     readSector(sectorPosition: SectorPosition): SectorData | undefined {
         for (const track of this.tracks) {
-            if (track.trackNumber === sectorPosition.cylinderNumber && track.side === sectorPosition.side) {
+            if (track.trackPosition.equals(sectorPosition.trackPosition)) {
                 const rev = track.revs[DEFAULT_REV_NUMBER];
 
                 for (const sector of rev.sectors) {
                     if (sector.getSectorNumber() === sectorPosition.sectorNumber) {
                         // What the sector says about itself, which can differ from where it physically is.
-                        const logicalSectorPosition = new SectorPosition(sector.getTrackNumber(),
+                        const logicalSectorPosition = SectorPosition.make(sector.getTrackNumber(),
                             numberToSide(sector.getSideNumber()) ?? Side.FRONT, sector.getSectorNumber());
                         const sectorData = new SectorData(sector.getData(), logicalSectorPosition,
                             sector.getDensity());
@@ -556,6 +554,7 @@ function parseScpTrack(binary: Uint8Array, trackOffset: number, numRevolutions: 
     const scpTrackNumber = binary[trackOffset + 3];
     const trackNumber = Math.floor(scpTrackNumber / 2);
     const side = scpTrackNumber % 2 === 0 ? Side.FRONT : Side.BACK;
+    const trackPosition = new TrackPosition(trackNumber, side);
 
     let offset = trackOffset + 4;
     const revs: ScpRev[] = [];
@@ -577,7 +576,7 @@ function parseScpTrack(binary: Uint8Array, trackOffset: number, numRevolutions: 
         revs.push(scpRev);
     }
 
-    return new ScpTrack(trackOffset, trackNumber, side, revs);
+    return new ScpTrack(trackOffset, trackPosition, revs);
 }
 
 /**

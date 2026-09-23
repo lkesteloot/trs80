@@ -66,7 +66,7 @@ class Jv3SectorInfo {
 
     constructor(cylinderNumber: number, sectorNumber: number, flags: Flags, offset: number) {
         const side = (flags & Flags.SIDE) === 0 ? Side.FRONT : Side.BACK
-        this.sectorPosition = new SectorPosition(cylinderNumber, side, sectorNumber);
+        this.sectorPosition = SectorPosition.make(cylinderNumber, side, sectorNumber);
         this.flags = flags;
         this.offset = offset;
 
@@ -212,7 +212,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
         }
         const endOffset = sectorInfo.offset + sectorInfo.size;
         if (endOffset > this.binary.length) {
-            TRS80_BASE_LOGGER.warn(`JV3 sector is truncated ${sectorPosition.toString()}`);
+            TRS80_BASE_LOGGER.warn(`JV3 sector is truncated ${sectorPosition.key()}`);
             return undefined;
         }
 
@@ -230,7 +230,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
         const sectorInfo = this.findSectorInfo(sectorPosition);
         if (sectorInfo === undefined) {
             // Not sure how to handle this.
-            TRS80_BASE_LOGGER.warn(`JV3 write sector not found ${sectorPosition.toString()}`);
+            TRS80_BASE_LOGGER.warn(`JV3 write sector not found ${sectorPosition.key()}`);
             return;
         }
 
@@ -245,7 +245,7 @@ export class Jv3FloppyDisk extends FloppyDisk {
      * Find the sector for the specified cylinder and side.
      */
     private findSectorInfo(sectorPosition: SectorPosition): Jv3SectorInfo | undefined {
-        return this.sectorInfoMap.get(sectorPosition.toString());
+        return this.sectorInfoMap.get(sectorPosition.key());
     }
 }
 
@@ -286,7 +286,7 @@ export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk | undefin
 
             if (!sectorInfo.isFree() && sectorOffset > binary.length) {
                 // Should we return undefined?
-                error = `Sector ${sectorInfo.sectorPosition.toString()} is truncated`;
+                error = `Sector ${sectorInfo.sectorPosition.key()} is truncated`;
             }
 
             annotations.push(new ProgramAnnotation("Cylinder " + sectorInfo.sectorPosition.cylinderNumber + ", sector " +
@@ -343,7 +343,7 @@ export function decodeJv3FloppyDisk(binary: Uint8Array): Jv3FloppyDisk | undefin
         usedSectors.map(info => info.toSectorInfo()));
 
     // Build our map.
-    const sectorInfoMap = new Map(usedSectors.map(info => [info.sectorPosition.toString(), info]));
+    const sectorInfoMap = new Map(usedSectors.map(info => [info.sectorPosition.key(), info]));
     if (sectorInfoMap.size !== usedSectors.length) {
         // Some JV3 sectors had duplicate positions. Might want to be more flexible here, for copy protection tricks.
         return undefined;
