@@ -1,9 +1,38 @@
 import * as fs from "fs";
+import type {ChalkInstance} from "chalk";
 import chalk from "chalk";
-import type { ChalkInstance } from "chalk";
-import {Density, Side, Trs80Floppy, TrsdosDirEntry, decodeTrs80File, decodeTrsdos, isFloppy, numberToSide } from "trs80-base";
-import { toHexWord } from "z80-base";
-import { hexdumpBinary } from "./hexdump.js";
+import {
+    decodeTrs80File,
+    decodeTrsdos,
+    Density,
+    isFloppy,
+    numberToSide,
+    SectorPosition,
+    Side,
+    TrackPosition,
+    Trs80Floppy,
+    TrsdosDirEntry
+} from "trs80-base";
+import {toHexWord} from "z80-base";
+import {hexdumpBinary} from "./hexdump.js";
+
+const CHALK_FOR_LETTER: { [letter: string]: ChalkInstance } = {
+    "-": chalk.gray,
+    "?": chalk.red,
+    "C": chalk.red,
+    "X": chalk.yellow,
+    "S": chalk.reset,
+    "D": chalk.reset,
+};
+
+const LEGEND_FOR_LETTER: { [letter: string]: string } = {
+    "-": "Not on track",
+    "?": "Not found",
+    "C": "CRC error",
+    "X": "Deleted sector",
+    "S": "Single density",
+    "D": "Double density",
+}
 
 /**
  * Handle the "sectors" command.
@@ -48,13 +77,20 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
         const geometry = file.getGeometry();
 
         // Dump each sector.
-        for (let trackNumber = geometry.firstTrack.trackNumber; trackNumber <= geometry.lastTrack.trackNumber; trackNumber++) {
-            const trackGeometry = geometry.getTrackGeometry(trackNumber);
-            for (const side of trackGeometry.sides()) {
-                for (let sectorNumber = trackGeometry.firstSector; sectorNumber <= trackGeometry.lastSector; sectorNumber++) {
+        for (let trackNumber = 0; trackNumber < geometry.cylinderCount; trackNumber++) {
+            for (let sideNumber = 0; sideNumber < geometry.sideCount; sideNumber++) {
+                const side = numberToSide(sideNumber) ?? Side.FRONT;
+                const trackPosition = new TrackPosition(trackNumber, side);
+                const trackGeometry = geometry.trackMap.get(trackPosition.key());
+                if (trackGeometry === undefined) {
+                    // No sectors at all on this track.
+                    continue;
+                }
+                for (let sectorNumber = trackGeometry.firstSectorNumber; sectorNumber <= trackGeometry.lastSectorNumber; sectorNumber++) {
                     let header = `Side ${side}, track ${trackNumber}, sector ${sectorNumber}: `;
 
-                    const sector = file.readSector(trackNumber, side, sectorNumber);
+                    const sectorPosition = new SectorPosition(trackPosition, sectorNumber);
+                    const sector = file.readSector(sectorPosition);
                     if (sector === undefined) {
                         header += "missing";
                     } else {
@@ -91,11 +127,8 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
                             let fileAtSector: TrsdosDirEntry | undefined = undefined;
                             for (const file of files) {
                                 const sectorPositions = trsdos.getFileSectorPositions(file);
-                                for (const sectorPosition of sectorPositions) {
-                                    if (sectorPosition.trackNumber === trackNumber &&
-                                        sectorPosition.side === side &&
-                                        sectorPosition.sectorNumber === sectorNumber) {
-
+                                for (const filePosition of sectorPositions) {
+                                    if (filePosition.equals(sectorPosition)) {
                                         fileAtSector = file;
                                         break;
                                     }
@@ -125,46 +158,35 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
  */
 function printMap(file: Trs80Floppy) {
     const geometry = file.getGeometry();
-    const minSectorNumber = Math.min(geometry.firstTrack.firstSector, geometry.lastTrack.firstSector);
-    const maxSectorNumber = Math.max(geometry.firstTrack.lastSector, geometry.lastTrack.lastSector);
-
     const usedLetters = new Set<string>();
 
-    const CHALK_FOR_LETTER: { [letter: string]: ChalkInstance } = {
-        "-": chalk.gray,
-        "?": chalk.red,
-        "C": chalk.red,
-        "X": chalk.yellow,
-        "S": chalk.reset,
-        "D": chalk.reset,
-    };
+    for (let sideNumber = 0; sideNumber < geometry.sideCount; sideNumber++) {
+        const side = numberToSide(sideNumber) ?? Side.FRONT;
 
-    const LEGEND_FOR_LETTER: { [letter: string]: string } = {
-        "-": "Not on track",
-        "?": "Not found",
-        "C": "CRC error",
-        "X": "Deleted sector",
-        "S": "Single density",
-        "D": "Double density",
-    }
-
-    for (let sideNumber = 0; sideNumber < geometry.numSides(); sideNumber++) {
-        const side = numberToSide(sideNumber);
+        // Print header.
         const sideName = side === Side.FRONT ? "Front" : "Back";
         const lineParts: string[] = [sideName.padStart(6, " ") + "  "];
-        for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
+        for (let sectorNumber = geometry.firstSectorNumber; sectorNumber <= geometry.lastSectorNumber; sectorNumber++) {
             lineParts.push(sectorNumber.toString().padStart(3, " "));
         }
         console.log(lineParts.join(""));
 
-        for (let trackNumber = geometry.firstTrack.trackNumber; trackNumber <= geometry.lastTrack.trackNumber; trackNumber++) {
-            const trackGeometry = geometry.getTrackGeometry(trackNumber);
-            const lineParts: string[] = [trackNumber.toString().padStart(6, " ") + "  "];
+        // Print table content.
+        for (let cylinder = 0; cylinder < geometry.cylinderCount; cylinder++) {
+            const trackPosition = new TrackPosition(cylinder, side);
+            const trackGeometry = geometry.trackMap.get(trackPosition.key());
+            const lineParts: string[] = [cylinder.toString().padStart(6, " ") + "  "];
 
-            for (let sectorNumber = minSectorNumber; sectorNumber <= maxSectorNumber; sectorNumber++) {
+            for (let sectorNumber = geometry.firstSectorNumber;
+                 sectorNumber <= geometry.lastSectorNumber;
+                 sectorNumber++) {
+
                 let text: string;
-                if (trackGeometry.isValidSectorNumber(sectorNumber)) {
-                    const sectorData = file.readSector(trackNumber, side, sectorNumber);
+                if (trackGeometry !== undefined &&
+                    sectorNumber >= trackGeometry.firstSectorNumber &&
+                    sectorNumber <= trackGeometry.lastSectorNumber) {
+
+                    const sectorData = file.readSector(new SectorPosition(trackPosition, sectorNumber));
                     if (sectorData === undefined) {
                         text = "?";
                     } else if (sectorData.crcError) {

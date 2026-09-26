@@ -6,6 +6,7 @@ import {
     Density,
     FloppyDisk,
     isFloppy,
+    SectorPosition,
     Side,
     TrackGeometry,
     Trsdos,
@@ -24,22 +25,32 @@ export const REPORT_VERSION = 1;
 
 export type DensityName = "single" | "double";
 
+/**
+ * The geometry of one specific track.
+ */
 export interface TrackGeometryReport {
-    trackNumber: number;
-    firstSide: number;
-    lastSide: number;
     firstSector: number;
     lastSector: number;
     sectorSize: number;
     density: DensityName;
 }
 
+/**
+ * The most common values across every track but the boot track. These are modal, not exact:
+ * individual tracks can differ, especially on damaged or copy-protected disks.
+ */
+export interface DataTrackGeometryReport {
+    sectorSpan: number;
+    sectorSize: number;
+    density: DensityName;
+}
+
 export interface GeometryReport {
-    trackCount: number;
+    cylinderCount: number;
     sideCount: number;
-    homogeneous: boolean;
-    firstTrack: TrackGeometryReport;
-    lastTrack: TrackGeometryReport;
+    // Cylinder 0 side 0, which is often formatted differently than the rest of the disk.
+    bootTrack: TrackGeometryReport;
+    dataTrack: DataTrackGeometryReport;
 }
 
 /**
@@ -169,13 +180,10 @@ function densityName(density: Density): DensityName {
  */
 function reportTrackGeometry(trackGeometry: TrackGeometry): TrackGeometryReport {
     return {
-        trackNumber: trackGeometry.trackNumber,
-        firstSide: trackGeometry.firstSide,
-        lastSide: trackGeometry.lastSide,
-        firstSector: trackGeometry.firstSector,
-        lastSector: trackGeometry.lastSector,
-        sectorSize: trackGeometry.sectorSize,
-        density: densityName(trackGeometry.density),
+        firstSector: trackGeometry.firstSectorNumber,
+        lastSector: trackGeometry.lastSectorNumber,
+        sectorSize: trackGeometry.modalSectorSize,
+        density: densityName(trackGeometry.modalDensity),
     };
 }
 
@@ -200,7 +208,7 @@ function reportTrsdosFile(trsdos: Trsdos, dirEntry: TrsdosDirEntry): FileReport 
         for (let d: TrsdosDirEntry | undefined = dirEntry; d !== undefined; d = d.nextDirEntry) {
             extentEntryCount += 1;
             for (const extent of d.extents) {
-                extents.push([extent.trackNumber, extent.granuleOffset, extent.granuleCount]);
+                extents.push([extent.cylinderNumber, extent.granuleOffset, extent.granuleCount]);
             }
         }
         report.dirEntryCount = extentEntryCount;
@@ -210,8 +218,8 @@ function reportTrsdosFile(trsdos: Trsdos, dirEntry: TrsdosDirEntry): FileReport 
         const sectorPositions = trsdos.getFileSectorPositions(dirEntry);
         let missingSectors = 0;
         let crcErrorSectors = 0;
-        for (const {trackNumber, side, sectorNumber} of sectorPositions) {
-            const sector = trsdos.disk.readSector(trackNumber, side, sectorNumber);
+        for (const sectorPosition of sectorPositions) {
+            const sector = trsdos.disk.readSector(sectorPosition);
             if (sector === undefined) {
                 missingSectors += 1;
             } else if (sector.crcError) {
@@ -245,15 +253,19 @@ function reportTrsdosFile(trsdos: Trsdos, dirEntry: TrsdosDirEntry): FileReport 
 function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): void {
     const geometry = disk.getGeometry();
     report.geometry = {
-        trackCount: geometry.numTracks(),
-        sideCount: geometry.numSides(),
-        homogeneous: geometry.hasHomogenousGeometry(),
-        firstTrack: reportTrackGeometry(geometry.firstTrack),
-        lastTrack: reportTrackGeometry(geometry.lastTrack),
+        cylinderCount: geometry.cylinderCount,
+        sideCount: geometry.sideCount,
+        bootTrack: reportTrackGeometry(geometry.bootTrack),
+        dataTrack: {
+            sectorSpan: geometry.modalDataSectorSpan,
+            sectorSize: geometry.modalDataSectorSize,
+            density: densityName(geometry.modalDataDensity),
+        },
     };
 
     // Boot sector, whose third byte is the directory track on most DOSes.
-    const bootSector = disk.readSector(geometry.firstTrack.trackNumber, Side.FRONT, geometry.firstTrack.firstSector);
+    const bootSector = disk.readSector(
+        SectorPosition.make(0, Side.FRONT, geometry.bootTrack.firstSectorNumber));
     report.bootSectorPrefix = bootSector === undefined
         ? null
         : Array.from(bootSector.data.subarray(0, 3));

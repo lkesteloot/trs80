@@ -3,7 +3,7 @@ import * as path from "path";
 import {pluralizeWithCount} from "./utils.js";
 import {infoJson} from "./report.js";
 import {AudioFile, Decoder, readWavFile, Tape, WAV_INFO_TAGS} from "trs80-cassette";
-import {decodeTrs80File, decodeTrsdos, Density, isFloppy, TrackGeometry} from "trs80-base";
+import {decodeTrs80File, decodeTrsdos, Density, densityToString, isFloppy, TrackGeometry} from "trs80-base";
 
 /**
  * Return a list of strings for the metata from the audio file.
@@ -74,24 +74,19 @@ function printInfoForFile(filename: string, verbose: boolean): void {
 
                     if (verbose) {
                         function getTrackGeometryInfo(trackGeometry: TrackGeometry): string {
-                            return [`sectors ${trackGeometry.firstSector} to ${trackGeometry.lastSector}`,
-                                `sides ${trackGeometry.firstSide} to ${trackGeometry.lastSide}`,
-                                `${trackGeometry.density === Density.SINGLE ? "single" : "double"} density`,
-                                `${trackGeometry.sectorSize} bytes per sector`].join(", ");
+                            return [`sectors ${trackGeometry.firstSectorNumber} to ${trackGeometry.lastSectorNumber}`,
+                                `${densityToString(trackGeometry.modalDensity)} density`,
+                                `${trackGeometry.modalSectorSize} bytes per sector`].join(", ");
                         }
 
                         const geometry = trs80File.getGeometry();
-                        const firstTrack = geometry.firstTrack;
-                        const lastTrack = geometry.lastTrack;
-                        if (geometry.hasHomogenousGeometry()) {
-                            verboseLines.push(`Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}, ` +
-                                getTrackGeometryInfo(firstTrack));
-                        } else {
-                            verboseLines.push(
-                                `Tracks ${firstTrack.trackNumber} to ${lastTrack.trackNumber}`,
-                                `On track ${firstTrack.trackNumber}, ` + getTrackGeometryInfo(firstTrack),
-                                `On remaining tracks, ` + getTrackGeometryInfo(lastTrack));
-                        }
+                        verboseLines.push(
+                            `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
+                                `${pluralizeWithCount(geometry.sideCount, "side")}`,
+                            `On the boot track, ` + getTrackGeometryInfo(geometry.bootTrack),
+                            `On most other tracks, ` + [`${geometry.modalDataSectorSpan} sectors`,
+                                `${densityToString(geometry.modalDataDensity)} density`,
+                                `${geometry.modalDataSectorSize} bytes per sector`].join(", "));
 
                         if (trsdos !== undefined) {
                             const gatInfo = trsdos.getGatInfo();
