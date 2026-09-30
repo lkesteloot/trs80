@@ -39,6 +39,7 @@ export function modelTypeFromString(modelName: string): ModelType | undefined {
 export enum BasicLevel {
     LEVEL1,
     LEVEL2,
+    COMPILED,
 }
 
 /**
@@ -51,6 +52,9 @@ export function basicLevelFromString(basicLevelName: string): BasicLevel | undef
 
         case "2":
             return BasicLevel.LEVEL2;
+
+        case "C":
+            return BasicLevel.COMPILED;
 
         default:
             return undefined;
@@ -141,7 +145,7 @@ function computeRomSize(modelType: ModelType, basicLevel: BasicLevel): number {
                     break;
 
                 case BasicLevel.LEVEL2:
-                default:
+                case BasicLevel.COMPILED:
                     kb = 12;
                     break;
             }
@@ -149,7 +153,6 @@ function computeRomSize(modelType: ModelType, basicLevel: BasicLevel): number {
 
         case ModelType.MODEL3:
         case ModelType.MODEL4:
-        default:
             kb = 14;
             break;
     }
@@ -278,6 +281,11 @@ export class Config {
     public isValid(): boolean {
         // Only Model I had Level 1. (Well, there was a Model III with Level 1 but we don't support it.)
         if (this.modelType !== ModelType.MODEL1 && this.basicLevel === BasicLevel.LEVEL1) {
+            return false;
+        }
+
+        // Only Model III has compiled ROM.
+        if (this.modelType !== ModelType.MODEL3 && this.basicLevel === BasicLevel.COMPILED) {
             return false;
         }
 

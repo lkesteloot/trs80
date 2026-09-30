@@ -5,6 +5,7 @@ import {Keyboard} from "./Keyboard.js";
 import {model1Level1Rom} from "./Model1Level1Rom.js";
 import {model1Level2Rom} from "./Model1Level2Rom.js";
 import {model3Rom} from "./Model3Rom.js";
+import {model3CompiledRom} from "./Model3CompiledRom.js";
 import {model4Rom} from "./Model4Rom.js";
 import {Trs80Screen, Trs80ScreenState} from "./Trs80Screen.js";
 import {BasicLevel, CGChip, Config, Configurable, ModelType} from "./Config.js";
@@ -13,20 +14,21 @@ import {
     BasicProgram,
     CmdProgram,
     decodeBasicProgram,
-    ElementType, isFloppy,
+    ElementType,
+    FloppyDisk,
+    isFloppy,
+    Level1Program,
     SystemProgram,
     TRS80_SCREEN_BEGIN,
     TRS80_SCREEN_END,
-    Trs80File,
-    Level1Program
+    Trs80File
 } from "trs80-base";
-import {LogLevel, TRS80_EMULATOR_LOGGER} from "trs80-logger";
-import {FloppyDisk} from "trs80-base";
+import {TRS80_EMULATOR_LOGGER} from "trs80-logger";
 import {FdcState, FLOPPY_DRIVE_COUNT, FloppyDiskController} from "./FloppyDiskController.js";
 import {Machine} from "./Machine.js";
 import {EventScheduler} from "./EventScheduler.js";
 import {SoundPlayer} from "./SoundPlayer.js";
-import {SignalDispatcher,SimpleEventDispatcher} from "strongly-typed-events";
+import {SignalDispatcher, SimpleEventDispatcher} from "strongly-typed-events";
 import {ConsolePrinter, Printer} from "./Printer.js";
 
 // IRQs
@@ -369,6 +371,16 @@ export class Trs80 implements Hal, Machine, Configurable {
                 case ModelType.MODEL3:
                 default:
                     rom = model3Rom;
+                    switch (this.config.basicLevel) {
+                        case BasicLevel.LEVEL2:
+                        default:
+                            rom = model3Rom;
+                            break;
+
+                        case BasicLevel.COMPILED:
+                            rom = model3CompiledRom;
+                            break;
+                    }
                     break;
 
                 case ModelType.MODEL4:
@@ -378,7 +390,7 @@ export class Trs80 implements Hal, Machine, Configurable {
         }
 
         // Sanity check.
-        if (rom.length > this.config.romSize) {
+        if (rom.length > this.config.romSize && this.config.basicLevel !== BasicLevel.COMPILED) {
             throw new Error("ROM is too large (" + rom.length + " > " + this.config.romSize + ")");
         }
 
@@ -386,6 +398,13 @@ export class Trs80 implements Hal, Machine, Configurable {
         this.memory.fill(0, 0, this.config.romSize);
         for (let i = 0; i < rom.length; i++) {
             this.memory[i] = rom.charCodeAt(i);
+        }
+
+        // This has some stuff in RAM.
+        if (this.config.basicLevel === BasicLevel.COMPILED) {
+            for (let i = 16*1024; i < rom.length; i++) {
+                this.memory[i] = rom.charCodeAt(i);
+            }
         }
     }
 
