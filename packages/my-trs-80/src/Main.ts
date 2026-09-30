@@ -1,4 +1,4 @@
-import {Config, RunningState, Trs80} from "trs80-emulator";
+import {RunningState, Trs80, trs80AllowCompiledRom} from "trs80-emulator";
 import {
     BasicEditor,
     CanvasScreen,
@@ -88,6 +88,11 @@ export function main() {
     const args = Context.parseFragment(window.location.hash);
     const runFileId = args.get("runFile")?.[0];
     const userId = args.get("user")?.[0];
+    const compiledRom = args.get("compiled")?.[0] !== undefined;
+
+    if (compiledRom) {
+        trs80AllowCompiledRom(true);
+    }
 
     const body = document.querySelector("body") as HTMLElement;
     body.classList.add("signed-out");

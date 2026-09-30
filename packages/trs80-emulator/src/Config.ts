@@ -161,6 +161,14 @@ function computeRomSize(modelType: ModelType, basicLevel: BasicLevel): number {
 }
 
 /**
+ * Temporary hack for this weekend.
+ */
+let ALLOW_COMPILED_ROM = false;
+export function trs80AllowCompiledRom(allowCompiledRom: boolean): void {
+    ALLOW_COMPILED_ROM = allowCompiledRom;
+}
+
+/**
  * A specific configuration of model, RAM, ROM, display, and peripherals.
  */
 export class Config {
@@ -285,7 +293,7 @@ export class Config {
         }
 
         // Only Model III has compiled ROM.
-        if (this.modelType !== ModelType.MODEL3 && this.basicLevel === BasicLevel.COMPILED) {
+        if ((!ALLOW_COMPILED_ROM || this.modelType !== ModelType.MODEL3) && this.basicLevel === BasicLevel.COMPILED) {
             return false;
         }
 
