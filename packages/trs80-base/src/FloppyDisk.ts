@@ -390,17 +390,20 @@ export class FloppyDiskGeometry {
             this.trackMap.set(trackKey, TrackGeometry.make(sectors));
         }
 
-        const sectorNumbers = this.sectorInfos.map(sectorInfo => sectorInfo.sectorPosition.sectorNumber);
-        this.firstSectorNumber = Math.min(0, ... sectorNumbers);
-        this.lastSectorNumber = Math.max(0, ... sectorNumbers);
-
         const bootTrackPosition = new TrackPosition(0, Side.FRONT);
         const bootTrack = this.trackMap.get(bootTrackPosition.key());
         if (bootTrack === undefined) {
             throw new Error("Disk has no track 0 on side 0");
         }
         this.bootTrack = bootTrack;
-        const dataTracks = [... this.trackMap.values()].filter(track => track !== bootTrack);
+
+        // Every sector belongs to a track, so the min and max over the tracks are the min and max
+        // over the whole disk. We have at least one track, since we just found the boot track.
+        const tracks = [... this.trackMap.values()];
+        this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
+        this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
+
+        const dataTracks = tracks.filter(track => track !== bootTrack);
         this.modalDataDensity = modeOf(dataTracks.map(track => track.modalDensity)).value;
         this.modalDataSectorSize = modeOf(dataTracks.map(track => track.modalSectorSize)).value;
         this.modalDataSectorSpan = modeOf(dataTracks.map(track => track.sectorSpan())).value;
