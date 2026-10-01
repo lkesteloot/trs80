@@ -36,8 +36,8 @@ export interface TrackGeometryReport {
 }
 
 /**
- * The most common values across every track but the boot track. These are modal, not exact:
- * individual tracks can differ, especially on damaged or copy-protected disks.
+ * The most common values across the side 0 tracks other than the boot track. These are modal,
+ * not exact: individual tracks can differ, especially on damaged or copy-protected disks.
  */
 export interface DataTrackGeometryReport {
     sectorSpan: number;

@@ -359,6 +359,7 @@ export class FloppyDiskGeometry {
     public readonly lastSectorNumber: number;
     // Information about the boot track (cylinder 0 side 0).
     public readonly bootTrack: TrackGeometry;
+    // Most common values across the side 0 tracks other than the boot track.
     public readonly modalDataDensity: Density;
     public readonly modalDataSectorSize: number;
     public readonly modalDataSectorSpan: number;
@@ -386,8 +387,17 @@ export class FloppyDiskGeometry {
             sectorList.push(sectorInfo);
         }
 
+        // Tracks on side 0, which is where every DOS keeps its system tracks. The modal values
+        // below are computed from these, so that a disk whose second side is garbage (or holds a
+        // different file system, as MultiDOS disks do) still reports the geometry that matters.
+        const frontTracks: TrackGeometry[] = [];
+
         for (const [trackKey, sectors] of trackSectorList.entries()) {
-            this.trackMap.set(trackKey, TrackGeometry.make(sectors));
+            const trackGeometry = TrackGeometry.make(sectors);
+            this.trackMap.set(trackKey, trackGeometry);
+            if (sectors[0].sectorPosition.side === Side.FRONT) {
+                frontTracks.push(trackGeometry);
+            }
         }
 
         const bootTrackPosition = new TrackPosition(0, Side.FRONT);
@@ -403,7 +413,7 @@ export class FloppyDiskGeometry {
         this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
         this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
 
-        const dataTracks = tracks.filter(track => track !== bootTrack);
+        const dataTracks = frontTracks.filter(track => track !== bootTrack);
         this.modalDataDensity = modeOf(dataTracks.map(track => track.modalDensity)).value;
         this.modalDataSectorSize = modeOf(dataTracks.map(track => track.modalSectorSize)).value;
         this.modalDataSectorSpan = modeOf(dataTracks.map(track => track.sectorSpan())).value;
