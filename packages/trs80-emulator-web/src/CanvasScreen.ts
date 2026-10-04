@@ -1,8 +1,11 @@
 import {Trs80WebScreen} from "./Trs80WebScreen.js";
-import {MODEL1A_FONT, MODEL1B_FONT, MODEL3_ALT_FONT, MODEL3_FONT} from "./Fonts.js";
 import {CGChip, Config, Configurable, DisplayType, ModelType, Phosphor, Trs80ScreenState} from "trs80-emulator";
 import {toHexByte} from "z80-base";
 import {
+    MODEL1A_FONT,
+    MODEL1B_FONT,
+    MODEL3_ALT_FONT,
+    MODEL3_FONT,
     TRS80_CHAR_HEIGHT,
     TRS80_CHAR_PIXEL_HEIGHT,
     TRS80_CHAR_PIXEL_WIDTH,

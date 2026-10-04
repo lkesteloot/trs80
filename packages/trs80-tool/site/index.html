@@ -418,6 +418,10 @@ C CRC error (ID or data).
                     <code>Cass?</code> and <code>Memory Size?</code> questions and waits for
                     <code>READY</code>.</li>
                 <li><code>load_program</code> — load and start a program file on the running machine.</li>
+                <li><code>mount_disk</code> — put a floppy disk image in a numbered drive, without
+                    rebooting, for programs that need more than one disk.</li>
+                <li><code>reset</code> — reset the machine, keeping the disks mounted, which is how
+                    you boot from a disk you just mounted.</li>
                 <li><code>load_basic</code> — put a Basic listing straight into memory on the stock ROM,
                     much faster than typing it.</li>
                 <li><code>type</code> — type text at the keyboard, waiting until the ROM has taken every key.</li>
@@ -440,6 +444,11 @@ C CRC error (ID or data).
                 <li><code>call_routine</code> — call a machine-language routine with chosen registers
                     and report exactly how many clock cycles it took, the way another program calling
                     it would see it.</li>
+                <li><code>screenshot</code> — write the screen to a PNG.</li>
+                <li><code>record_start</code> and <code>record_stop</code> — record an MP4 of
+                    everything the machine does in between. Frames are taken at a fixed interval of
+                    emulated time, so the video plays back at true speed and shows honestly how fast
+                    a program is. Needs <code>ffmpeg</code> on your <code>PATH</code>.</li>
             </ul>
 
             <p>Timings are reported in Z80 clock cycles (t-states) rather than wall-clock time, so
@@ -470,6 +479,16 @@ C CRC error (ID or data).
                  changes with its version ("trs80-tool v2.9.0: ..."), web app changes with
                  the app's name ("IDE: ..."), and describe changes to shared parts, like the
                  assembler, in a plain sentence. -->
+
+            <h3 id="2026-10-01">October 1, 2026</h3>
+            <ul>
+                <li><code>trs80-tool</code> v2.9.2: New tools in the
+                    <a href="#mcp"><code>mcp</code></a> server:
+                    <code>record_start</code> and <code>record_stop</code> record an MP4 of the
+                    screen, <code>screenshot</code> writes a PNG, and <code>mount_disk</code> and
+                    <code>reset</code> let an assistant boot a machine with several floppy disks
+                    in it.</li>
+            </ul>
 
             <h3 id="2026-09-14">September 14, 2026</h3>
             <ul>

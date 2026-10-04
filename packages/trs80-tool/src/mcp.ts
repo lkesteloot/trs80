@@ -26,10 +26,13 @@
  */
 
 import fs from "fs";
+import os from "os";
+import path from "path";
+import {spawnSync} from "child_process";
 import {
     BasicLevel, CassettePlayer, Config, Keyboard, ModelType, SilentSoundPlayer, Trs80, Trs80Screen,
 } from "trs80-emulator";
-import {decodeBasicProgram, decodeTrs80File, parseBasicText} from "trs80-base";
+import {decodeBasicProgram, decodeTrs80File, isFloppy, MODEL3_FONT, parseBasicText} from "trs80-base";
 import {Disasm} from "z80-disasm";
 
 const SCREEN_BEGIN = 0x3C00;
@@ -38,6 +41,30 @@ const SCREEN_HEIGHT = 16;
 const ROM_END = 0x3800;
 const MAX_READ = 1024;
 const PROTOCOL_VERSION = "2024-11-05";
+
+// Model III glyphs are 8 CRT pixels wide and 24 tall, so a whole screen is 512x384.
+const GLYPH_WIDTH = MODEL3_FONT.width;
+const GLYPH_HEIGHT = 24;
+const GRID_WIDTH = SCREEN_WIDTH*GLYPH_WIDTH;
+const GRID_HEIGHT = SCREEN_HEIGHT*GLYPH_HEIGHT;
+
+// Margin around the character grid, in the same CRT pixels, so that text and graphics
+// don't sit flush against the edge. This is what trs80-emulator-web uses for its
+// default display type (getCrtPixelsPadding() for DisplayType.SIMPLE in CanvasScreen).
+const SCREEN_PADDING = 10;
+
+const FRAME_WIDTH = GRID_WIDTH + 2*SCREEN_PADDING;
+const FRAME_HEIGHT = GRID_HEIGHT + 2*SCREEN_PADDING;
+
+// What trs80-emulator-web shows by default: white P4 phosphor on a dark green
+// screen (AUTHENTIC_BACKGROUND in CanvasScreen.ts).
+const FOREGROUND = [0xFF, 0xFF, 0xFF];
+const BACKGROUND = [0x33, 0x48, 0x43];
+
+const DEFAULT_FPS = 30;
+const DEFAULT_SCALE = 2;
+// At 30 fps that's two minutes, and 1 KB per frame of memory.
+const MAX_FRAMES = 3600;
 
 // Given to the model once, when the session starts. Informational on purpose: it's
 // read by agents that rightly distrust imperative text arriving from a tool.
@@ -103,6 +130,149 @@ class HeadlessScreen extends Trs80Screen {
     }
 }
 
+
+//--- Rendering the screen to pixels.
+
+// Laid out as [row of pixels][character][column of pixels], 0 or 255.
+const FONT_SHEET = new Uint8Array(MODEL3_FONT.makeFontSheet());
+
+/**
+ * Rasterize the 1 KB screen into an RGB24 frame, FRAME_WIDTH by FRAME_HEIGHT,
+ * with the character grid inset by SCREEN_PADDING on all sides.
+ */
+function renderFrame(mem: Uint8Array, out: Uint8Array): void {
+    // The margin, and anything we don't draw over.
+    for (let i = 0; i < FRAME_WIDTH*FRAME_HEIGHT; i++) {
+        out[i*3 + 0] = BACKGROUND[0];
+        out[i*3 + 1] = BACKGROUND[1];
+        out[i*3 + 2] = BACKGROUND[2];
+    }
+
+    for (let row = 0; row < SCREEN_HEIGHT; row++) {
+        for (let y = 0; y < GLYPH_HEIGHT; y++) {
+            const sheetRow = y*256*GLYPH_WIDTH;
+            let o = ((SCREEN_PADDING + row*GLYPH_HEIGHT + y)*FRAME_WIDTH + SCREEN_PADDING)*3;
+            for (let col = 0; col < SCREEN_WIDTH; col++) {
+                const sheetChar = sheetRow + mem[row*SCREEN_WIDTH + col]*GLYPH_WIDTH;
+                for (let x = 0; x < GLYPH_WIDTH; x++) {
+                    const color = FONT_SHEET[sheetChar + x] === 0 ? BACKGROUND : FOREGROUND;
+                    out[o++] = color[0];
+                    out[o++] = color[1];
+                    out[o++] = color[2];
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Hand raw RGB24 frames to ffmpeg. Scaling happens here rather than in renderFrame
+ * so that the pipe stays small, and it's nearest-neighbor so the pixels stay square
+ * and sharp -- a smooth upscale makes H.264 ring badly on this kind of image.
+ */
+function runFfmpeg(rawInput: string | Uint8Array, outPathname: string, fps: number,
+                   scale: number, pngFrame: boolean): void {
+
+    const args = [
+        "-y",
+        "-f", "rawvideo",
+        "-pixel_format", "rgb24",
+        "-video_size", `${FRAME_WIDTH}x${FRAME_HEIGHT}`,
+        "-framerate", String(fps),
+        "-i", typeof rawInput === "string" ? rawInput : "-",
+        "-vf", `scale=${FRAME_WIDTH*scale}:${FRAME_HEIGHT*scale}:flags=neighbor`,
+    ];
+    if (pngFrame) {
+        args.push("-frames:v", "1");
+    } else {
+        args.push(
+            "-c:v", "libx264",
+            "-preset", "slow",
+            "-crf", "20",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            "-an");
+    }
+    args.push(outPathname);
+
+    const result = spawnSync("ffmpeg", args, {
+        input: typeof rawInput === "string" ? undefined : Buffer.from(rawInput),
+        maxBuffer: 64*1024*1024,
+    });
+    if (result.error !== undefined) {
+        throw new Error(`Can't run ffmpeg (${result.error.message}). Install it with "brew install ffmpeg".`);
+    }
+    if (result.status !== 0) {
+        const stderr = (result.stderr ?? "").toString().trim().split("\n").slice(-5).join("\n");
+        throw new Error(`ffmpeg failed (status ${result.status}):\n${stderr}`);
+    }
+}
+
+/**
+ * Collects screen snapshots at a fixed interval of *emulated* time, so playback is
+ * real time no matter how long we take to compute it. Frames are kept as the 1 KB
+ * screen and only rasterized at the end, which keeps a long recording cheap.
+ */
+class Recorder {
+    private readonly frames: Uint8Array[] = [];
+    private nextFrameTState: number;
+    public truncated = false;
+
+    constructor(public readonly pathname: string, public readonly fps: number,
+                public readonly scale: number, public readonly startTState: number,
+                private readonly tStatesPerFrame: number) {
+
+        this.nextFrameTState = startTState;
+    }
+
+    get frameCount(): number {
+        return this.frames.length;
+    }
+
+    /**
+     * Called after every instruction. Emits as many frames as the elapsed time calls
+     * for, so a single long-running tool call still produces a smooth video.
+     */
+    capture(tStateCount: number, mem: Uint8Array): void {
+        while (tStateCount >= this.nextFrameTState) {
+            if (this.frames.length >= MAX_FRAMES) {
+                this.truncated = true;
+                return;
+            }
+            this.frames.push(mem.slice());
+            this.nextFrameTState += this.tStatesPerFrame;
+        }
+    }
+
+    /**
+     * Rasterize everything through a temporary file and encode it. The raw frames are
+     * far too big to hold in memory (about 0.6 MB each), but they compress to very
+     * little, since this kind of screen barely changes from frame to frame.
+     */
+    encode(): void {
+        if (this.frames.length === 0) {
+            throw new Error("Nothing was recorded. Run the machine between record_start and record_stop.");
+        }
+
+        const rawPathname = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "trs80-video-")), "frames.rgb");
+        try {
+            const frame = new Uint8Array(FRAME_WIDTH*FRAME_HEIGHT*3);
+            const fd = fs.openSync(rawPathname, "w");
+            try {
+                for (const mem of this.frames) {
+                    renderFrame(mem, frame);
+                    fs.writeSync(fd, frame);
+                }
+            } finally {
+                fs.closeSync(fd);
+            }
+            runFfmpeg(rawPathname, this.pathname, this.fps, this.scale, false);
+        } finally {
+            fs.rmSync(path.dirname(rawPathname), {recursive: true, force: true});
+        }
+    }
+}
+
 /**
  * A running machine, kept alive between tool calls.
  */
@@ -113,6 +283,9 @@ class Machine {
     // In the stock Level II ROM, "rst 08" is followed by an inline byte: the
     // character the syntax checker expects next in the Basic text.
     public readonly rst8IsSyntaxCheck: boolean;
+    // Set by record_start. Every tool that runs the machine goes through step(),
+    // so recording picks up whatever the caller does next.
+    public recorder: Recorder | undefined = undefined;
 
     constructor(cmdPathname: string | undefined, modelType: ModelType, basicLevel: BasicLevel) {
         // A .cmd that replaces the ROM has blocks below ROM_END (the ROM itself) and
@@ -170,12 +343,21 @@ class Machine {
     }
 
     /**
+     * One instruction. Everything in this file steps the machine through here so that
+     * a recording in progress sees every frame.
+     */
+    step(): void {
+        this.trs80.step();
+        this.recorder?.capture(this.trs80.tStateCount, this.screen.mem);
+    }
+
+    /**
      * Step until we've burned "cycles" t-states. Returns how many we actually used.
      */
     runCycles(cycles: number): number {
         const start = this.trs80.tStateCount;
         while (this.trs80.tStateCount - start < cycles) {
-            this.trs80.step();
+            this.step();
         }
         return this.trs80.tStateCount - start;
     }
@@ -189,7 +371,7 @@ class Machine {
     drainKeyboard(maxCycles: number): boolean {
         const limit = this.trs80.tStateCount + maxCycles;
         while (this.keyboard.keyQueue.length > 0 && this.trs80.tStateCount < limit) {
-            this.trs80.step();
+            this.step();
         }
         return this.keyboard.keyQueue.length === 0;
     }
@@ -202,7 +384,7 @@ class Machine {
         const limit = this.trs80.tStateCount + maxCycles;
         while (this.trs80.tStateCount < limit) {
             for (let i = 0; i < checkEvery; i++) {
-                this.trs80.step();
+                this.step();
             }
             if (this.screen.lines().join("\n").includes(text)) {
                 return true;
@@ -308,7 +490,7 @@ const TOOLS: Record<string, Tool> = {
             const m = needMachine();
             const count = args.count ?? 1;
             for (let i = 0; i < count; i++) {
-                m.trs80.step();
+                m.step();
             }
             const r = m.registers();
             return `Stepped ${count}.\n` + Object.entries(r)
@@ -335,7 +517,7 @@ const TOOLS: Record<string, Tool> = {
             const regs = (m.trs80 as any).z80.regs;
             let hit = false;
             while (m.tStateCount < limit) {
-                m.trs80.step();
+                m.step();
                 if (regs.pc === args.address) {
                     hit = true;
                     break;
@@ -440,7 +622,7 @@ const TOOLS: Record<string, Tool> = {
                     counts.set(pc, (counts.get(pc) ?? 0) + 1);
                     samples++;
                 }
-                m.trs80.step();
+                m.step();
             }
             const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, args.top ?? 20);
             const lines = sorted.map(([pc, n]) =>
@@ -638,7 +820,7 @@ TOOLS["run_until_screen"] = {
         let found = false;
         while (m.tStateCount < limit) {
             for (let i = 0; i < CHECK_EVERY; i++) {
-                m.trs80.step();
+                m.step();
             }
             if (m.screen.lines().join("\n").includes(args.text)) {
                 found = true;
@@ -843,7 +1025,7 @@ TOOLS["call_routine"] = {
             const limit = start + (args.maxCycles ?? 10_000_000);
             let returned = false;
             while (m.tStateCount < limit) {
-                m.trs80.step();
+                m.step();
                 if (regs.pc === RETURN_SENTINEL && regs.sp === returnSp) {
                     returned = true;
                     break;
@@ -895,7 +1077,7 @@ TOOLS["run_until_memory"] = {
         const limit = start + args.maxCycles;
         let found = false;
         while (m.tStateCount < limit) {
-            m.trs80.step();
+            m.step();
             if (matches()) {
                 found = true;
                 break;
@@ -947,5 +1129,137 @@ TOOLS["load_basic"] = {
         const lines = text.split("\n").filter((l: string) => l.trim() !== "").length;
         return `Loaded ${lines} line${lines === 1 ? "" : "s"} at ${hex(start)}. Type RUN to run it ` +
             `(for exact timing, type RUN without the Enter and press Enter with "key").`;
+    },
+};
+
+TOOLS["record_start"] = {
+    description: "Start recording video. Frames are taken at a fixed interval of emulated " +
+        "time, so the result plays back in real time and shows honestly how fast a program " +
+        "is. Everything that runs the machine after this is recorded, so type RUN without " +
+        "the Enter first, start recording, then press Enter with \"key\". Call record_stop " +
+        "to write the file.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            path: {type: "string", description: "Where to write the .mp4"},
+            fps: {type: "integer", description: "Frames per second, defaults to 30"},
+            scale: {type: "integer",
+                description: "Whole-number pixel scale, defaults to 2 (so 1024x768)"},
+        },
+        required: ["path"],
+    },
+    run: args => {
+        const m = needMachine();
+        if (m.recorder !== undefined) {
+            throw new Error(`Already recording to ${m.recorder.pathname}. Call record_stop first.`);
+        }
+        const fps = args.fps ?? DEFAULT_FPS;
+        const scale = args.scale ?? DEFAULT_SCALE;
+        if (fps < 1 || fps > 60) {
+            throw new Error("fps must be between 1 and 60");
+        }
+        if (scale < 1 || scale > 8) {
+            throw new Error("scale must be between 1 and 8");
+        }
+        const tStatesPerFrame = Math.round(m.clockHz/fps);
+        m.recorder = new Recorder(args.path, fps, scale, m.tStateCount, tStatesPerFrame);
+        return `Recording to ${args.path} at ${fps} fps, ` +
+            `${FRAME_WIDTH*scale}x${FRAME_HEIGHT*scale}, ` +
+            `one frame every ${tStatesPerFrame.toLocaleString()} t-states. ` +
+            `Run the machine, then call record_stop.`;
+    },
+};
+
+TOOLS["record_stop"] = {
+    description: "Stop recording and encode the video with ffmpeg. Reports how long the " +
+        "clip is, which is emulated time, not how long the recording took.",
+    inputSchema: {
+        type: "object",
+        properties: {},
+    },
+    run: () => {
+        const m = needMachine();
+        const recorder = m.recorder;
+        if (recorder === undefined) {
+            throw new Error("Not recording. Call record_start first.");
+        }
+        m.recorder = undefined;
+        recorder.encode();
+
+        const seconds = recorder.frameCount/recorder.fps;
+        const bytes = fs.statSync(recorder.pathname).size;
+        return `Wrote ${recorder.pathname}: ${recorder.frameCount} frames, ` +
+            `${seconds.toFixed(1)}s at ${recorder.fps} fps, ` +
+            `${(bytes/1024).toFixed(0)} KB.` +
+            (recorder.truncated ? ` Stopped early at the ${MAX_FRAMES} frame limit.` : "");
+    },
+};
+
+TOOLS["screenshot"] = {
+    description: "Write the current screen to a PNG, in the same colors as the video.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            path: {type: "string", description: "Where to write the .png"},
+            scale: {type: "integer",
+                description: "Whole-number pixel scale, defaults to 2 (so 1024x768)"},
+        },
+        required: ["path"],
+    },
+    run: args => {
+        const m = needMachine();
+        const scale = args.scale ?? DEFAULT_SCALE;
+        if (scale < 1 || scale > 8) {
+            throw new Error("scale must be between 1 and 8");
+        }
+        const frame = new Uint8Array(FRAME_WIDTH*FRAME_HEIGHT*3);
+        renderFrame(m.screen.mem, frame);
+        runFfmpeg(frame, args.path, 1, scale, true);
+        const bytes = fs.statSync(args.path).size;
+        return `Wrote ${args.path}: ${FRAME_WIDTH*scale}x${FRAME_HEIGHT*scale}, ` +
+            `${(bytes/1024).toFixed(0)} KB.`;
+    },
+};
+
+TOOLS["mount_disk"] = {
+    description: "Mount a floppy disk image (.dsk, .dmk, .jv1, .jv3) in a drive, without " +
+        "rebooting. Use this when a program needs more than one disk, for instance a DOS in " +
+        "drive 0 and an application in drive 1: mount them all, then call \"reset\" to boot " +
+        "from drive 0. For the single-disk case, \"load_program\" mounts and boots in one step.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            path: {type: "string", description: "Path to the disk image"},
+            drive: {type: "integer", description: "Drive number, defaults to 0"},
+        },
+        required: ["path"],
+    },
+    run: args => {
+        const m = needMachine();
+        const drive = args.drive ?? 0;
+        const file = decodeTrs80File(new Uint8Array(fs.readFileSync(args.path)), {filename: args.path});
+        if ((file as any).error !== undefined) {
+            throw new Error(`Can't read ${args.path}: ${(file as any).error}`);
+        }
+        if (!isFloppy(file as any)) {
+            throw new Error(`${args.path} is a ${(file as any).className}, not a floppy disk`);
+        }
+        m.trs80.loadFloppyDisk(file as any, drive);
+        return `Mounted ${args.path} (${(file as any).className}) in drive ${drive}. ` +
+            `Call "reset" to boot from drive 0.`;
+    },
+};
+
+TOOLS["reset"] = {
+    description: "Reset the machine, as if you'd pressed the reset button. Keeps whatever " +
+        "disks are mounted, so this is how you boot from a disk you mounted with mount_disk.",
+    inputSchema: {
+        type: "object",
+        properties: {},
+    },
+    run: () => {
+        const m = needMachine();
+        m.trs80.reset();
+        return `Reset. Run the machine to let it boot.`;
     },
 };
