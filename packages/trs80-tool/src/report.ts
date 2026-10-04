@@ -7,7 +7,6 @@ import {
     FloppyDisk,
     isFloppy,
     SectorPosition,
-    Side,
     TrackGeometry,
     Trsdos,
     Trsdos14GatInfo,
@@ -265,7 +264,7 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
 
     // Boot sector, whose third byte is the directory track on most DOSes.
     const bootSector = disk.readSector(
-        SectorPosition.make(0, Side.FRONT, geometry.bootTrack.firstSectorNumber));
+        SectorPosition.make(0, 0, geometry.bootTrack.firstSectorNumber));
     report.bootSectorPrefix = bootSector === undefined
         ? null
         : Array.from(bootSector.data.subarray(0, 3));
@@ -284,7 +283,7 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
         name: trsdos.getOperatingSystemName(),
         version: trsdos.getVersion(),
         model: trsdosVersionToString(trsdos.version),
-        dirTrack: trsdos.dirTrackNumber,
+        dirTrack: trsdos.dirCylinderNumber,
         sideCount: trsdos.sideCount,
         sectorsPerTrack: trsdos.sectorsPerTrack,
         granulesPerTrack: trsdos.granulesPerTrack,

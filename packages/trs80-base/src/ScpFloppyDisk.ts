@@ -9,12 +9,11 @@ import {
     Density,
     FloppyDisk,
     FloppyDiskGeometry,
-    numberToSide,
     SectorCrc,
     SectorData,
     SectorInfo,
     SectorPosition,
-    Side, TrackPosition,
+    TrackPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {CRC_16_CCITT} from "./Crc16.js";
@@ -219,7 +218,7 @@ export class ScpFloppyDisk extends FloppyDisk {
                     if (sector.getSectorNumber() === sectorPosition.sectorNumber) {
                         // What the sector says about itself, which can differ from where it physically is.
                         const logicalSectorPosition = SectorPosition.make(sector.getTrackNumber(),
-                            numberToSide(sector.getSideNumber()) ?? Side.FRONT, sector.getSectorNumber());
+                            sector.getSideNumber(), sector.getSectorNumber());
                         const sectorData = new SectorData(sector.getData(), logicalSectorPosition,
                             sector.getDensity());
                         sectorData.crc = new SectorCrc(
@@ -551,10 +550,10 @@ function parseScpTrack(binary: Uint8Array, trackOffset: number, numRevolutions: 
     }
 
     // Number of the track.
-    const scpTrackNumber = binary[trackOffset + 3];
-    const trackNumber = Math.floor(scpTrackNumber / 2);
-    const side = scpTrackNumber % 2 === 0 ? Side.FRONT : Side.BACK;
-    const trackPosition = new TrackPosition(trackNumber, side);
+    const trackNumber = binary[trackOffset + 3];
+    const cylinderNumber = Math.floor(trackNumber / 2);
+    const side = trackNumber % 2;
+    const trackPosition = new TrackPosition(cylinderNumber, side);
 
     let offset = trackOffset + 4;
     const revs: ScpRev[] = [];
@@ -566,11 +565,11 @@ function parseScpTrack(binary: Uint8Array, trackOffset: number, numRevolutions: 
         const revOffset = parseInteger(binary, offset, 4) + trackOffset;
         offset += 4;
 
-        // console.log(scpTrackNumber, revDurationNs, 60e9/revDurationNs, numBitcells, revOffset);
+        // console.log(trackNumber, revDurationNs, 60e9/revDurationNs, numBitcells, revOffset);
 
-        const scpRev = parseRev(binary, revOffset, numBitcells, resolutionTimeNs, rev, trackNumber);
+        const scpRev = parseRev(binary, revOffset, numBitcells, resolutionTimeNs, rev, cylinderNumber);
         if (scpRev === undefined) {
-            if (DEBUG) console.log("SCP: Can't parse rev " + rev + " for track " + scpTrackNumber);
+            if (DEBUG) console.log("SCP: Can't parse rev " + rev + " for track " + trackNumber);
             return undefined;
         }
         revs.push(scpRev);

@@ -28,7 +28,6 @@ import {
     disasmForTrs80,
     HexdumpGenerator,
     ProgramAnnotation,
-    Side,
     TRS80_SCREEN_BEGIN,
     TRS80_SCREEN_END
 } from 'trs80-base';
@@ -1026,7 +1025,7 @@ export class Emulator {
             value: toHexByte(fdcState.status) + "h",
         }));
         addRowToColumn("Side", fdcState => ({
-            value: fdcState.side === Side.FRONT ? "Front" : "Back",
+            value: "Side " + fdcState.side,
         }));
         addRowToColumn("Track", fdcState => ({
             value: toHexByte(fdcState.track) + "h",

@@ -6,9 +6,7 @@ import {
     decodeTrsdos,
     Density,
     isFloppy,
-    numberToSide,
     SectorPosition,
-    Side,
     TrackPosition,
     Trs80Floppy,
     TrsdosDirEntry
@@ -78,8 +76,7 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
 
         // Dump each sector.
         for (let trackNumber = 0; trackNumber < geometry.cylinderCount; trackNumber++) {
-            for (let sideNumber = 0; sideNumber < geometry.sideCount; sideNumber++) {
-                const side = numberToSide(sideNumber) ?? Side.FRONT;
+            for (let side = 0; side < geometry.sideCount; side++) {
                 const trackPosition = new TrackPosition(trackNumber, side);
                 const trackGeometry = geometry.trackMap.get(trackPosition.key());
                 if (trackGeometry === undefined) {
@@ -160,12 +157,9 @@ function printMap(file: Trs80Floppy) {
     const geometry = file.getGeometry();
     const usedLetters = new Set<string>();
 
-    for (let sideNumber = 0; sideNumber < geometry.sideCount; sideNumber++) {
-        const side = numberToSide(sideNumber) ?? Side.FRONT;
-
+    for (let side = 0; side < geometry.sideCount; side++) {
         // Print header.
-        const sideName = side === Side.FRONT ? "Front" : "Back";
-        const lineParts: string[] = [sideName.padStart(6, " ") + "  "];
+        const lineParts: string[] = [side.toString(10).padStart(6, " ") + "  "];
         for (let sectorNumber = geometry.firstSectorNumber; sectorNumber <= geometry.lastSectorNumber; sectorNumber++) {
             lineParts.push(sectorNumber.toString().padStart(3, " "));
         }

@@ -6,7 +6,7 @@
  * https://hansotten.file-hunter.com/technical-info/wd1793/
  */
 
-import {Density, FloppyDisk, SectorData, SectorPosition, Side} from "trs80-base";
+import {Density, FloppyDisk, SectorData, SectorPosition} from "trs80-base";
 import {SimpleEventDispatcher} from "strongly-typed-events";
 import {Machine} from "./Machine.js";
 import {toHexByte} from "z80-base";
@@ -28,8 +28,8 @@ const MOTOR_TIME_AFTER_SELECT = 2;
 /**
  * Converts boolean for "back" to a Side.
  */
-function booleanToSide(back: boolean): Side {
-    return back ? Side.BACK : Side.FRONT;
+function booleanToSide(back: boolean): number {
+    return back ? 1 : 0;
 }
 
 // Type I status bits.
@@ -342,7 +342,7 @@ export class FdcState {
         public readonly data: number,
         // Internal state.
         public readonly currentCommand: number,
-        public readonly side: Side,
+        public readonly side: number,
         public readonly doubleDensity: boolean,
         public readonly currentDrive: number,
         public readonly motorOn: boolean,
@@ -384,7 +384,7 @@ export class FloppyDiskController {
 
     // Internal state.
     private currentCommand = COMMAND_RESTORE;
-    private side = Side.FRONT;
+    private side = 0;
     private doubleDensity = false;
     private currentDrive = 0;
     private motorOn = false;
@@ -805,7 +805,7 @@ export class FloppyDiskController {
         } else {
             // Make sure a sector exists on this track. Sector 1 almost certainly exists. If this causes
             // problems, we can iterate from 0 to 20 or something.
-            const sectorPosition = SectorPosition.make(this.track, Side.FRONT, 1);
+            const sectorPosition = SectorPosition.make(this.track, 0, 1);
             const sectorData = drive.floppyDisk.readSector(sectorPosition);
             if (sectorData === undefined) {
                 this.status |= STATUS_NOT_FOUND;

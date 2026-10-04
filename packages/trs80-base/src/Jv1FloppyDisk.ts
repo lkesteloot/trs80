@@ -7,7 +7,6 @@ import {
     FloppyWrite,
     SectorData,
     SectorInfo, SectorPosition,
-    Side
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 
@@ -38,7 +37,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
             const cylinderNumber = Math.floor(i / SECTORS_PER_TRACK);
             // 0-based on JV1.
             const sectorNumber = i % SECTORS_PER_TRACK;
-            const sectorPosition = SectorPosition.make(cylinderNumber, Side.FRONT, sectorNumber);
+            const sectorPosition = SectorPosition.make(cylinderNumber, 0, sectorNumber);
             const sectorInfo = new SectorInfo(sectorPosition, density, BYTES_PER_SECTOR);
             if (cylinderNumber === DIRECTORY_CYLINDER) {
                 // Directory sectors are marked as deleted in TRSDOS 2.3.
@@ -110,7 +109,7 @@ export class Jv1FloppyDisk extends FloppyDisk {
     private isValidSectorPosition(sectorPosition: SectorPosition): boolean {
         return sectorPosition.cylinderNumber >= 0 &&
             sectorPosition.cylinderNumber < this.geometry.cylinderCount &&
-            sectorPosition.side === Side.FRONT &&
+            sectorPosition.side === 0 &&
             sectorPosition.sectorNumber >= 0 &&
             sectorPosition.sectorNumber < SECTORS_PER_TRACK;
     }

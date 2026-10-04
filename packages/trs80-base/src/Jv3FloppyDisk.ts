@@ -6,7 +6,6 @@ import {
     FloppyWrite,
     SectorData,
     SectorInfo, SectorPosition,
-    Side,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {TRS80_BASE_LOGGER} from "trs80-logger";
@@ -65,7 +64,7 @@ class Jv3SectorInfo {
     public readonly size: number;
 
     constructor(cylinderNumber: number, sectorNumber: number, flags: Flags, offset: number) {
-        const side = (flags & Flags.SIDE) === 0 ? Side.FRONT : Side.BACK
+        const side = (flags & Flags.SIDE) === 0 ? 0 : 1;
         this.sectorPosition = SectorPosition.make(cylinderNumber, side, sectorNumber);
         this.flags = flags;
         this.offset = offset;
@@ -99,7 +98,7 @@ class Jv3SectorInfo {
             if (this.hasCrcError()) {
                 parts.push("bad CRC");
             }
-            parts.push("side " + (this.sectorPosition.side === Side.FRONT ? 0 : 1));
+            parts.push("side " + this.sectorPosition.side);
             if (this.isDoubleDensity()) {
                 parts.push("double density");
             } else {

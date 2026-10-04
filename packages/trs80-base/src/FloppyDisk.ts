@@ -5,12 +5,6 @@ import {AbstractTrs80File} from "./Trs80File.js";
 // Determined by the floppy controller.
 export const BYTES_PER_SECTOR = 256;
 
-// Side of a floppy disk.
-export enum Side {
-    FRONT,
-    BACK,
-}
-
 // Whether single density (FM) or double density (MFM).
 export enum Density {
     SINGLE,
@@ -60,31 +54,6 @@ function modeOf(values: number[]): { value: number, count: number } {
 }
 
 /**
- * Convert a number to a side, where 0 maps to FRONT and 1 maps to BACK.
- * Other numbers return undefined.
- */
-export function numberToSide(n: number): Side | undefined {
-    switch (n) {
-        case 0:
-            return Side.FRONT;
-
-        case 1:
-            return Side.BACK;
-
-        default:
-            return undefined;
-    }
-}
-
-/**
- * For side count (1 or 2), provide an array to iterate over for the sides.
- */
-export const SIDE_COUNT_TO_SIDES: { [sideCount in 1|2]: Side[] } = {
-    1: [Side.FRONT],
-    2: [Side.FRONT, Side.BACK],
-};
-
-/**
  * Structure to keep track of a specific track on a disk.
  */
 export class TrackPosition {
@@ -96,9 +65,9 @@ export class TrackPosition {
     /**
      * Which side this track is on.
      */
-    public readonly side: Side;
+    public readonly side: number;
 
-    constructor(cylinderNumber: number, side: Side) {
+    constructor(cylinderNumber: number, side: number) {
         this.cylinderNumber = cylinderNumber;
         this.side = side;
     }
@@ -149,7 +118,7 @@ export class SectorPosition {
     /**
      * Convenience factory that takes all three parameters.
      */
-    public static make(cylinderNumber: number, side: Side, sectorNumber: number): SectorPosition {
+    public static make(cylinderNumber: number, side: number, sectorNumber: number): SectorPosition {
         return new SectorPosition(new TrackPosition(cylinderNumber, side), sectorNumber);
     }
 
@@ -390,17 +359,17 @@ export class FloppyDiskGeometry {
         // Tracks on side 0, which is where every DOS keeps its system tracks. The modal values
         // below are computed from these, so that a disk whose second side is garbage (or holds a
         // different file system, as MultiDOS disks do) still reports the geometry that matters.
-        const frontTracks: TrackGeometry[] = [];
+        const side0Tracks: TrackGeometry[] = [];
 
         for (const [trackKey, sectors] of trackSectorList.entries()) {
             const trackGeometry = TrackGeometry.make(sectors);
             this.trackMap.set(trackKey, trackGeometry);
-            if (sectors[0].sectorPosition.side === Side.FRONT) {
-                frontTracks.push(trackGeometry);
+            if (sectors[0].sectorPosition.side === 0) {
+                side0Tracks.push(trackGeometry);
             }
         }
 
-        const bootTrackPosition = new TrackPosition(0, Side.FRONT);
+        const bootTrackPosition = new TrackPosition(0, 0);
         const bootTrack = this.trackMap.get(bootTrackPosition.key());
         if (bootTrack === undefined) {
             throw new Error("Disk has no track 0 on side 0");
@@ -413,7 +382,7 @@ export class FloppyDiskGeometry {
         this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
         this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
 
-        const dataTracks = frontTracks.filter(track => track !== bootTrack);
+        const dataTracks = side0Tracks.filter(track => track !== bootTrack);
         this.modalDataDensity = modeOf(dataTracks.map(track => track.modalDensity)).value;
         this.modalDataSectorSize = modeOf(dataTracks.map(track => track.modalSectorSize)).value;
         this.modalDataSectorSpan = modeOf(dataTracks.map(track => track.sectorSpan())).value;
@@ -437,7 +406,7 @@ export class FloppyDiskGeometry {
             } else {
                 // Else go to side 0 of the next cylinder.
                 cylinderNumber += 1;
-                side = Side.FRONT;
+                side = 0;
             }
         }
 
@@ -556,7 +525,7 @@ export abstract class FloppyDisk extends AbstractTrs80File {
      * Write a sector to the specified position. Throw an exception
      * if writing is not supported, so check first with isWriteProtected().
      */
-    public writeSector(sectorPosition: SectorPosition, data: SectorData): void {
+    public writeSector(_sectorPosition: SectorPosition, _data: SectorData): void {
         throw new Error(this.className + " does not support writing");
     }
 

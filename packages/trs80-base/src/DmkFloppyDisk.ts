@@ -14,13 +14,11 @@ import {
     FloppyDisk,
     FloppyDiskGeometry,
     FloppyWrite,
-    numberToSide,
     SectorCrc,
     SectorData,
     SectorInfo,
     SectorPosition,
-    Side,
-    SIDE_COUNT_TO_SIDES, TrackPosition,
+    TrackPosition,
 } from "./FloppyDisk.js";
 import {ProgramAnnotation} from "./ProgramAnnotation.js";
 import {TRS80_FLOPPY_LOGGER} from "trs80-logger";
@@ -116,9 +114,8 @@ class DmkSector {
     /**
      * Get the side for this sector.
      */
-    public getSide(): Side {
-        // Just make invalid values 0.
-        return numberToSide(this.getByte(2)) ?? Side.FRONT;
+    public getSide(): number {
+        return this.getByte(2);
     }
 
     /**
@@ -675,11 +672,10 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
 
     // Read the tracks.
     let binaryOffset = FILE_HEADER_SIZE;
-    const sides = SIDE_COUNT_TO_SIDES[sideCount];
-    for (let trackNumber = 0; trackNumber < trackCount; trackNumber++) { // TODO rename cylinder
-        for (const side of sides) {
+    for (let cylinder = 0; cylinder < trackCount; cylinder++) {
+        for (let side = 0; side < sideCount; side++) {
             const trackOffset = binaryOffset;
-            const trackPosition = new TrackPosition(trackNumber, side);
+            const trackPosition = new TrackPosition(cylinder, side);
             const track = new DmkTrack(floppyDisk, trackPosition, trackOffset);
 
             // Read the track header. The term "IDAM" in the comment below refers to the "ID access mark",
@@ -716,7 +712,7 @@ export function decodeDmkFloppyDisk(binary: Uint8Array): DmkFloppyDisk | undefin
                     track.sectors.push(new DmkSector(track, sectorInfo.density, alwaysUseStride1, sectorInfo.offset));
                 }
             }
-            annotations.push(new ProgramAnnotation(`Track ${trackNumber} header`,
+            annotations.push(new ProgramAnnotation(`Track ${cylinder} header`,
                 binaryOffset, binaryOffset + TRACK_HEADER_SIZE));
 
             for (const sector of track.sectors) {
