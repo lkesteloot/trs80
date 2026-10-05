@@ -303,6 +303,14 @@ export class TrackGeometry {
     public sectorSpan(): number {
         return this.lastSectorNumber - this.firstSectorNumber + 1;
     }
+
+    public equals(other: TrackGeometry): boolean {
+        return this.firstSectorNumber === other.firstSectorNumber &&
+            this.lastSectorNumber === other.lastSectorNumber &&
+            this.modalDensity === other.modalDensity &&
+            this.modalSectorSize === other.modalSectorSize;
+    }
+
     // cylinderNumber, side
     // firstSectorNumber, lastSectorNumber
     // sectorCount          // distinct sector numbers actually present
@@ -332,6 +340,8 @@ export class FloppyDiskGeometry {
     public readonly modalDataDensity: Density;
     public readonly modalDataSectorSize: number;
     public readonly modalDataSectorSpan: number;
+    // Whether all tracks on side 0 have the same geometry.
+    public readonly homogeneous: boolean;
 
     // hasCylinder(n), getTrack(cylinder, side), getSectorInfo(position)
     // isHomogeneous()           // every track matches dataTrack
@@ -382,10 +392,12 @@ export class FloppyDiskGeometry {
         this.firstSectorNumber = Math.min(... tracks.map(track => track.firstSectorNumber));
         this.lastSectorNumber = Math.max(... tracks.map(track => track.lastSectorNumber));
 
+        // Only look at side 0 tracks. Sometimes track 1 is garbage or leftover from a previous format.
         const dataTracks = side0Tracks.filter(track => track !== bootTrack);
         this.modalDataDensity = modeOf(dataTracks.map(track => track.modalDensity)).value;
         this.modalDataSectorSize = modeOf(dataTracks.map(track => track.modalSectorSize)).value;
         this.modalDataSectorSpan = modeOf(dataTracks.map(track => track.sectorSpan())).value;
+        this.homogeneous = dataTracks.every(track => track.equals(bootTrack));
     }
 
     /**

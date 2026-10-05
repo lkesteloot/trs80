@@ -80,13 +80,20 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                         }
 
                         const geometry = trs80File.getGeometry();
-                        verboseLines.push(
-                            `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
+                        if (geometry.homogeneous) {
+                            verboseLines.push(
+                                `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
                                 `${pluralizeWithCount(geometry.sideCount, "side")}`,
-                            `On the boot track, ` + getTrackGeometryInfo(geometry.bootTrack),
-                            `On most other tracks, ` + [`${geometry.modalDataSectorSpan} sectors`,
-                                `${densityToString(geometry.modalDataDensity)} density`,
-                                `${geometry.modalDataSectorSize} bytes per sector`].join(", "));
+                                `On every track, ` + getTrackGeometryInfo(geometry.bootTrack));
+                        } else {
+                            verboseLines.push(
+                                `${pluralizeWithCount(geometry.cylinderCount, "cylinder")}, ` +
+                                `${pluralizeWithCount(geometry.sideCount, "side")}`,
+                                `On the boot track, ` + getTrackGeometryInfo(geometry.bootTrack),
+                                `On most other tracks, ` + [`${geometry.modalDataSectorSpan} sectors`,
+                                    `${densityToString(geometry.modalDataDensity)} density`,
+                                    `${geometry.modalDataSectorSize} bytes per sector`].join(", "));
+                        }
 
                         if (trsdos !== undefined) {
                             const gatInfo = trsdos.getGatInfo();
