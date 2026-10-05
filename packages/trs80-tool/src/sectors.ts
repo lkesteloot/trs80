@@ -159,7 +159,7 @@ function printMap(file: Trs80Floppy) {
 
     for (let side = 0; side < geometry.sideCount; side++) {
         // Print header.
-        const lineParts: string[] = [side.toString(10).padStart(6, " ") + "  "];
+        const lineParts: string[] = ["Side " + side + "  "];
         for (let sectorNumber = geometry.firstSectorNumber; sectorNumber <= geometry.lastSectorNumber; sectorNumber++) {
             lineParts.push(sectorNumber.toString().padStart(3, " "));
         }
