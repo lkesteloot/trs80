@@ -279,9 +279,13 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
         return;
     }
 
+    // Split for backward compatibility, but should really just have a single string.
+    const nameAndVersionParts = trsdos.getNameAndVersion().split(" ");
+    const name = nameAndVersionParts[0];
+    const version = nameAndVersionParts.length > 1 ? nameAndVersionParts[1] : "";
     const os: OsReport = {
-        name: trsdos.getOperatingSystemName(),
-        version: trsdos.getVersion(),
+        name,
+        version,
         model: trsdosVersionToString(trsdos.version),
         dirTrack: trsdos.dirCylinderNumber,
         sideCount: trsdos.sideCount,

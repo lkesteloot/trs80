@@ -62,7 +62,7 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
     if (trsdos === undefined) {
         title += ", unknown operating system";
     } else {
-        title += ", " + trsdos.getOperatingSystemName() + " " + trsdos.getVersion();
+        title += ", " + trsdos.getNameAndVersion();
     }
 
     console.log(title);
@@ -75,16 +75,16 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
         const geometry = file.getGeometry();
 
         // Dump each sector.
-        for (let trackNumber = 0; trackNumber < geometry.cylinderCount; trackNumber++) {
+        for (let cylinder = 0; cylinder < geometry.cylinderCount; cylinder++) {
             for (let side = 0; side < geometry.sideCount; side++) {
-                const trackPosition = new TrackPosition(trackNumber, side);
+                const trackPosition = new TrackPosition(cylinder, side);
                 const trackGeometry = geometry.trackMap.get(trackPosition.key());
                 if (trackGeometry === undefined) {
                     // No sectors at all on this track.
                     continue;
                 }
                 for (let sectorNumber = trackGeometry.firstSectorNumber; sectorNumber <= trackGeometry.lastSectorNumber; sectorNumber++) {
-                    let header = `Side ${side}, track ${trackNumber}, sector ${sectorNumber}: `;
+                    let header = `Cylinder ${cylinder}, side ${side}, sector ${sectorNumber}: `;
 
                     const sectorPosition = new SectorPosition(trackPosition, sectorNumber);
                     const sector = file.readSector(sectorPosition);

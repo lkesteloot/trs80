@@ -290,7 +290,7 @@ function decodeExtents(binary: Uint8Array, begin: number, end: number,
         const granuleOffset = granuleByte >> 5;
         const granuleCount = granuleCountBasis + (granuleByte & 0x1F);
 
-        if (cylinderNumber >= geometry.cylinderCount) {
+        if (cylinderNumber >= geometry.cylinderCount) { // TODO these are lumps, can't compare to cylinders.
             // Not a TRSDOS disk.
             return "Invalid extent: index " + i + ", cylinder " + cylinderNumber +
                 ", granuleByte 0x" + toHexByte(granuleByte) + ", offset " +
@@ -675,7 +675,7 @@ export class TrsdosDirEntry {
 
 /**
  * Decodes a directory entry from a 32- or 48-byte chunk, undefined if the directory entry is not active,
- * an a decoding error.
+ * or a decoding error.
  */
 function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosDirEntry | undefined | string {
     const flags = binary[0];
@@ -965,34 +965,29 @@ export class Trsdos {
     }
 
     /**
-     * Guess the name of the operating system.
+     * Guess the name and version of the operating system.
      */
-    public getOperatingSystemName(): string {
-        const gatInfo = this.getGatInfo();
-        if (typeof gatInfo === "string") {
-            return "Unknown";
-        } else if (gatInfo instanceof Trsdos14GatInfo && (gatInfo.osVersion & 0xF0) === 0x50) {
-            return "LDOS";
-        } else if (gatInfo instanceof Trsdos14GatInfo && gatInfo.osVersion === 0x63) {
-            return "LS-DOS";
-        } else {
-            return "TRSDOS";
-        }
-    }
-
-    /**
-     * Return a string for the version of TRSDOS or LDOS this is. There's some guesswork here!
-     */
-    public getVersion(): string {
+    public getNameAndVersion(): string {
         const gatInfo = this.getGatInfo();
         if (typeof gatInfo === "string") {
             return "Unknown";
         } else if (gatInfo instanceof Trsdos14GatInfo) {
-            const osVersion = gatInfo.osVersion;
-            return (osVersion >> 4) + "." + (osVersion & 0x0F);
+            const major = gatInfo.osVersion >> 4;
+            const minor = gatInfo.osVersion & 0x0F;
+
+            if (major === 5) {
+                // NEWDOS 3.0 also hits this.
+                return "LDOS " + major + "." + minor;
+            } else if (major === 6 && minor === 3) {
+                return "LS-DOS " + major + "." + minor;
+            } else if (major === 8 && minor === 2) {
+                return "NEWDOS/80";
+            } else {
+                return "TRSDOS " + major + "." + minor;
+            }
         } else {
             // Probably Model III, guess 1.3.
-            return "1.3";
+            return "TRSDOS 1.3";
         }
     }
 
