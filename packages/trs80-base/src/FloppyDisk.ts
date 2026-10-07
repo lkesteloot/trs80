@@ -504,7 +504,7 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     }
 
     /**
-     * Get the geometry of the floppy.
+     * Get the geometry of the floppy. Subclasses should cache this, it may be called often.
      */
     public abstract getGeometry(): FloppyDiskGeometry;
 
