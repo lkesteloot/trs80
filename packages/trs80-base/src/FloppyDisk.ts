@@ -342,6 +342,8 @@ export class FloppyDiskGeometry {
     public readonly modalDataSectorSpan: number;
     // Whether all tracks on side 0 have the same geometry.
     public readonly homogeneous: boolean;
+    // Whether cylinder 0 has different density or number of sectors than most other tracks.
+    public readonly cylinder0Differs: boolean;
 
     // hasCylinder(n), getTrack(cylinder, side), getSectorInfo(position)
     // isHomogeneous()           // every track matches dataTrack
@@ -398,6 +400,7 @@ export class FloppyDiskGeometry {
         this.modalDataSectorSize = modeOf(dataTracks.map(track => track.modalSectorSize)).value;
         this.modalDataSectorSpan = modeOf(dataTracks.map(track => track.sectorSpan())).value;
         this.homogeneous = dataTracks.every(track => track.equals(bootTrack));
+        this.cylinder0Differs = bootTrack.modalDensity !== this.modalDataDensity || bootTrack.sectorSpan() !== this.modalDataSectorSpan;
     }
 
     /**
@@ -422,6 +425,7 @@ export class FloppyDiskGeometry {
             }
         }
 
+        // TODO is this legit for lumps?
         return cylinderNumber >= this.cylinderCount ? undefined : new TrackPosition(cylinderNumber, side);
     }
 

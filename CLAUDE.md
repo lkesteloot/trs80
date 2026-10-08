@@ -90,18 +90,32 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   family, TRSDOS 1.3, NEWDOS/80 lumps), the HIT hash and its index layout,
   cylinder/side conventions, and the quirky disks in the collection. It records
   what was measured against real disks, so trust it over guesswork.
-- **In-flight refactor:** sector access is moving to a `SectorPosition`
-  (cylinder, side, sector), and `FloppyDiskGeometry` now describes every sector
-  rather than summarizing the first and last track. The four image readers are
-  converted; the remaining type errors are in `Trsdos.ts` and in trs80-tool's
-  `sectors`, `report` and `info` commands plus the emulator's
-  `FloppyDiskController`. Geometry no longer throws on odd disks, which is the
-  point: mixed density and garbage address marks are data, not errors.
+- **Known gaps:** `packages/trs80-base/FLOPPY_TODO.md` lists what we've learned
+  that the code doesn't do yet, with evidence disks. When you learn something,
+  put format facts in `FLOPPY_FORMATS.md` and code gaps in `FLOPPY_TODO.md`; when
+  asked what's been learned but isn't in the code, start there.
+- **Positions:** physical sectors are `SectorPosition` (cylinder, side, sector).
+  `FloppyDiskGeometry` describes every sector, plus per-track `TrackGeometry`
+  and modal values taken from side 0 only. It doesn't throw on odd disks:
+  mixed density and garbage address marks are data, not errors.
+- **The lump model.** Every DOS family addresses the disk as (lump, granule,
+  sector), which `Trsdos.logicalToPhysical()` maps to a linear sector index and
+  then to a physical position, as described in `FLOPPY_FORMATS.md`. Outside
+  NEWDOS/80 a lump is a whole cylinder (both allocated sides); `lumpTerm` says
+  which word to show. Only NEWDOS-style lumps skip an odd cylinder 0
+  (`firstDataCylinder`). Allocation sides are the DOS's, not the image's, so
+  never derive them from `geometry.sideCount` alone. `FLOPPY_TODO.md` lists
+  what's left, and how to re-run the verification.
 - **Decoding by score:** `decodeTrsdos()` generates candidate interpretations
   (layout × directory location) and picks the best score rather than taking the
   first that parses. The score is mainly HIT hash hits minus misses; negative
   means "not this". Keep a floor so that unrecognized disks stay undecoded
-  instead of getting a garbage directory.
+  instead of getting a garbage directory: at least one hash hit, or a strict GAT
+  pass for disks with no entries.
+- **Verify structural changes against every image**, not just the ones with
+  snapshots: most of the collection (`disks/peter/`) has none, and that's where
+  the exceptions turned up. Judge those by internal consistency, as described at
+  the end of `FLOPPY_TODO.md`.
 - **SCP is untested.** There are no SCP images in the suite, so that reader
   compiles but nothing exercises it.
 - **JV1 deleted marks are synthesized** by our reader for track 17, so they must

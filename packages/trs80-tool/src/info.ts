@@ -109,6 +109,12 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                                 if (gatInfo.autoCommand !== "") {
                                     verboseLines.push("Auto command: " + gatInfo.autoCommand);
                                 }
+                                if (trsdos.allocationSides < geometry.sideCount) {
+                                    verboseLines.push("Only uses side 0");
+                                }
+                                verboseLines.push(`Directory ${trsdos.lumpTerm}: ${trsdos.dirLumpNumber}`);
+                                verboseLines.push(`Sectors per granule: ${trsdos.sectorsPerGranule}`);
+                                verboseLines.push(`Granules per ${trsdos.lumpTerm}: ${trsdos.granulesPerLump}`);
                             }
                         }
                     }

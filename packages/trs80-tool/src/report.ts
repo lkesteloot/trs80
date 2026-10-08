@@ -288,7 +288,7 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
         version,
         model: trsdosVersionToString(trsdos.version),
         dirTrack: trsdos.dirLumpNumber,
-        sideCount: trsdos.sideCount,
+        sideCount: trsdos.allocationSides,
         sectorsPerTrack: trsdos.geometry.modalDataSectorSpan,
         granulesPerTrack: trsdos.granulesPerLump,
         sectorsPerGranule: trsdos.sectorsPerGranule,

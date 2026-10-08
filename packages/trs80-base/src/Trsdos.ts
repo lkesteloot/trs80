@@ -38,6 +38,16 @@ function rotateByteLeft(x: number): number {
     return ((x << 1) | (highBitSet ? 1 : 0)) & 0xFF;
 }
 
+/**
+ * Compute the number of lumps on a floppy, given the geometry and lump parameters.
+ */
+function computeLumpCount(geometry: FloppyDiskGeometry, firstDataCylinder: number,
+                          sectorsPerCylinder: number, sectorsPerLump: number) {
+
+    const dataCylindersCount = geometry.cylinderCount - firstDataCylinder;
+    return Math.floor(dataCylindersCount * sectorsPerCylinder / sectorsPerLump);
+}
+
 interface Evaluation {
     /**
      * Integer score for this evaluation. A higher score is better. Evaluations with negative scores
@@ -102,6 +112,19 @@ export function trsdosVersionToString(trsdosVersion: TrsdosVersion): string {
 }
 
 /**
+ * The number of bytes in each directory entry for this version.
+ */
+function getDirEntryLength(version: TrsdosVersion): number {
+    switch (version) {
+        case TrsdosVersion.V2_3:
+            return 32;
+
+        case TrsdosVersion.V1_3:
+            return 48;
+    }
+}
+
+/**
  * Return the number of the first sector on a track for this version. This might not apply to the very
  * first track if it's a dual-boot disk.
  */
@@ -113,15 +136,12 @@ function getFirstSectorNumber(version: TrsdosVersion): number {
  * Represents the position of a directory entry.
  */
 class DirEntryPosition {
-    // Zero-based side of the directory track.
-    public readonly side: number;
-    // Zero-based sector index into the directory track. Sector 0 is GAT, 1 is HIT.
+    // Zero-based sector index into the directory lump, after the GAT and HIT.
     public readonly sectorIndex: number;
     // Zero-based index of the directory entry into the sector.
     public readonly dirEntryIndex: number;
 
-    constructor(side: number, sectorIndex: number, dirEntryIndex: number) {
-        this.side = side;
+    constructor(sectorIndex: number, dirEntryIndex: number) {
         this.sectorIndex = sectorIndex;
         this.dirEntryIndex = dirEntryIndex;
     }
@@ -129,8 +149,8 @@ class DirEntryPosition {
     /**
      * Make a string that represents this object, to use as a key in a Map.
      */
-    public asKey(): string {
-        return this.side + "," + this.sectorIndex + "," + this.dirEntryIndex;
+    public key(): string {
+        return this.sectorIndex + ":" + this.dirEntryIndex;
     }
 }
 
@@ -300,22 +320,20 @@ export class TrsdosGatInfo {
     /**
      * Check various things about the GAT to see if it's valid.
      */
-    public isValid(granulesPerTrack: number, version: TrsdosVersion): boolean {
+    public isValid(granulesPerLump: number, lumpCount: number, version: TrsdosVersion): boolean {
         if (CHECK_GAT_HIGH_BITS) {
             // The mask for the unused bits in the GAT, and the value we expect to see there.
-            const mask = (0xFF << granulesPerTrack) & 0xFF;
+            const mask = (0xFF << granulesPerLump) & 0xFF;
             const expectedValue = version === TrsdosVersion.V1_3 ? 0x00 : mask;
 
-            // Top bits don't map to anything, so must be zero (Model 3) or one (Model 1/4).
-            let trackNumber = 0;
-            for (const g of this.gat) {
-                // Skip the first track, I don't think it actually stores granules (it's the boot sector, etc.).
-                if (trackNumber !== 0 && (g & mask) !== expectedValue) {
+            // Top bits don't map to anything, so must be zero (Model 3) or one (Model 1).
+            for (let lump = 0; lump < lumpCount; lump++) {
+                const g = this.gat[lump];
+                if ((g & mask) !== expectedValue) {
                     TRS80_BASE_LOGGER.trace("GAT: high bits are not correct: 0x" + toHexByte(g) +
-                        " track " + trackNumber + " with " + granulesPerTrack + " granules per track");
+                        " lump " + lump + " with " + granulesPerLump + " granules per lump");
                     return false;
                 }
-                trackNumber += 1;
             }
         }
 
@@ -351,9 +369,11 @@ export class Trsdos14GatInfo extends TrsdosGatInfo {
 /**
  * Converts a sector to a GAT object, or a string with an error if we don't think this is a GAT sector.
  */
-function decodeGatInfo(binary: Uint8Array, geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosGatInfo | string {
-    // One byte for each track. Each bit is a granule, 0 means free and 1 means used.
-    const gat = binary.subarray(0, geometry.cylinderCount);
+function decodeGatInfo(binary: Uint8Array, lumpCount: number,
+                       geometry: FloppyDiskGeometry, version: TrsdosVersion): TrsdosGatInfo | string {
+
+    // One byte for each lump. Each bit is a granule, 0 means free and 1 means used.
+    const gat = binary.subarray(0, lumpCount);
 
     // Lock out table, one byte per track. These are per-track, not per-granule.
     // 0xFF means locked out, 0xFC means available.
@@ -681,35 +701,84 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
 
 /**
  * A TRSDOS diskette.
+ *
+ * We access physical disks with (cylinder,side,sector number) tuples. This would work for TRSDOS too,
+ * except that NEWDOS/80 introduced the concept of "lumps" to replace cylinders. They did this
+ * to solve the problem of having 5-sector granules on double-density disks. This size worked
+ * on single-density disks (10 sectors per track), but on double-density disks (18 sectors per track)
+ * the track or cylinder was no longer a multiple of 5 sectors. TRSDOS 1.3 (Model III) solved this problem
+ * by changing the size of the granule, LDOS solved it by making the granule size configurable in
+ * the GAT, and NEWDOS/80 solved it by keeping 5-sector granules but using logical cylinders (called
+ * "lumps") that didn't match up with physical ones.
+ *
+ * Since the lump model is flexible enough to also model physical cylinders, we use it in the
+ * Trsdos class as our logical sector position. We model the floppy as having a continuous sequence
+ * of sectors, starting with cylinder 0, side 0, first sector, continuing through the end of that track,
+ * flipping to side 1 if it's used by the DOS on that disk, then going back to side 0 on the next cylinder.
+ * (On NEWDOS/80 disks, the first cylinder is skipped if its density or sector count differs from the rest
+ * of the disk, which makes it bootable by the Model I ROM. In the other DOSes a lump is always a physical
+ * cylinder, so nothing is skipped.)
+ *
+ * The position of sectors is then logically described with (lump,granule,sector index) tuples. Note that
+ * here the sector is an _index_ (0-based) within the granule, whereas the physical tuple above uses
+ * sector _numbers_, which are labels recorded in the sector IDAM. (The latter are zero-based on TRSDOS 2.3-based
+ * systems and 1-based on TRSDOS 1.3-based systems.)
+ *
+ * See the {@link Trsdos.logicalToPhysical} method for the mapping from logical to physical sectors.
  */
 export class Trsdos {
-    private cachedEvaluation: Evaluation | undefined = undefined;
-
-    constructor(
-        public readonly disk: FloppyDisk,
-        public readonly geometry: FloppyDiskGeometry,
-        public readonly version: TrsdosVersion,
-        public readonly dirLumpNumber: number,
-        public readonly sideCount: number,
-        public readonly granulesPerLump: number,
-        public readonly sectorsPerGranule: number,
-        public readonly granulesPerDir: number, // Per side.
-        public readonly dirEntryLength: number,
-        public readonly dirEntriesPerSector: number) {
-
-        // Nothing.
-    }
-
+    public readonly disk: FloppyDisk;
+    public readonly geometry: FloppyDiskGeometry;
+    public readonly version: TrsdosVersion;
+    public readonly allocationSides: number;
+    public readonly granulesPerLump: number;
+    public readonly sectorsPerGranule: number;
+    public readonly dirLumpNumber: number;
+    public readonly granulesPerDir: number;
+    public readonly firstDataCylinder: number;
+    // Derived fields:
+    public readonly dirEntryLength: number;
+    public readonly dirEntriesPerSector: number;
+    public readonly sectorsPerLump: number;
+    public readonly sectorsPerCylinder: number;
+    public readonly lumpCount: number;
+    public readonly lumpTerm: string;
     /**
-     * Compute an integer score estimating whether we think this is a valid TRSDOS disk and configuration.
+     * An integer score estimating whether we think this is a valid TRSDOS disk and configuration.
      * Negative scores mean that we're pretty sure this isn't a TRSDOS disk. Higher scores are better.
      */
-    public evaluation(): Evaluation {
-        if (this.cachedEvaluation === undefined) {
-            this.cachedEvaluation = this.evaluate();
-        }
+    public readonly evaluation: Evaluation;
 
-        return this.cachedEvaluation;
+    constructor(
+        disk: FloppyDisk,
+        geometry: FloppyDiskGeometry,
+        version: TrsdosVersion,
+        allocationSides: number,
+        granulesPerLump: number,
+        sectorsPerGranule: number,
+        dirLumpNumber: number,
+        granulesPerDir: number,
+        firstDataCylinder: number) {
+
+        this.disk = disk;
+        this.geometry = geometry;
+        this.version = version;
+        this.allocationSides = allocationSides;
+        this.granulesPerLump = granulesPerLump;
+        this.sectorsPerGranule = sectorsPerGranule;
+        this.dirLumpNumber = dirLumpNumber;
+        this.granulesPerDir = granulesPerDir;
+        this.firstDataCylinder = firstDataCylinder;
+
+        this.dirEntryLength = getDirEntryLength(version);
+        this.dirEntriesPerSector = Math.floor(geometry.modalDataSectorSize / this.dirEntryLength);
+        this.sectorsPerLump = this.sectorsPerGranule * this.granulesPerLump;
+        this.sectorsPerCylinder = geometry.modalDataSectorSpan*this.allocationSides;
+        this.lumpCount = computeLumpCount(geometry, firstDataCylinder, this.sectorsPerCylinder, this.sectorsPerLump);
+        this.lumpTerm = this.sectorsPerLump === geometry.modalDataSectorSpan * this.allocationSides && this.firstDataCylinder === 0
+            ? "cylinder" : "lump";
+
+        this.evaluation = this.evaluate();
     }
 
     /**
@@ -721,7 +790,7 @@ export class Trsdos {
         if (typeof gatInfo === "string") {
             return { score: -1, reason: gatInfo };
         }
-        if (!gatInfo.isValid(this.granulesPerLump, this.version)) {
+        if (!gatInfo.isValid(this.granulesPerLump, this.lumpCount, this.version)) {
             return { score: -1, reason: "GAT is invalid" };
         }
 
@@ -781,8 +850,7 @@ export class Trsdos {
                     if (dirEntry !== undefined) {
                         // Don't record deleted entries.
                         const computedHash = hashForFilename(dirEntry.rawFilename);
-                        const index = dirEntryToHitNumber(dirPosition.side, sectorIndex, i,
-                            this.version, this.dirEntriesPerSector);
+                        const index = this.dirEntryToHitNumber(sectorIndex, i);
                         const hitHash = hitInfo.hit[index];
                         // console.log(`Comparing hits at ${side}:${sectorIndex}:${i} = ${index}: ${computedHash} vs. ${hitHash} ${dirEntry.rawFilename}`);
                         if (computedHash === hitHash) {
@@ -795,6 +863,11 @@ export class Trsdos {
             }
         }
 
+        if (this.version === TrsdosVersion.V2_3 && hashHits < 2) {
+            // Even blank disks have DIR/SYS and BOOT/SYS.
+            return { score: -1, reason: "Didn't find required system files" };
+        }
+
         const score = hashHits - hashMisses;
         const reason = `${hashHits} hash hits, ${hashMisses} hash misses`;
 
@@ -802,40 +875,108 @@ export class Trsdos {
     }
 
     public summary(): string {
-        return `${trsdosVersionToString(this.version)}, dir on track ${this.dirLumpNumber}, ${this.granulesPerLump} GPL, ${this.sideCount} sides`;
+        return `${trsdosVersionToString(this.version)}, dir on ${this.lumpTerm} ${this.dirLumpNumber}, ${this.granulesPerLump} granules per ${this.lumpTerm}, ${this.allocationSides} sides`;
+    }
+
+    /**
+     * Map a directory sector and dir entry index to an index into the HIT (zero-based).
+     */
+    private dirEntryToHitNumber(sectorIndex: number,
+                                dirEntryIndex: number): number {
+
+        switch (this.version) {
+            case TrsdosVersion.V2_3:
+                // If you change this, update hitNumberToDirEntry().
+                return (dirEntryIndex << 5) | sectorIndex;
+
+            case TrsdosVersion.V1_3:
+                // If you change this, update hitNumberToDirEntry().
+                return sectorIndex * this.dirEntriesPerSector + dirEntryIndex;
+        }
+    }
+
+    /**
+     * Map an index into the HIT (zero-based) to its sector index and dir entry index.
+     */
+    private hitNumberToDirEntry(hitIndex: number): DirEntryPosition {
+        let sectorIndex: number;
+        let dirEntryIndex: number;
+
+        switch (this.version) {
+            case TrsdosVersion.V2_3:
+                // The hit index has format IIISSSSS where III is the index within
+                // the sector (0-7, Model 1 has 8 dir entries per sector), and SSSSS
+                // is the sector index. The sector index starts after the GAT
+                // and HIT sectors.
+
+                // Also, entry indexes 0 and 1 are reserved for system files.
+                // Entry 0 on sector index 0 is BOOT/SYS, followed by entry 0 on
+                // sector index 1 (DIR/SYS), entry 0 on sector index 2 (SYS0/SYS), and
+                // so on, wrapping back to entry 1 on sector index 0 (SYS6/SYS).
+                // The algorithm that looks for empty HIT entries when creating
+                // a new file (0x50AB in SYS2/SYS) does not even consider entries
+                // 0 and 1 of each sector. This leaves 48 possible HIT entries
+                // for user files: 6 entries per sector, times 8 sectors (10
+                // sectors per track minus 2 for HIT and GAT).
+
+                // Note that the sectorIndex variable is in the range [0,31], but
+                // disks can have 18 sectors per side (when double density), for a total
+                // of 36, minus 2 for GAT and HIT. The last two sectors of side 1 can't
+                // be reached and LDOS leaves them empty.
+
+                // If you change this, update dirEntryToHitNumber().
+                sectorIndex = hitIndex & 0x1F;
+                dirEntryIndex = hitIndex >> 5;
+                break;
+
+            case TrsdosVersion.V1_3:
+                // These are laid out continuously.
+                // If you change this, update dirEntryToHitNumber().
+                sectorIndex = Math.floor(hitIndex / this.dirEntriesPerSector);
+                dirEntryIndex = hitIndex % this.dirEntriesPerSector;
+                break;
+        }
+
+        return new DirEntryPosition(sectorIndex, dirEntryIndex);
     }
 
     /**
      * Convert a lump-based sector position to a physical track-based sector position.
+     *
+     * The granule and sectorOffsets are not checked against bounds, so (for example), the sectorOffset could
+     * extend past the end of the granule, and it would do the right thing (in case the caller wants to
+     * think of terms of lumps and sectors, not granules).
      */
-    private logicalToPhysical(lumpNumber: number, side: number, sectorNumber: number, debug: boolean = false): SectorPosition {
-        // TODO dunno what to do about 2-sided disks with weird track 0.
-        const firstSectorNumber = getFirstSectorNumber(this.version);
-        const sectorsPerLump = this.granulesPerLump * this.sectorsPerGranule;
-        const sectorIndex = (lumpNumber*this.sideCount + side) * sectorsPerLump + sectorNumber - firstSectorNumber;
+    private logicalToPhysical(lumpNumber: number, granule: number, sectorOffset: number, debug: boolean = false): SectorPosition {
+        // Global index into the whole floppy (perhaps excluding cylinder 0). This starts at the first sector
+        // of the first data cylinder, continues for every sector on that track, goes to the second side of
+        // that cylinder (if the DOS is using side 1 on this floppy), then on to the next cylinder.
+        const globalSectorIndex = lumpNumber*this.sectorsPerLump + granule*this.sectorsPerGranule + sectorOffset;
+
+        const cylinderNumber = this.firstDataCylinder + Math.floor(globalSectorIndex / this.sectorsPerCylinder);
+        const cylinderSectorIndex = globalSectorIndex % this.sectorsPerCylinder;
+
         const sectorsPerTrack = this.geometry.modalDataSectorSpan;
-        const sectorsPerCylinder = sectorsPerTrack*this.sideCount;
-        const cylinderNumber = Math.floor(sectorIndex / sectorsPerCylinder);
-        const cylinderSectorIndex = sectorIndex % sectorsPerCylinder;
-        const physicalSide = Math.floor(cylinderSectorIndex / sectorsPerTrack);
-        const physicalSectorNumber = firstSectorNumber + cylinderSectorIndex % sectorsPerTrack;
+        const side = Math.floor(cylinderSectorIndex / sectorsPerTrack);
+        const sectorNumber = getFirstSectorNumber(this.version) + cylinderSectorIndex % sectorsPerTrack;
+
+        const sectorPosition = SectorPosition.make(cylinderNumber, side, sectorNumber);
         if (debug) {
             // TODO remove.
-            console.log(`${lumpNumber}:${side}:${sectorNumber}, ${firstSectorNumber} ${sectorIndex}=${lumpNumber}*${this.granulesPerLump}*${this.sectorsPerGranule} + ${sectorNumber}, ${sectorsPerCylinder} ${cylinderNumber} ${physicalSectorNumber}`);
+            console.log(`${lumpNumber}:${granule}:${sectorOffset} -> ${sectorPosition.key()}`);
         }
-
-        return SectorPosition.make(cylinderNumber, physicalSide, physicalSectorNumber);
+        return sectorPosition;
     }
 
     public getGatInfo(): TrsdosGatInfo | string {
         // Should we decide this by the first sector in the geometry, or the sector we know is first in the version?
         // Probably the latter, to help reject badly-guessed disks.
-        const gatPosition = this.logicalToPhysical(this.dirLumpNumber, 0, getFirstSectorNumber(this.version));
+        const gatPosition = this.logicalToPhysical(this.dirLumpNumber, 0, 0);
         const gatSector = this.disk.readSector(gatPosition);
         if (gatSector === undefined) {
             return "Can't read GAT sector";
         }
-        const gatInfo = decodeGatInfo(gatSector.data, this.geometry, this.version);
+        const gatInfo = decodeGatInfo(gatSector.data, this.lumpCount, this.geometry, this.version);
         if (typeof gatInfo === "string") {
             return "Can't decode GAT (" + gatInfo + ")";
         }
@@ -849,7 +990,7 @@ export class Trsdos {
      */
     public getHitInfo(): TrsdosHitInfo | string {
         // Decode Hash Index Table sector.
-        const hitPosition = this.logicalToPhysical(this.dirLumpNumber, 0, getFirstSectorNumber(this.version) + 1);
+        const hitPosition = this.logicalToPhysical(this.dirLumpNumber, 0, 1);
         const hitSector = this.disk.readSector(hitPosition);
         if (hitSector === undefined) {
             return "Can't read HIT sector";
@@ -863,26 +1004,20 @@ export class Trsdos {
     }
 
     /**
-     * Generate all sectors on the directory cylinder that holds directory entries.
+     * Generate all sectors on the directory lump that holds directory entries.
      */
     public *getDirSectors(): Generator<{ sectorIndex: number, dirPosition: SectorPosition }> {
-        const sectorCount = this.granulesPerDir*this.sectorsPerGranule;
-        for (let side = 0; side < this.sideCount; side++) {
-            for (let sectorIndex = 0; sectorIndex < sectorCount; sectorIndex++) {
-                if (side === 0 && sectorIndex < 2) {
-                    // Skip GAT and HIT.
-                    continue;
-                }
-                if (this.version !== TrsdosVersion.V1_3 && side === 1 && sectorIndex >= 16) {
-                    // Inaccessible, the sector index is stored in 4 bits.
-                    continue;
-                }
-
-                const sectorNumber = getFirstSectorNumber(this.version) + sectorIndex;
-                const dirPosition = this.logicalToPhysical(this.dirLumpNumber, side, sectorNumber);
-
-                yield { sectorIndex, dirPosition };
+        // Skip GAT and HIT.
+        const gatHitSectorCount = 2;
+        const sectorCount = this.granulesPerDir*this.sectorsPerGranule - gatHitSectorCount;
+        for (let sectorIndex = 0; sectorIndex < sectorCount; sectorIndex++) {
+            if (this.version === TrsdosVersion.V2_3 && sectorIndex >= 32) {
+                // Inaccessible, the sector index is stored in 5 bits.
+                continue;
             }
+
+            const dirPosition = this.logicalToPhysical(this.dirLumpNumber, 0, sectorIndex + gatHitSectorCount);
+            yield {sectorIndex, dirPosition};
         }
     }
 
@@ -906,7 +1041,7 @@ export class Trsdos {
                         // TODO what to do with this error? Abort this method?
                     } else if (dirEntry !== undefined) {
                         // Don't record deleted entries.
-                        dirEntries.set(new DirEntryPosition(dirPosition.side, sectorIndex, i).asKey(), dirEntry);
+                        dirEntries.set(new DirEntryPosition(sectorIndex, i).key(), dirEntry);
                     }
                 }
             }
@@ -915,17 +1050,15 @@ export class Trsdos {
         // Look up continuations by sector/index and update original entries.
         for (const dirEntry of dirEntries.values()) {
             if (dirEntry.prevDec !== undefined) {
-                const position = hitNumberToDirEntry(dirEntry.prevDec, this.version,
-                    this.dirEntriesPerSector);
-                const prevDirEntry = dirEntries.get(position.asKey());
+                const position = this.hitNumberToDirEntry(dirEntry.prevDec);
+                const prevDirEntry = dirEntries.get(position.key());
                 if (prevDirEntry !== undefined) {
                     dirEntry.prevDirEntry = prevDirEntry;
                 }
             }
             if (dirEntry.nextDec !== undefined) {
-                const position = hitNumberToDirEntry(dirEntry.nextDec, this.version,
-                    this.dirEntriesPerSector);
-                const nextDirEntry = dirEntries.get(position.asKey());
+                const position = this.hitNumberToDirEntry(dirEntry.nextDec);
+                const nextDirEntry = dirEntries.get(position.key());
                 if (nextDirEntry !== undefined) {
                     dirEntry.nextDirEntry = nextDirEntry;
                 }
@@ -993,33 +1126,18 @@ export class Trsdos {
      */
     public getFileSectorPositions(firstDirEntry: TrsdosDirEntry): SectorPosition[] {
         const sectorPositions: SectorPosition[] = [];
-        const geometry = this.disk.getGeometry();
 
         // Number of sectors left to read.
-        const fileSize = firstDirEntry.getSize();
         // TODO aren't sector sizes not fixed?
-        const sectorsInFile = Math.ceil(fileSize / BYTES_PER_SECTOR);
+        const sectorsInFile = Math.ceil(firstDirEntry.getSize() / BYTES_PER_SECTOR);
 
         // Loop through all the directory entries for this file.
         let dirEntry: TrsdosDirEntry | undefined = firstDirEntry;
         while (dirEntry !== undefined) {
             for (const extent of dirEntry.extents) {
-                let sectorPosition = this.logicalToPhysical(extent.cylinderNumber, 0, getFirstSectorNumber(this.version));
-                const newSectorPosition = geometry.advanceSectorPosition(sectorPosition, this.sideCount, extent.granuleOffset * this.sectorsPerGranule);
-                if (newSectorPosition === undefined) {
-                    TRS80_BASE_LOGGER.warn(`Directory entry starts past the end of the disk: ${dirEntry.getFilename("/")}, ${extent.toString()}`);
-                    break;
-                }
-                sectorPosition = newSectorPosition;
-                const extentSectorCount = extent.granuleCount * this.sectorsPerGranule;
-                for (let i = 0; i < extentSectorCount && sectorPositions.length < sectorsInFile; i++) {
-                    sectorPositions.push(sectorPosition);
-                    const newSectorPosition = geometry.advanceSectorPosition(sectorPosition, this.sideCount, 1);
-                    if (newSectorPosition === undefined) {
-                        TRS80_BASE_LOGGER.warn(`Directory entry went past the end of the disk: ${dirEntry.getFilename("/")}, ${extent.toString()}`);
-                        break;
-                    }
-                    sectorPosition = newSectorPosition;
+                const sectorCount = extent.granuleCount * this.sectorsPerGranule;
+                for (let i = 0; i < sectorCount && sectorPositions.length < sectorsInFile; i++) {
+                    sectorPositions.push(this.logicalToPhysical(extent.cylinderNumber, extent.granuleOffset, i));
                 }
             }
 
@@ -1075,84 +1193,6 @@ export class Trsdos {
 }
 
 /**
- * Map an index into the HIT (zero-based) to its sector index and dir entry index.
- */
-function hitNumberToDirEntry(hitIndex: number, version: TrsdosVersion,
-                             dirEntriesPerSector: number): DirEntryPosition {
-
-    let side: number;
-    let sectorIndex: number;
-    let dirEntryIndex: number;
-
-    if (version === TrsdosVersion.V1_3) {
-        // Model 3 TRSDOS is always single-sided.
-        side = 0;
-        // These are laid out continuously.
-        // If you change this, update dirEntryToHitNumber().
-        sectorIndex = Math.floor(hitIndex / dirEntriesPerSector) + 2;
-        dirEntryIndex = hitIndex % dirEntriesPerSector;
-    } else {
-        // The hit index has format IIIDSSSS where III is the index within
-        // the sector (0-7, Model 1/4 has 8 dir entries per sector), D
-        // is the side, and SSSS is the sector number. The sector number
-        // starts at 2 on side 0 (after GAT and HIT) and at 0 on side 1.
-
-        // Also, entry indexes 0 and 1 are reserved for system files.
-        // Entry 0 on sector 2 is BOOT/SYS, followed by entry 0 on
-        // sector 3 (DIR/SYS), entry 0 on sector 4 (SYS0/SYS), and
-        // so on, wrapping back to sector 2, entry 1 (SYS6/SYS).
-        // The algorithm that looks for empty HIT entries when creating
-        // a new file (0x50AB in SYS2/SYS) does not even consider entries
-        // 0 and 1 of each sector. This leaves 48 possible HIT entries
-        // for user files: 6 entries per sector, times 8 sectors (10
-        // sectors per track minus 2 for HIT and GAT).
-
-        // Note that the sectorIndex variable is in the range [2,17] on side
-        // 0 and [0,15] on side 1, but disks can have 18 sectors per side
-        // (when double density). The last two sectors of side 1 can't be reached
-        // and LDOS leaves them empty.
-
-        // If you change this, update dirEntryToHitNumber().
-        side = (hitIndex >> 4) & 1;
-        sectorIndex = hitIndex & 0x0F;
-        dirEntryIndex = hitIndex >> 5;
-
-        if (side === 0) {
-            // Skip GAT and HIT.
-            sectorIndex += 2;
-        }
-    }
-
-    return new DirEntryPosition(side, sectorIndex, dirEntryIndex);
-}
-
-/**
- * Map a directory sector and dir entry index to an index into the HIT (zero-based).
- */
-function dirEntryToHitNumber(side: number, sectorIndex: number, dirEntryIndex: number,
-                             version: TrsdosVersion,
-                             dirEntriesPerSector: number): number {
-
-    let hitNumber: number;
-
-    if (side == 0) {
-        // Skip GAT and HIT.
-        sectorIndex -= 2;
-    }
-
-    if (version === TrsdosVersion.V1_3) {
-        // Always single-sided.
-        // If you change this, update hitNumberToDirEntry().
-        hitNumber = sectorIndex*dirEntriesPerSector + dirEntryIndex;
-    } else {
-        // If you change this, update hitNumberToDirEntry().
-        hitNumber = (dirEntryIndex << 5) | (side << 4) | sectorIndex;
-    }
-
-    return hitNumber;
-}
-
-/**
  * Why a particular TRSDOS version was rejected when decoding a diskette.
  */
 export interface TrsdosRejection {
@@ -1165,20 +1205,19 @@ function generateTrsdos23Candidates(disk: FloppyDisk): Trsdos[] {
 
     const version = TrsdosVersion.V2_3;
     const geometry = disk.getGeometry();
-    const dirEntryLength = 32;
     // TODO: The original TRSDOS 2.3 only supported one side, so we should ignore side 1 on the geometry because
     // it might be garbage from a previous format, but it's possible that derivatives of TRSDOS 2.3 support
     // two sides.
-    const sideCount = 1;
+    const allocationSides = geometry.sideCount;
     const sectorsPerTrack = geometry.modalDataSectorSpan;
     const density = geometry.modalDataDensity;
-    const granulesPerLump = density === Density.SINGLE ? 2 : 3;
-    const sectorsPerGranule = Math.floor(sectorsPerTrack / granulesPerLump);
-    const dirEntriesPerSector = Math.floor(geometry.modalDataSectorSize / dirEntryLength);
+    const granulesPerTrack = density === Density.SINGLE ? 2 : 3;
+    const granulesPerLump = granulesPerTrack * allocationSides;
+    const sectorsPerGranule = Math.floor(sectorsPerTrack / granulesPerTrack);
 
     for (let dirLumpNumber = 0; dirLumpNumber < geometry.cylinderCount; dirLumpNumber++) {
-        candidates.push(new Trsdos(disk, geometry, version, dirLumpNumber, sideCount, granulesPerLump,
-            sectorsPerGranule, granulesPerLump, dirEntryLength, dirEntriesPerSector));
+        candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
+            dirLumpNumber, granulesPerLump, 0));
     }
 
     return candidates;
@@ -1189,16 +1228,14 @@ function generateTrsdos13Candidates(disk: FloppyDisk): Trsdos[] {
 
     const version = TrsdosVersion.V1_3;
     const geometry = disk.getGeometry();
-    const dirEntryLength = 48;
-    const sideCount = 1; // TRSDOS 1.3 only supported single-sided disks, so ignore geometry here.
+    const allocationSides = 1; // TRSDOS 1.3 only supported single-sided disks, so ignore geometry here.
     const density = geometry.modalDataDensity;
     const sectorsPerGranule = density === Density.SINGLE ? 2 : 3;
-    const granulesPerLump = Math.floor(geometry.modalDataSectorSpan / sectorsPerGranule);
-    const dirEntriesPerSector = Math.floor(geometry.modalDataSectorSize / dirEntryLength);
+    const granulesPerLump = Math.floor(geometry.modalDataSectorSpan / sectorsPerGranule) * allocationSides;
 
     for (let dirLumpNumber = 0; dirLumpNumber < geometry.cylinderCount; dirLumpNumber++) {
-        candidates.push(new Trsdos(disk, geometry, version, dirLumpNumber, sideCount, granulesPerLump,
-            sectorsPerGranule, granulesPerLump, dirEntryLength, dirEntriesPerSector));
+        candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
+            dirLumpNumber, granulesPerLump, 0));
     }
 
     return candidates;
@@ -1209,25 +1246,20 @@ function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
 
     const version = TrsdosVersion.V2_3;
     const geometry = disk.getGeometry();
-    const dirEntryLength = 32;
     // TODO: Unclear whether to allow double-sided disks here, check if NEWDOS/80 ever supported double-sided:
-    const sideCount = geometry.sideCount;
+    const allocationSides = geometry.sideCount;
     const sectorsPerGranule = 5;
-    const dirEntriesPerSector = Math.floor(geometry.modalDataSectorSize / dirEntryLength);
+    const firstDataCylinder = geometry.cylinder0Differs ? 1 : 0;
 
     for (let granulesPerLump = 2; granulesPerLump <= 8; granulesPerLump++) {
-        let usefulTracks = geometry.cylinderCount*sideCount;
-        if (!geometry.homogeneous) {
-            // Track 0 is for booting only.
-            usefulTracks -= 1;
-        }
-        const numSectors = usefulTracks * geometry.modalDataSectorSpan;
         const sectorsPerLump = granulesPerLump * sectorsPerGranule;
-        const numLumps = Math.floor(numSectors / sectorsPerLump);
         const granulesPerDir = granulesPerLump; // TODO discover.
-        for (let dirLumpNumber = 0; dirLumpNumber < numLumps; dirLumpNumber++) {
-            candidates.push(new Trsdos(disk, geometry, version, dirLumpNumber, sideCount, granulesPerLump,
-                sectorsPerGranule, granulesPerDir, dirEntryLength, dirEntriesPerSector));
+        const sectorsPerCylinder = geometry.modalDataSectorSpan*allocationSides;
+        const lumpCount = computeLumpCount(geometry, firstDataCylinder, sectorsPerCylinder, sectorsPerLump);
+
+        for (let dirLumpNumber = 0; dirLumpNumber < lumpCount; dirLumpNumber++) {
+            candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
+                dirLumpNumber, granulesPerDir, firstDataCylinder));
         }
     }
 
@@ -1239,19 +1271,16 @@ function generateLdosCandidates(disk: FloppyDisk): Trsdos[] {
 
     const version = TrsdosVersion.V2_3;
     const geometry = disk.getGeometry();
-    const dirEntryLength = 32;
-    const sideCount = geometry.sideCount;
+    const allocationSides = geometry.sideCount;
     const sectorsPerTrack = geometry.modalDataSectorSpan;
 
     for (let dirLumpNumber = 0; dirLumpNumber < geometry.cylinderCount; dirLumpNumber++) {
-        // Should we decide this by the first sector in the geometry, or the sector we know is first in the version?
-        // Probably the latter, to help reject badly-guessed disks.
         const gatPosition = SectorPosition.make(dirLumpNumber, 0, getFirstSectorNumber(version));
         const gatSector = disk.readSector(gatPosition);
         if (gatSector === undefined) {
             continue;
         }
-        const gatInfo = decodeGatInfo(gatSector.data, geometry, version);
+        const gatInfo = decodeGatInfo(gatSector.data, geometry.cylinderCount, geometry, version);
         if (typeof gatInfo === "string") {
             continue;
         }
@@ -1259,12 +1288,11 @@ function generateLdosCandidates(disk: FloppyDisk): Trsdos[] {
             throw new Error("GAT must be Model 1/4 object");
         }
 
-        const granulesPerLump = gatInfo.granulesPerTrack;
-        const sectorsPerGranule = Math.floor(sectorsPerTrack / granulesPerLump);
-        const dirEntriesPerSector = Math.floor(geometry.modalDataSectorSize / dirEntryLength);
+        const granulesPerLump = gatInfo.granulesPerTrack*allocationSides;
+        const sectorsPerGranule = Math.floor(sectorsPerTrack / gatInfo.granulesPerTrack);
 
-        candidates.push(new Trsdos(disk, geometry, version, dirLumpNumber, sideCount, granulesPerLump,
-            sectorsPerGranule, granulesPerLump, dirEntryLength, dirEntriesPerSector));
+        candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
+            dirLumpNumber, granulesPerLump, 0));
     }
 
     return candidates;
@@ -1284,17 +1312,17 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
     ];
 
     // Sort by decreasing score.
-    candidates.sort((a, b) => b.evaluation().score - a.evaluation().score);
+    candidates.sort((a, b) => b.evaluation.score - a.evaluation.score);
 
     if (false) {
         for (const trsdos of candidates) {
-            if (trsdos.evaluation().score >= 0 || true) {
-                console.log(`${trsdos.summary()} has ${evaluationToString(trsdos.evaluation())}`);
+            if (trsdos.evaluation.score >= 0 || true) {
+                console.log(`${trsdos.summary()} has ${evaluationToString(trsdos.evaluation)}`);
             }
         }
     }
 
-    if (candidates.length > 0 && candidates[0].evaluation().score >= 0) {
+    if (candidates.length > 0 && candidates[0].evaluation.score >= 0) {
         return candidates[0];
     } else {
         return undefined;
