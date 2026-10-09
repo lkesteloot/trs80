@@ -17,6 +17,14 @@ quoted documentation; guesses are labeled as such.
   explains lumps and PDRIVE in detail. The PDF is a 154-page scan with no text
   layer (CCITT images), and its PDF page numbers run 8 ahead of the printed ones.
 - [Tim Mann's FAQ](https://www.tim-mann.org/trs80faq.html) for hardware and density questions.
+- The LDOS 5.1 manual, `~/Dropbox/Personal/Books/TRS-80/disk/LDOS/LDOS 5.1.x.pdf`
+  (a retyped text PDF), "Tech Info - Directory Records", PDF pages 210-218:
+  the directory, GAT, HIT, and the granule table for every LDOS media type.
+  Most manuals in `~/Dropbox/Personal/Books/TRS-80/disk/` have text layers
+  (LDOS 5.1 and its BASIC and LS-DOS manuals, the NEWDOS/80 2.0 manual, TRSDOS
+  1.3 and 6, the *Programmer's Guide to TRSDOS Version 6*, *TRS-80 Disk and
+  Other Mysteries*). The scans without one are the Hacker's Handbook and *TRSDOS
+  2.3 Decoded and Other Mysteries*.
 
 ## Which DOSes share a layout
 
@@ -170,6 +178,143 @@ On a double-sided disk:
 - Granule offsets run across the cylinder: offsets 0-2 are side 0 and 3-5 side 1.
   Sector order is side 0, then side 1, then the next cylinder — verified by
   17 files whose extents cross the side boundary and still decode cleanly.
+
+## GAT bytes 0xCB-0xCD
+
+LDOS added three bytes to the end of the 2.3 GAT, and TRSDOS 6 and LS-DOS 6
+(LDOS's successors) kept them:
+
+    0xCB   DOS version, BCD (0x51 = 5.1)
+    0xCC   cylinders minus 35
+    0xCD   bits 0-2 granules per track minus 1, bit 5 double sided,
+           bit 6 double density (bits 3 and 7 also appear; 7 may mark a data disk)
+
+Other DOSes write 0xCB but not, or not reliably, the other two. Checked on all
+213 decoded 2.3-family disks against each disk's cylinders, media density,
+granules per track and (where extents or the GAT prove it) allocation sides:
+
+| DOS | 0xCB | 0xCC and 0xCD |
+|---|---|---|
+| LDOS 5.x, TRSDOS 6.x, LS-DOS 6.3, DOSPLUS IV | 0x50-0x53, 0x60-0x63 | all fields right on all 71 (see below) |
+| TRSDOS 2.1-2.3 | 0x21, even on 2.3; 2.3B writes 0 | both 0 |
+| VTOS 3.0 | 0x30 | both 0 |
+| DOSPLUS 3.x, 4.0 | version | 0xCC right; 0xCD usually 0, sometimes 0x01 or 0x20 |
+| NEWDOS/80 | 0x80, 0x82 | usually 0; 0x3F and 0x23 on the eleven Infocom disks |
+| MultiDOS 1.x | 0x10, 0x17, 0 | both 0x28 |
+| MultiDOS 2.0 | 0x17, 0xFF | LDOS-style, but `Bright-412` puts granules per *cylinder* (6) in bits 0-2 |
+
+Two of those 71 aren't Logical Systems DOSes at all: the two 0x60 disks,
+`DOSPLSIV.dmk` and `DOSPLUS4.dmk`, are DOSPLUS IV (its SYS0 banner credits
+Micro-Systems Software, 1983), which writes the TRSDOS 6 GAT format. So the
+question for these fields isn't "is this LDOS" but "does this disk use the
+LDOS/TRSDOS 6 GAT", and 0xCB doesn't answer even that alone.
+
+On those 71 disks every field checks out against the disk itself: the version
+is plausible (5.0, 5.1, 5.3; 6.0 from DOSPLUS IV; 6.1, 6.2, 6.3), the density bit matches the
+media, the granules per track give the granule size that decodes every CMD and
+SYS file, and the side bit matches the allocation sides on all 71 (each proven by
+one-sided media, a clear GAT bit above the side-0 granules, or a side-1 extent).
+0xCC is the cylinder count the DOS formatted, and matches the lockout table on
+the 70 disks that have one (the 8-inch LS-DOS `l2-631a.dmk` has 0xFF from
+0x60 on); it equals the image's formatted cylinders on 70, and on `ldos-5.0.3-sssd.dmk`
+the image has five more, blank (0xE5) and locked out, so the DOS never used them.
+
+Outside the LDOS line the granules field is right on 9 of 64 disks, and the side
+bit misleads in both directions: Cornsoft-Brix `bath3` (DOSPLUS 4.0) allocates
+both sides with 0xCD = 0, and the Infocom disks claim two sides on one-sided
+media.
+
+0xCB alone doesn't identify the DOS. `newdos30.dmk` (NEWDOS 3.0) writes 0x53
+and then zeros. `ORCH80.DMK` is a 1980 Orchestra-80 distribution disk, written
+by the program's own copier (ORCHCOPY) with a non-Tandy boot sector and a
+TRSDOS 2.x GAT, which has the ASCII text "U41" in 0xCB-0xCD where TRSDOS 2.3
+writes 21 00 00. Read as LDOS fields that's version 5.5, 87 cylinders and two
+sides, on a one-sided 35-cylinder disk. (UltraDOS, `ultdos42.dmk`, also writes
+0x55, with a consistent 0xCD; there was no LDOS 5.5.) So trust 0xCC and 0xCD only
+when 0xCB is 0x50-0x63 **and** the byte agrees with the media: the density bit matches, the
+granules per track times the granule size is the sectors per track, and 0xCC + 35
+is at most the image's cylinders. Every disk that passes that test has a correct
+side bit.
+
+### What the LDOS 5.1 manual says about these bytes
+
+- **0xCB** is "the operating system version used in formatting the disk", used
+  "to determine whether or not the diskette contains all of the parameters
+  needed for LDOS 5.1 operation". It's LDOS's own marker, not a convention other
+  DOSes share.
+- **0xCC** is excess-35 "so as to provide complete compatibility with alien
+  systems not maintaining that byte": a zero means "35, or not maintained".
+- **0xCD**: bit 6 double density, bit 5 two-sided, bits 2-0 granules per
+  cylinder minus 1; bits 7, 4 and 3 reserved (in 5.1). "Cylinder" here means
+  one side: the manual's granule table "assumes single sided media", and on
+  every double-sided LDOS disk bits 2-0 hold 3 while the GAT bytes hold 6
+  granules. MultiDOS 2.0's `Bright-412` is the one disk that stores 6.
+- **The granule table** (single-sided):
+
+      5" SD   10 sectors   5 per granule   2 granules   80 cylinders max
+      5" DD   18           6               3            80
+      8" SD   16           8               2            77
+      8" DD   30          10               3            77
+      5" hard 128         16               8           153
+      8" hard 256         32               8           256
+
+  So for every floppy the count is 2 in single density and 3 in double, which
+  is the rule `generateTrsdos23Candidates()` uses.
+- **0x60-0xBF**, the lockout table, exists for mirror-image backups; hard disks
+  have none and extend the allocation table through 0xCA instead.
+- **The directory** is on a single cylinder, at most 32 entry sectors (the HIT
+  limit): 8 on 5" SD single-sided, 18 double-sided, 16 and 32 in DD.
+- **REPAIR** converts alien disks, explicitly including Model I TRSDOS 2.3: it
+  sets 0xCC and the granule byte, strips the high bit of the boot sector's
+  directory-cylinder byte (DOSPLUS sets it), and **writes an LDOS boot sector**.
+  So a disk's boot sector identifies whoever last formatted *or repaired* it.
+
+### Granules per track without the GAT header
+
+The decoder needs nothing from 0xCB-0xCD. On all 138 TRSDOS-style disks with
+files, the granule count is the density default: 2 granules of 5 sectors on
+10-sector tracks (52 disks), 3 of 6 on 18-sector tracks (84), and 3 of 10 on
+30-sector 8" tracks (2), exactly what `generateTrsdos23Candidates()` picks
+without reading the GAT. When every granule count dividing the track (2-8) is
+tried, the true one is uniquely best on all 138 by two checks that ignore the
+header bytes: every file's extents cover its sector count, ideally tightly
+(ceil(sectors / granule size) granules), and the strict GAT bitmap check, which
+rejects counts that are too small but passes any count that is too large. (The
+two apparent misses, Cornsoft-Brix `bath3` and `F05 - Monas`, were tested with
+one side; with sides free, 3 x 2 wins.) Hash hits can't choose between granule
+counts: a TRSDOS-style directory fills its cylinder whatever the granule size,
+so every count scores the same. Blank disks stay ambiguous, which costs nothing.
+
+## Identifying the DOS
+
+Strongest first. Measured on all 274 images.
+
+1. **The SYS0/SYS banner**, on system disks only. It names the DOS and exact
+   version: `L D O S - The Logical Disk Operating System - Ver 5.1.4`,
+   `TRSDOS 06.02.00 - Copyright 1984 Logical Systems Inc.`,
+   `LS-DOS 06.03.00 - Copyright 1986 Logical Systems Inc.`,
+   `NEWDOS80, APPARAT'S DISK OPERATING SYSTEM, VERSION 1.0` (v1.1 words it
+   differently), Micro-Systems Software for DOSPLUS, `COPYRIGHT (c) 1979 BY
+   TANDY CORPORATION` for TRSDOS 2.x, and `(C) 1981 BY LOBO DRIVES
+   INTERNATIONAL` for the Lobo edition of LDOS. Some are unreadable (the
+   "TRS-80 Format" disks' SYS0).
+2. **The boot sector's code.** FORMAT writes the same boot sector to every disk,
+   data disks included, so hashing it (with byte 2, the directory cylinder,
+   masked) identifies the formatter. 274 disks have 120 distinct boot sectors.
+   The big clusters are one DOS family each and mix system and data disks
+   (17 TRSDOS 2.x disks; an LDOS 5.1/5.3 cluster of 9 system and 6 data disks;
+   one per MultiDOS version and per NEWDOS v1 variant). But one DOS has several
+   (LDOS at least four, by version and density); some boot sectors belong to a
+   formatting tool rather than a DOS (one is on data disks whose GATs say 0x22,
+   0x34 and 0x50; another on both TRSDOS 6.2 data disks and the "TRS-80 Format"
+   disks with GAT 0x82); and 78 are singletons. A table of known hashes would
+   need curating, labelled from the banners of system disks that share them.
+3. **Boot messages** are mostly short and shared ("NO SYSTEM", "DISK ERROR").
+   LDOS writes them in mixed case ("Disk error", "No system") on 31 of 39 disks,
+   TRSDOS 2.x in capitals. A few are distinctive: "Cannot boot, DATA DISK!"
+   (TRSDOS 6 and LS-DOS data disks), "NO MICRODOS" (Percom), "ULTRADOS formatted
+   diskette", MultiDOS's banner and "(c) CEC." (Cosmopolitan Electronics).
+4. **GAT byte 0xCB**, last; see "GAT bytes 0xCB-0xCD".
 
 ## The lump model
 
@@ -413,7 +558,7 @@ Beyond the lump bytes described above:
 
 **Byte 0xCB is usually a BCD version number**, although the handbook calls it a
 DOS identifier and lists TRSDOS 0x23, NEWDOS/80 0x82, LDOS 0x51 and DOSPLUS 0x34.
-Those are just common versions: the collection has 0x21 (TRSDOS 2.1), 0x33-0x35
+Those are just common versions: the collection has 0x21 (TRSDOS 2.1 to 2.3), 0x33-0x35
 (DOSPLUS 3.3-3.5), 0x50-0x55 (LDOS 5.x) and 0x60-0x63 (TRSDOS 6, LS-DOS 6.3).
 The exception is NEWDOS/80, which writes `0x8n`: **0x82 for version 2 and 0x80
 for version 1** (the DoubleZap disks, `cord2003`, `NEWDOS1D.dmk`, and eleven
@@ -422,7 +567,8 @@ and keying NEWDOS detection on 0x82 alone misses every v1 disk. MultiDOS's
 pseudo-density disks write 0x00 or their own version (0x17), and TRSDOS 2.3B
 writes 0, so a zero here means nothing.
 
-**Do not read 0xCC or 0xCD on a NEWDOS disk.** Both are zero on all seven, so the
+**Do not read 0xCC or 0xCD on a NEWDOS disk.** Both are zero on all seven (and on
+most later additions; the Infocom game disks hold 0x3F and 0x23), so the
 cylinder count our decoder derives as `0xCC + 35` comes out as 35 even for the
 80-cylinder disks, and the flags byte claims single sided and single density for
 everything. NEWDOS keeps that information in PDRIVE, not in the GAT.

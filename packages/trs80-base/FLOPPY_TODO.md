@@ -17,9 +17,11 @@ candidates only), TRSDOS-family `granulesPerLump` = granules per cylinder, the
 linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 
 - [ ] **Allocation sides from the DOS, never `geometry.sideCount`.** Signals, in
-      order: a GAT byte with a clear bit above the single-sided granules; LDOS GAT
-      byte 0xCD bit 5; any extent with granule offset ≥ granules per track. A full
-      GAT gives no signal (`ldos-5.3.0-dsdd.dmk`). The 2.3, NEWDOS and LDOS
+      order: a GAT byte with a clear bit above the single-sided granules; GAT
+      byte 0xCD bit 5, but only on the LDOS line and when the byte is consistent
+      (see "GAT bytes 0xCB-0xCD" in `FLOPPY_FORMATS.md`); any extent with granule
+      offset ≥ granules per track. A full
+      GAT gives no signal (`ldos-5.3.0-dsdd.dmk`). The 2.3 and NEWDOS
       generators all still use `geometry.sideCount`, which corrupts six files on
       each of `Cornsoft-Micro-SynthDev.dmk` and `...-newshell-bath6.dmk`:
       double-sided images used single-sided (and see `DS023.DMK` below). Trying both side
@@ -73,8 +75,16 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       bit set on the directory byte) reports "TRSDOS 3.x". TRSDOS 2.3B writes 0
       and reports "TRSDOS 0.0"; its boot sector has the fingerprint `16 00 1E 05`
       (2.3 has `57 1E 04`).
-- [ ] **NEWDOS GAT bytes 0xCC and 0xCD** are zero, so the report's `os.gat`
-      shows 35 cylinders and single density for every NEWDOS disk.
+- [ ] **`TrsdosGatInfo`'s LDOS fields are unused.** With `Trsdos14GatInfo` and
+      `generateLdosCandidates()` gone and the report no longer printing them,
+      `cylinderCount`, `granulesPerTrack`, `sideCount` and `density` (and the
+      `isDataDisk` local in `decodeGatInfo()`) have no readers. Only `osVersion`
+      (0xCB) is used, for naming. If they come back, set them only when the
+      consistency test in "GAT bytes 0xCB-0xCD" passes.
+- [ ] **Identify the DOS from better evidence than 0xCB**: the SYS0/SYS banner,
+      then a table of boot-sector hashes, then distinctive boot messages, then
+      0xCB (see "Identifying the DOS" in `FLOPPY_FORMATS.md`). This would fix the
+      naming items above, and tell DOSPLUS IV (0x60) from TRSDOS 6.0.
 - [ ] **`decodeTrsdosWithRejections()` returns `rejections: []`**, so the
       regression reports lost their rejection reasons when scoring arrived.
 - [ ] **`hitNumberToDirEntry()`'s comment** describes TRSDOS 2.3's fixed system

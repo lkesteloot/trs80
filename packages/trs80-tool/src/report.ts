@@ -9,7 +9,6 @@ import {
     SectorPosition,
     TrackGeometry,
     Trsdos,
-    Trsdos14GatInfo,
     TrsdosDirEntry,
     trsdosProtectionLevelToString,
     trsdosVersionToString,
@@ -65,12 +64,6 @@ export interface GatReport {
     date: string;
     autoCommand: string;
     password: number;
-    // Model I and 4 only:
-    osVersion?: number;
-    cylinderCount?: number;
-    granulesPerTrack?: number;
-    sideCount?: number;
-    density?: DensityName;
 }
 
 /**
@@ -306,13 +299,6 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
             date: gatInfo.date,
             autoCommand: gatInfo.autoCommand,
             password: gatInfo.password,
-            ... gatInfo instanceof Trsdos14GatInfo ? {
-                osVersion: gatInfo.osVersion,
-                cylinderCount: gatInfo.cylinderCount,
-                granulesPerTrack: gatInfo.granulesPerTrack,
-                sideCount: gatInfo.sideCount,
-                density: densityName(gatInfo.density),
-            } : {},
         };
     }
 

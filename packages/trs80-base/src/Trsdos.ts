@@ -306,8 +306,19 @@ export class TrsdosGatInfo {
     public readonly date: string;
     public readonly autoCommand: string;
 
+    // Encoded in hex, e.g., 0x51 means LDOS 5.1.
+    public readonly osVersion: number;
+
+    // For LDOS only:
+    public readonly cylinderCount: number;
+    public readonly granulesPerTrack: number;
+    public readonly sideCount: number;
+    public readonly density: Density;
+
     constructor(gat: Uint8Array, lockOut: Uint8Array,
-                password: number, name: string, date: string, autoCommand: string) {
+                password: number, name: string, date: string, autoCommand: string,
+                osVersion: number, cylinderCount: number, granulesPerTrack: number,
+                sideCount: number, density: Density) {
 
         this.gat = gat;
         this.lockOut = lockOut;
@@ -315,6 +326,11 @@ export class TrsdosGatInfo {
         this.name = name;
         this.date = date;
         this.autoCommand = autoCommand;
+        this.osVersion = osVersion;
+        this.cylinderCount = cylinderCount;
+        this.granulesPerTrack = granulesPerTrack;
+        this.sideCount = sideCount;
+        this.density = density;
     }
 
     /**
@@ -338,31 +354,6 @@ export class TrsdosGatInfo {
         }
 
         return true;
-    }
-}
-
-/**
- * Extra info for TRSDOS Model 1 and 4.
- */
-export class Trsdos14GatInfo extends TrsdosGatInfo {
-    // Encoded in hex, e.g., 0x51 means LDOS 5.1.
-    public readonly osVersion: number;
-    public readonly cylinderCount: number;
-    public readonly granulesPerTrack: number;
-    public readonly sideCount: number;
-    public readonly density: Density;
-
-    constructor(gat: Uint8Array, lockOut: Uint8Array,
-                password: number, name: string, date: string, autoCommand: string,
-                osVersion: number, cylinderCount: number, granulesPerTrack: number,
-                sideCount: number, density: Density) {
-
-        super(gat, lockOut, password, name, date, autoCommand);
-        this.osVersion = osVersion;
-        this.cylinderCount = cylinderCount;
-        this.granulesPerTrack = granulesPerTrack;
-        this.sideCount = sideCount;
-        this.density = density;
     }
 }
 
@@ -398,23 +389,20 @@ function decodeGatInfo(binary: Uint8Array, lumpCount: number,
         return "auto command is missing";
     }
 
-    if (version === TrsdosVersion.V1_3) {
-        return new TrsdosGatInfo(gat, lockOut, password, name, date, autoCommand);
-    } else {
-        // Additional fields for Model 1 and 4.
-        const osVersion = binary[0xCB];
-        const cylinderCount = binary[0xCC] + 35;
-        const flags = binary[0xCD];
-        // Docs say granules per cylinder, but VTK treats this as granules per track.
-        const granulesPerTrack = (flags & 0x07) + 1;
-        const sideCount = (flags & 0x20) !== 0 ? 2 : 1;
-        const density = (flags & 0x40) !== 0 ? Density.DOUBLE : Density.SINGLE;
-        // TODO data disks only reserve 2 entries for system files, not 16. But I don't know which two!
-        const isDataDisk = osVersion === 0x60 && (flags & 0x80) !== 0;
+    // Additional fields for Model 1.
+    const osVersion = binary[0xCB];
 
-        return new Trsdos14GatInfo(gat, lockOut, password, name, date, autoCommand,
-            osVersion, cylinderCount, granulesPerTrack, sideCount, density);
-    }
+    // Additional fields for LDOS.
+    const cylinderCount = binary[0xCC] + 35;
+    const flags = binary[0xCD];
+    const granulesPerTrack = (flags & 0x07) + 1;
+    const sideCount = (flags & 0x20) !== 0 ? 2 : 1;
+    const density = (flags & 0x40) !== 0 ? Density.DOUBLE : Density.SINGLE;
+    // TODO data disks only reserve 2 entries for system files, not 16. But I don't know which two!
+    const isDataDisk = osVersion === 0x60 && (flags & 0x80) !== 0;
+
+    return new TrsdosGatInfo(gat, lockOut, password, name, date, autoCommand,
+        osVersion, cylinderCount, granulesPerTrack, sideCount, density);
 }
 
 /**
@@ -1101,7 +1089,9 @@ export class Trsdos {
         const gatInfo = this.getGatInfo();
         if (typeof gatInfo === "string") {
             return "Unknown";
-        } else if (gatInfo instanceof Trsdos14GatInfo) {
+        } else if (this.version === TrsdosVersion.V1_3) {
+            return "TRSDOS 1.3";
+        } else {
             const major = gatInfo.osVersion >> 4;
             const minor = gatInfo.osVersion & 0x0F;
 
@@ -1115,9 +1105,6 @@ export class Trsdos {
             } else {
                 return "TRSDOS " + major + "." + minor;
             }
-        } else {
-            // Probably Model III, guess 1.3.
-            return "TRSDOS 1.3";
         }
     }
 
@@ -1266,38 +1253,6 @@ function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
     return candidates;
 }
 
-function generateLdosCandidates(disk: FloppyDisk): Trsdos[] {
-    const candidates: Trsdos[] = [];
-
-    const version = TrsdosVersion.V2_3;
-    const geometry = disk.getGeometry();
-    const allocationSides = geometry.sideCount;
-    const sectorsPerTrack = geometry.modalDataSectorSpan;
-
-    for (let dirLumpNumber = 0; dirLumpNumber < geometry.cylinderCount; dirLumpNumber++) {
-        const gatPosition = SectorPosition.make(dirLumpNumber, 0, getFirstSectorNumber(version));
-        const gatSector = disk.readSector(gatPosition);
-        if (gatSector === undefined) {
-            continue;
-        }
-        const gatInfo = decodeGatInfo(gatSector.data, geometry.cylinderCount, geometry, version);
-        if (typeof gatInfo === "string") {
-            continue;
-        }
-        if (!(gatInfo instanceof Trsdos14GatInfo)) {
-            throw new Error("GAT must be Model 1/4 object");
-        }
-
-        const granulesPerLump = gatInfo.granulesPerTrack*allocationSides;
-        const sectorsPerGranule = Math.floor(sectorsPerTrack / gatInfo.granulesPerTrack);
-
-        candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
-            dirLumpNumber, granulesPerLump, 0));
-    }
-
-    return candidates;
-}
-
 /**
  * Decode a TRSDOS diskette, or return undefined if this does not look like such a diskette.
  */
@@ -1308,7 +1263,6 @@ export function decodeTrsdos(disk: FloppyDisk): Trsdos | undefined {
         ... generateTrsdos23Candidates(disk),
         ... generateTrsdos13Candidates(disk),
         ... generateNewdos80Candidates(disk),
-        ... generateLdosCandidates(disk),
     ];
 
     // Sort by decreasing score.
