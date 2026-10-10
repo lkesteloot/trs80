@@ -64,6 +64,19 @@ function evaluationToString(evaluation: Evaluation): string {
     return `${evaluation.score} (${evaluation.reason})`;
 }
 
+/**
+ * The 2.3 family's 16-bit hash of a blank password (eight spaces), which is what a
+ * directory entry holds when the file has no password. See "Password hashes" in
+ * FLOPPY_FORMATS.md for the algorithm. TRSDOS 1.3 hashes differently.
+ */
+export const TRSDOS_BLANK_PASSWORD_HASH = 0x4296;
+
+/**
+ * The 2.3 family's 16-bit hash of "PASSWORD", TRSDOS's default master password, which
+ * is what most GATs hold.
+ */
+export const TRSDOS_DEFAULT_PASSWORD_HASH = 0x42E0;
+
 // DEC of DIR/SYS's fixed directory slot in the 2.3 family.
 const DIR_SYS_HIT_INDEX = 0x01;
 // What old Model I disks store in that HIT slot instead of DIR/SYS's real hash (0xC4).
@@ -387,8 +400,8 @@ function decodeGatInfo(binary: Uint8Array, lumpCount: number,
     // 0xFF means locked out, 0xFC means available.
     const lockOut = binary.subarray(0x60, 0x60 + geometry.cylinderCount);
 
-    // Assume big endian.
-    const password = word(binary[0xCE], binary[0xCF]);
+    // Little endian, like every password hash.
+    const password = word(binary[0xCF], binary[0xCE]);
     const name = decodeAscii(binary.subarray(0xD0, 0xD8));
     const date = decodeAscii(binary.subarray(0xD8, 0xE0));
 
@@ -678,9 +691,9 @@ function decodeDirEntry(binary: Uint8Array, geometry: FloppyDiskGeometry, versio
         return "can't decode directory entry filename";
     }
 
-    // Not sure how to convert these two into a number. Just use big endian.
-    const updatePassword = word(binary[16], binary[17]);
-    const accessPassword = word(binary[18], binary[19]);
+    // Password hashes, little endian.
+    const updatePassword = word(binary[17], binary[16]);
+    const accessPassword = word(binary[19], binary[18]);
 
     // Number of sectors in the file. Little endian.
     const sectorCount = word(binary[21], binary[20]);

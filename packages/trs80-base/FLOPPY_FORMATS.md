@@ -37,6 +37,11 @@ quoted documentation; guesses are labeled as such.
   - Nothing in the library documents TRSDOS 1.3's directory; the *TRSDOS 1.3
     Reference Guide* is commands only. What we know about 1.3 is measured.
   - *Mod III ROM Commented* (`TRS-80/`) has the Model III boot code, at 3455H.
+  - *Machine Language Disk I-O & Other Mysteries* (1982, `disk/`) is about driving
+    the floppy controller. For decoding it adds the 16-bit password hash, as
+    the source of a password finder (pages 116-118, checked on the scan), the
+    fact that TRSDOS and VTOS store their SYS0 boot messages negated (page 93),
+    and the Model I and III track formats (pages 18-28, 96-97).
 
 ## Which DOSes share a layout
 
@@ -396,7 +401,13 @@ Strongest first. Measured on all 274 images.
    differently), Micro-Systems Software for DOSPLUS, `COPYRIGHT (c) 1979 BY
    TANDY CORPORATION` for TRSDOS 2.x, and `(C) 1981 BY LOBO DRIVES
    INTERNATIONAL` for the Lobo edition of LDOS. Some are unreadable (the
-   "TRS-80 Format" disks' SYS0).
+   "TRS-80 Format" disks' SYS0). **TRSDOS 2.x's version banner is stored
+   negated** (each byte is 256 minus the character), as is VTOS's, according to
+   *Machine Language Disk I-O*; negated, five images read `TRSDOS - DISK
+   OPERATING SYSTEM - VER 2.3`. Search for the negated form too. (Single-density
+   DMK images store each byte twice, so a plain byte search of the image file
+   misses it there.) `trsdos-2.1-sssd-1.jv1` carries the 2.3 banner despite its
+   name.
 2. **The boot sector's code.** FORMAT writes the same boot sector to every disk,
    data disks included, so hashing it (with byte 2, the directory cylinder,
    masked) identifies the formatter. 274 disks have 120 distinct boot sectors.
@@ -530,6 +541,31 @@ Where they differ:
 - **Deleting a file** clears bit 4 of byte 0 and the HIT byte and frees the
   granules, leaving the rest of the entry intact. A HIT byte of 0 means a free
   slot in every one of these DOSes.
+
+## Password hashes
+
+Passwords are stored as a 16-bit hash, LSB first: the master password in GAT
+bytes 0xCE-0xCF, and each file's update and access passwords in directory bytes
+16-19. *Machine Language Disk I-O* (PDF page 118) gives the algorithm as Z80.
+Restated, with the password padded with spaces to 8 bytes, and checked against
+a direct transcription of the listing on 20,000 random passwords:
+
+    hi = lo = 0xFF
+    for each byte c, last to first:
+        t  = lo ^ ((lo & 7) << 5)
+        hi, lo = t ^ (t >> 4) ^ c, ((t << 4) & 0xFF) ^ (t >> 3) ^ hi
+    hash = (hi << 8) | lo
+
+It checks out: eight spaces hash to 0x4296, which a file entry holds when it
+has no password (stored 96 42), and **"PASSWORD" hashes to 0x42E0, TRSDOS's default
+master password**, which is what the GAT's E0 42 is. In the snapshots the
+master password is "PASSWORD" on 70 of the 77 2.3-family disks, blank on three
+(`dosplus3.dmk` and the two Cornsoft SynthDev disks), zero on `NEWDOS90.dmk`,
+and something else on `dospl31a.dmk`, `ldos-5.0.3-sssd.dmk` and `ldos513.dmk`.
+The 1.3 disks hold 0x8FD3 (nine disks) and 0x5CEF (the blank `m3-trsdos-blank.dmk`), which don't correspond to
+"PASSWORD" or blank under this algorithm, so TRSDOS 1.3 probably hashes
+differently. Being 16 bits, a hash has thousands of short passwords that match,
+so it can't be reversed to *the* password, only to *a* password.
 
 ## File sizes
 
@@ -719,7 +755,8 @@ Beyond the lump bytes described above:
     0xCB       DOS and format identifier
     0xCC       tracks above 35, used by other DOSes but not NEWDOS
     0xCD       density, sides and granules per track in some DOSes; NEWDOS writes 0
-    0xCE-0xCF  master password hash, E0 42 when inactive (the value 42E0H)
+    0xCE-0xCF  master password hash, LSB first; E0 42 is 42E0H, the hash of
+               "PASSWORD" (see "Password hashes")
     0xD0-0xD7  disk name
     0xD8-0xDF  date
     0xE0-0xFF  AUTO command, at most 31 bytes plus a 0x0D terminator
@@ -796,7 +833,9 @@ For guessing a layout and directory location, strongest first:
    after dropping DIR/SYS.
 4. **Other GAT self-consistency:** it marks its own cylinder fully allocated (0xFF in
    the 2.3 family, 0x3F in 1.3) and the boot granule on cylinder 0; the name and
-   date are printable; a blank password is 0xE042 in the 2.3 family, 0xEF5C in 1.3.
+   date are printable; the master password is usually the default, "PASSWORD"
+   (stored E0 42) in the 2.3 family; 1.3 disks hold D3 8F or EF 5C (see "Password
+   hashes").
 5. **DIR/SYS's extent** gives the directory's size, 3 granules for a side-0-only
    directory and 6 for a whole double-sided cylinder.
 6. **Deleted address marks.** 2.3-family directory sectors are all marked
@@ -905,6 +944,8 @@ Most of the growth is in `peter/`, which has no snapshots yet.
 - `SuperUtility-1su.dmk`: copy protection with 182 duplicate sector numbers per
   track (same number in both densities) and garbage side bytes in its IDAMs
   (32, 64, 72, ...). A sector map keyed by position keeps only the last of each.
+  The Model I's FD1771 ignores the side byte when reading (*Machine Language
+  Disk I-O*, page 22), so a Model I disk can put anything there.
 - `NEWDOS90.dmk`: the NEWDOS/80 lump case described above. NEWDOS/90 is an
   update of NEWDOS/86, itself built on NEWDOS/80 v2, so the on-disk rules are
   NEWDOS/80's. Its GAT byte 0xCB is 0x82, which the handbook documents as the

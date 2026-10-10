@@ -97,6 +97,8 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       naming items above, and tell DOSPLUS IV (0x60) from TRSDOS 6.0. On TRSDOS
       6 and LS-DOS, the system information sector's version byte and the media
       block's "LSI" or "631" tag help too. `trsdos-1.2.dmk` reports 1.3.
+      TRSDOS 2.x's SYS0 banner is stored negated, so a banner search must try
+      that form too.
 - [ ] **`decodeTrsdosWithRejections()` returns `rejections: []`**, so the
       regression reports lost their rejection reasons when scoring arrived.
 - [ ] **`hitNumberToDirEntry()`'s comment** describes TRSDOS 2.3's fixed system

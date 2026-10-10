@@ -63,6 +63,7 @@ export interface GatReport {
     name: string;
     date: string;
     autoCommand: string;
+    // Hash of the master password; 0x42E0 (17120) is "PASSWORD", the default.
     password: number;
 }
 
