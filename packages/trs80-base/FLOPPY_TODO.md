@@ -17,7 +17,9 @@ candidates only), TRSDOS-family `granulesPerLump` = granules per cylinder, the
 linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 
 - [ ] **Allocation sides from the DOS, never `geometry.sideCount`.** Signals, in
-      order: a GAT byte with a clear bit above the single-sided granules; GAT
+      order: on TRSDOS 6.2 and LS-DOS disks, the GAT's media block (bit 5 of
+      0xFA; see the next item); a GAT byte with a clear bit above the
+      single-sided granules; GAT
       byte 0xCD bit 5, but only on the LDOS line and when the byte is consistent
       (see "GAT bytes 0xCB-0xCD" in `FLOPPY_FORMATS.md`); any extent with granule
       offset ≥ granules per track. A full
@@ -27,6 +29,13 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       double-sided images used single-sided (and see `DS023.DMK` below). Trying both side
       counts as candidates may be simplest, letting the score and the GAT check
       decide.
+- [ ] **Read the GAT's media block** (0xF5-0xFF, "\x03LSI" or "\x03631" then
+      seven Drive Control Table bytes; see "What the TRSDOS 6 manuals add" in
+      `FLOPPY_FORMATS.md`). It gives density, sides, sectors per track, granules
+      per track, granule size, cylinders and the directory cylinder, and was
+      right on all 18 disks that have it, data disks included. Use it as the
+      first candidate's parameters, or as a score bonus for candidates that
+      agree with it, like PDRIVE.
 - [ ] **Directory size from DIR/SYS's extent** (the `granulesPerDir` TODO in every
       generator, which currently uses a whole lump): 3 granules on `dospls34.dmk`
       (side 0 only), 6 on double-sided LDOS. Without DIR/SYS (TRSDOS 2.3B), try
@@ -50,11 +59,12 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 
 ## Gaps independent of the switch
 
-- [ ] **The hit floor.** The `hashHits < 2` floor in `evaluate()` rejects
-      `issue-1/m1-trsdos-blank.dmk`, which has exactly one hit because TRSDOS 2.x
-      writes 44 into DIR/SYS's HIT slot. Use "≥1 hit, or a strict GAT pass"; a
-      blank TRSDOS 2.3B data disk may have no entries at all, and a blank 1.3 disk
-      (`m3-trsdos-blank.dmk`) has none.
+- [ ] **The hit floor.** The `hashHits < 2` floor in `evaluate()` would reject
+      a blank TRSDOS 2.3B data disk, which may have no entries at all, and a
+      blank MultiDOS or UltraDOS disk, which has no BOOT/SYS. Use "≥1 hit, or a
+      strict GAT pass". (`issue-1/m1-trsdos-blank.dmk` passes now that TRSDOS
+      2.x's 0x2C DIR/SYS hash counts as a hit. The 1.3 blank disk,
+      `m3-trsdos-blank.dmk`, has no entries, but the floor applies only to 2.3.)
 - [ ] **`CHECK_GAT_HIGH_BITS`.** It now gets granules per lump and checks exactly
       `lumpCount` bytes, lump 0 included (which obeys the rule on all 108 disks
       checked), so it's ready to enable: it passes all 86 real directories and
@@ -84,11 +94,22 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **Identify the DOS from better evidence than 0xCB**: the SYS0/SYS banner,
       then a table of boot-sector hashes, then distinctive boot messages, then
       0xCB (see "Identifying the DOS" in `FLOPPY_FORMATS.md`). This would fix the
-      naming items above, and tell DOSPLUS IV (0x60) from TRSDOS 6.0.
+      naming items above, and tell DOSPLUS IV (0x60) from TRSDOS 6.0. On TRSDOS
+      6 and LS-DOS, the system information sector's version byte and the media
+      block's "LSI" or "631" tag help too. `trsdos-1.2.dmk` reports 1.3.
 - [ ] **`decodeTrsdosWithRejections()` returns `rejections: []`**, so the
       regression reports lost their rejection reasons when scoring arrived.
 - [ ] **`hitNumberToDirEntry()`'s comment** describes TRSDOS 2.3's fixed system
       slots (BOOT/SYS at sector index 0, DIR/SYS at 1); 2.3B puts SYS0 there.
+      The reservations also differ by DOS (16 DECs in LDOS, 16 or 2 in TRSDOS 6,
+      2 in NEWDOS, which puts SYS14-29 in entries 2 and 3) and cover only the
+      first eight directory sectors; see the table in "The HIT".
+- [ ] **Protection level names** follow LDOS 5.1 and NEWDOS (3 unused, 4 write)
+      for the whole 2.3 family. TRSDOS 6 and LS-DOS number them like 1.3 (1
+      remove, 3 write, 4 update), so their files show "UNUSED" for write.
+- [ ] **File dates exist only on the LDOS line.** `decodeDirEntry()` reads
+      bytes 1-2 as a date for every 2.3-family disk, but NEWDOS keeps flags in
+      byte 1 and zero in byte 2, and TRSDOS 2.3 has no dates.
 - [ ] **File typing of system files.** On NEWDOS disks DIR/SYS is reported as a
       `BasicProgram`, because the GAT's first byte is 0xFF, and zero-length files
       (`TESTDAT4` on `NEWDOS1D.dmk`) are too. That's `decodeTrs80File()`'s
@@ -162,13 +183,14 @@ enough to rebuild them.
 ## Where things stand
 
 `node regress.ts run --ignore-rejections` after the switch, before any
-`--update`: 81 same, 15 better, 4 worse, 4 changed, and 172 new (the untracked
-`peter/` and `planet-makruk/` disks plus the five `newdos80/` disks, which have
-no snapshots); 225 of 276 disks decode.
+`--update`, and after accepting TRSDOS 2.x's 0x2C DIR/SYS hash: 82 same, 15
+better, 3 worse, 4 changed, and 172 new (the untracked `peter/` and
+`planet-makruk/` disks plus the five `newdos80/` disks, which have no
+snapshots); 226 of 276 disks decode.
 
-- **Worse (4), all items above:** the two Cornsoft SynthDev disks (allocation
-  sides), `dospls34.dmk` (directory size), and `issue-1/m1-trsdos-blank.dmk`
-  (the hit floor).
+- **Worse (3), all items above:** the two Cornsoft SynthDev disks (allocation
+  sides) and `dospls34.dmk` (directory size). `issue-1/m1-trsdos-blank.dmk`
+  is back to its snapshot.
 - **Changed (4):** three double-sided LDOS disks whose `granulesPerTrack` went
   from 3 to 6 (the report field names above), and `MLTDOS4P.dmk`, whose 90
   warnings now print sector positions in the new `cylinder:side:sector` form.

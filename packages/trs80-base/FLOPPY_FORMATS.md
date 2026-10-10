@@ -9,22 +9,34 @@ quoted documentation; guesses are labeled as such.
 - Tim Mann's [disk image spec](https://www.tim-mann.org/trs80/dskspec.html) covers JV1 and JV3, not DMK.
 - David Keil's emulator documentation covers DMK. Both of its mirrors were down
   when this was written; a copy is at `~/Downloads/dmk.html`.
-- The [NEWDOS/80 v2 manual](https://www.trs-80.com/sub-reference-newdos80-manual-2.htm), chapters 4-6, documents lumps, PDRIVE, and the directory.
-- *TRS-80 Hacker's Handbook for NEWDOS/80*, at
-  `~/Dropbox/Personal/Books/TRS-80/disk/NEWDOS/TRS-80 Hacker's Handbook for Newdos80.pdf`,
-  is the best NEWDOS source we have: page 65 is the PDRIVE parameter table, 66-68
-  are the directory, GAT and HIT sectors, and the appendix on pages 130-133
-  explains lumps and PDRIVE in detail. The PDF is a 154-page scan with no text
-  layer (CCITT images), and its PDF page numbers run 8 ahead of the printed ones.
 - [Tim Mann's FAQ](https://www.tim-mann.org/trs80faq.html) for hardware and density questions.
-- The LDOS 5.1 manual, `~/Dropbox/Personal/Books/TRS-80/disk/LDOS/LDOS 5.1.x.pdf`
-  (a retyped text PDF), "Tech Info - Directory Records", PDF pages 210-218:
-  the directory, GAT, HIT, and the granule table for every LDOS media type.
-  Most manuals in `~/Dropbox/Personal/Books/TRS-80/disk/` have text layers
-  (LDOS 5.1 and its BASIC and LS-DOS manuals, the NEWDOS/80 2.0 manual, TRSDOS
-  1.3 and 6, the *Programmer's Guide to TRSDOS Version 6*, *TRS-80 Disk and
-  Other Mysteries*). The scans without one are the Hacker's Handbook and *TRSDOS
-  2.3 Decoded and Other Mysteries*.
+- **The DOS manuals** are in `~/Dropbox/Personal/Books/TRS-80/disk/`, each with a
+  searchable `.txt` sidecar; `~/Dropbox/Personal/Books/CLAUDE.md` explains how to
+  search them, and warns that the OCR of old scans garbles hex. Page numbers below
+  are PDF pages. The ones that describe on-disk structures:
+  - *NEWDOS-80 Version 2.0 Manual* (`NEWDOS/`): lumps, PDRIVE and the directory
+    (chapter 5, pages 96-101), and conversion from version 1 and compatibility
+    with TRSDOS 2.3 and 1.3 (chapter 12, pages 187-195). Also
+    [online](https://www.trs-80.com/sub-reference-newdos80-manual-2.htm).
+  - *TRS-80 Hacker's Handbook for NEWDOS-80* (`NEWDOS/`): the PDRIVE parameter
+    table (page 73), the directory, GAT and HIT sectors (74-76), and an appendix
+    explaining lumps and PDRIVE (from 138). Printed page numbers run 8 behind.
+  - *LDOS 5.1 User's Manual (retyped text)* (`LDOS/`), "Tech Info - Directory
+    Records", pages 209-219: directory entries, the GAT, the HIT, and the
+    granule table for every LDOS media type.
+  - *The Programmer's Guide to TRSDOS Version 6* (`TRSDOS/`), chapter 5 (pages
+    45-57): the GAT, HIT and directory entries for TRSDOS 6 and LS-DOS, in more
+    detail than any other source. Chapter 4.2 (pages 30-35) is the Drive Control
+    Table, and 8.10 (page 145) the boot track and system information sector. The
+    *Model 4 and 4P Technical Reference Manual - Software* says the same more
+    briefly (pages 3-4, 18-19).
+  - *TRSDOS 2.3 Decoded and Other Mysteries* (`TRSDOS/`): Model I TRSDOS 2.3's
+    directory structures (pages 24-27) and its boot sector, disassembled (210-213).
+  - *TRS-80 Disk & Other Mysteries* (1979, `disk/`): directory dumps of TRSDOS
+    2.2, NEWDOS 2.1 and VTOS 3.0, but the OCR is nearly unreadable.
+  - Nothing in the library documents TRSDOS 1.3's directory; the *TRSDOS 1.3
+    Reference Guide* is commands only. What we know about 1.3 is measured.
+  - *Mod III ROM Commented* (`TRS-80/`) has the Model III boot code, at 3455H.
 
 ## Which DOSes share a layout
 
@@ -66,9 +78,22 @@ disks (before the five NEWDOS disks below were added):
 
 Mask the cylinder byte with 0x7F; DOSPLUS sets the high bit. The Model I ROM
 boots cylinder 0 sector 0 in single density; the Model III ROM boots sector 1 in
-double density (all ten 1.3 disks are double density from cylinder 0 on). That
-asymmetry is why dual-boot disks put two boot sectors on cylinder 0, one of each
-density, and nothing else.
+double density, loading it at 4300H (*Mod III ROM Commented*, 34E3H; all ten 1.3
+disks are double density from cylinder 0 on). That asymmetry is why dual-boot
+disks put two boot sectors on cylinder 0, one of each density, and nothing else.
+
+The manuals add:
+
+- **TRSDOS 6 keeps the directory cylinder in byte 2 of both sector 0 and sector
+  1**, so that either ROM finds it (*Programmer's Guide*, page 145). That holds on
+  every TRSDOS 6 and LS-DOS system disk and blank disk we have; some data disks
+  have 0xE5 filler in sector 1.
+- **In TRSDOS 2.3, byte 0 is a flag that BACKUP sets**, and is 0x00 otherwise;
+  bytes 0-2 are `00 FE nn`, which executes harmlessly as `NOP; CP nn` (*TRSDOS 2.3
+  Decoded*, pages 211-212).
+- The directory cylinder is how every DOS finds the directory. TRSDOS 6 also
+  copies it into its drive table, and re-reads the boot sector when a directory
+  read returns an ordinary data mark, which it takes to mean the disk was changed.
 
 ## The HIT
 
@@ -96,14 +121,35 @@ Position in the HIT gives the directory entry. Verified on real disks:
 - **1.3:** `hitIndex = sectorIndex * 5 + entryIndex`, dense, 80 bytes total.
 
 Gotchas: one-byte hashes collide often, so check `HIT[expectedIndex]`, never
-"is this hash anywhere". Entries 0 and 1 of each sector are reserved for system
-files in the 2.3 family, except under NEWDOS/80, which reuses them when the
-system files are absent. The same numbering is used by the DEC byte that links a
-primary entry to its extended entries.
+"is this hash anywhere". The same numbering, the *Directory Entry Code* (DEC), is
+used by the bytes that link a primary entry to its extended entries. The LDOS
+5.1 manual and the TRSDOS 6 guide both describe the HIT as eight rows of 32, one
+row per entry within a sector and one column per directory sector, and give
+the number of columns used as sectors per cylinder minus 2, at most 32.
 
-**TRSDOS 2.x writes 44 into DIR/SYS's HIT slot** instead of its hash (196). All
-nine TRSDOS 2.x disks in the collection do this, so on those DIR/SYS never
-hash-matches. BOOT/SYS matched on all 68 disks that have it.
+**System files sit at fixed DECs**, because the DOS loads its overlays by
+position rather than by name. The reservations differ:
+
+| DOS | Reserved DECs |
+|---|---|
+| TRSDOS 2.3 | 0x00-0x07 and 0x20-0x27: entries 0 and 1 of all eight sectors (*TRSDOS 2.3 Decoded*, page 26) |
+| LDOS 5.1 | the same 16, on data disks too (LDOS manual, page 209) |
+| TRSDOS 6, LS-DOS | the same 16 on system disks; only 0x00 and 0x01 on data disks (*Programmer's Guide*, page 53), as GAT byte 0xCD bit 7 says |
+| NEWDOS/80 | only 0x00 and 0x01 are kept free; everything else is used when the system files are absent |
+
+In all of them BOOT/SYS is 0x00, DIR/SYS 0x01, SYS0-SYS5 0x02-0x07 and SYS6-SYS13
+0x20-0x27. On a directory longer than eight sectors, entries 0 and 1 of the later
+sectors hold ordinary files. NEWDOS/80 version 2 continues the pattern with
+SYS14-SYS21 at 0x40-0x47 (measured on every NEWDOS 2 system disk; version 1 stops
+at SYS13), and `NEWDOS90.dmk` adds SYS22-SYS29 at 0x60-0x67.
+
+**TRSDOS 2.x writes 44 (0x2C) into DIR/SYS's HIT slot** instead of its hash (196,
+0xC4). All nine TRSDOS 2.x disks in the collection do this, so on those DIR/SYS
+never hash-matches; `evaluate()` counts 0x2C as a hit, but only for a DIR/SYS
+entry in DEC 0x01. BOOT/SYS matched on all 68 disks that have it. The NEWDOS/80
+manual (page 98) calls 0x2C a bug of old Model I disks, which NEWDOS reports as
+"file not in directory" until it's patched to 0xC4, and the HIT dump in the
+1979 *Disk & Other Mysteries* (page 45) has it too.
 
 ## TRSDOS 2.3B
 
@@ -187,7 +233,10 @@ LDOS added three bytes to the end of the 2.3 GAT, and TRSDOS 6 and LS-DOS 6
     0xCB   DOS version, BCD (0x51 = 5.1)
     0xCC   cylinders minus 35
     0xCD   bits 0-2 granules per track minus 1, bit 5 double sided,
-           bit 6 double density (bits 3 and 7 also appear; 7 may mark a data disk)
+           bit 6 double density, bit 7 data disk (TRSDOS 6 and LS-DOS only)
+
+TRSDOS 6.2 and LS-DOS also describe the disk's whole geometry at 0xF5-0xFF; see
+"The media block" below.
 
 Other DOSes write 0xCB but not, or not reliably, the other two. Checked on all
 213 decoded 2.3-family disks against each disk's cylinders, media density,
@@ -268,6 +317,56 @@ side bit.
   sets 0xCC and the granule byte, strips the high bit of the boot sector's
   directory-cylinder byte (DOSPLUS sets it), and **writes an LDOS boot sector**.
   So a disk's boot sector identifies whoever last formatted *or repaired* it.
+
+### What the TRSDOS 6 manuals add
+
+The *Programmer's Guide to TRSDOS Version 6* (pages 46-49) and the Model 4
+technical reference (pages 18-19) describe the same GAT, with these additions:
+
+- **0xCD bit 7 means a data disk** (1) or a system disk (0), which decides how
+  many DECs are reserved (see the HIT). Bits 4 and 3 are "reserved for internal
+  system use". Measured on the 34 TRSDOS 6 and LS-DOS disks: the bit agrees
+  with the presence of SYS0/SYS on 21. Twelve of the others (the ten *TRSLink*
+  magazine disks and `Bright-340` and `-361`) have the bit clear and no system
+  files, and also 0xE5 filler in cylinder 0 sectors 1 and 2, so something other
+  than TRSDOS 6's FORMAT made them. The last is DOSPLUS IV's `DOSPLUS4.dmk`
+  (bit set on a system disk). **Under LDOS 5.x the bit means
+  nothing**: LDOS 5.3 system disks write 0xCA (bits 7 and 3 set), and 5.1 says
+  bit 7 is reserved.
+- The granule table allows **96 cylinders** on 5" media (LDOS 5.1 said 80), the
+  size of the allocation table.
+- **The media block, 0xF5-0xFF** (TRSDOS 6.2 and LS-DOS 6.3). The guide says
+  0xF4-0xFF holds 0x03, "LSI", then a copy of the last seven bytes of the Drive
+  Control Table the disk was formatted with. On the disks, 0xF4 is 0x00 and the
+  block starts at 0xF5; LS-DOS 6.3.1 writes "631" instead of "LSI". The DCT
+  bytes (guide, pages 31-34) are:
+
+      0xF9  flags 1: bit 6 double density, bit 5 8" drive, bits 1-0 step rate
+      0xFA  flags 2: bit 6 double-density capable, bit 5 two-sided,
+            bits 3-0 drive select
+      0xFB  current cylinder (0)
+      0xFC  highest cylinder number (cylinders - 1)
+      0xFD  bits 4-0 sectors per track - 1 (bits 7-5 heads - 1, hard disks only)
+      0xFE  bits 7-5 granules per track - 1, bits 4-0 sectors per granule - 1
+      0xFF  directory cylinder
+
+  **All 18 disks that have it describe themselves exactly**: density, sides
+  (against the allocation sides), sectors per track, granules per track and
+  granule size (against the decoded files), the directory cylinder, and the
+  cylinder count (against 0xCC). That includes data disks and both 8" disks,
+  but only one double-sided disk (`LOAD-80 Issue 85-03`). It's the most
+  complete self-description any disk in the collection carries, and FORMAT
+  writes it on data disks too, unlike the system information sector below.
+- **The system information sector** is cylinder 0 sector 2 (guide, page 145):
+  0x00 the DOS version, 0xC0 the disk type (0xFF system, 0x00 data), 0x10-0x1F
+  the pack name and date, 0x20-0x6F the AUTO command, and 0x70-0xBF the drive
+  table, eight 10-byte DCTs. Like NEWDOS's PDRIVE copy in the same sector, the
+  table describes the *drives* of the machine that wrote it, and it's zeros on
+  blank disks. Measured: the nine TRSDOS 6 and LS-DOS system disks have version
+  0x61-0x63, type 0xFF, and a drive 0 DCT that matches the disk (a tenth,
+  the 8" `l2-631a.dmk`, has a short sector there); the nine data
+  disks made by FORMAT have the version, type 0x00 and zeros. The twelve disks
+  above have 0xE5 filler, and the two DOSPLUS IV disks something else.
 
 ### Granules per track without the GAT header
 
@@ -388,6 +487,50 @@ What the decoder must **not** assume, because the collection breaks each one:
   files on the `GPL=2` NEWDOS disks and all 15 on `52VFRED.DMK` (`GPL=8`); without
   it they cover 4 and 1. TRSDOS 1.3 alone stores the count itself.
 
+## Directory entries (2.3 family)
+
+Documented by *TRSDOS 2.3 Decoded* (page 27), the LDOS 5.1 manual (pages
+210-213), the *Programmer's Guide to TRSDOS Version 6* (pages 54-57) and the
+NEWDOS/80 manual (pages 99-101). They agree on the layout:
+
+    0      attributes: bit 7 extended entry (FXDE), bit 6 system file,
+           bit 4 in use, bit 3 invisible, bits 2-0 protection level
+    1      flags, or in an FXDE the DEC of the entry it extends
+    2      date (LDOS line only)
+    3      EOF offset within the last sector
+    4      logical record length, 0 meaning 256
+    5-15   name and extension, space padded
+    16-17  update (owner) password hash; 18-19 access (user) password hash
+    20-21  sector count, LSB first ("ending record number")
+    22-29  four extents: lump (cylinder), then bits 7-5 the granule within it
+           and bits 4-0 the granule count minus 1
+    30-31  0xFF, or 0xFE followed by the DEC of the next FXDE
+
+Where they differ:
+
+- **Byte 1.** LDOS and TRSDOS 6: bit 7 CREATEd (never shrinks), bit 6 modified
+  since the last backup, bit 5 open (TRSDOS 6; reserved in LDOS 5.1), bit 4 date
+  not set, bits 3-0 the month. NEWDOS/80: bit 7 no more space may be allocated,
+  bit 6 no excess space released at close, bit 5 written since last cleared,
+  bits 4-0 undefined. TRSDOS 2.3 calls the byte "overflow".
+- **Byte 2.** LDOS line: bits 7-3 the day, bits 2-0 the year minus 1980. NEWDOS
+  and TRSDOS 2.3: reserved, 0. So only the LDOS line has file dates, and a
+  month in byte 1 of a NEWDOS entry is really flag bits.
+- **Byte 0 bit 5**: a partitioned data set in TRSDOS 6, reserved elsewhere.
+- **Protection levels.** LDOS 5.1 and NEWDOS: 0 full, 1 kill, 2 rename, 3
+  unused, 4 write, 5 read, 6 execute, 7 none. TRSDOS 6 renumbers the middle: 1
+  remove, 3 write, 4 update.
+- **Extents.** TRSDOS 2.3 counts bytes 22-31 as five "granule allocation pairs",
+  the fifth being the link. NEWDOS allows 0xFE or 0xFF in the first byte of any
+  pair: 0xFF ends the list, 0xFE means the next byte is an FXDE's DEC. It limits
+  lump numbers to 0-191, the most the GAT can hold. The NEWDOS manual says
+  outright that the count is the number of granules less one, which settles the
+  handbook's contradiction (see "NEWDOS/80 lumps").
+- **An FXDE** uses only bytes 0, 1 and 22-31 (bits 7 and 4 of byte 0 set).
+- **Deleting a file** clears bit 4 of byte 0 and the HIT byte and frees the
+  granules, leaving the rest of the entry intact. A HIT byte of 0 means a free
+  slot in every one of these DOSes.
+
 ## File sizes
 
 In the 2.3 family, `sectorCount` includes the partly-filled last sector and the
@@ -395,6 +538,17 @@ EOF byte is an offset within it, so the size is
 `(sectorCount - 1) * 256 + lastSectorSize` when the EOF byte is non-zero. In
 1.3, the EOF byte adds to the full sector count. Getting this wrong makes every
 partial-sector file exactly one sector too large.
+
+Both rules are documented. The TRSDOS 6 guide's example: a count of 3 with an
+EOF byte of 62 is two full sectors and 62 bytes. The NEWDOS/80 manual (pages
+100 and 187) calls the 2.3 rule the "old TRSDOS format", which NEWDOS keeps in
+the directory for compatibility although its FCBs use a plain byte offset, and
+says Model III TRSDOS 1.3 switched its directory to the plain offset, which made
+**TRSDOS 1.1 and 1.2 disks unreadable by 1.3** and vice versa. So 1.1 and 1.2
+directories differ from 1.3's at least in the size rule. `trsdos-1.2.dmk` is
+1.2 (its boot code says "version 1.2") and decodes with the 1.3 layout, which
+we report as 1.3, but its three files all end on a sector boundary, so it can't
+tell the two rules apart.
 
 ## NEWDOS/80 lumps
 
@@ -404,11 +558,13 @@ partial-sector file exactly one sector too large.
 - The **third byte of the first sector holds the directory's starting lump**,
   not a track number: "The starting lump number of the directory is always
   contained as a hexadecimal value in the 3rd byte of each diskette's 1st sector".
-- An extent's first byte is a lump number (0-253); in the second byte the top 3
-  bits are the granule offset within the lump and the low 5 bits are the count
-  minus one. The handbook says those bits are the count itself, but its own
-  worked example contradicts that (a 3-sector file shows 0 there and must own one
-  granule), and so do 228 files on real NEWDOS disks; see the lump model.
+- An extent's first byte is a lump number (0-253, though the GAT limits it to
+  191); in the second byte the top 3 bits are the granule offset within the lump
+  and the low 5 bits are the count minus one. The handbook says those bits are
+  the count itself, but its own worked example contradicts that (a 3-sector file
+  shows 0 there and must own one granule), and so do 228 files on real NEWDOS
+  disks; see the lump model. The NEWDOS/80 manual (page 100) agrees: the count
+  less one.
 - Directory size is `DDGA` granules (2-6), giving 8, 13, 18, 23 or 28 entry sectors.
 - Geometry lives in the PDRIVE table, which describes *drives*, not diskettes, so
   a data disk doesn't describe itself. But a **system** disk carries the table at
@@ -476,6 +632,18 @@ From the handbook's parameter page:
 single-density cylinder 0 and double density elsewhere. Both flippy disks in the
 collection are `TI=CK`, a Percom doubler with an opposite-density track 0, and
 they are exactly the disks whose lump numbering starts at cylinder 1.
+
+**With `K`, `TC` doesn't count track 0.** The NEWDOS/80 manual's settings for
+reading version 1 Percom double-density disks (page 189, checked on the scan) give `TC=34` for a
+35-track drive, and 39, 76 and 79 for 40, 77 and 80 tracks. The flippies agree:
+their lockout tables cover 77 and 70 lumps, which is `TC * 18 / 10` for `TC=43`
+(the owner's setting) and `TC=39` (a 40-track format), counting only the
+double-density tracks. `games1_flippy_games2.dmk`'s image holds only 41 of its 43.
+
+**NEWDOS/80 version 1 disks** (GAT byte 0xCB = 0x80), from the same page: single
+density single sided is `SPT=10, GPL=2`; single density double sided is
+`SPT=20, GPL=4`, so a lump is a whole cylinder, as in TRSDOS; and version 1's
+double-density double-sided disks can't be read by version 2 at all.
 
 **A NEWDOS system disk carries its PDRIVE table at cylinder 0, sector 2**, as
 sixteen-byte slots, one per drive. Verified against the owner's own listing for
@@ -588,7 +756,9 @@ Two details worth having:
 - **Byte 0x1F holds the number of directory sectors beyond 10.** The GAT page
   claims instead that NEWDOS keeps "tracks above 35" there, which the disks
   disprove: it is 0 on all seven, including the 80-cylinder pair where the track
-  reading would require 45.
+  reading would require 45. The NEWDOS/80 manual (page 98) confirms it: the
+  extra entry sectors, 0, 5, 10, 15 or 20. Across all the NEWDOS disks we see 0,
+  5, 10 and 20 (the "FRED" disks).
 
 The handbook's remark that the HIT "uses every second line in the sector" checks
 out on all seven disks: with 8 directory entry sectors only the low 3 bits of the
@@ -634,6 +804,10 @@ For guessing a layout and directory location, strongest first:
    them. JV1's mark is synthesized by our reader for track 17, so it is never
    evidence. The Model I controller could write 0xFA, which Model III hardware
    can't distinguish from 0xFB, so a missing mark means "no information".
+   NEWDOS/80 has a SYSTEM option (BN) choosing whether single-density directory
+   sectors are written for Model I TRSDOS or for Model III NEWDOS, but not both
+   (manual, page 189). TRSDOS 6 marks the whole directory cylinder with 0xF8
+   and relies on it to notice a changed disk (*Programmer's Guide*, page 45).
 7. **The "(c) 1980 Tandy" string:** on all sixteen directory sectors of every
    1.3 disk, and on 0 of 16 for everything else.
 8. **The conventional cylinder** (17 of 35, 20 of 40, 40 of 80).
@@ -647,9 +821,10 @@ candidate, such as reading file data on side 1 of `dospls34`'s directory
 cylinder, still loses because it reads mostly garbage.
 
 A blank 2.3-family disk usually offers at least one matching hash, but not
-always two: TRSDOS 2.x's DIR/SYS never matches (see the HIT), MultiDOS and
+always two: TRSDOS 2.x's DIR/SYS hash is wrong (see the HIT, and accepting
+that is what gives `m1-trsdos-blank.dmk` its second hit), MultiDOS and
 UltraDOS have no BOOT/SYS entry, and TRSDOS 2.3B has neither. So require at
-least one hit — `m1-trsdos-blank.dmk` has exactly one — or, failing that, a
+least one hit or, failing that, a
 strict GAT pass, since a blank 2.3B data disk may offer no hashes at all. A blank
 1.3 disk (`m3-trsdos-blank.dmk`) has no directory entries either, and is carried
 by the Tandy string and the GAT instead. A GAT full of zeros is not an

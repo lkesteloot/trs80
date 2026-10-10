@@ -90,6 +90,10 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   family, TRSDOS 1.3, NEWDOS/80 lumps), the HIT hash and its index layout,
   cylinder/side conventions, and the quirky disks in the collection. It records
   what was measured against real disks, so trust it over guesswork.
+- **Manuals:** the user's library of TRS-80 books, with searchable text
+  sidecars, is described in `~/Dropbox/Personal/Books/CLAUDE.md`; read it before
+  searching. The DOS manuals are in `~/Dropbox/Personal/Books/TRS-80/disk/`. Keep
+  their text out of this repo: cite the book and PDF page, and paraphrase.
 - **Known gaps:** `packages/trs80-base/FLOPPY_TODO.md` lists what we've learned
   that the code doesn't do yet, with evidence disks. When you learn something,
   put format facts in `FLOPPY_FORMATS.md` and code gaps in `FLOPPY_TODO.md`; when

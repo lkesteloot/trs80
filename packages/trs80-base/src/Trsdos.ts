@@ -64,6 +64,23 @@ function evaluationToString(evaluation: Evaluation): string {
     return `${evaluation.score} (${evaluation.reason})`;
 }
 
+// DEC of DIR/SYS's fixed directory slot in the 2.3 family.
+const DIR_SYS_HIT_INDEX = 0x01;
+// What old Model I disks store in that HIT slot instead of DIR/SYS's real hash (0xC4).
+const OLD_DIR_SYS_HASH = 0x2C;
+
+/**
+ * Whether a HIT byte is the wrong hash that old Model I disks store for DIR/SYS. The
+ * NEWDOS/80 manual (section 5.6.2) documents the bug, and every TRSDOS 2.x disk we have
+ * shows it. Accept it only in DIR/SYS's own slot, so that it's as specific as a real match.
+ */
+function isOldDirSysHash(version: TrsdosVersion, hitIndex: number, rawFilename: string, hitHash: number): boolean {
+    return version === TrsdosVersion.V2_3 &&
+        hitIndex === DIR_SYS_HIT_INDEX &&
+        rawFilename === "DIR     SYS" &&
+        hitHash === OLD_DIR_SYS_HASH;
+}
+
 /**
  * Compute the one-byte HIT hash for an 11-letter filename. Use spaces to fill in
  * the file or extension if necessary (e.g., "FOO     BAS").
@@ -841,7 +858,7 @@ export class Trsdos {
                         const index = this.dirEntryToHitNumber(sectorIndex, i);
                         const hitHash = hitInfo.hit[index];
                         // console.log(`Comparing hits at ${side}:${sectorIndex}:${i} = ${index}: ${computedHash} vs. ${hitHash} ${dirEntry.rawFilename}`);
-                        if (computedHash === hitHash) {
+                        if (computedHash === hitHash || isOldDirSysHash(this.version, index, dirEntry.rawFilename, hitHash)) {
                             hashHits += 1;
                         } else {
                             hashMisses += 1;
