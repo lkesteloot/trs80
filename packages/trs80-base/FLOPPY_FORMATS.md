@@ -301,12 +301,12 @@ both sides with 0xCD = 0, and the Infocom disks claim two sides on one-sided
 media.
 
 0xCB alone doesn't identify the DOS. `newdos30.dmk` (NEWDOS 3.0) writes 0x53
-and then zeros. `ORCH80.DMK` is a 1980 Orchestra-80 distribution disk, written
-by the program's own copier (ORCHCOPY) with a non-Tandy boot sector and a
-TRSDOS 2.x GAT, which has the ASCII text "U41" in 0xCB-0xCD where TRSDOS 2.3
-writes 21 00 00. Read as LDOS fields that's version 5.5, 87 cylinders and two
-sides, on a one-sided 35-cylinder disk. (UltraDOS, `ultdos42.dmk`, also writes
-0x55, with a consistent 0xCD; there was no LDOS 5.5.) So trust 0xCC and 0xCD only
+and then zeros. `ORCH80.DMK` is a 1980 Orchestra-80 distribution disk on an
+UltraDOS data disk: its boot track says "ULTRADOS formatted diskette", and its
+GAT has the ASCII text "U41" (UltraDOS 4.1) in 0xCB-0xCD where TRSDOS 2.3 writes
+21 00 00. Read as LDOS fields that's version 5.5, 87 cylinders and two sides, on
+a one-sided 35-cylinder disk. (UltraDOS 4.2's system disk, `ultdos42.dmk`, also
+writes "U", 0x55, at 0xCB, followed by 05 01; there was no LDOS 5.5.) So trust 0xCC and 0xCD only
 when 0xCB is 0x50-0x63 **and** the byte agrees with the media: the density bit matches, the
 granules per track times the granule size is the sectors per track, and 0xCC + 35
 is at most the image's cylinders. Every disk that passes that test has a correct
@@ -448,6 +448,43 @@ Strongest first. Measured on all 274 images.
    (TRSDOS 6 and LS-DOS data disks), "NO MICRODOS" (Percom), "ULTRADOS formatted
    diskette", MultiDOS's banner and "(c) CEC." (Cosmopolitan Electronics).
 4. **GAT byte 0xCB**, last; see "GAT bytes 0xCB-0xCD".
+
+`Trsdos.nameAndVersion` follows that order, except for the boot sector hashes
+(October 2026). What it needed beyond the above:
+
+- **Search every system file, not just SYS0, and join the load records first.**
+  A banner can straddle a CMD record header, which splits it in the raw bytes
+  ("DISK OPE" ... "RATING SYSTEM"). Bytes past the transfer address can be
+  leftovers: `NEWDOSPL.dmk`'s SYS0 has a stale "NEWDOS+ DISK OPERATING SYSTEM -
+  VER 2.2" there, while its loaded banner is "NEWDOS - VERSION 2.2". MultiDOS
+  names its system files DOS0-DOS9/SYS, UltraDOS SYS00-SYSFF/SYS, and
+  `trsdos3a.dmk`'s banner ("TRSDOS - DISK OPERATING SYSTEM - VER 3.0") is in
+  SYS8.
+- **Banners seen:** NEWDOS 2.1 and 3.0 ("NEWDOS - DISK OPERATING SYSTEM - VER
+  3.0"; 3.0's also mentions TRSDOS 2.1, so try it first); NEWDOS/80 v2 draws its
+  name in graphics characters, leaving only "APPARAT, INC." and "VERSION 2.0"
+  (also 2.5, "2.X" and "2/4") as text; Percom DoubleDOS says "DBLDOS - DISK
+  OPERATING SYSTEM - VER 4.23"; VTOS 3.0.1, 4.0 and 4.0.1 are negated like
+  TRSDOS 2.x; Cornsoft's DOSPLUS says "DOS PLUS 3.4a" (and writes 0x40 at
+  0xCB); DOSPLUS 3.5 says "3.50".
+- **A banner has to fit the layout.** `Manufacturing and Inventory Control`
+  carries TRSDOS 2.3's SYS0 on a NEWDOS/80-formatted disk with `GPL=8` lumps,
+  which TRSDOS 2.3 can't read. Lumps that aren't whole cylinders belong to
+  NEWDOS/80, MultiDOS and Percom DoubleDOS (which also starts its data area at
+  cylinder 1).
+- **Boot-track evidence for data disks:** Model III TRSDOS writes "TRSDOS
+  version 1.3" (or "version 1.2"); UltraDOS "ULTRADOS DISK OPERATING SYSTEM
+  VERSION 4.2" or "ULTRADOS formatted diskette", with the version in ASCII at
+  0xCB-0xCD on the latter ("U41"); RAPIDOS "RAPIDOS Ready" and "Version 1.3".
+  MultiDOS 1.4-1.7 boot sectors start with 3B FE, which identifies their data
+  disks, whose GATs say 0x16 (MultiDOS 1.6) and which hold a mixed-case
+  `NoDOS/Ind` file.
+- **0xCB values that don't name a DOS:** 0x22 and 0x50 are written by the
+  formatter on Kim Watt's utility disks (Super Utility, Power-Copy, Make-80,
+  Lazy Writer), not by TRSDOS 2.2 (which writes 0x21) or LDOS 5.0; 0x55 is
+  UltraDOS's "U"; the "Not A System Disk:" formatter writes 0x31-0x34 without
+  being DOSPLUS; 0x40 is DOSPLUS 4.0, DOSPLUS 3.4a or VTOS 4.0. These name a
+  data disk "Unknown DOS" rather than a wrong one.
 
 ## The lump model
 

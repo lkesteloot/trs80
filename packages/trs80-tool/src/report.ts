@@ -271,7 +271,7 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
     }
 
     const os: OsReport = {
-        name: trsdos.getNameAndVersion(),
+        name: trsdos.nameAndVersion,
         dirTrack: trsdos.dirLumpNumber,
         sideCount: trsdos.allocationSides,
         sectorsPerTrack: trsdos.geometry.modalDataSectorSpan,

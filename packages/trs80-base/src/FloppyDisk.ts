@@ -544,6 +544,8 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     public readonly supportsDoubleDensity: boolean;
     public readonly onWrite = new SimpleEventDispatcher<FloppyWrite>();
     protected mountedWriteProtected = false;
+    // Cache for getBootTrackText(), cleared when the disk is written.
+    private bootTrackText: string | undefined = undefined;
 
     protected constructor(binary: Uint8Array,
                           error: string | undefined,
@@ -585,6 +587,27 @@ export abstract class FloppyDisk extends AbstractTrs80File {
     public abstract readSector(sectorPosition: SectorPosition): SectorData | undefined;
 
     /**
+     * The contents of the boot track as Latin-1 text, one character per byte, for finding strings that
+     * FORMAT wrote there, such as the DOS's name. Sectors that can't be read are skipped.
+     */
+    public getBootTrackText(): string {
+        if (this.bootTrackText === undefined) {
+            let text = "";
+            for (const sectorPosition of this.getGeometry().bootTrack.sectorPositions()) {
+                const data = this.readSector(sectorPosition)?.data;
+                if (data !== undefined) {
+                    for (const b of data) {
+                        text += String.fromCharCode(b);
+                    }
+                }
+            }
+            this.bootTrackText = text;
+        }
+
+        return this.bootTrackText;
+    }
+
+    /**
      * Write a sector to the specified position. Throw an exception
      * if writing is not supported, so check first with isWriteProtected().
      */
@@ -611,6 +634,7 @@ export abstract class FloppyDisk extends AbstractTrs80File {
      */
     protected write(floppyWrite: FloppyWrite): void {
         this.binary.set(floppyWrite.data, floppyWrite.offset);
+        this.bootTrackText = undefined;
         this.onWrite.dispatch(floppyWrite);
     }
 }

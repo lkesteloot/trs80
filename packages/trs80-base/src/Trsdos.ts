@@ -10,6 +10,7 @@ import {concatByteArrays} from "teamten-ts-utils";
 import {BYTES_PER_SECTOR, Density, FloppyDisk, FloppyDiskGeometry, SectorPosition,} from "./FloppyDisk.js";
 import {toHexByte, word} from "z80-base";
 import {TRS80_BASE_LOGGER} from "trs80-logger";
+import {CmdLoadBlockChunk, decodeCmdProgram} from "./CmdProgram.js";
 
 // Copyright in the last 16 bytes of each directory sector, for Model III TRSDOS.
 const EXPECTED_TANDY = "(c) 1980 Tandy";
@@ -22,6 +23,56 @@ const NO_PASSWORD = 0xEF5C;
 
 // Password value for "PASSWORD".
 const PASSWORD = 0xD38F;
+
+// Name of a disk whose DOS we can't tell.
+const UNKNOWN_DOS = "Unknown DOS";
+
+/**
+ * Banners that system disks' system files carry, each turned into a name and version. See
+ * "Identifying the DOS" in FLOPPY_FORMATS.md.
+ */
+const SYSTEM_BANNERS: {pattern: RegExp, name: (m: RegExpMatchArray) => string}[] = [
+    // MultiDOS's version byte and banners are unreliable, so leave its version off.
+    {pattern: /MULTIDOS|Cosmopolitan Electronics/, name: () => "MultiDOS"},
+    {pattern: /NEWDOS80[^\n]{0,60}?VERSION (\d\.\d)/i, name: m => `NEWDOS/80 v${m[1]}`},
+    // NEWDOS/80 v2 draws its name in graphics characters; only the rest is text.
+    {pattern: /APPARAT, INC\.[\s\S]{0,60}?VERSION (\d\.[\dX])/, name: m => `NEWDOS/80 v${m[1]}`},
+    // NEWDOS 2.2 (NEWDOS+) says it this way.
+    {pattern: /NEWDOS - VERSION (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
+    {pattern: /NEWDOS - DISK OPERATING SYSTEM - VER (\d\.\d)/, name: m => `NEWDOS ${m[1]}`},
+    {pattern: /DBLDOS - DISK OPERATING SYSTEM - VER (\d\.\d+)/, name: m => `DoubleDOS ${m[1]}`},
+    {pattern: /VTOS - VIRTUAL TECHNOLOGY'S OPERATING SYSTEM - VER (\d\.\d(?:\.\d)?)/, name: m => `VTOS ${m[1]}`},
+    {pattern: /DOS ?PLUS IV/, name: () => "DOSPLUS IV"},
+    // DOSPLUS 3.5 says "3.50" but writes 0x35 at 0xCB; use the shorter form for both.
+    {pattern: /DOS ?PLUS\b[^\n]{0,50}?(\d\.\d+[a-z]?(?:\.\d+)?)/, name: m => `DOSPLUS ${m[1].replace(/^(\d\.\d)0$/, "$1")}`},
+    // "VER 5.1.4", "Ver 5.1.4", "VER. 5.0.1" (the Lobo edition), and "VER 513/R".
+    {pattern: /L ?D ?O ?S - [^\n]{0,60}?VER\.? ?(\d)\.?(\d)\.?(\d)/i, name: m => `LDOS ${m[1]}.${m[2]}.${m[3]}`},
+    {pattern: /LS-DOS 0?(\d)\.0?(\d)\.0?(\d)/, name: m => `LS-DOS ${m[1]}.${m[2]}.${m[3]}`},
+    {pattern: /TRSDOS 0?(6)\.0?(\d)\.0?(\d)/, name: m => `TRSDOS ${m[1]}.${m[2]}.${m[3]}`},
+    {pattern: /TRSDOS - DISK OPERATING SYSTEM -? ?VER (\d\.\d[A-Z]?)/, name: m => `TRSDOS ${m[1]}`},
+];
+
+/**
+ * Bytes as Latin-1 text, one character per byte, for searching for strings.
+ */
+function bytesToText(bytes: Uint8Array): string {
+    let text = "";
+    for (const b of bytes) {
+        text += String.fromCharCode(b);
+    }
+    return text;
+}
+
+/**
+ * Negate each character (256 minus its code), the way TRSDOS 2.x and VTOS store their banners.
+ */
+function negateText(text: string): string {
+    let negated = "";
+    for (let i = 0; i < text.length; i++) {
+        negated += String.fromCharCode((256 - text.charCodeAt(i)) & 0xFF);
+    }
+    return negated;
+}
 
 // Rotate an 8-bit byte left, putting bit 7 into bit 0.
 function rotateByteLeft(x: number): number {
@@ -766,6 +817,12 @@ export class Trsdos {
      * granules per lump. See "Evidence that turned out to be reliable" in FLOPPY_FORMATS.md.
      */
     public readonly gatPassesStrictCheck: boolean;
+    /**
+     * Name and version of the DOS that wrote the disk, such as "LDOS 5.1.4" or "NEWDOS/80 v2.0", or
+     * "Unknown DOS" when the disk doesn't say. Only decoded for candidates that aren't disqualified,
+     * because it reads the system files.
+     */
+    public readonly nameAndVersion: string;
 
     constructor(
         disk: FloppyDisk,
@@ -800,6 +857,7 @@ export class Trsdos {
         const gatInfo = this.getGatInfo();
         this.gatPassesStrictCheck = typeof gatInfo !== "string" &&
             gatInfo.hasValidHighBits(this.granulesPerLump, this.lumpCount, this.version);
+        this.nameAndVersion = this.evaluation.score >= 0 ? this.decodeNameAndVersion() : UNKNOWN_DOS;
     }
 
     /**
@@ -1176,78 +1234,147 @@ export class Trsdos {
     }
 
     /**
-     * Guess the name and version of the operating system.
+     * Decide the name and version of the DOS that wrote the disk, from what the disk says about
+     * itself.
      */
-    public getNameAndVersion(): string {
+    private decodeNameAndVersion(): string {
         const gatInfo = this.getGatInfo();
         if (typeof gatInfo === "string") {
-            return "Unknown";
-        }
-        if (this.version === TrsdosVersion.V1_3) {
-            return "TRSDOS 1.3";
+            return UNKNOWN_DOS;
         }
 
-        // FORMAT writes the boot track on every disk, system or data, and some DOSes name
-        // themselves there. MultiDOS's 0xCB is unreliable (0x00, 0x10, 0x17, 0x55, 0xFF),
-        // so leave its version off.
-        const bootTrack = this.getBootTrackText();
-        if (/MULTIDOS|Cosmopolitan|\(c\) CEC/.test(bootTrack)) {
+        const bootTrack = this.disk.getBootTrackText();
+
+        // Model III TRSDOS names its version on the boot track.
+        if (this.version === TrsdosVersion.V1_3) {
+            const match = bootTrack.match(/version (1\.\d)/);
+            return match === null ? "TRSDOS 1.x" : `TRSDOS ${match[1]}`;
+        }
+
+        // A banner only counts if its DOS could have written this layout: lumps that aren't whole
+        // cylinders are NEWDOS/80's, MultiDOS's and DoubleDOS's. (A NEWDOS/80 disk can carry
+        // another DOS's system files, which then can't boot it.)
+        const banner = this.findSystemBanner();
+        if (banner !== undefined && (this.lumpTerm === "cylinder" || /^(NEWDOS\/80|MultiDOS|DoubleDOS)/.test(banner))) {
+            return banner;
+        }
+
+        // MultiDOS 1.4 through 1.7 boot sectors start with 3B FE, and their data disks have
+        // nothing else to go on.
+        if (/MULTIDOS|Cosmopolitan|C\.E\.C\.|\(c\) CEC/.test(bootTrack) || this.bootSectorStartsWith(0x3B, 0xFE)) {
             return "MultiDOS";
         }
         if (bootTrack.includes("ULTRADOS")) {
-            return "UltraDOS";
+            const match = bootTrack.match(/ULTRADOS DISK OPERATING SYSTEM VERSION (\d\.\d)/);
+            if (match !== null) {
+                return `UltraDOS ${match[1]}`;
+            }
+            // Some UltraDOS disks have "U" and the version in ASCII at 0xCB-0xCD ("U41").
+            const version = this.getGatText(0xCC, 0xCE);
+            return /^\d\d$/.test(version) ? `UltraDOS ${version[0]}.${version[1]}` : "UltraDOS";
+        }
+        if (bootTrack.includes("RAPIDOS")) {
+            const match = bootTrack.match(/Version (\d\.\d)/);
+            return match === null ? "RAPIDOS" : `RAPIDOS ${match[1]}`;
+        }
+        // This formatter writes 0x31 to 0x34 at 0xCB, like DOSPLUS, but isn't DOSPLUS.
+        if (bootTrack.includes("Not A System Disk")) {
+            return UNKNOWN_DOS;
         }
 
         const osVersion = gatInfo.osVersion;
-        const major = osVersion >> 4;
-        const minor = osVersion & 0x0F;
         switch (osVersion) {
             case 0x00:
-                if (this.hasTrsdos23BBootSector()) {
-                    return "TRSDOS 2.3B";
-                }
-                break;
+                return this.hasTrsdos23BBootSector() ? "TRSDOS 2.3B" : UNKNOWN_DOS;
+            case 0x20:
+                return "TRSDOS 2.0";
             case 0x21:
-                // TRSDOS 2.1 through 2.3 all write 0x21.
+                // TRSDOS 2.1 through 2.3 all write 0x21, as do their derivatives NEWDOS 2.1 and
+                // DoubleDOS, whose system disks are named by their banners.
                 return "TRSDOS 2.x";
             case 0x30:
                 return "VTOS 3.0";
+            case 0x31: case 0x32: case 0x33: case 0x34: case 0x35:
+                return `DOSPLUS 3.${osVersion & 0x0F}`;
+            case 0x40:
+                // Written by VTOS 4.0, DOSPLUS 4.0, and DOSPLUS 3.4a.
+                if (bootTrack.includes("VTOS")) {
+                    return "VTOS 4.0";
+                }
+                return bootTrack.includes("DOSPLUS") ? "DOSPLUS" : UNKNOWN_DOS;
+            case 0x51: case 0x53:
+                // NEWDOS 3.0 also writes 0x53; its system disks are named by their banner.
+                return `LDOS 5.${osVersion & 0x0F}`;
             case 0x60:
                 // DOSPLUS IV writes the TRSDOS 6 GAT.
-                if (bootTrack.includes("DOSPLUS")) {
-                    return "DOSPLUS IV";
-                }
-                break;
+                return bootTrack.includes("DOSPLUS") ? "DOSPLUS IV" : "TRSDOS 6.0";
+            case 0x61: case 0x62:
+                return `TRSDOS 6.${osVersion & 0x0F}`;
+            case 0x63:
+                return "LS-DOS 6.3";
             case 0x80:
                 return "NEWDOS/80 v1.0";
             case 0x82:
                 return "NEWDOS/80 v2.0";
-        }
-
-        if ((osVersion >= 0x31 && osVersion <= 0x35) || osVersion === 0x40) {
-            return "DOSPLUS " + major + "." + minor;
-        } else if (major === 5) {
-            // NEWDOS 3.0 also hits this.
-            return "LDOS " + major + "." + minor;
-        } else if (major === 6 && minor === 3) {
-            return "LS-DOS " + major + "." + minor;
-        } else {
-            return "TRSDOS " + major + "." + minor;
+            default:
+                // Among others: 0x50 and 0x22 (Kim Watt's utility disks, not LDOS 5.0 or
+                // TRSDOS 2.2), 0x55 (UltraDOS's "U"), and 0xFC.
+                return UNKNOWN_DOS;
         }
     }
 
     /**
-     * The contents of the boot track (cylinder 0, side 0) as Latin-1 text, for finding strings.
+     * Search the text of the system files for a banner in SYSTEM_BANNERS, returning the name and
+     * version it gives, or undefined if there isn't one.
      */
-    private getBootTrackText(): string {
-        let text = "";
-        for (const sectorPosition of this.geometry.bootTrack.sectorPositions()) {
-            const data = this.disk.readSector(sectorPosition)?.data;
-            if (data !== undefined) {
-                text += String.fromCharCode(...data);
+    private findSystemBanner(): string | undefined {
+        const texts: string[] = [];
+        for (const dirEntry of this.getDirEntries(true)) {
+            if (dirEntry.getExtension().toUpperCase() === "SYS") {
+                const text = this.getProgramText(this.readFileData(dirEntry, false));
+                texts.push(text, negateText(text));
             }
         }
-        return text;
+
+        for (const banner of SYSTEM_BANNERS) {
+            for (const text of texts) {
+                const match = text.match(banner.pattern);
+                if (match !== null) {
+                    return banner.name(match);
+                }
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
+     * The bytes a program loads, as Latin-1 text. Strings in a CMD file can straddle the headers
+     * of its load records, so join the records' data. Other files are taken as is.
+     */
+    private getProgramText(binary: Uint8Array): string {
+        const cmdProgram = decodeCmdProgram(binary);
+        const loadBlocks = cmdProgram?.chunks.filter((chunk): chunk is CmdLoadBlockChunk =>
+            chunk instanceof CmdLoadBlockChunk) ?? [];
+        return loadBlocks.length > 0
+            ? loadBlocks.map(chunk => bytesToText(chunk.loadData)).join("")
+            : bytesToText(binary);
+    }
+
+    /**
+     * Bytes [begin, end) of the GAT sector as Latin-1 text, or an empty string if it can't be read.
+     */
+    private getGatText(begin: number, end: number): string {
+        const gatSector = this.disk.readSector(this.logicalToPhysical(this.dirLumpNumber, 0, 0));
+        return gatSector === undefined ? "" : bytesToText(gatSector.data.subarray(begin, end));
+    }
+
+    /**
+     * Whether the boot sector starts with these bytes.
+     */
+    private bootSectorStartsWith(...bytes: number[]): boolean {
+        const bootSector = this.disk.readSector(this.geometry.bootTrack.firstSectorPosition());
+        return bootSector !== undefined && bytes.every((b, i) => bootSector.data[i] === b);
     }
 
     /**
@@ -1309,16 +1436,26 @@ export class Trsdos {
      * Read the binary for a file on the diskette.
      */
     public readFile(firstDirEntry: TrsdosDirEntry): Uint8Array {
+        return this.readFileData(firstDirEntry, true);
+    }
+
+    /**
+     * Read the binary for a file on the diskette, optionally warning about sectors that are
+     * missing or have CRC errors.
+     */
+    private readFileData(firstDirEntry: TrsdosDirEntry, warn: boolean): Uint8Array {
         const sectors: Uint8Array[] = [];
         const sectorPositions = this.getFileSectorPositions(firstDirEntry);
 
         for (const sectorPosition of sectorPositions) {
             const sector = this.disk.readSector(sectorPosition);
             if (sector === undefined) {
-                TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${sectorPosition.key()}`);
+                if (warn) {
+                    TRS80_BASE_LOGGER.warn(`Sector couldn't be read ${sectorPosition.key()}`);
+                }
                 // TODO
             } else {
-                if (sector.crcError) {
+                if (sector.crcError && warn) {
                     TRS80_BASE_LOGGER.warn("Sector has CRC error");
                 }
                 sectors.push(sector.data);

@@ -38,7 +38,7 @@ export class TrsdosTab extends PageTab {
             infoDiv.append(valueSpan);
         };
         addField("File type", trs80File.getDescription(), "file-type");
-        addField("Version", trsdos.getNameAndVersion(), "version");
+        addField("Version", trsdos.nameAndVersion, "version");
         const gatInfo = trsdos.getGatInfo();
         if (typeof gatInfo === "string") {
             addField("Error", gatInfo, "error");

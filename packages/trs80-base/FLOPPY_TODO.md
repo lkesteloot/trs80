@@ -75,40 +75,25 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **The GAT's AUTO command must be printable**, or the GAT is rejected.
       `willus/epenc2zm.dmk`, an Electric Pencil disk with 14 hits and no misses,
       fails only on that. Accept or ignore a garbage AUTO field.
-- [ ] **What `getNameAndVersion()` still gets wrong.** It now maps 0xCB to
-      NEWDOS/80 1 and 2, VTOS 3.0, DOSPLUS 3.1-4.0 and TRSDOS 2.x (0x21), and
-      recognizes MultiDOS and UltraDOS by strings in the boot track, DOSPLUS IV
-      the same way when 0xCB is 0x60, and TRSDOS 2.3B by its boot fingerprint.
-      Still wrong, all needing the SYS0 banner or other evidence: NEWDOS 2.1 and
-      `NEWDOSPL.dmk` ("TRSDOS 2.x"), NEWDOS 3.0 (`newdos30.dmk`, `NEWDOS-3.dmk`,
-      "LDOS 5.3"), the 1.2 disks ("TRSDOS 1.3"), MultiDOS v1.2P ("LDOS 5.5"; no
-      boot string), and `trsdos-6.2-ssdd-crc-weird-version.dmk`, whose 0xCB of
-      0x35 makes it "DOSPLUS 3.5" although its media block says TRSDOS 6.2.
-      Unverified: 0x22 and 0x50 on Kim Watt's utility disks, 0x16 on two disks,
-      and 0x00 on the Planet Makruk disks. Wrong, found in willus's archive:
-      0x40 is VTOS 4.0 too (`willus/vtos40.dmk`, `vtos401a.dmk`), not just
-      DOSPLUS 4.0; DOSPLUS IV system disks don't always say "DOSPLUS" in the
-      boot track (`willus/dp4bare.dmk` is "TRSDOS 6.0"; the SYS0 banner says
-      DOSPLUS IV); MultiDOS 1.5 writes "(c) 1982 C.E.C." (`willus/MDOS15.dmk`, "TRSDOS
-      0.0"); `willus/rapds13.dmk` is RAPIDOS ("TRSDOS 6.0"); and 0x32 is real
-      DOSPLUS 3.2 only with DOSPLUS's `F3 FE` boot sector
-      (`willus/dsp1321a.dmk`). The other 0x32 disks, all six of ours, share a
-      boot sector that says "Not A System Disk:" and isn't DOSPLUS's; the same
-      formatter also writes 0x34.
+- [ ] **What `nameAndVersion` still can't tell.** It reads system-file banners,
+      then boot-track strings, then only the 0xCB values no other DOS has been
+      seen to write, and says "Unknown DOS" otherwise (see "Identifying the
+      DOS" in `FLOPPY_FORMATS.md`). On data disks: 0x21 is "TRSDOS 2.x" even when
+      NEWDOS 2.1 or DoubleDOS formatted it; 0x53 is "LDOS 5.3" even when
+      NEWDOS 3.0 did; LDOS 5.1/5.3 and TRSDOS 6.x get no third digit; NEWDOS/80
+      data disks are "v1.0" or "v2.0" (the versions Apparat advertised), though
+      0x80 also covers 1.1 and 0x82 covers 2.5; and the Kim Watt, "Not A System
+      Disk:" and Planet Makruk disks are "Unknown DOS". A table of boot sector hashes, labelled from the
+      banners of system disks that share them, would name most data disks
+      (FORMAT writes the same boot sector on both). MultiDOS's version is never
+      given: its banners and 0xCB disagree. NEWDOS/80 v2's banner gives "2.X"
+      and "2/4" on some disks, and the second falls back to "v2.0".
 - [ ] **`TrsdosGatInfo`'s LDOS fields are unused.** With `Trsdos14GatInfo` and
       `generateLdosCandidates()` gone and the report no longer printing them,
       `cylinderCount`, `granulesPerTrack`, `sideCount` and `density` (and the
       `isDataDisk` local in `decodeGatInfo()`) have no readers. Only `osVersion`
       (0xCB) is used, for naming. If they come back, set them only when the
       consistency test in "GAT bytes 0xCB-0xCD" passes.
-- [ ] **Identify the DOS from better evidence than 0xCB**: the SYS0/SYS banner,
-      then a table of boot-sector hashes, then distinctive boot messages, then
-      0xCB (see "Identifying the DOS" in `FLOPPY_FORMATS.md`). This would fix the
-      naming item above. On TRSDOS
-      6 and LS-DOS, the system information sector's version byte and the media
-      block's "LSI" or "631" tag help too. `trsdos-1.2.dmk` reports 1.3.
-      TRSDOS 2.x's SYS0 banner is stored negated, so a banner search must try
-      that form too.
 - [ ] **`decodeTrsdosWithRejections()` returns `rejections: []`**, so the
       regression reports lost their rejection reasons when scoring arrived.
 - [ ] **`hitNumberToDirEntry()`'s comment** describes TRSDOS 2.3's fixed system
@@ -141,12 +126,34 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       LS-DOS, DOSPLUS, NEWDOS/80, MultiDOS, VTOS) and Model III TRSDOS 1.x.
       Something like `DosFamily` with members named after the layouts rather
       than `V2_3` and `V1_3`, `Trsdos.version` to match (it's next to
-      `getNameAndVersion()`, which really is a version), and
+      `nameAndVersion`, which really is a version), and
       `trsdosVersionToString()`, which still returns "Model I" and "Model III".
       Those were machine names in name only: the report's `os.model` field was
       dropped for it (report version 3), and the report's `rejections` entries
       still carry the same label as `model`. The `Trsdos` class itself covers
       every family, so it may want a broader name too.
+- [ ] **`TODO` comments in `Trsdos.ts` and `FloppyDisk.ts`** (October 2026):
+  - `readFile()` skips a sector it can't read, so everything after it in the
+    file shifts. Fill the gap (with zeros, say) so that offsets stay right.
+  - `decodeExtents()` stops at 0xFF or 0xFE, which is right when the cylinder
+    byte comes first; whether TRSDOS 1.3 (granule byte first) marks the end the
+    same way is unverified.
+  - `decodeExtents()` has a disabled check of extent cylinders against the
+    geometry's cylinders. `evaluate()` now checks extent lumps against
+    `lumpCount`, so delete it.
+  - `decodeGatInfo()` computes `isDataDisk` (GAT byte 0xCD bit 7) but nothing
+    uses it, and it only checks 0x60 though TRSDOS 6.2 writes 0x62. The
+    comment says data disks reserve two directory entries for system files
+    but not which; "Reserved DECs" in `FLOPPY_FORMATS.md` says 0x00 and 0x01.
+  - `FloppyDiskGeometry.advanceTrackPosition()` and `advanceSectorPosition()`
+    predate the lump model and nothing calls them; delete them.
+  - `getFileSectorPositions()` assumes 256-byte sectors (`BYTES_PER_SECTOR`),
+    which is fine while other sizes are out of scope.
+  - Cleanups: `decodeDirEntry()` repeats `isActive()`; `logicalToPhysical()`
+    has a debug parameter and `getDirEntries()` a dead debugging block, both
+    marked for removal; `getDirEntries()` silently drops entries that don't
+    decode (see "Garbage directory slots" above); `findFile()` decodes the
+    whole directory for each lookup.
 
 ## Unresolved disks
 
@@ -169,6 +176,18 @@ more.
   matches and nothing decodes. Ira says VDISK reads them, so a disk whose HIT
   matches nothing but whose entries all decode cleanly might deserve a
   fallback that scores the entries without the HIT.
+- Percom's double-density TRSDOS ("TRSDOS 2.7"; `simple/trsdos-2.7-ssmd.dmk`
+  and `difficult/TRSDOS27-Percom-Double-Dos.DSK` are the same disk): a layout
+  of its own. Its data tracks number their sectors 1-18 (cylinder 0 is 0-9,
+  single density), the GAT is at cylinder 17 sector 1, granules are 3 sectors
+  (six per track, GAT bytes 0x3F), the HIT lists entries in directory order
+  rather than TRSDOS 2.3's interleaved order, and the GAT's unused high bits
+  are clear. Taking the first sector number from the data tracks instead of
+  the family (the boot track's own for cylinder 0, the most common one
+  elsewhere) gets as far as decoding the GAT and changes nothing else in the
+  collection; the rest would need granule size as a candidate parameter (see
+  that item) and a second HIT order. Percom's DoubleDOS 4.2x disks, by
+  contrast, read fine.
 
 ## Regression suite housekeeping
 

@@ -62,7 +62,7 @@ export function sectors(filename: string, showContents: boolean, onlyShowBad: bo
     if (trsdos === undefined) {
         title += ", unknown operating system";
     } else {
-        title += ", " + trsdos.getNameAndVersion();
+        title += ", " + trsdos.nameAndVersion;
     }
 
     console.log(title);

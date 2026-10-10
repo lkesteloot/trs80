@@ -69,7 +69,7 @@ function printInfoForFile(filename: string, verbose: boolean): void {
                     const trsdos = decodeTrsdos(trs80File);
                     if (trsdos !== undefined) {
                         // Users don't care about system files.
-                        description += ", " + trsdos.getNameAndVersion() +
+                        description += ", " + trsdos.nameAndVersion +
                             " with " + pluralizeWithCount(trsdos.getDirEntries(false).length, "file");
                     }
 
