@@ -6,7 +6,6 @@ import {
     Density,
     FloppyDisk,
     isFloppy,
-    SectorPosition,
     TrackGeometry,
     Trsdos,
     TrsdosDirEntry,
@@ -257,8 +256,7 @@ function reportFloppy(disk: FloppyDisk, report: Omit<DiskReport, "warnings">): v
     };
 
     // Boot sector, whose third byte is the directory track on most DOSes.
-    const bootSector = disk.readSector(
-        SectorPosition.make(0, 0, geometry.bootTrack.firstSectorNumber));
+    const bootSector = disk.readSector(geometry.bootTrack.firstSectorPosition());
     report.bootSectorPrefix = bootSector === undefined
         ? null
         : Array.from(bootSector.data.subarray(0, 3));

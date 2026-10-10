@@ -1177,10 +1177,9 @@ export class Trsdos {
      * The contents of the boot track (cylinder 0, side 0) as Latin-1 text, for finding strings.
      */
     private getBootTrackText(): string {
-        const bootTrack = this.geometry.bootTrack;
         let text = "";
-        for (let sector = bootTrack.firstSectorNumber; sector <= bootTrack.lastSectorNumber; sector++) {
-            const data = this.disk.readSector(SectorPosition.make(0, 0, sector))?.data;
+        for (const sectorPosition of this.geometry.bootTrack.sectorPositions()) {
+            const data = this.disk.readSector(sectorPosition)?.data;
             if (data !== undefined) {
                 text += String.fromCharCode(...data);
             }
@@ -1193,7 +1192,7 @@ export class Trsdos {
      * does (LD D,0; LD E,5), rather than through the directory.
      */
     private hasTrsdos23BBootSector(): boolean {
-        const bootSector = this.disk.readSector(SectorPosition.make(0, 0, this.geometry.bootTrack.firstSectorNumber));
+        const bootSector = this.disk.readSector(this.geometry.bootTrack.firstSectorPosition());
         if (bootSector === undefined) {
             return false;
         }
