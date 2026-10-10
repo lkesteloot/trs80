@@ -12,11 +12,11 @@ following f7008d4). "Where things stand" at the end has the regression results.
 
 `logicalToPhysical()` now uses the single (lump, granule, sector) → linear →
 (cylinder, side, sector) mapping from "The lump model" in `FLOPPY_FORMATS.md`,
-for every family. Done: the linear mapping, `firstDataCylinder` (NEWDOS-style
+for every family. Done: the linear mapping, `firstDataCylinder` (NEWDOS/80-style
 candidates only), TRSDOS-family `granulesPerLump` = granules per cylinder, the
 linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 
-- [ ] **One side unless proven otherwise.** The 2.3 and NEWDOS generators try
+- [ ] **One side unless proven otherwise.** The 2.3 and NEWDOS/80 generators try
       both allocation sides, and `compareTo()` breaks ties toward one side (see
       "Allocation sides are not media sides" in `FLOPPY_FORMATS.md`). So a double-sided disk with
       nothing on side 1 reads as single-sided when its GAT is full or fails the
@@ -35,20 +35,20 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       agree with it, like PDRIVE.
 - [ ] **Directory size is tried, not read.** The 2.3-family generator tries a
       side-0 directory on double-sided disks (DOSPLUS) and a whole cylinder
-      (LDOS); the NEWDOS generator tries every size from 2 granules to the lump.
+      (LDOS); the NEWDOS/80 generator tries every size from 2 granules to the lump.
       Ties go to the smaller one, which on Model II's 30-sector tracks lets
-      six 5-sector NEWDOS granules beat three 10-sector ones
+      six 5-sector NEWDOS/80 granules beat three 10-sector ones
       (`m2-lsdos-blank.dmk`, which then shows a 15-sector DIR/SYS). Reading the
-      size would be firmer: DIR/SYS's own extent where there is one, or NEWDOS's
+      size would be firmer: DIR/SYS's own extent where there is one, or NEWDOS/80's
       HIT byte 0x1F (extra entry sectors beyond 8).
 - [ ] **(Granule size, `GPL`) as candidate parameters for every family.** MultiDOS
       uses TRSDOS-style lumps on `MLTDOS4P.dmk` but `GPL=2` with 5-sector granules
-      on its pseudo-density disks; several non-NEWDOS disks (`BUSINESS`, `COMREF`,
+      on its pseudo-density disks; several non-NEWDOS/80 disks (`BUSINESS`, `COMREF`,
       an Infocom loader) need 5-sector granules too.
 - [ ] **Use the on-disk PDRIVE table as a hint**: try its `GPL` and `DDSL` first,
       but trust the media over its `SPT`, and its `SPT` over its `TD`.
 - [ ] **The lockout table** is still read from 0x60 for `cylinderCount` bytes. On
-      NEWDOS there is none, and past 96 lumps that range is GAT
+      NEWDOS/80 there is none, and past 96 lumps that range is GAT
       (`newdos80-DSSD-80T.dmk`).
 - [ ] **The report's field names** predate lumps: `dirTrack` holds the directory
       lump and `granulesPerTrack` holds granules per lump (6 on double-sided
@@ -63,7 +63,7 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       strict GAT pass". (`issue-1/m1-trsdos-blank.dmk` passes now that TRSDOS
       2.x's 0x2C DIR/SYS hash counts as a hit. The 1.3 blank disk,
       `m3-trsdos-blank.dmk`, has no entries, but the floor applies only to 2.3.)
-- [ ] **Boot byte 2 as evidence.** It names the directory cylinder (or NEWDOS's
+- [ ] **Boot byte 2 as evidence.** It names the directory cylinder (or NEWDOS/80's
       starting lump) on all 76 decoded Model I/4 disks, but candidates don't use
       it. A score bonus, not a gate, so game disks just go without.
 - [ ] **Garbage directory slots reject whole candidates.** An in-use slot with an
@@ -114,18 +114,18 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **`hitNumberToDirEntry()`'s comment** describes TRSDOS 2.3's fixed system
       slots (BOOT/SYS at sector index 0, DIR/SYS at 1); 2.3B puts SYS0 there.
       The reservations also differ by DOS (16 DECs in LDOS, 16 or 2 in TRSDOS 6,
-      2 in NEWDOS, which puts SYS14-29 in entries 2 and 3) and cover only the
+      2 in NEWDOS/80, which puts SYS14-29 in entries 2 and 3) and cover only the
       first eight directory sectors; see the table in "The HIT".
-- [ ] **Protection level names** follow LDOS 5.1 and NEWDOS (3 unused, 4 write)
+- [ ] **Protection level names** follow LDOS 5.1 and NEWDOS/80 (3 unused, 4 write)
       for the whole 2.3 family. TRSDOS 6 and LS-DOS number them like 1.3 (1
       remove, 3 write, 4 update), so their files show "UNUSED" for write.
 - [ ] **File dates exist only on the LDOS line.** `decodeDirEntry()` reads
-      bytes 1-2 as a date for every 2.3-family disk, but NEWDOS keeps flags in
+      bytes 1-2 as a date for every 2.3-family disk, but NEWDOS/80 keeps flags in
       byte 1 and zero in byte 2, and TRSDOS 2.3 has no dates.
-- [ ] **File typing of system files.** On NEWDOS disks DIR/SYS is reported as a
+- [ ] **File typing of system files.** On NEWDOS/80 disks DIR/SYS is reported as a
       `BasicProgram`, because the GAT's first byte is 0xFF, and zero-length files
       (`TESTDAT4` on `NEWDOS1D.dmk`) are too. That's `decodeTrs80File()`'s
-      sniffing, not the DOS decoder, but it shows up in every NEWDOS report.
+      sniffing, not the DOS decoder, but it shows up in every NEWDOS/80 report.
 - [ ] **Truncated DMKs aren't read.** `trs80gp/LD4-631.DSK` (LS-DOS 6.3.1,
       Model 4) and `willus/ND80M3V3.dmk` (NEWDOS/80) both have headers saying
       40 tracks double sided but hold 79 tracks, one short; willus's archive
@@ -163,8 +163,8 @@ against the layout found when the lump model was verified.
       five now decode to exactly their PDRIVE settings with every file clean, so
       they're ready for `--update` and for facts.
 - [ ] `migrate-geometry.mjs` has done its job and can be deleted.
-- [ ] Decide what `dirTrack` means for NEWDOS (lump or cylinder) before adding
-      facts for the verified NEWDOS disks.
+- [ ] Decide what `dirTrack` means for NEWDOS/80 (lump or cylinder) before adding
+      facts for the verified NEWDOS/80 disks.
 
 ## How the lump model was verified (to repeat after the switch)
 
@@ -191,10 +191,10 @@ enough to rebuild them.
 
 ## Where things stand
 
-Latest, after the NEWDOS directory sizes and the DIR/SYS check (October 10,
+Latest, after the NEWDOS/80 directory sizes and the DIR/SYS check (October 10,
 2026), still before any `--update`: 55 same, 16 better, 0 worse, 33 changed
 and 197 new; 247 of 301 disks decode. Against the commit before, across the
-whole collection: the three `GPL=6`-`8` NEWDOS 2.0 system disks (`2-06`, the
+whole collection: the three `GPL=6`-`8` NEWDOS/80 v2.0 system disks (`2-06`, the
 German disk, `willus/NEWDMIN.dmk`) now read with their real lump size, and
 their CMD files go from 2-8 valid to 24-31 of 24-32. Super Dos reads its real
 directory on side 0 (27 of 31 CMD files valid, up from 8), and `03
@@ -225,13 +225,13 @@ snapshots); 226 of 276 disks decode.
 - **Changed (4):** three double-sided LDOS disks whose `granulesPerTrack` went
   from 3 to 6 (the report field names above), and `MLTDOS4P.dmk`, whose 90
   warnings now print sector positions in the new `cylinder:side:sector` form.
-- **Better (15):** every NEWDOS disk in the snapshots now decodes cleanly:
+- **Better (15):** every NEWDOS/80 disk in the snapshots now decodes cleanly:
   `NEWDOS90.dmk` (59 files; it used to find a garbage directory),
   `NEWDOS1D.dmk`, `newdos80-2.0-ssdd.dmk`, `newdos80-working.dmk`,
   `hustle_hscore_work_4-26-82.dmk`, `NEWDOS_80sssd_jv1.DSK` (no more truncated
   files) and `StarTrek-NEWDOS80.dsk` (22 files, up from 8). Also
   `ldos-5.3.0-ssdd-crc-boot-sector.dmk`, `ldosutil.dmk` and `trsdisk1.dmk` now
   decode, and five disks that used to throw no longer do.
-- **Among the new disks,** the German NEWDOS disk (cylinder 0 single density on
+- **Among the new disks,** the German NEWDOS/80 disk (cylinder 0 single density on
   both sides), `73BFRED.DMK`, `52VFRED.DMK` and `newdos80-DSSD-80T.dmk` decode.
   39 of the 172 don't.

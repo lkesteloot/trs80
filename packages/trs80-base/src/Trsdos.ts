@@ -836,7 +836,7 @@ export class Trsdos {
         }
 
         // Same for the directory: if the rest of its lump adds nothing, the directory doesn't
-        // extend there (DOSPLUS keeps it on side 0 of the directory cylinder, and a NEWDOS
+        // extend there (DOSPLUS keeps it on side 0 of the directory cylinder, and a NEWDOS/80
         // directory can be smaller than its lump). A directory that doesn't fill its lump
         // sorts first. Among sizes that don't, the generators' order (smallest first) decides.
         const thisDirFillsLump = this.granulesPerDir === this.granulesPerLump;
@@ -1360,9 +1360,9 @@ function generateTrsdos23Candidates(disk: FloppyDisk): Trsdos[] {
     // Allocation sides are the DOS's, not the image's: double-sided media can be used
     // single-sided, and a double-sided disk can be imaged single-sided. Try both and let
     // the evaluation decide. Don't clamp to geometry.sideCount: on a double-sided disk
-    // imaged single-sided (F05 - Monas Main Disk 2), reading one side silently pulls the
-    // wrong cylinder's data into every file that continues onto side 1, where reading two
-    // honestly reports those sectors as missing.
+    // imaged single-sided, reading one side silently pulls the wrong cylinder's data into
+    // every file that continues onto side 1, where reading two honestly reports those
+    // sectors as missing.
     for (const allocationSides of [1, 2]) {
         const granulesPerLump = granulesPerTrack * allocationSides;
 
@@ -1415,9 +1415,9 @@ function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
             const sectorsPerCylinder = geometry.modalDataSectorSpan*allocationSides;
             const lumpCount = computeLumpCount(geometry, firstDataCylinder, sectorsPerCylinder, sectorsPerLump);
 
-            // The directory needn't fill its lump (on peter/2-06.dmk, GPL=6, it's 3 granules), and
-            // reading the rest of the lump as entries hits file data and rejects the candidate.
-            // NEWDOS records the size in HIT byte 0x1F, but trying every size is simpler, and
+            // The directory needn't fill its lump (with GPL=6 it can be 3 granules), and reading
+            // the rest of the lump as entries hits file data and rejects the candidate.
+            // NEWDOS/80 records the size in HIT byte 0x1F, but trying every size is simpler, and
             // compareTo() prefers a directory that doesn't fill its lump.
             for (let granulesPerDir = 2; granulesPerDir <= granulesPerLump; granulesPerDir++) {
                 for (let dirLumpNumber = 0; dirLumpNumber < lumpCount; dirLumpNumber++) {
