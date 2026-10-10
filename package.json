@@ -6,6 +6,7 @@
     "build": "npm run typecheck && npm run build --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present",
     "test": "npm run test -w packages/z80-asm -w packages/z80-disasm -w packages/z80-emulator -w packages/z80-test",
+    "pretypecheck": "npm run updateBuildInfo --workspaces --if-present --silent",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {

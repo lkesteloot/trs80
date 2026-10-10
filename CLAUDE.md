@@ -24,7 +24,7 @@ own folder and package name, but none is built on its own:
 ## Commands (from the repo root)
 
     npm install
-    npm run build        # Every package's build, then the type check.
+    npm run build        # The type check, then every package's build.
     npm run typecheck    # Only tsc: fast, and the main correctness check.
     npm test             # z80-asm, z80-disasm, z80-emulator, z80-test. Nothing else has tests.
     npm start -w packages/trs80-ide          # Dev server (also my-trs-80, trs80-cassette-webapp, fp-215).
@@ -55,7 +55,8 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
 ## Generated files
 
 - `src/build.ts` in trs80-tool and the three apps is written by `printBuildInfo`
-  on every build and is gitignored.
+  on every build and is gitignored. The root `pretypecheck` script writes them
+  too, since `tsc` needs them and a fresh checkout or worktree has none.
 - `trs80-tool/src/version.ts` comes from the tool's `package.json` version and
   is committed.
 - z80-inst's generator (`npm run generate`) writes `src/Opcodes.ts`, which is committed.
