@@ -1119,23 +1119,91 @@ export class Trsdos {
         const gatInfo = this.getGatInfo();
         if (typeof gatInfo === "string") {
             return "Unknown";
-        } else if (this.version === TrsdosVersion.V1_3) {
+        }
+        if (this.version === TrsdosVersion.V1_3) {
             return "TRSDOS 1.3";
-        } else {
-            const major = gatInfo.osVersion >> 4;
-            const minor = gatInfo.osVersion & 0x0F;
+        }
 
-            if (major === 5) {
-                // NEWDOS 3.0 also hits this.
-                return "LDOS " + major + "." + minor;
-            } else if (major === 6 && minor === 3) {
-                return "LS-DOS " + major + "." + minor;
-            } else if (major === 8 && minor === 2) {
-                return "NEWDOS/80";
-            } else {
-                return "TRSDOS " + major + "." + minor;
+        // FORMAT writes the boot track on every disk, system or data, and some DOSes name
+        // themselves there. MultiDOS's 0xCB is unreliable (0x00, 0x10, 0x17, 0x55, 0xFF),
+        // so leave its version off.
+        const bootTrack = this.getBootTrackText();
+        if (/MULTIDOS|Cosmopolitan|\(c\) CEC/.test(bootTrack)) {
+            return "MultiDOS";
+        }
+        if (bootTrack.includes("ULTRADOS")) {
+            return "UltraDOS";
+        }
+
+        const osVersion = gatInfo.osVersion;
+        const major = osVersion >> 4;
+        const minor = osVersion & 0x0F;
+        switch (osVersion) {
+            case 0x00:
+                if (this.hasTrsdos23BBootSector()) {
+                    return "TRSDOS 2.3B";
+                }
+                break;
+            case 0x21:
+                // TRSDOS 2.1 through 2.3 all write 0x21.
+                return "TRSDOS 2.x";
+            case 0x30:
+                return "VTOS 3.0";
+            case 0x60:
+                // DOSPLUS IV writes the TRSDOS 6 GAT.
+                if (bootTrack.includes("DOSPLUS")) {
+                    return "DOSPLUS IV";
+                }
+                break;
+            case 0x80:
+                return "NEWDOS/80 v1.0";
+            case 0x82:
+                return "NEWDOS/80 v2.0";
+        }
+
+        if ((osVersion >= 0x31 && osVersion <= 0x35) || osVersion === 0x40) {
+            return "DOSPLUS " + major + "." + minor;
+        } else if (major === 5) {
+            // NEWDOS 3.0 also hits this.
+            return "LDOS " + major + "." + minor;
+        } else if (major === 6 && minor === 3) {
+            return "LS-DOS " + major + "." + minor;
+        } else {
+            return "TRSDOS " + major + "." + minor;
+        }
+    }
+
+    /**
+     * The contents of the boot track (cylinder 0, side 0) as Latin-1 text, for finding strings.
+     */
+    private getBootTrackText(): string {
+        const bootTrack = this.geometry.bootTrack;
+        let text = "";
+        for (let sector = bootTrack.firstSectorNumber; sector <= bootTrack.lastSectorNumber; sector++) {
+            const data = this.disk.readSector(SectorPosition.make(0, 0, sector))?.data;
+            if (data !== undefined) {
+                text += String.fromCharCode(...data);
             }
         }
+        return text;
+    }
+
+    /**
+     * Whether the boot sector loads SYS0/SYS from cylinder 0 sector 5 the way only TRSDOS 2.3B's
+     * does (LD D,0; LD E,5), rather than through the directory.
+     */
+    private hasTrsdos23BBootSector(): boolean {
+        const bootSector = this.disk.readSector(SectorPosition.make(0, 0, this.geometry.bootTrack.firstSectorNumber));
+        if (bootSector === undefined) {
+            return false;
+        }
+        const data = bootSector.data;
+        for (let i = 0; i + 3 < data.length; i++) {
+            if (data[i] === 0x16 && data[i + 1] === 0x00 && data[i + 2] === 0x1E && data[i + 3] === 0x05) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

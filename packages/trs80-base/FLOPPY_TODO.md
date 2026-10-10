@@ -78,13 +78,17 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       unprintable name returns "can't decode directory entry filename" and a
       score of −1. Count it as a miss instead (`Abacux X ... [M3][Original].dmk`
       has 45 good hashes and 8 garbage slots).
-- [ ] **DOS naming in `getNameAndVersion()`.** 0xCB is a BCD version except for
-      NEWDOS/80: 0x80 (v1) currently reports "TRSDOS 8.0" (eleven disks, e.g.
-      `NEWDOS1D.dmk`, which now decodes), and 0x82 (v2) reports "NEWDOS/80" with
-      an empty version, so the summary reads "NEWDOS/80  (Model I)". DOSPLUS 3.3-3.5 (0x33-0x35, boot prefix `F3 FE` or the high
-      bit set on the directory byte) reports "TRSDOS 3.x". TRSDOS 2.3B writes 0
-      and reports "TRSDOS 0.0"; its boot sector has the fingerprint `16 00 1E 05`
-      (2.3 has `57 1E 04`).
+- [ ] **What `getNameAndVersion()` still gets wrong.** It now maps 0xCB to
+      NEWDOS/80 1 and 2, VTOS 3.0, DOSPLUS 3.1-4.0 and TRSDOS 2.x (0x21), and
+      recognizes MultiDOS and UltraDOS by strings in the boot track, DOSPLUS IV
+      the same way when 0xCB is 0x60, and TRSDOS 2.3B by its boot fingerprint.
+      Still wrong, all needing the SYS0 banner or other evidence: NEWDOS 2.1 and
+      `NEWDOSPL.dmk` ("TRSDOS 2.x"), NEWDOS 3.0 (`newdos30.dmk`, `NEWDOS-3.dmk`,
+      "LDOS 5.3"), the 1.2 disks ("TRSDOS 1.3"), MultiDOS v1.2P ("LDOS 5.5"; no
+      boot string), and `trsdos-6.2-ssdd-crc-weird-version.dmk`, whose 0xCB of
+      0x35 makes it "DOSPLUS 3.5" although its media block says TRSDOS 6.2.
+      Unverified: 0x22 and 0x50 on Kim Watt's utility disks, 0x16 on two disks,
+      0x32 ("DOSPLUS 3.2") on six, and 0x00 on the Planet Makruk disks.
 - [ ] **`TrsdosGatInfo`'s LDOS fields are unused.** With `Trsdos14GatInfo` and
       `generateLdosCandidates()` gone and the report no longer printing them,
       `cylinderCount`, `granulesPerTrack`, `sideCount` and `density` (and the
@@ -94,7 +98,7 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
 - [ ] **Identify the DOS from better evidence than 0xCB**: the SYS0/SYS banner,
       then a table of boot-sector hashes, then distinctive boot messages, then
       0xCB (see "Identifying the DOS" in `FLOPPY_FORMATS.md`). This would fix the
-      naming items above, and tell DOSPLUS IV (0x60) from TRSDOS 6.0. On TRSDOS
+      naming item above. On TRSDOS
       6 and LS-DOS, the system information sector's version byte and the media
       block's "LSI" or "631" tag help too. `trsdos-1.2.dmk` reports 1.3.
       TRSDOS 2.x's SYS0 banner is stored negated, so a banner search must try
