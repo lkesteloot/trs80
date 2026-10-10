@@ -835,9 +835,10 @@ export class Trsdos {
             return this.allocationSides - other.allocationSides;
         }
 
-        // Same for the directory: if its entries on side 1 of the directory cylinder add
-        // nothing, they aren't there (DOSPLUS keeps the directory on side 0). A directory that
-        // doesn't fill its lump sorts first.
+        // Same for the directory: if the rest of its lump adds nothing, the directory doesn't
+        // extend there (DOSPLUS keeps it on side 0 of the directory cylinder, and a NEWDOS
+        // directory can be smaller than its lump). A directory that doesn't fill its lump
+        // sorts first. Among sizes that don't, the generators' order (smallest first) decides.
         const thisDirFillsLump = this.granulesPerDir === this.granulesPerLump;
         const otherDirFillsLump = other.granulesPerDir === other.granulesPerLump;
         if (thisDirFillsLump !== otherDirFillsLump) {
@@ -930,11 +931,13 @@ export class Trsdos {
                                 badExtents += 1;
                             }
                         }
-                        // DIR/SYS is the directory itself.
+                        // DIR/SYS is the file that holds the directory, so if there is one, it must
+                        // start at our directory lump. Otherwise we're reading some other layout
+                        // that happens to reach the same sectors, or a leftover directory.
                         if (dirEntry.getFilename("/") === "DIR/SYS" && dirEntry.extents.length > 0 &&
                             dirEntry.extents[0].cylinderNumber !== this.dirLumpNumber) {
 
-                            badExtents += 1;
+                            return { score: -1, reason: `DIR/SYS is on lump ${dirEntry.extents[0].cylinderNumber}, not the directory's lump` };
                         }
                     }
                 }
@@ -1409,13 +1412,18 @@ function generateNewdos80Candidates(disk: FloppyDisk): Trsdos[] {
     for (const allocationSides of [1, 2]) {
         for (let granulesPerLump = 2; granulesPerLump <= 8; granulesPerLump++) {
             const sectorsPerLump = granulesPerLump * sectorsPerGranule;
-            const granulesPerDir = granulesPerLump; // TODO discover.
             const sectorsPerCylinder = geometry.modalDataSectorSpan*allocationSides;
             const lumpCount = computeLumpCount(geometry, firstDataCylinder, sectorsPerCylinder, sectorsPerLump);
 
-            for (let dirLumpNumber = 0; dirLumpNumber < lumpCount; dirLumpNumber++) {
-                candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
-                    dirLumpNumber, granulesPerDir, firstDataCylinder));
+            // The directory needn't fill its lump (on peter/2-06.dmk, GPL=6, it's 3 granules), and
+            // reading the rest of the lump as entries hits file data and rejects the candidate.
+            // NEWDOS records the size in HIT byte 0x1F, but trying every size is simpler, and
+            // compareTo() prefers a directory that doesn't fill its lump.
+            for (let granulesPerDir = 2; granulesPerDir <= granulesPerLump; granulesPerDir++) {
+                for (let dirLumpNumber = 0; dirLumpNumber < lumpCount; dirLumpNumber++) {
+                    candidates.push(new Trsdos(disk, geometry, version, allocationSides, granulesPerLump, sectorsPerGranule,
+                        dirLumpNumber, granulesPerDir, firstDataCylinder));
+                }
             }
         }
     }

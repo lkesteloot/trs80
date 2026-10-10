@@ -225,7 +225,13 @@ On a double-sided disk:
   double-sided disks (the TRSLink issues), six 5-sector granules per lump on
   one side reach the same directory sectors as six 6-sector granules on two,
   and every extent fits. DIR/SYS gives it away, because its extent names the
-  directory's lump (20) and that reading puts the directory in lump 12.
+  directory's lump (20) and that reading puts the directory in lump 12. So
+  when a directory has DIR/SYS, a reading that puts the directory anywhere else
+  is rejected. That also rejects the leftover side-1 directory on `Super Dos
+  [IRA334]`, whose DIR/SYS points elsewhere, and the short NEWDOS-style
+  directory that dodged the bad sector on `03 -Assignments [T40S01]`. TRSDOS
+  1.3 and 2.3B directories have no DIR/SYS, so they get no help from it; boot
+  byte 2 would cover them.
   Comparing the directory sectors' interleave on the two sides doesn't help:
   it's the same on every double-sided disk in the collection, including those
   whose side 1 is left over from an earlier format.

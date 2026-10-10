@@ -33,17 +33,14 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       decoder's side count, not with the disk). Use it as the
       first candidate's parameters, or as a score bonus for candidates that
       agree with it, like PDRIVE.
-- [ ] **NEWDOS directory size** (the `granulesPerDir` TODO in its generator,
-      which uses a whole lump). The 2.3-family generator now tries a side-0
-      directory on double-sided disks, as DOSPLUS writes (`dospls34.dmk`,
-      `willus/PRODUCER.dmk`, Cornsoft-Brix `bath4`), and a whole cylinder, as
-      LDOS does. NEWDOS still needs it: the German `NEWDOS-80 v2.0 ...` disk and
-      `peter/2-06.dmk` have `GPL=6` GATs (bytes 0xC0, 0xCF), but the `GPL=6`
-      candidate reads a whole lump (30 sectors) of directory where the real one
-      is 10 or 20, hits garbage and is rejected, so they decode with smaller
-      lumps instead (same directory, same files, and the German disk now has 14
-      impossible extents). NEWDOS records the directory size itself, in HIT
-      byte 0x1F (extra entry sectors beyond 8); use that.
+- [ ] **Directory size is tried, not read.** The 2.3-family generator tries a
+      side-0 directory on double-sided disks (DOSPLUS) and a whole cylinder
+      (LDOS); the NEWDOS generator tries every size from 2 granules to the lump.
+      Ties go to the smaller one, which on Model II's 30-sector tracks lets
+      six 5-sector NEWDOS granules beat three 10-sector ones
+      (`m2-lsdos-blank.dmk`, which then shows a 15-sector DIR/SYS). Reading the
+      size would be firmer: DIR/SYS's own extent where there is one, or NEWDOS's
+      HIT byte 0x1F (extra entry sectors beyond 8).
 - [ ] **(Granule size, `GPL`) as candidate parameters for every family.** MultiDOS
       uses TRSDOS-style lumps on `MLTDOS4P.dmk` but `GPL=2` with 5-sector granules
       on its pseudo-density disks; several non-NEWDOS disks (`BUSINESS`, `COMREF`,
@@ -150,13 +147,6 @@ against the layout found when the lump model was verified.
 - `peter/52VFRED.DMK`: decodes (`GPL=8`, double-sided, 9 code files clean), but
   its GAT reads 0x25 in every used lump, which isn't a granule bitmap. No
   candidate passes the strict GAT check, so it falls back to the best score.
-- `peter/Super Dos  [VDISK OK] [IRA334].dmk`: side 1 of cylinder 17 holds a
-  second directory, left over from an earlier format, with 40 entries against
-  38 in the real one on side 0. Read double-sided with `GPL=2` lumps, that one
-  outscores the real one, and only 8 of its 31 CMD and SYS files are CMD
-  programs, against 27 read single-sided. The report calls all 40 files clean,
-  because bytes that aren't a CMD program at all get no decode error.
-  Preferring the directory the boot sector names would fix it.
 - Percom OS-80, OS-80 III and MicroDOS (17 disks): a different DOS altogether
   (boot `FE 00` at sector 1), not decoded.
 
@@ -201,9 +191,19 @@ enough to rebuild them.
 
 ## Where things stand
 
-Latest, after trying both allocation sides (October 10, 2026), still before any
-`--update`: 56 same, 16 better, 0 worse, 32 changed and 197 new; 247 of 301
-disks decode. The three that were worse are fixed: the Cornsoft SynthDev disks
+Latest, after the NEWDOS directory sizes and the DIR/SYS check (October 10,
+2026), still before any `--update`: 55 same, 16 better, 0 worse, 33 changed
+and 197 new; 247 of 301 disks decode. Against the commit before, across the
+whole collection: the three `GPL=6`-`8` NEWDOS 2.0 system disks (`2-06`, the
+German disk, `willus/NEWDMIN.dmk`) now read with their real lump size, and
+their CMD files go from 2-8 valid to 24-31 of 24-32. Super Dos reads its real
+directory on side 0 (27 of 31 CMD files valid, up from 8), and `03
+-Assignments [T40S01]` its real one on cylinder 40. `49VFRED.DMK` finds 10
+fewer files, none of which were readable. `m2-lsdos-blank.dmk` changed reading
+(see the directory-size item).
+
+Before that, after trying both allocation sides: 56 same, 16 better, 0 worse,
+32 changed and 197 new; 247 of 301 disks decode. The three that were worse are fixed: the Cornsoft SynthDev disks
 read single-sided again and match their snapshots apart from the name, and
 `dospls34.dmk` decodes with all 38 files clean. Across the whole collection,
 `PRODUCER.dmk` and Cornsoft-Brix `bath4` decode now too. Three disks that
