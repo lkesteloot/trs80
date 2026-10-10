@@ -116,9 +116,10 @@ We use TypeScript 7 with `strict`, `exactOptionalPropertyTypes`,
   means "not this". Keep a floor so that unrecognized disks stay undecoded
   instead of getting a garbage directory: at least one hash hit, or a strict GAT
   pass for disks with no entries.
-- **Verify structural changes against every image**, not just the ones with
-  snapshots: most of the collection (`disks/peter/`) has none, and that's where
-  the exceptions turned up. Judge those by internal consistency, as described at
+- **Verify structural changes by content, not only by snapshot diffs.** Every
+  disk has a snapshot, but most (all of `disks/peter/`) only record what the
+  decoder produced when they were taken, not what's right, and that's where the
+  exceptions turned up. Judge changes by internal consistency, as described at
   the end of `FLOPPY_TODO.md`.
 - **SCP is untested.** There are no SCP images in the suite, so that reader
   compiles but nothing exercises it.

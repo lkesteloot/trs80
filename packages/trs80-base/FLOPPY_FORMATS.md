@@ -944,8 +944,11 @@ entirely untested.
 
 ## Disks worth remembering
 
-As of October 2026 the collection is 301 images: 279 DMK, 13 DSK, 5 JV1, 4 JV3.
-Most of the growth is in `peter/`, which has no snapshots yet.
+As of October 2026 the collection is 288 images: 266 DMK, 13 DSK, 5 JV1, 4 JV3,
+all with sidecars and snapshots. The biggest part is `peter/` (152): Ira's set
+of disks that trsread and trstools couldn't read but VDISK could (see its
+`README.md`). Thirteen byte-identical copies were removed when it was added,
+and their names kept as aliases.
 
 **`willus/`** holds 25 disks picked from willus.com's archive of TRS-80
 software (`~/Dropbox/Personal/willus.com/trs80`, about 15,500 DMK files). Most

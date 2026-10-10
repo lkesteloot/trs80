@@ -5,8 +5,8 @@ doesn't do yet. Too small for GitHub issues, too important to lose. Check items
 off by deleting them when the code catches up, and add new ones as they turn up.
 Each item names the evidence disks, all in `~/mine/trs80-floppy-regress/disks`.
 
-Last updated October 8, 2026, after the switch to the lump model (the commit
-following f7008d4). "Where things stand" at the end has the regression results.
+Last updated October 10, 2026, after merging the NEWDOS/80 work (the lump model)
+into `floppy-decode`. "Where things stand" at the end has the regression results.
 
 ## Finishing the lump model
 
@@ -130,16 +130,26 @@ linear HIT index, and a GAT sliced to `lumpCount`. What's left:
       Model 4) and `willus/ND80M3V3.dmk` (NEWDOS/80) both have headers saying
       40 tracks double sided but hold 79 tracks, one short; willus's archive
       has a third (`pwrtol03`, 35 tracks, also one short). Read the tracks that
-      are there instead of rejecting the file.
+      are there instead of rejecting the file. `peter/104 Elephant ... CP-M
+      2.2 ...` is far shorter (39,184 bytes of a promised 287,248), and CP/M
+      anyway.
 - [ ] **A `.dmk` extension only tries the DMK reader**, while `.dsk` sniffs.
       `willus/ld1-531.dmk` is really JV1 and `willus/l808709a.dmk` JV3; about 30
       of willus's `.dmk` files are like that. Fall back to `decodeDsk()`.
+- [ ] **BOOT/SYS reports missing sectors on three disks** where the old decoder
+      read it cleanly: `simple/ldosutil.dmk`, `willus/dsp1321a.dmk` and
+      `peter/Col 2 - 010 - No Box - Dos+ Master [T27-1 T28-1].dmk` (3-8
+      sectors each). Probably the lump model's view of cylinder 0; only
+      BOOT/SYS is affected.
+- [ ] **`info` labels every 2.3-family disk "Model I"**, including LS-DOS and
+      TRSDOS 6 disks ("LS-DOS 6.3 (Model I)"), since 764eedc folded the LDOS
+      variant into the 2.3 family. `trsdosVersionToString()` names the
+      directory format, not the machine; the label should say that, or go.
 
 ## Unresolved disks
 
-None of these blocks anything. Several now produce a decoding, but the
-regression suite has no snapshots for them, so each needs checking by hand
-against the layout found when the lump model was verified.
+None of these blocks anything. Each disk's sidecar in the regression suite says
+more.
 
 - `peter/Col 2 - 030 - No Box - No Label.dmk`: now decodes as NEWDOS/80, `GPL=2`,
   directory lump 17, with all 24 system files clean. Earlier notes said its boot
@@ -147,21 +157,21 @@ against the layout found when the lump model was verified.
 - `peter/52VFRED.DMK`: decodes (`GPL=8`, double-sided, 9 code files clean), but
   its GAT reads 0x25 in every used lump, which isn't a granule bitmap. No
   candidate passes the strict GAT check, so it falls back to the best score.
-- Percom OS-80, OS-80 III and MicroDOS (17 disks): a different DOS altogether
-  (boot `FE 00` at sector 1), not decoded.
+- Percom OS-80, OS-80 III and MicroDOS (20 disks in `peter/`, tagged `percom`,
+  including four applications on Percom-formatted disks): a different DOS
+  altogether (boot `FE 00` on the Model I ones), not decoded.
+- Six TRSDOS 6 disks in `peter/` (`Bobby Lee (100)`, `EBAY1024`, `EBAY1035`,
+  the SuperScripsit master, and both `TRSDOS Hard Disk Initialization` sets):
+  cylinder 20 holds valid directory entries, but the HIT sector is a
+  byte-for-byte copy of a file sector elsewhere on the disk, so no hash
+  matches and nothing decodes. Ira says VDISK reads them, so a disk whose HIT
+  matches nothing but whose entries all decode cleanly might deserve a
+  fallback that scores the entries without the HIT.
 
 ## Regression suite housekeeping
 
-- [ ] `disks/peter/` and `disks/planet-makruk/` are untracked, and their 172
-      images have no sidecars or snapshots.
-- [ ] `disks/willus/` (25 disks, October 2026) has sidecars but no snapshots
-      and isn't committed yet.
-- [ ] The snapshots haven't been updated since the switch (see "Where things
-      stand"). Their `rejections` arrays still hold the old reasons, including
-      "Model 4", which no code produces any more; `--update` will clear them.
-- [ ] The five `newdos80/` disks with PDRIVE sidecars have no snapshots yet. All
-      five now decode to exactly their PDRIVE settings with every file clean, so
-      they're ready for `--update` and for facts.
+- [ ] The five `newdos80/` disks with PDRIVE sidecars decode to exactly their
+      PDRIVE settings with every file clean, so they're ready for facts.
 - [ ] `migrate-geometry.mjs` has done its job and can be deleted.
 - [ ] Decide what `dirTrack` means for NEWDOS/80 (lump or cylinder) before adding
       facts for the verified NEWDOS/80 disks.
@@ -191,47 +201,16 @@ enough to rebuild them.
 
 ## Where things stand
 
-Latest, after the NEWDOS/80 directory sizes and the DIR/SYS check (October 10,
-2026), still before any `--update`: 55 same, 16 better, 0 worse, 33 changed
-and 197 new; 247 of 301 disks decode. Against the commit before, across the
-whole collection: the three `GPL=6`-`8` NEWDOS/80 v2.0 system disks (`2-06`, the
-German disk, `willus/NEWDMIN.dmk`) now read with their real lump size, and
-their CMD files go from 2-8 valid to 24-31 of 24-32. Super Dos reads its real
-directory on side 0 (27 of 31 CMD files valid, up from 8), and `03
--Assignments [T40S01]` its real one on cylinder 40. `49VFRED.DMK` finds 10
-fewer files, none of which were readable. `m2-lsdos-blank.dmk` changed reading
-(see the directory-size item).
+October 10, 2026, after merging `newdos80` into `floppy-decode`: the regression
+suite has 288 disks, every one with a sidecar and a snapshot, and all of them
+match (`node regress.ts run` is all `same`). 238 decode. Most of the 50 that
+don't are in `peter/`: the 20 Percom disks and the six TRSDOS 6 disks whose HIT
+holds file data (see "Unresolved disks"), four with garbage directory slots
+(see that item), two with damaged directories, and a truncated DMK. `node
+regress.ts list` shows each disk's notes.
 
-Before that, after trying both allocation sides: 56 same, 16 better, 0 worse,
-32 changed and 197 new; 247 of 301 disks decode. The three that were worse are fixed: the Cornsoft SynthDev disks
-read single-sided again and match their snapshots apart from the name, and
-`dospls34.dmk` decodes with all 38 files clean. Across the whole collection,
-`PRODUCER.dmk` and Cornsoft-Brix `bath4` decode now too. Three disks that
-allocate two sides but were imaged with one (`F05 - Monas Main Disk 2`, Brix
-`bath3`, `willus/dwfontu8.dmk`) now report the side-1 sectors as missing,
-where they used to read the wrong cylinder without complaint.
-
-The rest of this section is the state after the switch.
-
-`node regress.ts run --ignore-rejections` after the switch, before any
-`--update`, and after accepting TRSDOS 2.x's 0x2C DIR/SYS hash: 82 same, 15
-better, 3 worse, 4 changed, and 172 new (the untracked `peter/` and
-`planet-makruk/` disks plus the five `newdos80/` disks, which have no
-snapshots); 226 of 276 disks decode.
-
-- **Worse (3), all items above:** the two Cornsoft SynthDev disks (allocation
-  sides) and `dospls34.dmk` (directory size). `issue-1/m1-trsdos-blank.dmk`
-  is back to its snapshot.
-- **Changed (4):** three double-sided LDOS disks whose `granulesPerTrack` went
-  from 3 to 6 (the report field names above), and `MLTDOS4P.dmk`, whose 90
-  warnings now print sector positions in the new `cylinder:side:sector` form.
-- **Better (15):** every NEWDOS/80 disk in the snapshots now decodes cleanly:
-  `NEWDOS90.dmk` (59 files; it used to find a garbage directory),
-  `NEWDOS1D.dmk`, `newdos80-2.0-ssdd.dmk`, `newdos80-working.dmk`,
-  `hustle_hscore_work_4-26-82.dmk`, `NEWDOS_80sssd_jv1.DSK` (no more truncated
-  files) and `StarTrek-NEWDOS80.dsk` (22 files, up from 8). Also
-  `ldos-5.3.0-ssdd-crc-boot-sector.dmk`, `ldosutil.dmk` and `trsdisk1.dmk` now
-  decode, and five disks that used to throw no longer do.
-- **Among the new disks,** the German NEWDOS/80 disk (cylinder 0 single density on
-  both sides), `73BFRED.DMK`, `52VFRED.DMK` and `newdos80-DSSD-80T.dmk` decode.
-  39 of the 172 don't.
+Against the old decoder (`floppy-decode` before the merge), compared file by
+file across the whole collection, nothing got worse that wasn't wrong before:
+the disks it no longer decodes were all zero-file readings, and the three that
+lost clean files are double-sided allocations imaged single-sided, which now
+report their side-1 sectors as missing instead of reading the wrong cylinder.
